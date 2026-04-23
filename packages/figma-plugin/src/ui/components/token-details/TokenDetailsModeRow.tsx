@@ -154,15 +154,62 @@ export function TokenDetailsModeRow({
     setAutocompleteOpen(false);
   };
 
+  const showHeader = showModeLabel || modified;
+  const controls = editable ? (
+    <div className="tm-token-mode-row__controls">
+      <button
+        type="button"
+        onClick={handleAliasToggle}
+        className={joinClasses(
+          "tm-token-mode-row__icon-button",
+          aliasMode
+            ? "tm-token-mode-row__icon-button--active"
+            : "opacity-30 group-hover/mode:opacity-100",
+        )}
+        title={aliasMode ? "Switch to direct value" : "Switch to reference"}
+        aria-label={
+          aliasMode ? "Switch to direct value" : "Switch to reference"
+        }
+      >
+        <Link2 size={12} strokeWidth={1.5} aria-hidden />
+      </button>
+      {allowCopyFromPrevious && onCopyFromPrevious ? (
+        <button
+          type="button"
+          onClick={onCopyFromPrevious}
+          className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
+          title="Copy from previous mode"
+          aria-label="Copy from previous mode"
+        >
+          <Copy size={12} strokeWidth={1.5} aria-hidden />
+        </button>
+      ) : null}
+      {allowCopyToAll && onCopyToAll ? (
+        <button
+          type="button"
+          onClick={onCopyToAll}
+          className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
+          title="Copy to all other modes"
+          aria-label="Copy to all other modes"
+        >
+          <Rows3 size={12} strokeWidth={1.5} aria-hidden />
+        </button>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <div
       data-token-editor-mode={modeName}
       data-token-editor-alias={editable && aliasMode ? "1" : "0"}
-      className={joinClasses("group/mode tm-token-mode-row", isEmpty && "tm-token-mode-row--empty")}
+      className={joinClasses(
+        "group/mode tm-token-mode-row",
+        isEmpty && "tm-token-mode-row--empty",
+      )}
     >
-      {(showModeLabel || editable) && (
+      {showHeader && (
         <div className="tm-token-mode-row__header">
-          <div className="tm-token-mode-row__label">
+          <div className="tm-token-mode-row__header-main">
             {modified && (
               <span
                 className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
@@ -170,55 +217,16 @@ export function TokenDetailsModeRow({
                 aria-label="Modified"
               />
             )}
-            {showModeLabel ? (
-              <span className="tm-token-mode-row__name" title={modeName}>
-                {modeName}
-              </span>
-            ) : null}
-          </div>
-
-          {editable ? (
-            <div className="tm-token-mode-row__controls">
-              <button
-                type="button"
-                onClick={handleAliasToggle}
-                className={joinClasses(
-                  "tm-token-mode-row__icon-button",
-                  aliasMode
-                    ? "tm-token-mode-row__icon-button--active"
-                    : "opacity-30 group-hover/mode:opacity-100",
-                )}
-                title={aliasMode ? "Switch to direct value" : "Switch to reference"}
-                aria-label={
-                  aliasMode ? "Switch to direct value" : "Switch to reference"
-                }
-              >
-                <Link2 size={12} strokeWidth={1.5} aria-hidden />
-              </button>
-              {allowCopyFromPrevious && onCopyFromPrevious ? (
-                <button
-                  type="button"
-                  onClick={onCopyFromPrevious}
-                  className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
-                  title="Copy from previous mode"
-                  aria-label="Copy from previous mode"
-                >
-                  <Copy size={12} strokeWidth={1.5} aria-hidden />
-                </button>
-              ) : null}
-              {allowCopyToAll && onCopyToAll ? (
-                <button
-                  type="button"
-                  onClick={onCopyToAll}
-                  className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
-                  title="Copy to all other modes"
-                  aria-label="Copy to all other modes"
-                >
-                  <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-                </button>
+            <div className="tm-token-mode-row__label">
+              {showModeLabel ? (
+                <span className="tm-token-mode-row__name" title={modeName}>
+                  {modeName}
+                </span>
               ) : null}
             </div>
-          ) : null}
+          </div>
+
+          {controls}
         </div>
       )}
 
@@ -269,7 +277,7 @@ export function TokenDetailsModeRow({
               fontSizeRef={fontSizeRef}
             />
           ) : isEmpty ? (
-            <span className="text-secondary italic text-[var(--color-figma-text-tertiary)]">
+            <span className="tm-token-mode-row__empty-value">
               Not set
             </span>
           ) : (
@@ -321,6 +329,10 @@ export function TokenDetailsModeRow({
             aria-label={`Color: ${resolvedColorSwatch}`}
           />
         )}
+
+        {!showHeader && controls ? (
+          <div className="tm-token-mode-row__inline-controls">{controls}</div>
+        ) : null}
       </div>
 
       {typographyPreview && (

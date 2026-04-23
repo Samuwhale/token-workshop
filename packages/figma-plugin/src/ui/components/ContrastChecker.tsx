@@ -29,8 +29,13 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
   const pass = (r: number, min: number) => r >= min;
 
   return (
-    <Collapsible open={open} onToggle={() => setOpen(v => !v)} label="Check contrast">
-      <div className="mt-2 flex flex-col gap-3 pl-3">
+    <Collapsible
+      open={open}
+      onToggle={() => setOpen(v => !v)}
+      label="Check contrast"
+      className="tm-token-details__collapsible"
+    >
+      <div className="tm-token-details__collapsible-body tm-token-details__support-panel">
         <div className="relative">
           <input
             ref={bgInputRef}
@@ -40,7 +45,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
             onFocus={() => { setBgQuery(''); setBgSearchOpen(true); }}
             onBlur={() => setTimeout(() => setBgSearchOpen(false), 150)}
             placeholder="Background color token…"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {bgTokenPath && !bgSearchOpen && (
             <button
@@ -68,7 +73,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
             <div className="flex items-center gap-3">
               {fgHex && bgHex && (
                 <div
-                  className="w-10 h-10 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-subheading font-bold"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-[var(--color-figma-border)] text-subheading font-bold"
                   style={{ color: fgHex, background: bgHex }}
                 >
                   Aa
@@ -79,7 +84,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
                 <div className="text-secondary text-[var(--color-figma-text-secondary)]">Contrast ratio</div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-1 text-secondary text-center">
+            <div className="tm-token-details__contrast-grid">
               {[
                 { label: 'Normal AA', min: 4.5 },
                 { label: 'Large AA', min: 3 },
@@ -89,7 +94,11 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
               ].map(({ label, min }) => (
                 <div
                   key={label}
-                  className={`rounded px-1 py-1 ring-1 ${pass(ratio, min) ? 'ring-[var(--color-figma-success)]/60 text-[var(--color-figma-success)]' : 'ring-[var(--color-figma-error)]/50 text-[var(--color-figma-error)]'}`}
+                  className={`tm-token-details__contrast-check ${
+                    pass(ratio, min)
+                      ? 'tm-token-details__contrast-check--pass'
+                      : 'tm-token-details__contrast-check--fail'
+                  }`}
                 >
                   <div aria-hidden>{pass(ratio, min) ? '✓' : '✕'}</div>
                   <div>{label}</div>

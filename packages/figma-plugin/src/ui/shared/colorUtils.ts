@@ -53,25 +53,18 @@ export function hslToHex(h: number, s: number, l: number): string {
 
 export type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
 
+function roundAlpha(alpha: number): string {
+  return `${Math.round(alpha * 1000) / 1000}`;
+}
+
 /** Display a color value in the chosen format. Handles both hex and CSS Color 4 strings. */
 export function formatHexAs(colorStr: string, format: ColorFormat): string {
-  // For hex input, use legacy fast path for hex/rgb/hsl
+  // Preserve 8-digit hex and route alpha-aware formatting through the core parser.
   if (colorStr.startsWith('#')) {
-    const clean = colorStr.slice(0, 7); // strip alpha for display
+    const clean = normalizeHex(colorStr);
+    if (!/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) return colorStr;
     if (format === 'hex') return clean;
-    const rgb = hexToRgb(clean);
-    if (!rgb) return clean;
-    if (format === 'rgb') {
-      return `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`;
-    }
-    if (format === 'hsl') {
-      const hsl = srgbToHsl(rgb.r, rgb.g, rgb.b);
-      return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
-    }
-    // oklch/p3 need core parser
-    return formatWideGamut(colorStr, format);
   }
-  // Non-hex input (CSS Color 4 string): use core parser for all formats
   return formatWideGamut(colorStr, format);
 }
 
@@ -83,12 +76,18 @@ function formatWideGamut(colorStr: string, format: ColorFormat): string {
       case 'hex': return toHex(parsed);
       case 'rgb': {
         const srgb = toSrgb(parsed);
-        return `rgb(${Math.round(srgb.coords[0] * 255)}, ${Math.round(srgb.coords[1] * 255)}, ${Math.round(srgb.coords[2] * 255)})`;
+        const channels = `${Math.round(srgb.coords[0] * 255)}, ${Math.round(srgb.coords[1] * 255)}, ${Math.round(srgb.coords[2] * 255)}`;
+        return parsed.alpha < 1
+          ? `rgba(${channels}, ${roundAlpha(parsed.alpha)})`
+          : `rgb(${channels})`;
       }
       case 'hsl': {
         const srgb = toSrgb(parsed);
         const hsl = srgbToHsl(srgb.coords[0], srgb.coords[1], srgb.coords[2]);
-        return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
+        const channels = `${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%`;
+        return parsed.alpha < 1
+          ? `hsla(${channels}, ${roundAlpha(parsed.alpha)})`
+          : `hsl(${channels})`;
       }
       case 'oklch': return serializeColor(toOklch(parsed));
       case 'p3': return serializeColor(toDisplayP3(parsed));
@@ -101,37 +100,23 @@ function formatWideGamut(colorStr: string, format: ColorFormat): string {
 
 /**
  * Parse a color string in any supported format.
- * Returns the canonical CSS string: hex for sRGB colors, CSS Color 4 syntax for wide-gamut.
+ * Returns hex for sRGB colors (preserving alpha) and CSS Color 4 syntax for wide-gamut colors.
  * Returns null if the input is not a valid color.
  */
 export function parseColorInput(input: string): string | null {
   const trimmed = input.trim();
+  if (!trimmed) return null;
   // hex — fast path
   if (trimmed.startsWith('#')) {
     const clean = normalizeHex(trimmed);
-    if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) return clean.slice(0, 7);
+    if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) return clean;
     return null;
   }
-  // rgb(r, g, b) — fast path
-  const rgbMatch = trimmed.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
-  if (rgbMatch) {
-    const [, rs, gs, bs] = rgbMatch;
-    const r = parseInt(rs, 10), g = parseInt(gs, 10), b = parseInt(bs, 10);
-    if (r > 255 || g > 255 || b > 255) return null;
-    return rgbToHex(r / 255, g / 255, b / 255);
-  }
-  // hsl(h, s%, l%) — fast path
-  const hslMatch = trimmed.match(/^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/i);
-  if (hslMatch) {
-    const [, hs, ss, ls] = hslMatch;
-    const h = parseInt(hs, 10), s = parseInt(ss, 10), l = parseInt(ls, 10);
-    if (h > 360 || s > 100 || l > 100) return null;
-    return hslToHex(h, s, l);
-  }
-  // CSS Color 4 — oklch(), oklab(), color(display-p3 ...), hwb(), lab(), lch()
   try {
     const parsed = parseAnyColor(trimmed);
-    if (parsed) return serializeColor(parsed);
+    if (parsed) {
+      return isWideGamut(trimmed) ? serializeColor(parsed) : toHex(parsed);
+    }
   } catch {
     logCoreUnavailable();
   }

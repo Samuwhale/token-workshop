@@ -7,6 +7,9 @@ import { GamutIndicator } from '../GamutIndicator';
 import { STORAGE_KEYS, lsGet, lsSet } from '../../shared/storage';
 import { useSettingsListener } from '../SettingsPanel';
 import { AUTHORING } from '../../shared/editorClasses';
+import { dispatchToast } from '../../shared/toastBus';
+
+const EYEDROPPER_REQUEST_TIMEOUT_MS = 8000;
 
 export const ColorSwatchButton = memo(function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { color: string; onChange: (hex: string) => void; className?: string }) {
   const [open, setOpen] = useState(false);
@@ -48,7 +51,8 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
   const [editingText, setEditingText] = useState<string | null>(null);
   const [formatMenuOpen, setFormatMenuOpen] = useState(false);
   const [eyedropperState, setEyedropperState] = useState<'idle' | 'waiting' | 'success'>('idle');
-  const eyedropperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eyedropperFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eyedropperRequestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wideGamut = isWideGamutColor(colorStr);
 
   // Listen for eyedropper result from plugin sandbox
@@ -59,12 +63,17 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
         const parsed = parseColorInput(msg.hex);
         if (parsed) onChange(parsed);
         setEyedropperState('success');
-        if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
-        eyedropperTimerRef.current = setTimeout(() => setEyedropperState('idle'), 1500);
+        if (eyedropperRequestTimerRef.current) clearTimeout(eyedropperRequestTimerRef.current);
+        if (eyedropperFeedbackTimerRef.current) clearTimeout(eyedropperFeedbackTimerRef.current);
+        eyedropperFeedbackTimerRef.current = setTimeout(() => setEyedropperState('idle'), 1500);
       }
     };
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+    return () => {
+      window.removeEventListener('message', handler);
+      if (eyedropperRequestTimerRef.current) clearTimeout(eyedropperRequestTimerRef.current);
+      if (eyedropperFeedbackTimerRef.current) clearTimeout(eyedropperFeedbackTimerRef.current);
+    };
   }, [onChange]);
 
   const displayValue = editingText ?? formatHexAs(colorStr, format);
@@ -84,8 +93,29 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
     setEditingText(null);
   };
 
+  const handleEyedropperClick = useCallback(() => {
+    if (window.parent === window) {
+      dispatchToast('Color sampling only works inside the Figma plugin.', 'error');
+      return;
+    }
+
+    try {
+      window.parent.postMessage({ pluginMessage: { type: 'eyedropper' } }, '*');
+      setEyedropperState('waiting');
+      if (eyedropperFeedbackTimerRef.current) clearTimeout(eyedropperFeedbackTimerRef.current);
+      if (eyedropperRequestTimerRef.current) clearTimeout(eyedropperRequestTimerRef.current);
+      eyedropperRequestTimerRef.current = setTimeout(() => {
+        setEyedropperState('idle');
+        dispatchToast('Figma did not return a sampled color.', 'error');
+      }, EYEDROPPER_REQUEST_TIMEOUT_MS);
+    } catch {
+      setEyedropperState('idle');
+      dispatchToast('Could not start the Figma color sampler.', 'error');
+    }
+  }, []);
+
   return (
-    <div className="relative flex gap-2 items-center">
+    <div className="relative flex items-start gap-2">
       <div className="flex flex-col items-center gap-0.5 shrink-0">
         <button
           type="button"
@@ -97,7 +127,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
         />
         {wideGamut && <GamutIndicator color={colorStr} />}
       </div>
-      <div className="flex-1 flex gap-1 items-center min-w-0">
+      <div className="flex min-h-10 flex-1 items-center gap-1 min-w-0">
         <input
           type="text"
           aria-label="Color hex value"
@@ -121,7 +151,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
             type="button"
             onClick={() => setFormatMenuOpen(v => !v)}
             title={`Format: ${format.toUpperCase()} — click to change`}
-            className="px-1.5 py-1 rounded text-secondary font-medium uppercase text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
+            className="flex min-h-[28px] items-center rounded border border-[var(--color-figma-border)] px-1.5 py-1 text-secondary font-medium uppercase text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
           >
             {format}
           </button>
@@ -149,15 +179,11 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
         </div>
         <button
           type="button"
-          onClick={() => {
-            parent.postMessage({ pluginMessage: { type: 'eyedropper' } }, '*');
-            setEyedropperState('waiting');
-            if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
-          }}
+          onClick={handleEyedropperClick}
           disabled={eyedropperState === 'waiting'}
           title={eyedropperState === 'waiting' ? 'Waiting for Figma selection…' : eyedropperState === 'success' ? 'Color sampled!' : 'Sample color from Figma selection'}
           className={[
-            'shrink-0 flex items-center justify-center w-[26px] h-[26px] rounded border transition-colors',
+            'shrink-0 flex min-h-[28px] min-w-[28px] items-center justify-center rounded border transition-colors',
             eyedropperState === 'success'
               ? 'text-[var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
               : eyedropperState === 'waiting'

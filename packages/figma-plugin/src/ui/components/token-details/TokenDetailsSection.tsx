@@ -9,6 +9,7 @@ interface TokenDetailsSectionProps {
   description?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
+  variant?: "primary" | "secondary" | "support";
   className?: string;
   contentClassName?: string;
 }
@@ -18,13 +19,20 @@ export function TokenDetailsSection({
   description,
   actions,
   children,
+  variant = "secondary",
   className,
   contentClassName,
 }: TokenDetailsSectionProps) {
   const hasHeader = title || description || actions;
 
   return (
-    <section className={joinClasses("tm-token-details__section", className)}>
+    <section
+      className={joinClasses(
+        "tm-token-details__section",
+        `tm-token-details__section--${variant}`,
+        className,
+      )}
+    >
       {hasHeader ? (
         <div className="tm-token-details__section-header">
           <div className="tm-token-details__section-copy">
@@ -36,7 +44,15 @@ export function TokenDetailsSection({
           {actions ? <div className="tm-token-details__section-actions">{actions}</div> : null}
         </div>
       ) : null}
-      <div className={joinClasses(contentClassName)}>{children}</div>
+      <div
+        className={joinClasses(
+          "tm-token-details__section-content",
+          `tm-token-details__section-content--${variant}`,
+          contentClassName,
+        )}
+      >
+        {children}
+      </div>
     </section>
   );
 }

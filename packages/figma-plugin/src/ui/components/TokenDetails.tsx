@@ -1,4 +1,4 @@
-import { adaptShortcut, stableStringify } from "../shared/utils";
+import { adaptShortcut, getErrorMessage, stableStringify } from "../shared/utils";
 import { Copy, Check, Clock, Trash2, Link2, X, Plus } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
@@ -97,6 +97,12 @@ interface TokenDetailsProps {
   onEnterEditMode?: () => void;
   onDuplicate?: () => void;
   onOpenInHealth?: () => void;
+}
+
+function cloneModeValue<T>(value: T): T {
+  return typeof value === "object" && value !== null
+    ? structuredClone(value)
+    : value;
 }
 
 
@@ -315,7 +321,22 @@ export function TokenDetails({
       setEditorNewModeName("");
       return;
     }
+    const ownerCollection =
+      collections.find((collection) => collection.id === ownerCollectionId) ?? null;
+    if (!ownerCollection) {
+      setError("Could not find the active collection.");
+      return;
+    }
+    if (
+      ownerCollection.modes.some(
+        (mode) => mode.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase(),
+      )
+    ) {
+      setError(`Mode "${name}" already exists.`);
+      return;
+    }
     setEditorAddModeSaving(true);
+    setError(null);
     try {
       await apiFetch(
         `${serverUrl}/api/collections/${encodeURIComponent(ownerCollectionId)}/modes`,
@@ -328,12 +349,20 @@ export function TokenDetails({
       setEditorNewModeName("");
       setAddingEditorMode(false);
       onRefresh?.();
-    } catch {
-      // keep input open on error
+      dispatchToast(`Added mode "${name}"`, "success");
+    } catch (err) {
+      setError(getErrorMessage(err, `Failed to add mode "${name}"`));
     } finally {
       setEditorAddModeSaving(false);
     }
-  }, [editorNewModeName, ownerCollectionId, onRefresh, serverUrl]);
+  }, [
+    collections,
+    editorNewModeName,
+    onRefresh,
+    ownerCollectionId,
+    serverUrl,
+    setError,
+  ]);
 
   const initialFieldsSnapshot = initialRef.current;
   const hasGeneratedValueChanges = useMemo(() => {
@@ -1325,18 +1354,59 @@ export function TokenDetails({
           onNavigateToToken={onNavigateToToken}
         />
 
-        {isCreateMode && (
-          <div className="tm-token-details__create-setup">
-            <div className="tm-token-details__create-header">
-              <div className="min-w-0">
-                <p className="text-body font-semibold text-[var(--color-figma-text)]">
-                  Token details
-                </p>
-              </div>
-              <div className="w-[112px] shrink-0">
-                <label className="mb-1 block text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-                  Type
+        {isCreateMode ? (
+          <div className="tm-token-details__setup">
+            <div className="tm-token-details__setup-row">
+              <div
+                className="tm-token-details__setup-field tm-token-details__setup-field--path relative"
+                ref={pathInputWrapperRef}
+              >
+                <label className="tm-token-details__field-label">
+                  Token path
                 </label>
+                <input
+                  type="text"
+                  value={editPath}
+                  onChange={(e) => {
+                    setEditPath(e.target.value);
+                    setDisplayError(null);
+                    setShowPathAutocomplete(true);
+                  }}
+                  onFocus={() => {
+                    if (trimmedEditPath) setShowPathAutocomplete(true);
+                  }}
+                  onBlur={(e) => {
+                    if (
+                      !pathInputWrapperRef.current?.contains(e.relatedTarget as Node)
+                    ) {
+                      setShowPathAutocomplete(false);
+                    }
+                  }}
+                  placeholder={NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"}
+                  autoFocus
+                  autoComplete="off"
+                  className={`${AUTHORING.inputMono} ${
+                    duplicatePath
+                      ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
+                      : ""
+                  }`}
+                />
+                {showPathAutocomplete && trimmedEditPath ? (
+                  <PathAutocomplete
+                    query={editPath}
+                    allTokensFlat={allTokensFlat}
+                    onSelect={(path) => {
+                      setEditPath(path);
+                      setDisplayError(null);
+                      setShowPathAutocomplete(path.endsWith("."));
+                    }}
+                    onClose={() => setShowPathAutocomplete(false)}
+                  />
+                ) : null}
+              </div>
+
+              <div className="tm-token-details__setup-field tm-token-details__setup-field--type">
+                <label className="tm-token-details__field-label">Type</label>
                 <TypePicker
                   value={tokenType}
                   onChange={handleTypeChange}
@@ -1345,65 +1415,22 @@ export function TokenDetails({
                 />
               </div>
             </div>
-            <div className="relative" ref={pathInputWrapperRef}>
-              <label className="mb-1 block text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-                Token path
-              </label>
-              <input
-                type="text"
-                value={editPath}
-                onChange={(e) => {
-                  setEditPath(e.target.value);
-                  setDisplayError(null);
-                  setShowPathAutocomplete(true);
-                }}
-                onFocus={() => {
-                  if (trimmedEditPath) setShowPathAutocomplete(true);
-                }}
-                onBlur={(e) => {
-                  if (
-                    !pathInputWrapperRef.current?.contains(e.relatedTarget as Node)
-                  ) {
-                    setShowPathAutocomplete(false);
-                  }
-                }}
-                placeholder={NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"}
-                autoFocus
-                autoComplete="off"
-                className={`${AUTHORING.inputMono} ${
-                  duplicatePath
-                    ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
-                    : ""
-                }`}
-              />
-              {showPathAutocomplete && trimmedEditPath && (
-                <PathAutocomplete
-                  query={editPath}
-                  allTokensFlat={allTokensFlat}
-                  onSelect={(path) => {
-                    setEditPath(path);
-                    setDisplayError(null);
-                    setShowPathAutocomplete(path.endsWith("."));
-                  }}
-                  onClose={() => setShowPathAutocomplete(false)}
-                />
-              )}
-            </div>
-            <div className="tm-token-details__create-meta">
+
+            <div className="tm-token-details__setup-meta">
               <span>Collection: {ownerCollectionId}</span>
-              {trimmedEditLeaf && <span>Leaf: {trimmedEditLeaf}</span>}
+              {trimmedEditLeaf ? <span>Leaf: {trimmedEditLeaf}</span> : null}
             </div>
-            {duplicatePath && (
-              <p className="text-secondary text-[var(--color-figma-error)]">
+
+            {duplicatePath ? (
+              <p className="tm-token-details__error-copy">
                 A token with this path already exists in{" "}
                 {pathToCollectionId[trimmedEditPath] || ownerCollectionId}.
               </p>
-            )}
-            {!editPath.includes(".") && createSuggestions.length > 0 && (
+            ) : null}
+
+            {!editPath.includes(".") && createSuggestions.length > 0 ? (
               <div className="tm-token-details__suggestions">
-                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                  Try:
-                </span>
+                <span className="tm-token-details__field-help">Try</span>
                 {createSuggestions.map((prefix) => (
                   <button
                     key={prefix}
@@ -1418,156 +1445,151 @@ export function TokenDetails({
                   </button>
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
         <TokenDetailsSection
           title="Value"
           description={valueSectionDescription}
           actions={valueSectionActions}
+          variant="primary"
         >
           <div
-            className="flex flex-col gap-3"
+            className="tm-token-details__value-stack"
             ref={valueEditorContainerRef}
             onPaste={isEditMode ? handlePaste : undefined}
           >
-            <div
-              className="tm-token-details__mode-stack"
-              title={
-                modeValue.modes.length >= 2
-                  ? (valueFormatHint(tokenType) || undefined)
-                  : undefined
-              }
-            >
-              {modeValue.modes.map((mode, modeIdx) => {
-                const modeVal = mode.value === "" ? undefined : mode.value;
-                const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
-                const initialModeVal =
-                  modeIdx === 0
-                    ? initialFieldsSnapshot?.value
-                    : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
-                const isModeModified =
-                  initialModeVal !== undefined &&
-                  stableStringify(modeVal ?? "") !== stableStringify(initialModeVal ?? "");
-                const showModeLabel = modeValue.modes.length >= 2;
+            <div className="tm-token-details__value-surface">
+              <div
+                className="tm-token-details__mode-stack"
+                title={
+                  modeValue.modes.length >= 2
+                    ? (valueFormatHint(tokenType) || undefined)
+                    : undefined
+                }
+              >
+                {modeValue.modes.map((mode, modeIdx) => {
+                  const modeVal = mode.value === "" ? undefined : mode.value;
+                  const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
+                  const initialModeVal =
+                    modeIdx === 0
+                      ? initialFieldsSnapshot?.value
+                      : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
+                  const isModeModified =
+                    initialModeVal !== undefined &&
+                    stableStringify(modeVal ?? "") !== stableStringify(initialModeVal ?? "");
+                  const showModeLabel = modeValue.modes.length >= 2;
 
-                return (
-                  <TokenDetailsModeRow
-                    key={mode.name}
-                    modeName={mode.name}
-                    tokenType={tokenType}
-                    value={modeVal}
-                    editable={isEditMode}
-                    onChange={isEditMode ? mode.setValue : undefined}
-                    allTokensFlat={allTokensFlat}
-                    pathToCollectionId={pathToCollectionId}
-                    showModeLabel={showModeLabel}
-                    autoFocus={modeIdx === 0 && !isCreateMode && isEditMode}
-                    baseValue={baseVal}
-                    availableFonts={availableFonts}
-                    fontWeightsByFamily={fontWeightsByFamily}
-                    fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
-                    fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
-                    modified={isModeModified && !isCreateMode}
-                    onNavigateToToken={(path) => onNavigateToToken?.(path, tokenPath)}
-                    allowCopyFromPrevious={isEditMode && modeValue.modes.length > 1}
-                    onCopyFromPrevious={
-                      isEditMode && modeValue.modes.length > 1
-                        ? () => {
-                            const sourceIdx =
-                              modeIdx === 0
-                                ? modeValue.modes.length - 1
-                                : modeIdx - 1;
-                            const sourceValue = modeValue.modes[sourceIdx].value;
-                            if (sourceValue !== "" && sourceValue != null) {
-                              mode.setValue(
-                                typeof sourceValue === "object"
-                                  ? JSON.parse(JSON.stringify(sourceValue))
-                                  : sourceValue,
-                              );
+                  return (
+                    <TokenDetailsModeRow
+                      key={mode.name}
+                      modeName={mode.name}
+                      tokenType={tokenType}
+                      value={modeVal}
+                      editable={isEditMode}
+                      onChange={isEditMode ? mode.setValue : undefined}
+                      allTokensFlat={allTokensFlat}
+                      pathToCollectionId={pathToCollectionId}
+                      showModeLabel={showModeLabel}
+                      autoFocus={modeIdx === 0 && !isCreateMode && isEditMode}
+                      baseValue={baseVal}
+                      availableFonts={availableFonts}
+                      fontWeightsByFamily={fontWeightsByFamily}
+                      fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
+                      fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
+                      modified={isModeModified && !isCreateMode}
+                      onNavigateToToken={(path) => onNavigateToToken?.(path, tokenPath)}
+                      allowCopyFromPrevious={isEditMode && modeValue.modes.length > 1}
+                      onCopyFromPrevious={
+                        isEditMode && modeValue.modes.length > 1
+                          ? () => {
+                              const sourceIdx =
+                                modeIdx === 0
+                                  ? modeValue.modes.length - 1
+                                  : modeIdx - 1;
+                              const sourceValue = modeValue.modes[sourceIdx].value;
+                              if (sourceValue !== "" && sourceValue != null) {
+                                mode.setValue(cloneModeValue(sourceValue));
+                              }
                             }
-                          }
-                        : undefined
-                    }
-                    allowCopyToAll={
-                      isEditMode &&
-                      modeValue.modes.length > 1 &&
-                      modeVal !== "" &&
-                      modeVal != null
-                    }
-                    onCopyToAll={
-                      isEditMode &&
-                      modeValue.modes.length > 1 &&
-                      modeVal !== "" &&
-                      modeVal != null
-                        ? () => {
-                            const sourceValue = mode.value;
-                            if (sourceValue === "" || sourceValue == null) return;
-                            modeValue.modes.forEach((destMode, destIdx) => {
-                              if (destIdx === modeIdx) return;
-                              destMode.setValue(
-                                typeof sourceValue === "object"
-                                  ? JSON.parse(JSON.stringify(sourceValue))
-                                  : sourceValue,
-                              );
-                            });
-                          }
-                        : undefined
-                    }
-                  />
-                );
-              })}
-              {isEditMode && addingEditorMode ? (
-                <div className="tm-token-details__mode-add-input">
-                  <input
-                    type="text"
-                    value={editorNewModeName}
-                    onChange={(e) => setEditorNewModeName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void handleAddEditorMode();
-                      if (e.key === "Escape") {
-                        setAddingEditorMode(false);
-                        setEditorNewModeName("");
+                          : undefined
                       }
-                    }}
-                    onBlur={() => {
-                      if (!editorNewModeName.trim()) {
-                        setAddingEditorMode(false);
-                        setEditorNewModeName("");
+                      allowCopyToAll={
+                        isEditMode &&
+                        modeValue.modes.length > 1 &&
+                        modeVal !== "" &&
+                        modeVal != null
                       }
-                    }}
-                    autoFocus
-                    disabled={editorAddModeSaving}
-                    placeholder="Mode name"
-                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none"
-                  />
-                </div>
-              ) : isEditMode ? (
-                <button
-                  type="button"
-                  onClick={() => setAddingEditorMode(true)}
-                  className="tm-token-details__mode-add"
-                >
-                  <Plus size={12} strokeWidth={1.5} aria-hidden />
-                  Add mode
-                </button>
-              ) : null}
+                      onCopyToAll={
+                        isEditMode &&
+                        modeValue.modes.length > 1 &&
+                        modeVal !== "" &&
+                        modeVal != null
+                          ? () => {
+                              const sourceValue = mode.value;
+                              if (sourceValue === "" || sourceValue == null) return;
+                              modeValue.modes.forEach((destMode, destIdx) => {
+                                if (destIdx === modeIdx) return;
+                                destMode.setValue(cloneModeValue(sourceValue));
+                              });
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+                {isEditMode && addingEditorMode ? (
+                  <div className="tm-token-details__mode-add-input">
+                    <input
+                      type="text"
+                      value={editorNewModeName}
+                      onChange={(e) => setEditorNewModeName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void handleAddEditorMode();
+                        if (e.key === "Escape") {
+                          setAddingEditorMode(false);
+                          setEditorNewModeName("");
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!editorNewModeName.trim()) {
+                          setAddingEditorMode(false);
+                          setEditorNewModeName("");
+                        }
+                      }}
+                      autoFocus
+                      disabled={editorAddModeSaving}
+                      placeholder="Mode name"
+                      className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none"
+                    />
+                  </div>
+                ) : isEditMode ? (
+                  <button
+                    type="button"
+                    onClick={() => setAddingEditorMode(true)}
+                    className="tm-token-details__mode-add"
+                  >
+                    <Plus size={12} strokeWidth={1.5} aria-hidden />
+                    Add mode
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             {isEditMode &&
-              tokenType === "color" &&
-              (valueIsAlias || (typeof value === "string" && value.length > 0)) && (
-                <ColorModifiersEditor
-                  reference={valueIsAlias ? (value as string) : undefined}
-                  colorFlatMap={valueIsAlias ? colorFlatMap : undefined}
-                  directColor={
-                    !valueIsAlias && typeof value === "string" ? value : undefined
-                  }
-                  colorModifiers={colorModifiers}
-                  onColorModifiersChange={setColorModifiers}
-                />
-              )}
+            tokenType === "color" &&
+            (valueIsAlias || (typeof value === "string" && value.length > 0)) ? (
+              <ColorModifiersEditor
+                reference={valueIsAlias ? (value as string) : undefined}
+                colorFlatMap={valueIsAlias ? colorFlatMap : undefined}
+                directColor={
+                  !valueIsAlias && typeof value === "string" ? value : undefined
+                }
+                colorModifiers={colorModifiers}
+                onColorModifiersChange={setColorModifiers}
+              />
+            ) : null}
 
             {isInspectMode && colorModifiers.length > 0 ? (
               <div className="tm-token-details__field">
@@ -1580,186 +1602,209 @@ export function TokenDetails({
           </div>
         </TokenDetailsSection>
 
-        <TokenDetailsSection title="Description">
-          {isInspectMode ? (
-            <p className="tm-token-details__read-text">
-              {description || <span className="tm-token-details__empty-text">No description</span>}
-            </p>
-          ) : (
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description"
-              rows={2}
-              className="min-h-[56px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
-            />
-          )}
-        </TokenDetailsSection>
-
         <TokenDetailsSection
-          title="Usage"
-          description="Define where this token applies and how it should be treated in the system."
+          title="Details"
+          description="Description, usage constraints, and lifecycle."
+          variant="secondary"
         >
-          <div className="tm-token-details__usage-grid">
-            {FIGMA_SCOPE_OPTIONS[tokenType] ? (
-              <div className="tm-token-details__field">
-                <span className="tm-token-details__field-label">Can apply to</span>
-                <p className="tm-token-details__field-help">
-                  Pick the Figma fields this token is valid for. Leave empty to allow
-                  any compatible field.
+          <div className="tm-token-details__details-stack">
+            <div className="tm-token-details__field">
+              <span className="tm-token-details__field-label">Description</span>
+              {isInspectMode ? (
+                <p className="tm-token-details__read-text">
+                  {description ? (
+                    description
+                  ) : (
+                    <span className="tm-token-details__empty-text">
+                      No description
+                    </span>
+                  )}
                 </p>
+              ) : (
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional description"
+                  rows={2}
+                  className="min-h-[56px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
+                />
+              )}
+            </div>
+
+            <div className="tm-token-details__details-grid">
+              {FIGMA_SCOPE_OPTIONS[tokenType] ? (
+                <div className="tm-token-details__field">
+                  <span className="tm-token-details__field-label">Can apply to</span>
+                  <p className="tm-token-details__field-help">
+                    Pick the Figma fields this token is valid for. Leave empty to allow
+                    any compatible field.
+                  </p>
+                  {isInspectMode ? (
+                    <div className="tm-token-details__field-value">
+                      {scopeLabels.length > 0
+                        ? scopeLabels.join(", ")
+                        : "Any compatible field"}
+                    </div>
+                  ) : (
+                    <ScopeEditor
+                      tokenTypes={[tokenType]}
+                      selectedScopes={scopes}
+                      onChange={setScopes}
+                      compact
+                    />
+                  )}
+                </div>
+              ) : null}
+
+              <div className="tm-token-details__field">
+                <span className="tm-token-details__field-label">Lifecycle</span>
                 {isInspectMode ? (
-                  <div className="tm-token-details__field-value">
-                    {scopeLabels.length > 0 ? scopeLabels.join(", ") : "Any compatible field"}
+                  <div className="tm-token-details__lifecycle-row">
+                    <span
+                      className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
+                      aria-hidden
+                    />
+                    <span className="tm-token-details__field-value">
+                      {lifecycleLabel}
+                    </span>
                   </div>
                 ) : (
-                  <ScopeEditor
-                    tokenTypes={[tokenType]}
-                    selectedScopes={scopes}
-                    onChange={setScopes}
-                    compact
-                  />
+                  <div className="tm-token-details__lifecycle-row">
+                    <span
+                      className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
+                      aria-hidden
+                    />
+                    <select
+                      value={lifecycle}
+                      onChange={(e) => setLifecycle(e.target.value as typeof lifecycle)}
+                      className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                      aria-label="Lifecycle"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="deprecated">Deprecated</option>
+                    </select>
+                  </div>
                 )}
               </div>
-            ) : null}
-
-            <div className="tm-token-details__field">
-              <span className="tm-token-details__field-label">Lifecycle</span>
-              {isInspectMode ? (
-                <div className="tm-token-details__lifecycle-row">
-                  <span className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`} aria-hidden />
-                  <span className="tm-token-details__field-value">{lifecycleLabel}</span>
-                </div>
-              ) : (
-                <div className="tm-token-details__lifecycle-row">
-                  <span className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`} aria-hidden />
-                  <select
-                    value={lifecycle}
-                    onChange={(e) => setLifecycle(e.target.value as typeof lifecycle)}
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                    aria-label="Lifecycle"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="deprecated">Deprecated</option>
-                  </select>
-                </div>
-              )}
             </div>
           </div>
         </TokenDetailsSection>
 
         {!isCreateMode ? (
-          <TokenDetailsSection title="Related">
-            <div className="tm-token-details__support-stack">
-              {tokenType === "color" ? (
-                <ContrastChecker
-                  tokenPath={tokenPath}
-                  value={value}
-                  allTokensFlat={allTokensFlat}
-                  pathToCollectionId={pathToCollectionId}
-                  colorFlatMap={colorFlatMap}
-                />
-              ) : null}
+          <TokenDetailsSection
+            title="Related"
+            description="Checks, generated state, and downstream impact."
+            variant="support"
+            contentClassName="tm-token-details__support-stack"
+          >
+            {tokenType === "color" ? (
+              <ContrastChecker
+                tokenPath={tokenPath}
+                value={value}
+                allTokensFlat={allTokensFlat}
+                pathToCollectionId={pathToCollectionId}
+                colorFlatMap={colorFlatMap}
+              />
+            ) : null}
 
-              {canBeGeneratorSource && !valueIsAlias ? (
-                <TokenEditorDerivedGroups
-                  tokenPath={tokenPath}
-                  tokenName={tokenName}
-                  tokenType={tokenType}
-                  value={value}
-                  existingGeneratorsForToken={existingGeneratorsForToken}
-                  openGeneratedGroupEditor={openGeneratedGroupEditor}
-                />
-              ) : null}
+            {canBeGeneratorSource && !valueIsAlias ? (
+              <TokenEditorDerivedGroups
+                tokenPath={tokenPath}
+                tokenName={tokenName}
+                tokenType={tokenType}
+                value={value}
+                existingGeneratorsForToken={existingGeneratorsForToken}
+                openGeneratedGroupEditor={openGeneratedGroupEditor}
+              />
+            ) : null}
 
-              {activeProducingGenerator ? (
-                <div className="tm-token-details__generated-card">
-                  <div className="tm-token-details__subsection-copy">
-                    <h4 className="tm-token-details__subsection-title">Generated</h4>
-                    <p className="tm-token-details__subsection-description">
-                      Managed by{" "}
-                      <span className="font-medium text-[var(--color-figma-text)]">
-                        {activeProducingGenerator.name}
-                      </span>
-                      {isInspectMode
-                        ? ". Edit the generator to change the source rules for this token."
-                        : ". Saving here will ask whether to edit the generator, keep a manual exception, or detach this token."}
-                    </p>
-                  </div>
-                  <div className="tm-token-details__generated-actions">
-                    {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) ? (
-                      <button
-                        type="button"
-                        onClick={openGeneratedSource}
-                        className="tm-token-details__text-button"
-                      >
-                        Edit generator
-                      </button>
-                    ) : null}
-                    {isEditMode ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void handleDetachGeneratorOwnership();
-                        }}
-                        disabled={detachingGeneratorOwnership}
-                        className="tm-token-details__text-button tm-token-details__text-button--muted"
-                      >
-                        {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
-                      </button>
-                    ) : null}
-                  </div>
+            {activeProducingGenerator ? (
+              <div className="tm-token-details__generated-card">
+                <div className="tm-token-details__subsection-copy">
+                  <h4 className="tm-token-details__subsection-title">Generated</h4>
+                  <p className="tm-token-details__subsection-description">
+                    Managed by{" "}
+                    <span className="font-medium text-[var(--color-figma-text)]">
+                      {activeProducingGenerator.name}
+                    </span>
+                    {isInspectMode
+                      ? ". Edit the generator to change the source rules for this token."
+                      : ". Saving here will ask whether to edit the generator, keep a manual exception, or detach this token."}
+                  </p>
                 </div>
-              ) : null}
+                <div className="tm-token-details__generated-actions">
+                  {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) ? (
+                    <button
+                      type="button"
+                      onClick={openGeneratedSource}
+                      className="tm-token-details__text-button"
+                    >
+                      Edit generator
+                    </button>
+                  ) : null}
+                  {isEditMode ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleDetachGeneratorOwnership();
+                      }}
+                      disabled={detachingGeneratorOwnership}
+                      className="tm-token-details__text-button tm-token-details__text-button--muted"
+                    >
+                      {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
-              {dependents.length > 0 ? (
-                <div className="tm-token-details__field">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="tm-token-details__field-label">Dependent tokens</span>
-                    {isInspectMode && onOpenInHealth ? (
+            {dependents.length > 0 ? (
+              <div className="tm-token-details__field">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="tm-token-details__field-label">Dependent tokens</span>
+                  {isInspectMode && onOpenInHealth ? (
+                    <button
+                      type="button"
+                      onClick={onOpenInHealth}
+                      className="tm-token-details__text-button"
+                    >
+                      Open in health
+                    </button>
+                  ) : null}
+                </div>
+                <div className="tm-token-details__list-box">
+                  {dependents.slice(0, 20).map((dep) =>
+                    onNavigateToToken ? (
                       <button
+                        key={dep.path}
                         type="button"
-                        onClick={onOpenInHealth}
-                        className="tm-token-details__text-button"
+                        onClick={() => onNavigateToToken(dep.path, tokenPath)}
+                        className="tm-token-details__list-row"
+                        title={`Open ${dep.path}`}
                       >
-                        Open in health
+                        <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
+                        {dep.collectionId !== ownerCollectionId ? (
+                          <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
+                        ) : null}
                       </button>
-                    ) : null}
-                  </div>
-                  <div className="tm-token-details__list-box">
-                    {dependents.slice(0, 20).map((dep) =>
-                      onNavigateToToken ? (
-                        <button
-                          key={dep.path}
-                          type="button"
-                          onClick={() => onNavigateToToken(dep.path, tokenPath)}
-                          className="tm-token-details__list-row"
-                          title={`Open ${dep.path}`}
-                        >
-                          <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                          {dep.collectionId !== ownerCollectionId ? (
-                            <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
-                          ) : null}
-                        </button>
-                      ) : (
-                        <div key={dep.path} className="tm-token-details__list-row">
-                          <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                          {dep.collectionId !== ownerCollectionId ? (
-                            <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
-                          ) : null}
-                        </div>
-                      ),
-                    )}
-                    {dependents.length > 20 ? (
-                      <div className="tm-token-details__list-note">
-                        and {dependents.length - 20} more…
+                    ) : (
+                      <div key={dep.path} className="tm-token-details__list-row">
+                        <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
+                        {dep.collectionId !== ownerCollectionId ? (
+                          <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
+                    ),
+                  )}
+                  {dependents.length > 20 ? (
+                    <div className="tm-token-details__list-note">
+                      and {dependents.length - 20} more…
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </TokenDetailsSection>
         ) : null}
 
