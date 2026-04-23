@@ -92,7 +92,7 @@ export function ValueCell({
   const emptyUneditableTint = !value && !canCreate
     ? "bg-[var(--color-figma-warning)]/5"
     : "";
-  const wrapperClass = `min-w-0 shrink-0 px-1.5 flex items-center gap-1.5 border-l border-[var(--color-figma-border)] h-full ${brokenAliasTint} ${emptyUneditableTint}`;
+  const wrapperClass = `min-w-0 shrink-0 px-1.5 flex items-center gap-1.5 h-full ${brokenAliasTint} ${emptyUneditableTint}`;
 
   const derivedMarker = derivedGeneratorName ? (
     <span

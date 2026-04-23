@@ -178,7 +178,7 @@ export function ModeColumnHeader({
   return (
     <div
       ref={cellRef}
-      className="relative min-w-0 border-l border-[var(--color-figma-border)]"
+      className="relative min-w-0"
       onContextMenu={openMenu}
     >
       <div

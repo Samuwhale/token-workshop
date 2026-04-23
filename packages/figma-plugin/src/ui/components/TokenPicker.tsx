@@ -252,7 +252,7 @@ export function TokenPickerDropdown({
           </div>
         )}
         {hasRecent && !query.trim() && (
-          <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
+          <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
             Recent
           </div>
         )}

@@ -1435,7 +1435,7 @@ function ResolverModePublishCard({
         <>
           <div className="mt-3 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
             <div
-              className="hidden items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)] md:grid"
+              className="hidden items-center gap-2 bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] md:grid"
               style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)' }}
             >
               <span>Resolver context</span>

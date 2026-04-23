@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, ArrowDown, X, Plus } from "lucide-react";
-import type { ReactNode, Ref } from "react";
+import type { ReactNode } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { apiFetch } from "../shared/apiFetch";
+import { getCollectionDisplayName } from "../shared/libraryCollections";
+import { ActionRow, IconButton, TextInput } from "../primitives";
 import {
   CollectionMergeInline,
   SetDeleteDialog,
@@ -15,25 +17,22 @@ interface CollectionDetailsPanelProps {
   collectionIds: string[];
   collectionTokenCounts: Record<string, number>;
   collectionDescriptions: Record<string, string>;
+  collectionDisplayNames?: Record<string, string>;
   serverUrl: string;
   connected: boolean;
   presentation?: "panel" | "takeover" | "bottom";
   showCloseButton?: boolean;
   onModeMutated?: () => void;
   onClose: () => void;
-  onRename?: (collectionId: string) => void;
+  onRename?: (
+    oldName: string,
+    newName: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
   onDuplicate?: (collectionId: string) => void;
   onDelete?: (collectionId: string) => void;
   onEditInfo?: (collectionId: string) => void;
   onMerge?: (collectionId: string) => void;
   onSplit?: (collectionId: string) => void;
-  renamingCollectionId?: string | null;
-  renameValue?: string;
-  setRenameValue?: (value: string) => void;
-  renameError?: string;
-  renameInputRef?: Ref<HTMLInputElement>;
-  onRenameConfirm?: () => void;
-  onRenameCancel?: () => void;
   editingMetadataCollectionId?: string | null;
   metadataDescription?: string;
   setMetadataDescription?: (value: string) => void;
@@ -234,9 +233,8 @@ function ModeRow({
   if (renaming) {
     return (
       <div className="px-2">
-        <input
+        <TextInput
           ref={inputRef}
-          type="text"
           value={renameValue}
           onChange={(e) => {
             setRenameValue(e.target.value);
@@ -251,7 +249,6 @@ function ModeRow({
           }}
           onBlur={() => void handleRename()}
           disabled={saving}
-          className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
         />
         {error ? (
           <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{error}</p>
@@ -277,33 +274,31 @@ function ModeRow({
       </button>
       {connected && allModeNames.length > 1 ? (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-          <button
-            type="button"
+          <IconButton
+            size="sm"
             onClick={() => void handleReorder(-1)}
             disabled={!canMoveUp || saving}
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)] disabled:opacity-30"
             aria-label="Move up"
           >
             <ArrowUp size={10} strokeWidth={2} aria-hidden />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
+            size="sm"
             onClick={() => void handleReorder(1)}
             disabled={!canMoveDown || saving}
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)] disabled:opacity-30"
             aria-label="Move down"
           >
             <ArrowDown size={10} strokeWidth={2} aria-hidden />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
+            size="sm"
+            tone="danger"
             onClick={() => setConfirmingDelete(true)}
             disabled={saving}
-            className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)] disabled:opacity-30"
             aria-label="Delete mode"
           >
             <X size={10} strokeWidth={2} aria-hidden />
-          </button>
+          </IconButton>
         </div>
       ) : null}
       {error ? (
@@ -388,9 +383,8 @@ function ModesSection({
         {connected ? (
           adding ? (
             <div className="mt-1 px-2">
-              <input
+              <TextInput
                 ref={addInputRef}
-                type="text"
                 value={addValue}
                 onChange={(e) => {
                   setAddValue(e.target.value);
@@ -415,7 +409,6 @@ function ModesSection({
                 }}
                 disabled={addSaving}
                 placeholder="Mode name"
-                className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
               />
               {addError ? (
                 <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{addError}</p>
@@ -437,38 +430,12 @@ function ModesSection({
   );
 }
 
-function ActionRow({
-  onClick,
-  disabled,
-  tone = "default",
-  children,
-}: {
-  onClick?: () => void;
-  disabled?: boolean;
-  tone?: "default" | "danger";
-  children: ReactNode;
-}) {
-  const toneClass =
-    tone === "danger"
-      ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
-      : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`w-full rounded px-2 py-1 text-left text-body transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${toneClass}`}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function CollectionDetailsPanel({
   collection,
   collectionIds,
   collectionTokenCounts,
   collectionDescriptions,
+  collectionDisplayNames,
   serverUrl,
   connected,
   presentation = "panel",
@@ -481,13 +448,6 @@ export function CollectionDetailsPanel({
   onMerge,
   onSplit,
   onRename,
-  renamingCollectionId = null,
-  renameValue = "",
-  setRenameValue,
-  renameError = "",
-  renameInputRef,
-  onRenameConfirm,
-  onRenameCancel,
   editingMetadataCollectionId = null,
   metadataDescription = "",
   setMetadataDescription,
@@ -523,6 +483,60 @@ export function CollectionDetailsPanel({
     }
     onEditInfo(collection.id);
   }, [collection, editingMetadataCollectionId, onEditInfo]);
+
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameError, setRenameError] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setRenaming(false);
+    setRenameError("");
+  }, [collection?.id]);
+
+  useLayoutEffect(() => {
+    if (renaming) {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    }
+  }, [renaming]);
+
+  const startRename = useCallback(() => {
+    if (!collection) return;
+    setRenameValue(collection.id);
+    setRenameError("");
+    setRenaming(true);
+  }, [collection]);
+
+  const cancelRename = useCallback(() => {
+    setRenaming(false);
+    setRenameError("");
+  }, []);
+
+  const confirmRename = useCallback(async () => {
+    if (!collection) {
+      setRenaming(false);
+      return;
+    }
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === collection.id) {
+      cancelRename();
+      return;
+    }
+    if (!onRename) {
+      cancelRename();
+      return;
+    }
+    const result = await onRename(collection.id, trimmed);
+    if (result.ok) {
+      setRenaming(false);
+      setRenameError("");
+    } else if (result.error) {
+      setRenameError(result.error);
+    } else {
+      setRenaming(false);
+    }
+  }, [cancelRename, collection, onRename, renameValue]);
 
   const deletePreflight = useCollectionStructuralPreflight({
     operation: "delete",
@@ -590,7 +604,6 @@ export function CollectionDetailsPanel({
 
   const canMerge =
     !!onMerge && collectionIds.some((collectionId) => collectionId !== collection.id);
-  const isRenaming = renamingCollectionId === collection.id;
 
   if (
     mergingCollectionId === collection.id &&
@@ -605,6 +618,7 @@ export function CollectionDetailsPanel({
         <div className={contentClass}>
           <CollectionMergeInline
             collectionIds={collectionIds}
+            collectionDisplayNames={collectionDisplayNames}
             mergingCollectionId={mergingCollectionId}
             preflight={mergePreflight.data}
             preflightLoading={mergePreflight.loading}
@@ -644,20 +658,22 @@ export function CollectionDetailsPanel({
           ) : null}
 
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            {/* Title block */}
             <div className="px-5 pt-1 pb-4">
-              {isRenaming ? (
+              {renaming ? (
                 <div>
                   <input
                     ref={renameInputRef}
                     type="text"
                     value={renameValue}
-                    onChange={(e) => setRenameValue?.(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void onRenameConfirm?.();
-                      if (e.key === "Escape") onRenameCancel?.();
+                    onChange={(e) => {
+                      setRenameValue(e.target.value);
+                      setRenameError("");
                     }}
-                    onBlur={() => void onRenameConfirm?.()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void confirmRename();
+                      if (e.key === "Escape") cancelRename();
+                    }}
+                    onBlur={() => void confirmRename()}
                     className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                   />
                   {renameError ? (
@@ -667,10 +683,10 @@ export function CollectionDetailsPanel({
               ) : (
                 <h2
                   className="truncate text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)]"
-                  onDoubleClick={() => onRename?.(collection.id)}
-                  title="Double-click to rename"
+                  onDoubleClick={onRename ? startRename : undefined}
+                  title={onRename ? "Double-click to rename" : undefined}
                 >
-                  {collection.id}
+                  {getCollectionDisplayName(collection.id, collectionDisplayNames)}
                 </h2>
               )}
 
@@ -729,6 +745,7 @@ export function CollectionDetailsPanel({
       {deletingCollectionId === collection.id && onDeleteConfirm && onDeleteCancel ? (
         <SetDeleteDialog
           deletingCollectionId={deletingCollectionId}
+          collectionDisplayNames={collectionDisplayNames}
           preflight={deletePreflight.data}
           preflightLoading={deletePreflight.loading}
           preflightError={deletePreflight.error}
@@ -743,6 +760,7 @@ export function CollectionDetailsPanel({
       onSplitConfirm ? (
         <SetSplitDialog
           collectionIds={collectionIds}
+          collectionDisplayNames={collectionDisplayNames}
           splittingCollectionId={splittingCollectionId}
           preflight={splitPreflight.data}
           preflightLoading={splitPreflight.loading}

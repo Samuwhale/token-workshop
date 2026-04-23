@@ -159,7 +159,11 @@ export function FilterMenu(
       >
         <Filter size={12} strokeWidth={1.5} aria-hidden />
         <span>Filters</span>
-        {props.activeCount > 0 && <span>{props.activeCount}</span>}
+        {props.activeCount > 0 && (
+          <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-1 text-[10px] font-semibold leading-none text-white">
+            {props.activeCount}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -169,6 +173,34 @@ export function FilterMenu(
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
+            {props.hasMultipleCollections ? (
+              <>
+                <MenuLabel>Search in</MenuLabel>
+                <MenuItem
+                  label="This collection"
+                  checked={!props.crossCollectionSearch}
+                  onClick={() =>
+                    runAndClose(() => {
+                      if (props.crossCollectionSearch) {
+                        props.onToggleCrossCollectionSearch();
+                      }
+                    })
+                  }
+                />
+                <MenuItem
+                  label="All collections"
+                  checked={props.crossCollectionSearch}
+                  onClick={() =>
+                    runAndClose(() => {
+                      if (!props.crossCollectionSearch) {
+                        props.onToggleCrossCollectionSearch();
+                      }
+                    })
+                  }
+                />
+                <div className={MENU_SECTION_BORDER} />
+              </>
+            ) : null}
             <MenuLabel>Show</MenuLabel>
             {props.lintCount > 0 && (
               <MenuItem

@@ -1,6 +1,7 @@
 import { useCallback, type MutableRefObject } from "react";
 import {
   ArrowLeft,
+  ArrowUpDown,
   ChevronRight,
   MoreHorizontal,
   Search,
@@ -16,6 +17,12 @@ import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import type { TokenGroupBy } from "./tokenListTypes";
+import {
+  Chip,
+  MenuRadioGroup,
+  SegmentedControl,
+  type SegmentedOption,
+} from "../primitives";
 
 interface QualifierHint {
   id: string;
@@ -25,124 +32,25 @@ interface QualifierHint {
   kind: "replacement" | "hint";
 }
 
-interface SegmentedOption<T extends string> {
-  value: T;
-  label: string;
-}
-
-function SegmentedControl<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: SegmentedOption<T>[];
-  onChange: (value: T) => void;
-}) {
+function MenuSectionLabel({ children }: { children: string }) {
   return (
-    <div
-      className="inline-flex h-[26px] items-stretch rounded bg-[var(--color-figma-bg)] p-[2px]"
-      role="tablist"
-    >
-      {options.map((option) => {
-        const selected = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            onClick={() => onChange(option.value)}
-            className={`inline-flex items-center justify-center rounded-[3px] px-2 text-secondary font-medium transition-colors ${
-              selected
-                ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-            }`}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+    <div className="px-2.5 pt-1 pb-0.5 text-secondary font-semibold text-[var(--color-figma-text-tertiary)]">
+      {children}
     </div>
   );
 }
 
-function ToolbarChip({ chip }: { chip: ToolbarStateChip }) {
-  const removable = Boolean(chip.onRemove);
-  return (
-    <button
-      type="button"
-      onClick={chip.onRemove}
-      disabled={!removable}
-      className={`inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-secondary transition-colors ${
-        removable
-          ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-          : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)]"
-      }`}
-      title={removable ? `Remove ${chip.label}` : chip.label}
-    >
-      <span className="truncate">{chip.label}</span>
-      {removable ? <X size={10} strokeWidth={1.5} aria-hidden /> : null}
-    </button>
-  );
-}
-
-type ViewMenuRadio<T extends string> = {
+interface RadioMenuGroup<T extends string> {
   key: string;
   label: string;
   value: T;
   onChange: (value: T) => void;
   options: SegmentedOption<T>[];
-};
-
-function ViewRadioRow<T extends string>({
-  group,
-  close,
-}: {
-  group: ViewMenuRadio<T>;
-  close: () => void;
-}) {
-  return (
-    <div className="px-2.5 py-1">
-      <div className="mb-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
-        {group.label}
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {group.options.map((opt) => {
-          const selected = opt.value === group.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              role="menuitemradio"
-              aria-checked={selected}
-              onClick={() => {
-                group.onChange(opt.value);
-                close();
-              }}
-              className={`inline-flex h-[22px] items-center rounded px-2 text-secondary transition-colors ${
-                selected
-                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                  : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 const TREE_VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
   { value: "tree", label: "Tokens" },
   { value: "json", label: "JSON" },
-];
-
-const SEARCH_SCOPE_OPTIONS: SegmentedOption<"collection" | "all">[] = [
-  { value: "collection", label: "This collection" },
-  { value: "all", label: "All collections" },
 ];
 
 const GROUP_OPTIONS: SegmentedOption<TokenGroupBy>[] = [
@@ -233,6 +141,7 @@ export function TokenListToolbar({
   overflowMenuProps,
 }: TokenListToolbarProps) {
   const actionsMenu = useDropdownMenu();
+  const sortMenu = useDropdownMenu();
   const runMenuAction = useCallback(
     (action: () => void) => {
       action();
@@ -240,9 +149,9 @@ export function TokenListToolbar({
     },
     [actionsMenu],
   );
-  const closeMenu = useCallback(() => {
-    actionsMenu.close({ restoreFocus: false });
-  }, [actionsMenu]);
+  const closeSortMenu = useCallback(() => {
+    sortMenu.close({ restoreFocus: false });
+  }, [sortMenu]);
 
   const searchScope: "collection" | "all" =
     overflowMenuProps?.crossCollectionSearch === true ? "all" : "collection";
@@ -262,13 +171,24 @@ export function TokenListToolbar({
     Boolean(openTableCreate);
   const hasEditActions =
     Boolean(onSelectTokens) || Boolean(onBulkEdit) || Boolean(onFindReplace);
-  const hasOverflowActions = hasCreateActions || hasEditActions;
+  const hasGroupOps = overflowMenuProps?.hasGroups === true;
+  const hasOverflowActions = hasCreateActions || hasEditActions || hasGroupOps;
   const showOverflow =
-    hasTokens &&
-    viewMode === "tree" &&
-    (Boolean(overflowMenuProps) || hasOverflowActions);
+    hasTokens && viewMode === "tree" && hasOverflowActions;
 
-  const viewRadioGroups: ViewMenuRadio<string>[] = overflowMenuProps
+  const sortActive =
+    Boolean(overflowMenuProps) &&
+    (overflowMenuProps!.sortOrder !== "default" || groupBy !== "path");
+  const sortStateLabel =
+    overflowMenuProps && overflowMenuProps.sortOrder === "alpha-asc"
+      ? "A – Z"
+      : overflowMenuProps && overflowMenuProps.sortOrder === "by-type"
+        ? "Type"
+        : groupBy === "type"
+          ? "By type"
+          : null;
+
+  const viewRadioGroups: RadioMenuGroup<string>[] = overflowMenuProps
     ? [
         {
           key: "group",
@@ -276,7 +196,7 @@ export function TokenListToolbar({
           value: groupBy,
           onChange: (v: string) => setGroupBy(v as TokenGroupBy),
           options: GROUP_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
-        } as ViewMenuRadio<string>,
+        } as RadioMenuGroup<string>,
         {
           key: "sort",
           label: "Sort",
@@ -286,26 +206,7 @@ export function TokenListToolbar({
               v as "default" | "alpha-asc" | "by-type",
             ),
           options: SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
-        } as ViewMenuRadio<string>,
-        ...(overflowMenuProps.hasMultipleCollections
-          ? [
-              {
-                key: "scope",
-                label: "Search in",
-                value: searchScope,
-                onChange: (v: string) => {
-                  const next = v === "all";
-                  if (overflowMenuProps.crossCollectionSearch !== next) {
-                    overflowMenuProps.onToggleCrossCollectionSearch();
-                  }
-                },
-                options: SEARCH_SCOPE_OPTIONS.map((o) => ({
-                  value: o.value,
-                  label: o.label,
-                })),
-              } as ViewMenuRadio<string>,
-            ]
-          : []),
+        } as RadioMenuGroup<string>,
         ...(overflowMenuProps.canToggleSearchResultPresentation
           ? [
               {
@@ -320,7 +221,7 @@ export function TokenListToolbar({
                   value: o.value,
                   label: o.label,
                 })),
-              } as ViewMenuRadio<string>,
+              } as RadioMenuGroup<string>,
             ]
           : []),
       ]
@@ -504,6 +405,49 @@ export function TokenListToolbar({
             />
           ) : null}
 
+          {overflowMenuProps && viewMode === "tree" && viewRadioGroups.length > 0 ? (
+            <div className="relative shrink-0">
+              <button
+                ref={sortMenu.triggerRef}
+                type="button"
+                onClick={sortMenu.toggle}
+                aria-expanded={sortMenu.open}
+                aria-haspopup="menu"
+                aria-label="Sort and group"
+                title="Sort and group"
+                className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                  sortMenu.open || sortActive
+                    ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
+                <span>{sortStateLabel ?? "Sort"}</span>
+              </button>
+
+              {sortMenu.open ? (
+                <div
+                  ref={sortMenu.menuRef}
+                  className="absolute right-0 top-full z-50 mt-1 w-60 rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                  role="menu"
+                >
+                  {viewRadioGroups.map((group, idx) => (
+                    <div key={group.key}>
+                      {idx > 0 ? <div className="h-2" aria-hidden /> : null}
+                      <MenuRadioGroup
+                        label={group.label}
+                        value={group.value}
+                        options={group.options}
+                        onChange={group.onChange}
+                        onSelect={closeSortMenu}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {showOverflow ? (
             <div className="relative shrink-0">
               <button
@@ -529,29 +473,22 @@ export function TokenListToolbar({
                   className="absolute right-0 top-full z-50 mt-1 w-60 rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
                   role="menu"
                 >
-                  {viewRadioGroups.map((group, idx) => (
-                    <div key={group.key}>
-                      {idx > 0 ? <div className="h-2" aria-hidden /> : null}
-                      <ViewRadioRow group={group} close={closeMenu} />
-                    </div>
-                  ))}
-
-                  {overflowMenuProps?.hasGroups ? (
+                  {hasGroupOps ? (
                     <>
-                      <div className="h-2" aria-hidden />
+                      <MenuSectionLabel>View</MenuSectionLabel>
                       <button
                         type="button"
                         role="menuitem"
                         onClick={() =>
                           runMenuAction(
-                            overflowMenuProps.allGroupsExpanded
-                              ? overflowMenuProps.onCollapseAll
-                              : overflowMenuProps.onExpandAll,
+                            overflowMenuProps!.allGroupsExpanded
+                              ? overflowMenuProps!.onCollapseAll
+                              : overflowMenuProps!.onExpandAll,
                           )
                         }
                         className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                       >
-                        {overflowMenuProps.allGroupsExpanded
+                        {overflowMenuProps!.allGroupsExpanded
                           ? "Collapse all groups"
                           : "Expand all groups"}
                       </button>
@@ -560,7 +497,8 @@ export function TokenListToolbar({
 
                   {hasCreateActions ? (
                     <>
-                      <div className="h-2" aria-hidden />
+                      {hasGroupOps ? <div className="h-1.5" aria-hidden /> : null}
+                      <MenuSectionLabel>Create</MenuSectionLabel>
                       <button
                         type="button"
                         role="menuitem"
@@ -607,7 +545,10 @@ export function TokenListToolbar({
 
                   {hasEditActions ? (
                     <>
-                      <div className="h-2" aria-hidden />
+                      {hasGroupOps || hasCreateActions ? (
+                        <div className="h-1.5" aria-hidden />
+                      ) : null}
+                      <MenuSectionLabel>Edit</MenuSectionLabel>
                       {onSelectTokens ? (
                         <button
                           type="button"
@@ -670,7 +611,7 @@ export function TokenListToolbar({
               </button>
             ) : null}
             {toolbarStateChips.map((chip) => (
-              <ToolbarChip key={chip.key} chip={chip} />
+              <Chip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
             ))}
           </div>
         ) : null}

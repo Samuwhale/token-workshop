@@ -863,16 +863,7 @@ export function App() {
       onPushUndo: pushUndo,
       onDeleteComplete: handleCollectionDeleteComplete,
     });
-  const {
-    renamingCollectionId,
-    renameValue,
-    setRenameValue,
-    renameError,
-    renameInputRef,
-    startRename,
-    cancelRename,
-    handleRenameConfirm,
-  } = useCollectionRename({
+  const { renameCollection } = useCollectionRename({
     serverUrl,
     connected,
     getDisconnectSignal,
@@ -1515,19 +1506,12 @@ export function App() {
     },
     collectionStructure: {
       onCreateCollectionByName: createCollectionByName,
-      onRename: startRename,
+      onRename: renameCollection,
       onDuplicate: handleDuplicateCollection,
       onDelete: startDelete,
       onEditInfo: openCollectionMetadata,
       onMerge: collectionIds.length > 1 ? openMergeDialog : undefined,
       onSplit: openSplitDialog,
-      renamingCollectionId: renamingCollectionId,
-      renameValue,
-      setRenameValue,
-      renameError,
-      renameInputRef,
-      onRenameConfirm: handleRenameConfirm,
-      onRenameCancel: cancelRename,
       editingMetadataCollectionId: editingMetadataCollectionId,
       metadataDescription,
       setMetadataDescription,

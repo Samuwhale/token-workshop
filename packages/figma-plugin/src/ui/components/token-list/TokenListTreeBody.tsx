@@ -61,94 +61,90 @@ interface JsonEditorProps {
   onRevert: () => void;
 }
 
-interface TokenListTreeBodyProps {
-  // View mode
-  viewMode: "tree" | "json";
-
-  // Cross-collection search
-  crossCollectionLoading: boolean;
-  crossCollectionError: string | null;
-  crossCollectionResults: CrossSetResult[] | null;
-  crossCollectionTotal: number;
-  setCrossCollectionOffset: (v: number) => void;
-  retryCrossCollectionSearch: () => void;
-  CROSS_COLLECTION_PAGE_SIZE: number;
-
-  // Search
-  searchQuery: string;
-  searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
+export interface TokenListSearchGroup {
+  query: string;
+  highlight?: { nameTerms: string[]; valueTerms: string[] };
   availableTypes: string[];
   typeFilter: string;
   filtersActive: boolean;
-  setSearchQuery: (v: string) => void;
+  setQuery: (v: string) => void;
   setTypeFilter: (v: string) => void;
-  addQueryQualifierValue: (key: FilterBuilderSection, value: string) => void;
-  insertSearchQualifier: (qualifier: FilterBuilderSection) => void;
+  addQualifierValue: (key: FilterBuilderSection, value: string) => void;
+  insertQualifier: (qualifier: FilterBuilderSection) => void;
+}
 
-  // Inspect mode
-  inspectMode: boolean;
-  selectedNodes: { id: string }[];
+export interface CrossCollectionSearchGroup {
+  loading: boolean;
+  error: string | null;
+  results: CrossSetResult[] | null;
+  total: number;
+  setOffset: (v: number) => void;
+  retry: () => void;
+  pageSize: number;
+}
 
-  // JSON editor
-  jsonEditorProps: JsonEditorProps;
+export interface TokenListVirtualScrollGroup {
+  items: VisibleTokenRow[];
+  startIdx: number;
+  endIdx: number;
+  topPad: number;
+  bottomPad: number;
+}
 
-  // Tokens
-  tokens: TokenNode[];
-  displayedTokens: TokenNode[];
-
-  // Virtual scroll
-  flatItems: VisibleTokenRow[];
-  virtualStartIdx: number;
-  virtualEndIdx: number;
-  virtualTopPad: number;
-  virtualBottomPad: number;
-
-  // Multi-mode
-  multiModeData: MultiModeData | null;
-  multiModeDimId: string | null;
+export interface TokenListMultiModeGroup {
+  data: MultiModeData | null;
+  dimId: string | null;
   collections: { id: string; modes: { name: string }[] }[];
-  setMultiModeDimId: (v: string) => void;
-  getMultiModeValues: (tokenPath: string) => MultiModeValue[];
+  setDimId: (v: string) => void;
+  getValues: (tokenPath: string) => MultiModeValue[];
   serverUrl: string;
-  onModeMutated?: () => void;
+  onMutated?: () => void;
+}
 
-  // Selection
-  selectedPaths: Set<string>;
-  sortOrder: string;
-  connected: boolean;
-  siblingOrderMap: Map<string, string[]>;
-  showRecentlyTouched: boolean;
-  showFlatSearchResults: boolean;
-
-  // Lint
-  lintViolationsMap: Map<string, LintViolation[]>;
-  expandedChains: Set<string>;
-
-  // Move operations
-  handleMoveTokenInGroup: (path: string, name: string, dir: "up" | "down") => void;
-
-  // Zoom
-  zoomBreadcrumb: ZoomBreadcrumbSegment[] | null;
-  zoomParentPath: string | null;
-  zoomSiblingBranches: ZoomBreadcrumbSegment[];
-  handleZoomUpOneLevel: () => void;
-  handleZoomOut: () => void;
-  handleZoomToAncestor: (path: string) => void;
-
-  // Breadcrumb
+export interface TokenListZoomGroup {
+  breadcrumb: ZoomBreadcrumbSegment[] | null;
+  parentPath: string | null;
+  siblingBranches: ZoomBreadcrumbSegment[];
+  zoomUpOneLevel: () => void;
+  zoomOut: () => void;
+  zoomToAncestor: (path: string) => void;
   breadcrumbSegments: ZoomBreadcrumbSegment[];
-  handleJumpToGroup: (path: string) => void;
-  handleCollapseBelow: (path: string) => void;
+  jumpToGroup: (path: string) => void;
+  collapseBelow: (path: string) => void;
+}
 
-  // Navigation
+export interface TokenListNavigationGroup {
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
   onCreateNew?: (initialPath?: string) => void;
   onCreateGeneratedGroup?: () => void;
   onOpenImportPanel?: () => void;
   onExtractFromSelection?: () => void;
   hasSelection?: boolean;
+}
 
-  // Filters
+interface TokenListTreeBodyProps {
+  viewMode: "tree" | "json";
+  jsonEditorProps: JsonEditorProps;
+  search: TokenListSearchGroup;
+  crossCollection: CrossCollectionSearchGroup;
+  virtualScroll: TokenListVirtualScrollGroup;
+  multiMode: TokenListMultiModeGroup;
+  zoom: TokenListZoomGroup;
+  navigation: TokenListNavigationGroup;
+
+  inspectMode: boolean;
+  selectedNodes: { id: string }[];
+  tokens: TokenNode[];
+  displayedTokens: TokenNode[];
+  selectedPaths: Set<string>;
+  sortOrder: string;
+  connected: boolean;
+  siblingOrderMap: Map<string, string[]>;
+  showRecentlyTouched: boolean;
+  showFlatSearchResults: boolean;
+  lintViolationsMap: Map<string, LintViolation[]>;
+  expandedChains: Set<string>;
+  handleMoveTokenInGroup: (path: string, name: string, dir: "up" | "down") => void;
   clearFilters: () => void;
 }
 
@@ -158,37 +154,11 @@ const MODE_PRESETS = ["Light", "Dark", "Compact"];
 export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     viewMode,
-    crossCollectionLoading,
-    crossCollectionError,
-    crossCollectionResults,
-    crossCollectionTotal,
-    setCrossCollectionOffset,
-    retryCrossCollectionSearch,
-    CROSS_COLLECTION_PAGE_SIZE,
-    searchQuery,
-    searchHighlight,
-    availableTypes,
-    typeFilter,
-    filtersActive,
-    setSearchQuery,
-    setTypeFilter,
-    addQueryQualifierValue,
-    insertSearchQualifier,
+    jsonEditorProps,
     inspectMode,
     selectedNodes,
-    jsonEditorProps,
     tokens,
     displayedTokens,
-    flatItems,
-    virtualStartIdx,
-    virtualEndIdx,
-    virtualTopPad,
-    virtualBottomPad,
-    multiModeData,
-    multiModeDimId,
-    collections,
-    setMultiModeDimId,
-    getMultiModeValues,
     selectedPaths,
     sortOrder,
     connected,
@@ -198,24 +168,63 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     lintViolationsMap,
     expandedChains,
     handleMoveTokenInGroup,
-    zoomBreadcrumb,
-    zoomParentPath,
-    zoomSiblingBranches,
-    handleZoomUpOneLevel,
-    handleZoomOut,
-    handleZoomToAncestor,
+    clearFilters,
+  } = props;
+  const {
+    query: searchQuery,
+    highlight: searchHighlight,
+    availableTypes,
+    typeFilter,
+    filtersActive,
+    setQuery: setSearchQuery,
+    setTypeFilter,
+    addQualifierValue: addQueryQualifierValue,
+    insertQualifier: insertSearchQualifier,
+  } = props.search;
+  const {
+    loading: crossCollectionLoading,
+    error: crossCollectionError,
+    results: crossCollectionResults,
+    total: crossCollectionTotal,
+    setOffset: setCrossCollectionOffset,
+    retry: retryCrossCollectionSearch,
+    pageSize: CROSS_COLLECTION_PAGE_SIZE,
+  } = props.crossCollection;
+  const {
+    items: flatItems,
+    startIdx: virtualStartIdx,
+    endIdx: virtualEndIdx,
+    topPad: virtualTopPad,
+    bottomPad: virtualBottomPad,
+  } = props.virtualScroll;
+  const {
+    data: multiModeData,
+    dimId: multiModeDimId,
+    collections,
+    setDimId: setMultiModeDimId,
+    getValues: getMultiModeValues,
+    serverUrl,
+    onMutated: onModeMutated,
+  } = props.multiMode;
+  const {
+    breadcrumb: zoomBreadcrumb,
+    parentPath: zoomParentPath,
+    siblingBranches: zoomSiblingBranches,
+    zoomUpOneLevel: handleZoomUpOneLevel,
+    zoomOut: handleZoomOut,
+    zoomToAncestor: handleZoomToAncestor,
     breadcrumbSegments,
-    handleJumpToGroup,
-    handleCollapseBelow,
+    jumpToGroup: handleJumpToGroup,
+    collapseBelow: handleCollapseBelow,
+  } = props.zoom;
+  const {
     onNavigateToCollection,
     onCreateNew,
     onCreateGeneratedGroup,
     onOpenImportPanel,
     onExtractFromSelection,
     hasSelection,
-    clearFilters,
-  } = props;
-  const { serverUrl, onModeMutated } = props;
+  } = props.navigation;
 
   const [addingMode, setAddingMode] = useState(false);
   const [newModeName, setNewModeName] = useState("");
@@ -320,7 +329,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // one column per mode. The trailing + button adds new modes via a popover.
   const tableHeader = multiModeData && viewMode === "tree" ? (
     <div
-      className="sticky top-0 z-20 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
+      className="sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
       style={{ display: "grid", gridTemplateColumns: gridTemplate }}
     >
       <div className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
@@ -358,7 +367,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       ))}
       <div
         ref={addModeMenuContainerRef}
-        className="sticky right-0 z-20 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-stretch"
+        className="sticky right-0 z-20 bg-[var(--color-figma-bg-secondary)] flex items-stretch"
       >
         <button
           type="button"
@@ -497,7 +506,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       <div>
         {crossCollectionSections.map(([collectionId, collectionResults]) => (
           <div key={collectionId}>
-            <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
+            <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] sticky top-0 z-10">
               {collectionId}{" "}
               <span className="font-normal opacity-60">
                 ({collectionResults.length})
@@ -507,7 +516,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               <button
                 key={`${r.collectionId}:${r.path}`}
                 onClick={() => onNavigateToCollection?.(r.collectionId, r.path)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] border-b border-[var(--color-figma-border)]/50"
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)]"
               >
                 {r.entry.$type === "color" &&
                   typeof r.entry.$value === "string" &&
@@ -536,7 +545,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           </div>
         ))}
         {(crossCollectionError || crossCollectionTotal > crossCollectionResults.length) && (
-          <div className="px-3 py-2 flex items-center justify-between gap-3 border-t border-[var(--color-figma-border)]">
+          <div className="px-3 py-2 flex items-center justify-between gap-3">
             <div className="min-w-0 text-secondary text-[var(--color-figma-text-secondary)]">
               {crossCollectionError ? (
                 <span className="text-[var(--color-figma-error)]">
@@ -708,7 +717,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       {tableHeader}
       <div className="py-1">
         {zoomBreadcrumb ? (
-          <div className="sticky top-0 z-10 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary">
+          <div className="sticky top-0 z-10 bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary">
             <div className="flex items-center gap-1">
               <button
                 onClick={handleZoomUpOneLevel}
@@ -790,7 +799,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             )}
           </div>
         ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
-          <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-secondary)] group/breadcrumb">
+          <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] group/breadcrumb">
             <svg
               width="10"
               height="10"
@@ -836,7 +845,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 )
               }
             >
-              <ChevronUp size={8} strokeWidth={2.5} aria-hidden />
+              <ChevronUp size={10} strokeWidth={1.5} aria-hidden />
               <span>Collapse</span>
             </button>
           </div>

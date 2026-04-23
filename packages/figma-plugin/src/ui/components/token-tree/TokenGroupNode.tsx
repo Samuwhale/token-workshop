@@ -398,11 +398,7 @@ export const TokenGroupNode = memo(
     }, [onUpdateGroupMeta, node.path, groupMetaType, groupMetaDescription]);
 
     return (
-      <div
-        className={
-          isCategoryHeader ? "border-t border-[var(--color-figma-border)]" : ""
-        }
-      >
+      <div className={isCategoryHeader ? "mt-1.5" : ""}>
         <div
           role="treeitem"
           aria-level={depth + 1}
@@ -920,7 +916,7 @@ export const TokenGroupNode = memo(
 
         {editingGroupMeta && (
           <div
-            className="mb-0.5 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5"
+            className="mb-0.5 rounded px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5"
             style={{
               marginLeft: `${computePaddingLeft(depth, 8)}px`,
             }}

@@ -2414,24 +2414,6 @@ export function TokenList({
         >
           <TokenListTreeBody
             viewMode={viewMode}
-            crossCollectionLoading={crossCollectionLoading}
-            crossCollectionError={crossCollectionError}
-            crossCollectionResults={crossCollectionResults}
-            crossCollectionTotal={crossCollectionTotal}
-            setCrossCollectionOffset={setCrossCollectionOffset}
-            retryCrossCollectionSearch={retryCrossCollectionSearch}
-            CROSS_COLLECTION_PAGE_SIZE={CROSS_COLLECTION_PAGE_SIZE}
-            searchQuery={searchQuery}
-            searchHighlight={searchHighlight}
-            availableTypes={availableTypes}
-            typeFilter={typeFilter}
-            filtersActive={filtersActive}
-            setSearchQuery={setSearchQuery}
-            setTypeFilter={setTypeFilter}
-            addQueryQualifierValue={addQueryQualifierValue}
-            insertSearchQualifier={insertSearchQualifier}
-            inspectMode={inspectMode}
-            selectedNodes={selectedNodes}
             jsonEditorProps={{
               jsonText,
               jsonDirty,
@@ -2444,18 +2426,65 @@ export function TokenList({
               onSave: handleJsonSave,
               onRevert: handleJsonRevert,
             }}
+            search={{
+              query: searchQuery,
+              highlight: searchHighlight,
+              availableTypes,
+              typeFilter,
+              filtersActive,
+              setQuery: setSearchQuery,
+              setTypeFilter,
+              addQualifierValue: addQueryQualifierValue,
+              insertQualifier: insertSearchQualifier,
+            }}
+            crossCollection={{
+              loading: crossCollectionLoading,
+              error: crossCollectionError,
+              results: crossCollectionResults,
+              total: crossCollectionTotal,
+              setOffset: setCrossCollectionOffset,
+              retry: retryCrossCollectionSearch,
+              pageSize: CROSS_COLLECTION_PAGE_SIZE,
+            }}
+            virtualScroll={{
+              items: flatItems,
+              startIdx: virtualStartIdx,
+              endIdx: virtualEndIdx,
+              topPad: virtualTopPad,
+              bottomPad: virtualBottomPad,
+            }}
+            multiMode={{
+              data: multiModeData,
+              dimId: multiModeDimId,
+              collections: activeCollections,
+              setDimId: setMultiModeDimId,
+              getValues: getMultiModeValues,
+              serverUrl,
+              onMutated: onRefresh,
+            }}
+            zoom={{
+              breadcrumb: zoomBreadcrumb,
+              parentPath: zoomParentPath,
+              siblingBranches: zoomSiblingBranches,
+              zoomUpOneLevel: handleZoomUpOneLevel,
+              zoomOut: handleZoomOut,
+              zoomToAncestor: handleZoomToAncestor,
+              breadcrumbSegments,
+              jumpToGroup: handleJumpToGroup,
+              collapseBelow: handleCollapseBelow,
+            }}
+            navigation={{
+              onNavigateToCollection,
+              onCreateNew,
+              onCreateGeneratedGroup: onNavigateToNewGeneratedGroup,
+              onOpenImportPanel,
+              onExtractFromSelection,
+              hasSelection: selectedNodes.length > 0,
+            }}
+            inspectMode={inspectMode}
+            selectedNodes={selectedNodes}
             tokens={tokens}
             displayedTokens={groupedDisplayedTokens}
-            flatItems={flatItems}
-            virtualStartIdx={virtualStartIdx}
-            virtualEndIdx={virtualEndIdx}
-            virtualTopPad={virtualTopPad}
-            virtualBottomPad={virtualBottomPad}
-            multiModeData={multiModeData}
-            multiModeDimId={multiModeDimId}
-            collections={activeCollections}
-            setMultiModeDimId={setMultiModeDimId}
-            getMultiModeValues={getMultiModeValues}
             selectedPaths={selectedPaths}
             sortOrder={sortOrder}
             connected={connected}
@@ -2465,24 +2494,7 @@ export function TokenList({
             lintViolationsMap={lintViolationsMap}
             expandedChains={expandedChains}
             handleMoveTokenInGroup={handleMoveTokenInGroup}
-            zoomBreadcrumb={zoomBreadcrumb}
-            zoomParentPath={zoomParentPath}
-            zoomSiblingBranches={zoomSiblingBranches}
-            handleZoomUpOneLevel={handleZoomUpOneLevel}
-            handleZoomOut={handleZoomOut}
-            handleZoomToAncestor={handleZoomToAncestor}
-            breadcrumbSegments={breadcrumbSegments}
-            handleJumpToGroup={handleJumpToGroup}
-            handleCollapseBelow={handleCollapseBelow}
-            onNavigateToCollection={onNavigateToCollection}
-            onCreateNew={onCreateNew}
-            onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
-            onOpenImportPanel={onOpenImportPanel}
-            onExtractFromSelection={onExtractFromSelection}
-            hasSelection={selectedNodes.length > 0}
             clearFilters={clearFilters}
-            serverUrl={serverUrl}
-            onModeMutated={onRefresh}
           />
         </TokenTreeProvider>
         </div>

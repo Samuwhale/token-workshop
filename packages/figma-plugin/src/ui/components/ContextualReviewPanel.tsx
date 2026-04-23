@@ -325,7 +325,7 @@ export function RelocateTokenReviewPanel({
     >
       <div className="space-y-3">
         <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-          <div className="text-secondary uppercase tracking-[0.08em] text-[var(--color-figma-text-tertiary)]">
+          <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
             Token
           </div>
           <div

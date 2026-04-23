@@ -801,7 +801,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
       {/* Color harmonies */}
       <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
-        <div className="text-secondary text-[var(--color-figma-text-secondary)] uppercase">Harmonies</div>
+        <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Harmonies</div>
         {[
           { label: 'Comp', swatches: [hex6, harmonyComplement], baseIndex: 0 },
           { label: 'Triad', swatches: [hex6, harmonyTriadic1, harmonyTriadic2], baseIndex: 0 },
@@ -904,7 +904,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       {/* Recent colors */}
       {recentColors.length > 0 && (
         <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] uppercase">Recent</div>
+          <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Recent</div>
           <div className="flex gap-1 flex-wrap">
             {recentColors.map((c, i) => (
               <button

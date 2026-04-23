@@ -11,23 +11,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
-import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
+import { CanvasRouter } from "./CanvasRouter";
+import { ExportRouter } from "./ExportRouter";
+import { SyncRouter } from "./SyncRouter";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenDetails } from "../components/TokenDetails";
 import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
-import { PublishPanel } from "../components/PublishPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { useResizableBoundary } from "../hooks/useResizableBoundary";
 import { ResizeDivider } from "../components/ResizeDivider";
 import { ImportPanel } from "../components/ImportPanel";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
-import { SelectionInspector } from "../components/SelectionInspector";
-import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
-import { CanvasRepairPanel } from "../components/CanvasRepairPanel";
-import { useSelectionHealth } from "../hooks/useSelectionHealth";
-import { ExportPanel } from "../components/ExportPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { HealthPanel } from "../components/HealthPanel";
 import type { HealthScope } from "../components/health/types";
@@ -38,12 +34,8 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
 import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import { PanelContentHeader } from "../components/PanelContentHeader";
 import { LibraryCollectionsRail } from "../components/library/LibraryCollectionsRail";
-import {
-  useConnectionContext,
-  useSyncContext,
-} from "../contexts/ConnectionContext";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
@@ -56,7 +48,6 @@ import {
 } from "../contexts/InspectContext";
 import {
   useNavigationContext,
-  type RepairPrefillEntry,
 } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
@@ -92,13 +83,11 @@ import {
   getMostRelevantImportDestinationCollection,
   TOKENS_LIBRARY_SURFACE_CONTRACT,
 } from "../shared/navigationTypes";
-import {
-  resolveCollectionIdForPath,
-} from "../shared/collectionPathLookup";
+import { resolveCollectionIdForPath } from "../shared/collectionPathLookup";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import type { ToastAction } from "../shared/toastBus";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
-import { fixLabel, getRuleLabel, suppressKey } from "../shared/ruleLabels";
+import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
 
 const DEFAULT_CREATE_TYPE = "color";
 
@@ -135,52 +124,6 @@ function resolveCreateLauncherPath(initialPath?: string): string {
   const lastGroup = readLastCreateGroup();
   return lastGroup ? `${lastGroup}.` : "";
 }
-
-// Auto-trigger the first heatmap scan per Coverage mount. The ref prevents
-// re-triggering if the user cancels a scan mid-flight, which would otherwise
-// leave all three state flags falsy and re-fire the effect.
-function CanvasCoverageGate({
-  triggerHeatmapScan,
-  heatmapLoading,
-  heatmapResult,
-  heatmapError,
-}: {
-  triggerHeatmapScan: () => void;
-  heatmapLoading: boolean;
-  heatmapResult: unknown;
-  heatmapError: string | null;
-}) {
-  const triggeredRef = useRef(false);
-  useEffect(() => {
-    if (triggeredRef.current) return;
-    if (heatmapLoading || heatmapResult || heatmapError) return;
-    triggeredRef.current = true;
-    triggerHeatmapScan();
-  }, [triggerHeatmapScan, heatmapLoading, heatmapResult, heatmapError]);
-  return null;
-}
-
-function CanvasRepairPanelMount({
-  tokenMap,
-  syncResult,
-  consumePendingRepairPrefill,
-}: {
-  tokenMap: Parameters<typeof CanvasRepairPanel>[0]["tokenMap"];
-  syncResult: Parameters<typeof CanvasRepairPanel>[0]["syncResult"];
-  consumePendingRepairPrefill: () => readonly RepairPrefillEntry[] | null;
-}) {
-  const [prefillEntries] = useState<readonly RepairPrefillEntry[] | null>(() =>
-    consumePendingRepairPrefill(),
-  );
-  return (
-    <CanvasRepairPanel
-      tokenMap={tokenMap}
-      syncResult={syncResult}
-      prefillEntries={prefillEntries}
-    />
-  );
-}
-
 
 // ---------------------------------------------------------------------------
 // Component
@@ -248,9 +191,6 @@ export function PanelRouter({
     notificationsOpen,
     openNotifications,
     closeNotifications,
-    setPendingRepairPrefill,
-    consumePendingRepairPrefill,
-    pendingRepairPrefill,
   } = useNavigationContext();
   const {
     tokenDetails,
@@ -258,6 +198,7 @@ export function PanelRouter({
     editingGeneratedGroup,
     setEditingGeneratedGroup,
     inspectingCollection,
+    setInspectingCollection,
     highlightedToken,
     setHighlightedToken,
     createFromEmpty,
@@ -289,8 +230,6 @@ export function PanelRouter({
   // Read all four contexts — these cover ~40% of the data that panels need.
   const { serverUrl, connected, checking, updateServerUrlAndConnect } =
     useConnectionContext();
-  const { sync, syncing, syncProgress, syncResult, syncError } =
-    useSyncContext();
   const {
     collections,
     workingCollectionId: currentCollectionId,
@@ -317,34 +256,11 @@ export function PanelRouter({
     generatorsByTargetGroup,
     derivedTokenPaths,
   } = useGeneratorContext();
-  const { selectedNodes, selectionLoading } = useSelectionContext();
-  const selectionHealth = useSelectionHealth(selectedNodes, allTokensFlat);
-
-  useEffect(() => {
-    if (activeTopTab !== "canvas" || activeSubTab !== "repair") return;
-    if (!selectionHealth.hasSelection) return;
-    const hasWork =
-      selectionHealth.staleBindingCount > 0 ||
-      (pendingRepairPrefill?.length ?? 0) > 0 ||
-      (syncResult?.missingTokens.length ?? 0) > 0;
-    if (!hasWork) navigateTo("canvas", "inspect");
-  }, [
-    activeTopTab,
-    activeSubTab,
-    selectionHealth.hasSelection,
-    selectionHealth.staleBindingCount,
-    pendingRepairPrefill,
-    syncResult,
-    navigateTo,
-  ]);
+  const { selectedNodes } = useSelectionContext();
   const {
     heatmapResult,
-    heatmapLoading,
-    heatmapError,
-    heatmapProgress,
     heatmapScope: _heatmapScope,
     setHeatmapScope: _setHeatmapScope,
-    triggerHeatmapScan,
     cancelHeatmapScan: _cancelHeatmapScan,
   } = useHeatmapContext();
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
@@ -1409,158 +1325,14 @@ export function PanelRouter({
     return secondaryRenderer ? secondaryRenderer() : null;
   }
 
-  function renderDeliveryStatusStrip(): ReactNode {
-    return (
-      <DeliveryStatusStrip
-        reviewStatus={libraryReview.totals.status}
-        reviewItemCount={libraryReview.totals.reviewItems}
-        pendingPublishCount={controller.pendingPublishCount}
-        publishApplying={controller.publishApplying}
-        syncing={syncing}
-        syncError={syncError}
-        syncResult={syncResult}
-        onOpenHealth={() => openScopedHealth(currentCollectionId)}
-        onOpenPublishCompare={() => {
-          navigateTo("sync", "figma-sync");
-          controller.publishPanelHandleRef.current?.focusStage("compare");
-        }}
-        onOpenSync={() => navigateTo("sync", "figma-sync")}
-      />
-    );
-  }
-
-  function renderCanvasInspect(): ReactNode {
-    return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        {renderDeliveryStatusStrip()}
-        <ErrorBoundary
-          panelName="Canvas selection"
-          onReset={() => navigateTo("library", "tokens")}
-        >
-          <SelectionInspector
-            selectedNodes={selectedNodes}
-            selectionLoading={selectionLoading}
-            tokenMap={allTokensFlat}
-            onSync={sync}
-            syncing={syncing}
-            syncProgress={syncProgress}
-            syncResult={syncResult}
-            syncError={syncError}
-            connected={connected}
-            currentCollectionId={currentCollectionId}
-            serverUrl={serverUrl}
-            onTokenCreated={refreshTokens}
-            onNavigateToToken={(path) => {
-              const resolution = resolveCollectionIdForPath({
-                path,
-                pathToCollectionId,
-                collectionIdsByPath,
-              });
-              if (!resolution.collectionId) {
-                controller.setErrorToast(
-                  resolution.reason === "ambiguous"
-                    ? `Token target is ambiguous across collections: ${path}`
-                    : `Token target not found: ${path}`,
-                );
-                return;
-              }
-              openTokenInContext({
-                path,
-                collectionId: resolution.collectionId,
-                mode: "inspect",
-                origin: "canvas",
-                returnLabel: "Back to Canvas",
-              });
-            }}
-            onPushUndo={controller.pushUndo}
-            onToast={controller.setSuccessToast}
-            onGoToTokens={() => navigateTo("library", "tokens")}
-            triggerCreateToken={controller.triggerCreateToken}
-            triggerExtractToken={controller.triggerExtractToken}
-            onOpenRepair={(entries) => {
-              setPendingRepairPrefill(entries ?? null);
-              navigateTo("canvas", "repair");
-            }}
-          />
-        </ErrorBoundary>
-      </div>
-    );
-  }
-
-  function renderCanvasCoverage(): ReactNode {
-    return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        {renderDeliveryStatusStrip()}
-        <ErrorBoundary
-          panelName="Canvas coverage"
-          onReset={() => navigateTo("canvas", "inspect")}
-        >
-          <CanvasCoverageGate
-            triggerHeatmapScan={triggerHeatmapScan}
-            heatmapLoading={heatmapLoading}
-            heatmapResult={heatmapResult}
-            heatmapError={heatmapError}
-          />
-          <CanvasAnalysisPanel
-            availableTokens={allTokensFlat}
-            heatmapResult={heatmapResult}
-            heatmapLoading={heatmapLoading}
-            heatmapProgress={heatmapProgress}
-            heatmapError={heatmapError}
-            onSelectNodes={(ids) =>
-              parent.postMessage(
-                {
-                  pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
-                },
-                "*",
-              )
-            }
-            onBatchBind={(nodeIds, tokenPath, property) => {
-              const entry = allTokensFlat[tokenPath];
-              if (!entry) return;
-              parent.postMessage(
-                {
-                  pluginMessage: {
-                    type: "batch-bind-heatmap-nodes",
-                    nodeIds,
-                    tokenPath,
-                    tokenType: entry.$type,
-                    targetProperty: property,
-                    resolvedValue: entry.$value,
-                  },
-                },
-                "*",
-              );
-            }}
-            onSelectNode={(nodeId) =>
-              parent.postMessage(
-                { pluginMessage: { type: "select-node", nodeId } },
-                "*",
-              )
-            }
-          />
-        </ErrorBoundary>
-      </div>
-    );
-  }
-
-  function renderCanvasRepair(): ReactNode {
-    return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        {renderDeliveryStatusStrip()}
-        <ErrorBoundary
-          panelName="Canvas repair"
-          onReset={() => navigateTo("canvas", "inspect")}
-        >
-          <CanvasRepairPanelMount
-            tokenMap={allTokensFlat}
-            syncResult={syncResult}
-            consumePendingRepairPrefill={consumePendingRepairPrefill}
-          />
-        </ErrorBoundary>
-      </div>
-    );
-  }
+  const renderCanvasSubTab = (subTab: "inspect" | "coverage" | "repair") => (
+    <CanvasRouter
+      subTab={subTab}
+      reviewTotals={libraryReview.totals}
+      openScopedHealth={openScopedHealth}
+      openTokenInContext={openTokenInContext}
+    />
+  );
 
   // ---------------------------------------------------------------------------
   // Sub-tab panel routing — O(1) lookup, no repeated condition guards
@@ -1575,15 +1347,21 @@ export function PanelRouter({
       history: renderLibraryHistory,
     },
     canvas: {
-      inspect: renderCanvasInspect,
-      coverage: renderCanvasCoverage,
-      repair: renderCanvasRepair,
+      inspect: () => renderCanvasSubTab("inspect"),
+      coverage: () => renderCanvasSubTab("coverage"),
+      repair: () => renderCanvasSubTab("repair"),
     },
     sync: {
-      "figma-sync": renderSyncFigmaSync,
+      "figma-sync": () => (
+        <SyncRouter
+          collectionMap={collectionMap}
+          modeMap={modeMap}
+          savePublishRouting={savePublishRouting}
+        />
+      ),
     },
     export: {
-      export: renderExport,
+      export: () => <ExportRouter />,
     },
   };
 
@@ -1627,6 +1405,13 @@ export function PanelRouter({
   function handleLibraryCollectionSelect(collectionId: string): void {
     if (collectionId !== currentCollectionId) {
       setCurrentCollectionId(collectionId);
+    }
+
+    if (
+      activeEditorSurface === "collection-details" &&
+      inspectingCollection?.collectionId !== collectionId
+    ) {
+      setInspectingCollection({ collectionId });
     }
 
     if (activeTopTab !== "library") {
@@ -1710,27 +1495,27 @@ export function PanelRouter({
         collectionHealth={libraryReview.byCollection}
         focusRequestKey={shell.collectionPickerFocusRequestKey}
         allCollectionsScope={allCollectionsScope}
-        inspectingCollectionId={
-          section === "tokens" ? inspectingCollection?.collectionId ?? null : null
-        }
         onSelectCollection={handleLibraryCollectionSelect}
-        onOpenCollectionDetails={
-          section === "tokens"
-            ? (collectionId) => {
-                if (inspectingCollection?.collectionId === collectionId) {
-                  switchContextualSurface({ surface: null });
-                  return;
-                }
-                switchContextualSurface({
-                  surface: "collection-details",
-                  collection: { collectionId },
-                });
-              }
-            : undefined
-        }
         onOpenCreateCollection={controller.onOpenCollectionCreateDialog}
         onOpenImport={controller.onShowImportPanel}
         bottomPanel={bottomPanel}
+        detailsToggle={
+          section === "tokens" && currentCollectionId
+            ? {
+                open: activeEditorSurface === "collection-details",
+                onToggle: () => {
+                  if (activeEditorSurface === "collection-details") {
+                    switchContextualSurface({ surface: null });
+                    return;
+                  }
+                  switchContextualSurface({
+                    surface: "collection-details",
+                    collection: { collectionId: currentCollectionId },
+                  });
+                },
+              }
+            : undefined
+        }
       />
     );
   }
@@ -1837,10 +1622,11 @@ export function PanelRouter({
           collectionIds={collectionIds}
           collectionTokenCounts={collectionTokenCounts}
           collectionDescriptions={collectionDescriptions}
+          collectionDisplayNames={collectionMap}
           serverUrl={serverUrl}
           connected={connected}
           presentation="bottom"
-          showCloseButton={true}
+          showCloseButton={false}
           onModeMutated={refreshTokens}
           onClose={() => switchContextualSurface({ surface: null })}
           onRename={collectionStructureController.onRename}
@@ -1849,13 +1635,6 @@ export function PanelRouter({
           onEditInfo={collectionStructureController.onEditInfo}
           onMerge={collectionStructureController.onMerge}
           onSplit={collectionStructureController.onSplit}
-          renamingCollectionId={collectionStructureController.renamingCollectionId}
-          renameValue={collectionStructureController.renameValue}
-          setRenameValue={collectionStructureController.setRenameValue}
-          renameError={collectionStructureController.renameError}
-          renameInputRef={collectionStructureController.renameInputRef}
-          onRenameConfirm={collectionStructureController.onRenameConfirm}
-          onRenameCancel={collectionStructureController.onRenameCancel}
           editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
           metadataDescription={collectionStructureController.metadataDescription}
           setMetadataDescription={collectionStructureController.setMetadataDescription}
@@ -2054,55 +1833,4 @@ export function PanelRouter({
       section: "history",
     });
   }
-  function renderSyncFigmaSync(): ReactNode {
-    const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;
-    let publishAction: { label: string; onClick: () => void; disabled?: boolean } | null = null;
-    if (publishPreflightState.stage === "running") {
-      publishAction = { label: "Checking\u2026", onClick: () => {}, disabled: true };
-    } else if (publishPreflightState.stage === "blocked") {
-      publishAction = { label: "Resolve issues", onClick: () => publishPanelHandleRef.current?.focusStage("preflight") };
-    } else if (pendingPublishCount > 0) {
-      publishAction = { label: "Apply changes", onClick: () => publishPanelHandleRef.current?.focusStage("compare") };
-    } else {
-      publishAction = { label: "Check for changes", onClick: () => publishPanelHandleRef.current?.runReadinessChecks() };
-    }
-
-    return (
-      <div className="flex h-full flex-col overflow-hidden">
-        <PanelContentHeader primaryAction={publishAction} />
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <ErrorBoundary
-            panelName="Figma Sync"
-            onReset={() => navigateTo("sync", "figma-sync")}
-          >
-            <PublishPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              currentCollectionId={currentCollectionId}
-              collections={collections}
-              collectionMap={collectionMap}
-              modeMap={modeMap}
-              perCollectionFlat={perCollectionFlat}
-              savePublishRouting={savePublishRouting}
-              refreshValidation={controller.refreshValidation}
-              tokenChangeKey={controller.tokenChangeKey}
-              publishPanelHandle={controller.publishPanelHandleRef}
-            />
-          </ErrorBoundary>
-        </div>
-      </div>
-    );
-  }
-
-  function renderExport(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Export"
-        onReset={() => navigateTo("export", "export")}
-      >
-        <ExportPanel serverUrl={serverUrl} connected={connected} />
-      </ErrorBoundary>
-    );
-  }
-
 }

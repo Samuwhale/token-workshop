@@ -1585,7 +1585,7 @@ export const TokenLeafNode = memo(
               style={{ top: refsPopover.pos.y, left: refsPopover.pos.x }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-figma-border)]">
+              <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
                 <span className="text-body font-medium text-[var(--color-figma-text)]">
                   {refsPopover.refs.length === 0
                     ? "No references"
@@ -1841,7 +1841,7 @@ export const TokenLeafNode = memo(
         {/* Inline nudge — shown after saving a raw value that closely matches an existing token */}
         {inlineNudgeVisible && nearbyMatches.length > 0 && (
           <div
-            className="flex items-center border-t border-[var(--color-figma-border)]"
+            className="flex items-center"
             style={{
               paddingLeft: `${computePaddingLeft(depth, 12)}px`,
             }}
@@ -1864,7 +1864,7 @@ export const TokenLeafNode = memo(
         {/* Resolution chain debugger — shows full alias/mode resolution pipeline */}
         {resolutionSteps && resolutionSteps.length >= 2 && chainExpanded && (
           <div
-            className="flex flex-col bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]"
+            className="flex flex-col bg-[var(--color-figma-bg-secondary)]"
             style={{
               paddingLeft: `${computePaddingLeft(depth, 12)}px`,
             }}

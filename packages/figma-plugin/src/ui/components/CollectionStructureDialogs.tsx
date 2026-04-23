@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { apiFetch, createFetchSignal, combineAbortSignals } from "../shared/apiFetch";
+import { getCollectionDisplayName } from "../shared/libraryCollections";
 import type {
   CollectionPreflightImpact,
   CollectionStructuralOperation,
@@ -97,26 +98,29 @@ export function useCollectionStructuralPreflight({
 function CollectionPreflightCard({
   impact,
   label,
+  collectionDisplayNames,
 }: {
   impact: CollectionPreflightImpact;
   label?: string;
+  collectionDisplayNames?: Record<string, string>;
 }) {
   const hasDependencies =
     impact.resolverRefs.length > 0 ||
     impact.generatedOwnership.length > 0 ||
     impact.generatorTargets.length > 0;
+  const displayName = getCollectionDisplayName(impact.collectionId, collectionDisplayNames);
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           {label ? (
-            <div className="mb-1 text-secondary uppercase tracking-[0.08em] text-[var(--color-figma-text-secondary)]">
+            <div className="mb-1 text-secondary text-[var(--color-figma-text-secondary)]">
               {label}
             </div>
           ) : null}
-          <div className="truncate font-mono text-body text-[var(--color-figma-text)]">
-            {impact.collectionId}
+          <div className="truncate text-body text-[var(--color-figma-text)]">
+            {displayName}
           </div>
           <div className="text-secondary text-[var(--color-figma-text-secondary)]">
             {impact.tokenCount} token{impact.tokenCount === 1 ? "" : "s"}
@@ -260,6 +264,7 @@ function StructuralPreflightSummary({
   sourceCollectionId,
   targetCollectionId,
   splitPreview,
+  collectionDisplayNames,
 }: {
   preflight: CollectionStructuralPreflight | null;
   loading: boolean;
@@ -272,6 +277,7 @@ function StructuralPreflightSummary({
     count: number;
     existing?: boolean;
   }>;
+  collectionDisplayNames?: Record<string, string>;
 }) {
   if (loading) {
     return (
@@ -334,6 +340,7 @@ function StructuralPreflightSummary({
           <CollectionPreflightCard
             key={impact.collectionId}
             impact={impact}
+            collectionDisplayNames={collectionDisplayNames}
             label={getPreflightImpactLabel({
               operation: preflight.operation,
               impactName: impact.collectionId,
@@ -350,6 +357,7 @@ function StructuralPreflightSummary({
 
 export function SetDeleteDialog({
   deletingCollectionId,
+  collectionDisplayNames,
   preflight,
   preflightLoading,
   preflightError,
@@ -357,6 +365,7 @@ export function SetDeleteDialog({
   onCancel,
 }: {
   deletingCollectionId: string;
+  collectionDisplayNames?: Record<string, string>;
   preflight: CollectionStructuralPreflight | null;
   preflightLoading: boolean;
   preflightError: string | null;
@@ -367,13 +376,14 @@ export function SetDeleteDialog({
     !!preflightError ||
     preflightLoading ||
     (preflight?.blockers.length ?? 0) > 0;
+  const deletingName = getCollectionDisplayName(deletingCollectionId, collectionDisplayNames);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-heading font-semibold text-[var(--color-figma-text)]">
-            Delete "{deletingCollectionId}"?
+            Delete &ldquo;{deletingName}&rdquo;?
           </span>
           <button
             onClick={onCancel}
@@ -403,6 +413,7 @@ export function SetDeleteDialog({
             loading={preflightLoading}
             error={preflightError}
             sourceCollectionId={deletingCollectionId}
+            collectionDisplayNames={collectionDisplayNames}
           />
         </div>
         <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
@@ -427,6 +438,7 @@ export function SetDeleteDialog({
 
 export function CollectionMergeInline({
   collectionIds,
+  collectionDisplayNames,
   mergingCollectionId,
   preflight,
   preflightLoading,
@@ -443,6 +455,7 @@ export function CollectionMergeInline({
   onClose,
 }: {
   collectionIds: string[];
+  collectionDisplayNames?: Record<string, string>;
   mergingCollectionId: string;
   preflight: CollectionStructuralPreflight | null;
   preflightLoading: boolean;
@@ -472,12 +485,16 @@ export function CollectionMergeInline({
     !!preflightError ||
     preflightLoading ||
     (preflight?.blockers.length ?? 0) > 0;
+  const mergingName = getCollectionDisplayName(mergingCollectionId, collectionDisplayNames);
+  const targetName = mergeTargetCollectionId
+    ? getCollectionDisplayName(mergeTargetCollectionId, collectionDisplayNames)
+    : "";
 
   return (
     <>
       <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
         <span className="text-heading font-semibold text-[var(--color-figma-text)]">
-          Copy tokens from &ldquo;{mergingCollectionId}&rdquo; into&hellip;
+          Copy tokens from &ldquo;{mergingName}&rdquo; into&hellip;
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
@@ -495,7 +512,7 @@ export function CollectionMergeInline({
               .filter((collectionId) => collectionId !== mergingCollectionId)
               .map((collectionId) => (
                 <option key={collectionId} value={collectionId}>
-                  {collectionId}
+                  {getCollectionDisplayName(collectionId, collectionDisplayNames)}
                 </option>
               ))}
           </select>
@@ -506,14 +523,15 @@ export function CollectionMergeInline({
           error={preflightError}
           sourceCollectionId={mergingCollectionId}
           targetCollectionId={mergeTargetCollectionId}
+          collectionDisplayNames={collectionDisplayNames}
         />
         {!mergeChecked ? (
           <p className="text-secondary text-[var(--color-figma-text-secondary)]">
             Tokens from{" "}
-            <span className="font-mono font-medium">{mergingCollectionId}</span>{" "}
+            <span className="font-medium text-[var(--color-figma-text)]">{mergingName}</span>{" "}
             will be added to{" "}
-            <span className="font-mono font-medium">
-              {mergeTargetCollectionId}
+            <span className="font-medium text-[var(--color-figma-text)]">
+              {targetName}
             </span>
             . The source collection stays in place. Conflicts where the target
             already has a different base value or different mode-authored values
@@ -633,6 +651,7 @@ export function CollectionMergeInline({
 
 export function SetSplitDialog({
   collectionIds,
+  collectionDisplayNames,
   splittingCollectionId,
   preflight,
   preflightLoading,
@@ -645,6 +664,7 @@ export function SetSplitDialog({
   onClose,
 }: {
   collectionIds: string[];
+  collectionDisplayNames?: Record<string, string>;
   splittingCollectionId: string;
   preflight: CollectionStructuralPreflight | null;
   preflightLoading: boolean;
@@ -661,13 +681,14 @@ export function SetSplitDialog({
     !!preflightError ||
     preflightLoading ||
     (preflight?.blockers.length ?? 0) > 0;
+  const splittingName = getCollectionDisplayName(splittingCollectionId, collectionDisplayNames);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
           <span className="text-heading font-semibold text-[var(--color-figma-text)]">
-            Split "{splittingCollectionId}"
+            Split &ldquo;{splittingName}&rdquo;
           </span>
           <button
             onClick={onClose}
@@ -694,6 +715,7 @@ export function SetSplitDialog({
             error={preflightError}
             sourceCollectionId={splittingCollectionId}
             splitPreview={effectiveSplitPreview}
+            collectionDisplayNames={collectionDisplayNames}
           />
           {effectiveSplitPreview.length === 0 ? (
             <p className="text-secondary text-[var(--color-figma-text-secondary)]">
@@ -736,7 +758,7 @@ export function SetSplitDialog({
                   className="h-3 w-3 rounded"
                 />
                 <span className="text-body text-[var(--color-figma-text)]">
-                  Delete "{splittingCollectionId}" after split
+                  Delete &ldquo;{splittingName}&rdquo; after split
                 </span>
               </label>
             </>

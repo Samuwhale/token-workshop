@@ -706,7 +706,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
               )}
               {/* Group results */}
               {filteredGroups.length > 0 && !isGroupQuery && (
-                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
                   Groups
                 </div>
               )}
@@ -737,7 +737,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
               })}
               {/* Token results */}
               {filteredTokens.length > 0 && filteredGroups.length > 0 && !isGroupQuery && (
-                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
                   Tokens
                 </div>
               )}
@@ -896,7 +896,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
           {/* Starred tokens quick-access (no query) */}
           {noQueryStarredTokens.length > 0 && (
             <div>
-              <div className="px-3 pt-2 pb-0.5 text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+              <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)] flex items-center gap-1.5">
                 <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                 Starred
               </div>
@@ -933,7 +933,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
           {/* Recently edited tokens quick-access (no query) */}
           {noQueryRecentTokens.length > 0 && (
             <div>
-              <div className="px-3 pt-2 pb-0.5 text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+              <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)] flex items-center gap-1.5">
                 <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Recently Edited
               </div>
@@ -972,7 +972,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
             let runningIdx = noQueryStarredTokens.length + noQueryRecentTokens.length;
             return sections.map(section => (
               <div key={section.header}>
-                <div className="px-3 pt-2 pb-0.5 text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
                   {section.header}
                 </div>
                 {section.items.map(cmd => {

@@ -188,7 +188,7 @@ export function GeneratedGroupSummaryRow({
 
   return (
     <div
-      className="mb-0.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
+      className="mb-0.5 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
       style={{
         paddingLeft: `${computePaddingLeft(depth, 24)}px`,
       }}
@@ -376,7 +376,7 @@ function SummaryOverflowMenu({
           >
             {detaching ? "Detaching\u2026" : "Detach"}
           </button>
-          <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
+          <div className="h-1" aria-hidden />
           <button
             type="button"
             onClick={() => { void onDelete?.(); setOpen(false); }}

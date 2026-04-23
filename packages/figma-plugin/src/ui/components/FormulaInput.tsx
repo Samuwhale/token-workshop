@@ -367,7 +367,7 @@ export function FormulaInput({
           ref={listRef}
           className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
         >
-          <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] border-b border-[var(--color-figma-border)] uppercase tracking-wider">
+          <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
             Token references
           </div>
           {acEntries.map((candidate, idx) => {

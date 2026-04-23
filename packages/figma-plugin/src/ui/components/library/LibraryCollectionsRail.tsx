@@ -6,17 +6,23 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ChevronRight, Plus, Search, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Search, Upload } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
 import type { CollectionReviewSummary } from "../../shared/reviewSummary";
 import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
+import { IconButton } from "../../primitives";
 
 interface AllCollectionsScope {
   selected: boolean;
   onSelect: () => void;
+}
+
+interface DetailsToggle {
+  open: boolean;
+  onToggle: () => void;
 }
 
 interface LibraryCollectionsRailProps {
@@ -27,12 +33,11 @@ interface LibraryCollectionsRailProps {
   collectionHealth?: Map<string, CollectionReviewSummary>;
   focusRequestKey?: number;
   allCollectionsScope?: AllCollectionsScope;
-  inspectingCollectionId?: string | null;
   onSelectCollection: (collectionId: string) => void;
-  onOpenCollectionDetails?: (collectionId: string) => void;
   onOpenCreateCollection?: () => void;
   onOpenImport?: () => void;
   bottomPanel?: ReactNode;
+  detailsToggle?: DetailsToggle;
 }
 
 export function LibraryCollectionsRail({
@@ -43,12 +48,11 @@ export function LibraryCollectionsRail({
   collectionHealth,
   focusRequestKey = 0,
   allCollectionsScope,
-  inspectingCollectionId = null,
   onSelectCollection,
-  onOpenCollectionDetails,
   onOpenCreateCollection,
   onOpenImport,
   bottomPanel,
+  detailsToggle,
 }: LibraryCollectionsRailProps) {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -105,26 +109,22 @@ export function LibraryCollectionsRail({
             <div className="flex-1" />
           )}
           {onOpenImport ? (
-            <button
-              type="button"
+            <IconButton
               onClick={onOpenImport}
-              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               aria-label="Import tokens"
               title="Import tokens"
             >
               <Upload size={12} strokeWidth={1.5} aria-hidden />
-            </button>
+            </IconButton>
           ) : null}
           {onOpenCreateCollection ? (
-            <button
-              type="button"
+            <IconButton
               onClick={onOpenCreateCollection}
-              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               aria-label="New collection"
               title="New collection"
             >
               <Plus size={12} strokeWidth={1.5} aria-hidden />
-            </button>
+            </IconButton>
           ) : null}
         </div>
       ) : null}
@@ -154,7 +154,6 @@ export function LibraryCollectionsRail({
           filteredCollections.map((collection) => {
             const collectionId = collection.id;
             const isCurrent = collectionId === currentCollectionId;
-            const isInspecting = collectionId === inspectingCollectionId;
             const summary = collectionHealth?.get(collectionId);
             const actionable = summary?.actionable ?? 0;
             const severity = summary?.severity;
@@ -176,53 +175,30 @@ export function LibraryCollectionsRail({
                 : displayName;
 
             return (
-              <div
+              <button
                 key={collectionId}
-                className={`group relative flex items-center rounded transition-colors ${
+                type="button"
+                onClick={() => onSelectCollection(collectionId)}
+                className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
                   isCurrent
                     ? "bg-[var(--color-figma-bg-selected)]"
                     : "hover:bg-[var(--color-figma-bg-hover)]"
                 }`}
+                title={rowTitle}
               >
-                <button
-                  type="button"
-                  onClick={() => onSelectCollection(collectionId)}
-                  className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left"
-                  title={rowTitle}
-                >
-                  {healthTone ? (
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthTone}`}
-                      aria-hidden
-                    />
-                  ) : null}
-                  <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
-                    {displayName}
-                  </span>
+                {healthTone ? (
                   <span
-                    className={`shrink-0 text-secondary tabular-nums text-[var(--color-figma-text-tertiary)] ${
-                      onOpenCollectionDetails ? "group-hover:invisible" : ""
-                    } ${isInspecting ? "invisible" : ""}`}
-                  >
-                    {tokenCount}
-                  </span>
-                </button>
-                {onOpenCollectionDetails ? (
-                  <button
-                    type="button"
-                    onClick={() => onOpenCollectionDetails(collectionId)}
-                    className={`absolute right-1 top-1/2 inline-flex h-6 w-6 shrink-0 -translate-y-1/2 items-center justify-center rounded transition ${
-                      isInspecting
-                        ? "text-[var(--color-figma-text)]"
-                        : "text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:text-[var(--color-figma-text)]"
-                    }`}
-                    aria-label={`Collection details for ${displayName}`}
-                    title="Collection details"
-                  >
-                    <ChevronRight size={12} strokeWidth={1.5} aria-hidden />
-                  </button>
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthTone}`}
+                    aria-hidden
+                  />
                 ) : null}
-              </div>
+                <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
+                  {displayName}
+                </span>
+                <span className="shrink-0 text-secondary tabular-nums text-[var(--color-figma-text-tertiary)]">
+                  {tokenCount}
+                </span>
+              </button>
             );
           })
         )}
@@ -232,6 +208,23 @@ export function LibraryCollectionsRail({
         <div className="flex min-h-0 basis-3/5 flex-col overflow-hidden bg-[var(--color-figma-bg)]">
           {bottomPanel}
         </div>
+      ) : null}
+
+      {detailsToggle ? (
+        <button
+          type="button"
+          onClick={detailsToggle.onToggle}
+          aria-expanded={detailsToggle.open}
+          title={detailsToggle.open ? "Hide collection details" : "Show collection details"}
+          className="flex shrink-0 items-center justify-between gap-2 px-3 py-2 text-left text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        >
+          <span className="truncate">Collection details</span>
+          {detailsToggle.open ? (
+            <ChevronDown size={12} strokeWidth={1.5} aria-hidden />
+          ) : (
+            <ChevronUp size={12} strokeWidth={1.5} aria-hidden />
+          )}
+        </button>
       ) : null}
     </aside>
   );

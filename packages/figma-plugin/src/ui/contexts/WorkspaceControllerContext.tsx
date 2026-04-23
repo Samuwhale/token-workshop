@@ -3,7 +3,6 @@ import type {
   Dispatch,
   MutableRefObject,
   ReactNode,
-  Ref,
   SetStateAction,
 } from "react";
 import type { TokenListImperativeHandle } from "../components/tokenListTypes";
@@ -133,19 +132,15 @@ export interface SyncWorkspaceController {
 
 export interface CollectionStructureWorkspaceController {
   onCreateCollectionByName: (name: string) => Promise<string>;
-  onRename: (collectionId: string) => void;
+  onRename: (
+    oldName: string,
+    newName: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
   onDuplicate: (collectionId: string) => void;
   onDelete: (collectionId: string) => void;
   onEditInfo: (collectionId: string) => void;
   onMerge?: (collectionId: string) => void;
   onSplit: (collectionId: string) => void;
-  renamingCollectionId: string | null;
-  renameValue: string;
-  setRenameValue: (value: string) => void;
-  renameError: string;
-  renameInputRef: Ref<HTMLInputElement>;
-  onRenameConfirm: () => void;
-  onRenameCancel: () => void;
   editingMetadataCollectionId: string | null;
   metadataDescription: string;
   setMetadataDescription: (value: string) => void;

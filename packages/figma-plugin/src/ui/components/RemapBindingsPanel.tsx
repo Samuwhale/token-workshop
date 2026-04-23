@@ -233,7 +233,7 @@ export function RemapBindingsPanel({
     >
       {!embedded && (
         <div className="mb-1 flex items-center justify-between">
-          <span className="text-secondary font-semibold uppercase tracking-wide text-[var(--color-figma-text)]">
+          <span className="text-body font-semibold text-[var(--color-figma-text)]">
             Remap Bindings
           </span>
           <button

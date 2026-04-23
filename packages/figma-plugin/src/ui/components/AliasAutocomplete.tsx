@@ -146,7 +146,7 @@ export function AliasAutocomplete({
       className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
     >
       {hasRecent && !query.trim() && (
-        <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--color-figma-border)]">
+        <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
           Recent
         </div>
       )}
