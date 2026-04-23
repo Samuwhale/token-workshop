@@ -750,6 +750,8 @@ export function ImportPanelProvider({
     onClearConflictState: clearConflictState,
     onResetExistingPathsCache: resetExistingPathsCache,
   });
+  const importCollectionData = src.collectionData;
+  const setImportModeCollectionNames = src.setModeCollectionNames;
   const {
     clearFileImportValidation,
     resetAfterImport,
@@ -1036,15 +1038,18 @@ export function ImportPanelProvider({
   }, [collectionImportPlans, fetchCollectionTokenMap, collectionsHook.collectionIds]);
 
   useEffect(() => {
-    if (src.collectionData.length === 0 || collectionsHook.collectionIds.length === 0) {
+    if (
+      importCollectionData.length === 0 ||
+      collectionsHook.collectionIds.length === 0
+    ) {
       return;
     }
 
-    src.setModeCollectionNames((previousNames) => {
+    setImportModeCollectionNames((previousNames) => {
       const nextNames = { ...previousNames };
       let changed = false;
 
-      for (const collection of src.collectionData) {
+      for (const collection of importCollectionData) {
         for (const mode of collection.modes) {
           const key = modeKey(collection.name, mode.modeId);
           const defaultName = defaultCollectionName(
@@ -1072,7 +1077,11 @@ export function ImportPanelProvider({
 
       return changed ? nextNames : previousNames;
     });
-  }, [collectionsHook.collectionIds, src.collectionData, src.setModeCollectionNames]);
+  }, [
+    collectionsHook.collectionIds,
+    importCollectionData,
+    setImportModeCollectionNames,
+  ]);
 
   const importPayloadBatch = useCallback(
     async (

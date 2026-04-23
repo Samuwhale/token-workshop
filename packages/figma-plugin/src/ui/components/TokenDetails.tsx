@@ -102,6 +102,8 @@ interface TokenDetailsProps {
   onEnterEditMode?: () => void;
   onDuplicate?: () => void;
   onOpenInHealth?: () => void;
+  requiresWorkingCollectionForEdit?: boolean;
+  onMakeWorkingCollection?: () => void;
 }
 
 function cloneModeValue<T>(value: T): T {
@@ -143,6 +145,8 @@ export function TokenDetails({
   onEnterEditMode,
   onDuplicate,
   onOpenInHealth,
+  requiresWorkingCollectionForEdit = false,
+  onMakeWorkingCollection,
 }: TokenDetailsProps) {
   const effectivePathToCollectionId = pathToCollectionId;
   const ownerCollectionId = useMemo(
@@ -163,6 +167,8 @@ export function TokenDetails({
   const isInspectMode = detailsMode === "inspect";
   const isEditMode = !isInspectMode;
   const showingExternalCollection = ownerCollectionId !== currentCollectionId;
+  const canEditInPlace =
+    !showingExternalCollection || !requiresWorkingCollectionForEdit;
   const uiState = useTokenEditorUIState({
     tokenPath,
   });
@@ -1054,7 +1060,7 @@ export function TokenDetails({
           Duplicate
         </button>
       )}
-      {!isCreateMode && isInspectMode && onEnterEditMode && (
+      {!isCreateMode && isInspectMode && onEnterEditMode && canEditInPlace && (
         <button
           type="button"
           onClick={onEnterEditMode}
@@ -1063,6 +1069,19 @@ export function TokenDetails({
           Edit
         </button>
       )}
+      {!isCreateMode &&
+        isInspectMode &&
+        showingExternalCollection &&
+        requiresWorkingCollectionForEdit &&
+        onMakeWorkingCollection && (
+          <button
+            type="button"
+            onClick={onMakeWorkingCollection}
+            className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            Make working collection
+          </button>
+        )}
       {valueIsAlias &&
         tokenType === "color" &&
         (() => {
@@ -1085,6 +1104,17 @@ export function TokenDetails({
 
   const afterHeader = (
     <>
+      {!isCreateMode &&
+        isInspectMode &&
+        showingExternalCollection &&
+        requiresWorkingCollectionForEdit && (
+          <div className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-body">
+            <span className="text-[var(--color-figma-text-secondary)]">
+              This token belongs to <span className="font-medium text-[var(--color-figma-text)]">{ownerCollectionId}</span>.
+              Switch the working collection to edit it.
+            </span>
+          </div>
+        )}
       {isEditMode && pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-body">
           <Clock size={12} strokeWidth={1.5} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />

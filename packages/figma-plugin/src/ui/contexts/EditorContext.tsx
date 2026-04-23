@@ -15,6 +15,7 @@ import { useCollectionStateContext, useTokenFlatMapContext } from './TokenDataCo
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 import type { TokensLibraryGeneratedGroupEditorTarget } from '../shared/navigationTypes';
+import type { TokenContextNavigationHistoryEntry } from '../shared/navigationTypes';
 import type { CollectionPathResolutionReason } from '../shared/collectionPathLookup';
 
 // ---------------------------------------------------------------------------
@@ -26,11 +27,15 @@ export type TokenDetailsTarget = {
   name?: string;
   collectionId: string;
   mode: "inspect" | "edit";
+  origin?: string;
   isCreate?: boolean;
   initialType?: string;
   initialValue?: string;
   backLabel?: string;
+  requiresWorkingCollectionForEdit?: boolean;
+  navigationHistory?: TokenContextNavigationHistoryEntry[];
   onBackToOrigin?: (() => void) | null;
+  onMakeWorkingCollection?: (() => void) | null;
 };
 
 export type EditingGeneratedGroup = TokensLibraryGeneratedGroupEditorTarget;
@@ -75,7 +80,6 @@ export interface EditorContextValue {
   handleNavigateToAlias: (path: string, fromPath?: string) => void;
   handleNavigateToAliasWithoutHistory: (path: string) => void;
   handleNavigateBack: () => void;
-  consumeNavigateBack: () => { path: string | null; collectionId: string } | null;
   navHistoryLength: number;
   showTokensCompare: boolean;
   setShowTokensCompare: Dispatch<SetStateAction<boolean>>;
@@ -186,7 +190,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
-    consumeNavigateBack,
     navHistory,
   } = useTokenNavigation(
     pathToCollectionId,
@@ -322,7 +325,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
-    consumeNavigateBack,
     navHistoryLength: navHistory.length,
     showTokensCompare,
     setShowTokensCompare,
@@ -355,7 +357,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
-    consumeNavigateBack,
     navHistory.length,
     showTokensCompare,
     setShowTokensCompare,

@@ -9,7 +9,9 @@ import {
 import { useUsageContext } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
+import { useTokenContextNavigation } from "../hooks/useTokenContextNavigation";
 import { buildCommandPaletteTokens } from "../shared/commandPaletteTokens";
+import type { TokenContextNavigationRequest } from "../shared/navigationTypes";
 import { useTokensWorkspaceController } from "../contexts/WorkspaceControllerContext";
 
 export function AppCommandPalette({
@@ -28,13 +30,19 @@ export function AppCommandPalette({
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const { navigateTo } = useNavigationContext();
   const {
-    setTokenDetails,
     setHighlightedToken,
-    setPendingHighlightForCollection,
+    switchContextualSurface,
   } = useEditorContext();
   const tokens = useTokensWorkspaceController();
   const { commands, currentCollectionPaletteTokens } = useCommandPaletteCommands();
   const { starredTokens } = tokens;
+  const openTokenInContext = useTokenContextNavigation({
+    currentCollectionId,
+    navigateTo,
+    switchContextualSurface,
+    setCurrentCollectionId,
+    setHighlightedToken,
+  });
 
   const allPaletteTokenSources = useMemo(
     () =>
@@ -135,19 +143,16 @@ export function AppCommandPalette({
       starredTokens={starredPaletteTokens}
       recentTokens={recentPaletteTokens}
       onGoToToken={(token) => {
-        const targetCollectionId = token.collectionId;
-        navigateTo("library");
-        setTokenDetails(null);
-        if (targetCollectionId !== currentCollectionId) {
-          setPendingHighlightForCollection(token.path, targetCollectionId);
-          setCurrentCollectionId(targetCollectionId);
-          return;
-        }
-        setHighlightedToken(token.path);
+        openTokenInContext({
+          path: token.path,
+          collectionId: token.collectionId,
+          mode: "inspect",
+          origin: "command-palette",
+        } satisfies TokenContextNavigationRequest);
       }}
       onGoToGroup={(groupPath) => {
-        navigateTo("library");
-        setTokenDetails(null);
+        navigateTo("library", "tokens");
+        switchContextualSurface({ surface: null });
         setHighlightedToken(groupPath);
       }}
       onCopyTokenPath={(path) => {

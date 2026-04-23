@@ -27,6 +27,7 @@ export function useImportCollections({
   );
 
   const targetCollectionIdRef = useRef(targetCollectionId);
+  const hasExplicitTargetSelectionRef = useRef(false);
 
   useEffect(() => {
     targetCollectionIdRef.current = targetCollectionId;
@@ -42,6 +43,12 @@ export function useImportCollections({
       );
       setCollectionIds(fetchedCollectionIds);
       setTargetCollectionId((previousCollectionId) => {
+        if (
+          hasExplicitTargetSelectionRef.current &&
+          previousCollectionId.trim().length > 0
+        ) {
+          return previousCollectionId;
+        }
         if (fetchedCollectionIds.includes(previousCollectionId)) {
           return previousCollectionId;
         }
@@ -72,6 +79,7 @@ export function useImportCollections({
       return;
     }
     setNewCollectionError(null);
+    hasExplicitTargetSelectionRef.current = true;
     setTargetCollectionId(name);
     onClearConflictState();
     setNewCollectionInputVisible(false);
@@ -85,6 +93,7 @@ export function useImportCollections({
   }, []);
 
   const setTargetCollectionIdAndPersist = useCallback((name: string) => {
+    hasExplicitTargetSelectionRef.current = true;
     setTargetCollectionId(name);
   }, []);
 

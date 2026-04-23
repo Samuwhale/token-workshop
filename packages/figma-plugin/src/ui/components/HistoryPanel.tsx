@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import type { HistoryPanelProps, HistoryView } from './history/types';
@@ -30,8 +30,28 @@ export function HistoryPanel({
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [saveLabel, setSaveLabel] = useState('');
   const [saving, setSaving] = useState(false);
+  const validWorkingCollectionId = collectionIds.includes(workingCollectionId)
+    ? workingCollectionId
+    : collectionIds[0] ?? '';
   const activeCollectionFilter =
-    scope.mode === 'current' ? scope.collectionId ?? workingCollectionId : '';
+    scope.mode === 'current'
+      ? scope.collectionId && collectionIds.includes(scope.collectionId)
+        ? scope.collectionId
+        : validWorkingCollectionId
+      : '';
+
+  useEffect(() => {
+    if (scope.mode !== 'current') {
+      return;
+    }
+    if (activeCollectionFilter === scope.collectionId) {
+      return;
+    }
+    onScopeChange({
+      ...scope,
+      collectionId: activeCollectionFilter || null,
+    });
+  }, [activeCollectionFilter, onScopeChange, scope]);
 
   const handleClearFilters = useCallback(() => {
     onScopeChange({
@@ -179,7 +199,7 @@ export function HistoryPanel({
                   mode: option.value,
                   collectionId:
                     option.value === 'current'
-                      ? scope.collectionId ?? workingCollectionId
+                      ? activeCollectionFilter || null
                       : null,
                 })
               }
@@ -218,6 +238,18 @@ export function HistoryPanel({
           </div>
         )}
       </div>
+
+      {(scope.tokenPath || activeCollectionFilter) && (
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          {scope.tokenPath
+            ? scope.mode === 'current' && activeCollectionFilter
+              ? `Showing ${scope.tokenPath} in ${activeCollectionFilter}`
+              : `Showing ${scope.tokenPath} across all collections`
+            : scope.mode === 'current' && activeCollectionFilter
+              ? `Showing history for ${activeCollectionFilter}`
+              : 'Showing library-wide history'}
+        </div>
+      )}
 
       <div
         role="tabpanel"

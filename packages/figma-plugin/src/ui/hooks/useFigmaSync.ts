@@ -1,7 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
 import { dispatchToast } from '../shared/toastBus';
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { createFetchSignal } from '../shared/apiFetch';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { getPluginMessageFromEvent } from '../../shared/utils';
 import type {

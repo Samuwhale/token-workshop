@@ -74,12 +74,18 @@ import {
 import type { TokenNode } from "../hooks/useTokens";
 import { useHealthSignals } from "../hooks/useHealthSignals";
 import { useIssueActions } from "../hooks/useIssueActions";
+import {
+  buildTokenContextTarget,
+  useTokenContextNavigation,
+} from "../hooks/useTokenContextNavigation";
 import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
 import type {
   ImportNextStepRecommendation,
   TopTab,
   SubTab,
   SecondarySurfaceId,
+  TokenContextNavigationHistoryEntry,
+  TokenContextNavigationRequest,
   TokensLibraryContextualSurface,
   TokensLibraryGeneratedGroupEditorTarget,
 } from "../shared/navigationTypes";
@@ -298,7 +304,6 @@ export function PanelRouter({
     setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateBack,
-    consumeNavigateBack,
     navHistoryLength,
     showTokensCompare,
     setShowTokensCompare,
@@ -384,48 +389,64 @@ export function PanelRouter({
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const healthRouteIntentRef = useRef<"deep-link" | null>(null);
   const historyRouteIntentRef = useRef<"deep-link" | null>(null);
-  const [healthScope, setHealthScope] = useState<HealthScope>({
-    mode: "current",
-    collectionId: currentCollectionId || null,
-    tokenPath: null,
-    view: "dashboard",
-    nonce: Date.now(),
-  });
-  const [historyScope, setHistoryScope] = useState<HistoryScope>({
-    mode: "all",
-    collectionId: null,
-    tokenPath: null,
-    view: "recent",
-  });
+  const createLibraryHealthScope = useCallback(
+    (overrides?: Partial<HealthScope>): HealthScope => ({
+      mode: "current",
+      collectionId: currentCollectionId || null,
+      tokenPath: null,
+      view: "dashboard",
+      nonce: Date.now(),
+      ...overrides,
+    }),
+    [currentCollectionId],
+  );
+  const createLibraryHistoryScope = useCallback(
+    (overrides?: Partial<HistoryScope>): HistoryScope => ({
+      mode: "all",
+      collectionId: null,
+      tokenPath: null,
+      view: "recent",
+      ...overrides,
+    }),
+    [],
+  );
+  const [healthScope, setHealthScope] = useState<HealthScope>(() =>
+    createLibraryHealthScope(),
+  );
+  const [historyScope, setHistoryScope] = useState<HistoryScope>(() =>
+    createLibraryHistoryScope(),
+  );
 
   const openCollectionIssues = useCallback(
     (collectionId: string, tokenPath?: string) => {
       healthRouteIntentRef.current = "deep-link";
-      setHealthScope({
-        mode: "current",
-        collectionId,
-        tokenPath: tokenPath ?? null,
-        view: "issues",
-        nonce: Date.now(),
-      });
+      setHealthScope(
+        createLibraryHealthScope({
+          mode: "current",
+          collectionId,
+          tokenPath: tokenPath ?? null,
+          view: "issues",
+        }),
+      );
       navigateTo("library", "health");
     },
-    [navigateTo],
+    [createLibraryHealthScope, navigateTo],
   );
 
   const openScopedHealth = useCallback(
     (collectionId: string) => {
       healthRouteIntentRef.current = "deep-link";
-      setHealthScope({
-        mode: "current",
-        collectionId,
-        tokenPath: null,
-        view: "dashboard",
-        nonce: Date.now(),
-      });
+      setHealthScope(
+        createLibraryHealthScope({
+          mode: "current",
+          collectionId,
+          tokenPath: null,
+          view: "dashboard",
+        }),
+      );
       navigateTo("library", "health");
     },
-    [navigateTo],
+    [createLibraryHealthScope, navigateTo],
   );
 
   useEffect(() => {
@@ -436,15 +457,9 @@ export function PanelRouter({
       healthRouteIntentRef.current = null;
       return;
     }
-    setHealthScope({
-      mode: "current",
-      collectionId: currentCollectionId || null,
-      tokenPath: null,
-      view: "dashboard",
-      nonce: Date.now(),
-    });
+    setHealthScope(createLibraryHealthScope());
     healthRouteIntentRef.current = null;
-  }, [activeSubTab, activeTopTab]);
+  }, [activeSubTab, activeTopTab, createLibraryHealthScope]);
 
   useEffect(() => {
     if (activeTopTab !== "library" || activeSubTab !== "history") {
@@ -454,15 +469,22 @@ export function PanelRouter({
       historyRouteIntentRef.current = null;
       return;
     }
-    setHistoryScope((currentScope) => ({
-      ...currentScope,
-      mode: "all",
-      collectionId: null,
-      tokenPath: null,
-      view: currentScope.view,
-    }));
+    setHistoryScope((currentScope) =>
+      createLibraryHistoryScope({ view: currentScope.view }),
+    );
     historyRouteIntentRef.current = null;
-  }, [activeSubTab, activeTopTab]);
+  }, [activeSubTab, activeTopTab, createLibraryHistoryScope]);
+
+  const openTokenInContext = useTokenContextNavigation({
+    currentCollectionId,
+    navigateTo,
+    switchContextualSurface,
+    setCurrentCollectionId,
+    setHighlightedToken,
+    beginHandoff,
+    returnFromHandoff,
+    guardEditorAction,
+  });
 
   const openTokenDetails = useCallback(
     (
@@ -471,26 +493,15 @@ export function PanelRouter({
       mode: "inspect" | "edit",
       name?: string,
     ) => {
-      guardEditorAction(() => {
-        if (collectionId !== currentCollectionId) {
-          setCurrentCollectionId(collectionId);
-        }
-        navigateTo("library", "tokens");
-        switchContextualSurface({
-          surface: "token-details",
-          token: { path, name, collectionId, mode },
-        });
-        setHighlightedToken(path);
-      });
+      openTokenInContext({
+        path,
+        collectionId,
+        mode,
+        name,
+        origin: "tokens",
+      } satisfies TokenContextNavigationRequest);
     },
-    [
-      currentCollectionId,
-      guardEditorAction,
-      navigateTo,
-      setCurrentCollectionId,
-      setHighlightedToken,
-      switchContextualSurface,
-    ],
+    [openTokenInContext],
   );
 
   const healthSignals = useHealthSignals({
@@ -522,7 +533,9 @@ export function PanelRouter({
   }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
 
   const tokenListHighlightedPath =
-    tokenDetails?.path || highlightedToken;
+    tokenDetails?.collectionId === currentCollectionId
+      ? tokenDetails.path
+      : highlightedToken;
   const hasTokensLibrarySurface =
     tokens.length > 0 ||
     Boolean(currentCollectionId) ||
@@ -554,33 +567,26 @@ export function PanelRouter({
   );
 
   const openTokenDetailsEditor = useCallback(
-    (options: { path: string; collectionId: string; name?: string }) => {
-      setHighlightedToken(options.path);
-      if (options.collectionId !== currentCollectionId) {
-        setCurrentCollectionId(options.collectionId);
-      }
-      switchContextualSurface({
-        surface: "token-details",
-        token: {
-          path: options.path,
-          name: options.name,
-          collectionId: options.collectionId,
-          mode: "edit",
-        },
-      });
+    (options: {
+      path: string;
+      collectionId: string;
+      name?: string;
+      origin?: string;
+    }) => {
+      openTokenInContext({
+        path: options.path,
+        collectionId: options.collectionId,
+        mode: "edit",
+        name: options.name,
+        origin: options.origin ?? "tokens",
+      } satisfies TokenContextNavigationRequest);
     },
-    [
-      currentCollectionId,
-      setCurrentCollectionId,
-      setHighlightedToken,
-      switchContextualSurface,
-    ],
+    [openTokenInContext],
   );
 
   const openLinkedTokenInDetails = useCallback(
     (options: {
       path: string;
-      fromPath?: string;
       mode: "inspect" | "edit";
       collectionId?: string;
     }) => {
@@ -595,7 +601,6 @@ export function PanelRouter({
             collectionIdsByPath,
           });
       const targetCollectionId = resolution.collectionId;
-      handleNavigateToAlias(options.path, options.fromPath);
       if (!targetCollectionId) {
         setErrorToast(
           resolution.reason === "ambiguous"
@@ -605,20 +610,55 @@ export function PanelRouter({
         return;
       }
 
-      switchContextualSurface({
-        surface: "token-details",
-        token: {
-          path: options.path,
-          collectionId: targetCollectionId,
-          mode: options.mode,
-        },
+      setTokenDetails((current) => {
+        const nextHistory: TokenContextNavigationHistoryEntry[] = current
+          ? [
+              ...(current.navigationHistory ?? []),
+              {
+                path: current.path,
+                collectionId: current.collectionId,
+                mode: current.mode,
+                name: current.name ?? current.path.split(".").pop() ?? current.path,
+              },
+            ]
+          : [];
+        const nextMode =
+          targetCollectionId === currentCollectionId ? options.mode : "inspect";
+        return buildTokenContextTarget({
+          request: {
+            path: options.path,
+            collectionId: targetCollectionId,
+            mode: options.mode,
+            origin: current?.origin ?? "token-details",
+            returnLabel: current?.backLabel,
+            navigationHistory: nextHistory,
+          },
+          mode: nextMode,
+          currentCollectionId,
+          preserveHandoff: Boolean(current?.backLabel),
+          navigateTo,
+          switchContextualSurface,
+          setCurrentCollectionId,
+          setHighlightedToken,
+          returnFromHandoff,
+        });
       });
+      if (targetCollectionId === currentCollectionId) {
+        setHighlightedToken(options.path);
+      } else {
+        setHighlightedToken(null);
+      }
     },
     [
       collectionIdsByPath,
-      handleNavigateToAlias,
+      currentCollectionId,
+      navigateTo,
       pathToCollectionId,
+      returnFromHandoff,
       setErrorToast,
+      setCurrentCollectionId,
+      setHighlightedToken,
+      setTokenDetails,
       switchContextualSurface,
     ],
   );
@@ -681,59 +721,46 @@ export function PanelRouter({
     [openGeneratedTokens],
   );
 
-  const openTokenInContext = useCallback(
-    (options: {
-      path: string;
-      collectionId: string;
-      mode: "inspect" | "edit";
-      name?: string;
-      returnLabel?: string;
-      onReturn?: (() => void) | null;
-    }) => {
-      guardEditorAction(() => {
-        if (options.returnLabel) {
-          beginHandoff({
-            reason: `Open "${options.path}" in context.`,
-            returnLabel: options.returnLabel,
-            onReturn: options.onReturn ?? null,
-          });
-        }
-        navigateTo("library", "tokens", {
-          preserveHandoff: !!options.returnLabel,
-        });
-        switchContextualSurface({
-          surface: "token-details",
-          token: {
-            path: options.path,
-            name: options.name,
-            collectionId: options.collectionId,
-            mode: options.mode,
-            backLabel: options.returnLabel,
-            onBackToOrigin: options.returnLabel ? returnFromHandoff : null,
-          },
-        });
-        setHighlightedToken(options.path);
-      });
-    },
-    [
-      beginHandoff,
-      guardEditorAction,
-      navigateTo,
-      returnFromHandoff,
-      setHighlightedToken,
-      switchContextualSurface,
-    ],
-  );
-
   const handleTokenDetailsBack = useCallback(() => {
-    if (tokenDetails?.mode === "edit" && !tokenDetails.isCreate && navHistoryLength > 0) {
-      const previousEntry = consumeNavigateBack();
-      if (previousEntry?.path) {
-        setTokenDetails({
-          path: previousEntry.path,
-          collectionId: previousEntry.collectionId,
-          mode: "edit",
+    const tokenDetailsHistory = tokenDetails?.navigationHistory ?? [];
+    if (tokenDetailsHistory.length > 0) {
+      const previousEntry =
+        tokenDetailsHistory[tokenDetailsHistory.length - 1] ?? null;
+      if (previousEntry) {
+        const remainingHistory = tokenDetailsHistory.slice(0, -1);
+        setTokenDetails((current) => {
+          if (!current) {
+            return current;
+          }
+          const resolvedMode =
+            previousEntry.collectionId === currentCollectionId
+              ? previousEntry.mode
+              : "inspect";
+          return buildTokenContextTarget({
+            request: {
+              path: previousEntry.path,
+              collectionId: previousEntry.collectionId,
+              mode: previousEntry.mode,
+              name: previousEntry.name,
+              origin: current.origin ?? "token-details",
+              returnLabel: current.backLabel,
+              navigationHistory: remainingHistory,
+            },
+            mode: resolvedMode,
+            currentCollectionId,
+            preserveHandoff: Boolean(current.backLabel),
+            navigateTo,
+            switchContextualSurface,
+            setCurrentCollectionId,
+            setHighlightedToken,
+            returnFromHandoff,
+          });
         });
+        if (previousEntry.collectionId === currentCollectionId) {
+          setHighlightedToken(previousEntry.path);
+        } else {
+          setHighlightedToken(null);
+        }
         return;
       }
     }
@@ -758,11 +785,15 @@ export function PanelRouter({
     refreshAll();
   }, [
     tokenDetails,
-    navHistoryLength,
-    consumeNavigateBack,
+    currentCollectionId,
+    navigateTo,
+    returnFromHandoff,
     setCreateFromEmpty,
+    setCurrentCollectionId,
+    setHighlightedToken,
     setTokenDetails,
     refreshAll,
+    switchContextualSurface,
   ]);
 
   const handleTokenDetailsSaved = useCallback(
@@ -990,7 +1021,6 @@ export function PanelRouter({
         ) =>
           openLinkedTokenInDetails({
             path,
-            fromPath: fromPath ?? tokenDetails.path,
             mode: tokenDetails.mode,
             collectionId,
           }),
@@ -999,6 +1029,9 @@ export function PanelRouter({
         lintViolations: healthSignals.lintViolationsForCurrent,
         syncSnapshot:
           Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
+        requiresWorkingCollectionForEdit:
+          tokenDetails.requiresWorkingCollectionForEdit,
+        onMakeWorkingCollection: tokenDetails.onMakeWorkingCollection ?? undefined,
         onEnterEditMode: tokenDetails.isCreate
           ? undefined
           : () =>
@@ -1040,7 +1073,7 @@ export function PanelRouter({
       modeOptionsDefaultB={tokensCompareDefaultB}
       onEditToken={(collectionId, path) => {
         controller.guardEditorAction(() => {
-          openTokenDetailsEditor({ path, collectionId });
+          openTokenDetailsEditor({ path, collectionId, origin: "compare" });
         });
       }}
       onCreateToken={(path, collectionId, type, value) => {
@@ -1275,6 +1308,7 @@ export function PanelRouter({
                   path,
                   collectionId,
                   mode: "inspect",
+                  origin: "color-analysis",
                   returnLabel: "Back to Color analysis",
                   onReturn: () => switchContextualSurface({ surface: "color-analysis" }),
                 });
@@ -1487,6 +1521,7 @@ export function PanelRouter({
                 path,
                 collectionId: resolution.collectionId,
                 mode: "inspect",
+                origin: "canvas",
                 returnLabel: "Back to Canvas",
               });
             }}
@@ -1630,6 +1665,7 @@ export function PanelRouter({
                   path,
                   collectionId,
                   mode: "inspect",
+                  origin: "notifications",
                   returnLabel: "Back to Notifications",
                   onReturn: openNotifications,
                 })
@@ -1908,6 +1944,7 @@ export function PanelRouter({
                   path,
                   collectionId,
                   mode: "inspect",
+                  origin: "health",
                   returnLabel: "Back to Health",
                 });
               }}
@@ -1990,7 +2027,6 @@ export function PanelRouter({
               collections={collections}
               collectionMap={collectionMap}
               modeMap={modeMap}
-              pathToCollectionId={pathToCollectionId}
               perCollectionFlat={perCollectionFlat}
               savePublishRouting={savePublishRouting}
               refreshValidation={controller.refreshValidation}

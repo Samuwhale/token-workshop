@@ -78,7 +78,16 @@ export function HealthPanel({
   const { suppressedKeys, suppressingKey, fixingKeys, applyIssueFix, handleSuppress, handleUnsuppress } = issueActions;
   const activeView = scope.view ?? "dashboard";
   const activeIssueTokenPath = scope.tokenPath;
-  const scopedCollectionId = scope.collectionId || workingCollectionId;
+  const validWorkingCollectionId = collectionIds.includes(workingCollectionId)
+    ? workingCollectionId
+    : collectionIds[0] ?? null;
+  const scopedCollectionId =
+    scope.mode === "current"
+      ? scope.collectionId && collectionIds.includes(scope.collectionId)
+        ? scope.collectionId
+        : validWorkingCollectionId
+      : null;
+  const scopedCollectionKey = scopedCollectionId ?? "";
 
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
   const [deprecatedUsageReloadKey, setDeprecatedUsageReloadKey] = useState(0);
@@ -87,6 +96,20 @@ export function HealthPanel({
   const [deprecatedUsageLoading, setDeprecatedUsageLoading] = useState(false);
   const [deprecatedUsageError, setDeprecatedUsageError] = useState<string | null>(null);
   const validationRefreshKey = validationLastRefreshed?.getTime() ?? 0;
+
+  useEffect(() => {
+    if (scope.mode !== "current") {
+      return;
+    }
+    if (scopedCollectionId === scope.collectionId) {
+      return;
+    }
+    onScopeChange({
+      ...scope,
+      collectionId: scopedCollectionId || null,
+      nonce: Date.now(),
+    });
+  }, [collectionIds, onScopeChange, scope, scopedCollectionId]);
 
   const refreshHealthState = async () => {
     setDeprecatedUsageReloadKey((currentKey) => currentKey + 1);
@@ -129,24 +152,25 @@ export function HealthPanel({
     tokenUsageCounts,
     tokenUsageReady,
     validationIssues: validationIssuesProp,
-    currentCollectionId: scopedCollectionId,
+    currentCollectionId: scopedCollectionKey,
   });
 
   const totalDuplicateAliases = lintDuplicateGroups.reduce((sum, g) => sum + g.tokens.length - 1, 0);
 
   const tokenLevelSignals = healthSignals.signals.filter(
     (s) =>
-      s.collectionId === scopedCollectionId &&
+      scopedCollectionKey.length > 0 &&
+      s.collectionId === scopedCollectionKey &&
       s.source !== "generator" &&
       s.rule !== "no-duplicate-values" &&
       s.rule !== "alias-opportunity",
   );
   const generatorSignals = healthSignals.signals.filter(
-    (s) => s.collectionId === scopedCollectionId && s.source === "generator",
+    (s) => s.collectionId === scopedCollectionKey && s.source === "generator",
   );
 
   const deprecatedUsageEntriesForCurrent = deprecatedUsageEntries.filter(
-    (e) => e.collectionId === scopedCollectionId,
+    (e) => e.collectionId === scopedCollectionKey,
   );
   const issueCount = tokenLevelSignals.length;
   const issueStatus = statusFromIssueSeverities(
@@ -163,7 +187,7 @@ export function HealthPanel({
 
   const suppressedKeysForCurrent = new Set<string>(
     [...suppressedKeys].filter((key) => {
-      return parseSuppressKey(key)?.collectionId === scopedCollectionId;
+      return parseSuppressKey(key)?.collectionId === scopedCollectionKey;
     }),
   );
 
@@ -189,10 +213,10 @@ export function HealthPanel({
   const overallStatus: HealthStatus =
     validationError
       ? "critical"
-      : healthSignals.byCollection.get(scopedCollectionId)?.severity === "error"
+      : healthSignals.byCollection.get(scopedCollectionKey)?.severity === "error"
       ? "critical"
-      : healthSignals.byCollection.get(scopedCollectionId)?.severity === "warning" ||
-          healthSignals.byCollection.get(scopedCollectionId)?.severity === "info" ||
+      : healthSignals.byCollection.get(scopedCollectionKey)?.severity === "warning" ||
+          healthSignals.byCollection.get(scopedCollectionKey)?.severity === "info" ||
           validationIsStale ||
           duplicateCount > 0 ||
           deprecatedCount > 0 ||
@@ -458,7 +482,7 @@ export function HealthPanel({
               })
             }
             onNavigateToGenerators={onNavigateToGenerators}
-            scopeLabel={scopedCollectionId}
+            scopeLabel={scopedCollectionId ?? undefined}
           />
         );
         break;
@@ -482,7 +506,7 @@ export function HealthPanel({
                   mode: option.value,
                   collectionId:
                     option.value === "current"
-                      ? scope.collectionId ?? workingCollectionId
+                      ? (scopedCollectionId ?? validWorkingCollectionId ?? null)
                       : null,
                   view: "dashboard",
                   tokenPath: null,
@@ -501,7 +525,7 @@ export function HealthPanel({
         </div>
         {scope.mode === "current" ? (
           <select
-            value={scopedCollectionId}
+            value={scopedCollectionId ?? ""}
             onChange={(event) => openCollectionScope(event.target.value, activeView)}
             className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)]"
           >

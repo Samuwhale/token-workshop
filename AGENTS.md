@@ -48,3 +48,4 @@ Modes follow Figma's mental model: every token value IS a mode value. There is n
 - Prefer fewer visible elements, clearer hierarchy, and more whitespace over dense control-heavy layouts
 - Do not add informational pills, chips, or badges just to restate nearby content
 - Only use pills or badges when they carry meaningful status, filtering, or interaction value that would otherwise be unclear
+- Avoid visible dividers, nested cards, containers, etc. where whitespace or tonal shifts can do the job.

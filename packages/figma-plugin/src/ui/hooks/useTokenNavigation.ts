@@ -119,24 +119,6 @@ export function useTokenNavigation(
     }
   }, [navHistory, currentCollectionId, setCurrentCollectionId]);
 
-  const consumeNavigateBack = useCallback(() => {
-    if (navHistory.length === 0) return null;
-    const entry = navHistory[navHistory.length - 1];
-    setNavHistory((prev) => prev.slice(0, -1));
-
-    if (entry.collectionId !== currentCollectionId) {
-      if (entry.path) {
-        setPendingHighlight(entry.path);
-        setPendingHighlightCollectionId(entry.collectionId);
-      }
-      setCurrentCollectionId(entry.collectionId);
-    } else {
-      setHighlightedToken(entry.path);
-    }
-
-    return entry;
-  }, [navHistory, currentCollectionId, setCurrentCollectionId]);
-
   // Use this when navigating to a token in a specific collection, rather than
   // deriving the target collection from pathToCollectionId.
   const setPendingHighlightForCollection = useCallback((path: string, targetCollectionId: string) => {
@@ -155,7 +137,6 @@ export function useTokenNavigation(
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
     handleNavigateBack,
-    consumeNavigateBack,
     navHistory,
   };
 }

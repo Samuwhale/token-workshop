@@ -220,7 +220,6 @@ interface PublishPanelProps {
   collections: TokenCollection[];
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
-  pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   savePublishRouting: (
     collectionId: string,
@@ -247,7 +246,6 @@ export function PublishPanel({
   collections,
   collectionMap = {},
   modeMap = {},
-  pathToCollectionId,
   perCollectionFlat,
   savePublishRouting,
   refreshValidation,

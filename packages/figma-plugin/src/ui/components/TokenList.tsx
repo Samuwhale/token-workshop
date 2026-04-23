@@ -1867,7 +1867,6 @@ export function TokenList({
     allTokensFlat,
     collectionId,
     collections,
-    pathToCollectionId,
     perCollectionFlat: perCollectionFlat ?? {},
     collectionMap,
     modeMap,

@@ -110,7 +110,6 @@ interface ApplyOperationsConfig {
   allTokensFlat: Record<string, TokenMapEntry>;
   collectionId: string;
   collections: Array<{ id: string; modes: Array<{ name: string }> }>;
-  pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
@@ -137,7 +136,6 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     allTokensFlat,
     collectionId,
     collections,
-    pathToCollectionId,
     perCollectionFlat,
     collectionMap,
     modeMap,
@@ -353,7 +351,6 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     collectionId,
     allTokensFlat,
     collections,
-    pathToCollectionId,
     perCollectionFlat,
     collectionMap,
     modeMap,

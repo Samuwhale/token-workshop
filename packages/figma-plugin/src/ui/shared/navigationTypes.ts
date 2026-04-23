@@ -71,6 +71,24 @@ export type TokensLibraryGeneratedGroupEditorTarget =
       template?: GeneratorTemplate;
     };
 
+export interface TokenContextNavigationHistoryEntry {
+  path: string;
+  collectionId: string;
+  mode: "inspect" | "edit";
+  name?: string;
+}
+
+export interface TokenContextNavigationRequest {
+  path: string;
+  collectionId: string;
+  mode: "inspect" | "edit";
+  origin: string;
+  name?: string;
+  returnLabel?: string;
+  onReturn?: (() => void) | null;
+  navigationHistory?: TokenContextNavigationHistoryEntry[];
+}
+
 export interface SurfaceTransition {
   kind: SurfaceKind;
   presentation: SurfacePresentation;

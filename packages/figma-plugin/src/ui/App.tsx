@@ -171,8 +171,6 @@ export function App() {
   );
   const {
     allTokensFlat,
-    pathToCollectionId,
-    collectionIdsByPath,
     perCollectionFlat,
     modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
@@ -1325,11 +1323,9 @@ export function App() {
     },
     [
       allTokensFlat,
-      collectionIdsByPath,
       connected,
       currentCollectionId,
       perCollectionFlat,
-      pathToCollectionId,
       serverUrl,
       navigateTo,
       refreshTokens,
@@ -1359,8 +1355,6 @@ export function App() {
       }
     },
     [
-      collectionIdsByPath,
-      pathToCollectionId,
       currentCollectionId,
       navigateTo,
       setTokenDetails,
@@ -1391,8 +1385,6 @@ export function App() {
       }
     },
     [
-      collectionIdsByPath,
-      pathToCollectionId,
       currentCollectionId,
       navigateTo,
       setTokenDetails,

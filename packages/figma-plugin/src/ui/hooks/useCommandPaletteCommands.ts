@@ -95,7 +95,7 @@ export function useCommandPaletteCommands(): {
     void tokenListViewRev;
 
     const goToTokens = () => {
-      navigateTo("library");
+      navigateTo("library", "tokens");
       setTokenDetails(null);
     };
 
@@ -122,7 +122,7 @@ export function useCommandPaletteCommands(): {
         category: "Tokens",
         shortcut: adaptShortcut("⌘N"),
         handler: () => {
-          navigateTo("library");
+          navigateTo("library", "tokens");
           setTokenDetails({
             path: "",
             collectionId: currentCollectionId,
@@ -145,7 +145,7 @@ export function useCommandPaletteCommands(): {
         description: `Manage modes and metadata for "${currentCollectionId}"`,
         category: "Collections",
         handler: () => {
-          navigateTo("library");
+          navigateTo("library", "tokens");
           switchContextualSurface({
             surface: "collection-details",
             collection: { collectionId: currentCollectionId },
@@ -206,7 +206,7 @@ export function useCommandPaletteCommands(): {
         description: "Filter the library down to recently edited tokens",
         category: "Tokens",
         handler: () => {
-          navigateTo("library");
+          navigateTo("library", "tokens");
           setTokenDetails(null);
           setTimeout(() => {
             tokens.tokenListCompareRef.current?.showRecentlyTouched();
@@ -253,7 +253,7 @@ export function useCommandPaletteCommands(): {
         description: "Contrast matrix and lightness scale inspector",
         category: "Health",
         handler: () => {
-          navigateTo("library");
+          navigateTo("library", "tokens");
           switchContextualSurface({ surface: "color-analysis" });
         },
       },
@@ -287,7 +287,7 @@ export function useCommandPaletteCommands(): {
         description: "Open side-by-side token comparison inside the library",
         category: "Tokens",
         handler: () => {
-          navigateTo("library");
+          navigateTo("library", "tokens");
           tokens.tokenListCompareRef.current?.openCompareMode();
         },
       },
@@ -347,7 +347,7 @@ export function useCommandPaletteCommands(): {
               category: "Health" as const,
               handler: () => {
                 tokens.setShowIssuesOnly((visible) => !visible);
-                navigateTo("library");
+                navigateTo("library", "tokens");
               },
             },
             {
@@ -381,7 +381,7 @@ export function useCommandPaletteCommands(): {
 
   const collectionCommands = useMemo<Command[]>(() => {
     const goToTokens = () => {
-      navigateTo("library");
+      navigateTo("library", "tokens");
       setTokenDetails(null);
     };
 
@@ -484,7 +484,7 @@ export function useCommandPaletteCommands(): {
                 "Create a primitive alias token and replace this value with a reference",
               category: "Tokens" as const,
               handler: () => {
-                navigateTo("library");
+                navigateTo("library", "tokens");
                 setHighlightedToken(currentHighlightedToken);
                 tokens.tokenListCompareRef.current?.triggerExtractToAlias(
                   currentHighlightedToken,
