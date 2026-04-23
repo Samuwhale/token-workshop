@@ -17,6 +17,21 @@ export {
   makeReferenceGlobalRegex,
 } from './constants.js';
 export type { DimensionUnit, StrokeStyleKeyword } from './constants.js';
+export {
+  CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET,
+  CROSS_COLLECTION_SEARCH_HAS_CANONICAL_VALUES,
+  CROSS_COLLECTION_SEARCH_HAS_VALUES,
+  SEARCH_SCOPE_CATEGORIES,
+  SEARCH_SCOPE_CATEGORY_KEYS,
+  SUPPORTED_SEARCH_SCOPE_VALUES,
+  SEARCH_HAS_CANONICAL_VALUES,
+  SEARCH_HAS_VALUES,
+  SEARCH_HAS_CANONICAL_MAP,
+} from './token-search.js';
+export type {
+  CrossCollectionSearchHasQualifierValue,
+  SearchHasQualifierValue,
+} from './token-search.js';
 
 // Types
 export type {

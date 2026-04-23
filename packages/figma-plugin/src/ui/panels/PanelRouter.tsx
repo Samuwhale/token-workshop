@@ -222,7 +222,6 @@ export function PanelRouter({
     onRestartGuidedSetup: shell.restartGuidedSetup,
     onClearAllComplete: shell.handleClearAllComplete,
     onImportComplete: shell.handleImportComplete,
-    onOpenCommandPaletteWithQuery: shell.openCommandPaletteWithQuery,
   };
   const {
     refreshAll,
@@ -256,7 +255,6 @@ export function PanelRouter({
     setHighlightedToken,
     createFromEmpty,
     setCreateFromEmpty,
-    setPendingHighlight,
     setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateBack,
@@ -708,10 +706,7 @@ export function PanelRouter({
       controller.displayedLeafNodesRef.current = nodes;
     },
     onTokenTouched: (path: string) => {
-      controller.recentlyTouched.recordTouch(
-        path,
-        pathToCollectionId[path] ?? currentCollectionId,
-      );
+      controller.recentlyTouched.recordTouch(path, currentCollectionId);
     },
     onToggleStar: (path: string) =>
       controller.starredTokens.toggleStar(path, currentCollectionId),
@@ -758,7 +753,6 @@ export function PanelRouter({
         path,
       });
     },
-    onOpenCommandPaletteWithQuery: controller.openCommandPaletteWithQuery,
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
     onExtractFromSelection: controller.triggerExtractFromSelection,
@@ -768,7 +762,6 @@ export function PanelRouter({
         surface: "collection-details",
         collection: { collectionId },
       }),
-    onOpenStartHere: controller.onOpenStartHere,
   };
 
   const tokenDetailsProps = tokenDetails
@@ -1078,7 +1071,7 @@ export function PanelRouter({
               currentCollectionId={currentCollectionId}
               onNavigateToToken={(path, collectionId) => {
                 setCurrentCollectionId(collectionId);
-                setPendingHighlight(path);
+                setPendingHighlightForCollection(path, collectionId);
                 closeMaintenanceSurface();
               }}
               onClose={closeMaintenanceSurface}
@@ -1143,7 +1136,6 @@ export function PanelRouter({
         }}
         actions={tokenListActions}
         recentlyTouched={controller.recentlyTouched}
-        defaultCreateOpen={createFromEmpty}
         highlightedToken={tokenListHighlightedPath}
         showIssuesOnly={controller.showIssuesOnly}
         editingTokenPath={tokenDetails?.mode === "edit" ? tokenDetails.path : null}
@@ -1606,14 +1598,12 @@ export function PanelRouter({
           <OverviewPanel
             tokens={collectionTokens}
             onNavigateToToken={(path) => {
-              const targetCollectionId =
-                pathToCollectionId[path] ?? currentCollectionId;
               controller.guardEditorAction(() => {
                 switchContextualSurface({
                   surface: "token-details",
                   token: {
                     path,
-                    currentCollectionId: targetCollectionId,
+                    currentCollectionId,
                     mode: "inspect",
                   },
                 });
@@ -1641,6 +1631,7 @@ export function PanelRouter({
             healthSignals={healthSignals}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
+            perCollectionFlat={perCollectionFlat}
             tokenUsageCounts={tokenUsageCounts}
             tokenUsageReady={hasTokenUsageScanResult}
             heatmapResult={heatmapResult}

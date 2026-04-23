@@ -11,8 +11,10 @@ import { setTimeout as delay } from 'node:timers/promises';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const cliArgs = process.argv.slice(2).filter((arg) => arg !== '--');
 
 const { values } = parseArgs({
+  args: cliArgs,
   options: {
     dir: { type: 'string', default: 'demo/tokens' },
     'server-port': { type: 'string', default: '9400' },
@@ -163,6 +165,13 @@ process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
 try {
+  const serverOrigin = `http://localhost:${serverPort}`;
+  const buildHarnessUrl = (pathname = '/') => {
+    const url = new URL(`http://localhost:${uiPort}${pathname}`);
+    url.searchParams.set('serverUrl', serverOrigin);
+    return url.toString();
+  };
+
   console.log(`Using token directory: ${tokenDir}`);
   await assertPortAvailable(serverPort, 'Server', '--server-port <port>');
   await assertPortAvailable(uiPort, 'Harness', '--ui-port <port>');
@@ -200,8 +209,8 @@ try {
     }
   }, 15_000, 'standalone harness');
 
-  const harnessUrl = `http://localhost:${uiPort}/`;
-  const directUiUrl = `http://localhost:${uiPort}/dist/ui.html`;
+  const harnessUrl = buildHarnessUrl('/');
+  const directUiUrl = buildHarnessUrl('/dist/ui.html');
   const docsUrl = `http://localhost:${serverPort}/docs`;
   const healthUrl = `http://localhost:${serverPort}/api/health`;
 
@@ -213,9 +222,6 @@ try {
   console.log(`Health:    ${healthUrl}`);
   console.log('');
   console.log('The harness includes a mock Figma bridge and a "Mock Selection" button.');
-  if (serverPort !== 9400) {
-    console.log(`The plugin UI defaults to :9400, so point it at http://localhost:${serverPort} inside the connection prompt.`);
-  }
   console.log('Press Ctrl+C to stop every preview process.');
 
   maybeOpen(harnessUrl);

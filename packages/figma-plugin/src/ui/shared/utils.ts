@@ -71,6 +71,11 @@ export function downloadBlob(blob: Blob, filename: string): void {
   }, 0);
 }
 
+export function buildPluginDocumentationUrl(serverUrl: string): string {
+  const normalizedBase = serverUrl.trim().replace(/\/+$/u, '');
+  return `${normalizedBase}/help`;
+}
+
 function serializeStable(value: unknown, insideArray: boolean): string | undefined {
   if (value === null) {
     return 'null';

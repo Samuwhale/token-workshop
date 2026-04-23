@@ -83,7 +83,6 @@ import { tokenPathToUrlSegment } from "./shared/utils";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsGet, lsSet, lsRemove, lsGetJson } from "./shared/storage";
-import { findLeafByPath } from "./components/tokenListUtils";
 import {
   Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
@@ -135,7 +134,6 @@ export function App() {
     setEditingGeneratedGroup,
     inspectingCollection,
     setHighlightedToken,
-    setPendingHighlight,
     setPendingHighlightForCollection,
     setAliasNotFoundHandler,
     setShowTokensCompare,
@@ -158,7 +156,6 @@ export function App() {
     collections,
     currentCollectionId,
     setCurrentCollectionId,
-    currentCollectionTokens: tokens,
     collectionDescriptions,
     refreshCollections: refreshTokens,
     syncCollectionSummariesToState,
@@ -219,6 +216,11 @@ export function App() {
   const [collectionRailFocusRequestKey, setCollectionRailFocusRequestKey] = useState(0);
   const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
+  const [pendingPaletteAction, setPendingPaletteAction] = useState<{
+    kind: "rename" | "move";
+    path: string;
+    collectionId: string;
+  } | null>(null);
   // undoMaxHistory is managed by SettingsPanel; App re-reads from localStorage when it changes
   const undoHistoryRev = useSettingsListener(STORAGE_KEYS.UNDO_MAX_HISTORY);
   const undoMaxHistory = useMemo(
@@ -434,13 +436,8 @@ export function App() {
   );
   const activeWorkspace = activeWorkspaceSummary.workspace;
   const existingPathsForCurrentCollection = useMemo(
-    () =>
-      new Set(
-        Object.keys(allTokensFlat).filter(
-          (p) => pathToCollectionId[p] === currentCollectionId,
-        ),
-      ),
-    [allTokensFlat, pathToCollectionId, currentCollectionId],
+    () => new Set(Object.keys(perCollectionFlat[currentCollectionId] ?? {})),
+    [currentCollectionId, perCollectionFlat],
   );
   const currentCollectionTokenPathSignature = useMemo(
     () => [...existingPathsForCurrentCollection].sort().join("\0"),
@@ -1162,16 +1159,16 @@ export function App() {
 
   const handlePaletteDeleteConfirm = useCallback(async () => {
     if (!paletteDeleteConfirm) return;
-    const { paths } = paletteDeleteConfirm;
+    const { paths, collectionId } = paletteDeleteConfirm;
     setPaletteDeleteConfirm(null);
     const snapshot: Record<string, { $type: string; $value: unknown }> = {};
     for (const p of paths) {
-      const entry = allTokensFlat[p];
+      const entry = perCollectionFlat[collectionId]?.[p] ?? allTokensFlat[p];
       if (entry) snapshot[p] = { $type: entry.$type, $value: entry.$value };
     }
     try {
       await apiFetch(
-        `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/batch-delete`,
+        `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-delete`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1187,7 +1184,7 @@ export function App() {
         restore: async () => {
           for (const [path, token] of Object.entries(snapshot)) {
             await apiFetch(
-              `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}`,
+              `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`,
               {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -1203,7 +1200,7 @@ export function App() {
         },
         redo: async () => {
           await apiFetch(
-            `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/batch-delete`,
+            `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-delete`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -1224,8 +1221,8 @@ export function App() {
   }, [
     paletteDeleteConfirm,
     allTokensFlat,
+    perCollectionFlat,
     serverUrl,
-    currentCollectionId,
     pushUndo,
     refreshAll,
     setPaletteDeleteConfirm,
@@ -1233,17 +1230,46 @@ export function App() {
     setErrorToast,
   ]);
 
+  useEffect(() => {
+    if (!pendingPaletteAction) return;
+    if (pendingPaletteAction.collectionId !== currentCollectionId) return;
+    if (!perCollectionFlat[currentCollectionId]?.[pendingPaletteAction.path]) return;
+
+    setHighlightedToken(pendingPaletteAction.path);
+    const frameId = window.requestAnimationFrame(() => {
+      if (pendingPaletteAction?.kind === "rename") {
+        tokenListCompareRef.current?.triggerInlineRename(
+          pendingPaletteAction.path,
+        );
+      } else if (pendingPaletteAction?.kind === "move") {
+        tokenListCompareRef.current?.triggerMoveToken(
+          pendingPaletteAction.path,
+        );
+      }
+      setPendingPaletteAction(null);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [
+    currentCollectionId,
+    pendingPaletteAction,
+    perCollectionFlat,
+    setHighlightedToken,
+    tokenListCompareRef,
+  ]);
+
   // Duplicate a token from the command palette (shared between contextual command and token search button)
   const handlePaletteDuplicate = useCallback(
-    async (path: string) => {
-      const entry = allTokensFlat[path];
+    async (path: string, collectionId?: string) => {
+      const targetCollectionId =
+        collectionId ?? pathToCollectionId[path] ?? currentCollectionId;
+      const entry =
+        perCollectionFlat[targetCollectionId]?.[path] ?? allTokensFlat[path];
       if (!entry || !connected) return;
-      const tokenNode = findLeafByPath(tokens, path);
-      const targetCollectionId = pathToCollectionId[path] ?? currentCollectionId;
       const baseCopy = `${path}-copy`;
       let newPath = baseCopy;
       let i = 2;
-      while (allTokensFlat[newPath]) {
+      while (perCollectionFlat[targetCollectionId]?.[newPath]) {
         newPath = `${baseCopy}-${i++}`;
       }
       try {
@@ -1251,8 +1277,8 @@ export function App() {
           $type: entry.$type,
           $value: entry.$value,
         };
-        if (tokenNode?.$description) body.$description = tokenNode.$description;
-        if (tokenNode?.$extensions) body.$extensions = tokenNode.$extensions;
+        if (entry.$description) body.$description = entry.$description;
+        if (entry.$extensions) body.$extensions = entry.$extensions;
         await apiFetch(
           `${serverUrl}/api/tokens/${encodeURIComponent(targetCollectionId)}/${tokenPathToUrlSegment(newPath)}`,
           {
@@ -1265,7 +1291,7 @@ export function App() {
         navigateTo("library", "tokens");
         if (targetCollectionId !== currentCollectionId) {
           setCurrentCollectionId(targetCollectionId);
-          setPendingHighlight(newPath);
+          setPendingHighlightForCollection(newPath, targetCollectionId);
         } else {
           setHighlightedToken(newPath);
         }
@@ -1276,27 +1302,33 @@ export function App() {
     [
       allTokensFlat,
       connected,
-      tokens,
-      pathToCollectionId,
       currentCollectionId,
+      perCollectionFlat,
+      pathToCollectionId,
       serverUrl,
       navigateTo,
       refreshTokens,
       setCurrentCollectionId,
-      setPendingHighlight,
+      setPendingHighlightForCollection,
       setHighlightedToken,
     ],
   );
 
   // Navigate to a token and trigger inline rename mode
   const handlePaletteRename = useCallback(
-    (path: string) => {
-      const targetCollectionId = pathToCollectionId[path];
+    (path: string, collectionId?: string) => {
+      const targetCollectionId =
+        collectionId ?? pathToCollectionId[path] ?? currentCollectionId;
       navigateTo("library", "tokens");
       setTokenDetails(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
+        setPendingPaletteAction({
+          kind: "rename",
+          path,
+          collectionId: targetCollectionId,
+        });
+        setPendingHighlightForCollection(path, targetCollectionId);
         setCurrentCollectionId(targetCollectionId);
-        setPendingHighlight(path);
       } else {
         setHighlightedToken(path);
         tokenListCompareRef.current?.triggerInlineRename(path);
@@ -1308,20 +1340,27 @@ export function App() {
       navigateTo,
       setTokenDetails,
       setCurrentCollectionId,
-      setPendingHighlight,
+      setPendingHighlightForCollection,
+      setPendingPaletteAction,
       setHighlightedToken,
     ],
   );
 
   // Trigger the move-to-collection dialog for a token
   const handlePaletteMove = useCallback(
-    (path: string) => {
-      const targetCollectionId = pathToCollectionId[path];
+    (path: string, collectionId?: string) => {
+      const targetCollectionId =
+        collectionId ?? pathToCollectionId[path] ?? currentCollectionId;
       navigateTo("library", "tokens");
       setTokenDetails(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
+        setPendingPaletteAction({
+          kind: "move",
+          path,
+          collectionId: targetCollectionId,
+        });
+        setPendingHighlightForCollection(path, targetCollectionId);
         setCurrentCollectionId(targetCollectionId);
-        setPendingHighlight(path);
       } else {
         setHighlightedToken(path);
         tokenListCompareRef.current?.triggerMoveToken(path);
@@ -1333,22 +1372,26 @@ export function App() {
       navigateTo,
       setTokenDetails,
       setCurrentCollectionId,
-      setPendingHighlight,
+      setPendingHighlightForCollection,
+      setPendingPaletteAction,
       setHighlightedToken,
     ],
   );
 
   // Trigger delete confirm for a single token from the token search row
-  const handlePaletteDeleteToken = useCallback((path: string) => {
-    setPaletteDeleteConfirm({ paths: [path], label: `Delete "${path}"?` });
-  }, [setPaletteDeleteConfirm]);
+  const handlePaletteDeleteToken = useCallback((
+    path: string,
+    collectionId?: string,
+  ) => {
+    setPaletteDeleteConfirm({
+      paths: [path],
+      label: `Delete "${path}"?`,
+      collectionId: collectionId ?? pathToCollectionId[path] ?? currentCollectionId,
+    });
+  }, [currentCollectionId, pathToCollectionId, setPaletteDeleteConfirm]);
 
   const workspaceControllers = {
     shell: {
-      openCommandPaletteWithQuery: (query: string) => {
-        setCommandPaletteInitialQuery(">" + (query ? ` ${query}` : ""));
-        setShowCommandPalette(true);
-      },
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => {
         navigateTo("library", "tokens");
@@ -1425,8 +1468,11 @@ export function App() {
       handlePaletteDuplicate,
       handlePaletteRename,
       handlePaletteMove,
-      requestPaletteDelete: (paths: string[], label: string) =>
-        setPaletteDeleteConfirm({ paths, label }),
+      requestPaletteDelete: (
+        paths: string[],
+        label: string,
+        collectionId = currentCollectionId,
+      ) => setPaletteDeleteConfirm({ paths, label, collectionId }),
       handlePaletteDeleteToken,
     },
     apply: {

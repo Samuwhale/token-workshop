@@ -1,5 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import {
+  CROSS_COLLECTION_SEARCH_HAS_VALUES,
+  SUPPORTED_SEARCH_SCOPE_VALUES,
   buildTokenExtensionsWithCollectionModes,
   TOKEN_TYPE_VALUES,
   TokenValidator,
@@ -237,6 +239,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       .find((definition) => definition.collectionId === collectionId);
   }
 
+  function getCanonicalTokenDefinition(
+    tokenPath: string,
+  ): TokenDefinitionEntry | undefined {
+    return fastify.tokenStore.getTokenDefinitions(tokenPath)[0];
+  }
+
   function listActiveDependents(
     tokenPath: string,
   ): Array<{ path: string; collectionId: string }> {
@@ -351,7 +359,6 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   const SEARCH_MAX_Q_LEN = 500;
   const SEARCH_MAX_LIST_ITEMS = 20;
   const SEARCH_MAX_ITEM_LEN = 200;
-
   function validateSearchList(param: string | undefined, name: string): string | null {
     if (!param) return null;
     const items = param.split(',');
@@ -361,12 +368,24 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   }
 
   // GET /api/tokens/search — search tokens across all collections
-  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; limit?: string; offset?: string } }>(
+  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; generated?: string; scope?: string; limit?: string; offset?: string } }>(
     '/tokens/search',
     async (request, reply) => {
       try {
         await fastify.collectionService.loadState();
-        const { q, type, has, value, desc, path: pathQ, name: nameQ, limit, offset } = request.query;
+        const {
+          q,
+          type,
+          has,
+          value,
+          desc,
+          path: pathQ,
+          name: nameQ,
+          generated,
+          scope,
+          limit,
+          offset,
+        } = request.query;
 
         if (q && q.length > SEARCH_MAX_Q_LEN) {
           return reply.status(400).send({ error: `"q" must not exceed ${SEARCH_MAX_Q_LEN} characters` });
@@ -377,8 +396,39 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           validateSearchList(value, 'value') ??
           validateSearchList(desc, 'desc') ??
           validateSearchList(pathQ, 'path') ??
-          validateSearchList(nameQ, 'name');
+          validateSearchList(nameQ, 'name') ??
+          validateSearchList(generated, 'generated') ??
+          validateSearchList(scope, 'scope');
         if (listError) return reply.status(400).send({ error: listError });
+
+        const requestedHasValues = has
+          ? has.split(",").map((item) => item.trim().toLowerCase())
+          : undefined;
+        if (
+          requestedHasValues &&
+          requestedHasValues.some(
+            (item) => !CROSS_COLLECTION_SEARCH_HAS_VALUES.has(item),
+          )
+        ) {
+          return reply.status(400).send({
+            error:
+              'Cross-collection search supports has:alias, has:direct, has:duplicate, has:description, has:extension, and has:generated.',
+          });
+        }
+        const requestedScopeValues = scope
+          ? scope.split(",").map((item) => item.trim().toLowerCase())
+          : undefined;
+        if (
+          requestedScopeValues &&
+          requestedScopeValues.some(
+            (item) => !SUPPORTED_SEARCH_SCOPE_VALUES.has(item),
+          )
+        ) {
+          return reply.status(400).send({
+            error:
+              'Cross-collection search supports scope:fill, scope:stroke, scope:text, scope:radius, scope:spacing, scope:gap, scope:size, scope:stroke-width, scope:opacity, scope:typography, scope:effect, and scope:visibility.',
+          });
+        }
 
         const parsedLimit = parseInt(limit ?? '200', 10);
         const resolvedLimit = Math.min(
@@ -387,14 +437,45 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         );
         const parsedOffset = parseInt(offset ?? '0', 10);
         const resolvedOffset = Math.max(isNaN(parsedOffset) ? 0 : parsedOffset, 0);
+
+        const requestedGenerators = generated
+          ? generated
+              .split(",")
+              .map((item) => item.trim().toLowerCase())
+              .filter(Boolean)
+          : undefined;
+        let generatorIds: string[] | undefined;
+        if (requestedGenerators && requestedGenerators.length > 0) {
+          const generatorsById = await fastify.generatorService.getAllById();
+          generatorIds = Object.values(generatorsById)
+            .filter((generator) => {
+              const generatorName = generator.name.toLowerCase();
+              return requestedGenerators.some(
+                (query) =>
+                  generatorName === query || generatorName.includes(query),
+              );
+            })
+            .map((generator) => generator.id);
+          if (generatorIds.length === 0) {
+            return {
+              data: [],
+              total: 0,
+              hasMore: false,
+              limit: resolvedLimit,
+              offset: resolvedOffset,
+            };
+          }
+        }
         const { results, total } = fastify.tokenStore.searchTokens({
           q: q || undefined,
           types: type ? type.split(',') : undefined,
-          has: has ? has.split(',') : undefined,
+          has: requestedHasValues,
           values: value ? value.split(',') : undefined,
           descs: desc ? desc.split(',') : undefined,
           paths: pathQ ? pathQ.split(',') : undefined,
           names: nameQ ? nameQ.split(',') : undefined,
+          generatorIds,
+          scopes: requestedScopeValues?.filter(Boolean),
           limit: resolvedLimit,
           offset: resolvedOffset,
         });
@@ -404,35 +485,6 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
     },
   );
-
-  // GET /api/tokens/where?path=X — find all collection definitions for an exact token path
-  fastify.get<{ Querystring: { path?: string } }>('/tokens/where', async (request, reply) => {
-    try {
-      await fastify.collectionService.loadState();
-      const { path: tokenPath } = request.query;
-      if (!tokenPath || typeof tokenPath !== 'string' || tokenPath.trim().length === 0) {
-        return reply.status(400).send({ error: '"path" query parameter is required' });
-      }
-      if (tokenPath.length > PATH_MAX_LEN) {
-        return reply.status(400).send({ error: `"path" must not exceed ${PATH_MAX_LEN} characters` });
-      }
-      const defs = fastify.tokenStore.getTokenDefinitions(tokenPath.trim());
-      const baseValue = defs.length > 0 ? stableStringify(defs[0].token.$value) : null;
-      return {
-        path: tokenPath.trim(),
-        definitions: defs.map(d => ({
-          collectionId: d.collectionId,
-          $type: d.token.$type || 'unknown',
-          $value: d.token.$value,
-          $description: d.token.$description,
-          isAlias: isReference(d.token.$value),
-          isDifferentFromFirst: baseValue !== null && stableStringify(d.token.$value) !== baseValue,
-        })),
-      };
-    } catch (err) {
-      return handleRouteError(reply, err, 'Failed to look up token definitions');
-    }
-  });
 
   // GET /api/tokens/:collectionId — get all tokens in a collection (flat list with paths)
   fastify.get<{ Params: { collectionId: string } }>('/tokens/:collectionId', async (request, reply) => {
@@ -1204,6 +1256,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         if (getTokenLifecycle(token) !== 'deprecated') {
           continue;
         }
+        const canonicalDefinition = getCanonicalTokenDefinition(tokenPath);
+        if (!canonicalDefinition || canonicalDefinition.collectionId !== collectionId) {
+          continue;
+        }
         const entryKey = `${collectionId}:${tokenPath}`;
         if (deprecatedEntries.has(entryKey)) {
           continue;
@@ -1275,6 +1331,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         if (getTokenLifecycle(deprecatedDefinition.token) !== 'deprecated') {
           return reply.status(400).send({
             error: `Token "${deprecatedPath}" in collection "${collectionId}" is not deprecated`,
+          });
+        }
+        const canonicalDefinition = getCanonicalTokenDefinition(deprecatedPath);
+        if (!canonicalDefinition || canonicalDefinition.collectionId !== collectionId) {
+          return reply.status(400).send({
+            error: `Deprecated token "${deprecatedPath}" can only be replaced from its canonical collection definition`,
           });
         }
 

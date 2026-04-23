@@ -11,7 +11,6 @@ import type { LintViolation } from "../hooks/useLint";
 import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
-import type { StartHereBranch } from "./WelcomePrompt";
 import type { TokenCollection } from "@tokenmanager/core";
 
 /** Per-option resolved value for a single token in multi-mode view */
@@ -157,8 +156,6 @@ export interface TokenListActions {
   onOpenCompare?: (paths: Set<string>) => void;
   /** Open the unified compare view in cross-collection mode for a specific token path */
   onOpenCrossCollectionCompare?: (path: string) => void;
-  /** Open the command palette in token-search mode pre-populated with the given query ("> query") */
-  onOpenCommandPaletteWithQuery?: (query: string) => void;
   /** Open the global paste tokens modal */
   onShowPasteModal?: () => void;
   /** Open the import surface from the Tokens workspace */
@@ -169,10 +166,6 @@ export interface TokenListActions {
   onOpenCreateCollection?: () => void;
   /** Open the details panel for the active collection (wired to toolbar anchor) */
   onOpenCollectionDetails?: (collectionId: string) => void;
-  /** Open the cross-collection "where is this token defined" overlay for the given path */
-  onFindInAllCollections?: (path: string) => void;
-  /** Open the unified start-here flow from token-level empty states */
-  onOpenStartHere?: (branch?: StartHereBranch) => void;
 }
 
 /** Imperative handle allowing a parent to trigger compare-panel actions from outside TokenList */
@@ -203,7 +196,6 @@ export interface TokenListProps {
   data: TokenListData;
   actions: TokenListActions;
   recentlyTouched: RecentlyTouchedState;
-  defaultCreateOpen?: boolean;
   highlightedToken?: string | null;
   showIssuesOnly?: boolean;
   /** Path of the token currently open in the editor — enables Cmd+]/[ navigation shortcuts */

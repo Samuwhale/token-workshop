@@ -1,0 +1,54 @@
+TokenManager
+Library
+Tokens
+Overview
+Health
+History
+Canvas
+Selection
+Coverage
+Sync
+Export
+Versions
+Export — Generate platform token files — CSS, Dart, Swift, Android, JSON.
+Presets
+⌘⇧E
+Save current
+No presets yet. Configure your export settings and click "Save current" to create one.
+Target Platforms
+Select all (10)
+CSS
+CSS custom properties
+--color-brand: #0066ff;
+Dart
+Flutter theme classes
+iOS Swift
+UIKit / SwiftUI extensions
+Android
+XML resources / Compose
+JSON
+W3C DTCG format
+SCSS
+SCSS variables
+LESS
+LESS variables
+TypeScript
+ES6 const exports
+Tailwind CSS
+Tailwind config (theme.extend)
+CSS-in-JS
+styled-components / Emotion theme object
+CSS SELECTOR
+:root
+COLLECTIONS
+All collections
+TOKEN TYPES
+All types
+PATH PREFIX
+None
+SCOPE
+All tokens
+Changes only
+Export tokens changed since last commit
+css · all tokens
+Export 1 Platform

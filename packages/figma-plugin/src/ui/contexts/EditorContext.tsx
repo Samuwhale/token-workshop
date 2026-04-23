@@ -68,7 +68,6 @@ export interface EditorContextValue {
   setHighlightedToken: (path: string | null) => void;
   createFromEmpty: boolean;
   setCreateFromEmpty: (v: boolean) => void;
-  setPendingHighlight: Dispatch<SetStateAction<string | null>>;
   setPendingHighlightForCollection: (path: string, targetCollectionId: string) => void;
   handleNavigateToAlias: (path: string, fromPath?: string) => void;
   handleNavigateToAliasWithoutHistory: (path: string) => void;
@@ -167,7 +166,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const {
     highlightedToken,
     setHighlightedToken,
-    setPendingHighlight,
     setPendingHighlightForCollection,
     createFromEmpty,
     setCreateFromEmpty,
@@ -299,7 +297,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setHighlightedToken,
     createFromEmpty,
     setCreateFromEmpty,
-    setPendingHighlight,
     setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,
@@ -335,7 +332,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     createFromEmpty,
     setCreateFromEmpty,
     setHighlightedToken,
-    setPendingHighlight,
     setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateToAliasWithoutHistory,

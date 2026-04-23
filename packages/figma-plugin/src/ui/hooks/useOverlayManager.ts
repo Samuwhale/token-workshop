@@ -5,6 +5,7 @@ import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 interface PaletteDeleteConfirm {
   paths: string[];
   label: string;
+  collectionId: string;
 }
 
 export function useOverlayManager() {

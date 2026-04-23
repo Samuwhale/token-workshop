@@ -28,7 +28,6 @@ import type { PublishPreflightState } from "../shared/syncWorkflow";
 import type { PublishPending } from "../hooks/useFigmaSync";
 
 export interface ShellWorkspaceController {
-  openCommandPaletteWithQuery: (query: string) => void;
   openPasteModal: () => void;
   openImportPanel: () => void;
   openCollectionCreateDialog: () => void;
@@ -87,11 +86,15 @@ export interface TokensWorkspaceController {
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
   handleOpenCrossCollectionCompare: (path: string) => void;
-  handlePaletteDuplicate: (path: string) => Promise<void>;
-  handlePaletteRename: (path: string) => void;
-  handlePaletteMove: (path: string) => void;
-  requestPaletteDelete: (paths: string[], label: string) => void;
-  handlePaletteDeleteToken: (path: string) => void;
+  handlePaletteDuplicate: (path: string, collectionId?: string) => Promise<void>;
+  handlePaletteRename: (path: string, collectionId?: string) => void;
+  handlePaletteMove: (path: string, collectionId?: string) => void;
+  requestPaletteDelete: (
+    paths: string[],
+    label: string,
+    collectionId?: string,
+  ) => void;
+  handlePaletteDeleteToken: (path: string, collectionId?: string) => void;
 }
 
 export interface ApplyWorkspaceController {

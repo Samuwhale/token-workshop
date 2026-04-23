@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { watch } from "chokidar";
 import {
+  SEARCH_SCOPE_CATEGORIES,
   type Token,
   type TokenGroup,
   type TokenType,
@@ -17,6 +18,7 @@ import { NotFoundError, ConflictError, BadRequestError } from "../errors.js";
 import type { TokenPathRename } from "./operation-log.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
+import { stableStringify } from "./stable-stringify.js";
 import {
   validateTokenPath,
   pathExistsAt,
@@ -77,6 +79,32 @@ interface PlannedGroupTransfer {
   groupPath: string;
   groupObject?: TokenGroup;
   leafTokens: PlannedGroupLeafToken[];
+}
+
+function normalizeSearchTerms(values?: string[]): string[] | undefined {
+  if (!values) {
+    return undefined;
+  }
+  const normalized = values
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return normalized.length > 0 ? [...new Set(normalized)] : undefined;
+}
+
+function getTokenGeneratorId(token: Pick<Token, "$extensions">): string | null {
+  const ext = token.$extensions?.["com.tokenmanager.generator"];
+  if (!ext || typeof ext !== "object") {
+    return null;
+  }
+  const generatorId = (ext as { generatorId?: unknown }).generatorId;
+  return typeof generatorId === "string" ? generatorId : null;
+}
+
+function getTokenScopes(token: Pick<Token, "$extensions">): string[] {
+  const rawScopes = token.$extensions?.["com.figma.scopes"];
+  return Array.isArray(rawScopes)
+    ? rawScopes.filter((scope): scope is string => typeof scope === "string")
+    : [];
 }
 
 export class TokenStore {
@@ -1199,6 +1227,8 @@ export class TokenStore {
     descs?: string[];
     paths?: string[];
     names?: string[];
+    generatorIds?: string[];
+    scopes?: string[];
     limit?: number;
     offset?: number;
   }): {
@@ -1220,10 +1250,62 @@ export class TokenStore {
       descs,
       paths,
       names,
+      generatorIds,
+      scopes,
       limit = 200,
       offset = 0,
     } = opts;
-    const qLower = q?.toLowerCase();
+    const qLower = q?.trim().toLowerCase();
+    const normalizedTypes = normalizeSearchTerms(types);
+    const normalizedHas = normalizeSearchTerms(has);
+    const normalizedValues = normalizeSearchTerms(values);
+    const normalizedDescs = normalizeSearchTerms(descs);
+    const normalizedPaths = normalizeSearchTerms(paths);
+    const normalizedNames = normalizeSearchTerms(names);
+    const normalizedScopes = normalizeSearchTerms(scopes);
+    const allowedScopeValues: Set<string> | null = normalizedScopes
+      ? new Set(
+          normalizedScopes.flatMap(
+            (scope) =>
+              SEARCH_SCOPE_CATEGORIES[
+                scope as keyof typeof SEARCH_SCOPE_CATEGORIES
+              ] ?? [],
+          ),
+        )
+      : null;
+    if (normalizedScopes && normalizedScopes.length > 0 && allowedScopeValues && allowedScopeValues.size === 0) {
+      return { results: [], total: 0 };
+    }
+    const generatorIdSet =
+      generatorIds && generatorIds.length > 0 ? new Set(generatorIds) : null;
+    const duplicateEntryKeys =
+      normalizedHas &&
+      normalizedHas.some((value) => value === "duplicate" || value === "dup")
+        ? (() => {
+            const valueToEntries = new Map<string, string[]>();
+            for (const [tokenPath, entries] of this.flatTokens) {
+              for (const entry of entries) {
+                const duplicateKey = stableStringify(entry.token.$value);
+                const entryKey = `${entry.collectionId}:${tokenPath}`;
+                const existing = valueToEntries.get(duplicateKey);
+                if (existing) {
+                  existing.push(entryKey);
+                } else {
+                  valueToEntries.set(duplicateKey, [entryKey]);
+                }
+              }
+            }
+
+            const duplicates = new Set<string>();
+            for (const entryKeys of valueToEntries.values()) {
+              if (entryKeys.length < 2) continue;
+              for (const entryKey of entryKeys) {
+                duplicates.add(entryKey);
+              }
+            }
+            return duplicates;
+          })()
+        : null;
     const all: Array<{
       collectionId: string;
       path: string;
@@ -1242,14 +1324,18 @@ export class TokenStore {
 
       // path: qualifier
       if (
-        paths &&
-        paths.length > 0 &&
-        !paths.some((p) => lp.startsWith(p) || lp.includes(p))
+        normalizedPaths &&
+        normalizedPaths.length > 0 &&
+        !normalizedPaths.some((pathValue) => lp.startsWith(pathValue) || lp.includes(pathValue))
       )
         continue;
 
       // name: qualifier
-      if (names && names.length > 0 && !names.some((n) => ln.includes(n)))
+      if (
+        normalizedNames &&
+        normalizedNames.length > 0 &&
+        !normalizedNames.some((nameValue) => ln.includes(nameValue))
+      )
         continue;
 
       for (const entry of entries) {
@@ -1265,15 +1351,22 @@ export class TokenStore {
         }
 
         // type: qualifier
-        if (types && types.length > 0) {
+        if (normalizedTypes && normalizedTypes.length > 0) {
           const et = (entry.token.$type || "").toLowerCase();
-          if (!types.some((t) => et === t || et.includes(t))) continue;
+          if (
+            !normalizedTypes.some(
+              (typeValue) => et === typeValue || et.includes(typeValue),
+            )
+          ) {
+            continue;
+          }
         }
 
         // has: qualifiers
         let skip = false;
-        if (has && has.length > 0) {
-          for (const h of has) {
+        if (normalizedHas && normalizedHas.length > 0) {
+          const generatorId = getTokenGeneratorId(entry.token);
+          for (const h of normalizedHas) {
             if (
               (h === "alias" || h === "ref") &&
               !isReference(entry.token.$value)
@@ -1300,20 +1393,54 @@ export class TokenStore {
               skip = true;
               break;
             }
+            if (
+              (h === "duplicate" || h === "dup") &&
+              !duplicateEntryKeys?.has(`${entry.collectionId}:${tokenPath}`)
+            ) {
+              skip = true;
+              break;
+            }
+            if ((h === "generated" || h === "gen") && !generatorId) {
+              skip = true;
+              break;
+            }
           }
         }
         if (skip) continue;
 
         // value: qualifier
-        if (values && values.length > 0) {
-          const sv = JSON.stringify(entry.token.$value).toLowerCase();
-          if (!values.some((v) => sv.includes(v))) continue;
+        if (normalizedValues && normalizedValues.length > 0) {
+          const sv = stableStringify(entry.token.$value).toLowerCase();
+          if (!normalizedValues.some((valueTerm) => sv.includes(valueTerm))) {
+            continue;
+          }
         }
 
         // desc: qualifier — match $description
-        if (descs && descs.length > 0) {
+        if (normalizedDescs && normalizedDescs.length > 0) {
           const ld = (entry.token.$description || "").toLowerCase();
-          if (!descs.some((d) => ld.includes(d))) continue;
+          if (
+            !normalizedDescs.some((descriptionTerm) =>
+              ld.includes(descriptionTerm),
+            )
+          ) {
+            continue;
+          }
+        }
+
+        if (generatorIdSet) {
+          const generatorId = getTokenGeneratorId(entry.token);
+          if (!generatorId || !generatorIdSet.has(generatorId)) continue;
+        }
+
+        if (normalizedScopes && normalizedScopes.length > 0) {
+          const tokenScopes = getTokenScopes(entry.token);
+          if (
+            tokenScopes.length > 0 &&
+            !tokenScopes.some((tokenScope) => allowedScopeValues?.has(tokenScope))
+          ) {
+            continue;
+          }
         }
 
         all.push({
@@ -1326,6 +1453,12 @@ export class TokenStore {
         });
       }
     }
+
+    all.sort(
+      (left, right) =>
+        left.collectionId.localeCompare(right.collectionId) ||
+        left.path.localeCompare(right.path),
+    );
 
     return { results: all.slice(offset, offset + limit), total: all.length };
   }

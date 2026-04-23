@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { Check, Eye, Filter } from "lucide-react";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
-import type { FilterPreset } from "../hooks/useTokenSearch";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { TOKEN_TYPE_CATEGORIES } from "../shared/tokenTypeCategories";
 import {
@@ -18,7 +17,6 @@ export interface ViewMenuProps {
   onCollapseAll: () => void;
   hasGroups: boolean;
   allGroupsExpanded: boolean;
-  hasCollections: boolean;
   canToggleSearchResultPresentation: boolean;
   searchResultPresentation: "grouped" | "flat";
   onSearchResultPresentationChange: (
@@ -45,9 +43,6 @@ export interface FilterMenuProps {
   onRefFilterChange: (v: "all" | "aliases" | "direct") => void;
   showDuplicates: boolean;
   onToggleDuplicates: () => void;
-  filterPresets: FilterPreset[];
-  onApplyFilterPreset: (preset: FilterPreset) => void;
-  onDeleteFilterPreset: (id: string) => void;
   activeCount: number;
 }
 
@@ -361,40 +356,25 @@ export function FilterMenu(
                 key={entry.group}
                 label={entry.group}
                 checked={entry.checked}
-                onClick={() => {
-                  const next = new Set(activeTypeValues);
-                  if (entry.checked) {
-                    entry.values.forEach((value) => next.delete(value));
-                  } else {
-                    entry.values.forEach((value) => next.add(value));
-                  }
-                  props.setSearchQuery(
-                    setQueryQualifierValues(
-                      props.searchQuery,
-                      "type",
-                      Array.from(next),
-                    ),
-                  );
-                }}
+                onClick={() =>
+                  runAndClose(() => {
+                    const next = new Set(activeTypeValues);
+                    if (entry.checked) {
+                      entry.values.forEach((value) => next.delete(value));
+                    } else {
+                      entry.values.forEach((value) => next.add(value));
+                    }
+                    props.setSearchQuery(
+                      setQueryQualifierValues(
+                        props.searchQuery,
+                        "type",
+                        Array.from(next),
+                      ),
+                    );
+                  })
+                }
               />
             ))}
-
-            {props.filterPresets.length > 0 && (
-              <>
-                <div className={MENU_SECTION_BORDER}>
-                  <MenuLabel>Saved filters</MenuLabel>
-                </div>
-                {props.filterPresets.map((preset) => (
-                  <MenuItem
-                    key={preset.id}
-                    label={preset.name}
-                    onClick={() =>
-                      runAndClose(() => props.onApplyFilterPreset(preset))
-                    }
-                  />
-                ))}
-              </>
-            )}
           </div>
         </div>
       )}

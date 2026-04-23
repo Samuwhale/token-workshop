@@ -15,7 +15,7 @@ import { useLintConfig } from "../hooks/useLintConfig";
 import { LintConfigPanel } from "./LintConfigPanel";
 import { formatHexAs } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
-import { downloadBlob } from "../shared/utils";
+import { buildPluginDocumentationUrl, downloadBlob } from "../shared/utils";
 import { SegmentedControl } from "./SegmentedControl";
 
 // ---------------------------------------------------------------------------
@@ -534,6 +534,14 @@ export function SettingsPanel({
     lsSet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, v);
   };
 
+  const handleOpenDocumentation = useCallback(() => {
+    window.open(
+      buildPluginDocumentationUrl(serverUrl),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }, [serverUrl]);
+
   // ---- Connection status suffix for section header ----
   const serverStatusSuffix = (
     <span
@@ -837,6 +845,18 @@ export function SettingsPanel({
                 onLintRefresh={() => {}}
               />
             )}
+          </Section>
+
+          <Section title="Help" defaultOpen={false}>
+            <p className="text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
+              Documentation opens from your configured TokenManager server in the browser.
+            </p>
+            <button
+              onClick={handleOpenDocumentation}
+              className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+            >
+              Open documentation
+            </button>
           </Section>
 
           {/* ── Utilities ── */}

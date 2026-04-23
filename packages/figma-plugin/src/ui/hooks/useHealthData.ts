@@ -3,7 +3,10 @@ import type { TokenMapEntry } from "../../shared/types";
 import type { ValidationIssue } from "./useValidationCache";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { hexToLuminance } from "../shared/colorUtils";
-import { computeUnusedTokenPaths } from "../shared/tokenUsage";
+import {
+  buildReferencedTokenPathSetFromEntries,
+  isTokenEntryUnused,
+} from "../shared/tokenUsage";
 import { normalizeHex } from "@tokenmanager/core";
 import type { TokenValue } from "@tokenmanager/core";
 import {
@@ -84,6 +87,7 @@ const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 export interface UseHealthDataParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   tokenUsageCounts: Record<string, number>;
   tokenUsageReady?: boolean;
   validationIssues: ValidationIssue[] | null;
@@ -104,11 +108,25 @@ export interface HealthDataResult {
 export function useHealthData({
   allTokensFlat,
   pathToCollectionId,
+  perCollectionFlat,
   tokenUsageCounts,
   tokenUsageReady = false,
   validationIssues,
   currentCollectionId,
 }: UseHealthDataParams): HealthDataResult {
+  const getTokenEntry = useMemo(
+    () => (path: string, collectionId?: string): TokenMapEntry | undefined => {
+      if (collectionId) {
+        const collectionEntry = perCollectionFlat[collectionId]?.[path];
+        if (collectionEntry) {
+          return collectionEntry;
+        }
+      }
+      return allTokensFlat[path];
+    },
+    [allTokensFlat, perCollectionFlat],
+  );
+
   const allTokensUnified = useMemo(() => {
     const result: Record<string, UnifiedTokenEntry> = {};
     for (const [path, entry] of Object.entries(allTokensFlat)) {
@@ -203,7 +221,7 @@ export function useHealthData({
       .map(([id, { tokens }]) => {
         const sampleToken = tokens[0];
         const tokenEntry = sampleToken
-          ? allTokensUnified[sampleToken.path]
+          ? getTokenEntry(sampleToken.path, sampleToken.collectionId)
           : undefined;
         const colorHex =
           tokenEntry?.$type === "color" &&
@@ -219,7 +237,7 @@ export function useHealthData({
           colorHex,
           tokens: tokens
             .map(({ path, collectionId }) => {
-              const duplicateEntry = allTokensUnified[path];
+              const duplicateEntry = getTokenEntry(path, collectionId);
               return {
                 path,
                 collectionId,
@@ -241,7 +259,7 @@ export function useHealthData({
         };
       })
       .sort((a, b) => b.tokens.length - a.tokens.length);
-  }, [validationIssues, allTokensUnified, currentCollectionId]);
+  }, [currentCollectionId, getTokenEntry, validationIssues]);
 
   const aliasOpportunityGroups = useMemo((): AliasOpportunityGroup[] => {
     if (!validationIssues) return [];
@@ -277,7 +295,10 @@ export function useHealthData({
             a.path.localeCompare(b.path) ||
             a.collectionId.localeCompare(b.collectionId),
         );
-        const sampleEntry = allTokensUnified[sortedTokens[0]?.path ?? ""];
+        const sampleToken = sortedTokens[0];
+        const sampleEntry = sampleToken
+          ? getTokenEntry(sampleToken.path, sampleToken.collectionId)
+          : undefined;
         const sourceCollectionIds = Array.from(
           new Set(sortedTokens.map((token) => token.collectionId)),
         );
@@ -291,7 +312,9 @@ export function useHealthData({
             sampleEntry?.$type,
           ),
           [
-            ...Object.keys(allTokensUnified),
+            ...Object.values(perCollectionFlat).flatMap((collectionFlat) =>
+              Object.keys(collectionFlat),
+            ),
             ...sortedTokens.map((token) => token.path),
           ],
         );
@@ -313,7 +336,7 @@ export function useHealthData({
         };
       })
       .sort((a, b) => b.tokens.length - a.tokens.length);
-  }, [validationIssues, allTokensUnified, currentCollectionId]);
+  }, [currentCollectionId, getTokenEntry, perCollectionFlat, validationIssues]);
 
   const colorScales = useMemo((): ColorScale[] => {
     const parentGroups = new Map<
@@ -338,30 +361,37 @@ export function useHealthData({
   }, [allColorTokens]);
 
   const unusedTokens = useMemo((): UnusedToken[] => {
-    if (!tokenUsageReady || Object.keys(allTokensUnified).length === 0) {
+    const currentCollectionFlat = perCollectionFlat[currentCollectionId] ?? {};
+    if (!tokenUsageReady || Object.keys(currentCollectionFlat).length === 0) {
       return [];
     }
 
-    const unusedPaths = computeUnusedTokenPaths(
-      allTokensUnified,
-      tokenUsageCounts,
-      { includeDeprecated: false },
+    const referencedPaths = buildReferencedTokenPathSetFromEntries(
+      Object.values(perCollectionFlat).flatMap((collectionFlat) =>
+        Object.values(collectionFlat),
+      ),
     );
 
-    return [...unusedPaths].flatMap((path) => {
-        const entry = allTokensUnified[path];
-        if (!entry || entry.collectionId !== currentCollectionId) {
+    return Object.entries(currentCollectionFlat)
+      .flatMap(([path, entry]) => {
+        if (
+          !isTokenEntryUnused(path, entry, tokenUsageCounts, referencedPaths, {
+            includeDeprecated: false,
+          })
+        ) {
           return [];
         }
-        return [{
+        return [
+          {
           path,
-          collectionId: entry.collectionId,
+          collectionId: currentCollectionId,
           $type: entry.$type,
           $lifecycle: entry.$lifecycle,
-        }];
+          },
+        ];
       })
       .sort((a, b) => a.path.localeCompare(b.path));
-  }, [tokenUsageCounts, tokenUsageReady, allTokensUnified, currentCollectionId]);
+  }, [currentCollectionId, perCollectionFlat, tokenUsageCounts, tokenUsageReady]);
 
   return {
     allTokensUnified,

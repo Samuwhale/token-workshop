@@ -1,45 +1,41 @@
 #!/usr/bin/env node
 /**
- * Headless UI validation for agent workflows.
+ * Headless validation for the standalone preview path.
  *
- * Starts the standalone harness, loads it in a headless browser, waits for
- * the UI to render, captures console errors, and exits with code 0/1.
+ * Starts the real TokenManager server against the demo workspace, starts the
+ * standalone harness, loads the harness in a headless browser, and fails if
+ * the browser preview cannot reach the server or still renders as offline.
  *
  * Uses playwright-core (no bundled browser) and detects a system Chromium.
  * Falls back to the Playwright-managed browser path if `npx playwright install
  * chromium` was run previously. Exits 0 (graceful skip) when no browser is found.
- *
- * Usage:
- *   node packages/figma-plugin/standalone/validate.mjs
- *
- * Exit codes:
- *   0 — UI loaded without console errors (or no browser available — graceful skip)
- *   1 — Console errors detected or UI failed to load
  */
 
 import fs from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { startHarnessServer } from './harness-server.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const demoTokenDir = path.join(repoRoot, 'demo', 'tokens');
+const collectionsFilePath = path.join(demoTokenDir, '$collections.json');
+const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const TIMEOUT_MS = 15_000;
 
 function existingPaths(paths) {
   return paths.filter((candidate) => candidate && fs.existsSync(candidate));
 }
 
-// --- Detect a usable Chromium binary ---
 function findChromium() {
   const playwrightBrowserPaths = findPlaywrightChromePath();
-
-  // Well-known system Chrome paths plus the Playwright cache if installed.
   const candidates = [
-    // macOS
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Chromium.app/Contents/MacOS/Chromium',
     '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
-    // Linux
     '/usr/bin/google-chrome',
     '/usr/bin/google-chrome-stable',
     '/usr/bin/chromium',
@@ -51,9 +47,12 @@ function findChromium() {
     ...playwrightBrowserPaths,
   ];
 
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
   }
+
   return null;
 }
 
@@ -62,7 +61,7 @@ function findPlaywrightChromePath() {
   const cacheDirs = configuredCacheRoot
     ? configuredCacheRoot === '0'
       ? [
-          path.resolve(__dirname, '..', '..', '..', 'node_modules', 'playwright-core', '.local-browsers'),
+          path.resolve(repoRoot, 'node_modules', 'playwright-core', '.local-browsers'),
           path.resolve(__dirname, '..', 'node_modules', 'playwright-core', '.local-browsers'),
         ]
       : [configuredCacheRoot]
@@ -91,15 +90,155 @@ function findPlaywrightChromePath() {
         }
       }
     } catch {
-      // Ignore cache read failures and fall back to the next location.
+      // Ignore cache read failures and continue checking the next location.
     }
   }
 
   return [];
 }
 
+function getInitialCollectionId() {
+  const raw = fs.readFileSync(collectionsFilePath, 'utf8');
+  const parsed = JSON.parse(raw);
+  const collectionId = parsed?.$collections?.[0]?.id;
+  if (typeof collectionId !== 'string' || collectionId.length === 0) {
+    throw new Error(`Demo collections file does not define a first collection id: ${collectionsFilePath}`);
+  }
+  return collectionId;
+}
+
+function formatRequestFailure(request) {
+  const failure = request.failure();
+  const reason = failure?.errorText ?? 'unknown network failure';
+  return `${request.method()} ${request.url()} failed: ${reason}`;
+}
+
+function isExpectedAbort(request) {
+  const failure = request.failure();
+  return failure?.errorText === 'net::ERR_ABORTED';
+}
+
+function reservePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close(() => reject(new Error('Failed to reserve a local port.')));
+        return;
+      }
+
+      server.close((closeError) => {
+        if (closeError) {
+          reject(closeError);
+          return;
+        }
+
+        resolve(address.port);
+      });
+    });
+  });
+}
+
+async function waitForServer(serverUrl) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < TIMEOUT_MS) {
+    try {
+      const response = await fetch(`${serverUrl}/api/health`);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // Retry until timeout.
+    }
+
+    await delay(250);
+  }
+
+  throw new Error(`Timed out waiting for preview server at ${serverUrl}`);
+}
+
+function startPreviewServer(port) {
+  const serverLogs = [];
+  const child = spawn(
+    pnpmBin,
+    [
+      '--filter',
+      '@tokenmanager/server',
+      'exec',
+      'tsx',
+      'bin/cli.ts',
+      '--dir',
+      demoTokenDir,
+      '--port',
+      String(port),
+    ],
+    {
+      cwd: repoRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: process.env,
+    },
+  );
+
+  const capture = (stream, label) => {
+    let buffer = '';
+    stream.on('data', (chunk) => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (line.trim().length === 0) continue;
+        serverLogs.push(`[${label}] ${line}`);
+      }
+    });
+    stream.on('end', () => {
+      if (buffer.trim().length > 0) {
+        serverLogs.push(`[${label}] ${buffer}`);
+      }
+    });
+  };
+
+  capture(child.stdout, 'stdout');
+  capture(child.stderr, 'stderr');
+
+  return { child, serverLogs };
+}
+
+async function stopChild(child) {
+  if (!child || child.exitCode !== null || child.killed) {
+    return;
+  }
+
+  child.kill('SIGTERM');
+  await delay(150);
+
+  if (child.exitCode === null && !child.killed) {
+    child.kill('SIGKILL');
+  }
+}
+
+function buildHarnessUrl(origin, serverUrl) {
+  const harnessUrl = new URL(`${origin}/`);
+  harnessUrl.searchParams.set('serverUrl', serverUrl);
+  return harnessUrl.toString();
+}
+
+function printServerLogs(serverLogs) {
+  if (serverLogs.length === 0) {
+    return;
+  }
+
+  console.error('  Preview server logs:\n');
+  for (const line of serverLogs.slice(-20)) {
+    console.error(`    ${line}`);
+  }
+  console.error('');
+}
+
 async function run() {
-  // Check if playwright-core is available
   let playwright;
   try {
     playwright = await import('playwright-core');
@@ -108,7 +247,6 @@ async function run() {
     process.exit(0);
   }
 
-  // Find a Chromium binary
   const executablePath = findChromium();
   if (!executablePath) {
     console.log('No Chromium browser found — skipping headless UI validation.');
@@ -116,100 +254,103 @@ async function run() {
     process.exit(0);
   }
 
-  let server;
-  let origin;
-  try {
-    ({ server, origin } = await startHarnessServer());
-  } catch (err) {
-    if (
-      err &&
-      typeof err === 'object' &&
-      'code' in err &&
-      (err.code === 'EADDRINUSE' || err.code === 'EPERM')
-    ) {
-      console.log(
-        err.code === 'EADDRINUSE'
-          ? 'Unable to reserve a local harness port — skipping headless UI validation.'
-          : 'Unable to bind a local harness port in this environment — skipping headless UI validation.'
-      );
-      process.exit(0);
-    }
-    throw err;
-  }
-
+  const initialCollectionId = getInitialCollectionId();
   const errors = [];
   let browser;
+  let harnessServer;
+  let harnessOrigin;
+  let previewServerChild;
+  let previewServerLogs = [];
 
   try {
+    const serverPort = await reservePort();
+    const serverUrl = `http://localhost:${serverPort}`;
+    const previewServer = startPreviewServer(serverPort);
+    previewServerChild = previewServer.child;
+    previewServerLogs = previewServer.serverLogs;
+
+    await waitForServer(serverUrl);
+    ({ server: harnessServer, origin: harnessOrigin } = await startHarnessServer());
+
     browser = await playwright.chromium.launch({
       headless: true,
       executablePath,
     });
-    const page = await browser.newPage();
 
-    // Collect console errors
+    const page = await browser.newPage();
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         errors.push(msg.text());
       }
     });
-
-    // Collect uncaught exceptions
     page.on('pageerror', (err) => {
       errors.push(`Uncaught: ${err.message}`);
     });
+    page.on('requestfailed', (request) => {
+      if (isExpectedAbort(request)) {
+        return;
+      }
+      errors.push(formatRequestFailure(request));
+    });
 
-    // Navigate and wait for the page to load. We use 'load' rather than
-    // 'networkidle' because the plugin UI polls the TokenManager server
-    // (which isn't running here), so networkidle is never reached.
-    await page.goto(`${origin}/`, {
+    const healthResponsePromise = page.waitForResponse(
+      (response) => response.url() === `${serverUrl}/api/health` && response.ok(),
+      { timeout: TIMEOUT_MS },
+    );
+    const collectionsResponsePromise = page.waitForResponse(
+      (response) => response.url() === `${serverUrl}/api/collections` && response.ok(),
+      { timeout: TIMEOUT_MS },
+    );
+    const tokensResponsePromise = page.waitForResponse(
+      (response) => response.url() === `${serverUrl}/api/tokens/${encodeURIComponent(initialCollectionId)}` && response.ok(),
+      { timeout: TIMEOUT_MS },
+    );
+
+    await page.goto(buildHarnessUrl(harnessOrigin, serverUrl), {
       waitUntil: 'load',
       timeout: TIMEOUT_MS,
     });
 
-    // Wait a bit more for React to render and any async effects
+    await Promise.all([
+      healthResponsePromise,
+      collectionsResponsePromise,
+      tokensResponsePromise,
+    ]);
+
+    const frame = page.frameLocator('#plugin-frame');
+    await frame.locator('#root').waitFor({ state: 'attached', timeout: TIMEOUT_MS });
     await page.waitForTimeout(2000);
 
-    // Check if the iframe loaded
-    const frame = page.frameLocator('#plugin-frame');
-    const root = frame.locator('#root');
-    const hasRoot = await root.count();
-
-    if (hasRoot === 0) {
-      errors.push('Plugin UI #root element not found in iframe');
+    const offlineBanner = frame.getByText('Server offline', { exact: true });
+    if (await offlineBanner.isVisible()) {
+      errors.push('Standalone harness still shows "Server offline" after initial data load.');
     }
 
-    // Filter out benign errors:
-    // - Network failures to :9400 (server not running)
-    // - CORS blocks (expected when server is down)
-    // - favicon 404 (browser auto-requests it)
-    const realErrors = errors.filter((e) =>
-      !e.includes('localhost:9400') &&
-      !e.includes('ERR_CONNECTION_REFUSED') &&
-      !e.includes('Failed to fetch') &&
-      !e.includes('NetworkError') &&
-      !e.includes('net::ERR_') &&
-      !e.includes('CORS policy') &&
-      !e.includes('favicon.ico')
-    );
-
-    if (realErrors.length > 0) {
-      console.error('\n  UI validation FAILED — console errors:\n');
-      for (const err of realErrors) {
-        console.error(`    - ${err}`);
+    if (errors.length > 0) {
+      console.error('\n  UI validation FAILED — browser preview errors:\n');
+      for (const error of errors) {
+        console.error(`    - ${error}`);
       }
       console.error('');
+      printServerLogs(previewServerLogs);
       process.exitCode = 1;
-    } else {
-      console.log(`\n  UI validation PASSED (${errors.length} benign network errors filtered)\n`);
+      return;
     }
+
+    console.log('\n  UI validation PASSED — connected preview loaded demo data successfully.\n');
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown error';
     console.error(`\n  UI validation FAILED — ${message}\n`);
+    printServerLogs(previewServerLogs);
     process.exitCode = 1;
   } finally {
-    if (browser) await browser.close();
-    server.close();
+    if (browser) {
+      await browser.close();
+    }
+    if (harnessServer) {
+      await new Promise((resolve) => harnessServer.close(resolve));
+    }
+    await stopChild(previewServerChild);
   }
 }
 

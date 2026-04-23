@@ -40,7 +40,6 @@ export interface TokenListToolbarProps {
   activeQueryToken: { token: string; start: number; end: number };
   searchTooltip: string;
   qualifierHintsRef: RefObject<HTMLDivElement | null>;
-  structuredFilterChips: Array<{ token: string; label: string }>;
   toolbarStateChips: ToolbarStateChip[];
   connected: boolean;
   hasTokens: boolean;
@@ -52,7 +51,6 @@ export interface TokenListToolbarProps {
   openTableCreate: () => void;
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
-  onOpenImportPanel?: () => void;
   onOpenCreateCollection?: () => void;
   onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
@@ -82,7 +80,6 @@ export function TokenListToolbar({
   activeQueryToken,
   searchTooltip,
   qualifierHintsRef,
-  structuredFilterChips,
   toolbarStateChips,
   connected,
   hasTokens,
@@ -94,7 +91,6 @@ export function TokenListToolbar({
   openTableCreate,
   handleOpenNewGroupDialog,
   onShowPasteModal,
-  onOpenImportPanel: _onOpenImportPanel,
   onOpenCreateCollection,
   onCreateGeneratedGroup,
   onSelectTokens,

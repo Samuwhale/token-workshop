@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import { CommandPalette, type TokenEntry } from "./CommandPalette";
 import { useCommandPaletteCommands } from "../hooks/useCommandPaletteCommands";
 import {
@@ -7,9 +6,10 @@ import {
   useTokenFlatMapContext,
   useGeneratorContext,
 } from "../contexts/TokenDataContext";
+import { useUsageContext } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
-import { isAlias } from "../../shared/resolveAlias";
+import { buildCommandPaletteTokens } from "../shared/commandPaletteTokens";
 import { useTokensWorkspaceController } from "../contexts/WorkspaceControllerContext";
 
 export function AppCommandPalette({
@@ -23,77 +23,108 @@ export function AppCommandPalette({
     currentCollectionId,
     setCurrentCollectionId,
   } = useCollectionStateContext();
-  const { allTokensFlat, pathToCollectionId } = useTokenFlatMapContext();
+  const { pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();
+  const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const { navigateTo } = useNavigationContext();
-  const { setTokenDetails, setHighlightedToken, setPendingHighlight } =
-    useEditorContext();
+  const {
+    setTokenDetails,
+    setHighlightedToken,
+    setPendingHighlightForCollection,
+  } = useEditorContext();
   const tokens = useTokensWorkspaceController();
   const { commands, currentCollectionPaletteTokens } = useCommandPaletteCommands();
   const { starredTokens } = tokens;
 
+  const allPaletteTokenSources = useMemo(
+    () =>
+      Object.entries(perCollectionFlat).flatMap(([collectionId, collection]) =>
+        Object.entries(collection).map(([path, entry]) => ({
+          path,
+          collectionId,
+          entry,
+        })),
+      ),
+    [perCollectionFlat],
+  );
+
   const paletteTokens = useMemo<TokenEntry[]>(() => {
-    return Object.entries(allTokensFlat).map(([path, entry]) => ({
-      set: pathToCollectionId[path],
-      path,
-      type: entry.$type,
-      value:
-        typeof entry.$value === "string"
-          ? entry.$value
-          : JSON.stringify(entry.$value),
-      isAlias: isAlias(entry.$value),
-      generatorName: derivedTokenPaths.get(
-        createGeneratorOwnershipKey(pathToCollectionId[path] ?? "", path),
-      )?.name,
-      scopes: entry.$scopes,
-    }));
-  }, [allTokensFlat, derivedTokenPaths, pathToCollectionId]);
+    return buildCommandPaletteTokens(
+      allPaletteTokenSources,
+      {
+        derivedTokenPaths,
+        tokenUsageCounts,
+        tokenUsageReady: hasTokenUsageScanResult,
+        duplicateTokenSources: allPaletteTokenSources,
+        referenceTokenSources: allPaletteTokenSources,
+      },
+    );
+  }, [
+    allPaletteTokenSources,
+    derivedTokenPaths,
+    hasTokenUsageScanResult,
+    tokenUsageCounts,
+  ]);
 
   const starredPaletteTokens = useMemo<TokenEntry[]>(() => {
-    return starredTokens.tokens
-      .filter(({ path, collectionId }) =>
-        allTokensFlat[path] && pathToCollectionId[path] === collectionId,
-      )
-      .map(({ path, collectionId }) => {
-        const entry = allTokensFlat[path];
-        return {
+    return buildCommandPaletteTokens(
+      starredTokens.tokens
+        .filter(({ path, collectionId }) =>
+          perCollectionFlat[collectionId]?.[path],
+        )
+        .map(({ path, collectionId }) => ({
           path,
-          type: entry.$type,
-          value:
-            typeof entry.$value === "string"
-              ? entry.$value
-              : JSON.stringify(entry.$value),
-          set: collectionId,
-          isAlias: isAlias(entry.$value),
-          scopes: entry.$scopes,
-        };
-      });
-  }, [allTokensFlat, pathToCollectionId, starredTokens.tokens]);
+          collectionId,
+          entry: perCollectionFlat[collectionId][path],
+        })),
+      {
+        derivedTokenPaths,
+        tokenUsageCounts,
+        tokenUsageReady: hasTokenUsageScanResult,
+        duplicateTokenSources: allPaletteTokenSources,
+        referenceTokenSources: allPaletteTokenSources,
+      },
+    );
+  }, [
+    allPaletteTokenSources,
+    derivedTokenPaths,
+    hasTokenUsageScanResult,
+    perCollectionFlat,
+    starredTokens.tokens,
+    tokenUsageCounts,
+  ]);
 
   const recentPaletteTokens = useMemo<TokenEntry[]>(() => {
     const maxRecent = 10;
-    return tokens.recentlyTouched
-      .listEntries()
-      .filter(
-        ({ path, collectionId }) =>
-          allTokensFlat[path] && pathToCollectionId[path] === collectionId,
-      )
-      .slice(0, maxRecent)
-      .map(({ path }) => {
-        const entry = allTokensFlat[path];
-        return {
+    return buildCommandPaletteTokens(
+      tokens.recentlyTouched
+        .listEntries()
+        .filter(
+          ({ path, collectionId }) =>
+            perCollectionFlat[collectionId]?.[path],
+        )
+        .slice(0, maxRecent)
+        .map(({ path, collectionId }) => ({
           path,
-          type: entry.$type,
-          value:
-            typeof entry.$value === "string"
-              ? entry.$value
-              : JSON.stringify(entry.$value),
-          set: pathToCollectionId[path],
-          isAlias: isAlias(entry.$value),
-          scopes: entry.$scopes,
-        };
-      });
-  }, [allTokensFlat, pathToCollectionId, tokens.recentlyTouched]);
+          collectionId,
+          entry: perCollectionFlat[collectionId][path],
+        })),
+      {
+        derivedTokenPaths,
+        tokenUsageCounts,
+        tokenUsageReady: hasTokenUsageScanResult,
+        duplicateTokenSources: allPaletteTokenSources,
+        referenceTokenSources: allPaletteTokenSources,
+      },
+    );
+  }, [
+    allPaletteTokenSources,
+    derivedTokenPaths,
+    hasTokenUsageScanResult,
+    perCollectionFlat,
+    tokenUsageCounts,
+    tokens.recentlyTouched,
+  ]);
 
   return (
     <CommandPalette
@@ -103,16 +134,16 @@ export function AppCommandPalette({
       allSetTokens={paletteTokens}
       starredTokens={starredPaletteTokens}
       recentTokens={recentPaletteTokens}
-      onGoToToken={(path) => {
-        const targetCollectionId = pathToCollectionId[path];
+      onGoToToken={(token) => {
+        const targetCollectionId = token.collectionId || pathToCollectionId[token.path];
         navigateTo("library");
         setTokenDetails(null);
         if (targetCollectionId && targetCollectionId !== currentCollectionId) {
+          setPendingHighlightForCollection(token.path, targetCollectionId);
           setCurrentCollectionId(targetCollectionId);
-          setPendingHighlight(path);
           return;
         }
-        setHighlightedToken(path);
+        setHighlightedToken(token.path);
       }}
       onGoToGroup={(groupPath) => {
         navigateTo("library");
@@ -140,10 +171,18 @@ export function AppCommandPalette({
           console.warn("[App] clipboard write failed for CSS var:", error);
         });
       }}
-      onDuplicateToken={tokens.handlePaletteDuplicate}
-      onRenameToken={tokens.handlePaletteRename}
-      onMoveToken={tokens.handlePaletteMove}
-      onDeleteToken={tokens.handlePaletteDeleteToken}
+      onDuplicateToken={(token) =>
+        tokens.handlePaletteDuplicate(token.path, token.collectionId)
+      }
+      onRenameToken={(token) =>
+        tokens.handlePaletteRename(token.path, token.collectionId)
+      }
+      onMoveToken={(token) =>
+        tokens.handlePaletteMove(token.path, token.collectionId)
+      }
+      onDeleteToken={(token) =>
+        tokens.handlePaletteDeleteToken(token.path, token.collectionId)
+      }
       onClose={onClose}
     />
   );

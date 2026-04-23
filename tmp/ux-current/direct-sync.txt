@@ -1,0 +1,17 @@
+TokenManager
+Library
+Tokens
+Overview
+Health
+History
+Canvas
+Selection
+Coverage
+Sync
+Export
+Versions
+Check for changes
+Target
+TokenManager / First Figma mode
+
+Click Check for changes to compare your tokens with Figma.

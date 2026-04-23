@@ -2,7 +2,13 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
 import { swatchBgColor } from '../shared/colorUtils';
-import { parseStructuredQuery, QUERY_QUALIFIERS, getQualifierCompletions, SCOPE_CATEGORIES } from './tokenListUtils';
+import type { CommandPaletteToken } from '../shared/commandPaletteTokens';
+import {
+  parseStructuredQuery,
+  QUERY_QUALIFIERS,
+  getQualifierCompletions,
+  tokenMatchesScopeCategories,
+} from './tokenListUtils';
 import type { ParsedQuery } from './tokenListUtils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 
@@ -11,7 +17,7 @@ import { fuzzyScore } from '../shared/fuzzyMatch';
 // ---------------------------------------------------------------------------
 
 const RECENT_MAX = 5;
-const COMMAND_SECTION_ORDER = ['Tokens', 'Collections', 'Views', 'Apply', 'Modes', 'Health', 'History', 'Export'] as const;
+const COMMAND_SECTION_ORDER = ['Tokens', 'Collections', 'Views', 'Apply', 'Modes', 'Health', 'History', 'Export', 'Help'] as const;
 
 interface RecentEntry { id: string; label: string }
 
@@ -38,16 +44,7 @@ export interface Command {
   handler: () => void;
 }
 
-export interface TokenEntry {
-  path: string;
-  type: string;
-  value?: string;
-  set?: string;
-  isAlias?: boolean;
-  description?: string;
-  generatorName?: string;
-  scopes?: string[];
-}
+export type TokenEntry = CommandPaletteToken;
 
 export interface GroupEntry {
   path: string;
@@ -61,16 +58,16 @@ interface CommandPaletteProps {
   allSetTokens?: TokenEntry[];
   starredTokens?: TokenEntry[];
   recentTokens?: TokenEntry[];
-  onGoToToken?: (path: string) => void;
+  onGoToToken?: (token: TokenEntry) => void;
   onGoToGroup?: (path: string) => void;
   onCopyTokenPath?: (path: string) => void;
   onCopyTokenCssVar?: (path: string) => void;
   onCopyTokenRef?: (path: string) => void;
   onCopyTokenValue?: (value: string) => void;
-  onDuplicateToken?: (path: string) => void;
-  onRenameToken?: (path: string) => void;
-  onDeleteToken?: (path: string) => void;
-  onMoveToken?: (path: string) => void;
+  onDuplicateToken?: (token: TokenEntry) => void;
+  onRenameToken?: (token: TokenEntry) => void;
+  onDeleteToken?: (token: TokenEntry) => void;
+  onMoveToken?: (token: TokenEntry) => void;
   onClose: () => void;
   initialQuery?: string;
 }
@@ -98,6 +95,10 @@ function leafName(path: string): string {
   return i < 0 ? path : path.slice(i + 1);
 }
 
+function tokenEntryKey(token: TokenEntry): string {
+  return `${token.collectionId}:${token.path}`;
+}
+
 // Matches the last qualifier:partial at the end of the query (no trailing space)
 const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|generated|gen|group|scope):(\S*)$/i;
 
@@ -120,8 +121,11 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
     for (const h of parsed.has) {
       if ((h === 'alias' || h === 'ref') && !t.isAlias) return false;
       if (h === 'direct' && t.isAlias) return false;
+      if ((h === 'duplicate' || h === 'dup') && !t.isDuplicate) return false;
       if ((h === 'description' || h === 'desc') && !t.description) return false;
+      if ((h === 'extension' || h === 'ext') && !t.hasExtensions) return false;
       if ((h === 'generated' || h === 'gen') && !t.generatorName) return false;
+      if (h === 'unused' && !t.isUnused) return false;
     }
     // value: qualifier
     if (parsed.values.length > 0) {
@@ -146,15 +150,7 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
     }
     // scope: qualifier — token permits application to the category's Figma field
     if (parsed.scopes.length > 0) {
-      const tokenScopes = t.scopes ?? [];
-      if (tokenScopes.length > 0) {
-        const scopeMatch = parsed.scopes.some(category => {
-          const allowed = SCOPE_CATEGORIES[category];
-          if (!allowed) return false;
-          return allowed.some(s => tokenScopes.includes(s));
-        });
-        if (!scopeMatch) return false;
-      }
+      if (!tokenMatchesScopeCategories(t.scopes, parsed.scopes)) return false;
     }
     return true;
   });
@@ -235,7 +231,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
   const hasQualifiers = parsedTokenQuery.types.length > 0 || parsedTokenQuery.has.length > 0
     || parsedTokenQuery.values.length > 0 || parsedTokenQuery.paths.length > 0
     || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0
-    || parsedTokenQuery.generators.length > 0;
+    || parsedTokenQuery.generators.length > 0 || parsedTokenQuery.scopes.length > 0;
 
   // Qualifier value autocomplete — detect qualifier:partial at end of query
   const activeQualifier = useMemo(() => (isTokenMode ? detectActiveQualifier(query) : null), [isTokenMode, query]);
@@ -266,7 +262,13 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
     }
     // Free text fuzzy matching on the qualifier-filtered set
     const matched = base
-      .map(t => ({ t, score: fuzzyScore(freeText, t.path) }))
+      .map(t => ({
+        t,
+        score: Math.max(
+          fuzzyScore(freeText, t.path),
+          t.description ? fuzzyScore(freeText, t.description) : 0,
+        ),
+      }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .map(({ t }) => t);
@@ -352,8 +354,8 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
   const dedupedRecentTokens = useMemo(() => {
     if (!recentTokens?.length) return [];
     if (!starredTokens?.length) return recentTokens;
-    const starredSet = new Set(starredTokens.map(t => t.path));
-    return recentTokens.filter(t => !starredSet.has(t.path));
+    const starredSet = new Set(starredTokens.map(tokenEntryKey));
+    return recentTokens.filter(t => !starredSet.has(tokenEntryKey(t)));
   }, [recentTokens, starredTokens]);
 
   const noQueryStarredTokens = useMemo(() => {
@@ -404,7 +406,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
   };
 
   const executeToken = (token: TokenEntry) => {
-    onGoToToken?.(token.path);
+    onGoToToken?.(token);
     onClose();
   };
 
@@ -742,7 +744,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
               {filteredTokens.map((token, idx) => {
                 const flatIdx = filteredGroups.length + idx; // tokens come after groups
                 return (
-                <div key={token.path} className="flex items-center gap-0" data-palette-item>
+                <div key={tokenEntryKey(token)} className="flex items-center gap-0" data-palette-item>
                   <button
                     role="option"
                     aria-selected={flatIdx === activeIdx}
@@ -824,7 +826,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Create from this token: ${token.path}`}
                       className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onDuplicateToken(token.path); onClose(); }}
+                      onClick={(e) => { e.stopPropagation(); onDuplicateToken(token); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
                     >
@@ -836,7 +838,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Rename token: ${token.path}`}
                       className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onRenameToken(token.path); onClose(); }}
+                      onClick={(e) => { e.stopPropagation(); onRenameToken(token); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
                     >
@@ -848,7 +850,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Move to collection: ${token.path}`}
                       className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onMoveToken(token.path); onClose(); }}
+                      onClick={(e) => { e.stopPropagation(); onMoveToken(token); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
                     >
@@ -860,7 +862,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       tabIndex={flatIdx === activeIdx ? 0 : -1}
                       title={`Delete token: ${token.path}`}
                       className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] focus:text-[var(--color-figma-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onDeleteToken(token.path); onClose(); }}
+                      onClick={(e) => { e.stopPropagation(); onDeleteToken(token); onClose(); }}
                       onFocus={() => setActiveIdx(flatIdx)}
                       onKeyDown={handleActionButtonKeyDown}
                     >
@@ -902,7 +904,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                 const flatIdx = idx;
                 return (
                   <button
-                    key={'star:' + token.path}
+                    key={'star:' + tokenEntryKey(token)}
                     role="option"
                     aria-selected={flatIdx === activeIdx}
                     data-palette-item
@@ -939,7 +941,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                 const flatIdx = noQueryStarredTokens.length + idx;
                 return (
                   <button
-                    key={'rec:' + token.path}
+                    key={'rec:' + tokenEntryKey(token)}
                     role="option"
                     aria-selected={flatIdx === activeIdx}
                     data-palette-item

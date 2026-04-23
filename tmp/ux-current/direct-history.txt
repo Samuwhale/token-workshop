@@ -1,0 +1,17 @@
+TokenManager
+Library
+Tokens
+Overview
+Health
+History
+Canvas
+Selection
+Coverage
+Sync
+Export
+Versions
+Save checkpoint
+Recent
+Saved
+No recent changes
+Make an edit to see changes here.

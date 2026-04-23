@@ -7,6 +7,8 @@ export interface UseTokenSelectionParams {
   flatItems: Array<{ node: TokenNode; depth: number }>;
   displayedLeafNodes: TokenNode[];
   crossCollectionResults: unknown[] | null;
+  selectionScopeKey: string;
+  selectionEnabled?: boolean;
   onSelectionChange?: (paths: string[]) => void;
 }
 
@@ -15,6 +17,8 @@ export function useTokenSelection({
   flatItems,
   displayedLeafNodes,
   crossCollectionResults,
+  selectionScopeKey,
+  selectionEnabled = true,
   onSelectionChange,
 }: UseTokenSelectionParams) {
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
@@ -28,11 +32,24 @@ export function useTokenSelection({
     onSelectionChange?.([...selectedPaths]);
   }, [selectedPaths, onSelectionChange]);
 
+  useEffect(() => {
+    setSelectedPaths(new Set());
+    setShowBatchEditor(false);
+    lastSelectedPathRef.current = null;
+  }, [selectionScopeKey, selectionEnabled]);
+
   const displayedLeafPaths = useMemo(
-    () => crossCollectionResults !== null
-      ? new Set((crossCollectionResults as Array<{ path: string }>).map(r => r.path))
-      : new Set(displayedLeafNodes.map(n => n.path)),
-    [crossCollectionResults, displayedLeafNodes]
+    () => {
+      if (!selectionEnabled) {
+        return new Set<string>();
+      }
+      return crossCollectionResults !== null
+        ? new Set(
+            (crossCollectionResults as Array<{ path: string }>).map((result) => result.path),
+          )
+        : new Set(displayedLeafNodes.map((node) => node.path));
+    },
+    [crossCollectionResults, displayedLeafNodes, selectionEnabled],
   );
 
   const selectedLeafNodes = useMemo(
@@ -41,6 +58,9 @@ export function useTokenSelection({
   );
 
   const handleTokenSelect = useCallback((path: string, modifiers?: { shift: boolean }) => {
+    if (!selectionEnabled) {
+      return;
+    }
     const isShift = modifiers?.shift ?? false;
 
     if (isShift && lastSelectedPathRef.current !== null) {
@@ -68,18 +88,24 @@ export function useTokenSelection({
       return next;
     });
     lastSelectedPathRef.current = path;
-  }, [viewMode, flatItems, displayedLeafNodes]);
+  }, [selectionEnabled, viewMode, flatItems, displayedLeafNodes]);
 
   const handleSelectAll = useCallback(() => {
+    if (!selectionEnabled) {
+      return;
+    }
     const allSelected = [...displayedLeafPaths].every(p => selectedPaths.has(p));
     if (allSelected) {
       setSelectedPaths(new Set());
     } else {
       setSelectedPaths(new Set(displayedLeafPaths));
     }
-  }, [displayedLeafPaths, selectedPaths]);
+  }, [displayedLeafPaths, selectedPaths, selectionEnabled]);
 
   const handleSelectGroupChildren = useCallback((groupNode: TokenNode) => {
+    if (!selectionEnabled) {
+      return;
+    }
     const leafPaths = flattenLeafNodes(groupNode.children ?? []).map(n => n.path);
     if (leafPaths.length === 0) return;
     setSelectedPaths(prev => {
@@ -87,7 +113,7 @@ export function useTokenSelection({
       leafPaths.forEach(p => next.add(p));
       return next;
     });
-  }, []);
+  }, [selectionEnabled]);
 
   const clearSelection = useCallback(() => {
     setSelectedPaths(new Set());

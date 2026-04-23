@@ -51,16 +51,37 @@ function collectReferencedPathsFromEntry<T extends TokenUsageEntry>(
   }
 }
 
-export function buildReferencedTokenPathSet<T extends TokenUsageEntry>(
-  entriesByPath: Record<string, T>,
-): Set<string> {
+export function buildReferencedTokenPathSetFromEntries<
+  T extends TokenUsageEntry,
+>(entries: Iterable<T>): Set<string> {
   const referencedPaths = new Set<string>();
 
-  for (const entry of Object.values(entriesByPath)) {
+  for (const entry of entries) {
     collectReferencedPathsFromEntry(entry, referencedPaths);
   }
 
   return referencedPaths;
+}
+
+export function buildReferencedTokenPathSet<T extends TokenUsageEntry>(
+  entriesByPath: Record<string, T>,
+): Set<string> {
+  return buildReferencedTokenPathSetFromEntries(Object.values(entriesByPath));
+}
+
+export function isTokenEntryUnused<T extends TokenUsageEntry>(
+  path: string,
+  entry: T,
+  tokenUsageCounts: Record<string, number>,
+  referencedPaths: Set<string>,
+  options: ComputeUnusedTokenPathOptions = {},
+): boolean {
+  const includeDeprecated = options.includeDeprecated ?? true;
+  if (!includeDeprecated && entry.$lifecycle === "deprecated") {
+    return false;
+  }
+
+  return (tokenUsageCounts[path] ?? 0) === 0 && !referencedPaths.has(path);
 }
 
 export function computeUnusedTokenPaths<T extends TokenUsageEntry>(
@@ -69,17 +90,14 @@ export function computeUnusedTokenPaths<T extends TokenUsageEntry>(
   options: ComputeUnusedTokenPathOptions = {},
 ): Set<string> {
   const referencedPaths = buildReferencedTokenPathSet(entriesByPath);
-  const includeDeprecated = options.includeDeprecated ?? true;
   const unusedPaths = new Set<string>();
 
   for (const [path, entry] of Object.entries(entriesByPath)) {
-    if (!includeDeprecated && entry.$lifecycle === "deprecated") {
-      continue;
+    if (
+      isTokenEntryUnused(path, entry, tokenUsageCounts, referencedPaths, options)
+    ) {
+      unusedPaths.add(path);
     }
-    if ((tokenUsageCounts[path] ?? 0) > 0 || referencedPaths.has(path)) {
-      continue;
-    }
-    unusedPaths.add(path);
   }
 
   return unusedPaths;

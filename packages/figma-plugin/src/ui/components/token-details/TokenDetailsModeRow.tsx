@@ -12,6 +12,10 @@ import {
   getTypographyPreviewValue,
 } from "../token-editor/tokenEditorHelpers";
 
+function joinClasses(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
 export interface TokenDetailsModeRowProps {
   modeName: string;
   tokenType: string;
@@ -154,73 +158,72 @@ export function TokenDetailsModeRow({
     <div
       data-token-editor-mode={modeName}
       data-token-editor-alias={editable && aliasMode ? "1" : "0"}
-      className={`group/mode flex flex-col${
-        isEmpty ? " bg-[var(--color-figma-warning)]/5" : ""
-      }`}
+      className={joinClasses("group/mode tm-token-mode-row", isEmpty && "tm-token-mode-row--empty")}
     >
-      <div className="flex items-center gap-2 px-2.5 py-1.5">
-        <div
-          className={`${
-            showModeLabel ? "w-[92px]" : ""
-          } shrink-0 flex items-center gap-1`}
-        >
-          {modified && (
-            <span
-              className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
-              title="Modified"
-              aria-label="Modified"
-            />
-          )}
-          {showModeLabel && (
-            <span
-              className="truncate text-body font-medium text-[var(--color-figma-text)]"
-              title={modeName}
-            >
-              {modeName}
-            </span>
-          )}
-          {editable && (
-            <button
-              type="button"
-              onClick={handleAliasToggle}
-              className={`shrink-0 rounded p-0.5 transition-all ${
-                aliasMode
-                  ? "text-[var(--color-figma-accent)]"
-                  : "opacity-30 group-hover/mode:opacity-100 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-              } hover:bg-[var(--color-figma-bg-hover)]`}
-              title={aliasMode ? "Switch to direct value" : "Switch to reference"}
-              aria-label={
-                aliasMode ? "Switch to direct value" : "Switch to reference"
-              }
-            >
-              <Link2 size={12} strokeWidth={1.5} aria-hidden />
-            </button>
-          )}
-          {editable && allowCopyFromPrevious && onCopyFromPrevious && (
-            <button
-              type="button"
-              onClick={onCopyFromPrevious}
-              className="opacity-60 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
-              title="Copy from previous mode"
-              aria-label="Copy from previous mode"
-            >
-              <Copy size={12} strokeWidth={1.5} aria-hidden />
-            </button>
-          )}
-          {editable && allowCopyToAll && onCopyToAll && (
-            <button
-              type="button"
-              onClick={onCopyToAll}
-              className="opacity-60 group-hover/mode:opacity-100 shrink-0 rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-all"
-              title="Copy to all other modes"
-              aria-label="Copy to all other modes"
-            >
-              <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-            </button>
-          )}
-        </div>
+      {(showModeLabel || editable) && (
+        <div className="tm-token-mode-row__header">
+          <div className="tm-token-mode-row__label">
+            {modified && (
+              <span
+                className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
+                title="Modified"
+                aria-label="Modified"
+              />
+            )}
+            {showModeLabel ? (
+              <span className="tm-token-mode-row__name" title={modeName}>
+                {modeName}
+              </span>
+            ) : null}
+          </div>
 
-        <div className="min-w-0 flex-1">
+          {editable ? (
+            <div className="tm-token-mode-row__controls">
+              <button
+                type="button"
+                onClick={handleAliasToggle}
+                className={joinClasses(
+                  "tm-token-mode-row__icon-button",
+                  aliasMode
+                    ? "tm-token-mode-row__icon-button--active"
+                    : "opacity-30 group-hover/mode:opacity-100",
+                )}
+                title={aliasMode ? "Switch to direct value" : "Switch to reference"}
+                aria-label={
+                  aliasMode ? "Switch to direct value" : "Switch to reference"
+                }
+              >
+                <Link2 size={12} strokeWidth={1.5} aria-hidden />
+              </button>
+              {allowCopyFromPrevious && onCopyFromPrevious ? (
+                <button
+                  type="button"
+                  onClick={onCopyFromPrevious}
+                  className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
+                  title="Copy from previous mode"
+                  aria-label="Copy from previous mode"
+                >
+                  <Copy size={12} strokeWidth={1.5} aria-hidden />
+                </button>
+              ) : null}
+              {allowCopyToAll && onCopyToAll ? (
+                <button
+                  type="button"
+                  onClick={onCopyToAll}
+                  className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
+                  title="Copy to all other modes"
+                  aria-label="Copy to all other modes"
+                >
+                  <Rows3 size={12} strokeWidth={1.5} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      <div className="tm-token-mode-row__body">
+        <div className="tm-token-mode-row__value">
           {editable && aliasMode ? (
             <div className="relative">
               <input
@@ -238,7 +241,7 @@ export function TokenDetailsModeRow({
                 }}
                 autoFocus={autoFocus}
                 placeholder="Search tokens…"
-                className="w-full font-mono border border-[var(--color-figma-border)] rounded px-2 py-0.5 text-body bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
               />
               {autocompleteOpen && (
                 <AliasAutocomplete
@@ -313,7 +316,7 @@ export function TokenDetailsModeRow({
 
         {resolvedColorSwatch && (
           <div
-            className="shrink-0 w-4 h-4 rounded-sm border border-[var(--color-figma-border)]"
+            className="tm-token-mode-row__swatch"
             style={{ backgroundColor: resolvedColorSwatch }}
             aria-label={`Color: ${resolvedColorSwatch}`}
           />
@@ -321,14 +324,12 @@ export function TokenDetailsModeRow({
       </div>
 
       {typographyPreview && (
-        <div className="px-2.5 pb-1.5">
-          <span
-            className="block truncate text-body text-[var(--color-figma-text-secondary)] leading-normal"
-            style={buildTypographyPreviewStyle(typographyPreview)}
-          >
-            Aa Bb Cc
-          </span>
-        </div>
+        <span
+          className="tm-token-mode-row__typography"
+          style={buildTypographyPreviewStyle(typographyPreview)}
+        >
+          Aa Bb Cc
+        </span>
       )}
     </div>
   );

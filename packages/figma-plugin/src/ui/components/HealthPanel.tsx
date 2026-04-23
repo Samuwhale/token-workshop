@@ -29,6 +29,7 @@ export interface HealthPanelProps {
   healthSignals: HealthSignalsResult;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   tokenUsageCounts: Record<string, number>;
   tokenUsageReady: boolean;
   heatmapResult: HeatmapResult | null;
@@ -53,6 +54,7 @@ export function HealthPanel({
   healthSignals,
   allTokensFlat,
   pathToCollectionId,
+  perCollectionFlat,
   tokenUsageCounts,
   tokenUsageReady,
   heatmapResult,
@@ -116,9 +118,14 @@ export function HealthPanel({
     return () => { cancelled = true; };
   }, [connected, serverUrl, deprecatedUsageReloadKey, validationRefreshKey]);
 
-  const { allTokensUnified, lintDuplicateGroups, aliasOpportunityGroups, unusedTokens } = useHealthData({
+  const getTokenEntry = (path: string, collectionId?: string) =>
+    (collectionId ? perCollectionFlat[collectionId]?.[path] : undefined) ??
+    allTokensFlat[path];
+
+  const { lintDuplicateGroups, aliasOpportunityGroups, unusedTokens } = useHealthData({
     allTokensFlat,
     pathToCollectionId,
+    perCollectionFlat,
     tokenUsageCounts,
     tokenUsageReady,
     validationIssues: validationIssuesProp,
@@ -196,7 +203,10 @@ export function HealthPanel({
         : "healthy";
 
   const handlePromote = async (group: AliasOpportunityGroup) => {
-    const sampleEntry = allTokensUnified[group.tokens[0]?.path ?? ""];
+    const sampleToken = group.tokens[0];
+    const sampleEntry = sampleToken
+      ? getTokenEntry(sampleToken.path, sampleToken.collectionId)
+      : undefined;
     if (!sampleEntry) { onError("Alias promotion failed — source tokens unavailable."); return; }
     setPromotingAliasGroupId(group.id);
     try {

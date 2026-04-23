@@ -4,6 +4,7 @@ import { watch } from "chokidar";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { isAllowedCorsOrigin } from "./cors.js";
 
 const _require = createRequire(import.meta.url);
 const _pkgPath = path.join(
@@ -22,6 +23,7 @@ import { healthRoutes } from "./routes/health.js";
 import { sseRoutes } from "./routes/sse.js";
 import { lintRoutes } from "./routes/lint.js";
 import { docsRoutes } from "./routes/docs.js";
+import { helpRoutes } from "./routes/help.js";
 import { TokenStore } from "./services/token-store.js";
 import { GitSync } from "./services/git-sync.js";
 import { GeneratorService } from "./services/generator-service.js";
@@ -55,14 +57,12 @@ export async function startServer(config: ServerConfig) {
   });
 
   await fastify.register(cors, {
-    // 'null' origin is sent by the Figma plugin iframe (sandboxed iframe with no inherited origin)
-    origin: [
-      "https://www.figma.com",
-      "https://figma.com",
-      /^https:\/\/.*\.figma\.com$/,
-      "null",
-    ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    // Figma sends a literal 'null' origin from the sandboxed plugin iframe,
+    // while the local standalone harness runs from localhost/loopback origins.
+    origin(origin, callback) {
+      callback(null, isAllowedCorsOrigin(origin));
+    },
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
   });
 
   // Global error handler — catches unhandled rejections from any route handler
@@ -395,6 +395,7 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(resolverRoutes, { prefix: "/api" });
   await fastify.register(snapshotRoutes, { prefix: "/api" });
   await fastify.register(docsRoutes);
+  await fastify.register(helpRoutes);
 
   try {
     await fastify.listen({ port: config.port, host: config.host });

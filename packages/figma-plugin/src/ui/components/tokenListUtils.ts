@@ -1,5 +1,13 @@
 import type { TokenNode } from '../hooks/useTokens';
-import { createGeneratorOwnershipKey } from '@tokenmanager/core';
+import {
+  createGeneratorOwnershipKey,
+  SEARCH_HAS_CANONICAL_MAP,
+  SEARCH_HAS_CANONICAL_VALUES,
+  SEARCH_HAS_VALUES as HAS_VALUES,
+  SEARCH_SCOPE_CATEGORIES as SCOPE_CATEGORIES,
+  SEARCH_SCOPE_CATEGORY_KEYS as SCOPE_CATEGORY_KEYS,
+  type SearchHasQualifierValue,
+} from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { SortOrder } from './tokenListTypes';
@@ -30,7 +38,7 @@ export interface ParsedQuery {
   /** generated:<name> — filter by generated group that produced the token */
   generators: string[];
   /** scope:<category> — tokens that can be applied to this Figma field category */
-  scopes: string[];
+  scopes: ScopeCategory[];
 }
 
 /**
@@ -38,42 +46,58 @@ export interface ParsedQuery {
  * A token matches the category when its $scopes array contains any of the
  * mapped values, or when its $scopes is empty (unrestricted).
  */
-export const SCOPE_CATEGORIES: Record<string, string[]> = {
-  fill: ['FILL_COLOR'],
-  stroke: ['STROKE_COLOR'],
-  text: ['TEXT_FILL', 'FONT_FAMILY', 'FONT_STYLE', 'FONT_SIZE', 'LINE_HEIGHT', 'LETTER_SPACING', 'TEXT_CONTENT'],
-  radius: ['CORNER_RADIUS'],
-  spacing: ['GAP'],
-  gap: ['GAP'],
-  size: ['WIDTH_HEIGHT'],
-  'stroke-width': ['STROKE_FLOAT'],
-  opacity: ['OPACITY'],
-  typography: ['FONT_FAMILY', 'FONT_STYLE', 'FONT_SIZE', 'LINE_HEIGHT', 'LETTER_SPACING'],
-  effect: ['EFFECT_COLOR'],
-  visibility: ['SHOW_HIDE'],
-};
+export { SCOPE_CATEGORIES, SCOPE_CATEGORY_KEYS };
 
-export const SCOPE_CATEGORY_KEYS = Object.keys(SCOPE_CATEGORIES);
+export type ScopeCategory = keyof typeof SCOPE_CATEGORIES;
 
 const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generated|gen|scope):(\S+)/gi;
 const QUERY_TOKEN_RE = /\b([a-z]+):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
-const HAS_VALUES = new Set(['alias', 'ref', 'direct', 'duplicate', 'dup', 'description', 'desc', 'extension', 'ext', 'generated', 'gen', 'unused']);
-const HAS_CANONICAL_MAP: Record<string, string> = {
-  alias: 'alias',
-  ref: 'alias',
-  direct: 'direct',
-  duplicate: 'duplicate',
-  dup: 'duplicate',
-  description: 'description',
-  desc: 'description',
-  extension: 'extension',
-  ext: 'extension',
-  generated: 'generated',
-  gen: 'generated',
-  unused: 'unused',
-};
+function hasStructuredValuePrefix(
+  candidates: Iterable<string>,
+  value: string,
+): boolean {
+  for (const candidate of candidates) {
+    if (candidate.startsWith(value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isScopeCategory(value: string): value is ScopeCategory {
+  return Object.prototype.hasOwnProperty.call(SCOPE_CATEGORIES, value);
+}
+
+export function findUnsupportedStructuredTokens(raw: string): string[] {
+  const unsupported = new Set<string>();
+  QUERY_TOKEN_RE.lastIndex = 0;
+  for (const match of raw.matchAll(QUERY_TOKEN_RE)) {
+    const [, rawKey = "", rawValue = ""] = match;
+    const key = rawKey.toLowerCase();
+    const value = rawValue.toLowerCase();
+    if (!value) {
+      continue;
+    }
+    if (
+      key === "has" &&
+      !HAS_VALUES.has(value) &&
+      !hasStructuredValuePrefix(HAS_VALUES, value)
+    ) {
+      unsupported.add(`has:${value}`);
+      continue;
+    }
+    if (
+      key === "scope" &&
+      !isScopeCategory(value) &&
+      !hasStructuredValuePrefix(SCOPE_CATEGORY_KEYS, value)
+    ) {
+      unsupported.add(`scope:${value}`);
+    }
+  }
+  return [...unsupported];
+}
 
 export function parseStructuredQuery(raw: string): ParsedQuery {
   const types: string[] = [];
@@ -83,7 +107,7 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
   const paths: string[] = [];
   const names: string[] = [];
   const generators: string[] = [];
-  const scopes: string[] = [];
+  const scopes: ScopeCategory[] = [];
 
   const text = raw.replace(QUALIFIER_RE, (_, key: string, val: string) => {
     const k = key.toLowerCase();
@@ -100,7 +124,7 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
         generators.push(v);
         break;
       case 'scope':
-        if (SCOPE_CATEGORIES[v]) scopes.push(v);
+        if (isScopeCategory(v)) scopes.push(v);
         break;
     }
     return ''; // remove qualifier from text portion
@@ -116,8 +140,8 @@ export function hasStructuredQualifiers(raw: string): boolean {
 }
 
 /** Canonical has: values shown in completions (no aliases like 'ref', 'dup', etc.) */
-export const HAS_CANONICAL = ['alias', 'direct', 'duplicate', 'description', 'extension', 'generated', 'unused'] as const;
-export type HasQualifierValue = typeof HAS_CANONICAL[number];
+export const HAS_CANONICAL = SEARCH_HAS_CANONICAL_VALUES;
+export type HasQualifierValue = SearchHasQualifierValue;
 
 export interface QueryQualifierDefinition {
   key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope';
@@ -128,16 +152,6 @@ export interface QueryQualifierDefinition {
 }
 
 export type StructuredFilterKey = Exclude<QueryQualifierDefinition['key'], 'group'>;
-
-export interface FilterDiscoveryTemplate {
-  id: string;
-  label: string;
-  description: string;
-  qualifier: StructuredFilterKey;
-  mode: 'open-builder' | 'toggle-qualifier';
-  value?: string;
-  keywords: string[];
-}
 
 export interface QueryQualifierSuggestion {
   id: string;
@@ -151,6 +165,22 @@ export interface ActiveQueryToken {
   token: string;
   start: number;
   end: number;
+}
+
+export function tokenMatchesScopeCategories(
+  tokenScopes: string[] | undefined,
+  categories: ScopeCategory[],
+): boolean {
+  if (categories.length === 0) {
+    return true;
+  }
+  const resolvedScopes = tokenScopes ?? [];
+  if (resolvedScopes.length === 0) {
+    return true;
+  }
+  return categories.some((category) =>
+    SCOPE_CATEGORIES[category].some((scope) => resolvedScopes.includes(scope)),
+  );
 }
 
 /**
@@ -251,104 +281,8 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];
 
-const FILTER_DISCOVERY_TEMPLATES: FilterDiscoveryTemplate[] = [
-  {
-    id: 'type',
-    label: 'Type filters',
-    description: 'Browse by token type without typing type: clauses.',
-    qualifier: 'type',
-    mode: 'open-builder',
-    keywords: ['type', 'color', 'spacing', 'dimension', 'typography'],
-  },
-  {
-    id: 'has-alias',
-    label: 'Aliases',
-    description: 'Show reference tokens only.',
-    qualifier: 'has',
-    mode: 'toggle-qualifier',
-    value: 'alias',
-    keywords: ['alias', 'reference', 'ref'],
-  },
-  {
-    id: 'has-generated',
-    label: 'Generated',
-    description: 'Show generated tokens.',
-    qualifier: 'has',
-    mode: 'toggle-qualifier',
-    value: 'generated',
-    keywords: ['generated', 'generator', 'derived'],
-  },
-  {
-    id: 'has-unused',
-    label: 'Unused',
-    description: 'Show tokens with no usage or alias dependents.',
-    qualifier: 'has',
-    mode: 'toggle-qualifier',
-    value: 'unused',
-    keywords: ['unused', 'orphan', 'cleanup'],
-  },
-  {
-    id: 'path',
-    label: 'Path filters',
-    description: 'Limit results to a group path like colors.brand.',
-    qualifier: 'path',
-    mode: 'open-builder',
-    keywords: ['path', 'group', 'folder', 'colors.brand'],
-  },
-  {
-    id: 'desc',
-    label: 'Descriptions',
-    description: 'Search within token descriptions.',
-    qualifier: 'desc',
-    mode: 'open-builder',
-    keywords: ['description', 'desc', 'notes', 'documentation'],
-  },
-  {
-    id: 'value',
-    label: 'Values',
-    description: 'Match a color, number, or string value.',
-    qualifier: 'value',
-    mode: 'open-builder',
-    keywords: ['value', 'hex', 'number', 'string'],
-  },
-];
-
-export function isStructuredFilterDiscoveryQuery(raw: string): boolean {
-  const trimmed = raw.trim();
-  if (!trimmed) return true;
-  if (hasStructuredQualifiers(trimmed)) return false;
-  const terms = trimmed.split(/\s+/).filter(Boolean);
-  return terms.length <= 2 && trimmed.length <= 32;
-}
-
-export function getStructuredFilterDiscoveryTemplates(raw: string): FilterDiscoveryTemplate[] {
-  const query = raw.trim().toLowerCase();
-  if (!query) return FILTER_DISCOVERY_TEMPLATES;
-
-  const scored = FILTER_DISCOVERY_TEMPLATES
-    .map((template) => {
-      const haystacks = [
-        template.label.toLowerCase(),
-        template.description.toLowerCase(),
-        ...(template.value ? [template.value.toLowerCase()] : []),
-        ...template.keywords.map((keyword) => keyword.toLowerCase()),
-      ];
-      let score = 0;
-      for (const haystack of haystacks) {
-        if (haystack.startsWith(query)) score = Math.max(score, 3);
-        else if (haystack.includes(query)) score = Math.max(score, 1);
-      }
-      if (template.value?.toLowerCase() === query) score = 4;
-      return { template, score };
-    })
-    .filter((entry) => entry.score > 0)
-    .sort((left, right) => right.score - left.score || left.template.label.localeCompare(right.template.label));
-
-  return scored.map((entry) => entry.template);
-}
-
 export function normalizeHasQualifier(value: string): HasQualifierValue | null {
-  return (HAS_CANONICAL_MAP[value.toLowerCase()] as HasQualifierValue | undefined) ?? null;
+  return SEARCH_HAS_CANONICAL_MAP[value.toLowerCase()] ?? null;
 }
 
 export function getActiveQueryToken(raw: string): ActiveQueryToken {
@@ -504,6 +438,9 @@ export function filterTokenNodes(
   derivedTokenPaths?: Map<string, TokenGenerator>,
   unusedTokenPaths?: Set<string>,
 ): TokenNode[] {
+  if (findUnsupportedStructuredTokens(searchQuery).length > 0) {
+    return [];
+  }
   const parsed = parseStructuredQuery(searchQuery);
   const hasQualifiers = parsed.types.length > 0 || parsed.has.length > 0 || parsed.values.length > 0
     || parsed.descs.length > 0 || parsed.paths.length > 0 || parsed.names.length > 0
@@ -523,7 +460,11 @@ export function filterTokenNodes(
         result.push({ ...node, children: filteredChildren });
       }
     } else {
-      const matchesSearch = !q || node.path.toLowerCase().includes(q) || node.name.toLowerCase().includes(q);
+      const matchesSearch =
+        !q ||
+        node.path.toLowerCase().includes(q) ||
+        node.name.toLowerCase().includes(q) ||
+        (node.$description || "").toLowerCase().includes(q);
       const matchesType = !typeFilter || node.$type === typeFilter;
       const matchesRef = refFilter === 'all'
         || (refFilter === 'aliases' && isAlias(node.$value))
@@ -616,16 +557,7 @@ function filterTokenNodesStructured(
 
       // scope: qualifier — token permits application to the category's Figma field(s)
       if (parsed.scopes.length > 0) {
-        const tokenScopes = node.$scopes ?? [];
-        // Empty scopes = unrestricted: matches every category
-        if (tokenScopes.length > 0) {
-          const scopeMatch = parsed.scopes.some(category => {
-            const allowed = SCOPE_CATEGORIES[category];
-            if (!allowed) return false;
-            return allowed.some(s => tokenScopes.includes(s));
-          });
-          if (!scopeMatch) continue;
-        }
+        if (!tokenMatchesScopeCategories(node.$scopes, parsed.scopes)) continue;
       }
 
       result.push(node);

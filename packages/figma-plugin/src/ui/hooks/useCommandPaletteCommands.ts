@@ -1,8 +1,7 @@
 import { useCallback, useState, useEffect, useMemo } from "react";
-import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import type { Command, TokenEntry } from "../components/CommandPalette";
 import { inferTypeFromValue } from "../components/tokenListHelpers";
-import { isAlias } from "../../shared/resolveAlias";
+import { buildCommandPaletteTokens } from "../shared/commandPaletteTokens";
 import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import {
@@ -18,15 +17,20 @@ import {
   useTokenFlatMapContext,
   useGeneratorContext,
 } from "../contexts/TokenDataContext";
-import { useSelectionContext } from "../contexts/InspectContext";
+import {
+  useSelectionContext,
+  useUsageContext,
+} from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useSelectionHealth } from "./useSelectionHealth";
 import { useEditorContext } from "../contexts/EditorContext";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 import {
   useShellWorkspaceController,
   useSyncWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
+import { buildPluginDocumentationUrl } from "../shared/utils";
 
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -49,10 +53,11 @@ export function useCommandPaletteCommands(): {
     collectionTokenCounts,
   } = useCollectionStateContext();
   const collectionIds = collections.map((collection) => collection.id);
-  const { allTokensFlat, pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
+  const { allTokensFlat, perCollectionFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();
   const { navigateTo, setPendingRepairPrefill } = useNavigationContext();
   const { selectedNodes } = useSelectionContext();
+  const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const selectionHealth = useSelectionHealth(selectedNodes, allTokensFlat);
   const {
     highlightedToken,
@@ -65,6 +70,7 @@ export function useCommandPaletteCommands(): {
     setTokensComparePaths,
     switchContextualSurface,
   } = useEditorContext();
+  const { serverUrl } = useConnectionContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
   const sync = useSyncWorkspaceController();
@@ -239,6 +245,19 @@ export function useCommandPaletteCommands(): {
         },
       },
       {
+        id: "open-documentation",
+        label: "Open documentation",
+        description: "Open TokenManager documentation in the browser",
+        category: "Help",
+        handler: () => {
+          window.open(
+            buildPluginDocumentationUrl(serverUrl),
+            "_blank",
+            "noopener,noreferrer",
+          );
+        },
+      },
+      {
         id: "generate-color-scale",
         label: "Generate palette…",
         description:
@@ -340,6 +359,7 @@ export function useCommandPaletteCommands(): {
     setTokenDetails,
     setPendingRepairPrefill,
     shell,
+    serverUrl,
     switchContextualSurface,
     tokens,
     sync,
@@ -403,65 +423,80 @@ export function useCommandPaletteCommands(): {
   }, [collections, openCompareInTokens]);
 
   const contextualCommands = useMemo<Command[]>(() => {
-    const inCurrentCollection =
-      !!highlightedToken && pathToCollectionId[highlightedToken] === currentCollectionId;
-
-    return [
-      ...(inCurrentCollection
+    const currentHighlightedToken = highlightedToken;
+    const highlightedEntry = currentHighlightedToken
+      ? perCollectionFlat[currentCollectionId]?.[currentHighlightedToken] ?? null
+      : null;
+    const currentCollectionCommands =
+      currentHighlightedToken && highlightedEntry
         ? [
             {
               id: "rename-highlighted-token",
-              label: `Rename: ${highlightedToken}`,
+              label: `Rename: ${currentHighlightedToken}`,
               description: "Start inline rename mode for this token",
               category: "Tokens" as const,
-              handler: () => tokens.handlePaletteRename(highlightedToken),
+              handler: () =>
+                tokens.handlePaletteRename(
+                  currentHighlightedToken,
+                  currentCollectionId,
+                ),
             },
             {
               id: "duplicate-highlighted-token",
-              label: `Create from this token: ${highlightedToken}`,
+              label: `Create from this token: ${currentHighlightedToken}`,
               description: "Create a copy of this token with a new path",
               category: "Tokens" as const,
               handler: () => {
-                void tokens.handlePaletteDuplicate(highlightedToken);
+                void tokens.handlePaletteDuplicate(
+                  currentHighlightedToken,
+                  currentCollectionId,
+                );
               },
             },
             {
               id: "move-highlighted-token",
-              label: `Move to collection: ${highlightedToken}`,
+              label: `Move to collection: ${currentHighlightedToken}`,
               description: "Move this token to a different collection",
               category: "Tokens" as const,
-              handler: () => tokens.handlePaletteMove(highlightedToken),
+              handler: () =>
+                tokens.handlePaletteMove(
+                  currentHighlightedToken,
+                  currentCollectionId,
+                ),
             },
             {
               id: "extract-highlighted-token-to-alias",
-              label: `Extract to alias: ${highlightedToken}`,
+              label: `Extract to alias: ${currentHighlightedToken}`,
               description:
                 "Create a primitive alias token and replace this value with a reference",
               category: "Tokens" as const,
               handler: () => {
-                const entry = allTokensFlat[highlightedToken];
                 navigateTo("library");
-                setHighlightedToken(highlightedToken);
+                setHighlightedToken(currentHighlightedToken);
                 tokens.tokenListCompareRef.current?.triggerExtractToAlias(
-                  highlightedToken,
-                  entry?.$type,
-                  entry?.$value,
+                  currentHighlightedToken,
+                  highlightedEntry.$type,
+                  highlightedEntry.$value,
                 );
               },
             },
             {
               id: "delete-highlighted-token",
-              label: `Delete token: ${highlightedToken}`,
+              label: `Delete token: ${currentHighlightedToken}`,
               description: `Permanently delete this token from collection "${currentCollectionId}"`,
               category: "Tokens" as const,
               handler: () =>
                 tokens.requestPaletteDelete(
-                  [highlightedToken],
-                  `Delete "${highlightedToken}"?`,
+                  [currentHighlightedToken],
+                  `Delete "${currentHighlightedToken}"?`,
+                  currentCollectionId,
                 ),
             },
           ]
-        : []),
+        : [];
+
+    return [
+      ...currentCollectionCommands,
       ...(tokens.tokenListSelection.length > 0
         ? [
             {
@@ -505,12 +540,11 @@ export function useCommandPaletteCommands(): {
     ];
   }, [
     currentCollectionId,
-    allTokensFlat,
     collections.length,
     highlightedToken,
     navigateTo,
     openCompareInTokens,
-    pathToCollectionId,
+    perCollectionFlat,
     setHighlightedToken,
     tokens,
   ]);
@@ -597,22 +631,41 @@ export function useCommandPaletteCommands(): {
     ],
   );
 
+  const allPaletteTokenSources = useMemo(
+    () =>
+      Object.entries(perCollectionFlat).flatMap(([collectionId, collection]) =>
+        Object.entries(collection).map(([path, entry]) => ({
+          path,
+          collectionId,
+          entry,
+        })),
+      ),
+    [perCollectionFlat],
+  );
+
   const currentCollectionPaletteTokens = useMemo<TokenEntry[]>(() => {
     const collectionFlat = perCollectionFlat[currentCollectionId] ?? {};
-    return Object.entries(collectionFlat).map(([path, entry]) => ({
-      path,
-      type: entry.$type || "unknown",
-      value:
-        typeof entry.$value === "string"
-          ? entry.$value
-          : JSON.stringify(entry.$value),
-      collectionId: currentCollectionId,
-      isAlias: isAlias(entry.$value),
-      generatorName:
-        derivedTokenPaths.get(createGeneratorOwnershipKey(currentCollectionId, path))
-          ?.name,
-    }));
-  }, [currentCollectionId, derivedTokenPaths, perCollectionFlat]);
+    return buildCommandPaletteTokens(
+      Object.entries(collectionFlat).map(([path, entry]) => ({
+        path,
+        collectionId: currentCollectionId,
+        entry,
+      })),
+      {
+        derivedTokenPaths,
+        tokenUsageCounts,
+        tokenUsageReady: hasTokenUsageScanResult,
+        referenceTokenSources: allPaletteTokenSources,
+      },
+    );
+  }, [
+    allPaletteTokenSources,
+    currentCollectionId,
+    derivedTokenPaths,
+    hasTokenUsageScanResult,
+    perCollectionFlat,
+    tokenUsageCounts,
+  ]);
 
   return { commands, currentCollectionPaletteTokens };
 }

@@ -50,7 +50,6 @@ import { useTokenPromotion } from "../hooks/useTokenPromotion";
 import { useTokenCrud } from "../hooks/useTokenCrud";
 import { useFigmaMessage } from "../hooks/useFigmaMessage";
 import { extractSyncApplyResult } from "../hooks/useTokenSyncBase";
-import { useTokenWhereIs } from "../hooks/useTokenWhereIs";
 import { useTokenExpansion } from "../hooks/useTokenExpansion";
 import { useTokenVirtualScroll } from "../hooks/useTokenVirtualScroll";
 import { useTokenSearch } from "../hooks/useTokenSearch";
@@ -62,11 +61,13 @@ import { LibrarySelectionStrip } from "./library/LibrarySelectionStrip";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { getGeneratedGroupKeepUpdatedAvailability, getGeneratedGroupTypeLabel } from "../shared/generatedGroupUtils";
-import { computeUnusedTokenPaths } from "../shared/tokenUsage";
+import {
+  buildReferencedTokenPathSetFromEntries,
+  isTokenEntryUnused,
+} from "../shared/tokenUsage";
 import { TokenListToolbar } from "./TokenListToolbar";
 import { TokenSelectionToolbar } from "./TokenSelectionToolbar";
 import { TableCreateForm } from "./TableCreateForm";
-import { WhereIsOverlay } from "./WhereIsOverlay";
 import {
   TokenListReviewOverlays,
 } from "./token-list/TokenListStates";
@@ -116,12 +117,6 @@ function getInlineModeValues(
   }
   return collectionModes as Record<string, unknown>;
 }
-
-type PendingBulkPresetLaunch = {
-  presetId: string;
-  presetName: string;
-  query: string;
-};
 
 type SearchResultPresentation = "grouped" | "flat";
 
@@ -185,16 +180,13 @@ export function TokenList({
     onSelectionChange,
     onOpenCompare,
     onOpenCrossCollectionCompare,
-    onOpenCommandPaletteWithQuery,
     onShowPasteModal,
     onOpenImportPanel,
     onExtractFromSelection,
     onOpenCreateCollection,
     onOpenCollectionDetails,
-    onOpenStartHere: _onOpenStartHere,
   },
   recentlyTouched,
-  defaultCreateOpen: _defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
   editingTokenPath,
@@ -279,8 +271,6 @@ export function TokenList({
     setMultiModeDimId,
   } = viewState;
   const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
-  const [pendingBulkPresetLaunch, setPendingBulkPresetLaunch] =
-    useState<PendingBulkPresetLaunch | null>(null);
   const [pendingBatchEditorFocus, setPendingBatchEditorFocus] =
     useState<BatchEditorFocusTarget | null>(null);
   const recentlyTouchedPaths = useMemo(
@@ -460,11 +450,26 @@ export function TokenList({
     if (!tokenUsageReady || !tokenUsageCounts)
       return undefined;
 
-    const paths = computeUnusedTokenPaths(allTokensFlat, tokenUsageCounts, {
-      includeDeprecated: false,
-    });
+    const allCollectionFlat = perCollectionFlat ?? {};
+    const currentCollectionFlat = allCollectionFlat[collectionId] ?? {};
+    const referencedPaths = buildReferencedTokenPathSetFromEntries(
+      Object.values(allCollectionFlat).flatMap((collectionFlat) =>
+        Object.values(collectionFlat),
+      ),
+    );
+    const paths = new Set<string>();
+    for (const [path, entry] of Object.entries(currentCollectionFlat)) {
+      if (
+        isTokenEntryUnused(path, entry, tokenUsageCounts, referencedPaths, {
+          includeDeprecated: false,
+        })
+      ) {
+        paths.add(path);
+      }
+    }
+
     return paths.size > 0 ? paths : undefined;
-  }, [tokenUsageCounts, tokenUsageReady, allTokensFlat]);
+  }, [collectionId, perCollectionFlat, tokenUsageCounts, tokenUsageReady]);
 
   // Compute per-mode resolved token maps for the selected dimension. Always
   // produces at least one column — single-mode collections get one result,
@@ -800,25 +805,7 @@ export function TokenList({
     handleMoveTokenInGroup,
   } = groupOps;
 
-  // Phase 1: useTokenWhereIs
-  const tokenWhereIs = useTokenWhereIs({ serverUrl });
-  const {
-    whereIsPath,
-    setWhereIsPath,
-    whereIsResults,
-    setWhereIsResults,
-    whereIsLoading,
-    setWhereIsLoading: _setWhereIsLoading,
-    whereIsAbortRef,
-  } = tokenWhereIs;
-
-  const handleCloseWhereIs = useCallback(() => {
-    setWhereIsPath(null);
-    setWhereIsResults(null);
-    whereIsAbortRef.current?.abort();
-  }, [setWhereIsPath, setWhereIsResults, whereIsAbortRef]);
-
-  // Phase 2: useTokenExpansion
+  // Token expansion state
   const tokenExpansion = useTokenExpansion({
     collectionId,
     tokens,
@@ -861,19 +848,16 @@ export function TokenList({
     return map;
   }, [lintViolations]);
 
-  // Phase 4: useTokenSearch (needs bridging refs + sortedTokens + expansion state)
+  // Token search state (depends on expansion and virtual-scroll bridge refs)
   const tokenSearch = useTokenSearch({
     collectionId,
     tokens,
-    collectionIds,
     serverUrl,
-    onOpenCommandPaletteWithQuery,
     virtualScrollTopRef,
     flatItemsRef,
     itemOffsetsRef,
     scrollAnchorPathRef,
     isFilterChangeRef,
-    expandedPaths,
     starredPaths: starredPaths ?? EMPTY_PATH_SET,
     sortedTokens,
     recentlyTouchedPaths,
@@ -894,22 +878,19 @@ export function TokenList({
     showDuplicates,
     crossCollectionSearch,
     setCrossCollectionSearch,
-    filterPresets,
-    deleteFilterPreset,
-    applyFilterPreset,
     showQualifierHints,
     setShowQualifierHints,
     hintIndex,
     setHintIndex,
+    crossCollectionLoading,
+    crossCollectionError,
     crossCollectionResults,
     crossCollectionTotal,
-    crossCollectionOffset: _crossCollectionOffset,
     setCrossCollectionOffset,
+    retryCrossCollectionSearch,
     CROSS_COLLECTION_PAGE_SIZE,
     searchRef,
     qualifierHintsRef,
-    crossCollectionAbortRef: _crossCollectionAbortRef,
-    saveScrollAnchor: _saveScrollAnchor,
     setSearchQuery,
     setTypeFilter,
     setRefFilter,
@@ -918,7 +899,6 @@ export function TokenList({
     removeQueryToken,
     filtersActive,
     activeFilterCount,
-    duplicateValuePaths: _duplicateValuePaths,
     duplicateCounts,
     availableTypes,
     qualifierHints,
@@ -960,7 +940,6 @@ export function TokenList({
     [displayedLeafNodesWithAncestors],
   );
 
-  const hasStructuredFilters = structuredFilterChips.length > 0;
   const visibleGroupPaths =
     groupBy === "type" ? groupedDisplayedGroupPaths : allGroupPaths;
   const allGroupsExpanded =
@@ -1069,7 +1048,7 @@ export function TokenList({
     viewMode,
   ]);
 
-  // Phase 3: useTokenVirtualScroll (needs displayedTokens from useTokenSearch)
+  // Virtual scroll state (depends on the filtered token list)
   // Note: showRecentlyTouched special-case for flatItems is handled here
   const flatItemsForScroll = useMemo<VisibleTokenRow[]>(() => {
     if (viewMode !== "tree") return [];
@@ -1136,12 +1115,14 @@ export function TokenList({
     onFilteredCountChange(filtersActive ? displayedLeafNodes.length : null);
   }, [displayedLeafNodes, filtersActive, onFilteredCountChange]);
 
-  // Phase 5: useTokenSelection (called before tokenCrud/tokenPromotion so selectedPaths is available)
+  // Token selection state (needed before CRUD and promotion hooks)
   const tokenSelection = useTokenSelection({
     viewMode,
     flatItems,
     displayedLeafNodes,
     crossCollectionResults,
+    selectionScopeKey: `${collectionId}:${crossCollectionSearch ? "cross-collection" : "collection"}`,
+    selectionEnabled: !crossCollectionSearch,
     onSelectionChange,
   });
   const {
@@ -1225,30 +1206,6 @@ export function TokenList({
     openBulkEditorForPaths,
   ]);
 
-
-  useEffect(() => {
-    if (!pendingBulkPresetLaunch) return;
-    if (crossCollectionSearch) return;
-    if (searchQuery !== pendingBulkPresetLaunch.query) return;
-    const presetPaths = new Set(displayedLeafNodes.map((node) => node.path));
-    if (presetPaths.size === 0) {
-      dispatchToast(
-        `Saved scope "${pendingBulkPresetLaunch.presetName}" does not match any tokens in ${collectionId}.`,
-        "error",
-      );
-      setPendingBulkPresetLaunch(null);
-      return;
-    }
-    openBulkEditorForPaths(presetPaths);
-    setPendingBulkPresetLaunch(null);
-  }, [
-    crossCollectionSearch,
-    displayedLeafNodes,
-    openBulkEditorForPaths,
-    pendingBulkPresetLaunch,
-    searchQuery,
-    collectionId,
-  ]);
 
   useEffect(() => {
     if (selectedPaths.size === 0) {
@@ -1787,22 +1744,6 @@ export function TokenList({
     showIssuesOnly,
   ]);
 
-  const clearViewModes = useCallback(() => {
-    if (showResolvedValues) setShowResolvedValues(false);
-    if (showFlatSearchResults) setSearchResultPresentation("grouped");
-    if (sortOrder !== "default") setSortOrder("default");
-    if (groupBy !== "path") setGroupBy("path");
-  }, [
-    groupBy,
-    setGroupBy,
-    setSearchResultPresentation,
-    setSortOrder,
-    setShowResolvedValues,
-    showResolvedValues,
-    showFlatSearchResults,
-    sortOrder,
-  ]);
-
   const handleOpenNewGroupDialog = useCallback(() => {
     setNewGroupDialogParent("");
     setNewGroupName("");
@@ -2110,8 +2051,6 @@ export function TokenList({
     },
     [onOpenCrossCollectionCompare],
   );
-
-  // handleFindInAllSets is managed by useTokenWhereIs (destructured above)
 
   // Expose imperative actions to the parent via compareHandle ref
   useEffect(() => {
@@ -2424,7 +2363,6 @@ export function TokenList({
             activeQueryToken={activeQueryToken}
             searchTooltip={searchTooltip}
             qualifierHintsRef={qualifierHintsRef}
-            structuredFilterChips={structuredFilterChips}
             toolbarStateChips={toolbarStateChips}
             connected={connected}
             hasTokens={tokens.length > 0}
@@ -2436,7 +2374,6 @@ export function TokenList({
             openTableCreate={openTableCreate}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
-            onOpenImportPanel={onOpenImportPanel}
             onOpenCreateCollection={onOpenCreateCollection}
             onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
@@ -2451,7 +2388,6 @@ export function TokenList({
               onCollapseAll: handleCollapseAll,
               hasGroups: groupBy === "type" ? groupedDisplayedTokens.length > 0 : tokens.some((n) => n.isGroup),
               allGroupsExpanded,
-              hasCollections: collections.length > 0,
               canToggleSearchResultPresentation: canToggleSearchResultPresentation && !crossCollectionSearch,
               searchResultPresentation,
               onSearchResultPresentationChange: setSearchResultPresentation,
@@ -2473,9 +2409,6 @@ export function TokenList({
               onRefFilterChange: setRefFilter,
               showDuplicates,
               onToggleDuplicates: () => setShowDuplicates(!showDuplicates),
-              filterPresets,
-              onApplyFilterPreset: applyFilterPreset,
-              onDeleteFilterPreset: deleteFilterPreset,
               activeCount: filterMenuActiveCount,
             } : null}
             collectionHealthSummary={collectionHealthSummary}
@@ -2524,11 +2457,13 @@ export function TokenList({
         >
           <TokenListTreeBody
             viewMode={viewMode}
+            crossCollectionLoading={crossCollectionLoading}
+            crossCollectionError={crossCollectionError}
             crossCollectionResults={crossCollectionResults}
             crossCollectionTotal={crossCollectionTotal}
             setCrossCollectionOffset={setCrossCollectionOffset}
+            retryCrossCollectionSearch={retryCrossCollectionSearch}
             CROSS_COLLECTION_PAGE_SIZE={CROSS_COLLECTION_PAGE_SIZE}
-            collectionIds={collectionIds}
             searchQuery={searchQuery}
             searchHighlight={searchHighlight}
             availableTypes={availableTypes}
@@ -2659,17 +2594,6 @@ export function TokenList({
       <TokenListModalsProvider value={modalContextValue}>
         <TokenListModals />
       </TokenListModalsProvider>
-
-      {/* "Find in all collections" overlay */}
-      {whereIsPath !== null && (
-        <WhereIsOverlay
-          whereIsPath={whereIsPath}
-          whereIsResults={whereIsResults}
-          whereIsLoading={whereIsLoading}
-          onClose={handleCloseWhereIs}
-          onNavigateToCollection={onNavigateToCollection}
-        />
-      )}
     </div>
   );
 }

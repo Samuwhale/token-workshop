@@ -1,5 +1,5 @@
 import { adaptShortcut, stableStringify } from "../shared/utils";
-import { Network, Copy, Check, ChevronRight, Clock, Trash2, Link2, X, Plus } from "lucide-react";
+import { Copy, Check, Clock, Trash2, Link2, X, Plus } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -19,7 +19,6 @@ import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { ColorModifiersEditor } from "./ColorModifiersEditor";
-import { MetadataEditor } from "./MetadataEditor";
 import { ScopeEditor } from "./ScopeEditor";
 import {
   FIGMA_SCOPE_OPTIONS,
@@ -28,7 +27,6 @@ import {
 } from "../shared/tokenMetadata";
 import { useTokenEditorModeValue } from "../hooks/useTokenEditorModeValue";
 import { PathAutocomplete } from "./PathAutocomplete";
-import { Collapsible } from "./Collapsible";
 
 import { useTokenEditorFields } from "../hooks/useTokenEditorFields";
 import { useTokenEditorLoad } from "../hooks/useTokenEditorLoad";
@@ -58,9 +56,11 @@ import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SU
 import { valueFormatHint } from "./tokenListHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
 import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
-import { TokenEditorLintBanner } from "./token-editor/TokenEditorLintBanner";
 import type { LintViolation } from "../hooks/useLint";
+import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
+import { TokenDetailsSection } from "./token-details/TokenDetailsSection";
+import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
 
 interface TokenDetailsProps {
   tokenPath: string;
@@ -831,8 +831,6 @@ export function TokenDetails({
       return next;
     });
   }, []);
-  const [devMetadataOpen, setDevMetadataOpen] = useState(false);
-  const [rawJsonOpen, setRawJsonOpen] = useState(false);
 
   const rawJsonPreview = useMemo(() => {
     const extensions: Record<string, unknown> = {};
@@ -944,6 +942,12 @@ export function TokenDetails({
         ? "Enter a token path."
         : saveBlockReason;
 
+  const handleCopyPath = () => {
+    navigator.clipboard.writeText(tokenPath);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   const headerTitle = (
     <>
       {isCreateMode ? (
@@ -961,6 +965,19 @@ export function TokenDetails({
             <span className="truncate font-mono text-body text-[var(--color-figma-text)]" title={tokenPath}>
               {tokenPath}
             </span>
+            <button
+              type="button"
+              onClick={handleCopyPath}
+              title="Copy token path"
+              aria-label="Copy token path"
+              className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            >
+              {copied ? (
+                <Check size={12} strokeWidth={1.5} aria-hidden />
+              ) : (
+                <Copy size={12} strokeWidth={1.5} aria-hidden />
+              )}
+            </button>
             {isEditMode && isDirty && (
               <span
                 className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
@@ -976,28 +993,10 @@ export function TokenDetails({
               />
             )}
           </div>
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="min-w-0">
             <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
               in {ownerCollectionId}
             </span>
-            {isInspectMode ? (
-              <span
-                className={`px-1.5 py-0.5 rounded text-secondary font-medium uppercase ${tokenTypeBadgeClass(tokenType)}`}
-              >
-                {tokenType}
-              </span>
-            ) : (
-              <span className="shrink-0">
-                <TypePicker
-                  value={tokenType}
-                  onChange={handleTypeChange}
-                  title="Change token type"
-                  withChevron
-                  className={`pr-4 pl-1.5 py-0.5 rounded text-secondary font-medium cursor-pointer border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] appearance-none ${tokenTypeBadgeClass(tokenType)}`}
-                  style={{ backgroundImage: "none" }}
-                />
-              </span>
-            )}
           </div>
         </div>
       )}
@@ -1006,25 +1005,6 @@ export function TokenDetails({
 
   const headerActions = (
     <>
-      {!isCreateMode && (
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard.writeText(tokenPath);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }}
-          title="Copy token path"
-          aria-label="Copy token path"
-          className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-        >
-          {copied ? (
-            <Check size={12} strokeWidth={1.5} aria-hidden />
-          ) : (
-            <Copy size={12} strokeWidth={1.5} aria-hidden />
-          )}
-        </button>
-      )}
       {!isCreateMode && isInspectMode && onDuplicate && (
         <button
           type="button"
@@ -1247,6 +1227,60 @@ export function TokenDetails({
   const scopeLabels = getScopeLabels(tokenType, scopes);
   const lifecycleLabel = getLifecycleLabel(lifecycle) ?? "Published";
   const readOnlyExtensionsText = extensionsJsonText.trim() || "{}";
+  const lifecycleDotClass =
+    lifecycle === "draft"
+      ? "bg-[var(--color-figma-warning)]"
+      : lifecycle === "deprecated"
+        ? "bg-[var(--color-figma-text-tertiary)]"
+        : "bg-[var(--color-figma-accent)]";
+
+  const retryAction = saveRetryArgs ? (
+    <button
+      type="button"
+      onClick={() => {
+        setSaveRetryArgs(null);
+        handleSaveRef.current(saveRetryArgs[0], saveRetryArgs[1]);
+      }}
+      className="tm-token-details__text-button"
+    >
+      Retry
+    </button>
+  ) : null;
+
+  const openGeneratedSource = () => {
+    if (!activeProducingGenerator) return;
+    if (onOpenGeneratedGroupEditor) {
+      openGeneratedGroupEditor({
+        mode: "edit",
+        id: activeProducingGenerator.id,
+      });
+      return;
+    }
+    onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
+  };
+
+  const valueSectionDescription =
+    modeValue.modes.length >= 2
+      ? "Every mode is visible here. Edit each one directly or reference another token."
+      : undefined;
+  const valueSectionActions = !isCreateMode ? (
+    isInspectMode ? (
+      <span
+        className={`px-1.5 py-0.5 rounded text-secondary font-medium uppercase ${tokenTypeBadgeClass(tokenType)}`}
+      >
+        {tokenType}
+      </span>
+    ) : (
+      <TypePicker
+        value={tokenType}
+        onChange={handleTypeChange}
+        title="Change token type"
+        withChevron
+        className={`pr-5 pl-2 py-1 rounded text-secondary font-medium cursor-pointer border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] outline-none focus-visible:border-[var(--color-figma-accent)] appearance-none ${tokenTypeBadgeClass(tokenType)}`}
+        style={{ backgroundImage: "none" }}
+      />
+    )
+  ) : null;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -1265,125 +1299,37 @@ export function TokenDetails({
         bodyClassName={AUTHORING_SURFACE_CLASSES.bodyStack}
         footer={footer}
       >
-        {displayError && (
-          <div
-            role="alert"
-            className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-secondary break-words max-h-16 overflow-auto flex items-start gap-2"
-          >
-            <span className="flex-1">{displayError}</span>
-            {saveRetryArgs && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSaveRetryArgs(null);
-                  handleSaveRef.current(saveRetryArgs[0], saveRetryArgs[1]);
-                }}
-                className="shrink-0 font-medium underline hover:opacity-80"
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        )}
-
-        <TokenEditorLintBanner lintViolations={tokenLintViolations} />
-
-        {/* Type-change confirmation — shown when a type switch would reset a non-default value */}
-        {isEditMode && pendingTypeChange && (
-          <div className="px-2 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 text-secondary">
-            <p className="text-[var(--color-figma-text)] mb-2">
-              Switch to <strong>{pendingTypeChange}</strong>? This will reset
-              the current value.
-              {dependents.length > 0 && (
-                <span className="block mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowPendingDependents((v) => !v)}
-                    className="flex items-center gap-1 text-[var(--color-figma-warning)] hover:text-[var(--color-figma-warning)] transition-colors"
-                  >
-                    <ChevronRight
-                      size={10}
-                      strokeWidth={1.5}
-                      className={`shrink-0 transition-transform ${showPendingDependents ? "rotate-90" : ""}`}
-                      aria-hidden
-                    />
-                    {dependents.length} dependent token
-                    {dependents.length !== 1 ? "s" : ""} reference this token
-                    and may break.
-                  </button>
-                  {showPendingDependents && (
-                    <span className="mt-1 flex flex-col gap-0.5 max-h-28 overflow-y-auto">
-                      {dependents.slice(0, 20).map((dep) =>
-                        onNavigateToToken ? (
-                          <button
-                            key={dep.path}
-                            type="button"
-                            onClick={() => {
-                              setPendingTypeChange(null);
-                              onNavigateToToken(dep.path, tokenPath);
-                            }}
-                            className="flex items-center gap-1 px-1 py-0.5 rounded font-mono text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-warning)]/20 hover:text-[var(--color-figma-warning)] transition-colors text-left w-full"
-                            title={`Open ${dep.path}`}
-                          >
-                            <Network size={10} strokeWidth={1.5} className="shrink-0 opacity-60" aria-hidden />
-                            <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                            {dep.collectionId !== ownerCollectionId && (
-                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
-                                {dep.collectionId}
-                              </span>
-                            )}
-                          </button>
-                        ) : (
-                          <span
-                            key={dep.path}
-                            className="flex items-center gap-1 px-1 py-0.5 font-mono text-secondary text-[var(--color-figma-text)]"
-                          >
-                            <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                            {dep.collectionId !== ownerCollectionId && (
-                              <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] ml-auto">
-                                {dep.collectionId}
-                              </span>
-                            )}
-                          </span>
-                        ),
-                      )}
-                      {dependents.length > 20 && (
-                        <span className="px-1 py-0.5 text-secondary text-[var(--color-figma-warning)]/70 italic">
-                          and {dependents.length - 20} more…
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </span>
-              )}
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setPendingTypeChange(null);
-                  setShowPendingDependents(false);
-                }}
-                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Keep {tokenType}
-              </button>
-              <button
-                type="button"
-                onClick={() => applyTypeChange(pendingTypeChange)}
-                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-warning)] text-white hover:bg-[var(--color-figma-warning)]"
-              >
-                Switch type
-              </button>
-            </div>
-          </div>
-        )}
+        <TokenDetailsStatusBanners
+          displayError={displayError}
+          retryAction={retryAction}
+          lintViolations={tokenLintViolations}
+          lifecycle={lifecycle}
+          isCreateMode={isCreateMode}
+          isEditMode={isEditMode}
+          pendingTypeChange={pendingTypeChange}
+          tokenType={tokenType}
+          dependents={dependents}
+          showPendingDependents={showPendingDependents}
+          ownerCollectionId={ownerCollectionId}
+          tokenPath={tokenPath}
+          onDismissTypeChange={() => {
+            setPendingTypeChange(null);
+            setShowPendingDependents(false);
+          }}
+          onApplyTypeChange={() => {
+            if (pendingTypeChange) applyTypeChange(pendingTypeChange);
+          }}
+          onTogglePendingDependents={() =>
+            setShowPendingDependents((value) => !value)
+          }
+          onNavigateToToken={onNavigateToToken}
+        />
 
         {isCreateMode && (
-          <div className="flex flex-col gap-3 rounded-lg border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-3 py-3">
-            <div className="flex items-start justify-between gap-3">
+          <div className="tm-token-details__create-setup">
+            <div className="tm-token-details__create-header">
               <div className="min-w-0">
-                <p className="text-secondary font-medium text-[var(--color-figma-text)]">
+                <p className="text-body font-semibold text-[var(--color-figma-text)]">
                   Token details
                 </p>
               </div>
@@ -1443,7 +1389,7 @@ export function TokenDetails({
                 />
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[var(--color-figma-text-secondary)]">
+            <div className="tm-token-details__create-meta">
               <span>Collection: {ownerCollectionId}</span>
               {trimmedEditLeaf && <span>Leaf: {trimmedEditLeaf}</span>}
             </div>
@@ -1454,7 +1400,7 @@ export function TokenDetails({
               </p>
             )}
             {!editPath.includes(".") && createSuggestions.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1">
+              <div className="tm-token-details__suggestions">
                 <span className="text-secondary text-[var(--color-figma-text-secondary)]">
                   Try:
                 </span>
@@ -1466,7 +1412,7 @@ export function TokenDetails({
                       setEditPath(prefix);
                       setDisplayError(null);
                     }}
-                    className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] ring-1 ring-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    className="tm-token-details__suggestion-button"
                   >
                     {prefix}
                   </button>
@@ -1476,410 +1422,359 @@ export function TokenDetails({
           </div>
         )}
 
-        <div
-          className="flex flex-col gap-2"
-          ref={valueEditorContainerRef}
-          onPaste={isEditMode ? handlePaste : undefined}
+        <TokenDetailsSection
+          title="Value"
+          description={valueSectionDescription}
+          actions={valueSectionActions}
         >
           <div
-            className="divide-y divide-[var(--color-figma-border)]/50 rounded-md border border-[var(--color-figma-border)]/65"
-            title={modeValue.modes.length >= 2 ? (valueFormatHint(tokenType) || undefined) : undefined}
+            className="flex flex-col gap-3"
+            ref={valueEditorContainerRef}
+            onPaste={isEditMode ? handlePaste : undefined}
           >
-            {modeValue.modes.map((mode, modeIdx) => {
-              const modeVal = mode.value === "" ? undefined : mode.value;
-              const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
-              const initialModeVal = modeIdx === 0
-                ? initialFieldsSnapshot?.value
-                : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
-              const isModeModified = initialModeVal !== undefined
-                && stableStringify(modeVal ?? "") !== stableStringify(initialModeVal ?? "");
-              const showModeLabel = modeValue.modes.length >= 2;
-
-              return (
-                <TokenDetailsModeRow
-                  key={mode.name}
-                  modeName={mode.name}
-                  tokenType={tokenType}
-                  value={modeVal}
-                  editable={isEditMode}
-                  onChange={isEditMode ? mode.setValue : undefined}
-                  allTokensFlat={allTokensFlat}
-                  pathToCollectionId={pathToCollectionId}
-                  showModeLabel={showModeLabel}
-                  autoFocus={modeIdx === 0 && !isCreateMode && isEditMode}
-                  baseValue={baseVal}
-                  availableFonts={availableFonts}
-                  fontWeightsByFamily={fontWeightsByFamily}
-                  fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
-                  fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
-                  modified={isModeModified && !isCreateMode}
-                  onNavigateToToken={(path) => onNavigateToToken?.(path, tokenPath)}
-                  allowCopyFromPrevious={isEditMode && modeValue.modes.length > 1}
-                  onCopyFromPrevious={
-                    isEditMode && modeValue.modes.length > 1
-                      ? () => {
-                          const sourceIdx =
-                            modeIdx === 0
-                              ? modeValue.modes.length - 1
-                              : modeIdx - 1;
-                          const sourceValue = modeValue.modes[sourceIdx].value;
-                          if (sourceValue !== "" && sourceValue != null) {
-                            mode.setValue(
-                              typeof sourceValue === "object"
-                                ? JSON.parse(JSON.stringify(sourceValue))
-                                : sourceValue,
-                            );
-                          }
-                        }
-                      : undefined
-                  }
-                  allowCopyToAll={
-                    isEditMode &&
-                    modeValue.modes.length > 1 &&
-                    modeVal !== "" &&
-                    modeVal != null
-                  }
-                  onCopyToAll={
-                    isEditMode &&
-                    modeValue.modes.length > 1 &&
-                    modeVal !== "" &&
-                    modeVal != null
-                      ? () => {
-                          const sourceValue = mode.value;
-                          if (sourceValue === "" || sourceValue == null) return;
-                          modeValue.modes.forEach((destMode, destIdx) => {
-                            if (destIdx === modeIdx) return;
-                            destMode.setValue(
-                              typeof sourceValue === "object"
-                                ? JSON.parse(JSON.stringify(sourceValue))
-                                : sourceValue,
-                            );
-                          });
-                        }
-                      : undefined
-                  }
-                />
-              );
-            })}
-            {isEditMode && addingEditorMode ? (
-              <div className="flex items-center gap-2 px-2.5 py-1.5">
-                <input
-                  type="text"
-                  value={editorNewModeName}
-                  onChange={(e) => setEditorNewModeName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleAddEditorMode();
-                    if (e.key === "Escape") {
-                      setAddingEditorMode(false);
-                      setEditorNewModeName("");
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!editorNewModeName.trim()) {
-                      setAddingEditorMode(false);
-                      setEditorNewModeName("");
-                    }
-                  }}
-                  autoFocus
-                  disabled={editorAddModeSaving}
-                  placeholder="Mode name"
-                  className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
-                />
-              </div>
-            ) : isEditMode ? (
-              <button
-                type="button"
-                onClick={() => setAddingEditorMode(true)}
-                className="flex w-full items-center gap-1 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
-              >
-                <Plus size={12} strokeWidth={1.5} aria-hidden />
-                Add mode
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {isEditMode &&
-          tokenType === "color" &&
-          (valueIsAlias || (typeof value === "string" && value.length > 0)) && (
-            <ColorModifiersEditor
-              reference={valueIsAlias ? (value as string) : undefined}
-              colorFlatMap={valueIsAlias ? colorFlatMap : undefined}
-              directColor={
-                !valueIsAlias && typeof value === "string" ? value : undefined
+            <div
+              className="tm-token-details__mode-stack"
+              title={
+                modeValue.modes.length >= 2
+                  ? (valueFormatHint(tokenType) || undefined)
+                  : undefined
               }
-              colorModifiers={colorModifiers}
-              onColorModifiersChange={setColorModifiers}
-            />
-          )}
-        {isInspectMode && colorModifiers.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-              Color modifiers
-            </label>
-            <pre className="max-h-32 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
-              {JSON.stringify(colorModifiers, null, 2)}
-            </pre>
-          </div>
-        )}
-        {tokenType === "color" && !isCreateMode && (
-          <ContrastChecker
-            tokenPath={tokenPath}
-            value={value}
-            allTokensFlat={allTokensFlat}
-            pathToCollectionId={pathToCollectionId}
-            colorFlatMap={colorFlatMap}
-          />
-        )}
+            >
+              {modeValue.modes.map((mode, modeIdx) => {
+                const modeVal = mode.value === "" ? undefined : mode.value;
+                const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
+                const initialModeVal =
+                  modeIdx === 0
+                    ? initialFieldsSnapshot?.value
+                    : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
+                const isModeModified =
+                  initialModeVal !== undefined &&
+                  stableStringify(modeVal ?? "") !== stableStringify(initialModeVal ?? "");
+                const showModeLabel = modeValue.modes.length >= 2;
 
-        {canBeGeneratorSource && !valueIsAlias && (
-          <TokenEditorDerivedGroups
-            tokenPath={tokenPath}
-            tokenName={tokenName}
-            tokenType={tokenType}
-            value={value}
-            existingGeneratorsForToken={existingGeneratorsForToken}
-            openGeneratedGroupEditor={openGeneratedGroupEditor}
-          />
-        )}
-
-        {activeProducingGenerator && !isCreateMode && (
-          <div className="rounded-md border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-3 py-2">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-secondary font-medium text-[var(--color-figma-text)]">
-                  Generated
-                </p>
-                <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-                  Managed by{" "}
-                  <span className="font-medium text-[var(--color-figma-text)]">
-                    {activeProducingGenerator.name}
-                  </span>
-                  {isInspectMode
-                    ? ". Edit the generator to change the source rules for this token."
-                    : ". Saving here will ask whether to edit the generator, keep a manual exception, or detach this token."}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onOpenGeneratedGroupEditor) {
-                        openGeneratedGroupEditor({
-                          mode: "edit",
-                          id: activeProducingGenerator.id,
-                        });
-                        return;
+                return (
+                  <TokenDetailsModeRow
+                    key={mode.name}
+                    modeName={mode.name}
+                    tokenType={tokenType}
+                    value={modeVal}
+                    editable={isEditMode}
+                    onChange={isEditMode ? mode.setValue : undefined}
+                    allTokensFlat={allTokensFlat}
+                    pathToCollectionId={pathToCollectionId}
+                    showModeLabel={showModeLabel}
+                    autoFocus={modeIdx === 0 && !isCreateMode && isEditMode}
+                    baseValue={baseVal}
+                    availableFonts={availableFonts}
+                    fontWeightsByFamily={fontWeightsByFamily}
+                    fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
+                    fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
+                    modified={isModeModified && !isCreateMode}
+                    onNavigateToToken={(path) => onNavigateToToken?.(path, tokenPath)}
+                    allowCopyFromPrevious={isEditMode && modeValue.modes.length > 1}
+                    onCopyFromPrevious={
+                      isEditMode && modeValue.modes.length > 1
+                        ? () => {
+                            const sourceIdx =
+                              modeIdx === 0
+                                ? modeValue.modes.length - 1
+                                : modeIdx - 1;
+                            const sourceValue = modeValue.modes[sourceIdx].value;
+                            if (sourceValue !== "" && sourceValue != null) {
+                              mode.setValue(
+                                typeof sourceValue === "object"
+                                  ? JSON.parse(JSON.stringify(sourceValue))
+                                  : sourceValue,
+                              );
+                            }
+                          }
+                        : undefined
+                    }
+                    allowCopyToAll={
+                      isEditMode &&
+                      modeValue.modes.length > 1 &&
+                      modeVal !== "" &&
+                      modeVal != null
+                    }
+                    onCopyToAll={
+                      isEditMode &&
+                      modeValue.modes.length > 1 &&
+                      modeVal !== "" &&
+                      modeVal != null
+                        ? () => {
+                            const sourceValue = mode.value;
+                            if (sourceValue === "" || sourceValue == null) return;
+                            modeValue.modes.forEach((destMode, destIdx) => {
+                              if (destIdx === modeIdx) return;
+                              destMode.setValue(
+                                typeof sourceValue === "object"
+                                  ? JSON.parse(JSON.stringify(sourceValue))
+                                  : sourceValue,
+                              );
+                            });
+                          }
+                        : undefined
+                    }
+                  />
+                );
+              })}
+              {isEditMode && addingEditorMode ? (
+                <div className="tm-token-details__mode-add-input">
+                  <input
+                    type="text"
+                    value={editorNewModeName}
+                    onChange={(e) => setEditorNewModeName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void handleAddEditorMode();
+                      if (e.key === "Escape") {
+                        setAddingEditorMode(false);
+                        setEditorNewModeName("");
                       }
-                      onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
                     }}
-                    className="text-secondary font-medium text-[var(--color-figma-accent)] hover:underline"
-                  >
-                    Edit generator
-                  </button>
-                )}
-                {isEditMode && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleDetachGeneratorOwnership();
+                    onBlur={() => {
+                      if (!editorNewModeName.trim()) {
+                        setAddingEditorMode(false);
+                        setEditorNewModeName("");
+                      }
                     }}
-                    disabled={detachingGeneratorOwnership}
-                    className="text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
-                  >
-                    {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!isCreateMode && dependents.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between gap-2">
-              <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-                Dependent tokens
-              </label>
-              {isInspectMode && onOpenInHealth && (
+                    autoFocus
+                    disabled={editorAddModeSaving}
+                    placeholder="Mode name"
+                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none"
+                  />
+                </div>
+              ) : isEditMode ? (
                 <button
                   type="button"
-                  onClick={onOpenInHealth}
-                  className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+                  onClick={() => setAddingEditorMode(true)}
+                  className="tm-token-details__mode-add"
                 >
-                  Open in health
+                  <Plus size={12} strokeWidth={1.5} aria-hidden />
+                  Add mode
                 </button>
-              )}
+              ) : null}
             </div>
-            <div className="flex max-h-28 flex-col gap-0.5 overflow-y-auto rounded-md border border-[var(--color-figma-border)]/65 px-2 py-2">
-              {dependents.slice(0, 20).map((dep) =>
-                onNavigateToToken ? (
-                  <button
-                    key={dep.path}
-                    type="button"
-                    onClick={() => onNavigateToToken(dep.path, tokenPath)}
-                    className="flex items-center gap-1 rounded px-1 py-0.5 text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                    title={`Open ${dep.path}`}
-                  >
-                    <Network size={10} strokeWidth={1.5} className="shrink-0 opacity-60" aria-hidden />
-                    <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                    {dep.collectionId !== ownerCollectionId && (
-                      <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[8px] text-[var(--color-figma-text-tertiary)] ring-1 ring-[var(--color-figma-border)]">
-                        {dep.collectionId}
-                      </span>
-                    )}
-                  </button>
-                ) : (
-                  <span key={dep.path} className="font-mono text-secondary text-[var(--color-figma-text)]">
-                    {dep.path}
-                  </span>
-                ),
-              )}
-              {dependents.length > 20 && (
-                <span className="px-1 py-0.5 text-secondary text-[var(--color-figma-text-tertiary)] italic">
-                  and {dependents.length - 20} more…
-                </span>
-              )}
-            </div>
-          </div>
-        )}
 
-        <div className="flex flex-col gap-1">
-          <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-            Description
-          </label>
+            {isEditMode &&
+              tokenType === "color" &&
+              (valueIsAlias || (typeof value === "string" && value.length > 0)) && (
+                <ColorModifiersEditor
+                  reference={valueIsAlias ? (value as string) : undefined}
+                  colorFlatMap={valueIsAlias ? colorFlatMap : undefined}
+                  directColor={
+                    !valueIsAlias && typeof value === "string" ? value : undefined
+                  }
+                  colorModifiers={colorModifiers}
+                  onColorModifiersChange={setColorModifiers}
+                />
+              )}
+
+            {isInspectMode && colorModifiers.length > 0 ? (
+              <div className="tm-token-details__field">
+                <span className="tm-token-details__field-label">Color modifiers</span>
+                <pre className="tm-token-details__code-block">
+                  {JSON.stringify(colorModifiers, null, 2)}
+                </pre>
+              </div>
+            ) : null}
+          </div>
+        </TokenDetailsSection>
+
+        <TokenDetailsSection title="Description">
           {isInspectMode ? (
-            <p className="min-h-[48px] whitespace-pre-wrap rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)]">
-              {description || "No description"}
+            <p className="tm-token-details__read-text">
+              {description || <span className="tm-token-details__empty-text">No description</span>}
             </p>
           ) : (
             <textarea
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
               rows={2}
-              className="min-h-[48px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
+              className="min-h-[56px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
             />
           )}
-        </div>
+        </TokenDetailsSection>
 
-        {FIGMA_SCOPE_OPTIONS[tokenType] && (
-          <div className="flex flex-col gap-1">
-            <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-              Can apply to
-            </label>
-            <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              Pick the Figma fields this token is valid for. Leave empty to allow any compatible field.
-            </p>
-            {isInspectMode ? (
-              <div className="rounded-md border border-[var(--color-figma-border)]/65 px-2 py-2 text-body text-[var(--color-figma-text)]">
-                {scopeLabels.length > 0 ? scopeLabels.join(", ") : "Any compatible field"}
-              </div>
-            ) : (
-              <ScopeEditor
-                tokenTypes={[tokenType]}
-                selectedScopes={scopes}
-                onChange={setScopes}
-                compact
-              />
-            )}
-          </div>
-        )}
-
-        {isInspectMode ? (
-          <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
-            <span
-              className={`shrink-0 w-1.5 h-1.5 rounded-full ${
-                lifecycle === "draft"
-                  ? "bg-[var(--color-figma-warning)]"
-                  : lifecycle === "deprecated"
-                    ? "bg-[var(--color-figma-text-tertiary)]"
-                    : "bg-[var(--color-figma-accent)]"
-              }`}
-              aria-hidden
-            />
-            <span>{lifecycleLabel}</span>
-          </div>
-        ) : lifecycle !== "published" ? (
-          <div className="flex items-center gap-2">
-            <span
-              className={`shrink-0 w-1.5 h-1.5 rounded-full ${
-                lifecycle === "draft"
-                  ? "bg-[var(--color-figma-warning)]"
-                  : "bg-[var(--color-figma-text-tertiary)]"
-              }`}
-              aria-hidden
-            />
-            <select
-              value={lifecycle}
-              onChange={(e) => setLifecycle(e.target.value as typeof lifecycle)}
-              className="text-secondary text-[var(--color-figma-text-secondary)] bg-transparent border-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] rounded px-1 py-0.5 cursor-pointer"
-              aria-label="Lifecycle"
-            >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="deprecated">Deprecated</option>
-            </select>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setLifecycle("draft")}
-            className="self-start text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
-            title="Change lifecycle status"
-          >
-            Mark as draft or deprecated
-          </button>
-        )}
-
-        <Collapsible
-          open={detailsOpen}
-          onToggle={toggleDetails}
-          label="Advanced"
+        <TokenDetailsSection
+          title="Usage"
+          description="Define where this token applies and how it should be treated in the system."
         >
-          <div className="mt-2 flex flex-col gap-3 pl-3">
-            <Collapsible
-              open={devMetadataOpen}
-              onToggle={() => setDevMetadataOpen((v) => !v)}
-              label="Developer metadata"
-            >
-              <div className="mt-2 pl-3">
+          <div className="tm-token-details__usage-grid">
+            {FIGMA_SCOPE_OPTIONS[tokenType] ? (
+              <div className="tm-token-details__field">
+                <span className="tm-token-details__field-label">Can apply to</span>
+                <p className="tm-token-details__field-help">
+                  Pick the Figma fields this token is valid for. Leave empty to allow
+                  any compatible field.
+                </p>
                 {isInspectMode ? (
-                  <pre className="max-h-40 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
-                    {readOnlyExtensionsText}
-                  </pre>
+                  <div className="tm-token-details__field-value">
+                    {scopeLabels.length > 0 ? scopeLabels.join(", ") : "Any compatible field"}
+                  </div>
                 ) : (
-                  <MetadataEditor
-                    extensionsJsonText={extensionsJsonText}
-                    onExtensionsJsonTextChange={setExtensionsJsonText}
-                    extensionsJsonError={extensionsJsonError}
-                    onExtensionsJsonErrorChange={setExtensionsJsonError}
+                  <ScopeEditor
+                    tokenTypes={[tokenType]}
+                    selectedScopes={scopes}
+                    onChange={setScopes}
+                    compact
                   />
                 )}
               </div>
-            </Collapsible>
+            ) : null}
 
-            {extendsSection}
-
-            <Collapsible
-              open={rawJsonOpen}
-              onToggle={() => setRawJsonOpen((v) => !v)}
-              label="Raw JSON"
-            >
-              <div className="mt-2 pl-3">
-                <pre className="max-h-56 overflow-auto rounded-md border border-[var(--color-figma-border)]/70 bg-[var(--color-figma-bg-secondary)]/25 px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
-                  {rawJsonPreview}
-                </pre>
-                {extensionsJsonError && (
-                  <p className="mt-1 text-secondary text-[var(--color-figma-error)]">
-                    Extensions JSON is invalid. The preview excludes that invalid block until it parses.
-                  </p>
-                )}
-              </div>
-            </Collapsible>
+            <div className="tm-token-details__field">
+              <span className="tm-token-details__field-label">Lifecycle</span>
+              {isInspectMode ? (
+                <div className="tm-token-details__lifecycle-row">
+                  <span className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`} aria-hidden />
+                  <span className="tm-token-details__field-value">{lifecycleLabel}</span>
+                </div>
+              ) : (
+                <div className="tm-token-details__lifecycle-row">
+                  <span className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`} aria-hidden />
+                  <select
+                    value={lifecycle}
+                    onChange={(e) => setLifecycle(e.target.value as typeof lifecycle)}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                    aria-label="Lifecycle"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="deprecated">Deprecated</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-        </Collapsible>
+        </TokenDetailsSection>
+
+        {!isCreateMode ? (
+          <TokenDetailsSection title="Related">
+            <div className="tm-token-details__support-stack">
+              {tokenType === "color" ? (
+                <ContrastChecker
+                  tokenPath={tokenPath}
+                  value={value}
+                  allTokensFlat={allTokensFlat}
+                  pathToCollectionId={pathToCollectionId}
+                  colorFlatMap={colorFlatMap}
+                />
+              ) : null}
+
+              {canBeGeneratorSource && !valueIsAlias ? (
+                <TokenEditorDerivedGroups
+                  tokenPath={tokenPath}
+                  tokenName={tokenName}
+                  tokenType={tokenType}
+                  value={value}
+                  existingGeneratorsForToken={existingGeneratorsForToken}
+                  openGeneratedGroupEditor={openGeneratedGroupEditor}
+                />
+              ) : null}
+
+              {activeProducingGenerator ? (
+                <div className="tm-token-details__generated-card">
+                  <div className="tm-token-details__subsection-copy">
+                    <h4 className="tm-token-details__subsection-title">Generated</h4>
+                    <p className="tm-token-details__subsection-description">
+                      Managed by{" "}
+                      <span className="font-medium text-[var(--color-figma-text)]">
+                        {activeProducingGenerator.name}
+                      </span>
+                      {isInspectMode
+                        ? ". Edit the generator to change the source rules for this token."
+                        : ". Saving here will ask whether to edit the generator, keep a manual exception, or detach this token."}
+                    </p>
+                  </div>
+                  <div className="tm-token-details__generated-actions">
+                    {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) ? (
+                      <button
+                        type="button"
+                        onClick={openGeneratedSource}
+                        className="tm-token-details__text-button"
+                      >
+                        Edit generator
+                      </button>
+                    ) : null}
+                    {isEditMode ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleDetachGeneratorOwnership();
+                        }}
+                        disabled={detachingGeneratorOwnership}
+                        className="tm-token-details__text-button tm-token-details__text-button--muted"
+                      >
+                        {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {dependents.length > 0 ? (
+                <div className="tm-token-details__field">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="tm-token-details__field-label">Dependent tokens</span>
+                    {isInspectMode && onOpenInHealth ? (
+                      <button
+                        type="button"
+                        onClick={onOpenInHealth}
+                        className="tm-token-details__text-button"
+                      >
+                        Open in health
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="tm-token-details__list-box">
+                    {dependents.slice(0, 20).map((dep) =>
+                      onNavigateToToken ? (
+                        <button
+                          key={dep.path}
+                          type="button"
+                          onClick={() => onNavigateToToken(dep.path, tokenPath)}
+                          className="tm-token-details__list-row"
+                          title={`Open ${dep.path}`}
+                        >
+                          <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
+                          {dep.collectionId !== ownerCollectionId ? (
+                            <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
+                          ) : null}
+                        </button>
+                      ) : (
+                        <div key={dep.path} className="tm-token-details__list-row">
+                          <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
+                          {dep.collectionId !== ownerCollectionId ? (
+                            <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
+                          ) : null}
+                        </div>
+                      ),
+                    )}
+                    {dependents.length > 20 ? (
+                      <div className="tm-token-details__list-note">
+                        and {dependents.length - 20} more…
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </TokenDetailsSection>
+        ) : null}
+
+        <TokenDetailsAdvancedSection
+          open={detailsOpen}
+          onToggle={toggleDetails}
+          extendsSection={extendsSection}
+          isInspectMode={isInspectMode}
+          readOnlyExtensionsText={readOnlyExtensionsText}
+          extensionsJsonText={extensionsJsonText}
+          onExtensionsJsonTextChange={setExtensionsJsonText}
+          extensionsJsonError={extensionsJsonError}
+          onExtensionsJsonErrorChange={setExtensionsJsonError}
+          rawJsonPreview={rawJsonPreview}
+        />
       </EditorShell>
 
       {/* Delete confirmation */}

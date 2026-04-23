@@ -1,39 +1,65 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET } from '@tokenmanager/core';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenGenerator } from './useGenerators';
-import { STORAGE_KEY_BUILDERS, STORAGE_KEYS, lsGet, lsSet, lsGetJson, lsSetJson, ssGet, ssSet } from '../shared/storage';
+import { STORAGE_KEY_BUILDERS, lsGet, lsSet, ssGet, ssSet } from '../shared/storage';
 import { ALL_TOKEN_TYPES } from '../shared/tokenTypeCategories';
-
-export interface FilterPreset {
-  id: string;
-  name: string;
-  query: string;
-}
 import {
   flattenLeafNodes, filterTokenNodes, filterByDuplicatePaths,
   collectAllGroupPaths, flattenLeafNodesWithAncestors,
   findGroupByPath, parseStructuredQuery, QUERY_QUALIFIERS,
   getActiveQueryToken, getQualifierDefinitionForToken, getQueryQualifierValues,
-  normalizeHasQualifier, removeQueryQualifierValues, setQueryQualifierValues,
-  replaceQueryToken,
+  normalizeHasQualifier, setQueryQualifierValues, findUnsupportedStructuredTokens,
 } from '../components/tokenListUtils';
-import { stableStringify } from '../shared/utils';
+import { isAbortError, stableStringify } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
-import { isAbortError } from '../shared/utils';
+
+function buildCrossCollectionHasValues(
+  parsedHasValues: string[],
+  refFilter: 'all' | 'aliases' | 'direct',
+  showDuplicates: boolean,
+): string[] | undefined {
+  const merged = new Set(parsedHasValues);
+  if (refFilter === 'aliases') {
+    merged.add('alias');
+  } else if (refFilter === 'direct') {
+    merged.add('direct');
+  }
+  if (showDuplicates) {
+    merged.add('duplicate');
+  }
+  return merged.size > 0 ? [...merged] : undefined;
+}
+
+function buildCrossCollectionTypes(
+  parsedTypes: string[],
+  typeFilter: string,
+): string[] | null | undefined {
+  if (!typeFilter) {
+    return parsedTypes.length > 0 ? parsedTypes : undefined;
+  }
+  const normalizedTypeFilter = typeFilter.toLowerCase();
+  if (parsedTypes.length === 0) {
+    return [normalizedTypeFilter];
+  }
+  const matchesTypeFilter = parsedTypes.some(
+    (typeValue) =>
+      normalizedTypeFilter === typeValue ||
+      normalizedTypeFilter.includes(typeValue),
+  );
+  return matchesTypeFilter ? [normalizedTypeFilter] : null;
+}
 
 export interface UseTokenSearchParams {
   collectionId: string;
   tokens: TokenNode[];
-  collectionIds: string[];
   serverUrl: string;
-  onOpenCommandPaletteWithQuery?: (q: string) => void;
   virtualScrollTopRef: React.MutableRefObject<number>;
   flatItemsRef: React.MutableRefObject<Array<{ node: { path: string } }>>;
   itemOffsetsRef: React.MutableRefObject<number[]>;
   scrollAnchorPathRef: React.MutableRefObject<string | null>;
   isFilterChangeRef: React.MutableRefObject<boolean>;
-  expandedPaths: Set<string>;
   starredPaths: Set<string>;
   sortedTokens: TokenNode[];
   recentlyTouchedPaths: Set<string>;
@@ -52,15 +78,12 @@ export interface UseTokenSearchParams {
 export function useTokenSearch({
   collectionId,
   tokens,
-  collectionIds: _collectionIds,
   serverUrl,
-  onOpenCommandPaletteWithQuery: _onOpenCommandPaletteWithQuery,
   virtualScrollTopRef,
   flatItemsRef,
   itemOffsetsRef,
   scrollAnchorPathRef,
   isFilterChangeRef,
-  expandedPaths: _expandedPaths,
   starredPaths,
   sortedTokens,
   recentlyTouchedPaths,
@@ -76,7 +99,6 @@ export function useTokenSearch({
 }: UseTokenSearchParams) {
   const searchRef = useRef<HTMLInputElement>(null);
   const qualifierHintsRef = useRef<HTMLDivElement>(null);
-  const filterPanelRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQueryState] = useState(() => {
     return ssGet('token-search', '');
@@ -91,8 +113,7 @@ export function useTokenSearch({
     setTypeFilterState(lsGet(STORAGE_KEY_BUILDERS.tokenTypeFilter(collectionId), ''));
   }, [collectionId]);
 
-  // Declared before setSearchQuery to avoid TDZ — setSearchQuery references crossCollectionSearch
-  const [crossCollectionSearch, setCrossCollectionSearch] = useState(false);
+  const [crossCollectionSearch, setCrossCollectionSearchState] = useState(false);
 
   const saveScrollAnchor = useCallback(() => {
     const top = virtualScrollTopRef.current;
@@ -126,47 +147,18 @@ export function useTokenSearch({
     return ssGet('token-duplicates') === '1';
   });
   const setShowDuplicates = useCallback((v: boolean) => {
+    saveScrollAnchor();
     setShowDuplicatesState(v);
     ssSet('token-duplicates', v ? '1' : '0');
-  }, []);
+  }, [saveScrollAnchor]);
 
-  // Filter presets — persisted globally in localStorage
-  const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() =>
-    lsGetJson<FilterPreset[]>(STORAGE_KEYS.FILTER_PRESETS, [])
-  );
-  const [showPresetDropdown, setShowPresetDropdown] = useState(false);
-  const [presetNameInput, setPresetNameInput] = useState('');
-  const presetDropdownRef = useRef<HTMLDivElement>(null);
-
-  const saveFilterPreset = useCallback((name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed || !searchQuery.trim()) return;
-    const preset: FilterPreset = { id: Date.now().toString(), name: trimmed, query: searchQuery.trim() };
-    setFilterPresets(prev => {
-      const next = [...prev, preset];
-      lsSetJson(STORAGE_KEYS.FILTER_PRESETS, next);
-      return next;
-    });
-    setPresetNameInput('');
-  }, [searchQuery]);
-
-  const deleteFilterPreset = useCallback((id: string) => {
-    setFilterPresets(prev => {
-      const next = prev.filter(p => p.id !== id);
-      lsSetJson(STORAGE_KEYS.FILTER_PRESETS, next);
-      return next;
-    });
-  }, []);
-
-  const applyFilterPreset = useCallback((preset: FilterPreset) => {
-    setSearchQuery(preset.query);
-    setShowPresetDropdown(false);
-  }, [setSearchQuery]);
+  const setCrossCollectionSearch = useCallback((v: boolean) => {
+    saveScrollAnchor();
+    setCrossCollectionSearchState(v);
+  }, [saveScrollAnchor]);
 
   const [showQualifierHints, setShowQualifierHints] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
 
   // Debounced tokens reference for the expensive duplicate-value computation.
   const [debouncedTokens, setDebouncedTokens] = useState(tokens);
@@ -178,62 +170,215 @@ export function useTokenSearch({
   // Cross-collection search: debounced server-side search across all collections
   const [crossCollectionResults, setCrossCollectionResults] = useState<Array<{ collectionId: string; path: string; entry: TokenMapEntry }> | null>(null);
   const [crossCollectionTotal, setCrossCollectionTotal] = useState<number>(0);
+  const [crossCollectionLoading, setCrossCollectionLoading] = useState(false);
+  const [crossCollectionError, setCrossCollectionError] = useState<string | null>(null);
   const [crossCollectionOffset, setCrossCollectionOffset] = useState<number>(0);
+  const [crossCollectionRequestKey, setCrossCollectionRequestKey] = useState(0);
+  const lastCrossCollectionCriteriaKeyRef = useRef<string | null>(null);
   const crossCollectionAbortRef = useRef<AbortController | null>(null);
   const CROSS_COLLECTION_PAGE_SIZE = 200;
 
-  // Reset offset when query changes
-  useEffect(() => {
+  const abortCrossCollectionSearch = useCallback(() => {
+    crossCollectionAbortRef.current?.abort();
+    crossCollectionAbortRef.current = null;
+  }, []);
+
+  const resetCrossCollectionState = useCallback((
+    results: Array<{ collectionId: string; path: string; entry: TokenMapEntry }> | null,
+    error: string | null,
+  ) => {
     setCrossCollectionOffset(0);
-  }, [crossCollectionSearch, searchQuery]);
+    setCrossCollectionResults(results);
+    setCrossCollectionTotal(0);
+    setCrossCollectionLoading(false);
+    setCrossCollectionError(error);
+  }, []);
+
+  const retryCrossCollectionSearch = useCallback(() => {
+    if (
+      !crossCollectionSearch ||
+      (searchQuery.trim() === "" &&
+        typeFilter === "" &&
+        refFilter === "all" &&
+        !showDuplicates)
+    ) {
+      return;
+    }
+    setCrossCollectionRequestKey((key) => key + 1);
+  }, [crossCollectionSearch, refFilter, searchQuery, showDuplicates, typeFilter]);
+
+  const crossCollectionCriteriaKey = useMemo(
+    () =>
+      JSON.stringify({
+        query: searchQuery.trim(),
+        typeFilter,
+        refFilter,
+        showDuplicates,
+      }),
+    [refFilter, searchQuery, showDuplicates, typeFilter],
+  );
+
+  const hasCrossCollectionCriteria = useMemo(
+    () =>
+      searchQuery.trim() !== "" ||
+      typeFilter !== "" ||
+      refFilter !== "all" ||
+      showDuplicates,
+    [refFilter, searchQuery, showDuplicates, typeFilter],
+  );
 
   useEffect(() => {
-    if (!crossCollectionSearch || !searchQuery.trim()) {
-      // When cross-collection mode is active but no query, return null so the normal tree renders
-      // (rather than [] which would show "No tokens found across all collections")
-      setCrossCollectionResults(null);
-      setCrossCollectionTotal(0);
+    if (!crossCollectionSearch || !hasCrossCollectionCriteria) {
+      lastCrossCollectionCriteriaKeyRef.current = null;
+      abortCrossCollectionSearch();
+      // When cross-collection mode is active but no usable criteria, keep showing the
+      // normal tree instead of an empty cross-collection result state.
+      resetCrossCollectionState(null, null);
+      return;
+    }
+    const unsupportedTokens = findUnsupportedStructuredTokens(searchQuery);
+    if (unsupportedTokens.length > 0) {
+      lastCrossCollectionCriteriaKeyRef.current = crossCollectionCriteriaKey;
+      abortCrossCollectionSearch();
+      resetCrossCollectionState(
+        [],
+        `Unsupported search filter${unsupportedTokens.length === 1 ? '' : 's'}: ${unsupportedTokens.join(', ')}.`,
+      );
       return;
     }
     const parsed = parseStructuredQuery(searchQuery);
+    const mergedHasValues = buildCrossCollectionHasValues(
+      parsed.has,
+      refFilter,
+      showDuplicates,
+    );
+    const unsupportedHasValues = Array.from(
+      new Set(
+        (mergedHasValues ?? [])
+          .map((value) => normalizeHasQualifier(value))
+          .filter(
+            (value): value is NonNullable<typeof value> =>
+              value !== null &&
+              !CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET.has(value),
+          ),
+      ),
+    );
+    if (unsupportedHasValues.length > 0) {
+      lastCrossCollectionCriteriaKeyRef.current = crossCollectionCriteriaKey;
+      abortCrossCollectionSearch();
+      resetCrossCollectionState(
+        [],
+        `Search across all collections does not support ${unsupportedHasValues
+          .map((value) => `has:${value}`)
+          .join(', ')} yet.`,
+      );
+      return;
+    }
+    const requestedTypes = buildCrossCollectionTypes(parsed.types, typeFilter);
+    if (requestedTypes === null) {
+      lastCrossCollectionCriteriaKeyRef.current = crossCollectionCriteriaKey;
+      abortCrossCollectionSearch();
+      resetCrossCollectionState([], null);
+      return;
+    }
+    const criteriaChanged =
+      lastCrossCollectionCriteriaKeyRef.current !== null &&
+      lastCrossCollectionCriteriaKeyRef.current !== crossCollectionCriteriaKey;
+    if (criteriaChanged && crossCollectionOffset > 0) {
+      lastCrossCollectionCriteriaKeyRef.current = crossCollectionCriteriaKey;
+      abortCrossCollectionSearch();
+      setCrossCollectionResults(null);
+      setCrossCollectionTotal(0);
+      setCrossCollectionLoading(false);
+      setCrossCollectionError(null);
+      setCrossCollectionOffset(0);
+      return;
+    }
+    lastCrossCollectionCriteriaKeyRef.current = crossCollectionCriteriaKey;
     const params = new URLSearchParams();
     if (parsed.text) params.set('q', parsed.text);
-    if (parsed.types.length) params.set('type', parsed.types.join(','));
-    if (parsed.has.length) params.set('has', parsed.has.join(','));
+    if (requestedTypes && requestedTypes.length > 0) {
+      params.set('type', requestedTypes.join(','));
+    }
+    if (mergedHasValues && mergedHasValues.length > 0) {
+      params.set('has', mergedHasValues.join(','));
+    }
     if (parsed.values.length) params.set('value', parsed.values.join(','));
     if (parsed.descs.length) params.set('desc', parsed.descs.join(','));
     if (parsed.paths.length) params.set('path', parsed.paths.join(','));
     if (parsed.names.length) params.set('name', parsed.names.join(','));
+    if (parsed.generators.length) params.set('generated', parsed.generators.join(','));
+    if (parsed.scopes.length) params.set('scope', parsed.scopes.join(','));
     params.set('limit', String(CROSS_COLLECTION_PAGE_SIZE));
     if (crossCollectionOffset > 0) params.set('offset', String(crossCollectionOffset));
 
-    crossCollectionAbortRef.current?.abort();
+    const isPaginating = crossCollectionOffset > 0;
+    abortCrossCollectionSearch();
     const ctrl = new AbortController();
     crossCollectionAbortRef.current = ctrl;
+    setCrossCollectionLoading(true);
+    setCrossCollectionError(null);
+    if (!isPaginating) {
+      setCrossCollectionResults(null);
+      setCrossCollectionTotal(0);
+    }
 
     const timer = setTimeout(() => {
       apiFetch<{ data: Array<{ collectionId: string; path: string; name: string; $type: string; $value: unknown; $description?: string }>; total: number }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
         .then(data => {
+          if (crossCollectionAbortRef.current !== ctrl) return;
           const mapped = data.data.map(r => ({
             collectionId: r.collectionId,
             path: r.path,
-            entry: { $value: r.$value as any, $type: r.$type, $name: r.name },
+            entry: {
+              $value: r.$value as TokenMapEntry["$value"],
+              $type: r.$type,
+              $name: r.name,
+            },
           }));
           setCrossCollectionTotal(data.total);
-          if (crossCollectionOffset > 0) {
+          if (isPaginating) {
             setCrossCollectionResults(prev => [...(prev ?? []), ...mapped]);
           } else {
             setCrossCollectionResults(mapped);
           }
+          setCrossCollectionError(null);
+          setCrossCollectionLoading(false);
         })
         .catch(err => {
           if (isAbortError(err)) return;
+          if (crossCollectionAbortRef.current !== ctrl) return;
           console.error('Cross-collection search failed:', err);
+          if (!isPaginating) {
+            setCrossCollectionResults([]);
+            setCrossCollectionTotal(0);
+          }
+          setCrossCollectionError(err instanceof Error ? err.message : 'Search failed.');
+          setCrossCollectionLoading(false);
         });
     }, 150);
 
-    return () => { clearTimeout(timer); ctrl.abort(); };
-  }, [crossCollectionOffset, crossCollectionSearch, searchQuery, serverUrl]);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+      if (crossCollectionAbortRef.current === ctrl) {
+        crossCollectionAbortRef.current = null;
+      }
+    };
+  }, [
+    abortCrossCollectionSearch,
+    crossCollectionCriteriaKey,
+    crossCollectionOffset,
+    crossCollectionRequestKey,
+    crossCollectionSearch,
+    hasCrossCollectionCriteria,
+    refFilter,
+    resetCrossCollectionState,
+    searchQuery,
+    serverUrl,
+    showDuplicates,
+    typeFilter,
+  ]);
 
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showStarredOnly;
 
@@ -291,10 +436,6 @@ export function useTokenSearch({
   }, [derivedTokenPaths]);
 
   const parsedSearchQuery = useMemo(() => parseStructuredQuery(searchQuery), [searchQuery]);
-  const selectedTypeQualifiers = useMemo(
-    () => Array.from(new Set(parsedSearchQuery.types)),
-    [parsedSearchQuery.types],
-  );
   const selectedHasQualifiers = useMemo(
     () => Array.from(new Set(parsedSearchQuery.has.map(value => normalizeHasQualifier(value)).filter((value): value is NonNullable<typeof value> => value !== null))),
     [parsedSearchQuery.has],
@@ -330,6 +471,10 @@ export function useTokenSearch({
     if (qualifierDef.key === 'has') {
       const matches = QUERY_QUALIFIERS
         .filter(def => def.key === 'has')
+        .filter(
+          (def) =>
+            !crossCollectionSearch || def.qualifier !== 'has:unused',
+        )
         .filter(def => def.qualifier.slice(4).startsWith(partialValue));
       return matches.map(def => ({
         id: def.qualifier,
@@ -361,7 +506,7 @@ export function useTokenSearch({
       desc: qualifierDef.valueHint ?? qualifierDef.desc,
       kind: 'hint' as const,
     }];
-  }, [activeQueryToken.token, generatorNames, qualifierTypeOptions]);
+  }, [activeQueryToken.token, crossCollectionSearch, generatorNames, qualifierTypeOptions]);
 
   // Compute highlight terms from the parsed search query for substring highlighting
   const searchHighlight = useMemo(() => {
@@ -378,17 +523,6 @@ export function useTokenSearch({
     return { nameTerms, valueTerms };
   }, [parsedSearchQuery, searchQuery]);
 
-  const toggleQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
-    value: string,
-  ) => {
-    const currentValues = getQueryQualifierValues(searchQuery, qualifier);
-    const nextValues = currentValues.includes(value.toLowerCase())
-      ? currentValues.filter(current => current !== value.toLowerCase())
-      : [...currentValues, value.toLowerCase()];
-    setSearchQuery(setQueryQualifierValues(searchQuery, qualifier, nextValues));
-  }, [searchQuery, setSearchQuery]);
-
   const addQueryQualifierValue = useCallback((
     qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
     value: string,
@@ -399,38 +533,6 @@ export function useTokenSearch({
     if (currentValues.includes(normalizedValue)) return;
     setSearchQuery(setQueryQualifierValues(searchQuery, qualifier, [...currentValues, normalizedValue]));
   }, [searchQuery, setSearchQuery]);
-
-  const removeQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
-    value: string,
-  ) => {
-    const normalizedValue = value.trim().toLowerCase();
-    const currentValues = getQueryQualifierValues(searchQuery, qualifier);
-    const nextValues = currentValues.filter(current => current !== normalizedValue);
-    setSearchQuery(setQueryQualifierValues(searchQuery, qualifier, nextValues));
-  }, [searchQuery, setSearchQuery]);
-
-  const clearQueryQualifier = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
-  ) => {
-    setSearchQuery(removeQueryQualifierValues(searchQuery, qualifier));
-  }, [searchQuery, setSearchQuery]);
-
-  const replaceActiveQueryWithQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
-    value: string,
-  ) => {
-    const normalizedValue = value.trim().toLowerCase();
-    if (!normalizedValue) return;
-    const qualifierKey = qualifier === 'generator' ? 'generated' : qualifier;
-    setSearchQuery(
-      replaceQueryToken(
-        searchQuery,
-        activeQueryToken,
-        `${qualifierKey}:${normalizedValue}`,
-      ),
-    );
-  }, [activeQueryToken, searchQuery, setSearchQuery]);
 
   const removeQueryToken = useCallback((token: string) => {
     const next = searchQuery
@@ -500,68 +602,39 @@ export function useTokenSearch({
   return {
     // State
     searchQuery,
-    setSearchQueryState,
     typeFilter,
-    setTypeFilterState,
     refFilter,
-    setRefFilterState,
     showDuplicates,
-    setShowDuplicatesState,
     crossCollectionSearch,
     setCrossCollectionSearch,
-    filterPresets,
-    showPresetDropdown,
-    setShowPresetDropdown,
-    presetNameInput,
-    setPresetNameInput,
-    presetDropdownRef,
-    saveFilterPreset,
-    deleteFilterPreset,
-    applyFilterPreset,
     showQualifierHints,
     setShowQualifierHints,
     hintIndex,
     setHintIndex,
-    filterDrawerOpen,
-    setFilterDrawerOpen,
-    filterPanelOpen,
-    setFilterPanelOpen,
-    debouncedTokens,
+    crossCollectionLoading,
+    crossCollectionError,
     crossCollectionResults,
     crossCollectionTotal,
-    crossCollectionOffset,
     setCrossCollectionOffset,
     // Refs
     searchRef,
     qualifierHintsRef,
-    filterPanelRef,
-    crossCollectionAbortRef,
     CROSS_COLLECTION_PAGE_SIZE,
     // Callbacks
-    saveScrollAnchor,
     setSearchQuery,
     setTypeFilter,
     setRefFilter,
     setShowDuplicates,
-    toggleQueryQualifierValue,
     addQueryQualifierValue,
-    removeQueryQualifierValue,
-    clearQueryQualifier,
-    replaceActiveQueryWithQualifierValue,
     removeQueryToken,
+    retryCrossCollectionSearch,
     // Computed
     filtersActive,
     activeFilterCount,
-    duplicateValuePaths,
     duplicateCounts,
     availableTypes,
-    qualifierTypeOptions,
-    generatorNames,
     qualifierHints,
     activeQueryToken,
-    parsedSearchQuery,
-    selectedTypeQualifiers,
-    selectedHasQualifiers,
     structuredFilterChips,
     searchHighlight,
     searchTooltip,

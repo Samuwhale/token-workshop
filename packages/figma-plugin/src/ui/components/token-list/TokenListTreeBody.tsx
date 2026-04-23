@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layers, MousePointer2, X, ChevronUp } from "lucide-react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
@@ -8,6 +8,7 @@ import { tokenTypeBadgeClass } from "../../../shared/types";
 import { highlightMatch } from "../tokenListHelpers";
 import { nodeParentPath } from "../tokenListUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
+import { Spinner } from "../Spinner";
 import {
   FeedbackPlaceholder,
   type FeedbackPlaceholderAction,
@@ -65,11 +66,13 @@ interface TokenListTreeBodyProps {
   viewMode: "tree" | "json";
 
   // Cross-collection search
+  crossCollectionLoading: boolean;
+  crossCollectionError: string | null;
   crossCollectionResults: CrossSetResult[] | null;
   crossCollectionTotal: number;
   setCrossCollectionOffset: (v: number) => void;
+  retryCrossCollectionSearch: () => void;
   CROSS_COLLECTION_PAGE_SIZE: number;
-  collectionIds: string[];
 
   // Search
   searchQuery: string;
@@ -147,9 +150,6 @@ interface TokenListTreeBodyProps {
 
   // Filters
   clearFilters: () => void;
-
-  // Empty state
-  onOpenStartHere?: () => void;
 }
 
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
@@ -158,11 +158,13 @@ const MODE_PRESETS = ["Light", "Dark", "Compact"];
 export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     viewMode,
+    crossCollectionLoading,
+    crossCollectionError,
     crossCollectionResults,
     crossCollectionTotal,
     setCrossCollectionOffset,
+    retryCrossCollectionSearch,
     CROSS_COLLECTION_PAGE_SIZE,
-    collectionIds,
     searchQuery,
     searchHighlight,
     availableTypes,
@@ -271,6 +273,21 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const gridTemplate = getGridTemplate(modeColumnWidths);
   const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
   const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
+  const crossCollectionSections = useMemo(() => {
+    if (!crossCollectionResults) {
+      return [];
+    }
+    const sections = new Map<string, CrossSetResult[]>();
+    for (const result of crossCollectionResults) {
+      const existing = sections.get(result.collectionId);
+      if (existing) {
+        existing.push(result);
+        continue;
+      }
+      sections.set(result.collectionId, [result]);
+    }
+    return Array.from(sections.entries());
+  }, [crossCollectionResults]);
 
   useEffect(() => {
     if (!addModeMenuOpen) return;
@@ -413,121 +430,154 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   ) : null;
 
   // Cross-collection search results
+  if (crossCollectionLoading && crossCollectionResults === null) {
+    return (
+      <FeedbackPlaceholder
+        variant="empty"
+        size="section"
+        icon={<Spinner size="sm" />}
+        title="Searching all collections"
+        description="Matching tokens will appear here."
+      />
+    );
+  }
+
+  if (crossCollectionError && crossCollectionResults !== null && crossCollectionResults.length === 0) {
+    return (
+      <FeedbackPlaceholder
+        variant="error"
+        size="section"
+        title="Search across collections failed"
+        description={crossCollectionError}
+        primaryAction={{ label: "Retry", onClick: retryCrossCollectionSearch }}
+      />
+    );
+  }
+
   if (crossCollectionResults !== null) {
     if (crossCollectionResults.length === 0) {
       return (
-        <>
-          {tableHeader}
         <div className="py-3">
           <FeedbackPlaceholder
-              variant="no-results"
-              size="section"
-              title="No tokens found across all collections"
-              description="Try a broader search or switch to a specific collection."
-            />
-            {searchQuery &&
-              (() => {
-                const q = searchQuery.trim();
-                const qLower = q.toLowerCase();
-                const matchingType =
-                  availableTypes.find((t) => t.toLowerCase() === qLower) ||
-                  availableTypes.find((t) =>
-                    t.toLowerCase().startsWith(qLower),
-                  );
-                if (matchingType && typeFilter !== matchingType) {
-                  return (
-                    <div className="mt-2 text-center">
-                      <button
-                        onClick={() => {
-                          setSearchQuery("");
-                          setTypeFilter(matchingType);
-                        }}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
-                      >
-                        Filter by type: {matchingType}{" "}
-                        <span aria-hidden="true">&rarr;</span>
-                      </button>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-          </div>
-        </>
+            variant="no-results"
+            size="section"
+            title="No tokens found across all collections"
+            description="Try a broader search or switch to a specific collection."
+          />
+          {searchQuery &&
+            (() => {
+              const q = searchQuery.trim();
+              const qLower = q.toLowerCase();
+              const matchingType =
+                availableTypes.find((t) => t.toLowerCase() === qLower) ||
+                availableTypes.find((t) => t.toLowerCase().startsWith(qLower));
+              if (matchingType && typeFilter !== matchingType) {
+                return (
+                  <div className="mt-2 text-center">
+                    <button
+                      onClick={() => {
+                        setSearchQuery("");
+                        setTypeFilter(matchingType);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                    >
+                      Filter by type: {matchingType}{" "}
+                      <span aria-hidden="true">&rarr;</span>
+                    </button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+        </div>
       );
     }
 
     return (
-      <>
-        {tableHeader}
-        <div>
-          {collectionIds
-            .filter((sn) => crossCollectionResults.some((r) => r.collectionId === sn))
-            .map((sn) => {
-              const collectionResults = crossCollectionResults.filter(
-                (r) => r.collectionId === sn,
-              );
-              return (
-                <div key={sn}>
-                  <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
-                    {sn}{" "}
-                    <span className="font-normal opacity-60">
-                      ({collectionResults.length})
-                    </span>
-                  </div>
-                  {collectionResults.map((r) => (
-                    <button
-                      key={r.path}
-                      onClick={() => onNavigateToCollection?.(r.collectionId, r.path)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] border-b border-[var(--color-figma-border)]/50"
-                    >
-                      {r.entry.$type === "color" &&
-                        typeof r.entry.$value === "string" &&
-                        (r.entry.$value as string).startsWith("#") && (
-                          <span
-                            className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
-                            style={{ background: r.entry.$value as string }}
-                          />
-                        )}
-                      <span
-                        className="flex-1 min-w-0 font-mono text-secondary text-[var(--color-figma-text)] truncate"
-                        title={r.path}
-                      >
-                        {highlightMatch(
-                          r.path,
-                          searchHighlight?.nameTerms ?? [],
-                        )}
-                      </span>
-                      <span
-                        className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${tokenTypeBadgeClass(r.entry.$type)}`}
-                      >
-                        {r.entry.$type}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          {crossCollectionTotal > crossCollectionResults.length && (
-            <div className="px-3 py-2 flex items-center justify-between border-t border-[var(--color-figma-border)]">
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                {crossCollectionResults.length} of {crossCollectionTotal} shown
+      <div>
+        {crossCollectionSections.map(([collectionId, collectionResults]) => (
+          <div key={collectionId}>
+            <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
+              {collectionId}{" "}
+              <span className="font-normal opacity-60">
+                ({collectionResults.length})
               </span>
-              <button
-                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
-                onClick={() => setCrossCollectionOffset(crossCollectionResults.length)}
-              >
-                Load{" "}
-                {Math.min(
-                  CROSS_COLLECTION_PAGE_SIZE,
-                  crossCollectionTotal - crossCollectionResults.length,
-                )}{" "}
-                more
-              </button>
             </div>
-          )}
-        </div>
-      </>
+            {collectionResults.map((r) => (
+              <button
+                key={`${r.collectionId}:${r.path}`}
+                onClick={() => onNavigateToCollection?.(r.collectionId, r.path)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] border-b border-[var(--color-figma-border)]/50"
+              >
+                {r.entry.$type === "color" &&
+                  typeof r.entry.$value === "string" &&
+                  (r.entry.$value as string).startsWith("#") && (
+                    <span
+                      className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
+                      style={{ background: r.entry.$value as string }}
+                    />
+                  )}
+                <span
+                  className="flex-1 min-w-0 font-mono text-secondary text-[var(--color-figma-text)] truncate"
+                  title={r.path}
+                >
+                  {highlightMatch(
+                    r.path,
+                    searchHighlight?.nameTerms ?? [],
+                  )}
+                </span>
+                <span
+                  className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${tokenTypeBadgeClass(r.entry.$type)}`}
+                >
+                  {r.entry.$type}
+                </span>
+              </button>
+            ))}
+          </div>
+        ))}
+        {(crossCollectionError || crossCollectionTotal > crossCollectionResults.length) && (
+          <div className="px-3 py-2 flex items-center justify-between gap-3 border-t border-[var(--color-figma-border)]">
+            <div className="min-w-0 text-secondary text-[var(--color-figma-text-secondary)]">
+              {crossCollectionError ? (
+                <span className="text-[var(--color-figma-error)]">
+                  {crossCollectionError}
+                </span>
+              ) : (
+                `${crossCollectionResults.length} of ${crossCollectionTotal} shown`
+              )}
+            </div>
+            <button
+              className="shrink-0 text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+              disabled={crossCollectionLoading}
+              onClick={() => {
+                if (crossCollectionError) {
+                  retryCrossCollectionSearch();
+                  return;
+                }
+                setCrossCollectionOffset(crossCollectionResults.length);
+              }}
+            >
+              {crossCollectionLoading ? (
+                <span className="inline-flex items-center gap-1">
+                  <Spinner size="xs" />
+                  Loading more
+                </span>
+              ) : crossCollectionError ? (
+                "Retry"
+              ) : (
+                <>
+                  Load{" "}
+                  {Math.min(
+                    CROSS_COLLECTION_PAGE_SIZE,
+                    crossCollectionTotal - crossCollectionResults.length,
+                  )}{" "}
+                  more
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
     );
   }
 
