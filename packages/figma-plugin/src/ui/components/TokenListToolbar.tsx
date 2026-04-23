@@ -1,8 +1,6 @@
-import React, {
-  useCallback,
-  type RefObject,
-} from "react";
-import { ArrowLeft, Plus, MoreVertical, Search, X, AlertTriangle, Settings } from "lucide-react";
+import { useCallback, type RefObject } from "react";
+import { ArrowLeft, Plus, MoreVertical, Search, X, AlertTriangle } from "lucide-react";
+import type { TokenCollection } from "@tokenmanager/core";
 import {
   ViewMenu,
   FilterMenu,
@@ -13,6 +11,7 @@ import type { CollectionHealthSummary } from "../hooks/useHealthSignals";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import type { TokenGroupBy } from "./tokenListTypes";
+import { LibraryCollectionPicker } from "./LibraryCollectionPicker";
 
 interface QualifierHint {
   id: string;
@@ -26,7 +25,12 @@ export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
   collectionId: string;
-  collectionDisplayName?: string;
+  collections: TokenCollection[];
+  collectionDisplayNames?: Record<string, string>;
+  collectionTokenCounts?: Record<string, number>;
+  collectionHealth?: Map<string, CollectionHealthSummary>;
+  collectionPickerFocusRequestKey?: number;
+  onSelectCollection: (collectionId: string) => void;
   onOpenCollectionDetails?: () => void;
   zoomRootPath?: string | null;
   searchRef: RefObject<HTMLInputElement | null>;
@@ -58,7 +62,12 @@ export interface TokenListToolbarProps {
   onFindReplace?: () => void;
   onFoundationTemplates?: () => void;
   overflowMenuProps: TokenListOverflowMenuProps | null;
-  collectionHealthSummary?: CollectionHealthSummary;
+  issueSummary?: {
+    count: number;
+    errors: number;
+    warnings: number;
+    severity: "error" | "warning" | "info" | null;
+  };
   onOpenHealth?: () => void;
 }
 
@@ -66,7 +75,12 @@ export function TokenListToolbar({
   onNavigateBack,
   navHistoryLength,
   collectionId,
-  collectionDisplayName,
+  collections,
+  collectionDisplayNames,
+  collectionTokenCounts,
+  collectionHealth,
+  collectionPickerFocusRequestKey,
+  onSelectCollection,
   onOpenCollectionDetails,
   zoomRootPath,
   searchRef,
@@ -98,7 +112,7 @@ export function TokenListToolbar({
   onFindReplace,
   onFoundationTemplates,
   overflowMenuProps,
-  collectionHealthSummary,
+  issueSummary,
   onOpenHealth,
 }: TokenListToolbarProps) {
   const {
@@ -146,14 +160,22 @@ export function TokenListToolbar({
                   <ArrowLeft size={12} strokeWidth={1.5} aria-hidden />
                 </button>
               )}
-              {(() => {
-                const label = collectionDisplayName || collectionId;
-                return (
-                  <span className="truncate px-1.5 text-heading font-semibold text-[var(--color-figma-text)]">
-                    {label}
-                  </span>
-                );
-              })()}
+              <LibraryCollectionPicker
+                collections={collections}
+                currentCollectionId={collectionId}
+                collectionDisplayNames={collectionDisplayNames}
+                collectionTokenCounts={collectionTokenCounts}
+                collectionHealth={collectionHealth}
+                focusRequestKey={collectionPickerFocusRequestKey}
+                onSelectCollection={onSelectCollection}
+                onOpenCreateCollection={onOpenCreateCollection}
+                onManageCollection={
+                  onOpenCollectionDetails
+                    ? () => onOpenCollectionDetails()
+                    : undefined
+                }
+                triggerClassName="inline-flex min-w-0 max-w-full items-center gap-1 rounded px-1.5 py-1 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              />
               {zoomRootPath && (
                 <span
                   className="truncate text-secondary text-[var(--color-figma-text-tertiary)]"
@@ -162,35 +184,25 @@ export function TokenListToolbar({
                   / {zoomRootPath}
                 </span>
               )}
-              {onOpenCollectionDetails && (
-                <button
-                  type="button"
-                  onClick={onOpenCollectionDetails}
-                  className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                  title="Collection settings"
-                  aria-label="Collection settings"
-                >
-                  <Settings size={12} strokeWidth={1.5} aria-hidden />
-                </button>
-              )}
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {onOpenHealth && collectionHealthSummary && collectionHealthSummary.actionable > 0 && (
+            {onOpenHealth && issueSummary && issueSummary.count > 0 && (
               <button
                 type="button"
                 onClick={onOpenHealth}
-                className={`shrink-0 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-secondary transition-colors ${
-                  collectionHealthSummary.severity === "error"
+                className={`shrink-0 inline-flex items-center gap-1 rounded px-2 py-1 text-secondary transition-colors ${
+                  issueSummary.severity === "error"
                     ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
                     : "text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/10"
                 }`}
-                title={`${collectionHealthSummary.errors} error${collectionHealthSummary.errors !== 1 ? "s" : ""}, ${collectionHealthSummary.warnings} warning${collectionHealthSummary.warnings !== 1 ? "s" : ""}`}
-                aria-label="Open Health"
+                title={`${issueSummary.errors} error${issueSummary.errors !== 1 ? "s" : ""}, ${issueSummary.warnings} warning${issueSummary.warnings !== 1 ? "s" : ""}`}
+                aria-label="Open collection health"
               >
                 <AlertTriangle size={12} strokeWidth={1.5} aria-hidden />
-                <span>{collectionHealthSummary.actionable}</span>
+                <span>Health</span>
+                <span>{issueSummary.count}</span>
               </button>
             )}
             <div className="relative shrink-0">
@@ -239,19 +251,6 @@ export function TokenListToolbar({
                     >
                       Generate group…
                     </button>
-                  )}
-                  {onOpenCreateCollection && (
-                    <>
-                      <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
-                      <button
-                        role="menuitem"
-                        onClick={() => runCreateToolsAction(onOpenCreateCollection)}
-                        disabled={!connected}
-                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-40"
-                      >
-                        New collection
-                      </button>
-                    </>
                   )}
                   <div className="my-0.5 border-t border-[var(--color-figma-border)]" />
                   {onFoundationTemplates && (

@@ -75,6 +75,7 @@ export interface OperationEntry {
 export interface HistoryPanelProps {
   serverUrl: string;
   connected: boolean;
+  collectionIds?: string[];
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
   /** When set, filter history to only entries that touched this token path */

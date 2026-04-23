@@ -12,7 +12,7 @@ import { promoteTokensToSharedAlias } from "../hooks/useExtractToAlias";
 import { useHealthData } from "../hooks/useHealthData";
 import type { AliasOpportunityGroup } from "../hooks/useHealthData";
 import { parseSuppressKey } from "../shared/ruleLabels";
-import type { HealthView } from "./health/types";
+import type { HealthScopeMode, HealthView, HealthViewRequest } from "./health/types";
 import { HealthDashboard } from "./health/HealthDashboard";
 import { HealthIssuesView } from "./health/HealthIssuesView";
 import { HealthHiddenView } from "./health/HealthHiddenView";
@@ -43,7 +43,8 @@ export interface HealthPanelProps {
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
   onNavigateToGenerators?: () => void;
-  viewRequest?: { view: HealthView; nonce: number } | null;
+  onOpenCollectionScope?: (collectionId: string) => void;
+  viewRequest?: HealthViewRequest | null;
   issueActions: UseIssueActionsResult;
 }
 
@@ -68,17 +69,30 @@ export function HealthPanel({
   onPushUndo,
   onError,
   onNavigateToGenerators,
+  onOpenCollectionScope,
   viewRequest,
   issueActions,
 }: HealthPanelProps) {
   const { suppressedKeys, suppressingKey, fixingKeys, applyIssueFix, handleSuppress, handleUnsuppress } = issueActions;
-  const requestedView = viewRequest?.view;
+  const requestedScopeMode = viewRequest?.scopeMode ?? "rollup";
+  const requestedCollectionId = viewRequest?.collectionId ?? currentCollectionId;
+  const requestedTokenPath = viewRequest?.tokenPath ?? null;
+  const requestedView = viewRequest?.view ?? "dashboard";
   const viewRequestNonce = viewRequest?.nonce;
-  const [activeView, setActiveView] = useState<HealthView>(requestedView ?? "dashboard");
+  const [activeScopeMode, setActiveScopeMode] =
+    useState<HealthScopeMode>(requestedScopeMode);
+  const [activeCollectionId, setActiveCollectionId] = useState(requestedCollectionId);
+  const [activeIssueTokenPath, setActiveIssueTokenPath] = useState<string | null>(requestedTokenPath);
+  const [activeView, setActiveView] = useState<HealthView>(requestedView);
+
+  const scopedCollectionId = activeCollectionId || currentCollectionId;
 
   useEffect(() => {
-    if (requestedView) setActiveView(requestedView);
-  }, [requestedView, viewRequestNonce]);
+    setActiveScopeMode(requestedScopeMode);
+    setActiveCollectionId(requestedCollectionId);
+    setActiveIssueTokenPath(requestedTokenPath);
+    setActiveView(requestedView);
+  }, [requestedCollectionId, requestedScopeMode, requestedTokenPath, requestedView, viewRequestNonce]);
 
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
   const [deprecatedUsageReloadKey, setDeprecatedUsageReloadKey] = useState(0);
@@ -129,24 +143,24 @@ export function HealthPanel({
     tokenUsageCounts,
     tokenUsageReady,
     validationIssues: validationIssuesProp,
-    currentCollectionId,
+    currentCollectionId: scopedCollectionId,
   });
 
   const totalDuplicateAliases = lintDuplicateGroups.reduce((sum, g) => sum + g.tokens.length - 1, 0);
 
   const tokenLevelSignals = healthSignals.signals.filter(
     (s) =>
-      s.collectionId === currentCollectionId &&
+      s.collectionId === scopedCollectionId &&
       s.source !== "generator" &&
       s.rule !== "no-duplicate-values" &&
       s.rule !== "alias-opportunity",
   );
   const generatorSignals = healthSignals.signals.filter(
-    (s) => s.collectionId === currentCollectionId && s.source === "generator",
+    (s) => s.collectionId === scopedCollectionId && s.source === "generator",
   );
 
   const deprecatedUsageEntriesForCurrent = deprecatedUsageEntries.filter(
-    (e) => e.collectionId === currentCollectionId,
+    (e) => e.collectionId === scopedCollectionId,
   );
   const issueCount = tokenLevelSignals.length;
   const issueStatus = statusFromIssueSeverities(
@@ -163,7 +177,7 @@ export function HealthPanel({
 
   const suppressedKeysForCurrent = new Set<string>(
     [...suppressedKeys].filter((key) => {
-      return parseSuppressKey(key)?.collectionId === currentCollectionId;
+      return parseSuppressKey(key)?.collectionId === scopedCollectionId;
     }),
   );
 
@@ -189,10 +203,10 @@ export function HealthPanel({
   const overallStatus: HealthStatus =
     validationError
       ? "critical"
-      : healthSignals.currentCollection.severity === "error"
+      : healthSignals.byCollection.get(scopedCollectionId)?.severity === "error"
       ? "critical"
-      : healthSignals.currentCollection.severity === "warning" ||
-          healthSignals.currentCollection.severity === "info" ||
+      : healthSignals.byCollection.get(scopedCollectionId)?.severity === "warning" ||
+          healthSignals.byCollection.get(scopedCollectionId)?.severity === "info" ||
           validationIsStale ||
           duplicateCount > 0 ||
           deprecatedCount > 0 ||
@@ -261,7 +275,76 @@ export function HealthPanel({
     }
   };
 
-  const goBack = () => setActiveView("dashboard");
+  const openCollectionScope = (collectionId: string, nextView: HealthView = "dashboard") => {
+    setActiveCollectionId(collectionId);
+    setActiveScopeMode("collection");
+    setActiveIssueTokenPath(null);
+    setActiveView(nextView);
+    onOpenCollectionScope?.(collectionId);
+  };
+
+  const goBack = () => {
+    setActiveIssueTokenPath(null);
+    setActiveView("dashboard");
+  };
+
+  if (activeScopeMode === "rollup") {
+    const collectionSummaries = [...healthSignals.byCollection.entries()]
+      .sort((left, right) => {
+        const severityRank = { error: 0, warning: 1, info: 2, null: 3 } as const;
+        const leftRank = severityRank[left[1].severity ?? "null"];
+        const rightRank = severityRank[right[1].severity ?? "null"];
+        if (leftRank !== rightRank) {
+          return leftRank - rightRank;
+        }
+        if (left[1].actionable !== right[1].actionable) {
+          return right[1].actionable - left[1].actionable;
+        }
+        return left[0].localeCompare(right[0]);
+      });
+
+    return (
+      <div className="flex h-full flex-col overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "thin" }}>
+        <div className="mb-4">
+          <div className="text-body font-semibold text-[var(--color-figma-text)]">
+            All collections
+          </div>
+          <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+            {healthSignals.overall.issueCount} issue{healthSignals.overall.issueCount === 1 ? "" : "s"} across {Math.max(collectionSummaries.length, 1)} collection{collectionSummaries.length === 1 ? "" : "s"}
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+            Focused fixing stays in one collection. Choose a collection below to review actionable issues in context.
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          {collectionSummaries.map(([collectionId, summary]) => (
+            <button
+              key={collectionId}
+              type="button"
+              onClick={() => openCollectionScope(collectionId)}
+              className="flex items-center gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-body font-medium text-[var(--color-figma-text)]">
+                  {collectionId}
+                </div>
+                <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                  {summary.actionable} actionable · {summary.errors} errors · {summary.warnings} warnings
+                </div>
+              </div>
+              <div className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
+                Review
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   switch (activeView) {
     case "issues":
@@ -274,6 +357,8 @@ export function HealthPanel({
           onFix={applyIssueFix}
           onIgnore={handleSuppress}
           onNavigateToToken={onNavigateToToken}
+          initialTokenPath={activeIssueTokenPath}
+          requestNonce={viewRequestNonce}
           onBack={goBack}
         />
       );
@@ -359,6 +444,11 @@ export function HealthPanel({
           hiddenCount={suppressedKeysForCurrent.size}
           onNavigateToView={setActiveView}
           onNavigateToGenerators={onNavigateToGenerators}
+          scopeLabel={scopedCollectionId}
+          onBackToRollup={() => {
+            setActiveScopeMode("rollup");
+            setActiveView("dashboard");
+          }}
         />
       );
   }

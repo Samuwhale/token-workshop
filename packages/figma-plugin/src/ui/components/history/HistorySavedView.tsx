@@ -14,6 +14,7 @@ export interface HistorySavedViewProps {
   connected: boolean;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
+  collectionFilter?: string;
   filterTokenPath?: string;
 }
 
@@ -22,6 +23,7 @@ export function HistorySavedView({
   connected,
   onPushUndo,
   onRefreshTokens,
+  collectionFilter,
   filterTokenPath,
 }: HistorySavedViewProps) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
@@ -60,6 +62,7 @@ export function HistorySavedView({
         serverUrl={serverUrl}
         onPushUndo={onPushUndo}
         onRefreshTokens={onRefreshTokens}
+        collectionFilter={collectionFilter}
         filterTokenPath={filterTokenPath}
         initialComparingId={selectedSnapshotId}
         initialComparingLabel={selectedSnapshotLabel ?? undefined}

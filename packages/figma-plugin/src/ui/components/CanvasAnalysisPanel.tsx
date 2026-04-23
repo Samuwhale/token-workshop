@@ -101,6 +101,8 @@ export function CanvasAnalysisPanel({
   onSelectNode,
   initialTab = 'usage',
 }: CanvasAnalysisPanelProps) {
+  const { libraryBrowseCollectionId: currentCollectionId } =
+    useCollectionStateContext();
   const [activeTab, setActiveTab] = useState<CanvasTab>(
     () => (lsGet(STORAGE_KEYS.CANVAS_SCAN_TAB) as CanvasTab | null) ?? initialTab,
   );
@@ -122,7 +124,6 @@ export function CanvasAnalysisPanel({
   const { connected, serverUrl } = useConnectionContext();
   const {
     collections,
-    currentCollectionId,
     refreshCollections: refreshTokens,
   } = useCollectionStateContext();
   const sets = collections.map((collection) => collection.id);

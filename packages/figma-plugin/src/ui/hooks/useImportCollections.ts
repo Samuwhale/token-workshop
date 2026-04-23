@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiFetch } from '../shared/apiFetch';
-import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
 export interface UseImportCollectionsParams {
   serverUrl: string;
@@ -13,9 +12,7 @@ export function useImportCollections({
   connected,
   onClearConflictState,
 }: UseImportCollectionsParams) {
-  const [targetCollectionId, setTargetCollectionId] = useState(() =>
-    lsGet(STORAGE_KEYS.IMPORT_TARGET_COLLECTION, 'imported'),
-  );
+  const [targetCollectionId, setTargetCollectionId] = useState('imported');
   const [collectionIds, setCollectionIds] = useState<string[]>([]);
   const [collectionsError, setCollectionsError] = useState<string | null>(null);
   const [newCollectionInputVisible, setNewCollectionInputVisible] =
@@ -69,7 +66,6 @@ export function useImportCollections({
     }
     setNewCollectionError(null);
     setTargetCollectionId(name);
-    lsSet(STORAGE_KEYS.IMPORT_TARGET_COLLECTION, name);
     onClearConflictState();
     setNewCollectionInputVisible(false);
     setNewCollectionDraft('');
@@ -83,7 +79,6 @@ export function useImportCollections({
 
   const setTargetCollectionIdAndPersist = useCallback((name: string) => {
     setTargetCollectionId(name);
-    lsSet(STORAGE_KEYS.IMPORT_TARGET_COLLECTION, name);
   }, []);
 
   return {

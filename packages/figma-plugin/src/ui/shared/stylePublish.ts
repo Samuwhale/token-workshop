@@ -7,6 +7,11 @@ import type { TokenMapEntry } from "../../shared/types";
 
 const STYLE_TYPES = new Set(["color", "gradient", "typography", "shadow"]);
 
+export interface ScopedTokenTarget {
+  path: string;
+  collectionId: string;
+}
+
 export interface StylePublishModeValue {
   raw: unknown;
   resolved: unknown;
@@ -17,7 +22,7 @@ export interface StylePublishTokenPayload {
   $type: string;
   $value: unknown;
   resolvedValue?: unknown;
-  collectionId?: string;
+  collectionId: string;
   figmaCollection?: string;
   figmaMode?: string;
   primaryModeName?: string;
@@ -25,15 +30,15 @@ export interface StylePublishTokenPayload {
 }
 
 function buildGlobalRawFlatMap(
-  pathToCollectionId: Record<string, string>,
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
 ): Record<string, TokenMapEntry> {
   const globalFlat: Record<string, TokenMapEntry> = {};
 
-  for (const [path, collectionId] of Object.entries(pathToCollectionId)) {
-    const entry = perCollectionFlat[collectionId]?.[path];
-    if (entry) {
-      globalFlat[path] = entry;
+  for (const collectionFlat of Object.values(perCollectionFlat)) {
+    for (const [path, entry] of Object.entries(collectionFlat)) {
+      if (!(path in globalFlat)) {
+        globalFlat[path] = entry;
+      }
     }
   }
 
@@ -60,16 +65,14 @@ function buildCollectionModeRawFlatMap(
 }
 
 export function buildStylePublishTokens({
-  paths,
+  targets,
   collections,
-  pathToCollectionId,
   perCollectionFlat,
   collectionMap,
   modeMap,
 }: {
-  paths: string[];
+  targets: ScopedTokenTarget[];
   collections: TokenCollection[];
-  pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
@@ -77,9 +80,46 @@ export function buildStylePublishTokens({
   const collectionById = new Map(
     collections.map((collection) => [collection.id, collection] as const),
   );
-  const globalRawFlat = buildGlobalRawFlatMap(pathToCollectionId, perCollectionFlat);
-  const resolvedDefaultFlat = resolveAllAliases(globalRawFlat);
+  const globalRawFlat = buildGlobalRawFlatMap(perCollectionFlat);
+  const resolvedCollectionCache = new Map<string, Record<string, TokenMapEntry>>();
+  const rawModeCache = new Map<string, Record<string, TokenMapEntry>>();
   const resolvedModeCache = new Map<string, Record<string, TokenMapEntry>>();
+
+  const getResolvedCollectionFlat = (
+    collectionId: string,
+  ): Record<string, TokenMapEntry> => {
+    const cached = resolvedCollectionCache.get(collectionId);
+    if (cached) {
+      return cached;
+    }
+
+    const resolvedCollectionFlat = resolveAllAliases({
+      ...globalRawFlat,
+      ...(perCollectionFlat[collectionId] ?? {}),
+    });
+    resolvedCollectionCache.set(collectionId, resolvedCollectionFlat);
+    return resolvedCollectionFlat;
+  };
+
+  const getRawModeFlat = (
+    collection: TokenCollection,
+    modeName: string,
+  ): Record<string, TokenMapEntry> => {
+    const cacheKey = `${collection.id}\u0000${modeName}`;
+    const cached = rawModeCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const rawModeFlat = buildCollectionModeRawFlatMap(
+      collection,
+      perCollectionFlat[collection.id] ?? {},
+      globalRawFlat,
+      modeName,
+    );
+    rawModeCache.set(cacheKey, rawModeFlat);
+    return rawModeFlat;
+  };
 
   const getResolvedModeFlat = (
     collection: TokenCollection,
@@ -91,13 +131,7 @@ export function buildStylePublishTokens({
       return cached;
     }
 
-    const collectionFlat = perCollectionFlat[collection.id] ?? {};
-    const rawModeFlat = buildCollectionModeRawFlatMap(
-      collection,
-      collectionFlat,
-      globalRawFlat,
-      modeName,
-    );
+    const rawModeFlat = getRawModeFlat(collection, modeName);
     const resolvedModeFlat = resolveAllAliases(rawModeFlat);
     resolvedModeCache.set(cacheKey, resolvedModeFlat);
     return resolvedModeFlat;
@@ -105,14 +139,9 @@ export function buildStylePublishTokens({
 
   const tokens: StylePublishTokenPayload[] = [];
 
-  for (const path of paths) {
-    const collectionId = pathToCollectionId[path];
-    if (!collectionId) {
-      continue;
-    }
-
+  for (const { path, collectionId } of targets) {
     const rawEntry = perCollectionFlat[collectionId]?.[path];
-    const resolvedEntry = resolvedDefaultFlat[path];
+    const resolvedEntry = getResolvedCollectionFlat(collectionId)[path];
     if (!rawEntry || !resolvedEntry || !STYLE_TYPES.has(String(rawEntry.$type ?? ""))) {
       continue;
     }
@@ -124,13 +153,7 @@ export function buildStylePublishTokens({
         ? Object.fromEntries(
             collection.modes.map((mode) => {
               const resolvedModeFlat = getResolvedModeFlat(collection, mode.name);
-              const rawModeValue =
-                buildCollectionModeRawFlatMap(
-                  collection,
-                  perCollectionFlat[collection.id] ?? {},
-                  globalRawFlat,
-                  mode.name,
-                )[path]?.$value ?? rawEntry.$value;
+              const rawModeValue = getRawModeFlat(collection, mode.name)[path]?.$value ?? rawEntry.$value;
 
               return [
                 mode.name,

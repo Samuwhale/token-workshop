@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { NotificationEntry } from "../hooks/useToastStack";
 import type { NotificationDestination } from "../shared/toastBus";
+import { dispatchToast } from "../shared/toastBus";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
 import { useCollectionStateContext } from "../contexts/TokenDataContext";
@@ -143,10 +144,9 @@ export function NotificationsPanel({
   const [filter, setFilter] = useState<InboxFilter>("all");
   const { navigateTo, openSecondarySurface, beginHandoff, openNotifications } =
     useNavigationContext();
-  const { currentCollectionId, setCurrentCollectionId } =
+  const { setLibraryBrowseCollectionId } =
     useCollectionStateContext();
   const {
-    setHighlightedToken,
     setPendingHighlightForCollection,
     switchContextualSurface,
   } = useEditorContext();
@@ -199,19 +199,21 @@ export function NotificationsPanel({
       "Open the notification target, then return to Notifications.";
 
     if (destination.kind === "token") {
-      const targetCollectionId =
-        destination.collectionId ?? currentCollectionId;
+      const targetCollectionId = destination.collectionId;
+      if (!targetCollectionId) {
+        dispatchToast(
+          "This notification is missing its target collection, so it cannot be opened.",
+          "warning",
+        );
+        return;
+      }
       beginHandoff({ reason: handoffReason, ...handoffOpts });
       navigateTo("library", "tokens", { preserveHandoff: true });
-      if (targetCollectionId === currentCollectionId) {
-        setHighlightedToken(destination.tokenPath);
-      } else {
-        setPendingHighlightForCollection(
-          destination.tokenPath,
-          targetCollectionId,
-        );
-        setCurrentCollectionId(targetCollectionId);
-      }
+      setPendingHighlightForCollection(
+        destination.tokenPath,
+        targetCollectionId,
+      );
+      setLibraryBrowseCollectionId(targetCollectionId);
       return;
     }
     if (destination.kind === "surface") {

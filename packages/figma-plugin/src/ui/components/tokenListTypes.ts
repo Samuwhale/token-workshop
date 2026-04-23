@@ -88,6 +88,7 @@ export interface TokenListData {
   tokenUsageReady?: boolean;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
+  collectionTokenCounts?: Record<string, number>;
   modeMap?: Record<string, string>;
   /** Collections available for multi-mode column view */
   collections?: TokenCollection[];
@@ -120,6 +121,7 @@ export interface TokenListActions {
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
+  onSelectCollection?: (collectionId: string) => void;
   onTokenTouched?: (path: string) => void;
   onToggleStar?: (path: string) => void;
   /** Pre-filtered starred token paths for the current collection */
@@ -202,7 +204,8 @@ export interface TokenListProps {
   editingTokenPath?: string | null;
   /** Optional ref populated by TokenList so the parent can imperatively trigger compare actions */
   compareHandle?: React.MutableRefObject<TokenListImperativeHandle | null>;
-  collectionHealthSummary?: CollectionHealthSummary;
+  collectionHealth?: Map<string, CollectionHealthSummary>;
+  collectionPickerFocusRequestKey?: number;
   onOpenHealth?: () => void;
 }
 

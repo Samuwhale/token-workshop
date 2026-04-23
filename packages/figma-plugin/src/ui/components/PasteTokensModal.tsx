@@ -6,6 +6,7 @@ import { parseInput, validateTokenPath, type ParsedToken } from '../shared/token
 import { apiFetch } from '../shared/apiFetch';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenMapEntry } from '../../shared/types';
+import { cloneValue } from '../../shared/clone';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -59,12 +60,6 @@ interface RestorableTokenSnapshot {
     $type: string;
     $value: unknown;
   };
-}
-
-function cloneUndoValue<T>(value: T): T {
-  if (value === undefined || value === null) return value;
-  if (typeof structuredClone === 'function') return structuredClone(value);
-  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function buildPasteSuccessMessage({
@@ -240,7 +235,7 @@ export function PasteTokensModal({
           path: row.path,
           data: {
             $type: existingToken.$type,
-            $value: cloneUndoValue(existingToken.$value),
+            $value: cloneValue(existingToken.$value),
           },
         }];
       });
@@ -261,13 +256,13 @@ export function PasteTokensModal({
         const capturedTokenRows = tokens.map(token => ({
           path: token.path,
           $type: token.$type,
-          $value: cloneUndoValue(token.$value),
+          $value: cloneValue(token.$value),
         }));
         const capturedSnapshots = overwrittenSnapshots.map(snapshot => ({
           path: snapshot.path,
           data: {
             $type: snapshot.data.$type,
-            $value: cloneUndoValue(snapshot.data.$value),
+            $value: cloneValue(snapshot.data.$value),
           },
         }));
         const capturedCreatedPaths = [...createdPaths];

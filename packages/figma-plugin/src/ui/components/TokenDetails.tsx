@@ -88,7 +88,11 @@ interface TokenDetailsProps {
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
-  onNavigateToToken?: (path: string, fromPath?: string) => void;
+  onNavigateToToken?: (
+    path: string,
+    fromPath?: string,
+    collectionId?: string,
+  ) => void;
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
@@ -1779,7 +1783,9 @@ export function TokenDetails({
                       <button
                         key={dep.path}
                         type="button"
-                        onClick={() => onNavigateToToken(dep.path, tokenPath)}
+                        onClick={() =>
+                          onNavigateToToken(dep.path, tokenPath, dep.collectionId)
+                        }
                         className="tm-token-details__list-row"
                         title={`Open ${dep.path}`}
                       >

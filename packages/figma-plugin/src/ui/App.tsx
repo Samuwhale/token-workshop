@@ -154,8 +154,8 @@ export function App() {
   const { syncing, syncResult, syncError } = useSyncContext();
   const {
     collections,
-    currentCollectionId,
-    setCurrentCollectionId,
+    libraryBrowseCollectionId: currentCollectionId,
+    setLibraryBrowseCollectionId: setCurrentCollectionId,
     collectionDescriptions,
     refreshCollections: refreshTokens,
     syncCollectionSummariesToState,
@@ -172,6 +172,7 @@ export function App() {
   const {
     allTokensFlat,
     pathToCollectionId,
+    collectionIdsByPath,
     perCollectionFlat,
     modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
@@ -213,7 +214,7 @@ export function App() {
     openStartHere,
     closeStartHere,
   } = useOverlayManager();
-  const [collectionRailFocusRequestKey, setCollectionRailFocusRequestKey] = useState(0);
+  const [collectionPickerFocusRequestKey, setCollectionPickerFocusRequestKey] = useState(0);
   const recentlyTouched = useRecentlyTouched();
   const starredTokens = useStarredTokens();
   const [pendingPaletteAction, setPendingPaletteAction] = useState<{
@@ -317,11 +318,30 @@ export function App() {
     },
     [inspectingCollection, switchContextualSurface],
   );
-  const focusCollectionRail = useCallback(() => {
+  const openCollectionPicker = useCallback(() => {
     dismissEphemeralOverlays();
-    navigateTo("library", "tokens");
-    setCollectionRailFocusRequestKey((current) => current + 1);
-  }, [dismissEphemeralOverlays, navigateTo]);
+    if (inspectingCollection) {
+      switchContextualSurface({ surface: null });
+    }
+    if (
+      activeTopTab === "library" &&
+      (activeSubTab === "tokens" ||
+        activeSubTab === "overview" ||
+        activeSubTab === "health")
+    ) {
+      navigateTo("library", activeSubTab);
+    } else {
+      navigateTo("library", "tokens");
+    }
+    setCollectionPickerFocusRequestKey((current) => current + 1);
+  }, [
+    activeSubTab,
+    activeTopTab,
+    dismissEphemeralOverlays,
+    inspectingCollection,
+    navigateTo,
+    switchContextualSurface,
+  ]);
   useEffect(() => {
     if (!initialFirstRun || !startHereState.open) return;
     if (Object.keys(allTokensFlat).length === 0) return;
@@ -365,9 +385,15 @@ export function App() {
   } = useToastStack();
   // Wire the alias-not-found toast into EditorContext
   useEffect(() => {
-    setAliasNotFoundHandler((p) =>
-      setErrorToast(`Alias target not found: ${p}`),
-    );
+    setAliasNotFoundHandler((path, reason) => {
+      if (reason === "ambiguous") {
+        setErrorToast(
+          `Alias target is ambiguous across collections: ${path}`,
+        );
+        return;
+      }
+      setErrorToast(`Alias target not found: ${path}`);
+    });
   }, [setAliasNotFoundHandler, setErrorToast]);
   // Route all dispatchToast() calls from deeply-nested components/hooks into the in-plugin ToastStack
   useToastBusListener(
@@ -814,7 +840,6 @@ export function App() {
     serverUrl,
     connected,
     collections,
-    pathToCollectionId,
     perCollectionFlat,
     collectionMap,
     modeMap,
@@ -922,7 +947,7 @@ export function App() {
     onSplitComplete: handleInspectedCollectionSplit,
   });
 
-  // Create a collection by name — shared by the collection rail, toolbar, and onboarding.
+  // Create a collection by name — shared by dialogs, collection pickers, and onboarding.
   const createCollectionByName = useCallback(
     async (name: string) => {
       const result = await apiFetch<{
@@ -1086,7 +1111,7 @@ export function App() {
     }
     if (matchesShortcut(e, "QUICK_SWITCH_COLLECTION")) {
       e.preventDefault();
-      focusCollectionRail();
+      openCollectionPicker();
     }
     if (matchesShortcut(e, "GO_TO_RESOLVER")) {
       e.preventDefault();
@@ -1260,9 +1285,8 @@ export function App() {
 
   // Duplicate a token from the command palette (shared between contextual command and token search button)
   const handlePaletteDuplicate = useCallback(
-    async (path: string, collectionId?: string) => {
-      const targetCollectionId =
-        collectionId ?? pathToCollectionId[path] ?? currentCollectionId;
+    async (path: string, collectionId: string) => {
+      const targetCollectionId = collectionId;
       const entry =
         perCollectionFlat[targetCollectionId]?.[path] ?? allTokensFlat[path];
       if (!entry || !connected) return;
@@ -1301,6 +1325,7 @@ export function App() {
     },
     [
       allTokensFlat,
+      collectionIdsByPath,
       connected,
       currentCollectionId,
       perCollectionFlat,
@@ -1316,9 +1341,8 @@ export function App() {
 
   // Navigate to a token and trigger inline rename mode
   const handlePaletteRename = useCallback(
-    (path: string, collectionId?: string) => {
-      const targetCollectionId =
-        collectionId ?? pathToCollectionId[path] ?? currentCollectionId;
+    (path: string, collectionId: string) => {
+      const targetCollectionId = collectionId;
       navigateTo("library", "tokens");
       setTokenDetails(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
@@ -1335,6 +1359,7 @@ export function App() {
       }
     },
     [
+      collectionIdsByPath,
       pathToCollectionId,
       currentCollectionId,
       navigateTo,
@@ -1348,9 +1373,8 @@ export function App() {
 
   // Trigger the move-to-collection dialog for a token
   const handlePaletteMove = useCallback(
-    (path: string, collectionId?: string) => {
-      const targetCollectionId =
-        collectionId ?? pathToCollectionId[path] ?? currentCollectionId;
+    (path: string, collectionId: string) => {
+      const targetCollectionId = collectionId;
       navigateTo("library", "tokens");
       setTokenDetails(null);
       if (targetCollectionId && targetCollectionId !== currentCollectionId) {
@@ -1367,6 +1391,7 @@ export function App() {
       }
     },
     [
+      collectionIdsByPath,
       pathToCollectionId,
       currentCollectionId,
       navigateTo,
@@ -1381,14 +1406,16 @@ export function App() {
   // Trigger delete confirm for a single token from the token search row
   const handlePaletteDeleteToken = useCallback((
     path: string,
-    collectionId?: string,
+    collectionId: string,
   ) => {
     setPaletteDeleteConfirm({
       paths: [path],
       label: `Delete "${path}"?`,
-      collectionId: collectionId ?? pathToCollectionId[path] ?? currentCollectionId,
+      collectionId,
     });
-  }, [currentCollectionId, pathToCollectionId, setPaletteDeleteConfirm]);
+  }, [
+    setPaletteDeleteConfirm,
+  ]);
 
   const workspaceControllers = {
     shell: {
@@ -1419,8 +1446,8 @@ export function App() {
         navigateTo("canvas", "inspect");
         setTriggerExtractToken((n) => n + 1);
       },
-      focusCollectionRail,
-      collectionRailFocusRequestKey,
+      openCollectionPicker,
+      collectionPickerFocusRequestKey,
       openStartHere: (branch?: StartHereBranch) => openStartHere(branch),
       restartGuidedSetup: () => {
         closeSecondarySurface();

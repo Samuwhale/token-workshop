@@ -93,11 +93,13 @@ export function useCollectionState(
   getDisconnectSignal?: () => AbortSignal,
 ) {
   const [collections, setCollections] = useState<TokenCollection[]>([]);
-  const [currentCollectionId, setCurrentCollectionIdState] = useState<string>(() => lsGet(STORAGE_KEYS.CURRENT_COLLECTION_ID, ''));
-  const setCurrentCollectionId = useCallback((collectionId: string) => {
-    if (collectionId) lsSet(STORAGE_KEYS.CURRENT_COLLECTION_ID, collectionId);
-    else lsRemove(STORAGE_KEYS.CURRENT_COLLECTION_ID);
-    setCurrentCollectionIdState(collectionId);
+  const [libraryBrowseCollectionId, setLibraryBrowseCollectionIdState] = useState<string>(() =>
+    lsGet(STORAGE_KEYS.LIBRARY_BROWSE_COLLECTION_ID, ''),
+  );
+  const setLibraryBrowseCollectionId = useCallback((collectionId: string) => {
+    if (collectionId) lsSet(STORAGE_KEYS.LIBRARY_BROWSE_COLLECTION_ID, collectionId);
+    else lsRemove(STORAGE_KEYS.LIBRARY_BROWSE_COLLECTION_ID);
+    setLibraryBrowseCollectionIdState(collectionId);
   }, []);
   const [currentCollectionTokens, setCurrentCollectionTokens] = useState<TokenNode[]>([]);
   const [collectionRevision, setCollectionRevision] = useState(0);
@@ -105,8 +107,8 @@ export function useCollectionState(
   const [collectionTokenCounts, setCollectionTokenCounts] = useState<Record<string, number>>({});
   const [collectionDescriptions, setCollectionDescriptions] = useState<Record<string, string>>({});
   const fetchGenRef = useRef(0);
-  const currentCollectionIdRef = useRef(currentCollectionId);
-  currentCollectionIdRef.current = currentCollectionId;
+  const libraryBrowseCollectionIdRef = useRef(libraryBrowseCollectionId);
+  libraryBrowseCollectionIdRef.current = libraryBrowseCollectionId;
   const internalCollectionChangeRef = useRef(false);
   const mountedRef = useRef(false);
   const unmountControllerRef = useRef(new AbortController());
@@ -211,22 +213,22 @@ export function useCollectionState(
       setCollectionsError(null);
 
       if (nextCollections.length === 0) {
-        if (currentCollectionIdRef.current) {
+        if (libraryBrowseCollectionIdRef.current) {
           internalCollectionChangeRef.current = true;
-          setCurrentCollectionId('');
+          setLibraryBrowseCollectionId('');
         }
         setCurrentCollectionTokens([]);
         setCollectionRevision((revision) => revision + 1);
         return;
       }
 
-      const nextCurrentCollectionId = nextCollections.some((collection) => collection.id === currentCollectionIdRef.current)
-        ? currentCollectionIdRef.current
+      const nextCurrentCollectionId = nextCollections.some((collection) => collection.id === libraryBrowseCollectionIdRef.current)
+        ? libraryBrowseCollectionIdRef.current
         : nextCollections[0]!.id;
 
-      if (nextCurrentCollectionId !== currentCollectionIdRef.current) {
+      if (nextCurrentCollectionId !== libraryBrowseCollectionIdRef.current) {
         internalCollectionChangeRef.current = true;
-        setCurrentCollectionId(nextCurrentCollectionId);
+        setLibraryBrowseCollectionId(nextCurrentCollectionId);
       }
 
       const tokensData = await apiFetch<{ tokens: DTCGGroup }>(
@@ -249,7 +251,7 @@ export function useCollectionState(
     getDisconnectSignal,
     onNetworkError,
     serverUrl,
-    setCurrentCollectionId,
+    setLibraryBrowseCollectionId,
     applyCollectionStateSnapshot,
   ]);
 
@@ -266,8 +268,8 @@ export function useCollectionState(
       internalCollectionChangeRef.current = false;
       return;
     }
-    void fetchTokensForCollection(currentCollectionId);
-  }, [currentCollectionId, fetchTokensForCollection]);
+    void fetchTokensForCollection(libraryBrowseCollectionId);
+  }, [libraryBrowseCollectionId, fetchTokensForCollection]);
 
   const addCollectionToState = useCallback(async (collectionId: string) => {
     if (!collectionId.trim()) {
@@ -330,8 +332,8 @@ export function useCollectionState(
   return {
     collections,
     setCollections,
-    currentCollectionId,
-    setCurrentCollectionId,
+    libraryBrowseCollectionId,
+    setLibraryBrowseCollectionId,
     currentCollectionTokens,
     collectionRevision,
     collectionTokenCounts,
@@ -350,6 +352,7 @@ export function useCollectionState(
 async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Promise<{
   flat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
   const collectionsData = await apiFetch<{ collections?: CollectionSummary[] }>(`${serverUrl}/api/collections`, {
@@ -369,6 +372,7 @@ async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Pro
   const failed: string[] = [];
   const flat: Record<string, TokenMapEntry> = {};
   const pathToCollectionId: Record<string, string> = {};
+  const collectionIdsByPath: Record<string, string[]> = {};
   const perCollectionFlat: Record<string, Record<string, TokenMapEntry>> = {};
 
   for (let index = 0; index < results.length; index++) {
@@ -386,15 +390,16 @@ async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Pro
     const collectionMap: Record<string, TokenMapEntry> = {};
     for (const [path, entry] of flattenWithNames(tokens)) {
       collectionMap[path] = entry;
-      if (path in flat) {
-        continue;
+      if (!(path in flat)) {
+        flat[path] = entry;
+        pathToCollectionId[path] = collectionId;
       }
-
-      // Keep the global token index aligned with pathToCollectionId.
-      // Shared token paths can exist across collections, but callers that
-      // consume the global flat map already rely on the first collection win.
-      flat[path] = entry;
-      pathToCollectionId[path] = collectionId;
+      const existingCollectionIds = collectionIdsByPath[path];
+      if (existingCollectionIds) {
+        existingCollectionIds.push(collectionId);
+      } else {
+        collectionIdsByPath[path] = [collectionId];
+      }
     }
     perCollectionFlat[collectionId] = collectionMap;
   }
@@ -403,7 +408,7 @@ async function fetchAllCollections(serverUrl: string, signal?: AbortSignal): Pro
     throw new Error(`Failed to fetch token collection${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}`);
   }
 
-  return { flat, pathToCollectionId, perCollectionFlat };
+  return { flat, pathToCollectionId, collectionIdsByPath, perCollectionFlat };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string, signal?: AbortSignal): Promise<Record<string, TokenMapEntry>> {
@@ -413,6 +418,7 @@ export async function fetchAllTokensFlat(serverUrl: string, signal?: AbortSignal
 export async function fetchAllTokensFlatWithCollections(serverUrl: string, signal?: AbortSignal): Promise<{
   flat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
   return fetchAllCollections(serverUrl, signal);

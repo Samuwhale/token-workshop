@@ -1,6 +1,11 @@
 import { useState, useRef, useMemo } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
+import { useCollectionStateContext, useTokenFlatMapContext } from "../../contexts/TokenDataContext";
+import {
+  buildScopedTokenCandidates,
+  type ScopedTokenCandidate,
+} from "../../shared/scopedTokenCandidates";
 
 /** Compact picker for selecting a base token to extend. */
 export function ExtendsTokenPicker({
@@ -14,20 +19,37 @@ export function ExtendsTokenPicker({
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   currentPath: string;
-  onSelect: (path: string) => void;
+  onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
 }) {
+  const { libraryBrowseCollectionId } = useCollectionStateContext();
+  const { perCollectionFlat } = useTokenFlatMapContext();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const scopedCandidates = useMemo(
+    () => buildScopedTokenCandidates({
+      allTokensFlat,
+      pathToCollectionId,
+      perCollectionFlat,
+    }),
+    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+  );
   const candidates = useMemo(() => {
-    return Object.entries(allTokensFlat)
-      .filter(([p, e]) => e.$type === tokenType && p !== currentPath)
-      .map(([p]) => p);
-  }, [allTokensFlat, tokenType, currentPath]);
+    return scopedCandidates.filter(
+      (candidate) =>
+        candidate.entry.$type === tokenType &&
+        !(
+          candidate.path === currentPath &&
+          candidate.collectionId === libraryBrowseCollectionId
+        ),
+    );
+  }, [scopedCandidates, tokenType, currentPath, libraryBrowseCollectionId]);
   const filteredAll = useMemo(() => {
     if (!search) return candidates;
     const q = search.toLowerCase();
-    return candidates.filter((p) => p.toLowerCase().includes(q));
+    return candidates.filter((candidate) =>
+      candidate.path.toLowerCase().includes(q),
+    );
   }, [candidates, search]);
   const filtered = useMemo(() => filteredAll.slice(0, 50), [filteredAll]);
 
@@ -85,19 +107,28 @@ export function ExtendsTokenPicker({
             No matching {tokenType} tokens
           </p>
         )}
-        {filtered.map((p) => (
+        {filtered.map((candidate) => (
           <button
-            key={p}
+            key={candidate.key}
             type="button"
             onClick={() => {
-              onSelect(p);
+              onSelect(candidate.path, candidate);
               setOpen(false);
               setSearch("");
             }}
             className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-body hover:bg-[var(--color-figma-bg-hover)]`}
-            title={`${p} (${pathToCollectionId[p] || ""})`}
+            title={
+              candidate.isAmbiguousPath && candidate.collectionId
+                ? `${candidate.path} (${candidate.collectionId})`
+                : candidate.path
+            }
           >
-            {p}
+            <span>{candidate.path}</span>
+            {candidate.isAmbiguousPath && candidate.collectionId ? (
+              <span className="ml-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                {candidate.collectionId}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

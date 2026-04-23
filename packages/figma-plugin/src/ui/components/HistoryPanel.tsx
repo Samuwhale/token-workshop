@@ -13,6 +13,7 @@ type HistoryView = 'recent' | 'saved';
 export function HistoryPanel({
   serverUrl,
   connected,
+  collectionIds = [],
   onPushUndo,
   onRefreshTokens,
   filterTokenPath,
@@ -28,6 +29,11 @@ export function HistoryPanel({
   executeUndo,
 }: HistoryPanelProps) {
   const [activeView, setActiveView] = useState<HistoryView>('recent');
+  const [activeCollectionFilter, setActiveCollectionFilter] = useState('');
+  const handleClearFilters = useCallback(() => {
+    setActiveCollectionFilter('');
+    onClearFilter?.();
+  }, [onClearFilter]);
 
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [saveLabel, setSaveLabel] = useState('');
@@ -155,6 +161,28 @@ export function HistoryPanel({
         ))}
       </div>
 
+      <div className="shrink-0 flex items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-2">
+        <label
+          htmlFor="history-collection-filter"
+          className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]"
+        >
+          Collection
+        </label>
+        <select
+          id="history-collection-filter"
+          value={activeCollectionFilter}
+          onChange={(event) => setActiveCollectionFilter(event.target.value)}
+          className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)]"
+        >
+          <option value="">All collections</option>
+          {collectionIds.map((collectionId) => (
+            <option key={collectionId} value={collectionId}>
+              {collectionId}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div
         role="tabpanel"
         id={`history-tabpanel-${activeView}`}
@@ -165,8 +193,9 @@ export function HistoryPanel({
         {activeView === 'recent' ? (
           <HistoryRecentView
             serverUrl={serverUrl}
+            collectionFilter={activeCollectionFilter || null}
             filterTokenPath={filterTokenPath}
-            onClearFilter={onClearFilter}
+            onClearFilter={handleClearFilters}
             recentOperations={recentOperations}
             totalOperations={totalOperations}
             hasMoreOperations={hasMoreOperations}
@@ -183,6 +212,7 @@ export function HistoryPanel({
             connected={connected}
             onPushUndo={onPushUndo}
             onRefreshTokens={onRefreshTokens}
+            collectionFilter={activeCollectionFilter || undefined}
             filterTokenPath={filterTokenPath ?? undefined}
           />
         )}

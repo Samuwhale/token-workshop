@@ -589,9 +589,11 @@ export function PublishPanel({
     buildPullPayload: buildPublishPullPayload,
     buildApplyPayload: (rows) => ({
       tokens: buildStylePublishTokens({
-        paths: rows.map((row) => row.path),
+        targets: rows.map((row) => ({
+          path: row.path,
+          collectionId: currentCollectionId,
+        })),
         collections,
-        pathToCollectionId,
         perCollectionFlat,
         collectionMap,
         modeMap,

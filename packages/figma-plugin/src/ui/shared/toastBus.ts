@@ -34,7 +34,7 @@ export interface ToastAction {
  * message text.
  */
 export type NotificationDestination =
-  | { kind: "token"; tokenPath: string; collectionId?: string }
+  | { kind: "token"; tokenPath: string; collectionId: string }
   | { kind: "workspace"; topTab: WorkspaceId; subTab?: SubTab }
   | { kind: "surface"; surface: SecondarySurfaceId }
   | { kind: "contextual-surface"; surface: NotificationMaintenanceSurface };

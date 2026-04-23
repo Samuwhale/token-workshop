@@ -16,8 +16,21 @@ function formatMetadataValue(value?: string) {
   return value && value.length > 0 ? value : 'cleared';
 }
 
+function operationTouchesCollection(
+  op: OperationEntry,
+  collectionId: string | null | undefined,
+) {
+  if (!collectionId) return true;
+  return op.resourceId
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .includes(collectionId);
+}
+
 export interface HistoryRecentViewProps {
   serverUrl: string;
+  collectionFilter?: string | null;
   filterTokenPath?: string | null;
   onClearFilter?: () => void;
   recentOperations?: OperationEntry[];
@@ -33,6 +46,7 @@ export interface HistoryRecentViewProps {
 
 export function HistoryRecentView({
   serverUrl,
+  collectionFilter,
   filterTokenPath,
   onClearFilter,
   recentOperations,
@@ -88,12 +102,13 @@ export function HistoryRecentView({
     .reverse();
 
   const filteredLocal = localEntries.filter(entry => {
-    if (filterTokenPath) return false;
+    if (filterTokenPath || collectionFilter) return false;
     if (!query) return true;
     return entry.description.toLowerCase().includes(query);
   });
 
   const filteredOps = (recentOperations ?? []).filter(op => {
+    if (!operationTouchesCollection(op, collectionFilter)) return false;
     if (filterTokenPath && !op.affectedPaths.includes(filterTokenPath)) return false;
     if (!query) return true;
     const metadataChanges = getFieldChanges(op);
@@ -121,7 +136,7 @@ export function HistoryRecentView({
         />
       )}
 
-      {filterTokenPath && (
+      {(filterTokenPath || collectionFilter) && (
         <InlineBanner
           variant="info"
           layout="strip"
@@ -132,7 +147,17 @@ export function HistoryRecentView({
           dismissMode="icon"
         >
           <span className="block text-secondary text-[var(--color-figma-text-secondary)]">
-            Filtering: <span className="font-mono text-[var(--color-figma-text)] truncate">{filterTokenPath}</span>
+            Filtering:
+            {collectionFilter ? (
+              <span className="ml-1 font-mono text-[var(--color-figma-text)]">
+                {collectionFilter}
+              </span>
+            ) : null}
+            {filterTokenPath ? (
+              <span className="ml-1 font-mono text-[var(--color-figma-text)] truncate">
+                {filterTokenPath}
+              </span>
+            ) : null}
           </span>
         </InlineBanner>
       )}
@@ -163,10 +188,10 @@ export function HistoryRecentView({
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
         {isEmpty ? (
           <FeedbackPlaceholder
-            variant={filterTokenPath || searchQuery ? 'no-results' : 'empty'}
-            title={filterTokenPath || searchQuery ? 'No results' : 'No recent changes'}
-            description={filterTokenPath || searchQuery ? 'Try a different search or clear filters.' : 'Make an edit to see changes here.'}
-            secondaryAction={filterTokenPath || searchQuery ? { label: 'Clear filters', onClick: () => { setSearchQuery(''); onClearFilter?.(); } } : undefined}
+            variant={filterTokenPath || searchQuery || collectionFilter ? 'no-results' : 'empty'}
+            title={filterTokenPath || searchQuery || collectionFilter ? 'No results' : 'No recent changes'}
+            description={filterTokenPath || searchQuery || collectionFilter ? 'Try a different search or clear filters.' : 'Make an edit to see changes here.'}
+            secondaryAction={filterTokenPath || searchQuery || collectionFilter ? { label: 'Clear filters', onClick: () => { setSearchQuery(''); onClearFilter?.(); } } : undefined}
           />
         ) : (
           <>

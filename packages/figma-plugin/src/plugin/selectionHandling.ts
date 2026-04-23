@@ -1,6 +1,7 @@
 import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
 import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo, TokenMapEntry, ResolvedTokenValue, TypographyValue, DimensionValue, BorderValue, ShadowTokenValue } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
+import { cloneValue } from '../shared/clone.js';
 import { coerceBooleanValue, getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
@@ -778,7 +779,7 @@ function captureNodeProps(node: SceneNode, bindingProps: string[]): Record<strin
           snap[prop] = figma.mixed;
           continue;
         }
-        snap[prop] = JSON.parse(JSON.stringify(val));
+        snap[prop] = cloneValue(val);
       } catch (e) { console.debug('[selectionHandling] skip unreadable or unserializable property:', prop, e); }
     }
   }

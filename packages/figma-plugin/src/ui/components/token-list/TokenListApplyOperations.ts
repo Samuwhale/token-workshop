@@ -318,16 +318,18 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     try {
       const result = await sendStyleApply("apply-styles", {
         tokens: buildStylePublishTokens({
-          paths: flat
+          targets: flat
             .filter((token) =>
               token.$type === "color" ||
               token.$type === "gradient" ||
               token.$type === "typography" ||
               token.$type === "shadow",
             )
-            .map((token) => token.path),
+            .map((token) => ({
+              path: token.path,
+              collectionId,
+            })),
           collections,
-          pathToCollectionId,
           perCollectionFlat,
           collectionMap,
           modeMap,

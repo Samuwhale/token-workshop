@@ -15,6 +15,7 @@ import { useCollectionStateContext, useTokenFlatMapContext } from './TokenDataCo
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 import type { TokensLibraryGeneratedGroupEditorTarget } from '../shared/navigationTypes';
+import type { CollectionPathResolutionReason } from '../shared/collectionPathLookup';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,7 +107,12 @@ export interface EditorContextValue {
    * Wire in the alias-not-found toast handler after the provider mounts.
    * App.tsx calls this once inside a useEffect after useToastStack is ready.
    */
-  setAliasNotFoundHandler: (fn: (aliasPath: string) => void) => void;
+  setAliasNotFoundHandler: (
+    fn: (
+      aliasPath: string,
+      reason: CollectionPathResolutionReason,
+    ) => void,
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,11 +133,11 @@ export function useEditorContext(): EditorContextValue {
 
 export function EditorProvider({ children }: { children: ReactNode }) {
   const {
-    currentCollectionId,
-    setCurrentCollectionId,
+    libraryBrowseCollectionId: currentCollectionId,
+    setLibraryBrowseCollectionId: setCurrentCollectionId,
     currentCollectionTokens: tokens,
   } = useCollectionStateContext();
-  const { pathToCollectionId } = useTokenFlatMapContext();
+  const { pathToCollectionId, collectionIdsByPath } = useTokenFlatMapContext();
 
   const [tokenDetails, setTokenDetails] = useState<TokenDetailsTarget | null>(null);
   const [editingGeneratedGroup, setEditingGeneratedGroup] = useState<EditingGeneratedGroup | null>(null);
@@ -155,12 +161,22 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   // Late-bound alias-not-found handler so App.tsx can inject the toast callback
   // without creating a circular context dependency.
-  const onAliasNotFoundRef = useRef<(path: string) => void>(() => {});
-  const setAliasNotFoundHandler = useCallback((fn: (aliasPath: string) => void) => {
+  const onAliasNotFoundRef = useRef<
+    (path: string, reason: CollectionPathResolutionReason) => void
+  >(() => {});
+  const setAliasNotFoundHandler = useCallback((
+    fn: (
+      aliasPath: string,
+      reason: CollectionPathResolutionReason,
+    ) => void,
+  ) => {
     onAliasNotFoundRef.current = fn;
   }, []);
-  const handleAliasNotFound = useCallback((path: string) => {
-    onAliasNotFoundRef.current(path);
+  const handleAliasNotFound = useCallback((
+    path: string,
+    reason: CollectionPathResolutionReason,
+  ) => {
+    onAliasNotFoundRef.current(path, reason);
   }, []);
 
   const {
@@ -174,7 +190,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     handleNavigateBack,
     consumeNavigateBack,
     navHistory,
-  } = useTokenNavigation(pathToCollectionId, currentCollectionId, setCurrentCollectionId, tokens, handleAliasNotFound);
+  } = useTokenNavigation(
+    pathToCollectionId,
+    collectionIdsByPath,
+    currentCollectionId,
+    setCurrentCollectionId,
+    tokens,
+    handleAliasNotFound,
+  );
 
   const clearEditorFamily = useCallback(() => {
     setTokenDetails(null);

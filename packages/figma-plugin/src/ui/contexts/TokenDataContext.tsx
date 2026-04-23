@@ -27,8 +27,8 @@ import type { TokenMapEntry } from '../../shared/types';
 export interface CollectionStateContextValue {
   collections: TokenCollection[];
   setCollections: React.Dispatch<React.SetStateAction<TokenCollection[]>>;
-  currentCollectionId: string;
-  setCurrentCollectionId: (collectionId: string) => void;
+  libraryBrowseCollectionId: string;
+  setLibraryBrowseCollectionId: (collectionId: string) => void;
   currentCollectionTokens: TokenNode[];
   collectionRevision: number;
   collectionTokenCounts: Record<string, number>;
@@ -46,6 +46,7 @@ export interface CollectionStateContextValue {
 export interface TokenFlatMapContextValue {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   filteredCollectionCount: number | null;
   setFilteredCollectionCount: (count: number | null) => void;
@@ -110,8 +111,8 @@ function CollectionStateProvider({
     () => ({
       collections: collectionState.collections,
       setCollections: collectionState.setCollections,
-      currentCollectionId: collectionState.currentCollectionId,
-      setCurrentCollectionId: collectionState.setCurrentCollectionId,
+      libraryBrowseCollectionId: collectionState.libraryBrowseCollectionId,
+      setLibraryBrowseCollectionId: collectionState.setLibraryBrowseCollectionId,
       currentCollectionTokens: collectionState.currentCollectionTokens,
       collectionRevision: collectionState.collectionRevision,
       collectionTokenCounts: collectionState.collectionTokenCounts,
@@ -128,8 +129,8 @@ function CollectionStateProvider({
     [
       collectionState.collections,
       collectionState.setCollections,
-      collectionState.currentCollectionId,
-      collectionState.setCurrentCollectionId,
+      collectionState.libraryBrowseCollectionId,
+      collectionState.setLibraryBrowseCollectionId,
       collectionState.currentCollectionTokens,
       collectionState.collectionRevision,
       collectionState.collectionTokenCounts,
@@ -180,6 +181,7 @@ function TokenFlatMapProvider({
     () => ({
       allTokensFlat: tokenData.allTokensFlat,
       pathToCollectionId: tokenData.pathToCollectionId,
+      collectionIdsByPath: tokenData.collectionIdsByPath,
       perCollectionFlat: tokenData.perCollectionFlat,
       filteredCollectionCount: tokenData.filteredCollectionCount,
       setFilteredCollectionCount: tokenData.setFilteredCollectionCount,
@@ -191,6 +193,7 @@ function TokenFlatMapProvider({
     [
       tokenData.allTokensFlat,
       tokenData.pathToCollectionId,
+      tokenData.collectionIdsByPath,
       tokenData.perCollectionFlat,
       tokenData.filteredCollectionCount,
       tokenData.setFilteredCollectionCount,

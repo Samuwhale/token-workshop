@@ -3,22 +3,20 @@ import type { TokenMapEntry } from "../../shared/types";
 import type { TokenCollection } from "@tokenmanager/core";
 import { hexToLuminance, wcagContrast } from "../shared/colorUtils";
 import { normalizeHex, hexToLab } from "@tokenmanager/core";
-import { resolveModeOption } from "../shared/comparisonUtils";
+import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 
 export interface ContrastMatrixPanelProps {
   /** Non-alias color tokens sorted by luminance */
-  colorTokens: { path: string; hex: string }[];
+  colorTokens: { path: string; collectionId: string; hex: string }[];
   collections: TokenCollection[];
-  allTokensFlat: Record<string, TokenMapEntry>;
-  pathToCollectionId: Record<string, string>;
-  onNavigateToToken?: (path: string, set: string) => void;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  onNavigateToToken?: (path: string, collectionId: string) => void;
 }
 
 export function ContrastMatrixPanel({
   colorTokens,
   collections,
-  allTokensFlat,
-  pathToCollectionId,
+  perCollectionFlat,
   onNavigateToToken,
 }: ContrastMatrixPanelProps) {
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
@@ -49,16 +47,23 @@ export function ContrastMatrixPanel({
     if (!contrastMultiMode || collections.length === 0) return null;
     const result = new Map<string, Record<string, TokenMapEntry>>();
     for (const collection of collections) {
+      const collectionFlat = perCollectionFlat[collection.id];
+      if (!collectionFlat) continue;
+
+      const scopedPathToCollectionId = Object.fromEntries(
+        Object.keys(collectionFlat).map((path) => [path, collection.id]),
+      );
+
       for (const opt of collection.modes) {
         const key = `${collection.id}:${opt.name}`;
         if (!activeContrastModeKeys.has(key)) continue;
         result.set(
           key,
-          resolveModeOption(
-            { collectionId: collection.id, optionName: opt.name },
-            collections,
-            allTokensFlat,
-            pathToCollectionId,
+          applyModeSelectionsToTokens(
+            collectionFlat,
+            [collection],
+            { [collection.id]: opt.name },
+            scopedPathToCollectionId,
           ),
         );
       }
@@ -67,32 +72,55 @@ export function ContrastMatrixPanel({
   }, [
     contrastMultiMode,
     collections,
-    allTokensFlat,
-    pathToCollectionId,
     activeContrastModeKeys,
+    perCollectionFlat,
   ]);
 
   const multiModeColorTokens = useMemo(():
-    | { path: string; hexByMode: Map<string, string> }[]
+    | { path: string; collectionId: string; hexByMode: Map<string, string> }[]
     | null => {
     if (!perModeResolved) return null;
-    const hexByModePerPath = new Map<string, Map<string, string>>();
+    const collectionsById = new Map(
+      collections.map((collection) => [collection.id, collection]),
+    );
+    const hexByModePerToken = new Map(
+      colorTokens.map((token) => [
+        `${token.collectionId}::${token.path}`,
+        {
+          path: token.path,
+          collectionId: token.collectionId,
+          hexByMode: new Map<string, string>(),
+        },
+      ]),
+    );
     const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-    for (const [modeKey, resolved] of perModeResolved) {
-      for (const [path, entry] of Object.entries(resolved)) {
-        if (entry.$type !== "color") continue;
-        const v = entry.$value;
-        if (typeof v !== "string" || !HEX_RE.test(v)) continue;
-        let modeMap = hexByModePerPath.get(path);
-        if (!modeMap) {
-          modeMap = new Map();
-          hexByModePerPath.set(path, modeMap);
-        }
-        modeMap.set(modeKey, normalizeHex(v));
+
+    for (const token of colorTokens) {
+      const collection = collectionsById.get(token.collectionId);
+      if (!collection) continue;
+
+      const scopedToken = hexByModePerToken.get(
+        `${token.collectionId}::${token.path}`,
+      );
+      if (!scopedToken) continue;
+
+      for (const opt of collection.modes) {
+        const modeKey = `${collection.id}:${opt.name}`;
+        if (!activeContrastModeKeys.has(modeKey)) continue;
+
+        const resolved = perModeResolved.get(modeKey);
+        const entry = resolved?.[token.path];
+        if (!entry || entry.$type !== "color") continue;
+
+        const value = entry.$value;
+        if (typeof value !== "string" || !HEX_RE.test(value)) continue;
+
+        scopedToken.hexByMode.set(modeKey, normalizeHex(value));
       }
     }
-    const result = [...hexByModePerPath.entries()].map(
-      ([path, hexByMode]) => ({ path, hexByMode }),
+
+    const result = [...hexByModePerToken.values()].filter(
+      (token) => token.hexByMode.size > 0,
     );
     result.sort((a, b) => {
       const avgLum = (t: typeof a) => {
@@ -110,7 +138,7 @@ export function ContrastMatrixPanel({
       return avgLum(a) - avgLum(b);
     });
     return result;
-  }, [perModeResolved]);
+  }, [activeContrastModeKeys, collections, colorTokens, perModeResolved]);
 
   const CONTRAST_PAGE_SIZE = 16;
   const hasMultiModeOptions = collections.some((collection) => collection.modes.length >= 2);
@@ -129,6 +157,7 @@ export function ContrastMatrixPanel({
 
   type MatrixToken = {
     path: string;
+    collectionId: string;
     hex: string;
     hexByMode?: Map<string, string>;
   };
@@ -136,9 +165,32 @@ export function ContrastMatrixPanel({
     ? multiModeColorTokens!.map((t) => {
         const firstHex =
           (t.hexByMode.values().next().value as string) ?? "#000000";
-        return { path: t.path, hex: firstHex, hexByMode: t.hexByMode };
+        return {
+          path: t.path,
+          collectionId: t.collectionId,
+          hex: firstHex,
+          hexByMode: t.hexByMode,
+        };
       })
     : colorTokens;
+
+  const tokenKey = (token: Pick<MatrixToken, "path" | "collectionId">) =>
+    `${token.collectionId}::${token.path}`;
+  const duplicatePaths = new Set(
+    sourceTokens
+      .map((token) => token.path)
+      .filter(
+        (path, index, paths) => paths.indexOf(path) !== index,
+      ),
+  );
+  const getTokenLabel = (token: Pick<MatrixToken, "path" | "collectionId">) => {
+    const leaf = token.path.split(".").pop() ?? token.path;
+    return duplicatePaths.has(token.path)
+      ? `${leaf} · ${token.collectionId}`
+      : leaf;
+  };
+  const getTokenTitle = (token: Pick<MatrixToken, "path" | "collectionId">) =>
+    `${token.path} (${token.collectionId})`;
 
   const availableGroups = Array.from(
     new Set(sourceTokens.map((t) => t.path.split(".")[0])),
@@ -191,20 +243,19 @@ export function ContrastMatrixPanel({
     const r = wcagContrast(fg.hex, bg.hex);
     return {
       ratio: r,
-      tooltip: `${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`,
+      tooltip: `${getTokenTitle(fg)} on ${getTokenTitle(bg)}: ${r?.toFixed(2)}:1`,
       failingModeCount: 0,
       totalModeCount: 0,
     };
   };
 
-  const navigateToToken = (path: string) => {
-    const collectionId = pathToCollectionId[path];
-    if (!onNavigateToToken || !collectionId) return;
-    onNavigateToToken(path, collectionId);
+  const navigateToToken = (token: Pick<MatrixToken, "path" | "collectionId">) => {
+    if (!onNavigateToToken) return;
+    onNavigateToToken(token.path, token.collectionId);
   };
 
-  const canNavigateToToken = (path: string) =>
-    Boolean(onNavigateToToken && pathToCollectionId[path]);
+  const canNavigateToToken = (token: Pick<MatrixToken, "path" | "collectionId">) =>
+    Boolean(onNavigateToToken && token.collectionId);
 
   type FailPair = {
     fg: MatrixToken;
@@ -212,7 +263,7 @@ export function ContrastMatrixPanel({
     ratio: number;
     failingModeCount: number;
     totalModeCount: number;
-    suggestedFix: { path: string; hex: string } | null;
+    suggestedFix: { path: string; collectionId: string; hex: string } | null;
   };
 
   const computeExpensiveData = () => {
@@ -222,15 +273,16 @@ export function ContrastMatrixPanel({
       for (const t of filteredTokens) {
         let cnt = 0;
         for (const other of filteredTokens) {
-          if (other.path === t.path) continue;
+          if (tokenKey(other) === tokenKey(t)) continue;
           const { ratio } = getCellContrast(t, other);
           if (ratio !== null && ratio < 4.5) cnt++;
         }
-        failureCounts.set(t.path, cnt);
+        failureCounts.set(tokenKey(t), cnt);
       }
       tokens = [...filteredTokens].sort(
         (a, b) =>
-          (failureCounts.get(b.path) ?? 0) - (failureCounts.get(a.path) ?? 0),
+          (failureCounts.get(tokenKey(b)) ?? 0) -
+          (failureCounts.get(tokenKey(a)) ?? 0),
       );
     } else {
       tokens = filteredTokens;
@@ -240,12 +292,14 @@ export function ContrastMatrixPanel({
       fg: MatrixToken,
       bg: MatrixToken,
       candidates: MatrixToken[],
-    ): { path: string; hex: string } | null => {
+    ): { path: string; collectionId: string; hex: string } | null => {
       const fgLab = hexToLab(fg.hex);
       if (!fgLab) return null;
-      let best: { path: string; hex: string; deltaE: number } | null = null;
+      let best:
+        | { path: string; collectionId: string; hex: string; deltaE: number }
+        | null = null;
       for (const candidate of candidates) {
-        if (candidate.path === fg.path) continue;
+        if (tokenKey(candidate) === tokenKey(fg)) continue;
         let passes = false;
         if (
           isMultiMode &&
@@ -279,9 +333,20 @@ export function ContrastMatrixPanel({
           db = candLab[2] - fgLab[2];
         const deltaE = Math.sqrt(dL * dL + da * da + db * db);
         if (best === null || deltaE < best.deltaE)
-          best = { path: candidate.path, hex: candidate.hex, deltaE };
+          best = {
+            path: candidate.path,
+            collectionId: candidate.collectionId,
+            hex: candidate.hex,
+            deltaE,
+          };
       }
-      return best ? { path: best.path, hex: best.hex } : null;
+      return best
+        ? {
+            path: best.path,
+            collectionId: best.collectionId,
+            hex: best.hex,
+          }
+        : null;
     };
 
     const pairs: FailPair[] = [];
@@ -468,7 +533,7 @@ export function ContrastMatrixPanel({
                   : ["fg_token,bg_token,contrast_ratio,level"];
                 for (const fg of displayTokens) {
                   for (const bg of displayTokens) {
-                    if (fg.path === bg.path) continue;
+                    if (tokenKey(fg) === tokenKey(bg)) continue;
                     if (
                       isMultiMode &&
                       fg.hexByMode &&
@@ -646,7 +711,7 @@ export function ContrastMatrixPanel({
                         : null;
                       return (
                         <tr
-                          key={`${fg.path}|${bg.path}`}
+                          key={`${tokenKey(fg)}|${tokenKey(bg)}`}
                           className="border-t border-[var(--color-figma-border)]"
                         >
                           <td className="px-1 py-0.5">
@@ -657,14 +722,14 @@ export function ContrastMatrixPanel({
                                   style={{ background: fg.hex }}
                                 />
                                 <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">
-                                  {fg.path.split(".").pop()}
+                                  {getTokenLabel(fg)}
                                 </span>
                               </div>
-                              {canNavigateToToken(fg.path) && (
+                              {canNavigateToToken(fg) && (
                                 <button
-                                  onClick={() => navigateToToken(fg.path)}
+                                  onClick={() => navigateToToken(fg)}
                                   className="text-[8px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
-                                  title={`Go to ${fg.path}`}
+                                  title={`Go to ${getTokenTitle(fg)}`}
                                 >
                                   Go
                                 </button>
@@ -678,7 +743,7 @@ export function ContrastMatrixPanel({
                                 style={{ background: bg.hex }}
                               />
                               <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">
-                                {bg.path.split(".").pop()}
+                                {getTokenLabel(bg)}
                               </span>
                             </div>
                           </td>
@@ -696,27 +761,25 @@ export function ContrastMatrixPanel({
                             {suggestedFix ? (
                               <div
                                 className="flex items-center gap-1"
-                                title={`${suggestedFix.path} — ${fixRatio !== null ? fixRatio.toFixed(1) + ":1" : ""}`}
+                                title={`${getTokenTitle(suggestedFix)} — ${fixRatio !== null ? fixRatio.toFixed(1) + ":1" : ""}`}
                               >
                                 <div
                                   className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
                                   style={{ background: suggestedFix.hex }}
                                 />
                                 <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">
-                                  {suggestedFix.path.split(".").pop()}
+                                  {getTokenLabel(suggestedFix)}
                                 </span>
                                 {fixRatio !== null && (
                                   <span className="text-[var(--color-figma-success)] shrink-0">
                                     {fixRatio.toFixed(1)}:1
                                   </span>
                                 )}
-                                {canNavigateToToken(suggestedFix.path) && (
+                                {canNavigateToToken(suggestedFix) && (
                                   <button
-                                    onClick={() =>
-                                      navigateToToken(suggestedFix.path)
-                                    }
+                                    onClick={() => navigateToToken(suggestedFix)}
                                     className="text-[8px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
-                                    title={`Go to ${suggestedFix.path}`}
+                                    title={`Go to ${getTokenTitle(suggestedFix)}`}
                                   >
                                     Go
                                   </button>
@@ -793,9 +856,9 @@ export function ContrastMatrixPanel({
                     </th>
                     {pagedTokens.map((bg) => (
                       <th
-                        key={bg.path}
+                        key={tokenKey(bg)}
                         scope="col"
-                        title={bg.path}
+                        title={getTokenTitle(bg)}
                         className="px-1 py-0.5 text-center font-normal max-w-[40px]"
                       >
                         <div
@@ -809,7 +872,7 @@ export function ContrastMatrixPanel({
                 </thead>
                 <tbody>
                   {pagedTokens.map((fg) => (
-                    <tr key={fg.path}>
+                    <tr key={tokenKey(fg)}>
                       <th
                         scope="row"
                         className="px-1 py-0.5 sticky left-0 bg-[var(--color-figma-bg)] font-normal"
@@ -821,15 +884,15 @@ export function ContrastMatrixPanel({
                             aria-hidden="true"
                           />
                           <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]">
-                            {fg.path.split(".").pop()}
+                            {getTokenLabel(fg)}
                           </span>
                         </div>
                       </th>
                       {pagedTokens.map((bg) => {
-                        if (fg.path === bg.path)
+                        if (tokenKey(fg) === tokenKey(bg))
                           return (
                             <td
-                              key={bg.path}
+                              key={tokenKey(bg)}
                               className="px-1 py-0.5 text-center bg-[var(--color-figma-bg-hover)]"
                               aria-label="same token"
                             >
@@ -848,7 +911,7 @@ export function ContrastMatrixPanel({
                           isMultiMode && aa && failingModeCount > 0;
                         return (
                           <td
-                            key={bg.path}
+                            key={tokenKey(bg)}
                             title={tooltip}
                             className={`px-1 py-0.5 text-center ${aaa ? "bg-[var(--color-figma-success)]/20" : aa ? (partialFail ? "bg-[var(--color-figma-warning)]/20" : "bg-[var(--color-figma-warning)]/10") : "bg-[var(--color-figma-error)]/10"}`}
                           >

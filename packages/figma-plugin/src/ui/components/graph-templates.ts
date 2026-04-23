@@ -12,6 +12,7 @@ import type {
   TypeScaleConfig,
   ZIndexScaleConfig,
 } from "../hooks/useGenerators";
+import { cloneValue } from "../../shared/clone";
 
 export interface SemanticStarter {
   prefix: string;
@@ -309,5 +310,5 @@ export function cloneStarterConfigForGeneratorType(
 ): GeneratorConfig | undefined {
   const template = getStarterTemplateForGeneratorType(generatorType);
   if (!template) return undefined;
-  return JSON.parse(JSON.stringify(template.config)) as GeneratorConfig;
+  return cloneValue(template.config);
 }

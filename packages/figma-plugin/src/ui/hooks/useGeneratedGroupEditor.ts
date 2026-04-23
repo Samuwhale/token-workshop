@@ -28,6 +28,7 @@ import {
 import type { UndoSlot } from "./useUndo";
 import type { ToastAction } from "../shared/toastBus";
 import { stableStringify } from "../shared/utils";
+import { cloneValue } from "../../shared/clone";
 
 import type { OverwrittenEntry } from "./useGeneratedGroupPreview";
 export type { OverwrittenEntry } from "./useGeneratedGroupPreview";
@@ -74,17 +75,6 @@ export interface GeneratorDialogInitialDraft {
   semanticPrefix?: string;
   semanticMappings?: Array<{ semantic: string; step: string }>;
   selectedSemanticPatternId?: string | null;
-}
-
-function cloneGeneratorDraftValue<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function cloneOptionalDraftValue<T>(value: T): T {
-  if (value === undefined) {
-    return value;
-  }
-  return cloneGeneratorDraftValue(value);
 }
 
 type GeneratorTemplateDraftSource = GeneratorTemplate & {
@@ -143,12 +133,12 @@ export function createGeneratorDraftFromTemplate(
     targetCollection: currentCollectionId,
     targetGroup,
     configs: {
-      [template.generatorType]: cloneGeneratorDraftValue(template.config),
+      [template.generatorType]: cloneValue(template.config),
     },
     semanticEnabled: Boolean(semanticStarter?.mappings.length),
     semanticPrefix: semanticStarter?.prefix,
     semanticMappings: semanticStarter?.mappings
-      ? cloneGeneratorDraftValue(semanticStarter.mappings)
+      ? cloneValue(semanticStarter.mappings)
       : undefined,
     selectedSemanticPatternId: semanticStarter?.patternId ?? null,
   };
@@ -162,15 +152,15 @@ export function createGeneratedGroupDuplicateDraft(
     name: appendCopySuffix(generator.name, " "),
     targetCollection: generator.targetCollection,
     targetGroup: appendCopySuffix(generator.targetGroup, "-"),
-    inlineValue: cloneOptionalDraftValue(generator.inlineValue),
+    inlineValue: cloneValue(generator.inlineValue),
     configs: {
-      [generator.type]: cloneGeneratorDraftValue(generator.config),
+      [generator.type]: cloneValue(generator.config),
     },
     keepUpdated: generator.enabled !== false,
     semanticEnabled: Boolean(generator.semanticLayer?.mappings.length),
     semanticPrefix: generator.semanticLayer?.prefix,
     semanticMappings: generator.semanticLayer?.mappings
-      ? cloneGeneratorDraftValue(generator.semanticLayer.mappings)
+      ? cloneValue(generator.semanticLayer.mappings)
       : undefined,
     selectedSemanticPatternId: generator.semanticLayer?.patternId ?? null,
   };
@@ -197,10 +187,10 @@ function createGeneratorDirtySnapshot(
 ): GeneratorDirtySnapshot {
   return {
     ...snapshot,
-    inlineValue: cloneOptionalDraftValue(snapshot.inlineValue),
-    configs: cloneGeneratorDraftValue(snapshot.configs),
-    pendingOverrides: cloneGeneratorDraftValue(snapshot.pendingOverrides),
-    semanticMappings: cloneGeneratorDraftValue(snapshot.semanticMappings),
+    inlineValue: cloneValue(snapshot.inlineValue),
+    configs: cloneValue(snapshot.configs),
+    pendingOverrides: cloneValue(snapshot.pendingOverrides),
+    semanticMappings: cloneValue(snapshot.semanticMappings),
   };
 }
 
@@ -215,25 +205,25 @@ function mergeGeneratorDrafts(
     ...overrideDraft,
     configs: {
       ...(baseDraft?.configs
-        ? cloneGeneratorDraftValue(baseDraft.configs)
+        ? cloneValue(baseDraft.configs)
         : {}),
       ...(overrideDraft?.configs
-        ? cloneGeneratorDraftValue(overrideDraft.configs)
+        ? cloneValue(overrideDraft.configs)
         : {}),
     },
     pendingOverrides: overrideDraft?.pendingOverrides
-      ? cloneGeneratorDraftValue(overrideDraft.pendingOverrides)
+      ? cloneValue(overrideDraft.pendingOverrides)
       : baseDraft?.pendingOverrides
-        ? cloneGeneratorDraftValue(baseDraft.pendingOverrides)
+        ? cloneValue(baseDraft.pendingOverrides)
         : undefined,
     keepUpdated: overrideDraft?.keepUpdated ?? baseDraft?.keepUpdated,
     semanticEnabled:
       overrideDraft?.semanticEnabled ?? baseDraft?.semanticEnabled,
     semanticPrefix: overrideDraft?.semanticPrefix ?? baseDraft?.semanticPrefix,
     semanticMappings: overrideDraft?.semanticMappings
-      ? cloneGeneratorDraftValue(overrideDraft.semanticMappings)
+      ? cloneValue(overrideDraft.semanticMappings)
       : baseDraft?.semanticMappings
-        ? cloneGeneratorDraftValue(baseDraft.semanticMappings)
+        ? cloneValue(baseDraft.semanticMappings)
         : undefined,
     selectedSemanticPatternId:
       overrideDraft?.selectedSemanticPatternId ??
@@ -395,9 +385,9 @@ export function useGeneratedGroupDialog({
   const initialConfigs: Partial<Record<GeneratorType, GeneratorConfig>> = {};
   for (const type of ALL_TYPES) {
     if (existingGenerator?.type === type) {
-      initialConfigs[type] = cloneGeneratorDraftValue(existingGenerator.config);
+      initialConfigs[type] = cloneValue(existingGenerator.config);
     } else if (resolvedInitialDraft?.configs?.[type]) {
-      initialConfigs[type] = cloneGeneratorDraftValue(
+      initialConfigs[type] = cloneValue(
         resolvedInitialDraft.configs[type]!,
       );
     } else {
@@ -434,11 +424,11 @@ export function useGeneratedGroupDialog({
 
   const [configs, setConfigs] = useState<
     Partial<Record<GeneratorType, GeneratorConfig>>
-  >(() => cloneGeneratorDraftValue(initialConfigs));
+  >(() => cloneValue(initialConfigs));
 
   const [pendingOverrides, setPendingOverrides] = useState<
     Record<string, { value: unknown; locked: boolean }>
-  >(() => cloneGeneratorDraftValue(initialPendingOverrides));
+  >(() => cloneValue(initialPendingOverrides));
 
   const nameWasAutoRef = useRef(
     resolvedInitialDraft?.nameIsAuto ??
@@ -499,7 +489,7 @@ export function useGeneratedGroupDialog({
     if (!currentCfg) return;
     setConfigUndoStack((prev) => [
       ...prev.slice(-MAX_UNDO + 1),
-      { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) },
+      { type: selectedType, config: cloneValue(currentCfg) },
     ]);
     setConfigRedoStack([]);
   }, [configs, selectedType, flushSnapshot]);
@@ -512,7 +502,7 @@ export function useGeneratedGroupDialog({
     if (!pendingSnapshotRef.current) {
       pendingSnapshotRef.current = {
         type: selectedType,
-        config: JSON.parse(JSON.stringify(currentCfg)),
+        config: cloneValue(currentCfg),
       };
     }
     if (undoDebounceRef.current) clearTimeout(undoDebounceRef.current);
@@ -541,7 +531,7 @@ export function useGeneratedGroupDialog({
     if (currentCfg) {
       setConfigRedoStack((prev) => [
         ...prev,
-        { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) },
+        { type: selectedType, config: cloneValue(currentCfg) },
       ]);
     }
     const snapshot = configUndoStack[configUndoStack.length - 1];
@@ -556,7 +546,7 @@ export function useGeneratedGroupDialog({
     if (currentCfg) {
       setConfigUndoStack((prev) => [
         ...prev,
-        { type: selectedType, config: JSON.parse(JSON.stringify(currentCfg)) },
+        { type: selectedType, config: cloneValue(currentCfg) },
       ]);
     }
     const snapshot = configRedoStack[configRedoStack.length - 1];
@@ -712,7 +702,7 @@ export function useGeneratedGroupDialog({
       if (isInlineValueCompatibleWithType(type, currentValue)) {
         return currentValue;
       }
-      return cloneOptionalDraftValue(defaultInlineValueForType(type));
+      return cloneValue(defaultInlineValueForType(type));
     });
   };
 

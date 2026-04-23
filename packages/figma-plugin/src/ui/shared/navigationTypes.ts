@@ -16,6 +16,7 @@ export type TopTab =
   | "export"
   | "versions";
 export type LibrarySubTab = "tokens" | "overview" | "health" | "history";
+export type LibraryScreenScope = "single" | "hybrid" | "cross";
 export type SubTab =
   | LibrarySubTab
   | "inspect"
@@ -129,6 +130,16 @@ export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   sync: "figma-sync",
   export: "export",
   versions: "versions",
+};
+
+export const LIBRARY_SCREEN_SCOPES: Record<
+  LibrarySubTab,
+  LibraryScreenScope
+> = {
+  tokens: "single",
+  overview: "single",
+  health: "hybrid",
+  history: "cross",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
@@ -345,7 +356,7 @@ export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
         usage: "Compare tokens or mode options.",
       },
       "collection-details": {
-        label: "Collection setup",
+        label: "Collection details",
         usage: "Review collection structure, metadata, and modes.",
       },
       "token-details": {

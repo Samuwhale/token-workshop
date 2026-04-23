@@ -172,7 +172,7 @@ export const STORAGE_KEYS = {
   EXPANDED:              'tm_expanded',
   WINDOW_WIDTH:          'tm_window_width',
   WINDOW_HEIGHT:         'tm_window_height',
-  CURRENT_COLLECTION_ID: 'tm_current_collection_id',
+  LIBRARY_BROWSE_COLLECTION_ID: 'tm_library_browse_collection_id',
   ACTIVE_TAB:            'tm_active_tab',
   ACTIVE_TOP_TAB:        'tm_active_top_tab',
   ACTIVE_SUB_TAB_LIBRARY:  'tm_sub_tab_library',
@@ -184,7 +184,6 @@ export const STORAGE_KEYS = {
   SERVER_URL:            'tokenmanager_server_url',
   PALETTE_RECENT:        'tm_palette_recent',
   ANALYTICS_CANONICAL:   'analytics_canonicalPick',
-  IMPORT_TARGET_COLLECTION: 'tm_import_target_collection',
   COLLECTION_CARD_ORDER:  'tm_collection_card_order',
   EXPORT_PLATFORMS:      'exportPanel.selectedPlatforms',
   EXPORT_CSS_SELECTOR:   'exportPanel.cssSelector',
@@ -214,7 +213,6 @@ export const STORAGE_KEYS = {
   ACTIVE_RESOLVER:          'tm_active_resolver',
   RESOLVER_INPUT:           'tm_resolver_input',
   SIDEBAR_WIDTH:            'tm_sidebar_width',
-  COLLECTION_RAIL_WIDTH:    'tm_collection_rail_width',
   SIDE_EDITOR_WIDTH:        'tm_side_editor_width',
   INSPECTOR_SUGGESTIONS_OPEN: 'inspector-suggestions-open',
   LAST_CREATE_GROUP:        'tm_last_create_group',
@@ -254,7 +252,7 @@ export const STORAGE_PREFIXES = {
 } as const;
 
 const WORKSPACE_RECOVERY_RESET_KEYS = [
-  STORAGE_KEYS.CURRENT_COLLECTION_ID,
+  STORAGE_KEYS.LIBRARY_BROWSE_COLLECTION_ID,
   STORAGE_KEYS.ACTIVE_TAB,
   STORAGE_KEYS.ACTIVE_TOP_TAB,
   STORAGE_KEYS.ACTIVE_SUB_TAB_LIBRARY,
@@ -263,7 +261,6 @@ const WORKSPACE_RECOVERY_RESET_KEYS = [
   STORAGE_KEYS.ACTIVE_SUB_TAB_EXPORT,
   STORAGE_KEYS.ACTIVE_SUB_TAB_VERSIONS,
   STORAGE_KEYS.ANALYTICS_CANONICAL,
-  STORAGE_KEYS.IMPORT_TARGET_COLLECTION,
   STORAGE_KEYS.COLLECTION_CARD_ORDER,
   STORAGE_KEYS.ACTIVE_RESOLVER,
   STORAGE_KEYS.RESOLVER_INPUT,

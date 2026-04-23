@@ -12,7 +12,6 @@ interface UseSyncStateParams {
   serverUrl: string;
   connected: boolean;
   collections: TokenCollection[];
-  pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
@@ -24,7 +23,6 @@ export function useSyncState({
   serverUrl,
   connected,
   collections,
-  pathToCollectionId,
   perCollectionFlat,
   collectionMap,
   modeMap,
@@ -35,7 +33,6 @@ export function useSyncState({
     serverUrl,
     connected,
     collections,
-    pathToCollectionId,
     perCollectionFlat,
     collectionMap,
     modeMap,

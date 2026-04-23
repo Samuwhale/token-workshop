@@ -25,6 +25,7 @@ export function useTokenDataLoading({
 }: UseTokenDataLoadingParams) {
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToCollectionId, setPathToCollectionId] = useState<Record<string, string>>({});
+  const [collectionIdsByPath, setCollectionIdsByPath] = useState<Record<string, string[]>>({});
   const [perCollectionFlat, setPerCollectionFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
   const [filteredCollectionCount, setFilteredCollectionCount] = useState<number | null>(null);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
@@ -43,10 +44,11 @@ export function useTokenDataLoading({
       const gen = ++flatFetchGenRef.current;
       const controller = new AbortController();
       setTokensLoading(true);
-      fetchAllTokensFlatWithCollections(serverUrl, controller.signal).then(({ flat, pathToCollectionId: nextPathToCollectionId, perCollectionFlat: nextPerCollectionFlat }) => {
+      fetchAllTokensFlatWithCollections(serverUrl, controller.signal).then(({ flat, pathToCollectionId: nextPathToCollectionId, collectionIdsByPath: nextCollectionIdsByPath, perCollectionFlat: nextPerCollectionFlat }) => {
         if (gen !== flatFetchGenRef.current) return; // stale response
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToCollectionId(nextPathToCollectionId);
+        setCollectionIdsByPath(nextCollectionIdsByPath);
         setPerCollectionFlat(nextPerCollectionFlat);
         setTokensError(null);
         setTokensLoading(false);
@@ -60,6 +62,12 @@ export function useTokenDataLoading({
       });
       return () => controller.abort();
     } else {
+      setAllTokensFlat({});
+      setPathToCollectionId({});
+      setCollectionIdsByPath({});
+      setPerCollectionFlat({});
+      setSyncSnapshot({});
+      setTokensError(null);
       setTokensLoading(false);
     }
   }, [collectionIdentityKey, collectionRevision, connected, markDisconnected, serverUrl]);
@@ -85,6 +93,7 @@ export function useTokenDataLoading({
   return {
     allTokensFlat,
     pathToCollectionId,
+    collectionIdsByPath,
     perCollectionFlat,
     filteredCollectionCount,
     setFilteredCollectionCount,

@@ -3,18 +3,20 @@ import { hexToLstar } from "../shared/colorUtils";
 
 export interface ColorScaleStep {
   path: string;
+  collectionId: string;
   label: string;
   hex: string;
 }
 
 export interface ColorScale {
   parent: string;
+  collectionId: string;
   steps: ColorScaleStep[];
 }
 
 export interface LightnessInspectorPanelProps {
   colorScales: ColorScale[];
-  onNavigateToToken?: (path: string) => void;
+  onNavigateToToken?: (path: string, collectionId: string) => void;
 }
 
 export function LightnessInspectorPanel({
@@ -50,7 +52,7 @@ export function LightnessInspectorPanel({
       </button>
       {showScaleInspector && (
         <div className="divide-y divide-[var(--color-figma-border)] p-3 flex flex-col gap-4">
-          {colorScales.map(({ parent, steps }) => {
+          {colorScales.map(({ parent, collectionId, steps }) => {
             const lValues = steps.map((s) => ({
               label: s.label,
               hex: s.hex,
@@ -90,9 +92,14 @@ export function LightnessInspectorPanel({
             });
             const polyline = pts.map((p) => `${p.x},${p.y}`).join(" ");
             return (
-              <div key={parent}>
-                <div className="text-secondary font-medium text-[var(--color-figma-text)] mb-2">
-                  {parent}
+              <div key={`${collectionId}:${parent}`}>
+                <div className="mb-2">
+                  <div className="text-secondary font-medium text-[var(--color-figma-text)]">
+                    {parent}
+                  </div>
+                  <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+                    {collectionId}
+                  </div>
                 </div>
                 <div
                   className="relative inline-block"
@@ -136,9 +143,9 @@ export function LightnessInspectorPanel({
                         <button
                           key={`${parent}:${p.path}`}
                           type="button"
-                          onClick={() => onNavigateToToken(p.path)}
-                          title={`Go to ${p.path}`}
-                          aria-label={`Go to ${p.path}`}
+                          onClick={() => onNavigateToToken(p.path, collectionId)}
+                          title={`Go to ${p.path} in ${collectionId}`}
+                          aria-label={`Go to ${p.path} in ${collectionId}`}
                           className="absolute h-4 -translate-x-1/2 -translate-y-1/2 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 text-[8px] font-medium leading-none text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                           style={{
                             left: Math.min(Math.max(p.x + 14, 16), W - 16),

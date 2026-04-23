@@ -2,7 +2,6 @@ import { getErrorMessage } from '../shared/utils';
 import { dispatchToast } from '../shared/toastBus';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createFetchSignal } from '../shared/apiFetch';
-import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { getPluginMessageFromEvent } from '../../shared/utils';
 import type {
@@ -55,14 +54,13 @@ function preserveTypographyReferences(
 }
 
 export type PublishPending =
-  | { scope: 'group'; groupPath: string; tokenCount: number }
+  | { scope: 'group'; groupPath: string; collectionId: string; tokenCount: number }
   | { scope: 'collection'; collectionId: string; tokenCount: number };
 
 export function useFigmaSync(
   serverUrl: string,
   connected: boolean,
   collections: TokenCollection[],
-  pathToCollectionId: Record<string, string>,
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
@@ -133,11 +131,20 @@ export function useFigmaSync(
   const handlePublish = useCallback(async () => {
     const pending = publishPending;
     if (!pending || !connected) return;
-    const signal = createFetchSignal(abortRef.current.signal, 15_000);
-
-    const matchPath = pending.scope === 'group'
-      ? ((path: string) => path === pending.groupPath || path.startsWith(pending.groupPath + '.'))
-      : ((path: string) => pathToCollectionId[path] === pending.collectionId);
+    const targetCollectionId = pending.collectionId;
+    const scopedRawMap = perCollectionFlat[targetCollectionId] ?? {};
+    const rawMap = Object.values(perCollectionFlat).reduce<Record<string, TokenMapEntry>>(
+      (accumulator, collectionFlat) => {
+        for (const [path, entry] of Object.entries(collectionFlat)) {
+          if (!(path in accumulator)) {
+            accumulator[path] = entry;
+          }
+        }
+        return accumulator;
+      },
+      {},
+    );
+    Object.assign(rawMap, scopedRawMap);
 
     setPublishPending(null);
     setPublishApplying(true);
@@ -145,40 +152,46 @@ export function useFigmaSync(
     setPublishError(null);
 
     try {
-      const rawMap = await fetchAllTokensFlat(serverUrl, signal);
-      if (signal.aborted) return;
       const resolved = resolveAllAliases(rawMap);
-      if (signal.aborted) return;
       const tokens: { path: string; $type: string; $value: any; collectionId?: string }[] = [];
       const stylePaths: string[] = [];
-      for (const [path, entry] of Object.entries(resolved)) {
-        if (matchPath(path)) {
-          const styleAwareEntry = preserveTypographyReferences(rawMap[path], entry);
-          tokens.push({
-            path,
-            $type: styleAwareEntry.$type,
-            $value: styleAwareEntry.$value,
-            collectionId: pathToCollectionId[path],
-          });
-          if (
-            styleAwareEntry.$type === 'color' ||
-            styleAwareEntry.$type === 'gradient' ||
-            styleAwareEntry.$type === 'typography' ||
-            styleAwareEntry.$type === 'shadow'
-          ) {
-            stylePaths.push(path);
-          }
+      const scopedPaths = Object.keys(scopedRawMap).filter((path) =>
+        pending.scope === 'group'
+          ? path === pending.groupPath || path.startsWith(`${pending.groupPath}.`)
+          : true,
+      );
+      for (const path of scopedPaths) {
+        const rawEntry = rawMap[path];
+        const resolvedEntry = resolved[path];
+        if (!rawEntry || !resolvedEntry) {
+          continue;
+        }
+        const styleAwareEntry = preserveTypographyReferences(rawEntry, resolvedEntry);
+        tokens.push({
+          path,
+          $type: styleAwareEntry.$type,
+          $value: styleAwareEntry.$value,
+          collectionId: targetCollectionId,
+        });
+        if (
+          styleAwareEntry.$type === 'color' ||
+          styleAwareEntry.$type === 'gradient' ||
+          styleAwareEntry.$type === 'typography' ||
+          styleAwareEntry.$type === 'shadow'
+        ) {
+          stylePaths.push(path);
         }
       }
-      if (signal.aborted) return;
 
       const varResult = await sendVarApply('apply-variables', { tokens, collectionMap, modeMap });
       const styleResult = createStyles
         ? await sendStyleApply('apply-styles', {
             tokens: buildStylePublishTokens({
-              paths: stylePaths,
+              targets: stylePaths.map((path) => ({
+                path,
+                collectionId: targetCollectionId,
+              })),
               collections,
-              pathToCollectionId,
               perCollectionFlat,
               collectionMap,
               modeMap,
@@ -217,9 +230,7 @@ export function useFigmaSync(
   }, [
     publishPending,
     connected,
-    serverUrl,
     collections,
-    pathToCollectionId,
     perCollectionFlat,
     collectionMap,
     modeMap,

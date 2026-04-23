@@ -2,15 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { tokenTypeBadgeClass } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
-import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
+import { isAlias } from '../../shared/resolveAlias';
+import { addRecentToken } from '../shared/recentTokens';
+import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
+import {
+  buildScopedTokenCandidates,
+  getRecentScopedTokenCandidates,
+  type ScopedTokenCandidate,
+} from '../shared/scopedTokenCandidates';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   filterType?: string;
-  onSelect: (path: string) => void;
+  onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
   onClose: () => void;
 }
 
@@ -43,63 +49,59 @@ export function AliasAutocomplete({
   onSelect,
   onClose,
 }: AliasAutocompleteProps) {
+  const { perCollectionFlat } = useTokenFlatMapContext();
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Track selections for recent tokens
-  const handleSelect = useCallback((path: string) => {
-    const collectionId = pathToCollectionId[path];
-    if (collectionId) {
-      addRecentToken(path, collectionId);
+  const handleSelect = useCallback((candidate: ScopedTokenCandidate) => {
+    if (candidate.collectionId) {
+      addRecentToken(candidate.path, candidate.collectionId);
     }
-    onSelect(path);
-  }, [onSelect, pathToCollectionId]);
+    onSelect(candidate.path, candidate);
+  }, [onSelect]);
+
+  const candidates = useMemo(
+    () => buildScopedTokenCandidates({
+      allTokensFlat,
+      pathToCollectionId,
+      perCollectionFlat,
+    }),
+    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+  );
 
   const { entries, totalCount, hasRecent } = useMemo(() => {
     const q = query.trim();
-    type Entry = [string, TokenMapEntry, TokenMapEntry];
-    const resolve = (entry: TokenMapEntry): TokenMapEntry => {
-      if (!isAlias(entry.$value)) return entry;
-      const result = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
-      if (result.value != null) {
-        return { ...entry, $value: result.value, $type: result.$type };
-      }
-      return entry;
-    };
     if (!q) {
-      // Show recent tokens first, then all tokens
-      const recent = getRecentTokenPaths({ pathToCollectionId });
-      const recentEntries: Entry[] = [];
-      for (const p of recent) {
-        const entry = allTokensFlat[p];
-        if (!entry) continue;
-        if (filterType && entry.$type !== filterType) continue;
-        recentEntries.push([p, entry, resolve(entry)]);
+      const recentEntries: ScopedTokenCandidate[] = [];
+      for (const candidate of getRecentScopedTokenCandidates(candidates)) {
+        if (filterType && candidate.entry.$type !== filterType) continue;
+        recentEntries.push(candidate);
         if (recentEntries.length >= 6) break;
       }
-      const recentSet = new Set(recentEntries.map(e => e[0]));
-      const all = Object.entries(allTokensFlat)
-        .filter(([p, entry]) => (!filterType || entry.$type === filterType) && !recentSet.has(p));
-      const remaining = all.slice(0, MAX_RESULTS - recentEntries.length).map(([p, e]) => [p, e, resolve(e)] as Entry);
+      const recentSet = new Set(recentEntries.map((candidate) => candidate.key));
+      const all = candidates
+        .filter((candidate) => (!filterType || candidate.entry.$type === filterType) && !recentSet.has(candidate.key));
+      const remaining = all.slice(0, MAX_RESULTS - recentEntries.length);
       return {
         entries: [...recentEntries, ...remaining],
         totalCount: all.length + recentEntries.length,
         hasRecent: recentEntries.length > 0,
       };
     }
-    const scored: [string, TokenMapEntry, number][] = [];
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      if (filterType && entry.$type !== filterType) continue;
-      const score = fuzzyScore(q, path);
-      if (score >= 0) scored.push([path, entry, score]);
+    const scored: Array<[ScopedTokenCandidate, number]> = [];
+    for (const candidate of candidates) {
+      if (filterType && candidate.entry.$type !== filterType) continue;
+      const score = fuzzyScore(q, candidate.path);
+      if (score >= 0) scored.push([candidate, score]);
     }
-    scored.sort((a, b) => b[2] - a[2]);
+    scored.sort((a, b) => b[1] - a[1]);
     return {
-      entries: scored.slice(0, MAX_RESULTS).map(([p, e]) => [p, e, resolve(e)] as Entry),
+      entries: scored.slice(0, MAX_RESULTS).map(([candidate]) => candidate),
       totalCount: scored.length,
       hasRecent: false,
     };
-  }, [allTokensFlat, query, filterType, pathToCollectionId]);
+  }, [candidates, query, filterType]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -115,7 +117,7 @@ export function AliasAutocomplete({
         setActiveIdx(i => Math.max(i - 1, 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (entries[activeIdx]) handleSelect(entries[activeIdx][0]);
+        if (entries[activeIdx]) handleSelect(entries[activeIdx]);
       } else if (e.key === 'Escape') {
         onClose();
       }
@@ -148,15 +150,16 @@ export function AliasAutocomplete({
           Recent
         </div>
       )}
-      {entries.map(([path, entry, resolved], idx) => {
+      {entries.map((candidate, idx) => {
+        const { path, entry, resolvedEntry: resolved } = candidate;
         const isAliasToken = isAlias(entry.$value);
         const previewValue = formatValuePreview(resolved.$value);
         const rawPreview = isAliasToken ? formatValuePreview(entry.$value) : '';
         return (
         <button
-          key={path}
+          key={candidate.key}
           data-idx={idx}
-          onMouseDown={e => { e.preventDefault(); handleSelect(path); }}
+          onMouseDown={e => { e.preventDefault(); handleSelect(candidate); }}
           onMouseEnter={() => setActiveIdx(idx)}
           className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${entry.$lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
         >
@@ -200,9 +203,9 @@ export function AliasAutocomplete({
           )}
 
           {/* Set name */}
-          {pathToCollectionId[path] && (
+          {candidate.isAmbiguousPath && candidate.collectionId && (
             <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-              {pathToCollectionId[path]}
+              {candidate.collectionId}
             </span>
           )}
         </button>

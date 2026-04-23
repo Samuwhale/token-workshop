@@ -20,10 +20,10 @@ export function AppCommandPalette({
   onClose: () => void;
 }) {
   const {
-    currentCollectionId,
-    setCurrentCollectionId,
+    libraryBrowseCollectionId: currentCollectionId,
+    setLibraryBrowseCollectionId: setCurrentCollectionId,
   } = useCollectionStateContext();
-  const { pathToCollectionId, perCollectionFlat } = useTokenFlatMapContext();
+  const { perCollectionFlat } = useTokenFlatMapContext();
   const { derivedTokenPaths } = useGeneratorContext();
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const { navigateTo } = useNavigationContext();
@@ -135,10 +135,10 @@ export function AppCommandPalette({
       starredTokens={starredPaletteTokens}
       recentTokens={recentPaletteTokens}
       onGoToToken={(token) => {
-        const targetCollectionId = token.collectionId || pathToCollectionId[token.path];
+        const targetCollectionId = token.collectionId;
         navigateTo("library");
         setTokenDetails(null);
-        if (targetCollectionId && targetCollectionId !== currentCollectionId) {
+        if (targetCollectionId !== currentCollectionId) {
           setPendingHighlightForCollection(token.path, targetCollectionId);
           setCurrentCollectionId(targetCollectionId);
           return;

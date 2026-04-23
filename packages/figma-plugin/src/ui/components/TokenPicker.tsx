@@ -12,8 +12,14 @@ import type { TokenMapEntry } from '../../shared/types';
 import { tokenTypeBadgeClass } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
+import { addRecentToken } from '../shared/recentTokens';
 import { swatchBgColor } from '../shared/colorUtils';
+import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
+import {
+  buildScopedTokenCandidates,
+  getRecentScopedTokenCandidates,
+  type ScopedTokenCandidate,
+} from '../shared/scopedTokenCandidates';
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -29,7 +35,12 @@ export interface TokenPickerProps {
   /** When false, hide deprecated tokens from the result list. */
   includeDeprecated?: boolean;
   /** Called when a token is selected. */
-  onSelect: (path: string, resolvedValue: unknown, entry: TokenMapEntry) => void;
+  onSelect: (
+    path: string,
+    resolvedValue: unknown,
+    entry: TokenMapEntry,
+    selection?: ScopedTokenCandidate,
+  ) => void;
   /** Called when the picker is dismissed without selection. */
   onClose?: () => void;
   /** Exclude these paths from results (e.g. exclude self). */
@@ -105,6 +116,7 @@ export function TokenPickerDropdown({
   placeholder = 'Search tokens…',
   autoFocus = true,
 }: TokenPickerProps) {
+  const { perCollectionFlat } = useTokenFlatMapContext();
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
@@ -115,17 +127,18 @@ export function TokenPickerDropdown({
   }, [autoFocus]);
 
   const handleSelect = useCallback(
-    (path: string) => {
-      const collectionId = pathToCollectionId[path];
-      if (collectionId) {
-        addRecentToken(path, collectionId);
+    (candidate: ScopedTokenCandidate) => {
+      if (candidate.collectionId) {
+        addRecentToken(candidate.path, candidate.collectionId);
       }
-      const entry = allTokensFlat[path];
-      if (!entry) return;
-      const resolved = resolveEntry(entry, allTokensFlat);
-      onSelect(path, resolved.$value, entry);
+      onSelect(
+        candidate.path,
+        candidate.resolvedEntry.$value,
+        candidate.entry,
+        candidate,
+      );
     },
-    [allTokensFlat, onSelect, pathToCollectionId],
+    [onSelect],
   );
 
   const excludeSet = useMemo(
@@ -133,54 +146,55 @@ export function TokenPickerDropdown({
     [excludePaths],
   );
 
+  const candidates = useMemo(
+    () => buildScopedTokenCandidates({
+      allTokensFlat,
+      pathToCollectionId,
+      perCollectionFlat,
+    }),
+    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+  );
+
   const { entries, totalCount, hasRecent } = useMemo(() => {
     const q = query.trim();
-    type Entry = [string, TokenMapEntry, TokenMapEntry]; // [path, raw, resolved]
-
-    const resolve = (e: TokenMapEntry) => resolveEntry(e, allTokensFlat);
-    const matchesFilter = (e: TokenMapEntry) =>
-      (!filterType || e.$type === filterType) &&
-      (includeDeprecated || e.$lifecycle !== 'deprecated');
+    const matchesFilter = (candidate: ScopedTokenCandidate) =>
+      (!filterType || candidate.entry.$type === filterType) &&
+      (includeDeprecated || candidate.entry.$lifecycle !== 'deprecated');
 
     if (!q) {
-      // Show recent tokens first, then all tokens
-      const recent = getRecentTokenPaths({ pathToCollectionId });
-      const recentEntries: Entry[] = [];
-      for (const p of recent) {
-        if (excludeSet.has(p)) continue;
-        const entry = allTokensFlat[p];
-        if (!entry || !matchesFilter(entry)) continue;
-        recentEntries.push([p, entry, resolve(entry)]);
+      const recentEntries: ScopedTokenCandidate[] = [];
+      for (const candidate of getRecentScopedTokenCandidates(candidates)) {
+        if (excludeSet.has(candidate.path) || !matchesFilter(candidate)) continue;
+        recentEntries.push(candidate);
         if (recentEntries.length >= 6) break;
       }
-      const recentSet = new Set(recentEntries.map(e => e[0]));
-      const all = Object.entries(allTokensFlat).filter(
-        ([p, entry]) => matchesFilter(entry) && !recentSet.has(p) && !excludeSet.has(p),
+      const recentSet = new Set(recentEntries.map((candidate) => candidate.key));
+      const all = candidates.filter(
+        (candidate) =>
+          matchesFilter(candidate) &&
+          !recentSet.has(candidate.key) &&
+          !excludeSet.has(candidate.path),
       );
-      const remaining = all
-        .slice(0, MAX_RESULTS - recentEntries.length)
-        .map(([p, e]) => [p, e, resolve(e)] as Entry);
+      const remaining = all.slice(0, MAX_RESULTS - recentEntries.length);
       return {
         entries: [...recentEntries, ...remaining],
         totalCount: all.length + recentEntries.length,
         hasRecent: recentEntries.length > 0,
       };
     }
-    const scored: [string, TokenMapEntry, number][] = [];
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      if (!matchesFilter(entry) || excludeSet.has(path)) continue;
-      const score = fuzzyScore(q, path);
-      if (score >= 0) scored.push([path, entry, score]);
+    const scored: Array<[ScopedTokenCandidate, number]> = [];
+    for (const candidate of candidates) {
+      if (!matchesFilter(candidate) || excludeSet.has(candidate.path)) continue;
+      const score = fuzzyScore(q, candidate.path);
+      if (score >= 0) scored.push([candidate, score]);
     }
-    scored.sort((a, b) => b[2] - a[2]);
+    scored.sort((a, b) => b[1] - a[1]);
     return {
-      entries: scored
-        .slice(0, MAX_RESULTS)
-        .map(([p, e]) => [p, e, resolve(e)] as Entry),
+      entries: scored.slice(0, MAX_RESULTS).map(([candidate]) => candidate),
       totalCount: scored.length,
       hasRecent: false,
     };
-  }, [allTokensFlat, query, filterType, includeDeprecated, excludeSet, pathToCollectionId]);
+  }, [candidates, query, filterType, includeDeprecated, excludeSet]);
 
   useEffect(() => { setActiveIdx(0); }, [query]);
 
@@ -195,7 +209,7 @@ export function TokenPickerDropdown({
         setActiveIdx(i => Math.max(i - 1, 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (entries[activeIdx]) handleSelect(entries[activeIdx][0]);
+        if (entries[activeIdx]) handleSelect(entries[activeIdx]);
       } else if (e.key === 'Escape') {
         onClose?.();
       }
@@ -242,16 +256,17 @@ export function TokenPickerDropdown({
             Recent
           </div>
         )}
-        {entries.map(([path, entry, resolved], idx) => {
+        {entries.map((candidate, idx) => {
+          const { path, entry, resolvedEntry: resolved } = candidate;
           const isAliasToken = isAlias(entry.$value);
           const previewValue = formatValuePreview(resolved.$value);
           const rawPreview = isAliasToken ? formatValuePreview(entry.$value) : '';
           const isColor = resolved.$type === 'color' && typeof resolved.$value === 'string';
           return (
             <button
-              key={path}
+              key={candidate.key}
               data-idx={idx}
-              onMouseDown={e => { e.preventDefault(); handleSelect(path); }}
+              onMouseDown={e => { e.preventDefault(); handleSelect(candidate); }}
               onMouseEnter={() => setActiveIdx(idx)}
               className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${
                 idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''
@@ -306,9 +321,9 @@ export function TokenPickerDropdown({
               )}
 
               {/* Set name */}
-              {pathToCollectionId[path] && (
+              {candidate.isAmbiguousPath && candidate.collectionId && (
                 <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-                  {pathToCollectionId[path]}
+                  {candidate.collectionId}
                 </span>
               )}
             </button>

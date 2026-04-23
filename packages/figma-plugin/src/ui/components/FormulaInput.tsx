@@ -4,6 +4,12 @@ import type { TokenMapEntry } from '../../shared/types';
 import { tokenTypeBadgeClass } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { AUTHORING } from '../shared/editorClasses';
+import { addRecentToken } from '../shared/recentTokens';
+import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
+import {
+  buildScopedTokenCandidates,
+  type ScopedTokenCandidate,
+} from '../shared/scopedTokenCandidates';
 
 interface FormulaInputProps {
   value: string;
@@ -133,11 +139,21 @@ export function FormulaInput({
   placeholder = '{spacing.base} * 2',
   autoFocus,
 }: FormulaInputProps) {
+  const { perCollectionFlat } = useTokenFlatMapContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [cursorPos, setCursorPos] = useState(value.length);
   const [activeIdx, setActiveIdx] = useState(0);
   const [showOperatorHints, setShowOperatorHints] = useState(false);
+
+  const candidates = useMemo(
+    () => buildScopedTokenCandidates({
+      allTokensFlat,
+      pathToCollectionId,
+      perCollectionFlat,
+    }),
+    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+  );
 
   // Determine if cursor is inside a {ref} and extract the query
   const refQuery = useMemo(() => getRefQueryAtCursor(value, cursorPos), [value, cursorPos]);
@@ -148,24 +164,25 @@ export function FormulaInput({
     if (!refQuery) return [];
     const q = refQuery.query.trim();
     if (!q) {
-      // Show numeric tokens first when no query
-      return Object.entries(allTokensFlat)
-        .filter(([, entry]) => {
-          if (filterType && entry.$type !== filterType) return false;
-          const t = entry.$type;
+      return candidates
+        .filter((candidate) => {
+          if (filterType && candidate.entry.$type !== filterType) return false;
+          const t = candidate.entry.$type;
           return t === 'number' || t === 'dimension' || t === 'fontWeight' || t === 'duration';
         })
         .slice(0, MAX_AC_RESULTS);
     }
-    const scored: [string, TokenMapEntry, number][] = [];
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      if (filterType && entry.$type !== filterType) continue;
-      const score = fuzzyScore(q, path);
-      if (score >= 0) scored.push([path, entry, score]);
+    const scored: Array<[ScopedTokenCandidate, number]> = [];
+    for (const candidate of candidates) {
+      if (filterType && candidate.entry.$type !== filterType) continue;
+      const score = fuzzyScore(q, candidate.path);
+      if (score >= 0) scored.push([candidate, score]);
     }
-    scored.sort((a, b) => b[2] - a[2]);
-    return scored.slice(0, MAX_AC_RESULTS).map(([p, e]) => [p, e] as [string, TokenMapEntry]);
-  }, [allTokensFlat, refQuery, filterType]);
+    scored.sort((a, b) => b[1] - a[1]);
+    return scored
+      .slice(0, MAX_AC_RESULTS)
+      .map(([candidate]) => candidate);
+  }, [candidates, refQuery, filterType]);
 
   // Reset active index on query change
   useEffect(() => {
@@ -178,15 +195,18 @@ export function FormulaInput({
     [value, allTokensFlat],
   );
 
-  const selectEntry = useCallback((path: string) => {
+  const selectEntry = useCallback((candidate: ScopedTokenCandidate) => {
     if (!refQuery) return;
+    if (candidate.collectionId) {
+      addRecentToken(candidate.path, candidate.collectionId);
+    }
     // Replace the text from { to } (or end) with {path}
     const before = value.slice(0, refQuery.start);
     const after = value.slice(refQuery.end < value.length ? refQuery.end + 1 : refQuery.end);
-    const newValue = `${before}{${path}}${after}`;
+    const newValue = `${before}{${candidate.path}}${after}`;
     onChange(newValue);
     // Position cursor after the closing brace
-    const newCursor = before.length + path.length + 2;
+    const newCursor = before.length + candidate.path.length + 2;
     setCursorPos(newCursor);
     requestAnimationFrame(() => {
       if (inputRef.current) {
@@ -212,7 +232,7 @@ export function FormulaInput({
         if (acEntries[activeIdx]) {
           e.preventDefault();
           e.stopPropagation();
-          selectEntry(acEntries[activeIdx][0]);
+          selectEntry(acEntries[activeIdx]);
         }
       } else if (e.key === 'Escape') {
         e.stopPropagation();
@@ -350,11 +370,13 @@ export function FormulaInput({
           <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] border-b border-[var(--color-figma-border)] uppercase tracking-wider">
             Token references
           </div>
-          {acEntries.map(([path, entry], idx) => (
+          {acEntries.map((candidate, idx) => {
+            const { path, entry } = candidate;
+            return (
             <button
-              key={path}
+              key={candidate.key}
               data-idx={idx}
-              onMouseDown={e => { e.preventDefault(); selectEntry(path); }}
+              onMouseDown={e => { e.preventDefault(); selectEntry(candidate); }}
               onMouseEnter={() => setActiveIdx(idx)}
               className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${
                 idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''
@@ -386,13 +408,14 @@ export function FormulaInput({
               </span>
 
               {/* Set name */}
-              {pathToCollectionId[path] && (
+              {candidate.isAmbiguousPath && candidate.collectionId && (
                 <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-                  {pathToCollectionId[path]}
+                  {candidate.collectionId}
                 </span>
               )}
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
 

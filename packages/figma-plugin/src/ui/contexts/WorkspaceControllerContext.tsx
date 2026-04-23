@@ -35,8 +35,8 @@ export interface ShellWorkspaceController {
   toggleQuickApply: () => void;
   triggerCreateFromSelection: () => void;
   triggerExtractFromSelection: () => void;
-  focusCollectionRail: () => void;
-  collectionRailFocusRequestKey: number;
+  openCollectionPicker: () => void;
+  collectionPickerFocusRequestKey: number;
   openStartHere: (branch?: StartHereBranch) => void;
   restartGuidedSetup: () => void;
   handleClearAllComplete: () => void;
@@ -86,15 +86,15 @@ export interface TokensWorkspaceController {
   recentlyTouched: RecentlyTouchedState;
   starredTokens: StarredTokensState;
   handleOpenCrossCollectionCompare: (path: string) => void;
-  handlePaletteDuplicate: (path: string, collectionId?: string) => Promise<void>;
-  handlePaletteRename: (path: string, collectionId?: string) => void;
-  handlePaletteMove: (path: string, collectionId?: string) => void;
+  handlePaletteDuplicate: (path: string, collectionId: string) => Promise<void>;
+  handlePaletteRename: (path: string, collectionId: string) => void;
+  handlePaletteMove: (path: string, collectionId: string) => void;
   requestPaletteDelete: (
     paths: string[],
     label: string,
     collectionId?: string,
   ) => void;
-  handlePaletteDeleteToken: (path: string, collectionId?: string) => void;
+  handlePaletteDeleteToken: (path: string, collectionId: string) => void;
 }
 
 export interface ApplyWorkspaceController {

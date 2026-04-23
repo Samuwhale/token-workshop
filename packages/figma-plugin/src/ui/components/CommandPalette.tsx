@@ -541,9 +541,9 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                     : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
                 onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
-                title={searchAllSets ? 'Searching all collections — click to search only the active collection' : 'Search across all token collections'}
+                title={searchAllSets ? 'Searching across collections — click to search only the working collection' : 'Search across all token collections'}
               >
-                {searchAllSets ? 'All collections' : 'All collections'}
+                {searchAllSets ? 'Across collections' : 'Working collection only'}
               </button>
             )}
           </div>

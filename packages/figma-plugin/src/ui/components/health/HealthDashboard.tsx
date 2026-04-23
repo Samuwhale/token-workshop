@@ -35,6 +35,8 @@ export interface HealthDashboardProps {
 
   onNavigateToView: (view: HealthView) => void;
   onNavigateToGenerators?: () => void;
+  scopeLabel?: string;
+  onBackToRollup?: () => void;
 }
 
 function StatusIcon({ status }: { status: HealthStatus }) {
@@ -62,6 +64,10 @@ function formatCheckedAt(date: Date): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return count === 1 ? singular : plural;
+}
+
 export function HealthDashboard({
   connected,
   overallStatus,
@@ -82,6 +88,8 @@ export function HealthDashboard({
   hiddenCount,
   onNavigateToView,
   onNavigateToGenerators,
+  scopeLabel,
+  onBackToRollup,
 }: HealthDashboardProps) {
   if (!connected) {
     return (
@@ -95,6 +103,7 @@ export function HealthDashboard({
   }
 
   const openView = (view: HealthView) => () => onNavigateToView(view);
+  const otherAttentionCount = Math.max(totalIssueCount - issueCount, 0);
   const summaryTitle =
     validationError
       ? "Health check failed"
@@ -104,7 +113,9 @@ export function HealthDashboard({
       ? "Checking usage"
       : totalIssueCount === 0
         ? "All clear"
-        : `${totalIssueCount} issue${totalIssueCount !== 1 ? "s" : ""}`;
+        : otherAttentionCount > 0
+          ? `${totalIssueCount} ${pluralize(totalIssueCount, "item")} to review`
+          : `${issueCount} ${pluralize(issueCount, "issue")}`;
   const categories: CategoryRow[] = [
     { id: "issues", label: "Issues", count: issueCount, countLabel: issueCount === 0 ? "All clear" : String(issueCount), severity: issueStatus, onOpen: openView("issues") },
     {
@@ -128,6 +139,29 @@ export function HealthDashboard({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-3 py-3" style={{ scrollbarWidth: "thin" }}>
+      {(scopeLabel || onBackToRollup) && (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+              Working collection
+            </div>
+            {scopeLabel ? (
+              <div className="truncate text-body font-medium text-[var(--color-figma-text)]">
+                {scopeLabel}
+              </div>
+            ) : null}
+          </div>
+          {onBackToRollup ? (
+            <button
+              type="button"
+              onClick={onBackToRollup}
+              className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              All collections
+            </button>
+          ) : null}
+        </div>
+      )}
       <div className="flex items-center gap-2.5 mb-4">
         <span className={statusColor(overallStatus)}>
           <StatusIcon status={overallStatus} />
@@ -149,6 +183,11 @@ export function HealthDashboard({
             {validationLastRefreshed && !validationLoading && !validationError && (
               <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
                 Checked {formatCheckedAt(validationLastRefreshed)}
+              </span>
+            )}
+            {!validationLoading && !validationError && totalIssueCount > 0 && otherAttentionCount > 0 && (
+              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                {issueCount} {pluralize(issueCount, "issue")} · {otherAttentionCount} other {pluralize(otherAttentionCount, "item")}
               </span>
             )}
           </div>

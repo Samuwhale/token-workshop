@@ -30,10 +30,11 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
 }
 
-export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath, initialComparingId, initialComparingLabel, onBack }: {
+export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collectionFilter, filterTokenPath, initialComparingId, initialComparingLabel, onBack }: {
   serverUrl: string;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
+  collectionFilter?: string;
   filterTokenPath?: string;
   initialComparingId?: string;
   initialComparingLabel?: string;
@@ -276,9 +277,11 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
 
   // ── Pair diff view (snapshot A vs snapshot B) ─────────────────────────
   if (showPairDiff && pairA && pairB) {
-    const displayChanges = filterTokenPath && pairChanges
-      ? pairChanges.filter(c => c.path === filterTokenPath)
-      : pairChanges;
+    const displayChanges = pairChanges?.filter((change) => {
+      if (collectionFilter && change.collectionId !== collectionFilter) return false;
+      if (filterTokenPath && change.path !== filterTokenPath) return false;
+      return true;
+    }) ?? null;
     const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
     const workspaceSummary = formatWorkspaceDiffSummary(pairWorkspaceDiffs);
     const noChanges = displayChanges?.length === 0 && pairWorkspaceDiffs.length === 0;
@@ -367,9 +370,11 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, filter
   // ── Compare view ──────────────────────────────────────────────────────
   if (comparing) {
     const snapshot = snapshots.find(s => s.id === comparing);
-    const displayChanges = filterTokenPath && changes
-      ? changes.filter(c => c.path === filterTokenPath)
-      : changes;
+    const displayChanges = changes?.filter((change) => {
+      if (collectionFilter && change.collectionId !== collectionFilter) return false;
+      if (filterTokenPath && change.path !== filterTokenPath) return false;
+      return true;
+    }) ?? null;
     const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
     const workspaceSummary = formatWorkspaceDiffSummary(workspaceDiffs);
     const noChanges = displayChanges?.length === 0 && workspaceDiffs.length === 0;

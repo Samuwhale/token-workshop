@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ValidationIssue } from "../../hooks/useValidationCache";
 import { severityStyles } from "../../shared/noticeSystem";
 import type { NoticeSeverity } from "../../shared/noticeSystem";
@@ -18,6 +18,8 @@ export interface HealthIssuesViewProps {
   onFix: (issue: ValidationIssue) => void;
   onIgnore: (issue: ValidationIssue) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
+  initialTokenPath?: string | null;
+  requestNonce?: number;
   onBack: () => void;
 }
 
@@ -29,12 +31,22 @@ export function HealthIssuesView({
   onFix,
   onIgnore,
   onNavigateToToken,
+  initialTokenPath = null,
+  requestNonce,
   onBack,
 }: HealthIssuesViewProps) {
   const [severityFilter, setSeverityFilter] = useState<"all" | "error" | "warning" | "info">("all");
+  const [tokenPathFilter, setTokenPathFilter] = useState<string | null>(initialTokenPath);
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
   const [issueGroupVisibleCounts, setIssueGroupVisibleCounts] = useState<Record<string, number>>({});
   const exportMenu = useDropdownMenu();
+
+  useEffect(() => {
+    setTokenPathFilter(initialTokenPath);
+    setSeverityFilter("all");
+    setCollapsedRules(new Set());
+    setIssueGroupVisibleCounts({});
+  }, [initialTokenPath, requestNonce]);
 
   const activeIssues = validationIssues.filter(
     (i) =>
@@ -43,13 +55,16 @@ export function HealthIssuesView({
       !suppressedKeys.has(suppressKey(i)),
   );
 
+  const scopedIssues = tokenPathFilter
+    ? activeIssues.filter((issue) => issue.path === tokenPathFilter)
+    : activeIssues;
   const filteredIssues =
     severityFilter === "all"
-      ? [...activeIssues].sort((a, b) => {
+      ? [...scopedIssues].sort((a, b) => {
           const order = { error: 0, warning: 1, info: 2 } as const;
           return order[a.severity] - order[b.severity];
         })
-      : activeIssues.filter((i) => i.severity === severityFilter);
+      : scopedIssues.filter((i) => i.severity === severityFilter);
   const exportIssues = filteredIssues;
 
   const issueGroups = (() => {
@@ -141,6 +156,19 @@ export function HealthIssuesView({
           </svg>
         </button>
         <span className="text-body font-semibold text-[var(--color-figma-text)]">Issues</span>
+        {tokenPathFilter && (
+          <div className="ml-1 flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
+              {tokenPathFilter}
+            </span>
+            <button
+              onClick={() => setTokenPathFilter(null)}
+              className="shrink-0 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Clear token filter
+            </button>
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-1.5">
           {lastRefreshedLabel(validationLastRefreshed)}
           {(["all", "error", "warning", "info"] as const).map((f) => {
@@ -195,7 +223,11 @@ export function HealthIssuesView({
         {filteredIssues.length === 0 ? (
           <div className="px-3 py-12 text-center">
             <p className="text-body text-[var(--color-figma-text-secondary)]">
-              {activeIssues.length === 0 ? "No issues found" : "No issues match this filter"}
+              {activeIssues.length === 0
+                ? "No issues found"
+                : tokenPathFilter
+                  ? "No issues found for this token"
+                  : "No issues match this filter"}
             </p>
           </div>
         ) : (

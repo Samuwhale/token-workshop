@@ -479,12 +479,16 @@ export const TokenLeafNode = memo(
         setGeneratedTokenChoiceOpen(false);
         setPendingGeneratedSave(null);
         dispatchToast(`Saved manual exception for "${node.path}"`, "success", {
-          destination: { kind: "token", tokenPath: node.path },
+          destination: {
+            kind: "token",
+            tokenPath: node.path,
+            collectionId,
+          },
         });
       } finally {
         setGeneratedTokenChoiceBusy(null);
       }
-    }, [node.path, onSaveGeneratedException, pendingGeneratedSave]);
+    }, [collectionId, node.path, onSaveGeneratedException, pendingGeneratedSave]);
 
     const handleDetachAndSaveGeneratedToken = useCallback(async () => {
       if (!pendingGeneratedSave || !onDetachFromGenerator) {
@@ -500,12 +504,16 @@ export const TokenLeafNode = memo(
         setGeneratedTokenChoiceOpen(false);
         setPendingGeneratedSave(null);
         dispatchToast(`Detached "${node.path}" from its generator`, "success", {
-          destination: { kind: "token", tokenPath: node.path },
+          destination: {
+            kind: "token",
+            tokenPath: node.path,
+            collectionId,
+          },
         });
       } finally {
         setGeneratedTokenChoiceBusy(null);
       }
-    }, [node.path, onDetachFromGenerator, pendingGeneratedSave]);
+    }, [collectionId, node.path, onDetachFromGenerator, pendingGeneratedSave]);
 
     const handleMultiModeGeneratedSaveRequest = useCallback(
       (

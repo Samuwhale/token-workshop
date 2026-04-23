@@ -176,20 +176,44 @@ export function useHealthData({
     collectionId: string;
     hex: string;
   }[] => {
+    const resolveScopedColorHex = (
+      path: string,
+      collectionId: string,
+      visited = new Set<string>(),
+    ): string | null => {
+      const scopedKey = `${collectionId}::${path}`;
+      if (visited.has(scopedKey)) return null;
+      visited.add(scopedKey);
+      const entry = perCollectionFlat[collectionId]?.[path];
+      if (!entry || entry.$type !== "color") return null;
+      const value = entry.$value as TokenValue;
+      if (isAlias(value)) {
+        const aliasPath = extractAliasPath(value);
+        return aliasPath
+          ? resolveScopedColorHex(aliasPath, collectionId, visited)
+          : null;
+      }
+      return typeof value === "string" && HEX_RE.test(value) ? value : null;
+    };
+
     const colors: { path: string; collectionId: string; hex: string }[] = [];
-    for (const [path, entry] of Object.entries(allTokensUnified)) {
-      if (entry.$type !== "color") continue;
-      const hex = resolveColorHex(path);
-      if (hex) {
-        colors.push({
-          path,
-          collectionId: entry.collectionId,
-          hex: normalizeHex(hex),
-        });
+    for (const [collectionId, collectionFlat] of Object.entries(
+      perCollectionFlat,
+    )) {
+      for (const [path, entry] of Object.entries(collectionFlat)) {
+        if (entry.$type !== "color") continue;
+        const hex = resolveScopedColorHex(path, collectionId);
+        if (hex) {
+          colors.push({
+            path,
+            collectionId,
+            hex: normalizeHex(hex),
+          });
+        }
       }
     }
     return colors;
-  }, [allTokensUnified, resolveColorHex]);
+  }, [perCollectionFlat]);
 
   const lintDuplicateGroups = useMemo((): DuplicateGroup[] => {
     if (!validationIssues) return [];

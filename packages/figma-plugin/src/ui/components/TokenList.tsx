@@ -142,6 +142,7 @@ export function TokenList({
     tokenUsageReady = false,
     perCollectionFlat,
     collectionMap = {},
+    collectionTokenCounts = {},
     modeMap = {},
     collections = [],
     unresolvedAllTokensFlat,
@@ -163,6 +164,7 @@ export function TokenList({
     onToggleIssuesOnly,
     onFilteredCountChange,
     onNavigateToCollection,
+    onSelectCollection,
     onTokenTouched,
     onToggleStar,
     starredPaths,
@@ -191,7 +193,8 @@ export function TokenList({
   showIssuesOnly,
   editingTokenPath,
   compareHandle,
-  collectionHealthSummary,
+  collectionHealth,
+  collectionPickerFocusRequestKey,
   onOpenHealth,
 }: TokenListProps) {
   const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
@@ -227,25 +230,13 @@ export function TokenList({
   const [batchMoveToCollectionTarget, setBatchMoveToCollectionTarget] = useState("");
   const [showBatchCopyToCollection, setShowBatchCopyToCollection] = useState(false);
   const [batchCopyToCollectionTarget, setBatchCopyToCollectionTarget] = useState("");
-  const activeCollectionIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const path of Object.keys(allTokensFlat)) {
-      const tokenCollectionId = pathToCollectionId[path];
-      if (tokenCollectionId && tokenCollectionId !== collectionId) {
-        continue;
-      }
-      if (tokenCollectionId) {
-        ids.add(tokenCollectionId);
-      }
-    }
-    return ids;
-  }, [allTokensFlat, pathToCollectionId, collectionId]);
+  const currentCollectionFlat = useMemo(
+    () => perCollectionFlat?.[collectionId] ?? {},
+    [collectionId, perCollectionFlat],
+  );
   const activeCollections = useMemo(
-    () =>
-      collections.filter((collection) =>
-        activeCollectionIds.has(collection.id) || collection.id === collectionId,
-      ),
-    [activeCollectionIds, collections, collectionId],
+    () => collections.filter((collection) => collection.id === collectionId),
+    [collections, collectionId],
   );
   const viewState = useTokenListViewState({
     collectionId,
@@ -478,7 +469,7 @@ export function TokenList({
   const multiModeData = useMemo(() => {
     if (
       !multiModeDimId ||
-      !unresolvedAllTokensFlat ||
+      Object.keys(currentCollectionFlat).length === 0 ||
       activeCollections.length === 0
     )
       return null;
@@ -497,20 +488,20 @@ export function TokenList({
         optionName: option.name,
         collectionId: collection.id,
         resolved: applyModeSelectionsToTokens(
-          unresolvedAllTokensFlat,
-          collections,
+          currentCollectionFlat,
+          [collection],
           { [collection.id]: option.name },
-          pathToCollectionId,
+          Object.fromEntries(
+            Object.keys(currentCollectionFlat).map((path) => [path, collection.id]),
+          ),
         ),
       });
     }
     return { collection, results };
   }, [
     multiModeDimId,
-    unresolvedAllTokensFlat,
+    currentCollectionFlat,
     activeCollections,
-    collections,
-    pathToCollectionId,
   ]);
 
   // Build mode values for a given token path. Always returns at least one entry
@@ -524,11 +515,11 @@ export function TokenList({
           optionName,
           collectionId,
           resolved: resolved[tokenPath],
-          targetCollectionId: pathToCollectionId[tokenPath] ?? null,
+          targetCollectionId: collectionId,
         };
       });
     },
-    [multiModeData, pathToCollectionId],
+    [multiModeData],
   );
 
   // Pre-compute per-group collection coverage and per-token missing mode counts.
@@ -567,7 +558,7 @@ export function TokenList({
     );
     const configuredTokenPaths = new Set<string>();
     for (const [path, entry] of Object.entries(allTokensFlat)) {
-      const tokenCollectionId = pathToCollectionId[path];
+      const tokenCollectionId = collectionId;
       if (tokenCollectionId && multiModeCollectionIds.has(tokenCollectionId)) {
         configuredTokenPaths.add(path);
         continue;
@@ -609,7 +600,7 @@ export function TokenList({
     }
     walk(tokens);
     return map;
-  }, [activeCollections, allTokensFlat, pathToCollectionId, tokenModeMissing, tokens]);
+  }, [activeCollections, allTokensFlat, collectionId, tokenModeMissing, tokens]);
 
   // JSON editor state
   const {
@@ -846,6 +837,32 @@ export function TokenList({
       arr.push(v);
     }
     return map;
+  }, [lintViolations]);
+
+  const issueSummary = useMemo(() => {
+    const summary = {
+      count: lintViolations.length,
+      errors: 0,
+      warnings: 0,
+      severity: null as "error" | "warning" | "info" | null,
+    };
+
+    for (const violation of lintViolations) {
+      if (violation.severity === "error") {
+        summary.errors += 1;
+        summary.severity = "error";
+        continue;
+      }
+
+      if (violation.severity === "warning") {
+        summary.warnings += 1;
+        if (summary.severity !== "error") {
+          summary.severity = "warning";
+        }
+      }
+    }
+
+    return summary;
   }, [lintViolations]);
 
   // Token search state (depends on expansion and virtual-scroll bridge refs)
@@ -2345,7 +2362,12 @@ export function TokenList({
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
             collectionId={collectionId}
-            collectionDisplayName={collectionMap[collectionId]}
+            collections={collections}
+            collectionDisplayNames={collectionMap}
+            collectionTokenCounts={collectionTokenCounts}
+            collectionHealth={collectionHealth}
+            collectionPickerFocusRequestKey={collectionPickerFocusRequestKey}
+            onSelectCollection={onSelectCollection ?? (() => {})}
             onOpenCollectionDetails={
               onOpenCollectionDetails
                 ? () => onOpenCollectionDetails(collectionId)
@@ -2393,7 +2415,7 @@ export function TokenList({
               onSearchResultPresentationChange: setSearchResultPresentation,
               showIssuesOnly: showIssuesOnly ?? false,
               onToggleIssuesOnly,
-              lintCount: collectionHealthSummary?.actionable ?? 0,
+              lintCount: lintViolations.length,
               recentlyTouchedCount: recentlyTouched.count,
               showRecentlyTouched,
               onToggleRecentlyTouched: () => setShowRecentlyTouched((v) => !v),
@@ -2411,7 +2433,7 @@ export function TokenList({
               onToggleDuplicates: () => setShowDuplicates(!showDuplicates),
               activeCount: filterMenuActiveCount,
             } : null}
-            collectionHealthSummary={collectionHealthSummary}
+            issueSummary={issueSummary}
             onOpenHealth={onOpenHealth}
           />
         )}

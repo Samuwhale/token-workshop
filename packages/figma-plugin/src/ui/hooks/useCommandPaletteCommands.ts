@@ -48,8 +48,8 @@ export function useCommandPaletteCommands(): {
 } {
   const {
     collections,
-    currentCollectionId,
-    setCurrentCollectionId,
+    libraryBrowseCollectionId: currentCollectionId,
+    setLibraryBrowseCollectionId: setCurrentCollectionId,
     collectionTokenCounts,
   } = useCollectionStateContext();
   const collectionIds = collections.map((collection) => collection.id);
@@ -133,11 +133,11 @@ export function useCommandPaletteCommands(): {
       },
       {
         id: "switch-collection",
-        label: "Focus collection rail",
-        description: `Jump to the collection rail for ${collectionIds.length} collections`,
+        label: "Switch working collection",
+        description: `Change the working collection across ${collectionIds.length} collections`,
         category: "Collections",
         shortcut: adaptShortcut(SHORTCUT_KEYS.QUICK_SWITCH_COLLECTION),
-        handler: shell.focusCollectionRail,
+        handler: shell.openCollectionPicker,
       },
       {
         id: "paste-tokens",
@@ -227,7 +227,7 @@ export function useCommandPaletteCommands(): {
         id: "validate",
         label: "Check health now",
         description:
-          "Refresh validation across references, duplicates, and generated output",
+          "Open the all-collections Health rollup and refresh validation",
         category: "Health",
         handler: () => {
           navigateTo("library", "health");
@@ -372,12 +372,12 @@ export function useCommandPaletteCommands(): {
       setTokenDetails(null);
     };
 
-    return collectionIds.map((collectionId) => ({
-      id: `switch-collection-${collectionId}`,
-      label: `Switch to Collection: ${collectionId}`,
-      description: `${collectionTokenCounts[collectionId] ?? 0} tokens`,
-      category: "Collections" as const,
-      handler: () => {
+      return collectionIds.map((collectionId) => ({
+        id: `switch-collection-${collectionId}`,
+        label: `Switch working collection to: ${collectionId}`,
+        description: `${collectionTokenCounts[collectionId] ?? 0} tokens`,
+        category: "Collections" as const,
+        handler: () => {
         setCurrentCollectionId(collectionId);
         goToTokens();
       },

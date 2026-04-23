@@ -12,6 +12,7 @@ import {
 import { apiFetch } from '../shared/apiFetch';
 import type { TokenGenerator } from './useGenerators';
 import { sanitizeEditorCollectionModeValues } from '../shared/collectionModeUtils';
+import { cloneValue } from '../../shared/clone';
 
 export interface UseTokenSaveParams {
   connected: boolean;
@@ -30,12 +31,6 @@ export interface UseTokenSaveParams {
 
 export interface MultiModeSaveOptions {
   allowGeneratedEdit?: boolean;
-}
-
-function cloneUndoValue<T>(value: T): T {
-  if (value === undefined || value === null) return value;
-  if (typeof structuredClone === 'function') return structuredClone(value);
-  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 export function useTokenSave({
@@ -98,15 +93,15 @@ export function useTokenSave({
     const previousSnapshot = previousState
       ? {
           type: previousState.type ?? oldEntry?.$type ?? type,
-          value: cloneUndoValue(previousState.value),
+          value: cloneValue(previousState.value),
         }
       : oldEntry
         ? {
             type: oldEntry.$type,
-            value: cloneUndoValue(oldEntry.$value),
+            value: cloneValue(oldEntry.$value),
           }
         : null;
-    const nextSnapshot = { type, value: cloneUndoValue(newValue) };
+    const nextSnapshot = { type, value: cloneValue(newValue) };
     try {
       await updateToken(serverUrl, collectionId, path, createTokenValueBody({ type, value: newValue }));
     } catch (err) {

@@ -1,5 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { TokenNode } from './useTokens';
+import {
+  resolveCollectionIdForPath,
+  type CollectionPathResolutionReason,
+} from '../shared/collectionPathLookup';
 
 interface NavHistoryEntry {
   path: string | null;
@@ -8,10 +12,14 @@ interface NavHistoryEntry {
 
 export function useTokenNavigation(
   pathToCollectionId: Record<string, string>,
+  collectionIdsByPath: Record<string, string[]>,
   currentCollectionId: string,
   setCurrentCollectionId: (collectionId: string) => void,
   tokens: TokenNode[],
-  onAliasNotFound?: (aliasPath: string) => void,
+  onAliasNotFound?: (
+    aliasPath: string,
+    reason: CollectionPathResolutionReason,
+  ) => void,
 ) {
   const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
@@ -25,9 +33,14 @@ export function useTokenNavigation(
 
   const navigateToAliasTarget = useCallback(
     (aliasPath: string) => {
-      const targetCollectionId = pathToCollectionId[aliasPath];
+      const resolution = resolveCollectionIdForPath({
+        path: aliasPath,
+        pathToCollectionId,
+        collectionIdsByPath,
+      });
+      const targetCollectionId = resolution.collectionId;
       if (!targetCollectionId) {
-        onAliasNotFound?.(aliasPath);
+        onAliasNotFound?.(aliasPath, resolution.reason);
         return;
       }
 
@@ -40,7 +53,13 @@ export function useTokenNavigation(
       setPendingHighlightCollectionId(targetCollectionId);
       setCurrentCollectionId(targetCollectionId);
     },
-    [currentCollectionId, onAliasNotFound, pathToCollectionId, setCurrentCollectionId],
+    [
+      collectionIdsByPath,
+      currentCollectionId,
+      onAliasNotFound,
+      pathToCollectionId,
+      setCurrentCollectionId,
+    ],
   );
 
   // Reset createFromEmpty when switching collections
@@ -50,14 +69,28 @@ export function useTokenNavigation(
 
   // Apply pending highlight after switching collections
   useEffect(() => {
-    const targetCollectionId =
-      pendingHighlightCollectionId ?? pathToCollectionId[pendingHighlight ?? ''];
+    const targetCollectionId = pendingHighlightCollectionId ?? (
+      pendingHighlight
+        ? resolveCollectionIdForPath({
+            path: pendingHighlight,
+            pathToCollectionId,
+            collectionIdsByPath,
+          }).collectionId
+        : undefined
+    );
     if (pendingHighlight && targetCollectionId === currentCollectionId) {
       setHighlightedToken(pendingHighlight);
       setPendingHighlight(null);
       setPendingHighlightCollectionId(null);
     }
-  }, [tokens, pendingHighlight, pendingHighlightCollectionId, currentCollectionId, pathToCollectionId]);
+  }, [
+    collectionIdsByPath,
+    currentCollectionId,
+    pathToCollectionId,
+    pendingHighlight,
+    pendingHighlightCollectionId,
+    tokens,
+  ]);
 
   const handleNavigateToAlias = useCallback((aliasPath: string, fromPath?: string) => {
     // Push current position to history before navigating

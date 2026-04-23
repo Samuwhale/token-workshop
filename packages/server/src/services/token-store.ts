@@ -2146,7 +2146,7 @@ export class TokenStore {
       setGroupAtPath(
         collection.tokens,
         newEmptyPath,
-        JSON.parse(JSON.stringify(groupObj)),
+        structuredClone(groupObj),
       );
       try {
         await this.saveCollection(collectionId);
@@ -2171,7 +2171,7 @@ export class TokenStore {
       setTokenAtPath(
         collection.tokens,
         `${newGroupPath}.${relativePath}`,
-        JSON.parse(JSON.stringify(token)),
+        structuredClone(token),
       );
     }
     try {
