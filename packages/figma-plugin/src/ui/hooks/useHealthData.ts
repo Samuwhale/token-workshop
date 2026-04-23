@@ -102,6 +102,9 @@ export interface HealthDataResult {
   colorScales: ColorScale[];
   lintDuplicateGroups: DuplicateGroup[];
   aliasOpportunityGroups: AliasOpportunityGroup[];
+  duplicateAliasCountsByCollection: Record<string, number>;
+  aliasOpportunityCountsByCollection: Record<string, number>;
+  unusedTokenCountsByCollection: Record<string, number>;
   unusedTokens: UnusedToken[];
 }
 
@@ -215,12 +218,22 @@ export function useHealthData({
     return colors;
   }, [perCollectionFlat]);
 
-  const lintDuplicateGroups = useMemo((): DuplicateGroup[] => {
-    if (!validationIssues) return [];
+  const duplicateGroupData = useMemo(() => {
+    if (!validationIssues) {
+      return {
+        groups: [] as DuplicateGroup[],
+        duplicateAliasCountsByCollection: {} as Record<string, number>,
+      };
+    }
     const dupViolations = validationIssues.filter(
       (v) => v.rule === "no-duplicate-values" && v.group,
     );
-    if (dupViolations.length === 0) return [];
+    if (dupViolations.length === 0) {
+      return {
+        groups: [] as DuplicateGroup[],
+        duplicateAliasCountsByCollection: {} as Record<string, number>,
+      };
+    }
     const byGroup = new Map<
       string,
       { tokens: { path: string; collectionId: string }[] }
@@ -237,11 +250,8 @@ export function useHealthData({
         entry.tokens.push({ path: v.path, collectionId: v.collectionId });
       }
     }
-    return [...byGroup.entries()]
+    const groups = [...byGroup.entries()]
       .filter(([, g]) => g.tokens.length > 1)
-      .filter(([, g]) =>
-        g.tokens.some((t) => t.collectionId === currentCollectionId),
-      )
       .map(([id, { tokens }]) => {
         const sampleToken = tokens[0];
         const tokenEntry = sampleToken
@@ -283,14 +293,50 @@ export function useHealthData({
         };
       })
       .sort((a, b) => b.tokens.length - a.tokens.length);
-  }, [currentCollectionId, getTokenEntry, validationIssues]);
+    const duplicateAliasCountsByCollection: Record<string, number> = {};
 
-  const aliasOpportunityGroups = useMemo((): AliasOpportunityGroup[] => {
-    if (!validationIssues) return [];
+    for (const group of groups) {
+      const duplicateAliasCount = Math.max(group.tokens.length - 1, 0);
+      const collectionIds = new Set(
+        group.tokens.map((token) => token.collectionId),
+      );
+
+      for (const collectionId of collectionIds) {
+        duplicateAliasCountsByCollection[collectionId] =
+          (duplicateAliasCountsByCollection[collectionId] ?? 0) +
+          duplicateAliasCount;
+      }
+    }
+
+    return { groups, duplicateAliasCountsByCollection };
+  }, [getTokenEntry, validationIssues]);
+
+  const lintDuplicateGroups = useMemo((): DuplicateGroup[] => {
+    if (!currentCollectionId) {
+      return [];
+    }
+
+    return duplicateGroupData.groups.filter((group) =>
+      group.tokens.some((token) => token.collectionId === currentCollectionId),
+    );
+  }, [currentCollectionId, duplicateGroupData]);
+
+  const aliasOpportunityData = useMemo(() => {
+    if (!validationIssues) {
+      return {
+        groups: [] as AliasOpportunityGroup[],
+        aliasOpportunityCountsByCollection: {} as Record<string, number>,
+      };
+    }
     const groupedIssues = validationIssues.filter(
       (issue) => issue.rule === "alias-opportunity" && issue.group,
     );
-    if (groupedIssues.length === 0) return [];
+    if (groupedIssues.length === 0) {
+      return {
+        groups: [] as AliasOpportunityGroup[],
+        aliasOpportunityCountsByCollection: {} as Record<string, number>,
+      };
+    }
 
     const groups = new Map<string, AliasOpportunityToken[]>();
     for (const issue of groupedIssues) {
@@ -308,11 +354,8 @@ export function useHealthData({
       groups.set(groupId, existing);
     }
 
-    return [...groups.entries()]
+    const aliasGroups = [...groups.entries()]
       .filter(([, tokens]) => tokens.length > 1)
-      .filter(([, tokens]) =>
-        tokens.some((t) => t.collectionId === currentCollectionId),
-      )
       .map(([id, tokens]) => {
         const sortedTokens = [...tokens].sort(
           (a, b) =>
@@ -360,7 +403,31 @@ export function useHealthData({
         };
       })
       .sort((a, b) => b.tokens.length - a.tokens.length);
+    const aliasOpportunityCountsByCollection: Record<string, number> = {};
+
+    for (const group of aliasGroups) {
+      const collectionIds = new Set(
+        group.tokens.map((token) => token.collectionId),
+      );
+
+      for (const collectionId of collectionIds) {
+        aliasOpportunityCountsByCollection[collectionId] =
+          (aliasOpportunityCountsByCollection[collectionId] ?? 0) + 1;
+      }
+    }
+
+    return { groups: aliasGroups, aliasOpportunityCountsByCollection };
   }, [currentCollectionId, getTokenEntry, perCollectionFlat, validationIssues]);
+
+  const aliasOpportunityGroups = useMemo((): AliasOpportunityGroup[] => {
+    if (!currentCollectionId) {
+      return [];
+    }
+
+    return aliasOpportunityData.groups.filter((group) =>
+      group.tokens.some((token) => token.collectionId === currentCollectionId),
+    );
+  }, [aliasOpportunityData, currentCollectionId]);
 
   const colorScales = useMemo((): ColorScale[] => {
     const parentGroups = new Map<
@@ -384,17 +451,46 @@ export function useHealthData({
       }));
   }, [allColorTokens]);
 
+  const referencedPaths = useMemo(() => {
+    if (!tokenUsageReady) {
+      return new Set<string>();
+    }
+    return buildReferencedTokenPathSetFromEntries(
+      Object.values(perCollectionFlat).flatMap((collectionFlat) =>
+        Object.values(collectionFlat),
+      ),
+    );
+  }, [perCollectionFlat, tokenUsageReady]);
+
+  const unusedTokenCountsByCollection = useMemo((): Record<string, number> => {
+    if (!tokenUsageReady) {
+      return {};
+    }
+
+    const counts: Record<string, number> = {};
+    for (const [collectionId, collectionFlat] of Object.entries(perCollectionFlat)) {
+      let count = 0;
+      for (const [path, entry] of Object.entries(collectionFlat)) {
+        if (
+          isTokenEntryUnused(path, entry, tokenUsageCounts, referencedPaths, {
+            includeDeprecated: false,
+          })
+        ) {
+          count += 1;
+        }
+      }
+      if (count > 0) {
+        counts[collectionId] = count;
+      }
+    }
+    return counts;
+  }, [perCollectionFlat, referencedPaths, tokenUsageCounts, tokenUsageReady]);
+
   const unusedTokens = useMemo((): UnusedToken[] => {
     const currentCollectionFlat = perCollectionFlat[currentCollectionId] ?? {};
     if (!tokenUsageReady || Object.keys(currentCollectionFlat).length === 0) {
       return [];
     }
-
-    const referencedPaths = buildReferencedTokenPathSetFromEntries(
-      Object.values(perCollectionFlat).flatMap((collectionFlat) =>
-        Object.values(collectionFlat),
-      ),
-    );
 
     return Object.entries(currentCollectionFlat)
       .flatMap(([path, entry]) => {
@@ -407,15 +503,21 @@ export function useHealthData({
         }
         return [
           {
-          path,
-          collectionId: currentCollectionId,
-          $type: entry.$type,
-          $lifecycle: entry.$lifecycle,
+            path,
+            collectionId: currentCollectionId,
+            $type: entry.$type,
+            $lifecycle: entry.$lifecycle,
           },
         ];
       })
       .sort((a, b) => a.path.localeCompare(b.path));
-  }, [currentCollectionId, perCollectionFlat, tokenUsageCounts, tokenUsageReady]);
+  }, [
+    currentCollectionId,
+    perCollectionFlat,
+    referencedPaths,
+    tokenUsageCounts,
+    tokenUsageReady,
+  ]);
 
   return {
     allTokensUnified,
@@ -425,6 +527,11 @@ export function useHealthData({
     colorScales,
     lintDuplicateGroups,
     aliasOpportunityGroups,
+    duplicateAliasCountsByCollection:
+      duplicateGroupData.duplicateAliasCountsByCollection,
+    aliasOpportunityCountsByCollection:
+      aliasOpportunityData.aliasOpportunityCountsByCollection,
+    unusedTokenCountsByCollection,
     unusedTokens,
   };
 }

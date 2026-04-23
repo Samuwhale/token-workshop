@@ -137,9 +137,9 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
 
       {!git.gitLoading && !git.gitStatus?.isRepo && (
         <div className="flex flex-col items-center justify-center py-3 gap-3 px-3">
-          <p className="text-subheading text-[var(--color-figma-text-secondary)]">No version history set up</p>
+          <p className="text-subheading text-[var(--color-figma-text-secondary)]">No shared version history yet</p>
           <div className="w-full flex flex-col gap-2">
-            <label className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Shared server URL</label>
+            <label className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Repository URL</label>
             <input
               type="text"
               value={git.remoteUrl}
@@ -153,7 +153,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
             disabled={git.actionLoading !== null}
             className="w-full px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
-            {git.actionLoading === 'init' ? 'Setting up\u2026' : 'Set up version history'}
+            {git.actionLoading === 'init' ? 'Setting up\u2026' : 'Set up shared versions'}
           </button>
         </div>
       )}
@@ -164,6 +164,9 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
             <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
               <div className="flex items-center gap-1.5">
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                  Shared branch
+                </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2">
                   <line x1="6" y1="3" x2="6" y2="15" />
                   <circle cx="18" cy="6" r="3" />
@@ -174,7 +177,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
               </div>
               <div className="flex items-center gap-1.5">
                 <span className={`text-secondary font-medium ${git.allChanges.length > 0 ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-success)]'}`}>
-                  {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
+                  {git.allChanges.length > 0 ? `${git.allChanges.length} working change${git.allChanges.length !== 1 ? 's' : ''}` : 'Up to date'}
                 </span>
                 {git.gitStatus.remote && (git.gitStatus.status?.ahead ?? 0) > 0 && (
                   <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Share`} className="text-secondary font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
@@ -439,7 +442,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
           {!git.gitStatus.status?.isClean && (
             <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
               <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                <span className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Save note</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">Version note</span>
                 {git.commitMsgUserEdited?.current && (
                   <button
                     onClick={git.regenerateCommitMsg}
@@ -456,8 +459,8 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                     type="text"
                     value={git.commitMsg}
                     onChange={e => git.setCommitMsg(e.target.value)}
-                    placeholder="Describe what you changed\u2026"
-                    aria-label="Save note (commit message)"
+                    placeholder="Describe this version\u2026"
+                    aria-label="Version note"
                     className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                     onKeyDown={e => {
                       if (e.key === 'Enter' && git.commitMsg.trim() && git.selectedFiles.size > 0) onRequestConfirm('git-commit');
@@ -472,7 +475,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                   disabled={!git.commitMsg.trim() || git.selectedFiles.size === 0 || git.actionLoading !== null}
                   className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                 >
-                  {git.actionLoading === 'commit' ? 'Saving\u2026' : `Save ${git.selectedFiles.size === git.allChanges.length ? 'all' : git.selectedFiles.size} file${git.selectedFiles.size === 1 ? '' : 's'}`}
+                  {git.actionLoading === 'commit' ? 'Saving\u2026' : `Save version${git.selectedFiles.size === git.allChanges.length ? '' : ` (${git.selectedFiles.size} file${git.selectedFiles.size === 1 ? '' : 's'})`}`}
                 </button>
               </div>
             </div>

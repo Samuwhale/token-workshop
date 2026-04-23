@@ -27,8 +27,6 @@ interface ToolbarStateChipsConfig {
   setShowStarredOnly: (v: boolean | ((prev: boolean) => boolean)) => void;
   typeFilter: string;
   setTypeFilter: (v: string) => void;
-  inspectMode: boolean;
-  setInspectMode: (v: boolean) => void;
 }
 
 export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
@@ -39,7 +37,6 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     showRecentlyTouched, setShowRecentlyTouched,
     showStarredOnly, setShowStarredOnly,
     typeFilter, setTypeFilter,
-    inspectMode, setInspectMode,
   } = config;
 
   const toolbarStateChips = useMemo(() => {
@@ -99,20 +96,12 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
         onRemove: () => setTypeFilter(""),
       });
     }
-    if (inspectMode) {
-      chips.push({
-        key: "inspect",
-        label: "Used on selection",
-        onRemove: () => setInspectMode(false),
-      });
-    }
-
     return chips;
   }, [
-    inspectMode, lintViolationsLength,
+    lintViolationsLength,
     onToggleIssuesOnly,
     refFilter, removeQueryToken,
-    setInspectMode, setRefFilter, setShowDuplicates,
+    setRefFilter, setShowDuplicates,
     setShowRecentlyTouched, setShowStarredOnly,
     setTypeFilter, showDuplicates, showIssuesOnly,
     showRecentlyTouched, showStarredOnly, structuredFilterChips,

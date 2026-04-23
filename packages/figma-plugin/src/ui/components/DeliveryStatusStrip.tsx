@@ -1,8 +1,9 @@
-import type { HealthOverall, HealthStatus } from "../hooks/useHealthSignals";
+import type { HealthStatus } from "../hooks/useHealthSignals";
 import type { SyncCompleteMessage } from "../../shared/types";
 
 interface DeliveryStatusStripProps {
-  health: HealthOverall;
+  reviewStatus: HealthStatus;
+  reviewItemCount: number;
   pendingPublishCount: number;
   publishApplying: boolean;
   syncing: boolean;
@@ -77,7 +78,8 @@ function syncChip(
 }
 
 export function DeliveryStatusStrip({
-  health,
+  reviewStatus,
+  reviewItemCount,
   pendingPublishCount,
   publishApplying,
   syncing,
@@ -89,30 +91,28 @@ export function DeliveryStatusStrip({
 }: DeliveryStatusStripProps) {
   const chips: Chip[] = [];
 
-  if (health.actionableCount > 0) {
+  if (reviewItemCount > 0) {
     chips.push({
       id: "health",
-      label: `${health.actionableCount} issue${health.actionableCount === 1 ? "" : "s"}`,
-      tone: healthTone(health.status),
+      label: `${reviewItemCount} to review`,
+      tone: healthTone(reviewStatus),
       onClick: onOpenHealth,
-      title: "Review issues in Review",
     });
   }
 
   if (publishApplying) {
     chips.push({
       id: "publish",
-      label: "Applying to Figma…",
+      label: "Applying…",
       tone: "accent",
       onClick: onOpenPublishCompare,
     });
   } else if (pendingPublishCount > 0) {
     chips.push({
       id: "publish",
-      label: `${pendingPublishCount} ready to apply`,
+      label: `${pendingPublishCount} to apply`,
       tone: "accent",
       onClick: onOpenPublishCompare,
-      title: "Review and apply pending changes in Sync",
     });
   }
 

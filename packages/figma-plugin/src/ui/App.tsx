@@ -11,7 +11,6 @@ import {
   WelcomePrompt,
   type StartHereBranch,
 } from "./components/WelcomePrompt";
-import { POST_SETUP_HINT_EVENT } from "./components/LibraryPostSetupHint";
 import { AppCommandPalette } from "./components/AppCommandPalette";
 import { CollectionCreateDialog } from "./components/CollectionCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
@@ -69,7 +68,6 @@ import { useOverlayManager } from "./hooks/useOverlayManager";
 import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
-import { useAnalyticsState } from "./hooks/useAnalyticsState";
 import { useValidationCache } from "./hooks/useValidationCache";
 import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
@@ -82,11 +80,11 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { tokenPathToUrlSegment } from "./shared/utils";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
-import { STORAGE_KEYS, lsGet, lsSet, lsRemove, lsGetJson } from "./shared/storage";
+import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
 import {
   Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
-  FileDown, GitBranch,
+  FileDown,
 } from "lucide-react";
 
 function formatCount(
@@ -321,10 +319,7 @@ export function App() {
     if (inspectingCollection) {
       switchContextualSurface({ surface: null });
     }
-    if (
-      activeTopTab === "library" &&
-      (activeSubTab === "tokens" || activeSubTab === "health")
-    ) {
+    if (activeTopTab === "library") {
       navigateTo("library", activeSubTab);
     } else {
       navigateTo("library", "tokens");
@@ -342,10 +337,6 @@ export function App() {
     if (!initialFirstRun || !startHereState.open) return;
     if (Object.keys(allTokensFlat).length === 0) return;
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
-    if (startHereState.initialBranch === "start-new") {
-      lsSet(STORAGE_KEYS.POST_SETUP_HINT_PENDING, "1");
-      window.dispatchEvent(new CustomEvent(POST_SETUP_HINT_EVENT));
-    }
     setStartHereState({ open: false, initialBranch: "root" });
   }, [
     allTokensFlat,
@@ -355,12 +346,6 @@ export function App() {
     startHereState.initialBranch,
   ]);
 
-  useEffect(() => {
-    if (activeTopTab === "library") return;
-    if (lsGet(STORAGE_KEYS.POST_SETUP_HINT_PENDING) !== "1") return;
-    lsRemove(STORAGE_KEYS.POST_SETUP_HINT_PENDING);
-    window.dispatchEvent(new CustomEvent(POST_SETUP_HINT_EVENT));
-  }, [activeTopTab]);
   const handleImportComplete = useCallback(
     (result: ImportCompletionResult) => {
       const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
@@ -461,9 +446,15 @@ export function App() {
     () => new Set(Object.keys(perCollectionFlat[currentCollectionId] ?? {})),
     [currentCollectionId, perCollectionFlat],
   );
-  const currentCollectionTokenPathSignature = useMemo(
-    () => [...existingPathsForCurrentCollection].sort().join("\0"),
-    [existingPathsForCurrentCollection],
+  const libraryTokenPathSignature = useMemo(
+    () =>
+      Object.entries(perCollectionFlat)
+        .flatMap(([collectionId, collectionFlat]) =>
+          Object.keys(collectionFlat).map((path) => `${collectionId}:${path}`),
+        )
+        .sort()
+        .join("\0"),
+    [perCollectionFlat],
   );
   // Track external file change refreshes so we can show a diff toast
   const externalRefreshPendingRef = useRef(false);
@@ -795,7 +786,7 @@ export function App() {
     },
     [navigateTo, switchContextualSurface],
   );
-  const { showIssuesOnly, setShowIssuesOnly } = useAnalyticsState();
+  const [showIssuesOnly, setShowIssuesOnly] = useState(false);
   const {
     validationIssues,
     validationLoading,
@@ -984,14 +975,14 @@ export function App() {
     if (
       activeTopTab === "library" &&
       (activeSubTab === "tokens" || activeSubTab === "health") &&
-      currentCollectionTokenPathSignature.length > 0
+      libraryTokenPathSignature.length > 0
     ) {
       triggerUsageScan();
     }
   }, [
     activeTopTab,
     activeSubTab,
-    currentCollectionTokenPathSignature,
+    libraryTokenPathSignature,
     triggerUsageScan,
   ]);
 
@@ -1596,7 +1587,6 @@ export function App() {
       case "canvas":   return <Frame size={16} strokeWidth={1.5} aria-hidden />;
       case "sync":     return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
       case "export":   return <FileDown size={16} strokeWidth={1.5} aria-hidden />;
-      case "versions": return <GitBranch size={16} strokeWidth={1.5} aria-hidden />;
       default:         return null;
     }
   };

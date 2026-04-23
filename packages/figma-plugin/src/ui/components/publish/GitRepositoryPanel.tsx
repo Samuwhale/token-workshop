@@ -19,9 +19,16 @@ interface GitRepositoryPanelProps {
   connected: boolean;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
+  embedded?: boolean;
 }
 
-export function GitRepositoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens }: GitRepositoryPanelProps) {
+export function GitRepositoryPanel({
+  serverUrl,
+  connected,
+  onPushUndo,
+  onRefreshTokens,
+  embedded = false,
+}: GitRepositoryPanelProps) {
   const git = useGitSync({ serverUrl, connected });
   const [confirmAction, setConfirmAction] = useState<RepositoryConfirmAction>(null);
 
@@ -104,7 +111,11 @@ export function GitRepositoryPanel({ serverUrl, connected, onPushUndo, onRefresh
     <>
       <div className="flex h-full min-h-0 flex-col overflow-y-auto">
         <GitSubPanel git={git} diffFilter="" onRequestConfirm={setConfirmAction} />
-        <div className="border-t border-[var(--color-figma-border)] flex-1 min-h-[200px]">
+        <div
+          className={`flex-1 min-h-[200px] ${
+            embedded ? "" : "border-t border-[var(--color-figma-border)]"
+          }`}
+        >
           {rightColumn}
         </div>
       </div>

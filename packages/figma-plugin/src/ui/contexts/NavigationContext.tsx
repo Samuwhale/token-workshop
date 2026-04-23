@@ -153,6 +153,20 @@ function resolveOriginMetadata(
   };
 }
 
+function resolveSubTabForTopTab(
+  topTab: TopTab,
+  subTab?: SubTab | null,
+): SubTab {
+  const topDef = TOP_TABS.find((tab) => tab.id === topTab);
+  if (!topDef) {
+    return DEFAULT_SUB_TABS.library;
+  }
+  if (subTab && topDef.subTabs.some((tab) => tab.id === subTab)) {
+    return subTab;
+  }
+  return DEFAULT_SUB_TABS[topTab];
+}
+
 // ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------
@@ -193,12 +207,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     const topTab = (lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB) || "library") as TopTab;
     const storageKey = SUB_TAB_STORAGE[topTab] || SUB_TAB_STORAGE.library;
     const stored = lsGet(storageKey);
-    const topDef = TOP_TABS.find((t) => t.id === topTab);
-    return (
-      stored && topDef?.subTabs.some((s) => s.id === stored)
-        ? stored
-        : DEFAULT_SUB_TABS[topTab]
-    ) as SubTab;
+    return resolveSubTabForTopTab(topTab, stored as SubTab | null);
   });
 
   const navigateTo = useCallback(
@@ -207,12 +216,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       subTab?: SubTab,
       options?: { preserveSecondarySurface?: boolean; preserveHandoff?: boolean },
     ) => {
-      const topDef = TOP_TABS.find((t) => t.id === topTab)!;
-      const resolvedSub =
-        subTab && topDef.subTabs.some((s) => s.id === subTab)
-          ? subTab
-          : ((lsGet(SUB_TAB_STORAGE[topTab]) as SubTab | null) ??
-            DEFAULT_SUB_TABS[topTab]);
+      const resolvedSub = resolveSubTabForTopTab(
+        topTab,
+        subTab ?? (lsGet(SUB_TAB_STORAGE[topTab]) as SubTab | null),
+      );
       lsSet(STORAGE_KEYS.ACTIVE_TOP_TAB, topTab);
       lsSet(SUB_TAB_STORAGE[topTab], resolvedSub);
       setActiveTopTabState(topTab);
@@ -237,8 +244,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const setSubTab = useCallback((subTab: SubTab) => {
     const topTab = activeTopTabRef.current;
-    lsSet(SUB_TAB_STORAGE[topTab], subTab);
-    setActiveSubTabState(subTab);
+    const resolvedSubTab = resolveSubTabForTopTab(topTab, subTab);
+    lsSet(SUB_TAB_STORAGE[topTab], resolvedSubTab);
+    setActiveSubTabState(resolvedSubTab);
     setActiveSecondarySurface(null);
     setActiveHandoff(null);
   }, []);

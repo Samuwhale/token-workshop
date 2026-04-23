@@ -122,8 +122,8 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
         action: undefined,
         destination: {
           kind: "workspace",
-          topTab: "versions",
-          subTab: "versions",
+          topTab: "library",
+          subTab: "history",
         },
       } as const;
       if (action === 'pull' && conflictCount > 0) {

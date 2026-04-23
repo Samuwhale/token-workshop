@@ -18,15 +18,17 @@ import { HealthIssuesView } from "./health/HealthIssuesView";
 import { HealthHiddenView } from "./health/HealthHiddenView";
 import { HealthUnusedView } from "./health/HealthUnusedView";
 import { HealthDeprecatedView } from "./health/HealthDeprecatedView";
-import type { DeprecatedUsageEntry } from "./health/HealthDeprecatedView";
 import { HealthAliasOpportunitiesView } from "./health/HealthAliasOpportunitiesView";
 import { HealthDuplicatesView } from "./health/HealthDuplicatesView";
+import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
+import type { CollectionReviewSummary } from "../shared/reviewSummary";
 
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
   workingCollectionId: string;
   collectionIds: string[];
+  collectionDisplayNames?: Record<string, string>;
   healthSignals: HealthSignalsResult;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
@@ -40,13 +42,18 @@ export interface HealthPanelProps {
   validationError: string | null;
   validationLastRefreshed: Date | null;
   validationIsStale: boolean;
-  onRefreshValidation: () => Promise<unknown> | void;
+  deprecatedUsageEntries: DeprecatedUsageEntry[];
+  deprecatedUsageLoading: boolean;
+  deprecatedUsageError: string | null;
+  collectionReviewSummaries: Map<string, CollectionReviewSummary>;
+  onRefreshReview: () => Promise<unknown> | void;
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
   onNavigateToGenerators?: () => void;
   scope: HealthScope;
   onScopeChange: (scope: HealthScope) => void;
   issueActions: UseIssueActionsResult;
+  onSelectIssue?: (issue: ValidationIssue) => void;
 }
 
 export function HealthPanel({
@@ -54,6 +61,7 @@ export function HealthPanel({
   connected,
   workingCollectionId,
   collectionIds,
+  collectionDisplayNames,
   healthSignals,
   allTokensFlat,
   pathToCollectionId,
@@ -67,13 +75,18 @@ export function HealthPanel({
   validationError,
   validationLastRefreshed,
   validationIsStale,
-  onRefreshValidation,
+  deprecatedUsageEntries,
+  deprecatedUsageLoading,
+  deprecatedUsageError,
+  collectionReviewSummaries,
+  onRefreshReview,
   onPushUndo,
   onError,
   onNavigateToGenerators,
   scope,
   onScopeChange,
   issueActions,
+  onSelectIssue,
 }: HealthPanelProps) {
   const { suppressedKeys, suppressingKey, fixingKeys, applyIssueFix, handleSuppress, handleUnsuppress } = issueActions;
   const activeView = scope.view ?? "dashboard";
@@ -90,12 +103,6 @@ export function HealthPanel({
   const scopedCollectionKey = scopedCollectionId ?? "";
 
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
-  const [deprecatedUsageReloadKey, setDeprecatedUsageReloadKey] = useState(0);
-
-  const [deprecatedUsageEntries, setDeprecatedUsageEntries] = useState<DeprecatedUsageEntry[]>([]);
-  const [deprecatedUsageLoading, setDeprecatedUsageLoading] = useState(false);
-  const [deprecatedUsageError, setDeprecatedUsageError] = useState<string | null>(null);
-  const validationRefreshKey = validationLastRefreshed?.getTime() ?? 0;
 
   useEffect(() => {
     if (scope.mode !== "current") {
@@ -112,40 +119,18 @@ export function HealthPanel({
   }, [collectionIds, onScopeChange, scope, scopedCollectionId]);
 
   const refreshHealthState = async () => {
-    setDeprecatedUsageReloadKey((currentKey) => currentKey + 1);
-    await onRefreshValidation();
+    await onRefreshReview();
   };
-
-  useEffect(() => {
-    if (!connected || !serverUrl) {
-      setDeprecatedUsageEntries([]);
-      setDeprecatedUsageError(null);
-      setDeprecatedUsageLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setDeprecatedUsageLoading(true);
-    setDeprecatedUsageError(null);
-    apiFetch<{ entries: DeprecatedUsageEntry[] }>(`${serverUrl}/api/tokens/deprecated-usage`)
-      .then((data) => {
-        if (!cancelled) setDeprecatedUsageEntries(Array.isArray(data.entries) ? data.entries : []);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setDeprecatedUsageEntries([]);
-          setDeprecatedUsageError("Failed to load deprecated usage. Try refreshing.");
-        }
-        console.warn("[HealthPanel] failed to load deprecated usage:", err);
-      })
-      .finally(() => { if (!cancelled) setDeprecatedUsageLoading(false); });
-    return () => { cancelled = true; };
-  }, [connected, serverUrl, deprecatedUsageReloadKey, validationRefreshKey]);
 
   const getTokenEntry = (path: string, collectionId?: string) =>
     (collectionId ? perCollectionFlat[collectionId]?.[path] : undefined) ??
     allTokensFlat[path];
 
-  const { lintDuplicateGroups, aliasOpportunityGroups, unusedTokens } = useHealthData({
+  const {
+    lintDuplicateGroups,
+    aliasOpportunityGroups,
+    unusedTokens,
+  } = useHealthData({
     allTokensFlat,
     pathToCollectionId,
     perCollectionFlat,
@@ -172,6 +157,19 @@ export function HealthPanel({
   const deprecatedUsageEntriesForCurrent = deprecatedUsageEntries.filter(
     (e) => e.collectionId === scopedCollectionKey,
   );
+  const scopedTokenCount =
+    scope.mode === "current"
+      ? scopedCollectionId
+        ? Object.keys(perCollectionFlat[scopedCollectionId] ?? {}).length
+        : 0
+      : collectionIds.reduce(
+          (count, collectionId) =>
+            count + Object.keys(perCollectionFlat[collectionId] ?? {}).length,
+          0,
+        );
+  // Usage scan feeds the "unused tokens" category. If the scope has zero tokens
+  // there is nothing to scan, so treat it as ready to avoid spinning forever.
+  const unusedDataReady = tokenUsageReady || scopedTokenCount === 0;
   const issueCount = tokenLevelSignals.length;
   const issueStatus = statusFromIssueSeverities(
     tokenLevelSignals.map((signal) => signal.severity),
@@ -205,18 +203,20 @@ export function HealthPanel({
   const totalIssueCount =
     issueCount +
     generatorIssueCount +
-    (tokenUsageReady ? unusedCount : 0) +
+    (unusedDataReady ? unusedCount : 0) +
     deprecatedCount +
     aliasOpportunitiesCount +
     duplicateCount;
   const heatmapSignalsPresent = (heatmapResult?.red ?? 0) > 0;
+  const currentReviewSummary = scopedCollectionKey
+    ? collectionReviewSummaries.get(scopedCollectionKey)
+    : undefined;
   const overallStatus: HealthStatus =
     validationError
       ? "critical"
-      : healthSignals.byCollection.get(scopedCollectionKey)?.severity === "error"
+      : currentReviewSummary?.severity === "critical"
       ? "critical"
-      : healthSignals.byCollection.get(scopedCollectionKey)?.severity === "warning" ||
-          healthSignals.byCollection.get(scopedCollectionKey)?.severity === "info" ||
+      : currentReviewSummary?.severity === "warning" ||
           validationIsStale ||
           duplicateCount > 0 ||
           deprecatedCount > 0 ||
@@ -242,7 +242,7 @@ export function HealthPanel({
         tokenType: sampleEntry.$type,
         tokenValue: sampleEntry.$value,
       });
-      await onRefreshValidation();
+      await onRefreshReview();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Alias promotion failed — try refreshing.");
     } finally {
@@ -291,6 +291,7 @@ export function HealthPanel({
       mode: "current",
       collectionId,
       tokenPath: null,
+      issueKey: null,
       view: nextView,
       nonce: Date.now(),
     });
@@ -300,6 +301,7 @@ export function HealthPanel({
     onScopeChange({
       ...scope,
       tokenPath: null,
+      issueKey: null,
       view: "dashboard",
       nonce: Date.now(),
     });
@@ -307,67 +309,129 @@ export function HealthPanel({
 
   const collectionSummaries =
     scope.mode === "all"
-      ? [...healthSignals.byCollection.entries()].sort((left, right) => {
-          const severityRank = { error: 0, warning: 1, info: 2, null: 3 } as const;
-          const leftRank = severityRank[left[1].severity ?? "null"];
-          const rightRank = severityRank[right[1].severity ?? "null"];
-          if (leftRank !== rightRank) {
-            return leftRank - rightRank;
-          }
-          if (left[1].actionable !== right[1].actionable) {
-            return right[1].actionable - left[1].actionable;
-          }
-          return left[0].localeCompare(right[0]);
-        })
+      ? collectionIds
+          .map((collectionId) => {
+            const summary = collectionReviewSummaries.get(collectionId);
+
+            return [
+              collectionId,
+              {
+                errors: summary?.errors ?? 0,
+                warnings: summary?.warnings ?? 0,
+                info: summary?.info ?? 0,
+                actionable: summary?.actionable ?? 0,
+                reviewItems: summary?.reviewItems ?? 0,
+                severity: summary?.severity ?? "healthy",
+              },
+            ] as const;
+          })
+          .filter(([, summary]) => summary.reviewItems > 0)
+          .sort((left, right) => {
+            const severityRank = { critical: 0, warning: 1, healthy: 2 } as const;
+            const leftRank = severityRank[left[1].severity];
+            const rightRank = severityRank[right[1].severity];
+            if (leftRank !== rightRank) {
+              return leftRank - rightRank;
+            }
+            if (left[1].actionable !== right[1].actionable) {
+              return right[1].actionable - left[1].actionable;
+            }
+            if (left[1].reviewItems !== right[1].reviewItems) {
+              return right[1].reviewItems - left[1].reviewItems;
+            }
+            return left[0].localeCompare(right[0]);
+          })
       : [];
+  const collectionSummariesPending =
+    scope.mode === "all" &&
+    (validationLoading || deprecatedUsageLoading || !unusedDataReady);
+  const libraryReviewErrors = [validationError, deprecatedUsageError].filter(
+    (message): message is string => Boolean(message),
+  );
 
   let content: JSX.Element;
   if (scope.mode === "all") {
+    const fixNextCollections = collectionSummaries.filter(
+      ([, summary]) => summary.errors > 0 || summary.actionable > 0,
+    );
+    const cleanupCollections = collectionSummaries.filter(
+      ([, summary]) => summary.errors === 0 && summary.reviewItems > 0,
+    );
+    const renderCollectionRow = (
+      collectionId: string,
+      summary: { errors: number; warnings: number; actionable: number; reviewItems: number; info: number },
+      kind: "fix" | "cleanup",
+    ) => {
+      const meta =
+        kind === "fix"
+          ? `${summary.errors} error${summary.errors === 1 ? "" : "s"}, ${summary.warnings} warning${summary.warnings === 1 ? "" : "s"}`
+          : `${summary.reviewItems} item${summary.reviewItems === 1 ? "" : "s"}`;
+      return (
+        <button
+          key={collectionId}
+          type="button"
+          onClick={() => openCollectionScope(collectionId)}
+          className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
+            {collectionDisplayNames?.[collectionId] ?? collectionId}
+          </span>
+          <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
+            {meta}
+          </span>
+        </button>
+      );
+    };
+
     content = (
       <div
-        className="flex h-full flex-col overflow-y-auto px-3 py-3"
+        className="flex h-full flex-col overflow-y-auto px-4 py-4"
         style={{ scrollbarWidth: "thin" }}
       >
-        <div className="mb-4">
-          <div className="text-body font-semibold text-[var(--color-figma-text)]">
-            All collections
+        {libraryReviewErrors.length > 0 ? (
+          <div className="mb-4 text-secondary text-[var(--color-figma-error)]">
+            Some review checks failed. {libraryReviewErrors.join(" ")}
           </div>
-          <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-            {healthSignals.overall.issueCount} issue
-            {healthSignals.overall.issueCount === 1 ? "" : "s"} across{" "}
-            {Math.max(collectionSummaries.length, 1)} collection
-            {collectionSummaries.length === 1 ? "" : "s"}
-          </div>
-        </div>
+        ) : null}
 
-        <div className="mb-4 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-            Focused fixing stays in one collection. Choose a collection below to review actionable issues in context.
-          </div>
-        </div>
+        {collectionSummaries.length > 0 ? (
+          <div className="flex flex-col gap-4">
+            <section>
+              <h3 className="px-1 pb-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+                Fix next
+              </h3>
+              <div>
+                {(fixNextCollections.length > 0
+                  ? fixNextCollections
+                  : collectionSummaries.slice(0, 3)
+                ).map(([collectionId, summary]) =>
+                  renderCollectionRow(collectionId, summary, "fix"),
+                )}
+              </div>
+            </section>
 
-        <div className="flex flex-col gap-1.5">
-          {collectionSummaries.map(([collectionId, summary]) => (
-            <button
-              key={collectionId}
-              type="button"
-              onClick={() => openCollectionScope(collectionId)}
-              className="flex items-center gap-3 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-body font-medium text-[var(--color-figma-text)]">
-                  {collectionId}
+            {cleanupCollections.length > 0 ? (
+              <section>
+                <h3 className="px-1 pb-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+                  Clean up
+                </h3>
+                <div>
+                  {cleanupCollections.map(([collectionId, summary]) =>
+                    renderCollectionRow(collectionId, summary, "cleanup"),
+                  )}
                 </div>
-                <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-                  {summary.actionable} actionable · {summary.errors} errors · {summary.warnings} warnings
-                </div>
-              </div>
-              <div className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
-                Review
-              </div>
-            </button>
-          ))}
-        </div>
+              </section>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-body text-[var(--color-figma-text-secondary)]">
+            {collectionSummariesPending
+              ? "Checking…"
+              : libraryReviewErrors.length > 0
+                ? "Review results are unavailable. Try again once connected."
+                : "All clear."}
+          </p>
+        )}
       </div>
     );
   } else {
@@ -383,7 +447,10 @@ export function HealthPanel({
             onIgnore={handleSuppress}
             onNavigateToToken={onNavigateToToken}
             initialTokenPath={activeIssueTokenPath}
+            selectedIssueKey={scope.issueKey ?? null}
+            selectedTokenPath={activeIssueTokenPath}
             requestNonce={scope.nonce}
+            onSelectIssue={onSelectIssue}
             onBack={goBack}
           />
         );
@@ -461,13 +528,12 @@ export function HealthPanel({
             totalIssueCount={totalIssueCount}
             validationLoading={validationLoading}
             validationLastRefreshed={validationLastRefreshed}
-            validationIsStale={validationIsStale}
             validationError={validationError}
             issueCount={issueCount}
             issueStatus={issueStatus}
             generatorIssueCount={generatorIssueCount}
             generatorStatus={generatorStatus}
-            unusedReady={tokenUsageReady}
+            unusedReady={unusedDataReady}
             unusedCount={unusedCount}
             deprecatedCount={deprecatedCount}
             aliasOpportunitiesCount={aliasOpportunitiesCount}
@@ -478,11 +544,11 @@ export function HealthPanel({
                 ...scope,
                 view,
                 tokenPath: null,
+                issueKey: null,
                 nonce: Date.now(),
               })
             }
             onNavigateToGenerators={onNavigateToGenerators}
-            scopeLabel={scopedCollectionId ?? undefined}
           />
         );
         break;

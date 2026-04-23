@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronUp, ChevronDown, X, Plus } from "lucide-react";
+import { ArrowUp, ArrowDown, X, Plus } from "lucide-react";
 import type { ReactNode, Ref } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { apiFetch } from "../shared/apiFetch";
@@ -17,7 +17,8 @@ interface CollectionDetailsPanelProps {
   collectionDescriptions: Record<string, string>;
   serverUrl: string;
   connected: boolean;
-  presentation?: "panel" | "takeover";
+  presentation?: "panel" | "takeover" | "bottom";
+  showCloseButton?: boolean;
   onModeMutated?: () => void;
   onClose: () => void;
   onRename?: (collectionId: string) => void;
@@ -70,27 +71,24 @@ interface CollectionDetailsPanelProps {
   onSplitClose?: () => void;
 }
 
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
+function SectionHeader({ children }: { children: string }) {
   return (
-    <section className="border-t border-[var(--color-figma-border)] px-5 py-4 first:border-t-0">
-      <div className="mb-3">
-        <h3 className="text-body font-semibold text-[var(--color-figma-text)]">{title}</h3>
-        {description ? (
-          <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-            {description}
-          </p>
-        ) : null}
-      </div>
+    <div className="px-5 pb-1.5 pt-5 text-body font-medium text-[var(--color-figma-text-secondary)]">
       {children}
-    </section>
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: ReactNode; label: string }) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <span className="text-[18px] font-semibold leading-none tabular-nums text-[var(--color-figma-text)]">
+        {value}
+      </span>
+      <span className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -204,24 +202,24 @@ function ModeRow({
 
   if (confirmingDelete) {
     return (
-      <div className="rounded-md border border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/5 px-2.5 py-2">
+      <div className="mx-2 rounded bg-[var(--color-figma-error)]/10 px-2.5 py-2">
         <p className="text-secondary text-[var(--color-figma-text)]">
           Delete mode? {tokenCount} token{tokenCount === 1 ? "" : "s"} may lose values.
         </p>
-        <div className="mt-1.5 flex items-center gap-2">
+        <div className="mt-1.5 flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => void handleDelete()}
             disabled={saving}
-            className="rounded-md bg-[var(--color-figma-error)] px-2 py-0.5 text-secondary font-medium text-white disabled:opacity-50"
+            className="rounded bg-[var(--color-figma-error)] px-2 py-0.5 text-secondary font-medium text-white disabled:opacity-50"
           >
-            {saving ? "Deleting..." : "Confirm"}
+            {saving ? "Deleting…" : "Delete"}
           </button>
           <button
             type="button"
             onClick={() => setConfirmingDelete(false)}
             disabled={saving}
-            className="rounded-md px-2 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded px-2 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
@@ -235,7 +233,7 @@ function ModeRow({
 
   if (renaming) {
     return (
-      <div className="space-y-1">
+      <div className="px-2">
         <input
           ref={inputRef}
           type="text"
@@ -253,57 +251,58 @@ function ModeRow({
           }}
           onBlur={() => void handleRename()}
           disabled={saving}
-          className="w-full rounded-md border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-body text-[var(--color-figma-text)] outline-none"
+          className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
         />
         {error ? (
-          <p className="text-secondary text-[var(--color-figma-error)]">{error}</p>
+          <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{error}</p>
         ) : null}
       </div>
     );
   }
 
   return (
-    <div className="group flex items-center gap-1 rounded-md px-2.5 py-1.5 transition-colors hover:bg-[var(--color-figma-bg-hover)]">
-      <span
-        className="flex-1 cursor-default truncate text-body text-[var(--color-figma-text)]"
+    <div className="group flex items-center gap-2 rounded px-2 py-1 transition-colors hover:bg-[var(--color-figma-bg-hover)]">
+      <button
+        type="button"
         onDoubleClick={() => {
           if (connected) {
             setRenameValue(modeName);
             setRenaming(true);
           }
         }}
-        title="Double-click to rename"
+        className="min-w-0 flex-1 truncate text-left text-body text-[var(--color-figma-text)]"
+        title={connected ? "Double-click to rename" : modeName}
       >
         {modeName}
-      </span>
+      </button>
       {connected && allModeNames.length > 1 ? (
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
           <button
             type="button"
             onClick={() => void handleReorder(-1)}
             disabled={!canMoveUp || saving}
-            className="rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-30"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)] disabled:opacity-30"
             aria-label="Move up"
           >
-            <ChevronUp size={10} strokeWidth={2.5} aria-hidden />
+            <ArrowUp size={10} strokeWidth={2} aria-hidden />
           </button>
           <button
             type="button"
             onClick={() => void handleReorder(1)}
             disabled={!canMoveDown || saving}
-            className="rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] disabled:opacity-30"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)] disabled:opacity-30"
             aria-label="Move down"
           >
-            <ChevronDown size={10} strokeWidth={2.5} aria-hidden />
+            <ArrowDown size={10} strokeWidth={2} aria-hidden />
           </button>
           <button
             type="button"
             onClick={() => setConfirmingDelete(true)}
             disabled={saving}
-            className="rounded p-0.5 text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:opacity-30"
+            className="inline-flex h-5 w-5 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)] disabled:opacity-30"
             aria-label="Delete mode"
           >
-            <X size={10} strokeWidth={2.5} aria-hidden />
+            <X size={10} strokeWidth={2} aria-hidden />
           </button>
         </div>
       ) : null}
@@ -368,12 +367,11 @@ function ModesSection({
   }, [addValue, collection.id, onModeMutated, serverUrl]);
 
   const allModeNames = collection.modes.map((m) => m.name);
-  const isSingleDefault =
-    collection.modes.length === 1 && collection.modes[0].name === "Mode 1";
 
   return (
-    <Section title="Modes">
-      <div className="space-y-1">
+    <div>
+      <SectionHeader>Modes</SectionHeader>
+      <div className="px-3">
         {collection.modes.map((mode, index) => (
           <ModeRow
             key={mode.name}
@@ -387,16 +385,9 @@ function ModesSection({
             onMutated={onModeMutated}
           />
         ))}
-      </div>
-      {isSingleDefault ? (
-        <p className="mt-2 text-secondary text-[var(--color-figma-text-tertiary)]">
-          Add another mode to enable multi-mode tokens.
-        </p>
-      ) : null}
-      {connected ? (
-        <div className="mt-2">
-          {adding ? (
-            <div className="space-y-1">
+        {connected ? (
+          adding ? (
+            <div className="mt-1 px-2">
               <input
                 ref={addInputRef}
                 type="text"
@@ -413,49 +404,63 @@ function ModesSection({
                     setAddError("");
                   }
                 }}
-                disabled={addSaving}
-                placeholder="Mode name"
-                className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-              />
-              {addError ? (
-                <p className="text-secondary text-[var(--color-figma-error)]">{addError}</p>
-              ) : null}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleAdd()}
-                  disabled={addSaving || !addValue.trim()}
-                  className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white disabled:opacity-50"
-                >
-                  {addSaving ? "Adding..." : "Add"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
+                onBlur={() => {
+                  if (!addValue.trim()) {
                     setAdding(false);
                     setAddValue("");
                     setAddError("");
-                  }}
-                  disabled={addSaving}
-                  className="rounded-md px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  Cancel
-                </button>
-              </div>
+                    return;
+                  }
+                  void handleAdd();
+                }}
+                disabled={addSaving}
+                placeholder="Mode name"
+                className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+              />
+              {addError ? (
+                <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{addError}</p>
+              ) : null}
             </div>
           ) : (
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className="mt-1 flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
             >
-              <Plus size={10} strokeWidth={2.5} aria-hidden />
+              <Plus size={11} strokeWidth={1.8} aria-hidden />
               Add mode
             </button>
-          )}
-        </div>
-      ) : null}
-    </Section>
+          )
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ActionRow({
+  onClick,
+  disabled,
+  tone = "default",
+  children,
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  tone?: "default" | "danger";
+  children: ReactNode;
+}) {
+  const toneClass =
+    tone === "danger"
+      ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+      : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full rounded px-2 py-1 text-left text-body transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${toneClass}`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -467,14 +472,15 @@ export function CollectionDetailsPanel({
   serverUrl,
   connected,
   presentation = "panel",
+  showCloseButton = true,
   onModeMutated,
   onClose,
-  onRename,
   onDuplicate,
   onDelete,
   onEditInfo,
   onMerge,
   onSplit,
+  onRename,
   renamingCollectionId = null,
   renameValue = "",
   setRenameValue,
@@ -542,29 +548,30 @@ export function CollectionDetailsPanel({
   const shellClass =
     presentation === "takeover"
       ? "flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-figma-bg)]"
-      : "flex h-full w-[360px] max-w-full shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]";
+      : presentation === "bottom"
+        ? "flex h-full w-full min-w-0 flex-col overflow-hidden bg-[var(--color-figma-bg)]"
+        : "flex h-full w-[340px] max-w-full shrink-0 flex-col overflow-hidden bg-[var(--color-figma-bg)]";
   const contentClass =
     presentation === "takeover"
-      ? "mx-auto flex h-full w-full max-w-[760px] flex-col overflow-hidden"
+      ? "mx-auto flex h-full w-full max-w-[720px] flex-col overflow-hidden"
       : "flex h-full w-full flex-col overflow-hidden";
 
   if (!collection) {
     return (
       <div className={shellClass}>
         <div className={contentClass}>
-          <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-5 py-3">
-            <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
-              Collection details
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              aria-label="Close collection details"
-            >
-              <X size={12} strokeWidth={2} aria-hidden />
-            </button>
-          </div>
+          {showCloseButton ? (
+            <div className="flex justify-end px-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                aria-label="Close collection details"
+              >
+                <X size={12} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          ) : null}
           <div className="flex flex-1 items-center justify-center px-6 text-center text-body text-[var(--color-figma-text-secondary)]">
             Choose a collection to review its structure.
           </div>
@@ -574,6 +581,7 @@ export function CollectionDetailsPanel({
   }
 
   const tokenCount = collectionTokenCounts[collection.id] ?? 0;
+  const modeCount = collection.modes.length;
   const savedDescription = collectionDescriptions[collection.id] ?? "";
   const currentDescription =
     editingMetadataCollectionId === collection.id ? metadataDescription : savedDescription;
@@ -582,6 +590,7 @@ export function CollectionDetailsPanel({
 
   const canMerge =
     !!onMerge && collectionIds.some((collectionId) => collectionId !== collection.id);
+  const isRenaming = renamingCollectionId === collection.id;
 
   if (
     mergingCollectionId === collection.id &&
@@ -620,10 +629,25 @@ export function CollectionDetailsPanel({
     <>
       <div className={shellClass}>
         <div className={contentClass}>
-          <div className="flex items-start justify-between gap-3 border-b border-[var(--color-figma-border)] px-5 py-3">
-            <div className="min-w-0 flex-1">
-              {renamingCollectionId === collection.id ? (
-                <div className="space-y-1">
+          {/* Top bar: close only — title lives in body */}
+          {showCloseButton ? (
+            <div className="flex justify-end px-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                aria-label="Close"
+              >
+                <X size={12} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          ) : null}
+
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            {/* Title block */}
+            <div className="px-5 pt-1 pb-4">
+              {isRenaming ? (
+                <div>
                   <input
                     ref={renameInputRef}
                     type="text"
@@ -633,55 +657,40 @@ export function CollectionDetailsPanel({
                       if (e.key === "Enter") void onRenameConfirm?.();
                       if (e.key === "Escape") onRenameCancel?.();
                     }}
-                    className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-body font-semibold text-[var(--color-figma-text)] outline-none"
+                    onBlur={() => void onRenameConfirm?.()}
+                    className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                   />
                   {renameError ? (
-                    <p className="text-secondary text-[var(--color-figma-error)]">{renameError}</p>
+                    <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{renameError}</p>
                   ) : null}
                 </div>
               ) : (
                 <h2
-                  className="cursor-default truncate text-body font-semibold text-[var(--color-figma-text)]"
+                  className="truncate text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)]"
                   onDoubleClick={() => onRename?.(collection.id)}
                   title="Double-click to rename"
                 >
                   {collection.id}
                 </h2>
               )}
-              <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-                {tokenCount} token{tokenCount === 1 ? "" : "s"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              aria-label="Close"
-            >
-              <X size={12} strokeWidth={2} aria-hidden />
-            </button>
-          </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="px-5 py-4">
+              {/* Inline description — auto-save on blur, no separate button */}
               <textarea
                 value={currentDescription}
                 onChange={(e) => setMetadataDescription?.(e.target.value)}
-                rows={3}
-                placeholder="What is this collection for?"
-                className="w-full resize-none rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+                onBlur={() => {
+                  if (descriptionDirty) void onMetadataSave?.();
+                }}
+                rows={2}
+                placeholder="Add a description…"
+                className="mt-2 w-full resize-none bg-transparent p-0 text-body leading-[1.5] text-[var(--color-figma-text-secondary)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
               />
-              {descriptionDirty ? (
-                <div className="mt-2 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => void onMetadataSave?.()}
-                    className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white"
-                  >
-                    Save
-                  </button>
-                </div>
-              ) : null}
+
+              {/* Stats row */}
+              <div className="mt-2 flex items-start gap-5">
+                <Stat value={tokenCount} label={tokenCount === 1 ? "token" : "tokens"} />
+                <Stat value={modeCount} label={modeCount === 1 ? "mode" : "modes"} />
+              </div>
             </div>
 
             <ModesSection
@@ -692,45 +701,26 @@ export function CollectionDetailsPanel({
               tokenCount={collectionTokenCounts[collection.id] ?? 0}
             />
 
-            <div className="border-t border-[var(--color-figma-border)] py-1">
-              <button
-                type="button"
-                onClick={() => onRename?.(collection.id)}
-                className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Rename
-              </button>
-              <button
-                type="button"
-                onClick={() => onDuplicate?.(collection.id)}
-                className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Create from this collection
-              </button>
-              <button
-                type="button"
+            <SectionHeader>Structure</SectionHeader>
+            <div className="px-3 pb-2">
+              <ActionRow onClick={() => onDuplicate?.(collection.id)}>
+                Duplicate collection
+              </ActionRow>
+              <ActionRow
                 onClick={() => onMerge?.(collection.id)}
                 disabled={!canMerge}
-                className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
               >
-                Merge into another collection
-              </button>
-              <button
-                type="button"
-                onClick={() => onSplit?.(collection.id)}
-                className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Split by top-level groups
-              </button>
+                Merge into another collection…
+              </ActionRow>
+              <ActionRow onClick={() => onSplit?.(collection.id)}>
+                Split by top-level groups…
+              </ActionRow>
             </div>
-            <div className="border-t border-[var(--color-figma-border)] py-1">
-              <button
-                type="button"
-                onClick={() => onDelete?.(collection.id)}
-                className="w-full px-5 py-2 text-left text-body text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
-              >
+
+            <div className="px-3 pb-4 pt-1">
+              <ActionRow onClick={() => onDelete?.(collection.id)} tone="danger">
                 Delete collection
-              </button>
+              </ActionRow>
             </div>
           </div>
         </div>

@@ -15,7 +15,7 @@ import { suppressKey } from "../shared/ruleLabels";
 export interface UseIssueActionsParams {
   serverUrl: string;
   connected: boolean;
-  onRefreshValidation: () => Promise<unknown> | void;
+  onRefreshReview: () => Promise<unknown> | void;
   onError: (msg: string) => void;
 }
 
@@ -31,7 +31,7 @@ export interface UseIssueActionsResult {
 export function useIssueActions({
   serverUrl,
   connected,
-  onRefreshValidation,
+  onRefreshReview,
   onError,
 }: UseIssueActionsParams): UseIssueActionsResult {
   const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(new Set());
@@ -164,13 +164,13 @@ export function useIssueActions({
       } else {
         throw new Error(getUnsupportedIssueFixMessage(issue));
       }
-      await onRefreshValidation();
+      await onRefreshReview();
     } catch (error) {
       onError(error instanceof Error ? error.message : "Fix failed — check connection and retry.");
     } finally {
       setFixingKeys((prev) => { const next = new Set(prev); next.delete(key); return next; });
     }
-  }, [serverUrl, onRefreshValidation, onError]);
+  }, [serverUrl, onRefreshReview, onError]);
 
   return {
     suppressedKeys,

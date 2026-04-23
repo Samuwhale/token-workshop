@@ -352,8 +352,7 @@ select:focus-visible,
 .tm-token-details__section--secondary,
 .tm-token-details__section--support {
   gap: 10px;
-  padding-top: 16px;
-  border-top: 1px solid color-mix(in srgb, var(--color-figma-border) 72%, transparent);
+  padding-top: 20px;
 }
 
 .tm-token-details__section-header {
@@ -425,9 +424,8 @@ select:focus-visible,
 
 .tm-token-details__list-box,
 .tm-token-details__code-block {
-  border: 1px solid color-mix(in srgb, var(--color-figma-border) 70%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-figma-bg-secondary) 28%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 40%, transparent);
 }
 
 .tm-token-details__banner {
@@ -435,24 +433,20 @@ select:focus-visible,
   flex-direction: column;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--color-figma-border) 70%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-figma-bg-secondary) 28%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 40%, transparent);
 }
 
 .tm-token-details__banner--warning {
-  border-color: color-mix(in srgb, var(--color-figma-warning) 35%, var(--color-figma-border));
-  background: color-mix(in srgb, var(--color-figma-warning) 10%, transparent);
+  background: color-mix(in srgb, var(--color-figma-warning) 12%, transparent);
 }
 
 .tm-token-details__banner--error {
-  border-color: color-mix(in srgb, var(--color-figma-error) 36%, var(--color-figma-border));
-  background: color-mix(in srgb, var(--color-figma-error) 10%, transparent);
+  background: color-mix(in srgb, var(--color-figma-error) 12%, transparent);
 }
 
 .tm-token-details__banner--muted {
-  border-color: color-mix(in srgb, var(--color-figma-text-tertiary) 45%, var(--color-figma-border));
-  background: color-mix(in srgb, var(--color-figma-bg-secondary) 45%, transparent);
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 60%, transparent);
 }
 
 .tm-token-details__banner-copy {
@@ -494,11 +488,11 @@ select:focus-visible,
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-block-size: 28px;
-  padding: 0 12px;
-  border-radius: 8px;
+  min-block-size: 26px;
+  padding: 0 10px;
+  border-radius: 4px;
   font-size: var(--font-size-base);
-  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .tm-token-details__primary-button {
@@ -520,7 +514,7 @@ select:focus-visible,
 }
 
 .tm-token-details__secondary-button {
-  border: 1px solid var(--color-figma-border);
+  border: 0;
   background: var(--color-figma-bg);
   color: var(--color-figma-text-secondary);
 }
@@ -554,8 +548,7 @@ select:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-figma-border) 72%, transparent);
+  padding-bottom: 20px;
 }
 
 .tm-token-details__setup-row {
@@ -615,9 +608,7 @@ button.tm-token-details__list-row:hover {
 .tm-token-details__mini-tag {
   margin-left: auto;
   flex: 0 0 auto;
-  padding: 2px 5px;
-  border: 1px solid var(--color-figma-border);
-  border-radius: 999px;
+  padding: 1px 0 1px 6px;
   font-size: var(--font-size-xs);
   line-height: 1;
   color: var(--color-figma-text-tertiary);
@@ -639,9 +630,8 @@ button.tm-token-details__list-row:hover {
 
 .tm-token-details__suggestion-button {
   padding: 3px 8px;
-  border: 1px solid var(--color-figma-border);
-  border-radius: 999px;
-  background: transparent;
+  border-radius: 4px;
+  background: var(--color-figma-bg);
   color: var(--color-figma-text-secondary);
 }
 
@@ -658,18 +648,15 @@ button.tm-token-details__list-row:hover {
 
 .tm-token-details__value-surface {
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--color-figma-border) 72%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-figma-bg-secondary) 22%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 35%, transparent);
 }
 
 .tm-token-details__mode-stack {
   display: flex;
   flex-direction: column;
-}
-
-.tm-token-details__mode-stack > * + * {
-  border-top: 1px solid color-mix(in srgb, var(--color-figma-border) 62%, transparent);
+  gap: 2px;
+  padding: 2px;
 }
 
 .tm-token-details__mode-add {
@@ -775,9 +762,8 @@ button.tm-token-details__list-row:hover {
   flex-direction: column;
   gap: 10px;
   padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--color-figma-border) 65%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-figma-bg-secondary) 20%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 40%, transparent);
 }
 
 .tm-token-details__generated-card {
@@ -785,9 +771,8 @@ button.tm-token-details__list-row:hover {
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--color-figma-warning) 22%, var(--color-figma-border));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-figma-warning) 6%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-figma-warning) 8%, transparent);
 }
 
 .tm-token-details__generated-actions {
@@ -805,19 +790,19 @@ button.tm-token-details__list-row:hover {
 
 .tm-token-details__contrast-check {
   padding: 6px 4px;
-  border: 1px solid var(--color-figma-border);
-  border-radius: 6px;
+  border-radius: 4px;
+  background: var(--color-figma-bg);
   font-size: var(--font-size-sm);
   line-height: var(--leading-body);
 }
 
 .tm-token-details__contrast-check--pass {
-  border-color: color-mix(in srgb, var(--color-figma-success) 55%, var(--color-figma-border));
+  background: color-mix(in srgb, var(--color-figma-success) 10%, transparent);
   color: var(--color-figma-success);
 }
 
 .tm-token-details__contrast-check--fail {
-  border-color: color-mix(in srgb, var(--color-figma-error) 45%, var(--color-figma-border));
+  background: color-mix(in srgb, var(--color-figma-error) 10%, transparent);
   color: var(--color-figma-error);
 }
 
@@ -853,14 +838,13 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-details__advanced {
-  padding-top: 16px;
-  border-top: 1px solid color-mix(in srgb, var(--color-figma-border) 72%, transparent);
+  padding-top: 20px;
 }
 
 .tm-token-details__advanced-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   padding-top: 12px;
 }
 
@@ -868,13 +852,11 @@ button.tm-token-details__text-button:disabled:hover {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 16px;
-  border-top: 1px solid color-mix(in srgb, var(--color-figma-border) 62%, transparent);
+  padding-top: 20px;
 }
 
 .tm-token-details__subsection:first-child {
   padding-top: 0;
-  border-top: 0;
 }
 
 .tm-token-details__code-block {
@@ -1061,8 +1043,7 @@ button.tm-token-details__text-button:disabled:hover {
   min-inline-size: 0;
   flex-direction: column;
   gap: 10px;
-  border-top: 1px solid var(--color-figma-border);
-  padding: 12px 0 0;
+  padding: 16px 0 0;
 }
 
 .tm-generator-authoring__title-block {
@@ -1105,13 +1086,13 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-generator-authoring__control {
-  min-block-size: 36px;
+  min-block-size: 32px;
   inline-size: 100%;
   min-inline-size: 0;
-  border: 1px solid var(--color-figma-border);
-  border-radius: 8px;
+  border: 0;
+  border-radius: 4px;
   background: var(--color-figma-bg);
-  padding: 8px 10px;
+  padding: 6px 10px;
   font-size: var(--font-size-base);
   line-height: 1.4;
   color: var(--color-figma-text);
@@ -1174,8 +1155,7 @@ button.tm-token-details__text-button:disabled:hover {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  border-top: 1px solid var(--color-figma-border);
-  padding: 8px 0 0;
+  padding: 10px 0 0;
 }
 
 .tm-generator-authoring__metric-value {

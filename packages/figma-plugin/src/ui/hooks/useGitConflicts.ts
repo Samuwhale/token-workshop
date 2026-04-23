@@ -88,7 +88,7 @@ export function useGitConflicts({
       setMergeConflicts([]);
       setConflictChoices({});
       dispatchToast('Merge conflicts resolved', 'success', {
-        destination: { kind: "workspace", topTab: "versions", subTab: "versions" },
+        destination: { kind: "workspace", topTab: "library", subTab: "history" },
       });
       await fetchStatus();
     } catch (err) {
@@ -106,7 +106,7 @@ export function useGitConflicts({
       setMergeConflicts([]);
       setConflictChoices({});
       dispatchToast('Merge aborted', 'success', {
-        destination: { kind: "workspace", topTab: "versions", subTab: "versions" },
+        destination: { kind: "workspace", topTab: "library", subTab: "history" },
       });
       await fetchStatus();
     } catch (err) {

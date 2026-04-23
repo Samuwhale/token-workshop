@@ -1,20 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
+import type { DeprecatedUsageEntry } from "../../shared/deprecatedUsage";
 import { TokenPickerDropdown } from "../TokenPicker";
 import { Spinner } from "../Spinner";
-
-interface DeprecatedUsageDependent {
-  path: string;
-  collectionId: string;
-}
-
-export interface DeprecatedUsageEntry {
-  deprecatedPath: string;
-  collectionId: string;
-  type: string;
-  activeReferenceCount: number;
-  dependents: DeprecatedUsageDependent[];
-}
+import { HealthSubViewHeader } from "./HealthSubViewHeader";
 
 export interface HealthDeprecatedViewProps {
   entries: DeprecatedUsageEntry[];
@@ -89,23 +78,11 @@ export function HealthDeprecatedView({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
-        <button
-          onClick={onBack}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-          aria-label="Back"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <span className="text-body font-semibold text-[var(--color-figma-text)]">Deprecated</span>
-        {!loading && entries.length > 0 && (
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-auto">
-            {entries.length} token{entries.length !== 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
+      <HealthSubViewHeader
+        title="Deprecated"
+        onBack={onBack}
+        count={!loading && entries.length > 0 ? `${entries.length} token${entries.length !== 1 ? "s" : ""}` : undefined}
+      />
 
       <div className="flex-1 overflow-y-auto px-3" style={{ scrollbarWidth: "thin" }}>
         {loading ? (

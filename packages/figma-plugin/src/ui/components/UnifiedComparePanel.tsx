@@ -49,12 +49,11 @@ export function UnifiedComparePanel({
   ...compareProps
 }: UnifiedComparePanelProps) {
   return (
-    <>
-      {/* Back button bar */}
-      <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+    <div className="flex h-full flex-col overflow-hidden bg-[var(--color-figma-bg)]">
+      <div className="shrink-0 flex items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-3 py-2">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           aria-label={backLabel}
         >
           <svg width="6" height="10" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -62,12 +61,15 @@ export function UnifiedComparePanel({
           </svg>
           {backLabel}
         </button>
+        <span className="text-body font-semibold text-[var(--color-figma-text)]">
+          Compare
+        </span>
+        <div className="w-12 shrink-0" aria-hidden />
       </div>
 
-      {/* The shared comparison UI */}
       <div className="flex-1 overflow-hidden">
         <CompareView {...compareProps} />
       </div>
-    </>
+    </div>
   );
 }

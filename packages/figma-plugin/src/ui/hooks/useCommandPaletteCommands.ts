@@ -341,7 +341,7 @@ export function useCommandPaletteCommands(): {
       ...(tokens.lintViolations.length > 0
         ? [
             {
-              id: "analytics",
+              id: "toggle-issue-filter",
               label: "Toggle issue-only filter",
               description: `Focus the ${tokens.lintViolations.length} token${tokens.lintViolations.length === 1 ? "" : "s"} with validation issues`,
               category: "Review" as const,

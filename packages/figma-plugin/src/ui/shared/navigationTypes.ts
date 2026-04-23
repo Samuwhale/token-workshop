@@ -13,8 +13,7 @@ export type TopTab =
   | "library"
   | "canvas"
   | "sync"
-  | "export"
-  | "versions";
+  | "export";
 export type LibrarySubTab = "tokens" | "health" | "history";
 export type SubTab =
   | LibrarySubTab
@@ -22,8 +21,7 @@ export type SubTab =
   | "coverage"
   | "repair"
   | "figma-sync"
-  | "export"
-  | "versions";
+  | "export";
 export type SecondarySurfaceId =
   | "shortcuts"
   | "settings";
@@ -133,11 +131,6 @@ export const TOP_TABS: {
     label: "Export",
     subTabs: [{ id: "export", label: "Export" }],
   },
-  {
-    id: "versions",
-    label: "Versions",
-    subTabs: [{ id: "versions", label: "Versions" }],
-  },
 ];
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
@@ -145,7 +138,6 @@ export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   canvas: "inspect",
   sync: "figma-sync",
   export: "export",
-  versions: "versions",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
@@ -153,7 +145,6 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   canvas: STORAGE_KEYS.ACTIVE_SUB_TAB_CANVAS,
   sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
   export: STORAGE_KEYS.ACTIVE_SUB_TAB_EXPORT,
-  versions: STORAGE_KEYS.ACTIVE_SUB_TAB_VERSIONS,
 };
 
 // ---------------------------------------------------------------------------
@@ -164,8 +155,7 @@ export type WorkspaceId =
   | "library"
   | "canvas"
   | "sync"
-  | "export"
-  | "versions";
+  | "export";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -436,7 +426,6 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { id: "sync", label: "Sync", railCode: "Sy", topTab: "sync", subTab: "figma-sync", workspaceId: "sync" },
       { id: "export", label: "Export", railCode: "Ex", topTab: "export", subTab: "export", workspaceId: "export" },
-      { id: "versions", label: "Versions", railCode: "Ve", topTab: "versions", subTab: "versions", workspaceId: "versions" },
     ],
   },
 ];
@@ -477,7 +466,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
         subTab: "history",
         transition: contextualSubScreenTransition(
           "full-height-body",
-          "Review recent edits and checkpoints.",
+          "Review recent edits, checkpoints, and versions.",
         ),
       },
     ],
@@ -553,15 +542,6 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     subTab: "export",
     transition: workspaceTransition("Generate platform token files."),
     matchRoutes: [route("export", "export")],
-  },
-  {
-    id: "versions",
-    label: "Versions",
-    summaryTitle: "Versions",
-    topTab: "versions",
-    subTab: "versions",
-    transition: workspaceTransition("Version history and team sharing."),
-    matchRoutes: [route("versions", "versions")],
   },
 ];
 

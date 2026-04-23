@@ -8,10 +8,9 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode, RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
-import { LibraryPostSetupHint } from "../components/LibraryPostSetupHint";
 import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
@@ -29,7 +28,6 @@ import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
 import { CanvasRepairPanel } from "../components/CanvasRepairPanel";
 import { useSelectionHealth } from "../hooks/useSelectionHealth";
 import { ExportPanel } from "../components/ExportPanel";
-import { GitRepositoryPanel } from "../components/publish/GitRepositoryPanel";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { HealthPanel } from "../components/HealthPanel";
 import type { HealthScope } from "../components/health/types";
@@ -42,7 +40,6 @@ import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { PanelContentHeader } from "../components/PanelContentHeader";
 import { LibraryCollectionsRail } from "../components/library/LibraryCollectionsRail";
-import { LibraryWorkspaceHeader } from "../components/library/LibraryWorkspaceHeader";
 import {
   useConnectionContext,
   useSyncContext,
@@ -73,6 +70,8 @@ import {
 } from "../contexts/WorkspaceControllerContext";
 import type { TokenNode } from "../hooks/useTokens";
 import { useHealthSignals } from "../hooks/useHealthSignals";
+import { useHealthData } from "../hooks/useHealthData";
+import { useDeprecatedUsage } from "../hooks/useDeprecatedUsage";
 import { useIssueActions } from "../hooks/useIssueActions";
 import {
   buildTokenContextTarget,
@@ -98,9 +97,10 @@ import {
 } from "../shared/collectionPathLookup";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import type { ToastAction } from "../shared/toastBus";
+import { buildLibraryReviewSummary } from "../shared/reviewSummary";
+import { fixLabel, getRuleLabel, suppressKey } from "../shared/ruleLabels";
 
 const DEFAULT_CREATE_TYPE = "color";
-const TOKEN_EDITOR_SPLIT_MIN_BODY_WIDTH = 560;
 
 function readLastCreateGroup(): string {
   return lsGet(STORAGE_KEYS.LAST_CREATE_GROUP, "");
@@ -128,43 +128,6 @@ function persistLastCreateType(tokenType: string): void {
     STORAGE_KEYS.LAST_CREATE_TYPE,
     normalizeTokenType(tokenType, DEFAULT_CREATE_TYPE),
   );
-}
-
-function useMeasuredWidth<T extends HTMLElement>(): {
-  ref: RefObject<T>;
-  width: number;
-} {
-  const ref = useRef<T>(null);
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) {
-      return;
-    }
-
-    const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width);
-    };
-
-    updateWidth();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateWidth);
-      return () => {
-        window.removeEventListener("resize", updateWidth);
-      };
-    }
-
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  return { ref, width };
 }
 
 function resolveCreateLauncherPath(initialPath?: string): string {
@@ -237,14 +200,13 @@ export function PanelRouter({
 }): ReactNode {
   const sideEditorBoundary = useResizableBoundary({
     storageKey: STORAGE_KEYS.SIDE_EDITOR_WIDTH,
-    defaultSize: 320,
+    defaultSize: 340,
     min: 280,
     max: 560,
     axis: "x",
     mode: "px",
     measureFrom: "end",
   });
-  const libraryScaffoldWidth = useMeasuredWidth<HTMLDivElement>();
   const shell = useShellWorkspaceController();
   const editorShell = useEditorShellController();
   const tokensController = useTokensWorkspaceController();
@@ -393,6 +355,7 @@ export function PanelRouter({
       mode: "current",
       collectionId: currentCollectionId || null,
       tokenPath: null,
+      issueKey: null,
       view: "dashboard",
       nonce: Date.now(),
       ...overrides,
@@ -424,6 +387,7 @@ export function PanelRouter({
           mode: "current",
           collectionId,
           tokenPath: tokenPath ?? null,
+          issueKey: null,
           view: "issues",
         }),
       );
@@ -440,6 +404,7 @@ export function PanelRouter({
           mode: "current",
           collectionId,
           tokenPath: null,
+          issueKey: null,
           view: "dashboard",
         }),
       );
@@ -468,9 +433,7 @@ export function PanelRouter({
       historyRouteIntentRef.current = null;
       return;
     }
-    setHistoryScope((currentScope) =>
-      createLibraryHistoryScope({ view: currentScope.view }),
-    );
+    setHistoryScope(createLibraryHistoryScope({ view: "recent" }));
     historyRouteIntentRef.current = null;
   }, [activeSubTab, activeTopTab, createLibraryHistoryScope]);
 
@@ -509,10 +472,60 @@ export function PanelRouter({
     generators,
     currentCollectionId,
   });
+  const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
+  const refreshReviewData = useCallback(async () => {
+    setReviewRefreshKey((currentKey) => currentKey + 1);
+    return await refreshValidation();
+  }, [refreshValidation]);
+  const {
+    duplicateAliasCountsByCollection,
+    aliasOpportunityCountsByCollection,
+    unusedTokenCountsByCollection,
+  } = useHealthData({
+    allTokensFlat,
+    pathToCollectionId,
+    perCollectionFlat,
+    tokenUsageCounts,
+    tokenUsageReady: hasTokenUsageScanResult,
+    validationIssues,
+    currentCollectionId,
+  });
+  const deprecatedUsage = useDeprecatedUsage({
+    serverUrl,
+    connected,
+    refreshKey: (controller.validationLastRefreshed?.getTime() ?? 0) + reviewRefreshKey,
+  });
+  const deprecatedUsageCountsByCollection = useMemo(
+    () =>
+      deprecatedUsage.entries.reduce<Map<string, number>>((counts, entry) => {
+        counts.set(entry.collectionId, (counts.get(entry.collectionId) ?? 0) + 1);
+        return counts;
+      }, new Map()),
+    [deprecatedUsage.entries],
+  );
+  const libraryReview = useMemo(
+    () =>
+      buildLibraryReviewSummary({
+        collectionIds,
+        healthSignals,
+        duplicateAliasCountsByCollection,
+        aliasOpportunityCountsByCollection,
+        deprecatedUsageCountsByCollection,
+        unusedTokenCountsByCollection,
+      }),
+    [
+      aliasOpportunityCountsByCollection,
+      collectionIds,
+      deprecatedUsageCountsByCollection,
+      duplicateAliasCountsByCollection,
+      healthSignals,
+      unusedTokenCountsByCollection,
+    ],
+  );
   const issueActions = useIssueActions({
     serverUrl,
     connected,
-    onRefreshValidation: refreshValidation,
+    onRefreshReview: refreshReviewData,
     onError: setErrorToast,
   });
   const editingGeneratedGroupData =
@@ -1176,71 +1189,6 @@ export function PanelRouter({
 
   const getEditorSurfaceRenderState =
     (): TokensContextualSurfaceRenderState | null => {
-      if (
-        activeEditorSurface === "collection-details" &&
-        inspectingCollection
-      ) {
-        return {
-          surface: "collection-details",
-          content: (
-            <CollectionDetailsPanel
-              collection={
-                collections.find(
-                  (collection) => collection.id === inspectingCollection.collectionId,
-                ) ?? null
-              }
-              collectionIds={collectionIds}
-              collectionTokenCounts={collectionTokenCounts}
-              collectionDescriptions={collectionDescriptions}
-              serverUrl={serverUrl}
-              connected={connected}
-              presentation="takeover"
-              onModeMutated={refreshTokens}
-              onClose={() => switchContextualSurface({ surface: null })}
-              onRename={collectionStructureController.onRename}
-              onDuplicate={collectionStructureController.onDuplicate}
-              onDelete={collectionStructureController.onDelete}
-              onEditInfo={collectionStructureController.onEditInfo}
-              onMerge={collectionStructureController.onMerge}
-              onSplit={collectionStructureController.onSplit}
-              renamingCollectionId={collectionStructureController.renamingCollectionId}
-              renameValue={collectionStructureController.renameValue}
-              setRenameValue={collectionStructureController.setRenameValue}
-              renameError={collectionStructureController.renameError}
-              renameInputRef={collectionStructureController.renameInputRef}
-              onRenameConfirm={collectionStructureController.onRenameConfirm}
-              onRenameCancel={collectionStructureController.onRenameCancel}
-              editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
-              metadataDescription={collectionStructureController.metadataDescription}
-              setMetadataDescription={collectionStructureController.setMetadataDescription}
-              onMetadataSave={collectionStructureController.onMetadataSave}
-              deletingCollectionId={collectionStructureController.deletingCollectionId}
-              onDeleteConfirm={collectionStructureController.onDeleteConfirm}
-              onDeleteCancel={collectionStructureController.onDeleteCancel}
-              mergingCollectionId={collectionStructureController.mergingCollectionId}
-              mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
-              mergeConflicts={collectionStructureController.mergeConflicts}
-              mergeResolutions={collectionStructureController.mergeResolutions}
-              mergeChecked={collectionStructureController.mergeChecked}
-              mergeLoading={collectionStructureController.mergeLoading}
-              onMergeTargetChange={collectionStructureController.onMergeTargetChange}
-              setMergeResolutions={collectionStructureController.setMergeResolutions}
-              onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
-              onMergeConfirm={collectionStructureController.onMergeConfirm}
-              onMergeClose={collectionStructureController.onMergeClose}
-              splittingCollectionId={collectionStructureController.splittingCollectionId}
-              splitPreview={collectionStructureController.splitPreview}
-              splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
-              splitLoading={collectionStructureController.splitLoading}
-              setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
-              onSplitConfirm={collectionStructureController.onSplitConfirm}
-              onSplitClose={collectionStructureController.onSplitClose}
-            />
-          ),
-          onDismiss: () => switchContextualSurface({ surface: null }),
-        };
-      }
-
       if (activeEditorSurface === "token-details" && tokenDetails && tokenDetailsProps) {
         return {
           surface: "token-details",
@@ -1404,6 +1352,17 @@ export function PanelRouter({
     </div>
   );
 
+  const renderTokensContextualPanel = (): ReactNode => {
+    const surfaceState =
+      getMaintenanceSurfaceRenderState() ?? getEditorSurfaceRenderState();
+
+    if (surfaceState) {
+      return renderFullContextualSurface(surfaceState);
+    }
+
+    return null;
+  };
+
   const openImportNextStep = useCallback(
     (
       result: ImportCompletionResult,
@@ -1453,7 +1412,8 @@ export function PanelRouter({
   function renderDeliveryStatusStrip(): ReactNode {
     return (
       <DeliveryStatusStrip
-        health={healthSignals.overall}
+        reviewStatus={libraryReview.totals.status}
+        reviewItemCount={libraryReview.totals.reviewItems}
         pendingPublishCount={controller.pendingPublishCount}
         publishApplying={controller.publishApplying}
         syncing={syncing}
@@ -1625,9 +1585,6 @@ export function PanelRouter({
     export: {
       export: renderExport,
     },
-    versions: {
-      versions: renderVersions,
-    },
   };
 
   const renderer = PANEL_MAP[activeTopTab]?.[activeSubTab];
@@ -1682,6 +1639,7 @@ export function PanelRouter({
         mode: "current",
         collectionId,
         tokenPath: null,
+        issueKey: null,
         view: "dashboard",
         nonce: Date.now(),
       });
@@ -1698,206 +1656,150 @@ export function PanelRouter({
     }
   }
 
-  function renderLibraryCollectionsRail(): ReactNode {
+  function renderLibraryCollectionsRail(
+    section: "tokens" | "health" | "history",
+    bottomPanel?: ReactNode,
+  ): ReactNode {
+    const allCollectionsScope =
+      section === "tokens"
+        ? undefined
+        : {
+            selected:
+              section === "health"
+                ? healthScope.mode === "all"
+                : historyScope.mode === "all",
+            onSelect: () => {
+              if (section === "health") {
+                setHealthScope({
+                  ...healthScope,
+                  mode: "all",
+                  collectionId: null,
+                  tokenPath: null,
+                  issueKey: null,
+                  view: "dashboard",
+                  nonce: Date.now(),
+                });
+                return;
+              }
+
+              setHistoryScope({
+                ...historyScope,
+                mode: "all",
+                collectionId: null,
+                tokenPath: null,
+              });
+            },
+          };
+
     return (
       <LibraryCollectionsRail
         collections={collections}
-        currentCollectionId={currentCollectionId}
+        currentCollectionId={
+          section === "tokens"
+            ? currentCollectionId
+            : section === "health"
+              ? healthScope.mode === "current"
+                ? healthScope.collectionId ?? currentCollectionId
+                : null
+              : historyScope.mode === "current"
+                ? historyScope.collectionId ?? currentCollectionId
+                : null
+        }
         collectionDisplayNames={collectionMap}
         collectionTokenCounts={collectionTokenCounts}
-        collectionHealth={healthSignals.byCollection}
+        collectionHealth={libraryReview.byCollection}
         focusRequestKey={shell.collectionPickerFocusRequestKey}
+        allCollectionsScope={allCollectionsScope}
+        inspectingCollectionId={
+          section === "tokens" ? inspectingCollection?.collectionId ?? null : null
+        }
         onSelectCollection={handleLibraryCollectionSelect}
+        onOpenCollectionDetails={
+          section === "tokens"
+            ? (collectionId) => {
+                if (inspectingCollection?.collectionId === collectionId) {
+                  switchContextualSurface({ surface: null });
+                  return;
+                }
+                switchContextualSurface({
+                  surface: "collection-details",
+                  collection: { collectionId },
+                });
+              }
+            : undefined
+        }
         onOpenCreateCollection={controller.onOpenCollectionCreateDialog}
         onOpenImport={controller.onShowImportPanel}
-        onManageCollection={(collectionId) =>
-          switchContextualSurface({
-            surface: "collection-details",
-            collection: { collectionId },
-          })
-        }
+        bottomPanel={bottomPanel}
       />
     );
   }
 
   /**
-   * Shared scaffold for Library sections. Keeps token editing as the same canonical surface, but
-   * changes presentation based on section and available width.
+   * Shared scaffold for Library sections. The library remains one stable
+   * three-column workspace: collection rail, authoring canvas, and contextual
+   * inspector.
    */
   function renderLibraryScaffold({
     body,
     section,
     header,
+    contextualPanel,
+    railBottomPanel,
   }: {
     body: ReactNode;
     section: "tokens" | "health" | "history";
     header?: ReactNode;
+    contextualPanel?: ReactNode;
+    railBottomPanel?: ReactNode;
   }): ReactNode {
-    const editorSurfaceState = getEditorSurfaceRenderState();
-    const maintenanceSurfaceState = getMaintenanceSurfaceRenderState();
-
-    const tokenEditorState =
-      editorSurfaceState?.surface === "token-details" ? editorSurfaceState : null;
-    const collectionDetailsState =
-      editorSurfaceState?.surface === "collection-details"
-        ? editorSurfaceState
-        : null;
-    const fullEditorState =
-      editorSurfaceState && editorSurfaceState.surface === "generated-group-editor"
-        ? editorSurfaceState
-        : null;
-
-    const canSplitTokenEditor =
-      section === "tokens" &&
-      !!tokenEditorState &&
-      libraryScaffoldWidth.width >=
-        sideEditorBoundary.size + TOKEN_EDITOR_SPLIT_MIN_BODY_WIDTH;
-    const splitEditorState = canSplitTokenEditor ? tokenEditorState : null;
-    const takeoverSurfaceState =
-      maintenanceSurfaceState ??
-      fullEditorState ??
-      collectionDetailsState ??
-      (tokenEditorState && !canSplitTokenEditor ? tokenEditorState : null);
-    const hideBodyForTakeover = !!takeoverSurfaceState;
-    const visibleHeader = takeoverSurfaceState ? null : header;
-
     return (
-      <div
-        ref={libraryScaffoldWidth.ref}
-        className="flex h-full min-h-0 overflow-hidden"
-      >
-        {renderLibraryCollectionsRail()}
+      <div className="flex h-full min-h-0 overflow-hidden">
+        {renderLibraryCollectionsRail(section, railBottomPanel)}
         <div className="flex min-h-0 min-w-0 flex-1 bg-[var(--color-figma-bg)]">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          {(fetchError || tokensError) && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)]/10 border-b border-[var(--color-figma-error)]/20 shrink-0">
-              <AlertCircle size={10} strokeWidth={2} className="text-[var(--color-figma-error)] shrink-0" aria-hidden />
-              <span className="text-secondary text-[var(--color-figma-text-secondary)] flex-1 truncate">
-                Failed to load tokens: {fetchError || tokensError}
-              </span>
-              <button
-                onClick={refreshTokens}
-                className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors shrink-0"
-              >
-                Retry
-              </button>
-            </div>
-          )}
+            {(fetchError || tokensError) && (
+              <div className="flex shrink-0 items-center gap-2 border-b border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-3 py-1.5">
+                <AlertCircle
+                  size={10}
+                  strokeWidth={2}
+                  className="shrink-0 text-[var(--color-figma-error)]"
+                  aria-hidden
+                />
+                <span className="flex-1 truncate text-secondary text-[var(--color-figma-text-secondary)]">
+                  Failed to load tokens: {fetchError || tokensError}
+                </span>
+                <button
+                  onClick={refreshTokens}
+                  className="shrink-0 rounded border border-[var(--color-figma-error)]/40 px-2 py-0.5 text-secondary text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
 
-          {visibleHeader}
+            {header}
+            <div className="min-h-0 flex-1 overflow-hidden">{body}</div>
+          </div>
 
-          {takeoverSurfaceState ? (
-            <div className="flex min-h-0 flex-1 overflow-hidden">
-              <div
-                className="min-h-0 min-w-0 flex-1 overflow-hidden"
-                aria-hidden={hideBodyForTakeover || undefined}
-                style={hideBodyForTakeover ? { display: "none" } : undefined}
-              >
-                {body}
-              </div>
-              <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
-                {renderFullContextualSurface(takeoverSurfaceState)}
-              </div>
-            </div>
-          ) : splitEditorState ? (
-            <div className="flex min-h-0 flex-1 overflow-hidden">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                {body}
-              </div>
+          {contextualPanel ? (
+            <>
               <ResizeDivider
                 axis="x"
-                ariaLabel="Resize side editor"
+                ariaLabel="Resize contextual panel"
                 ariaValueNow={sideEditorBoundary.ariaValueNow}
                 onMouseDown={sideEditorBoundary.onMouseDown}
                 onKeyDown={sideEditorBoundary.onKeyDown}
               />
               <div
-                className="shrink-0 overflow-hidden panel-slide-in"
+                className="shrink-0 overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
                 style={{ width: sideEditorBoundary.size }}
-                data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id}
-                data-tokens-library-contextual-surface={splitEditorState.surface}
-                onKeyDown={(e) => {
-                  if (
-                    (e.key === "]" || e.key === "[") &&
-                    (e.metaKey || e.ctrlKey) &&
-                    !e.shiftKey &&
-                    !e.altKey
-                  ) {
-                    e.preventDefault();
-                    controller.handleEditorNavigate(e.key === "]" ? 1 : -1);
-                  }
-                }}
               >
-                {splitEditorState.content}
+                {contextualPanel}
               </div>
-            </div>
-          ) : (
-            body
-          )}
+            </>
+          ) : null}
         </div>
-        </div>
-      </div>
-    );
-  }
-
-  function getCollectionHeadline(collectionId: string): {
-    title: string;
-    summary: string;
-    meta: ReactNode;
-  } {
-    const collection = collections.find((item) => item.id === collectionId) ?? null;
-    const collectionName = (collectionMap[collectionId] ?? collectionId) || "Library";
-    const description = collectionDescriptions[collectionId]?.trim();
-    const tokenCount = collectionTokenCounts[collectionId] ?? 0;
-    const modeCount = collection?.modes.length ?? 0;
-    const healthSummary = healthSignals.byCollection.get(collectionId);
-    const reviewStatus =
-      healthSummary?.actionable
-        ? `${healthSummary.actionable} item${healthSummary.actionable === 1 ? "" : "s"} need attention`
-        : "Ready for review";
-
-    const summary =
-      description ||
-      (modeCount > 1
-        ? `Author tokens for ${collectionName} across all ${modeCount} modes without hiding values.`
-        : `Author and review the ${collectionName} collection in one calm workspace.`);
-
-    return {
-      title: collectionName,
-      summary,
-      meta: (
-        <>
-          <span>{tokenCount} token{tokenCount === 1 ? "" : "s"}</span>
-          <span>{Math.max(modeCount, 1)} mode{modeCount === 1 ? "" : "s"}</span>
-          <span>{reviewStatus}</span>
-        </>
-      ),
-    };
-  }
-
-  function renderScopeToggle<T extends "current" | "all">(
-    value: T,
-    onChange: (next: T) => void,
-  ): ReactNode {
-    return (
-      <div className="inline-flex rounded-md bg-[var(--color-figma-bg-secondary)] p-0.5">
-        {([
-          { value: "current" as const, label: "Current collection" },
-          { value: "all" as const, label: "Library wide" },
-        ]).map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value as T)}
-            className={`rounded px-2.5 py-1 text-secondary transition-colors ${
-              value === option.value
-                ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
       </div>
     );
   }
@@ -1907,12 +1809,8 @@ export function PanelRouter({
       collections.length === 0 &&
       !createFromEmpty &&
       !tokenDetails;
-    const collectionHeadline =
-      currentCollectionId && collections.length > 0
-        ? getCollectionHeadline(currentCollectionId)
-        : null;
 
-    const inner = tokensEmpty ? (
+    const body = tokensEmpty ? (
       <FeedbackPlaceholder
         variant="empty"
         size="full"
@@ -1928,63 +1826,135 @@ export function PanelRouter({
       renderTokensLibraryBody()
     ) : null;
 
-    const body =
-      collections.length > 0 ? (
-        <div className="flex h-full min-h-0 flex-col">
-          {collectionHeadline ? (
-            <LibraryWorkspaceHeader
-              title={collectionHeadline.title}
-              summary={collectionHeadline.summary}
-              meta={collectionHeadline.meta}
-              actions={
-                <>
-                  <button
-                    type="button"
-                    onClick={controller.onShowImportPanel}
-                    className="rounded-md px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
-                  >
-                    Import
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openCreateLauncher({ currentCollectionId })}
-                    className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-                  >
-                    New token
-                  </button>
-                </>
-              }
-            />
-          ) : null}
-          <LibraryPostSetupHint
-            onGoToCanvas={() => navigateTo("canvas", "inspect")}
-            onGoToSync={() => navigateTo("sync", "figma-sync")}
-          />
-          {renderDeliveryStatusStrip()}
-          <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
-        </div>
-      ) : (
-        inner
-      );
+    const railBottomPanel =
+      inspectingCollection && activeEditorSurface === "collection-details" ? (
+        <CollectionDetailsPanel
+          collection={
+            collections.find(
+              (collection) => collection.id === inspectingCollection.collectionId,
+            ) ?? null
+          }
+          collectionIds={collectionIds}
+          collectionTokenCounts={collectionTokenCounts}
+          collectionDescriptions={collectionDescriptions}
+          serverUrl={serverUrl}
+          connected={connected}
+          presentation="bottom"
+          showCloseButton={true}
+          onModeMutated={refreshTokens}
+          onClose={() => switchContextualSurface({ surface: null })}
+          onRename={collectionStructureController.onRename}
+          onDuplicate={collectionStructureController.onDuplicate}
+          onDelete={collectionStructureController.onDelete}
+          onEditInfo={collectionStructureController.onEditInfo}
+          onMerge={collectionStructureController.onMerge}
+          onSplit={collectionStructureController.onSplit}
+          renamingCollectionId={collectionStructureController.renamingCollectionId}
+          renameValue={collectionStructureController.renameValue}
+          setRenameValue={collectionStructureController.setRenameValue}
+          renameError={collectionStructureController.renameError}
+          renameInputRef={collectionStructureController.renameInputRef}
+          onRenameConfirm={collectionStructureController.onRenameConfirm}
+          onRenameCancel={collectionStructureController.onRenameCancel}
+          editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
+          metadataDescription={collectionStructureController.metadataDescription}
+          setMetadataDescription={collectionStructureController.setMetadataDescription}
+          onMetadataSave={collectionStructureController.onMetadataSave}
+          deletingCollectionId={collectionStructureController.deletingCollectionId}
+          onDeleteConfirm={collectionStructureController.onDeleteConfirm}
+          onDeleteCancel={collectionStructureController.onDeleteCancel}
+          mergingCollectionId={collectionStructureController.mergingCollectionId}
+          mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
+          mergeConflicts={collectionStructureController.mergeConflicts}
+          mergeResolutions={collectionStructureController.mergeResolutions}
+          mergeChecked={collectionStructureController.mergeChecked}
+          mergeLoading={collectionStructureController.mergeLoading}
+          onMergeTargetChange={collectionStructureController.onMergeTargetChange}
+          setMergeResolutions={collectionStructureController.setMergeResolutions}
+          onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
+          onMergeConfirm={collectionStructureController.onMergeConfirm}
+          onMergeClose={collectionStructureController.onMergeClose}
+          splittingCollectionId={collectionStructureController.splittingCollectionId}
+          splitPreview={collectionStructureController.splitPreview}
+          splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
+          splitLoading={collectionStructureController.splitLoading}
+          setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
+          onSplitConfirm={collectionStructureController.onSplitConfirm}
+          onSplitClose={collectionStructureController.onSplitClose}
+        />
+      ) : null;
 
-    return renderLibraryScaffold({ body, section: "tokens" });
+    return renderLibraryScaffold({
+      body,
+      section: "tokens",
+      contextualPanel: renderTokensContextualPanel(),
+      railBottomPanel,
+    });
   }
 
-  function renderLibraryHealth(): ReactNode {
+  function renderReviewContextPanel(): ReactNode {
     const scopedCollectionId =
       healthScope.mode === "current"
         ? healthScope.collectionId ?? currentCollectionId
-        : currentCollectionId;
-    const scopedCollectionHeadline =
-      scopedCollectionId && collections.some((collection) => collection.id === scopedCollectionId)
-        ? getCollectionHeadline(scopedCollectionId)
         : null;
-    const reviewSummary =
-      healthScope.mode === "all"
-        ? `${healthSignals.overall.issueCount} issue${healthSignals.overall.issueCount === 1 ? "" : "s"} across the library. Prioritize fixes collection by collection.`
-        : scopedCollectionHeadline
-          ? `${healthSignals.byCollection.get(scopedCollectionId)?.actionable ?? 0} review item${(healthSignals.byCollection.get(scopedCollectionId)?.actionable ?? 0) === 1 ? "" : "s"} in ${scopedCollectionHeadline.title}.`
-          : "Review issues, duplicates, aliases, and cleanup opportunities.";
+    const selectedIssue =
+      healthScope.mode === "current" &&
+      healthScope.view === "issues" &&
+      (healthScope.issueKey || healthScope.tokenPath)
+        ? (validationIssues ?? [])
+            .filter((issue) => !issueActions.suppressedKeys.has(suppressKey(issue)))
+            .filter((issue) => issue.rule !== "no-duplicate-values")
+            .filter((issue) => issue.rule !== "alias-opportunity")
+            .find(
+              (issue) =>
+                issue.collectionId === scopedCollectionId &&
+                (healthScope.issueKey
+                  ? suppressKey(issue) === healthScope.issueKey
+                  : issue.path === healthScope.tokenPath),
+            ) ?? null
+        : null;
+
+    if (!selectedIssue) {
+      return null;
+    }
+
+    const ruleMeta = getRuleLabel(selectedIssue.rule);
+    return (
+      <div className="flex h-full flex-col overflow-y-auto px-4 py-4">
+        <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+          {ruleMeta.label}
+        </h3>
+        <p className="mt-1 break-all font-mono text-secondary text-[var(--color-figma-text-secondary)]">
+          {selectedIssue.path}
+        </p>
+        <p className="mt-3 text-body leading-[1.45] text-[var(--color-figma-text-secondary)]">
+          {selectedIssue.message}
+        </p>
+        {ruleMeta.tip ? (
+          <p className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
+            {ruleMeta.tip}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={() =>
+            openTokenInContext({
+              path: selectedIssue.path,
+              collectionId: selectedIssue.collectionId,
+              mode: "inspect",
+              origin: "health",
+              returnLabel: "Back to Review",
+            })
+          }
+          className="mt-4 self-start rounded-md bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          Open token
+        </button>
+      </div>
+    );
+  }
+
+  function renderLibraryHealth(): ReactNode {
     const body = (
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
@@ -1996,6 +1966,7 @@ export function PanelRouter({
             connected={connected}
             workingCollectionId={currentCollectionId}
             collectionIds={collectionIds}
+            collectionDisplayNames={collectionMap}
             healthSignals={healthSignals}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
@@ -2017,13 +1988,25 @@ export function PanelRouter({
             validationError={controller.validationError}
             validationLastRefreshed={controller.validationLastRefreshed}
             validationIsStale={controller.validationIsStale}
-            onRefreshValidation={controller.refreshValidation}
+            deprecatedUsageEntries={deprecatedUsage.entries}
+            deprecatedUsageLoading={deprecatedUsage.loading}
+            deprecatedUsageError={deprecatedUsage.error}
+            collectionReviewSummaries={libraryReview.byCollection}
+            onRefreshReview={refreshReviewData}
             onPushUndo={controller.pushUndo}
             onError={controller.setErrorToast}
             onNavigateToGenerators={() => navigateTo("library", "tokens")}
             scope={healthScope}
             onScopeChange={setHealthScope}
             issueActions={issueActions}
+            onSelectIssue={(issue) =>
+              setHealthScope((currentScope) => ({
+                ...currentScope,
+                tokenPath: issue.path,
+                issueKey: suppressKey(issue),
+                nonce: Date.now(),
+              }))
+            }
           />
         </ErrorBoundary>
       </div>
@@ -2032,55 +2015,11 @@ export function PanelRouter({
     return renderLibraryScaffold({
       body,
       section: "health",
-      header: (
-        <LibraryWorkspaceHeader
-          title={healthScope.mode === "all" ? "Library review" : `${scopedCollectionHeadline?.title ?? "Collection"} review`}
-          summary={reviewSummary}
-          meta={
-            healthScope.mode === "all"
-              ? (
-                  <>
-                    <span>{healthSignals.overall.issueCount} issues</span>
-                    <span>{healthSignals.byCollection.size} collections</span>
-                    <span>Fix next, then clean up</span>
-                  </>
-                )
-              : scopedCollectionHeadline?.meta
-          }
-          controls={renderScopeToggle(healthScope.mode, (nextMode) => {
-            setHealthScope({
-              ...healthScope,
-              mode: nextMode,
-              collectionId:
-                nextMode === "current" ? scopedCollectionId || currentCollectionId || null : null,
-              view: "dashboard",
-              tokenPath: null,
-              nonce: Date.now(),
-            });
-          })}
-          actions={
-            <button
-              type="button"
-              onClick={() => void controller.refreshValidation()}
-              className="rounded-md px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-secondary)] hover:text-[var(--color-figma-text)]"
-            >
-              Check now
-            </button>
-          }
-        />
-      ),
+      contextualPanel: renderReviewContextPanel(),
     });
   }
 
   function renderLibraryHistory(): ReactNode {
-    const scopedCollectionId =
-      historyScope.mode === "current"
-        ? historyScope.collectionId ?? currentCollectionId
-        : currentCollectionId;
-    const scopedCollectionHeadline =
-      scopedCollectionId && collections.some((collection) => collection.id === scopedCollectionId)
-        ? getCollectionHeadline(scopedCollectionId)
-        : null;
     const body = (
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
@@ -2113,35 +2052,6 @@ export function PanelRouter({
     return renderLibraryScaffold({
       body,
       section: "history",
-      header: (
-        <LibraryWorkspaceHeader
-          title={historyScope.view === "saved" ? "Checkpoints" : "History"}
-          summary={
-            historyScope.mode === "all"
-              ? "Review recent edits and saved checkpoints across the entire library without wading through filter-heavy chrome."
-              : `Review ${historyScope.view === "saved" ? "checkpoints" : "recent changes"} for ${scopedCollectionHeadline?.title ?? "the current collection"}.`
-          }
-          meta={
-            historyScope.mode === "all"
-              ? (
-                  <>
-                    <span>Library wide</span>
-                    <span>{controller.totalOperations ?? 0} recorded changes</span>
-                  </>
-                )
-              : scopedCollectionHeadline?.meta
-          }
-          controls={renderScopeToggle(historyScope.mode, (nextMode) => {
-            setHistoryScope({
-              ...historyScope,
-              mode: nextMode,
-              collectionId:
-                nextMode === "current" ? scopedCollectionId || currentCollectionId || null : null,
-              tokenPath: null,
-            });
-          })}
-        />
-      ),
     });
   }
   function renderSyncFigmaSync(): ReactNode {
@@ -2191,22 +2101,6 @@ export function PanelRouter({
         onReset={() => navigateTo("export", "export")}
       >
         <ExportPanel serverUrl={serverUrl} connected={connected} />
-      </ErrorBoundary>
-    );
-  }
-
-  function renderVersions(): ReactNode {
-    return (
-      <ErrorBoundary
-        panelName="Versions"
-        onReset={() => navigateTo("versions", "versions")}
-      >
-        <GitRepositoryPanel
-          serverUrl={serverUrl}
-          connected={connected}
-          onPushUndo={controller.pushUndo}
-          onRefreshTokens={controller.refreshAll}
-        />
       </ErrorBoundary>
     );
   }

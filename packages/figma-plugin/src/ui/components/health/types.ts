@@ -13,6 +13,7 @@ export interface HealthScope {
   mode: HealthScopeMode;
   collectionId: string | null;
   tokenPath: string | null;
+  issueKey?: string | null;
   view?: HealthView;
   nonce: number;
 }

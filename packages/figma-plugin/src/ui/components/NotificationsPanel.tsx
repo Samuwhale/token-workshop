@@ -86,7 +86,6 @@ function workspaceActionName(
 ): string {
   if (topTab === "sync") return "Sync";
   if (topTab === "export") return "Export";
-  if (topTab === "versions") return "Versions";
   if (topTab === "canvas") return "Canvas";
   return "Library";
 }

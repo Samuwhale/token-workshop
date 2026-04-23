@@ -72,7 +72,7 @@ export interface OperationEntry {
   };
 }
 
-export type HistoryView = 'recent' | 'saved';
+export type HistoryView = 'recent' | 'saved' | 'git';
 export type HistoryScopeMode = 'all' | 'current';
 
 export interface HistoryScope {

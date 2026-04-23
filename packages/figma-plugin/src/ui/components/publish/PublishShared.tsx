@@ -176,10 +176,10 @@ export function FileTokenDiffList({
             }}
             className="w-3 h-3"
           />
-          Uncommitted changes
+          Working changes
         </label>
         <span className="text-secondary opacity-60">
-          {selectedFiles.size}/{allChanges.length} selected
+          {selectedFiles.size}/{allChanges.length} included
           {tokenPreviewLoading && (
             <span className="ml-1.5 inline-flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-full border border-[var(--color-figma-text-secondary)]/30 border-t-[var(--color-figma-text-secondary)] animate-spin inline-block" />

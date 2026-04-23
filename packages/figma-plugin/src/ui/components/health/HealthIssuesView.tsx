@@ -7,6 +7,7 @@ import { dispatchToast } from "../../shared/toastBus";
 import { downloadBlob } from "../../shared/utils";
 import { Spinner } from "../Spinner";
 import { getRuleLabel, hasFix, fixLabel, suppressKey } from "../../shared/ruleLabels";
+import { HealthSubViewHeader } from "./HealthSubViewHeader";
 
 const ISSUES_PER_PAGE = 20;
 
@@ -19,7 +20,10 @@ export interface HealthIssuesViewProps {
   onIgnore: (issue: ValidationIssue) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   initialTokenPath?: string | null;
+  selectedIssueKey?: string | null;
+  selectedTokenPath?: string | null;
   requestNonce?: number;
+  onSelectIssue?: (issue: ValidationIssue) => void;
   onBack: () => void;
 }
 
@@ -32,7 +36,10 @@ export function HealthIssuesView({
   onIgnore,
   onNavigateToToken,
   initialTokenPath = null,
+  selectedIssueKey = null,
+  selectedTokenPath = null,
   requestNonce,
+  onSelectIssue,
   onBack,
 }: HealthIssuesViewProps) {
   const [severityFilter, setSeverityFilter] = useState<"all" | "error" | "warning" | "info">("all");
@@ -145,79 +152,74 @@ export function HealthIssuesView({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
-        <button
-          onClick={onBack}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-          aria-label="Back"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <span className="text-body font-semibold text-[var(--color-figma-text)]">Issues</span>
-        {tokenPathFilter && (
-          <div className="ml-1 flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
-              {tokenPathFilter}
-            </span>
-            <button
-              onClick={() => setTokenPathFilter(null)}
-              className="shrink-0 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            >
-              Clear token filter
-            </button>
-          </div>
-        )}
-        <div className="ml-auto flex items-center gap-1.5">
-          {lastRefreshedLabel(validationLastRefreshed)}
-          {(["all", "error", "warning", "info"] as const).map((f) => {
-            const filterSeverity: NoticeSeverity = f === "all" ? "info" : f;
-            const isActive = severityFilter === f;
-            return (
+      <HealthSubViewHeader
+        title="Issues"
+        onBack={onBack}
+        count={tokenPathFilter ? null : lastRefreshedLabel(validationLastRefreshed)}
+        trailing={
+          <>
+            {tokenPathFilter && (
               <button
-                key={f}
-                onClick={() => setSeverityFilter(f)}
-                className={`text-secondary px-1.5 py-0.5 rounded transition-colors ${
-                  isActive
-                    ? `${severityStyles(filterSeverity).pill} font-medium`
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                }`}
+                onClick={() => setTokenPathFilter(null)}
+                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
               >
-                {f}
+                Clear filter
               </button>
-            );
-          })}
-          <div className="relative">
-            <button
-              ref={exportMenu.triggerRef}
-              onClick={exportMenu.toggle}
-              className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              aria-haspopup="true"
-              aria-expanded={exportMenu.open}
-            >
-              &hellip;
-            </button>
-            {exportMenu.open && (
-              <div
-                ref={exportMenu.menuRef}
-                className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
-                role="menu"
-              >
-                <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                  Copy as Markdown
-                </button>
-                <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                  Export JSON
-                </button>
-                <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                  Export CSV
-                </button>
-              </div>
             )}
-          </div>
+            {(["all", "error", "warning", "info"] as const).map((f) => {
+              const filterSeverity: NoticeSeverity = f === "all" ? "info" : f;
+              const isActive = severityFilter === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setSeverityFilter(f)}
+                  className={`text-secondary px-1.5 py-0.5 rounded transition-colors ${
+                    isActive
+                      ? `${severityStyles(filterSeverity).pill} font-medium`
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  }`}
+                >
+                  {f}
+                </button>
+              );
+            })}
+            <div className="relative">
+              <button
+                ref={exportMenu.triggerRef}
+                onClick={exportMenu.toggle}
+                className="text-secondary px-1.5 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                aria-haspopup="true"
+                aria-expanded={exportMenu.open}
+                aria-label="Export"
+              >
+                &hellip;
+              </button>
+              {exportMenu.open && (
+                <div
+                  ref={exportMenu.menuRef}
+                  className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
+                  role="menu"
+                >
+                  <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                    Copy as Markdown
+                  </button>
+                  <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                    Export JSON
+                  </button>
+                  <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                    Export CSV
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        }
+      />
+      {tokenPathFilter && (
+        <div className="shrink-0 truncate px-3 pb-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          {tokenPathFilter}
         </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         {filteredIssues.length === 0 ? (
@@ -279,11 +281,21 @@ export function HealthIssuesView({
                       <IssueRow
                         key={i}
                         issue={issue}
+                        selected={
+                          selectedIssueKey
+                            ? selectedIssueKey === suppressKey(issue)
+                            : selectedTokenPath === issue.path
+                        }
                         fixing={fixingKeys.has(suppressKey(issue))}
                         hasFix={hasFix(issue)}
                         fixLabel={fixLabel(issue.suggestedFix)}
                         onFix={() => onFix(issue)}
                         onIgnore={() => onIgnore(issue)}
+                        onSelect={
+                          onSelectIssue
+                            ? () => onSelectIssue(issue)
+                            : undefined
+                        }
                         onOpen={onNavigateToToken ? () => onNavigateToToken(issue.path, issue.collectionId) : undefined}
                       />
                     ))}
@@ -326,25 +338,38 @@ function lastRefreshedLabel(date: Date | null) {
 
 function IssueRow({
   issue,
+  selected,
   fixing,
   hasFix: hasFixAction,
   fixLabel: fixLabelText,
   onFix,
   onIgnore,
+  onSelect,
   onOpen,
 }: {
   issue: ValidationIssue;
+  selected: boolean;
   fixing: boolean;
   hasFix: boolean;
   fixLabel: string;
   onFix: () => void;
   onIgnore: () => void;
+  onSelect?: () => void;
   onOpen?: () => void;
 }) {
   const overflowMenu = useDropdownMenu();
 
   return (
-    <div className="group px-3 py-1.5 flex items-center gap-2 border-b border-[var(--color-figma-border)] last:border-b-0">
+    <div
+      className={`group flex items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-1.5 last:border-b-0 ${
+        onSelect
+          ? selected
+            ? "cursor-pointer bg-[var(--color-figma-bg-selected)]"
+            : "cursor-pointer hover:bg-[var(--color-figma-bg-hover)]"
+          : ""
+      }`}
+      onClick={onSelect}
+    >
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-secondary text-[var(--color-figma-text)] font-medium font-mono truncate">
@@ -361,7 +386,10 @@ function IssueRow({
 
       {hasFixAction && (
         <button
-          onClick={onFix}
+          onClick={(event) => {
+            event.stopPropagation();
+            onFix();
+          }}
           disabled={fixing}
           className={`text-secondary shrink-0 disabled:opacity-40 disabled:cursor-wait hover:underline ${
             issue.suggestedFix === "delete-token"
@@ -375,7 +403,10 @@ function IssueRow({
 
       {onOpen && (
         <button
-          onClick={onOpen}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
           className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
         >
           Open
@@ -385,7 +416,10 @@ function IssueRow({
       <div className="relative shrink-0">
         <button
           ref={overflowMenu.triggerRef}
-          onClick={overflowMenu.toggle}
+          onClick={(event) => {
+            event.stopPropagation();
+            overflowMenu.toggle();
+          }}
           className="text-secondary px-1 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors opacity-0 group-hover:opacity-100"
           aria-haspopup="true"
           aria-expanded={overflowMenu.open}

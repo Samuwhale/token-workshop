@@ -1,6 +1,6 @@
 /**
  * Shared lint rule registry — single source of truth for rule metadata used by
- * LintConfigPanel (config UI) and AnalyticsPanel (violation display).
+ * the lint config UI and the library review surfaces.
  */
 
 export interface LintRuleOptionMeta {
@@ -12,11 +12,11 @@ export interface LintRuleOptionMeta {
 
 export interface LintRuleMeta {
   id: string;
-  /** Short human-readable name used in both the config panel and analytics panel */
+  /** Short human-readable name used in the config UI and review surfaces */
   label: string;
   /** Longer description shown in the config UI */
   description: string;
-  /** Actionable tip shown next to violations in the analytics panel */
+  /** Actionable tip shown next to surfaced violations */
   tip: string;
   options?: LintRuleOptionMeta[];
 }

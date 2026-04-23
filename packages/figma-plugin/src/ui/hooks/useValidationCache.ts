@@ -39,11 +39,11 @@ interface UseValidationCacheOptions {
 }
 
 /**
- * Shared validation cache for HealthPanel and AnalyticsPanel.
+ * Shared validation cache for the library review surfaces.
  *
- * Both panels POST to /api/tokens/validate independently, causing redundant
- * server round-trips when the user switches between them. This hook centralises
- * that fetch so a single in-flight request serves both consumers.
+ * Review surfaces can POST to /api/tokens/validate independently, causing
+ * redundant server round-trips when the user switches between them. This hook
+ * centralises that fetch so a single in-flight request serves both consumers.
  *
  * Behaviour:
  * - Auto-validates once when `connected` first becomes true.
@@ -80,6 +80,22 @@ export function useValidationCache({
       }
     };
   }, []);
+
+  useEffect(() => {
+    fetchAbortRef.current?.abort();
+    hasAutoValidated.current = false;
+    hasResultsRef.current = false;
+    lastValidateKey.current = 0;
+    if (autoRevalidateTimer.current !== null) {
+      clearTimeout(autoRevalidateTimer.current);
+      autoRevalidateTimer.current = null;
+    }
+    setIssues(null);
+    setError(null);
+    setLastRefreshed(null);
+    setIsStale(false);
+    setLoading(false);
+  }, [serverUrl]);
 
   const runValidation = useCallback(async (): Promise<ValidationSnapshot | null> => {
     if (!connected) return null;
@@ -123,11 +139,16 @@ export function useValidationCache({
       return;
     }
     hasAutoValidated.current = false;
+    hasResultsRef.current = false;
+    lastValidateKey.current = 0;
     fetchAbortRef.current?.abort();
     if (autoRevalidateTimer.current !== null) {
       clearTimeout(autoRevalidateTimer.current);
       autoRevalidateTimer.current = null;
     }
+    setIssues(null);
+    setError(null);
+    setLastRefreshed(null);
     setLoading(false);
     setIsStale(false);
   }, [connected]);

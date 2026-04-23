@@ -57,7 +57,6 @@ import { useTokenSelection } from "../hooks/useTokenSelection";
 import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { useBoundTokenPaths } from "../hooks/useBoundTokenPaths";
-import { LibrarySelectionStrip } from "./library/LibrarySelectionStrip";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { getGeneratedGroupKeepUpdatedAvailability, getGeneratedGroupTypeLabel } from "../shared/generatedGroupUtils";
@@ -954,7 +953,6 @@ export function TokenList({
     showIssuesOnly, onToggleIssuesOnly, lintViolationsLength: lintViolations.length,
     showRecentlyTouched, setShowRecentlyTouched, typeFilter, setTypeFilter,
     showStarredOnly, setShowStarredOnly,
-    inspectMode, setInspectMode,
   });
 
   const insertSearchQualifier = useCallback(
@@ -2307,17 +2305,6 @@ export function TokenList({
           </div>
         )}
 
-
-        {/* Proactive selection strip — visible only when Figma layers are selected. */}
-        {!selectMode && (
-          <LibrarySelectionStrip
-            selectedNodeCount={selectedNodes.length}
-            boundTokenCount={boundTokenPaths.size}
-            inspectMode={inspectMode}
-            onToggleInspectMode={() => setInspectMode((v) => !v)}
-          />
-        )}
-
         {/* Toolbar — search is primary, while arrangement and filters stay secondary. */}
         {!selectMode && (
           <TokenListToolbar
@@ -2342,7 +2329,10 @@ export function TokenList({
             setViewMode={setViewMode}
             groupBy={groupBy}
             setGroupBy={setGroupBy}
-            onCreateNew={onCreateNew}
+            selectedNodeCount={selectedNodes.length}
+            boundTokenCount={boundTokenPaths.size}
+            inspectMode={inspectMode}
+            onToggleInspectMode={() => setInspectMode((v) => !v)}
             openTableCreate={openTableCreate}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}

@@ -3,7 +3,6 @@ import { Spinner } from '../Spinner';
 import { OpIcon } from '../RecentActionsSource';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
-import { InlineBanner } from '../InlineBanner';
 import { RollbackPreviewModal } from './RollbackPreviewModal';
 import type { OperationEntry } from './types';
 
@@ -32,7 +31,6 @@ export interface HistoryRecentViewProps {
   serverUrl: string;
   collectionFilter?: string | null;
   filterTokenPath?: string | null;
-  scopeMode?: 'all' | 'current';
   onClearFilter?: () => void;
   recentOperations?: OperationEntry[];
   totalOperations?: number;
@@ -49,7 +47,6 @@ export function HistoryRecentView({
   serverUrl,
   collectionFilter,
   filterTokenPath,
-  scopeMode = 'all',
   onClearFilter,
   recentOperations,
   totalOperations,
@@ -138,38 +135,8 @@ export function HistoryRecentView({
         />
       )}
 
-      {(filterTokenPath || collectionFilter) && (
-        <InlineBanner
-          variant="info"
-          layout="strip"
-          size="sm"
-          className="bg-[color-mix(in_srgb,var(--color-figma-accent)_8%,transparent)]"
-          icon={<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>}
-          onDismiss={onClearFilter}
-          dismissMode="icon"
-        >
-          <span className="block text-secondary text-[var(--color-figma-text-secondary)]">
-            Filtering:
-            <span className="ml-1 text-[var(--color-figma-text-secondary)]">
-              {scopeMode === 'current' ? 'current collection' : 'all collections'}
-            </span>
-            {collectionFilter ? (
-              <span className="ml-1 font-mono text-[var(--color-figma-text)]">
-                {collectionFilter}
-              </span>
-            ) : null}
-            {filterTokenPath ? (
-              <span className="ml-1 font-mono text-[var(--color-figma-text)] truncate">
-                {filterTokenPath}
-              </span>
-            ) : null}
-          </span>
-        </InlineBanner>
-      )}
-
-      {/* Search */}
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex items-center gap-1 flex-1 min-w-0">
+      <div className="shrink-0 flex items-center gap-2 px-3 py-1.5">
+        <div className="flex items-center gap-1 flex-1 min-w-0 rounded bg-[var(--color-figma-bg-secondary)] px-2">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
@@ -177,9 +144,9 @@ export function HistoryRecentView({
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search recent changes…"
+            placeholder="Search…"
             aria-label="Search recent changes"
-            className="flex-1 min-w-0 bg-transparent text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="flex-1 min-w-0 bg-transparent py-1 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors" aria-label="Clear search">
@@ -188,6 +155,19 @@ export function HistoryRecentView({
           )}
         </div>
       </div>
+
+      {filterTokenPath && onClearFilter ? (
+        <div className="shrink-0 flex items-center gap-2 px-3 pb-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          <span className="truncate">{filterTokenPath}</span>
+          <button
+            type="button"
+            onClick={onClearFilter}
+            className="shrink-0 text-[var(--color-figma-accent)] hover:underline"
+          >
+            Clear
+          </button>
+        </div>
+      ) : null}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
