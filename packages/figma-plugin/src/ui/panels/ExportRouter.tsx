@@ -10,8 +10,8 @@ export function ExportRouter(): ReactNode {
 
   return (
     <ErrorBoundary
-      panelName="Export"
-      onReset={() => navigateTo("export", "export")}
+      panelName="Publish · Code"
+      onReset={() => navigateTo("publish", "publish-code")}
     >
       <ExportPanel serverUrl={serverUrl} connected={connected} />
     </ErrorBoundary>

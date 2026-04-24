@@ -84,8 +84,7 @@ function destinationActionLabel(
 function workspaceActionName(
   topTab: Extract<NotificationDestination, { kind: "workspace" }>["topTab"],
 ): string {
-  if (topTab === "sync") return "Sync";
-  if (topTab === "export") return "Export";
+  if (topTab === "publish") return "Publish";
   if (topTab === "canvas") return "Canvas";
   return "Library";
 }

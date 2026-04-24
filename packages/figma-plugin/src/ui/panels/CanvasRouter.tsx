@@ -140,10 +140,10 @@ export function CanvasRouter({
       syncResult={syncResult}
       onOpenHealth={() => openScopedHealth(currentCollectionId)}
       onOpenPublishCompare={() => {
-        navigateTo("sync", "figma-sync");
+        navigateTo("publish", "publish-figma");
         syncCtrl.publishPanelHandleRef.current?.focusStage("compare");
       }}
-      onOpenSync={() => navigateTo("sync", "figma-sync")}
+      onOpenSync={() => navigateTo("publish", "publish-figma")}
     />
   );
 

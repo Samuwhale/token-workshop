@@ -53,7 +53,7 @@ import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
 import type { GeneratedTokenResult } from "../../hooks/useGenerators";
 import { getGeneratedGroupKeepUpdatedAvailability } from "../../shared/generatedGroupUtils";
-import { aggregateGroupForMode, GroupModePreview } from "./GroupModePreview";
+import { aggregateGroupByModes, GroupModePreview } from "./GroupModePreview";
 
 export const TokenGroupNode = memo(
   function TokenGroupNode(props: TokenTreeNodeProps) {
@@ -287,28 +287,20 @@ export const TokenGroupNode = memo(
     const collectionCoverageSummary = collectionCoverage?.get(node.path) ?? null;
 
     // Aggregate descendant values per mode so collapsed groups preview what's
-    // inside without the user having to expand — especially valuable for nested
-    // groups several levels deep.
+    // inside without the user having to expand.
     const hasModeColumns = props.multiModeValues.length > 0;
+    const multiModeValues = props.multiModeValues;
+    const getValuesForPath = props.getValuesForPath;
     const groupModeAggregates = useMemo(() => {
-      if (isExpanded || !hasModeColumns || !props.getValuesForPath) {
+      if (isExpanded || !hasModeColumns || !getValuesForPath) {
         return null;
       }
-      const map = new Map<string, ReturnType<typeof aggregateGroupForMode>>();
-      for (const mv of props.multiModeValues) {
-        map.set(
-          mv.optionName,
-          aggregateGroupForMode(node, mv.optionName, props.getValuesForPath),
-        );
-      }
-      return map;
-    }, [
-      isExpanded,
-      hasModeColumns,
-      node,
-      props.multiModeValues,
-      props.getValuesForPath,
-    ]);
+      return aggregateGroupByModes(
+        node,
+        multiModeValues.map((mv) => mv.optionName),
+        getValuesForPath,
+      );
+    }, [getValuesForPath, hasModeColumns, isExpanded, multiModeValues, node]);
 
     const groupPresentation = readTokenPresentationMetadata(node);
     const groupScopeSummary =

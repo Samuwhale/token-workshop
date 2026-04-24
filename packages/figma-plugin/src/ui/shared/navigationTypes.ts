@@ -12,16 +12,15 @@ import type { GeneratorTemplate } from "../hooks/useGenerators";
 export type TopTab =
   | "library"
   | "canvas"
-  | "sync"
-  | "export";
+  | "publish";
 export type LibrarySubTab = "tokens" | "health" | "history";
+export type PublishSubTab = "publish-figma" | "publish-code";
 export type SubTab =
   | LibrarySubTab
   | "inspect"
   | "coverage"
   | "repair"
-  | "figma-sync"
-  | "export";
+  | PublishSubTab;
 export type SecondarySurfaceId =
   | "shortcuts"
   | "settings";
@@ -122,29 +121,25 @@ export const TOP_TABS: {
     ],
   },
   {
-    id: "sync",
-    label: "Sync",
-    subTabs: [{ id: "figma-sync", label: "Figma Sync" }],
-  },
-  {
-    id: "export",
-    label: "Export",
-    subTabs: [{ id: "export", label: "Export" }],
+    id: "publish",
+    label: "Publish",
+    subTabs: [
+      { id: "publish-figma", label: "Figma" },
+      { id: "publish-code", label: "Code" },
+    ],
   },
 ];
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   library: "tokens",
   canvas: "inspect",
-  sync: "figma-sync",
-  export: "export",
+  publish: "publish-figma",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   library: STORAGE_KEYS.ACTIVE_SUB_TAB_LIBRARY,
   canvas: STORAGE_KEYS.ACTIVE_SUB_TAB_CANVAS,
-  sync: STORAGE_KEYS.ACTIVE_SUB_TAB_SYNC,
-  export: STORAGE_KEYS.ACTIVE_SUB_TAB_EXPORT,
+  publish: STORAGE_KEYS.ACTIVE_SUB_TAB_PUBLISH,
 };
 
 // ---------------------------------------------------------------------------
@@ -154,8 +149,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 export type WorkspaceId =
   | "library"
   | "canvas"
-  | "sync"
-  | "export";
+  | "publish";
 export type UtilityMenuId = "tools";
 export type UtilitySectionId = "actions";
 export type UtilityActionId =
@@ -413,19 +407,12 @@ export interface SidebarGroup {
 
 export const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
-    id: "work",
-    label: "Work",
+    id: "workspaces",
+    label: "",
     items: [
       { id: "library", label: "Library", railCode: "Li", topTab: "library", subTab: "tokens", workspaceId: "library" },
       { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "canvas", subTab: "inspect", workspaceId: "canvas" },
-    ],
-  },
-  {
-    id: "delivery",
-    label: "Delivery",
-    items: [
-      { id: "sync", label: "Sync", railCode: "Sy", topTab: "sync", subTab: "figma-sync", workspaceId: "sync" },
-      { id: "export", label: "Export", railCode: "Ex", topTab: "export", subTab: "export", workspaceId: "export" },
+      { id: "publish", label: "Publish", railCode: "Pu", topTab: "publish", subTab: "publish-figma", workspaceId: "publish" },
     ],
   },
 ];
@@ -524,24 +511,40 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     ],
   },
   {
-    id: "sync",
-    label: "Sync",
-    summaryTitle: "Sync",
-    topTab: "sync",
-    subTab: "figma-sync",
+    id: "publish",
+    label: "Publish",
+    summaryTitle: "Publish",
+    topTab: "publish",
+    subTab: "publish-figma",
     transition: workspaceTransition(
-      "Publish tokens to Figma.",
+      "Publish tokens to Figma, Git, and code.",
     ),
-    matchRoutes: [route("sync", "figma-sync")],
-  },
-  {
-    id: "export",
-    label: "Export",
-    summaryTitle: "Export",
-    topTab: "export",
-    subTab: "export",
-    transition: workspaceTransition("Generate platform token files."),
-    matchRoutes: [route("export", "export")],
+    sections: [
+      {
+        id: "publish-figma",
+        label: "Figma",
+        topTab: "publish",
+        subTab: "publish-figma",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Publish tokens to Figma variables and styles.",
+        ),
+      },
+      {
+        id: "publish-code",
+        label: "Code",
+        topTab: "publish",
+        subTab: "publish-code",
+        transition: contextualSubScreenTransition(
+          "full-height-body",
+          "Generate platform token files.",
+        ),
+      },
+    ],
+    matchRoutes: [
+      route("publish", "publish-figma"),
+      route("publish", "publish-code"),
+    ],
   },
 ];
 
@@ -689,8 +692,8 @@ export function getImportResultNextStepRecommendations(
   if (isLargeInitialImport(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "sync",
-        "figma-sync",
+        "publish",
+        "publish-figma",
         "Large import — confirm sync mapping.",
       ),
     );

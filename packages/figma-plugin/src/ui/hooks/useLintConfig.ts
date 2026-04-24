@@ -34,24 +34,34 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
   const [config, setConfig] = useState<LintConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAbortRef = useRef<AbortController | null>(null);
   // Abort any in-flight config fetch on unmount
   useEffect(() => () => { fetchAbortRef.current?.abort(); }, []);
 
   const fetchConfig = useCallback(async () => {
-    if (!connected) return;
+    if (!connected) {
+      fetchAbortRef.current?.abort();
+      setConfig(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     setLoading(true);
+    setError(null);
     try {
       const data = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`, { signal: createFetchSignal(controller.signal) });
       setConfig(data);
+      setError(null);
     } catch (err) {
       if (isAbortError(err)) return;
       console.warn('[useLintConfig] fetch config failed:', err);
       setConfig(null);
+      setError('Failed to load rules. Try reconnecting.');
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
@@ -63,6 +73,7 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
 
   const updateConfig = useCallback(async (updated: LintConfig) => {
     setSaving(true);
+    setError(null);
     try {
       const saved = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config`, {
         method: 'PUT',
@@ -70,9 +81,11 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
         body: JSON.stringify(updated),
       });
       setConfig(saved);
+      setError(null);
       return true;
     } catch (err) {
       console.warn('[useLintConfig] update config failed:', err);
+      setError('Failed to save rules. Try again.');
       return false;
     } finally {
       setSaving(false);
@@ -93,17 +106,15 @@ export function useLintConfig(serverUrl: string, connected: boolean) {
   }, [config, updateConfig]);
 
   const resetToDefaults = useCallback(async () => {
-    setSaving(true);
     try {
       const defaults = await apiFetch<LintConfig>(`${serverUrl}/api/lint/config/default`);
-      return updateConfig(defaults);
+      return await updateConfig(defaults);
     } catch (err) {
       console.warn('[useLintConfig] reset to defaults failed:', err);
+      setError('Failed to load default rules. Try again.');
       return false;
-    } finally {
-      setSaving(false);
     }
   }, [serverUrl, updateConfig]);
 
-  return { config, loading, saving, updateRule, applyConfig: updateConfig, resetToDefaults, refetch: fetchConfig };
+  return { config, loading, error, saving, updateRule, applyConfig: updateConfig, resetToDefaults };
 }

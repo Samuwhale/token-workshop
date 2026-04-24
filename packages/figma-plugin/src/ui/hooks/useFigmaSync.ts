@@ -212,7 +212,7 @@ export function useFigmaSync(
         parts.push(`${varCount} variable${varCount !== 1 ? 's' : ''}`);
         if (styleResult) parts.push(`${styleCount} style${styleCount !== 1 ? 's' : ''}`);
         dispatchToast(`Published ${parts.join(' · ')} to Figma`, 'success', {
-          destination: { kind: 'workspace', topTab: 'sync', subTab: 'figma-sync' },
+          destination: { kind: 'workspace', topTab: 'publish', subTab: 'publish-figma' },
         });
       }
     } catch (err) {

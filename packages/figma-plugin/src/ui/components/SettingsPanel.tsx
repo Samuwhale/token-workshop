@@ -11,8 +11,6 @@ import {
 } from "../shared/storage";
 import { apiFetch } from "../shared/apiFetch";
 import { PLATFORMS } from "../shared/platforms";
-import { useLintConfig } from "../hooks/useLintConfig";
-import { LintConfigPanel } from "./LintConfigPanel";
 import { formatHexAs } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { buildPluginDocumentationUrl, downloadBlob } from "../shared/utils";
@@ -284,15 +282,6 @@ export function SettingsPanel({
       setClearing(false);
     }
   };
-  // ---- Lint / Validation config ----
-  const {
-    config: lintConfig,
-    saving: lintSaving,
-    updateRule: lintUpdateRule,
-    applyConfig: lintApplyConfig,
-    resetToDefaults: lintResetDefaults,
-  } = useLintConfig(serverUrl, connected);
-
   // ---- UI Preferences ----
   const [colorFormat, setColorFormat] = useState<ColorFormat>(() => {
     const saved = lsGet(STORAGE_KEYS.COLOR_FORMAT);
@@ -824,27 +813,6 @@ export function SettingsPanel({
                 className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
             </div>
-          </Section>
-
-          <Section title="Validation rules" defaultOpen={false}>
-            {!connected ? (
-              <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-                Connect to the server to manage rules.
-              </p>
-            ) : !lintConfig ? (
-              <p className="animate-pulse text-secondary text-[var(--color-figma-text-secondary)]">
-                Loading lint config...
-              </p>
-            ) : (
-              <LintConfigPanel
-                config={lintConfig}
-                saving={lintSaving}
-                onUpdateRule={lintUpdateRule}
-                onApplyConfig={lintApplyConfig}
-                onReset={lintResetDefaults}
-                onLintRefresh={() => {}}
-              />
-            )}
           </Section>
 
           <Section title="Help" defaultOpen={false}>

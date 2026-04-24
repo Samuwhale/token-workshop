@@ -232,7 +232,7 @@ export function useExportResults({
             : 'Export completed without any output files.',
         );
         dispatchToast('Export failed', 'error', {
-          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+          destination: { kind: "workspace", topTab: "publish", subTab: "publish-code" },
         });
         return;
       }
@@ -251,17 +251,17 @@ export function useExportResults({
       if (platformErrorSummary) {
         setError(`Some platforms failed: ${platformErrorSummary}`);
         dispatchToast(`Exported ${flatFiles.length} file(s) with platform errors${changesLabel}`, 'warning', {
-          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+          destination: { kind: "workspace", topTab: "publish", subTab: "publish-code" },
         });
       } else {
         setError(null);
         dispatchToast(`Exported ${flatFiles.length} file(s)${changesLabel}`, 'success', {
-          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+          destination: { kind: "workspace", topTab: "publish", subTab: "publish-code" },
         });
       }
       if (warningSummary) {
         dispatchToast(`Export warning: ${warningSummary}`, 'warning', {
-          destination: { kind: "workspace", topTab: "export", subTab: "export" },
+          destination: { kind: "workspace", topTab: "publish", subTab: "publish-code" },
         });
       }
       if (changesOnly && isGitRepo === false) {
@@ -290,7 +290,7 @@ export function useExportResults({
       const safeName = zipFilename.trim().replace(/\.zip$/i, '') || 'tokens';
       downloadBlob(blob, `${safeName}.zip`);
       dispatchToast(`Downloaded ${results.length} file(s) as ZIP`, 'success', {
-        destination: { kind: "workspace", topTab: "export", subTab: "export" },
+        destination: { kind: "workspace", topTab: "publish", subTab: "publish-code" },
       });
     } finally {
       setZipProgress(null);

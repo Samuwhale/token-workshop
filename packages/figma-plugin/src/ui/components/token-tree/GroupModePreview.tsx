@@ -8,7 +8,7 @@ import type { TokenNode } from "../../hooks/useTokens";
 import type { MultiModeValue } from "../tokenListTypes";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 
-const MAX_SAMPLES = 8;
+const MAX_SAMPLES = 6;
 const VALUE_BEARING_SAMPLE_SIZE = 12;
 
 export interface GroupPreviewSample {
@@ -28,15 +28,33 @@ export interface GroupModeAggregate {
   uniformNonValueBearingType: string | null;
 }
 
-export function aggregateGroupForMode(
+/**
+ * Build per-mode aggregates for every mode in one descendant walk. Calling
+ * per-mode would allocate a fresh MultiModeValue[] for every descendant for
+ * every mode — bad for "by type" synthetic groups with thousands of members.
+ */
+export function aggregateGroupByModes(
   node: TokenNode,
-  optionName: string,
+  optionNames: string[],
   getValuesForPath: (path: string) => MultiModeValue[],
-): GroupModeAggregate {
-  const samples: GroupPreviewSample[] = [];
-  let valuedCount = 0;
-  let missingCount = 0;
-  const types = new Set<string>();
+): Map<string, GroupModeAggregate> {
+  const perMode = new Map<
+    string,
+    {
+      samples: GroupPreviewSample[];
+      valuedCount: number;
+      missingCount: number;
+      types: Set<string>;
+    }
+  >();
+  for (const name of optionNames) {
+    perMode.set(name, {
+      samples: [],
+      valuedCount: 0,
+      missingCount: 0,
+      types: new Set(),
+    });
+  }
 
   const walk = (list: TokenNode[] | undefined) => {
     if (!list) return;
@@ -45,35 +63,47 @@ export function aggregateGroupForMode(
         walk(child.children);
         continue;
       }
-      const modes = getValuesForPath(child.path);
-      const match = modes.find((m) => m.optionName === optionName);
-      const entry = match?.resolved;
-      if (!entry || entry.$value === undefined || entry.$value === null) {
-        missingCount++;
-        continue;
-      }
-      valuedCount++;
-      const type = entry.$type;
-      if (!type) continue;
-      types.add(type);
-      if (samples.length < MAX_SAMPLES) {
-        samples.push({
-          path: child.path,
-          name: child.name,
-          type,
-          value: entry.$value,
-        });
+      const entriesByMode = new Map(
+        getValuesForPath(child.path).map((modeValue) => [
+          modeValue.optionName,
+          modeValue.resolved,
+        ]),
+      );
+      for (const [optionName, bucket] of perMode) {
+        const entry = entriesByMode.get(optionName);
+        if (!entry || entry.$value === undefined || entry.$value === null) {
+          bucket.missingCount++;
+          continue;
+        }
+        bucket.valuedCount++;
+        const type = entry.$type;
+        if (!type) continue;
+        bucket.types.add(type);
+        if (bucket.samples.length < MAX_SAMPLES) {
+          bucket.samples.push({
+            path: child.path,
+            name: child.name,
+            type,
+            value: entry.$value,
+          });
+        }
       }
     }
   };
   walk(node.children);
 
-  const uniformNonValueBearingType =
-    types.size === 1 && !previewIsValueBearing([...types][0])
-      ? [...types][0]
-      : null;
-
-  return { samples, valuedCount, missingCount, uniformNonValueBearingType };
+  const result = new Map<string, GroupModeAggregate>();
+  for (const [name, bucket] of perMode) {
+    const firstType = bucket.types.size === 1 ? [...bucket.types][0] : null;
+    result.set(name, {
+      samples: bucket.samples,
+      valuedCount: bucket.valuedCount,
+      missingCount: bucket.missingCount,
+      uniformNonValueBearingType:
+        firstType && !previewIsValueBearing(firstType) ? firstType : null,
+    });
+  }
+  return result;
 }
 
 interface GroupModePreviewProps {
@@ -147,6 +177,12 @@ export const GroupModePreview = memo(function GroupModePreview({
 
 function formatSampleTitle(type: string, value: unknown): string {
   if (value == null) return type;
-  if (typeof value === "string" || typeof value === "number") return `${value}`;
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
   return type;
 }

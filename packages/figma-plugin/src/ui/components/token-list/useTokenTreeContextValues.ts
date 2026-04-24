@@ -150,7 +150,33 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       onSelectGroupChildren: deps.handleSelectGroupChildren,
       onRovingFocus: deps.setRovingFocusPath,
     }),
-    [deps],
+    [
+      deps.handleToggleExpand,
+      deps.requestDeleteGroup,
+      deps.handleOpenCreateSibling,
+      deps.setNewGroupDialogParent,
+      deps.handleRenameGroup,
+      deps.handleUpdateGroupMeta,
+      deps.handleRequestMoveGroup,
+      deps.handleRequestCopyGroup,
+      deps.handleDuplicateGroup,
+      deps.onPublishGroup,
+      deps.onSetGroupScopes,
+      deps.onCreateGeneratedGroupFromGroup,
+      deps.handleZoomIntoGroup,
+      deps.handleDragOverGroup,
+      deps.handleDropOnGroup,
+      deps.onEditGeneratedGroup,
+      deps.onDuplicateGeneratedGroup,
+      deps.handleDeleteGeneratedGroup,
+      deps.onNavigateToGeneratedGroup,
+      deps.handleRunGeneratedGroup,
+      deps.handleToggleGeneratedGroupEnabled,
+      deps.handleDetachGeneratedGroup,
+      deps.onNavigateToAlias,
+      deps.handleSelectGroupChildren,
+      deps.setRovingFocusPath,
+    ],
   );
 }
 
@@ -210,7 +236,32 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       showDuplicatesFilter: deps.showDuplicates,
       tokenModeMissing: deps.tokenModeMissing,
     }),
-    [deps],
+    [
+      deps.serverUrl,
+      deps.collectionId,
+      deps.collectionIds,
+      deps.groupBy,
+      deps.selectionCapabilities,
+      deps.duplicateCounts,
+      deps.selectMode,
+      deps.highlightedToken,
+      deps.inspectMode,
+      deps.syncSnapshot,
+      deps.derivedTokenPaths,
+      deps.searchHighlight,
+      deps.selectedNodes,
+      deps.boundTokenPaths,
+      deps.dragOverReorder,
+      deps.selectedLeafNodes,
+      deps.showResolvedValues,
+      deps.starredPaths,
+      deps.collections,
+      deps.pendingRenameToken,
+      deps.pendingTabEdit,
+      deps.effectiveRovingPath,
+      deps.showDuplicates,
+      deps.tokenModeMissing,
+    ],
   );
 }
 
@@ -220,7 +271,7 @@ interface LeafActionsDeps {
   handleTokenSelect: (path: string, modifiers?: { shift: boolean }) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   onRefresh: () => void;
-  onPushUndo?: any;
+  onPushUndo?: TokenTreeLeafActionsContextType["onPushUndo"];
   handleRequestMoveTokenReview: (path: string) => void;
   handleRequestCopyTokenReview: (path: string) => void;
   handleDuplicateToken: (path: string) => void;
@@ -229,10 +280,19 @@ interface LeafActionsDeps {
     path: string,
     newValue: unknown,
   ) => Promise<boolean>;
-  handleOpenExtractToAlias: (path: string, $type?: string, $value?: any) => void;
+  handleOpenExtractToAlias: (
+    path: string,
+    $type?: string,
+    $value?: unknown,
+  ) => void;
   handleHoverToken: (path: string) => void;
   setTypeFilter: (v: string) => void;
-  handleInlineSave: (path: string, type: string, newValue: any, previousState?: { type?: string; value: unknown }) => void;
+  handleInlineSave: (
+    path: string,
+    type: string,
+    newValue: unknown,
+    previousState?: { type?: string; value: unknown },
+  ) => void;
   handleRenameToken: (oldPath: string, newPath: string) => void;
   onViewTokenHistory?: (path: string) => void;
   onOpenTokenIssues?: (path: string, collectionId: string) => void;
@@ -243,10 +303,10 @@ interface LeafActionsDeps {
   handleDragOverToken: (path: string, name: string, position: "before" | "after") => void;
   handleDragLeaveToken: () => void;
   handleDropReorder: (path: string, name: string, position: "before" | "after") => void;
-  multiModeData: any;
-  handleMultiModeInlineSave: any;
+  multiModeData: unknown;
+  handleMultiModeInlineSave?: TokenTreeLeafActionsContextType["onMultiModeInlineSave"];
   handleCopyValueToAllModes: (path: string, targetCollectionId: string) => Promise<void>;
-  onOpenGeneratedGroupEditor?: any;
+  onOpenGeneratedGroupEditor?: TokenTreeLeafActionsContextType["onOpenGeneratedGroupEditor"];
   onToggleStar?: (path: string) => void;
   handleClearPendingRename: () => void;
   handleClearPendingTabEdit: () => void;
@@ -255,48 +315,120 @@ interface LeafActionsDeps {
 }
 
 export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafActionsContextType {
+  const {
+    onEdit,
+    requestDeleteToken,
+    handleTokenSelect,
+    onNavigateToAlias,
+    onRefresh,
+    onPushUndo,
+    handleRequestMoveTokenReview,
+    handleRequestCopyTokenReview,
+    handleDuplicateToken,
+    handleDetachFromGenerator,
+    handleSaveGeneratedException,
+    handleOpenExtractToAlias,
+    handleHoverToken,
+    setTypeFilter,
+    handleInlineSave,
+    handleRenameToken,
+    onViewTokenHistory,
+    onOpenTokenIssues,
+    collectionsLength,
+    handleCompareAcrossCollections,
+    handleDragStartNotify,
+    handleDragEndNotify,
+    handleDragOverToken,
+    handleDragLeaveToken,
+    handleDropReorder,
+    multiModeData,
+    handleMultiModeInlineSave,
+    handleCopyValueToAllModes,
+    onOpenGeneratedGroupEditor,
+    onToggleStar,
+    handleClearPendingRename,
+    handleClearPendingTabEdit,
+    handleTabToNext,
+    setRovingFocusPath,
+  } = deps;
+
   return useMemo(
     () => ({
-      onEdit: deps.onEdit,
-      onDelete: deps.requestDeleteToken,
-      onToggleSelect: deps.handleTokenSelect,
-      onNavigateToAlias: deps.onNavigateToAlias,
-      onRefresh: deps.onRefresh,
-      onPushUndo: deps.onPushUndo,
-      onRequestMoveToken: deps.handleRequestMoveTokenReview,
-      onRequestCopyToken: deps.handleRequestCopyTokenReview,
-      onDuplicateToken: deps.handleDuplicateToken,
-      onDetachFromGenerator: deps.handleDetachFromGenerator,
-      onSaveGeneratedException: deps.handleSaveGeneratedException,
-      onExtractToAlias: deps.handleOpenExtractToAlias,
-      onHoverToken: deps.handleHoverToken,
-      onFilterByType: deps.setTypeFilter,
-      onInlineSave: deps.handleInlineSave,
-      onRenameToken: deps.handleRenameToken,
-      onViewTokenHistory: deps.onViewTokenHistory,
-      onOpenTokenIssues: deps.onOpenTokenIssues,
+      onEdit,
+      onDelete: requestDeleteToken,
+      onToggleSelect: handleTokenSelect,
+      onNavigateToAlias,
+      onRefresh,
+      onPushUndo,
+      onRequestMoveToken: handleRequestMoveTokenReview,
+      onRequestCopyToken: handleRequestCopyTokenReview,
+      onDuplicateToken: handleDuplicateToken,
+      onDetachFromGenerator: handleDetachFromGenerator,
+      onSaveGeneratedException: handleSaveGeneratedException,
+      onExtractToAlias: handleOpenExtractToAlias,
+      onHoverToken: handleHoverToken,
+      onFilterByType: setTypeFilter,
+      onInlineSave: handleInlineSave,
+      onRenameToken: handleRenameToken,
+      onViewTokenHistory,
+      onOpenTokenIssues,
       onCompareAcrossCollections:
-        deps.collectionsLength > 0
-          ? deps.handleCompareAcrossCollections
+        collectionsLength > 0
+          ? handleCompareAcrossCollections
           : undefined,
-      onDragStart: deps.handleDragStartNotify,
-      onDragEnd: deps.handleDragEndNotify,
-      onDragOverToken: deps.handleDragOverToken,
-      onDragLeaveToken: deps.handleDragLeaveToken,
-      onDropOnToken: deps.handleDropReorder,
-      onMultiModeInlineSave: deps.multiModeData
-        ? deps.handleMultiModeInlineSave
+      onDragStart: handleDragStartNotify,
+      onDragEnd: handleDragEndNotify,
+      onDragOverToken: handleDragOverToken,
+      onDragLeaveToken: handleDragLeaveToken,
+      onDropOnToken: handleDropReorder,
+      onMultiModeInlineSave: multiModeData
+        ? handleMultiModeInlineSave
         : undefined,
       onCopyValueToAllModes: (path, targetCollectionId) => {
-        void deps.handleCopyValueToAllModes(path, targetCollectionId);
+        void handleCopyValueToAllModes(path, targetCollectionId);
       },
-      onOpenGeneratedGroupEditor: deps.onOpenGeneratedGroupEditor,
-      onToggleStar: deps.onToggleStar,
-      clearPendingRename: deps.handleClearPendingRename,
-      clearPendingTabEdit: deps.handleClearPendingTabEdit,
-      onTabToNext: deps.handleTabToNext,
-      onRovingFocus: deps.setRovingFocusPath,
+      onOpenGeneratedGroupEditor,
+      onToggleStar,
+      clearPendingRename: handleClearPendingRename,
+      clearPendingTabEdit: handleClearPendingTabEdit,
+      onTabToNext: handleTabToNext,
+      onRovingFocus: setRovingFocusPath,
     }),
-    [deps],
+    [
+      onEdit,
+      requestDeleteToken,
+      handleTokenSelect,
+      onNavigateToAlias,
+      onRefresh,
+      onPushUndo,
+      handleRequestMoveTokenReview,
+      handleRequestCopyTokenReview,
+      handleDuplicateToken,
+      handleDetachFromGenerator,
+      handleSaveGeneratedException,
+      handleOpenExtractToAlias,
+      handleHoverToken,
+      setTypeFilter,
+      handleInlineSave,
+      handleRenameToken,
+      onViewTokenHistory,
+      onOpenTokenIssues,
+      collectionsLength,
+      handleCompareAcrossCollections,
+      handleDragStartNotify,
+      handleDragEndNotify,
+      handleDragOverToken,
+      handleDragLeaveToken,
+      handleDropReorder,
+      multiModeData,
+      handleMultiModeInlineSave,
+      handleCopyValueToAllModes,
+      onOpenGeneratedGroupEditor,
+      onToggleStar,
+      handleClearPendingRename,
+      handleClearPendingTabEdit,
+      handleTabToNext,
+      setRovingFocusPath,
+    ],
   );
 }

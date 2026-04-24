@@ -84,7 +84,6 @@ import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
 import {
   Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
-  FileDown,
 } from "lucide-react";
 
 function formatCount(
@@ -1079,7 +1078,7 @@ export function App() {
     if (matchesShortcut(e, "GO_TO_SYNC")) {
       e.preventDefault();
       dismissEphemeralOverlays();
-      navigateTo("sync", "figma-sync");
+      navigateTo("publish", "publish-figma");
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
@@ -1569,8 +1568,7 @@ export function App() {
     switch (id) {
       case "library":  return <Layers size={16} strokeWidth={1.5} aria-hidden />;
       case "canvas":   return <Frame size={16} strokeWidth={1.5} aria-hidden />;
-      case "sync":     return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
-      case "export":   return <FileDown size={16} strokeWidth={1.5} aria-hidden />;
+      case "publish":  return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
       default:         return null;
     }
   };
@@ -1626,7 +1624,7 @@ export function App() {
                   count: number | null;
                   label: string;
                 } | null = (() => {
-                  if (item.id !== "sync" || isWorkspaceActive) return null;
+                  if (item.id !== "publish" || isWorkspaceActive) return null;
                   if (syncError) return { tone: "error", count: null, label: `Apply failed: ${syncError}` };
                   if (syncResult && syncResult.errors > 0) {
                     return { tone: "error", count: null, label: `${syncResult.errors} sync error${syncResult.errors === 1 ? "" : "s"}` };
@@ -1643,9 +1641,9 @@ export function App() {
                   }
                   return null;
                 })();
-                const deliveryIsIdle =
-                  group.id === "delivery" && !isWorkspaceActive && syncAdornment === null;
-                const inactiveTextClass = `${deliveryIsIdle ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
+                const publishIsIdle =
+                  item.id === "publish" && !isWorkspaceActive && syncAdornment === null;
+                const inactiveTextClass = `${publishIsIdle ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
 
                 if (sidebarCollapsed) {
                   const tooltipLabel = showCanvasSelectionAdornment

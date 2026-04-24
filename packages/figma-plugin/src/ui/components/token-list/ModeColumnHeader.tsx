@@ -55,7 +55,10 @@ export function ModeColumnHeader({
     (e: React.MouseEvent) => {
       if (!connected) return;
       e.preventDefault();
-      setMenuPos({ x: e.clientX, y: e.clientY });
+      // Anchor the menu to the bottom-left of the header button so clicks on
+      // the mode name don't surprise users with a pointer-anchored popover.
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setMenuPos({ x: rect.left, y: rect.bottom + 2 });
       setMenuOpen(true);
     },
     [connected],
@@ -179,7 +182,6 @@ export function ModeColumnHeader({
     <div
       ref={cellRef}
       className="relative min-w-0"
-      onContextMenu={openMenu}
     >
       <div
         role="separator"
@@ -191,7 +193,7 @@ export function ModeColumnHeader({
         tabIndex={0}
         onMouseDown={handleResizeMouseDown}
         onKeyDown={handleResizeKeyDown}
-        className="absolute top-0 right-0 bottom-0 z-10 w-1 translate-x-1/2 cursor-col-resize bg-transparent hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
+        className="absolute top-0 right-0 bottom-0 z-10 w-[3px] translate-x-1/2 cursor-col-resize bg-transparent hover:bg-[var(--color-figma-accent)]/60 focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
       />
       {renaming ? (
         <input
@@ -214,10 +216,9 @@ export function ModeColumnHeader({
         <button
           type="button"
           onClick={openMenu}
-          onDoubleClick={() => connected && setRenaming(true)}
           disabled={!connected}
           className="block w-full truncate px-1.5 py-1 text-body font-medium text-left text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:cursor-default disabled:hover:text-[var(--color-figma-text-secondary)]"
-          title={`${modeName}\nRight-click or double-click for options`}
+          title={modeName}
         >
           {modeName}
         </button>

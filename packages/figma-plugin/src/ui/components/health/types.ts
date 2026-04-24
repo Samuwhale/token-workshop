@@ -5,7 +5,8 @@ export type HealthView =
   | "deprecated"
   | "alias-opportunities"
   | "duplicates"
-  | "hidden";
+  | "hidden"
+  | "rules";
 
 export type HealthScopeMode = "current" | "all";
 

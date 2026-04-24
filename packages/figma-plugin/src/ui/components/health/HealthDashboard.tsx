@@ -1,4 +1,4 @@
-import { AlertCircle, AlertTriangle, Check } from "lucide-react";
+import { AlertCircle, AlertTriangle, Check, SlidersHorizontal } from "lucide-react";
 import type { HealthView } from "./types";
 import type { HealthStatus } from "../../hooks/useHealthSignals";
 
@@ -224,6 +224,21 @@ export function HealthDashboard({
       <div className="flex flex-col gap-4">
         <ReviewSection title="Fix next" rows={fixNextRows} />
         <ReviewSection title="Clean up" rows={cleanupRows} />
+      </div>
+
+      <div className="mt-auto pt-6">
+        <button
+          type="button"
+          onClick={openView("rules")}
+          className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          <span className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+            <SlidersHorizontal size={14} strokeWidth={2.25} aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
+            Rules
+          </span>
+        </button>
       </div>
     </div>
   );

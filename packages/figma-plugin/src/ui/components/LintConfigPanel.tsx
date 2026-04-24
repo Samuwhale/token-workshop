@@ -24,7 +24,7 @@ interface LintConfigPanelProps {
   onUpdateRule: (ruleId: string, patch: Partial<LintRuleConfig>) => Promise<boolean>;
   onApplyConfig: (config: LintConfig) => Promise<boolean>;
   onReset: () => Promise<boolean | undefined>;
-  onLintRefresh: () => void;
+  onRulesChanged?: () => Promise<unknown> | void;
 }
 
 interface PathExceptionOption {
@@ -140,7 +140,7 @@ function formatPathOptionLabel(option: PathExceptionOption): string {
   return `${option.path} (${option.count} token${option.count === 1 ? '' : 's'})`;
 }
 
-export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, onReset, onLintRefresh }: LintConfigPanelProps) {
+export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, onReset, onRulesChanged }: LintConfigPanelProps) {
   const { collections } = useCollectionStateContext();
   const collectionIds = collections.map((collection) => collection.id);
   const { pathToCollectionId } = useTokenFlatMapContext();
@@ -157,10 +157,14 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
     [pathToCollectionId],
   );
 
+  async function notifyRulesChanged() {
+    await onRulesChanged?.();
+  }
+
   async function persistRulePatch(ruleId: string, patch: Partial<LintRuleConfig>) {
     const updated = await onUpdateRule(ruleId, patch);
     if (updated) {
-      onLintRefresh();
+      await notifyRulesChanged();
     }
   }
 
@@ -171,7 +175,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
     }
     const updated = await onApplyConfig(buildLintConfigFromPreset(preset) as LintConfig);
     if (updated) {
-      onLintRefresh();
+      await notifyRulesChanged();
     }
   }
 
@@ -247,7 +251,12 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
       <div className="flex items-center justify-between bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         <span className="text-body font-medium text-[var(--color-figma-text)]">Lint rules</span>
         <button
-          onClick={async () => { await onReset(); onLintRefresh(); }}
+          onClick={async () => {
+            const updated = await onReset();
+            if (updated) {
+              await notifyRulesChanged();
+            }
+          }}
           disabled={saving}
           className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
           title="Reset to defaults"

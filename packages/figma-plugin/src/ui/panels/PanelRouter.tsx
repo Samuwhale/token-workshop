@@ -1351,17 +1351,15 @@ export function PanelRouter({
       coverage: () => renderCanvasSubTab("coverage"),
       repair: () => renderCanvasSubTab("repair"),
     },
-    sync: {
-      "figma-sync": () => (
+    publish: {
+      "publish-figma": () => (
         <SyncRouter
           collectionMap={collectionMap}
           modeMap={modeMap}
           savePublishRouting={savePublishRouting}
         />
       ),
-    },
-    export: {
-      export: () => <ExportRouter />,
+      "publish-code": () => <ExportRouter />,
     },
   };
 

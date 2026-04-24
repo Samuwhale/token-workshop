@@ -54,8 +54,8 @@ export function SyncRouter({
       <PanelContentHeader primaryAction={publishAction} />
       <div className="min-h-0 flex-1 overflow-hidden">
         <ErrorBoundary
-          panelName="Figma Sync"
-          onReset={() => navigateTo("sync", "figma-sync")}
+          panelName="Publish · Figma"
+          onReset={() => navigateTo("publish", "publish-figma")}
         >
           <PublishPanel
             serverUrl={serverUrl}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
@@ -20,6 +21,7 @@ import { HealthUnusedView } from "./health/HealthUnusedView";
 import { HealthDeprecatedView } from "./health/HealthDeprecatedView";
 import { HealthAliasOpportunitiesView } from "./health/HealthAliasOpportunitiesView";
 import { HealthDuplicatesView } from "./health/HealthDuplicatesView";
+import { HealthRulesView } from "./health/HealthRulesView";
 import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
 import type { CollectionReviewSummary } from "../shared/reviewSummary";
 
@@ -307,6 +309,16 @@ export function HealthPanel({
     });
   };
 
+  const openRulesView = () => {
+    onScopeChange({
+      ...scope,
+      tokenPath: null,
+      issueKey: null,
+      view: "rules",
+      nonce: Date.now(),
+    });
+  };
+
   const collectionSummaries =
     scope.mode === "all"
       ? collectionIds
@@ -350,7 +362,16 @@ export function HealthPanel({
   );
 
   let content: JSX.Element;
-  if (scope.mode === "all") {
+  if (activeView === "rules") {
+    content = (
+      <HealthRulesView
+        serverUrl={serverUrl}
+        connected={connected}
+        onRulesChanged={refreshHealthState}
+        onBack={goBack}
+      />
+    );
+  } else if (scope.mode === "all") {
     const fixNextCollections = collectionSummaries.filter(
       ([, summary]) => summary.errors > 0 || summary.actionable > 0,
     );
@@ -432,6 +453,21 @@ export function HealthPanel({
                 : "All clear."}
           </p>
         )}
+
+        <div className="mt-auto pt-6">
+          <button
+            type="button"
+            onClick={openRulesView}
+            className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            <span className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+              <SlidersHorizontal size={14} strokeWidth={2.25} aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
+              Rules
+            </span>
+          </button>
+        </div>
       </div>
     );
   } else {

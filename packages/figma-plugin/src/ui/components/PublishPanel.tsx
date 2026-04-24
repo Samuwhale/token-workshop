@@ -462,7 +462,7 @@ export function PublishPanel({
           : 'Cleared resolver mode mappings',
         'success',
         {
-          destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+          destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
         },
       );
     } catch (error) {
@@ -506,7 +506,7 @@ export function PublishPanel({
         modeName: standardRoutingDraft.modeName?.trim() || undefined,
       });
       dispatchToast('Saved Figma sync target', 'success', {
-        destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+        destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
       });
     } catch (error) {
       setStandardRoutingError(describeError(error));
@@ -564,7 +564,7 @@ export function PublishPanel({
           `Variables synced — ${result.created ?? 0} created, ${result.overwritten} updated${skippedNote}`,
           'success',
           {
-            destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+            destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
           },
         );
       }
@@ -724,7 +724,7 @@ export function PublishPanel({
         + (failureCount > 0 ? ` · ${failureCount} failed` : ''),
         failureCount > 0 ? 'error' : 'success',
         {
-          destination: { kind: "workspace", topTab: "sync", subTab: "figma-sync" },
+          destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
         },
       );
       setChecksStale(true);
