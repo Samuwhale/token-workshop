@@ -1179,7 +1179,7 @@ export function TokenDetails({
               <div className="flex items-center gap-0.5 min-w-0 flex-1">
                 {parentPrefix && (
                   <span
-                    className="truncate font-mono text-body text-[var(--color-figma-text-secondary)]"
+                    className="min-w-0 max-w-[50%] shrink truncate font-mono text-body text-[var(--color-figma-text-secondary)]"
                     title={parentPrefix}
                   >
                     {parentPrefix}.
