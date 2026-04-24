@@ -24,7 +24,7 @@ export interface CanvasCreateDraftOption {
 }
 
 export interface CanvasCreateDraft {
-  source: 'heatmap' | 'consistency';
+  source: 'consistency';
   title: string;
   description: string;
   options: CanvasCreateDraftOption[];

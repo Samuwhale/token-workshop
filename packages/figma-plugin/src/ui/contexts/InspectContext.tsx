@@ -1,19 +1,16 @@
 /**
- * InspectContext — split into three focused sub-contexts to minimise cascade
+ * InspectContext — split into focused sub-contexts to minimise cascade
  * re-renders from high-frequency events:
  *
  *   SelectionContext  — Figma canvas selection (fires on every click in Figma)
- *   HeatmapContext    — heatmap scan state and progress
- *                       (progress events fire frequently during a scan)
  *   UsageContext      — token usage counts + consistency scan state
  *                       (consistency progress fires frequently during a scan)
  *   InspectPreferencesContext — persisted deep-inspect and property-filter UI
  *                       preferences used by App shell chrome and the inspector
  *
- * After the split, a heatmap progress tick only re-renders HeatmapPanel;
- * a consistency progress tick only re-renders ConsistencyPanel; and a
- * Figma canvas selection change only re-renders components that read
- * `selectedNodes`.
+ * After the split, a consistency progress tick only re-renders
+ * ConsistencyPanel, and a Figma canvas selection change only re-renders
+ * components that read `selectedNodes`.
  *
  * `InspectProvider` is a thin wrapper that stacks the inspect-area providers.
  *
@@ -33,21 +30,17 @@ import {
 } from "react";
 import type { ReactNode, Dispatch, SetStateAction } from "react";
 import { useSelection } from "../hooks/useSelection";
-import { useHeatmap } from "../hooks/useHeatmap";
-import type { HeatmapResult } from "../components/HeatmapPanel";
 import type {
   ConsistencyScanErrorMessage,
   ConsistencyScanProgressMessage,
   ConsistencyScanResultMessage,
   ConsistencyScope,
   SelectionNodeInfo,
-  ScanScope,
   ConsistencySuggestion,
   TokenMapEntry,
   TokenUsageMapMessage,
   TokenUsageMapCancelledMessage,
 } from "../../shared/types";
-import type { HeatmapProgress } from "../hooks/useHeatmap";
 import { matchesShortcut } from "../shared/shortcutRegistry";
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import { getPluginMessageFromEvent, postPluginMessage } from "../../shared/utils";
@@ -69,17 +62,6 @@ export type InspectorPropFilterMode =
 export interface SelectionContextValue {
   selectedNodes: SelectionNodeInfo[];
   selectionLoading: boolean;
-}
-
-export interface HeatmapContextValue {
-  heatmapResult: HeatmapResult | null;
-  heatmapLoading: boolean;
-  heatmapError: string | null;
-  heatmapProgress: HeatmapProgress | null;
-  heatmapScope: ScanScope;
-  setHeatmapScope: (scope: ScanScope) => void;
-  triggerHeatmapScan: (scope?: ScanScope) => void;
-  cancelHeatmapScan: () => void;
 }
 
 export interface UsageContextValue {
@@ -118,7 +100,6 @@ export interface InspectPreferencesContextValue {
 // ---------------------------------------------------------------------------
 
 const SelectionContext = createContext<SelectionContextValue | null>(null);
-const HeatmapContext = createContext<HeatmapContextValue | null>(null);
 const UsageContext = createContext<UsageContextValue | null>(null);
 const InspectPreferencesContext =
   createContext<InspectPreferencesContextValue | null>(null);
@@ -127,13 +108,6 @@ export function useSelectionContext(): SelectionContextValue {
   const ctx = useContext(SelectionContext);
   if (!ctx)
     throw new Error("useSelectionContext must be used inside InspectProvider");
-  return ctx;
-}
-
-export function useHeatmapContext(): HeatmapContextValue {
-  const ctx = useContext(HeatmapContext);
-  if (!ctx)
-    throw new Error("useHeatmapContext must be used inside InspectProvider");
   return ctx;
 }
 
@@ -167,46 +141,6 @@ function SelectionProvider({ children }: { children: ReactNode }) {
     <SelectionContext.Provider value={value}>
       {children}
     </SelectionContext.Provider>
-  );
-}
-
-function HeatmapProvider({ children }: { children: ReactNode }) {
-  const {
-    heatmapResult,
-    heatmapLoading,
-    heatmapError,
-    heatmapProgress,
-    heatmapScope,
-    setScanScope,
-    triggerHeatmapScan,
-    cancelHeatmapScan,
-  } = useHeatmap();
-
-  const value = useMemo<HeatmapContextValue>(
-    () => ({
-      heatmapResult,
-      heatmapLoading,
-      heatmapError,
-      heatmapProgress,
-      heatmapScope,
-      setHeatmapScope: setScanScope,
-      triggerHeatmapScan,
-      cancelHeatmapScan,
-    }),
-    [
-      heatmapResult,
-      heatmapLoading,
-      heatmapError,
-      heatmapProgress,
-      heatmapScope,
-      setScanScope,
-      triggerHeatmapScan,
-      cancelHeatmapScan,
-    ],
-  );
-
-  return (
-    <HeatmapContext.Provider value={value}>{children}</HeatmapContext.Provider>
   );
 }
 
@@ -473,11 +407,9 @@ function InspectPreferencesProvider({ children }: { children: ReactNode }) {
 export function InspectProvider({ children }: { children: ReactNode }) {
   return (
     <SelectionProvider>
-      <HeatmapProvider>
-        <UsageProvider>
-          <InspectPreferencesProvider>{children}</InspectPreferencesProvider>
-        </UsageProvider>
-      </HeatmapProvider>
+      <UsageProvider>
+        <InspectPreferencesProvider>{children}</InspectPreferencesProvider>
+      </UsageProvider>
     </SelectionProvider>
   );
 }

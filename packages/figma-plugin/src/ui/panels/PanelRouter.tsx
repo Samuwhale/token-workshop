@@ -43,7 +43,6 @@ import {
 } from "../contexts/TokenDataContext";
 import {
   useSelectionContext,
-  useHeatmapContext,
   useUsageContext,
 } from "../contexts/InspectContext";
 import {
@@ -254,12 +253,6 @@ export function PanelRouter({
     derivedTokenPaths,
   } = useGeneratorContext();
   const { selectedNodes } = useSelectionContext();
-  const {
-    heatmapResult,
-    heatmapScope: _heatmapScope,
-    setHeatmapScope: _setHeatmapScope,
-    cancelHeatmapScan: _cancelHeatmapScan,
-  } = useHeatmapContext();
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const healthRouteIntentRef = useRef<"deep-link" | null>(null);
   const historyRouteIntentRef = useRef<"deep-link" | null>(null);
@@ -1742,7 +1735,6 @@ export function PanelRouter({
             perCollectionFlat={perCollectionFlat}
             tokenUsageCounts={tokenUsageCounts}
             tokenUsageReady={hasTokenUsageScanResult}
-            heatmapResult={heatmapResult}
             onNavigateToToken={(path, collectionId) => {
               openTokenInContext({
                 path,

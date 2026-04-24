@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import type { UndoSlot } from "../hooks/useUndo";
-import type { HeatmapResult } from "./HeatmapPanel";
 import type { TokenMapEntry } from "../../shared/types";
 import type { HealthSignalsResult, HealthStatus } from "../hooks/useHealthSignals";
 import { statusFromIssueSeverities } from "../hooks/useHealthSignals";
@@ -37,7 +36,6 @@ export interface HealthPanelProps {
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   tokenUsageCounts: Record<string, number>;
   tokenUsageReady: boolean;
-  heatmapResult: HeatmapResult | null;
   onNavigateToToken?: (path: string, collectionId: string) => void;
   validationIssues: ValidationIssue[] | null;
   validationLoading: boolean;
@@ -70,7 +68,6 @@ export function HealthPanel({
   perCollectionFlat,
   tokenUsageCounts,
   tokenUsageReady,
-  heatmapResult,
   onNavigateToToken,
   validationIssues: validationIssuesProp,
   validationLoading,
@@ -209,7 +206,6 @@ export function HealthPanel({
     deprecatedCount +
     aliasOpportunitiesCount +
     duplicateCount;
-  const heatmapSignalsPresent = (heatmapResult?.red ?? 0) > 0;
   const currentReviewSummary = scopedCollectionKey
     ? collectionReviewSummaries.get(scopedCollectionKey)
     : undefined;
@@ -223,8 +219,7 @@ export function HealthPanel({
           duplicateCount > 0 ||
           deprecatedCount > 0 ||
           aliasOpportunitiesCount > 0 ||
-          (tokenUsageReady && unusedCount > 0) ||
-          heatmapSignalsPresent
+          (tokenUsageReady && unusedCount > 0)
         ? "warning"
         : "healthy";
 

@@ -542,17 +542,6 @@ export interface ScanTokenUsageMessage {
 
 export type ScanScope = 'page' | 'selection' | 'all-pages';
 
-export interface ScanCanvasHeatmapMessage {
-  type: 'scan-canvas-heatmap';
-  scope?: ScanScope;
-  requestId?: string;
-}
-
-export interface SelectHeatmapNodesMessage {
-  type: 'select-heatmap-nodes';
-  nodeIds: string[];
-}
-
 export interface BatchBindHeatmapNodesMessage {
   type: 'batch-bind-heatmap-nodes';
   nodeIds: string[];
@@ -882,31 +871,6 @@ export interface SelectNextSiblingResultMessage {
   found: boolean;
 }
 
-export interface CanvasHeatmapProgressMessage {
-  type: 'canvas-heatmap-progress';
-  processed: number;
-  total: number;
-}
-
-export interface CanvasHeatmapResultMessage {
-  type: 'canvas-heatmap-result';
-  total: number;
-  green: number;
-  yellow: number;
-  red: number;
-  nodes: {
-    id: string;
-    name: string;
-    type: string;
-    pageName?: string;
-    status: string;
-    boundCount: number;
-    totalCheckable: number;
-    missingProperties?: BindableProperty[];
-    missingValueEntries?: { property: BindableProperty; value: ResolvedTokenValue }[];
-  }[];
-}
-
 export interface ExtractedTokensResponseMessage {
   type: 'extracted-tokens';
   tokens: ExtractedTokenEntry[];
@@ -984,11 +948,6 @@ export interface TokenUsageResultMessage {
   error?: string;
 }
 
-export interface CanvasHeatmapErrorMessage {
-  type: 'canvas-heatmap-error';
-  error: string;
-}
-
 export interface ConsistencyScanProgressMessage {
   type: 'consistency-scan-progress';
   processed: number;
@@ -1031,9 +990,6 @@ export type ControllerMessage =
   | RemapProgressMessage
   | RemovedBindingFromNodeMessage
   | SelectNextSiblingResultMessage
-  | CanvasHeatmapProgressMessage
-  | CanvasHeatmapResultMessage
-  | CanvasHeatmapErrorMessage
   | ExtractedTokensResponseMessage
   | SelectionResponseMessage
   | LayerSearchResultMessage
@@ -1075,9 +1031,6 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'remap-progress',
   'removed-binding-from-node',
   'select-next-sibling-result',
-  'canvas-heatmap-progress',
-  'canvas-heatmap-result',
-  'canvas-heatmap-error',
   'extracted-tokens',
   'selection',
   'search-layers-result',
@@ -1113,8 +1066,6 @@ export type PluginMessage =
   | DeleteOrphanVariablesMessage
   | SelectNodeMessage
   | ScanTokenUsageMessage
-  | ScanCanvasHeatmapMessage
-  | SelectHeatmapNodesMessage
   | BatchBindHeatmapNodesMessage
   | EyedropperMessage
   | ScanSingleTokenUsageMessage

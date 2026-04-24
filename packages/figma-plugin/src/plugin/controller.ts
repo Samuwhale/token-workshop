@@ -6,7 +6,7 @@ import { applyVariables, readFigmaVariables, deleteOrphanVariables, scanTokenVar
 import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
-import { selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
+import { selectNode, selectNextSibling, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
 
 figma.showUI(__html__, { width: 680, height: 720, themeColors: true });
@@ -48,7 +48,6 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 
 type ScanKind =
   | 'token-usage-map'
-  | 'canvas-heatmap'
   | 'single-token-usage'
   | 'consistency';
 
@@ -101,10 +100,6 @@ function clearScanSignal(kind: ScanKind, signal: { aborted: boolean }): void {
   }
 }
 
-function normalizeScanScope(scope: unknown): 'page' | 'selection' | 'all-pages' {
-  return scope === 'selection' || scope === 'all-pages' ? scope : 'page';
-}
-
 /** Extract a human-readable message from an unknown thrown value. */
 /** Post a generic error back to the UI so it doesn't hang waiting for a response. */
 function reportError(handler: string, e: unknown): void {
@@ -147,8 +142,6 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'scan-token-usage':           [],
   'select-node':                [['nodeId', 'string']],
   'select-next-sibling':        [],
-  'scan-canvas-heatmap':        [],
-  'select-heatmap-nodes':       [['nodeIds', 'array']],
   'batch-bind-heatmap-nodes':   [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string'], ['resolvedValue', 'any']],
   'scan-single-token-usage':    [['tokenPath', 'string']],
   'scan-token-variable-bindings': [['tokenPath', 'string']],
@@ -519,24 +512,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'select-next-sibling':
       selectNextSibling();
-      break;
-    case 'scan-canvas-heatmap': {
-      const signal = createScanSignal('canvas-heatmap', msg.requestId);
-      try {
-        await scanCanvasHeatmap(normalizeScanScope(msg.scope), signal, msg.requestId);
-      } catch (e) {
-        reportError('scan-canvas-heatmap', e);
-      } finally {
-        clearScanSignal('canvas-heatmap', signal);
-      }
-      break;
-    }
-    case 'select-heatmap-nodes':
-      try {
-        await selectHeatmapNodes(msg.nodeIds);
-      } catch (e) {
-        reportError('select-heatmap-nodes', e);
-      }
       break;
     case 'batch-bind-heatmap-nodes':
       try {
