@@ -81,6 +81,7 @@ interface TokenDetailsProps {
     requestClose: () => void;
   };
   onSaved?: (savedPath: string) => void;
+  onRenamed?: (newPath: string) => void;
   collections?: TokenCollection[];
   onRefresh?: () => void;
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
@@ -127,6 +128,7 @@ export function TokenDetails({
   initialValue,
   editorSessionHost,
   onSaved,
+  onRenamed,
   onSaveAndCreateAnother,
   collections = [],
   onRefresh,
@@ -235,6 +237,21 @@ export function TokenDetails({
   );
 
   const [error, setError] = useState<string | null>(null);
+
+  const [renameInput, setRenameInput] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [renameConfirm, setRenameConfirm] = useState<
+    { newPath: string; aliasCount: number } | null
+  >(null);
+
+  // Keep rename input in sync with the incoming token path so the field reflects
+  // the current name whenever the editor loads or switches tokens.
+  useEffect(() => {
+    const lastDot = tokenPath.lastIndexOf(".");
+    setRenameInput(lastDot >= 0 ? tokenPath.slice(lastDot + 1) : tokenPath);
+    setRenameError(null);
+  }, [tokenPath]);
 
   const loadResult = useTokenEditorLoad({
     serverUrl,
@@ -921,6 +938,150 @@ export function TokenDetails({
     [allTokensFlat, tokenPath, tokenType, value],
   );
 
+  const lastDotIdx = tokenPath.lastIndexOf(".");
+  const parentPrefix = lastDotIdx >= 0 ? tokenPath.slice(0, lastDotIdx) : "";
+  const leafName = lastDotIdx >= 0 ? tokenPath.slice(lastDotIdx + 1) : tokenPath;
+  const canRenameInPlace =
+    !isCreateMode && isEditMode && canEditInPlace;
+  const renameInputDiffers = renameInput !== leafName;
+  const renameDisabled = !canRenameInPlace || isDirty || saving || renameSaving;
+
+  const revertRename = useCallback(() => {
+    setRenameInput(leafName);
+    setRenameError(null);
+  }, [leafName]);
+
+  const performRename = useCallback(
+    async (newPath: string, updateAliases: boolean) => {
+      setRenameSaving(true);
+      setRenameError(null);
+      try {
+        await apiFetch(
+          `${serverUrl}/api/tokens/${encodeURIComponent(ownerCollectionId)}/tokens/rename`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              oldPath: tokenPath,
+              newPath,
+              updateAliases,
+            }),
+          },
+        );
+        if (pushUndo) {
+          const capturedCollection = ownerCollectionId;
+          const capturedUrl = serverUrl;
+          const capturedOld = tokenPath;
+          const capturedNew = newPath;
+          pushUndo({
+            description: `Rename "${leafName}"`,
+            groupKey: `rename-${capturedCollection}`,
+            groupSummary: (n) => `Rename ${n} tokens`,
+            restore: async () => {
+              try {
+                await apiFetch(
+                  `${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollection)}/tokens/rename`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      oldPath: capturedNew,
+                      newPath: capturedOld,
+                    }),
+                  },
+                );
+                onRefresh?.();
+              } catch (err) {
+                console.warn("[TokenDetails] undo rename failed:", err);
+              }
+            },
+            redo: async () => {
+              try {
+                await apiFetch(
+                  `${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollection)}/tokens/rename`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      oldPath: capturedOld,
+                      newPath: capturedNew,
+                    }),
+                  },
+                );
+                onRefresh?.();
+              } catch (err) {
+                console.warn("[TokenDetails] redo rename failed:", err);
+              }
+            },
+          });
+        }
+        setRenameConfirm(null);
+        dispatchToast(`Renamed to "${newPath}"`, "success");
+        onRefresh?.();
+        onRenamed?.(newPath);
+      } catch (err) {
+        setRenameError(getErrorMessage(err, "Rename failed"));
+      } finally {
+        setRenameSaving(false);
+      }
+    },
+    [
+      serverUrl,
+      ownerCollectionId,
+      tokenPath,
+      leafName,
+      pushUndo,
+      onRefresh,
+      onRenamed,
+    ],
+  );
+
+  const submitRename = useCallback(async () => {
+    const trimmed = renameInput.trim();
+    if (!trimmed) {
+      setRenameError("Name cannot be empty");
+      return;
+    }
+    if (trimmed.includes(".")) {
+      setRenameError("Name cannot contain dots");
+      return;
+    }
+    if (trimmed === leafName) {
+      setRenameError(null);
+      return;
+    }
+    const newPath = parentPrefix ? `${parentPrefix}.${trimmed}` : trimmed;
+    if (allTokensFlat[newPath]) {
+      setRenameError(`A token named "${trimmed}" already exists here`);
+      return;
+    }
+    setRenameSaving(true);
+    setRenameError(null);
+    try {
+      const preview = await apiFetch<{ count: number }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(ownerCollectionId)}/tokens/rename-preview?oldPath=${encodeURIComponent(tokenPath)}&newPath=${encodeURIComponent(newPath)}`,
+      );
+      if (preview.count > 0) {
+        setRenameConfirm({ newPath, aliasCount: preview.count });
+        setRenameSaving(false);
+        return;
+      }
+      await performRename(newPath, true);
+    } catch (err) {
+      setRenameError(getErrorMessage(err, "Rename failed"));
+      setRenameSaving(false);
+    }
+  }, [
+    renameInput,
+    leafName,
+    parentPrefix,
+    allTokensFlat,
+    serverUrl,
+    ownerCollectionId,
+    tokenPath,
+    performRename,
+  ]);
+
   if (loading) {
     return (
       <div role="status" className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-body">
@@ -968,9 +1129,81 @@ export function TokenDetails({
       ) : (
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="truncate font-mono text-body text-[var(--color-figma-text)]" title={tokenPath}>
-              {tokenPath}
-            </span>
+            {canRenameInPlace ? (
+              <div className="flex items-center gap-0.5 min-w-0 flex-1">
+                {parentPrefix && (
+                  <span
+                    className="truncate font-mono text-body text-[var(--color-figma-text-secondary)]"
+                    title={parentPrefix}
+                  >
+                    {parentPrefix}.
+                  </span>
+                )}
+                <input
+                  type="text"
+                  value={renameInput}
+                  disabled={renameDisabled}
+                  onChange={(e) => {
+                    setRenameInput(e.target.value);
+                    setRenameError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void submitRename();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      revertRename();
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  title={
+                    isDirty
+                      ? "Save or discard your changes before renaming"
+                      : undefined
+                  }
+                  className={`min-w-0 flex-1 font-mono text-body bg-transparent text-[var(--color-figma-text)] px-1 py-0.5 rounded border outline-none disabled:opacity-60 ${
+                    renameError
+                      ? "border-[var(--color-figma-error)]"
+                      : renameInputDiffers
+                        ? "border-[var(--color-figma-accent)]"
+                        : "border-transparent hover:border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"
+                  }`}
+                  aria-label="Token name"
+                />
+                {renameInputDiffers && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void submitRename()}
+                      disabled={renameDisabled}
+                      title="Save name (Enter)"
+                      aria-label="Save name"
+                      className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
+                    >
+                      <Check size={12} strokeWidth={1.5} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={revertRename}
+                      disabled={renameSaving}
+                      title="Revert name (Escape)"
+                      aria-label="Revert name"
+                      className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
+                    >
+                      <X size={12} strokeWidth={1.5} aria-hidden />
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <span
+                className="truncate font-mono text-body text-[var(--color-figma-text)]"
+                title={tokenPath}
+              >
+                {tokenPath}
+              </span>
+            )}
             <button
               type="button"
               onClick={handleCopyPath}
@@ -999,6 +1232,13 @@ export function TokenDetails({
               />
             )}
           </div>
+          {renameError && (
+            <div className="min-w-0">
+              <span className="text-secondary text-[var(--color-figma-error)]">
+                {renameError}
+              </span>
+            </div>
+          )}
           <div className="min-w-0">
             <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
               {showingExternalCollection
@@ -1938,6 +2178,20 @@ export function TokenDetails({
             handleSave(true);
           }}
           onCancel={() => setShowConflictConfirm(false)}
+        />
+      )}
+
+      {/* Rename reference-update confirmation */}
+      {renameConfirm && (
+        <ConfirmModal
+          title={`Rename "${leafName}"?`}
+          description={`${renameConfirm.aliasCount} ${
+            renameConfirm.aliasCount === 1 ? "alias reference" : "alias references"
+          } will be updated to point to ${renameConfirm.newPath}.`}
+          confirmLabel="Rename and update references"
+          cancelLabel="Cancel"
+          onConfirm={() => performRename(renameConfirm.newPath, true)}
+          onCancel={() => setRenameConfirm(null)}
         />
       )}
     </div>
