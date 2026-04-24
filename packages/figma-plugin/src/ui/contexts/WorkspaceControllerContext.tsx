@@ -20,9 +20,6 @@ import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { StarredTokensState } from "../hooks/useStarredTokens";
 import type { NotificationEntry } from "../hooks/useToastStack";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
-import type {
-  SurfaceTransition,
-} from "../shared/navigationTypes";
 import type { PublishPreflightState } from "../shared/syncWorkflow";
 import type { PublishPending } from "../hooks/useFigmaSync";
 
@@ -45,7 +42,6 @@ export interface ShellWorkspaceController {
 }
 
 export interface EditorShellController {
-  contextualEditorTransition: SurfaceTransition;
   guardEditorAction: (fn: () => void) => void;
   registerEditorSession: (session: EditorSessionRegistration | null) => void;
   requestEditorClose: () => void;

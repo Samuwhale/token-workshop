@@ -330,7 +330,7 @@ export function TokenPickerDropdown({
           );
         })}
         {totalCount > MAX_RESULTS && (
-          <div className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
+          <div className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] text-center">
             Showing {MAX_RESULTS} of {totalCount} — refine your search
           </div>
         )}

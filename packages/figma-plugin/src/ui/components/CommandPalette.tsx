@@ -507,14 +507,14 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
         </div>
 
         {!isTokenMode && !query.trim() && (
-          <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="px-3 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
             Power-user actions live here. Use the workspace tabs and Utilities menu for regular navigation.
           </div>
         )}
 
         {/* Qualifier hint chips — persistent reference row */}
         {isTokenMode && (
-          <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap items-center">
+          <div className="px-3 py-1 flex gap-1.5 flex-wrap items-center">
             <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
             {(showAllQualifiers ? QUERY_QUALIFIERS : QUERY_QUALIFIERS.slice(0, 6)).map(q => (
               <button
@@ -551,7 +551,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
 
         {/* Filter syntax cheatsheet — toggled by ? button or ? key */}
         {isTokenMode && showHelp && (
-          <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2 overflow-y-auto" style={{ maxHeight: '220px' }}>
+          <div className="bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2 overflow-y-auto" style={{ maxHeight: '220px' }}>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-secondary font-semibold text-[var(--color-figma-text-secondary)]">Filter syntax</span>
               <button
@@ -625,7 +625,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                 ))}
               </div>
             </div>
-            <div className="pt-1 border-t border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-secondary)] opacity-60">
+            <div className="mt-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
               Combine qualifiers: <code className="font-mono">type:color has:alias path:brand</code>
             </div>
           </div>
@@ -633,7 +633,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
 
         {/* Qualifier value autocomplete chips */}
         {qualifierCompletions.length > 0 && (
-          <div className="px-3 py-1 border-b border-[var(--color-figma-border)] flex gap-1.5 flex-wrap items-center">
+          <div className="px-3 py-1 flex gap-1.5 flex-wrap items-center">
             <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">
               {activeQualifier?.qualifier}:
             </span>
@@ -657,7 +657,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
           {isTokenMode && (
             <>
               {(hasQualifiers || parsedTokenQuery.text || isGroupQuery) && (filteredTokens.length > 0 || filteredGroups.length > 0) && (
-                <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-1.5">
+                <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] flex items-center gap-1.5">
                   {isGroupQuery
                     ? <>{totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''} matched</>
                     : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>

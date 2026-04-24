@@ -98,7 +98,6 @@ import {
 import { createGeneratedGroupDuplicateDraft } from "../hooks/useGeneratedGroupEditor";
 
 const EMPTY_PATH_SET = new Set<string>();
-const TOKENS_LIBRARY_BODY_SURFACE = "library-body";
 
 function getInlineModeValues(
   entry: TokenMapEntry | undefined,
@@ -190,7 +189,6 @@ export function TokenList({
   editingTokenPath,
   compareHandle,
 }: TokenListProps) {
-  const librarySurfaceSlot = TOKENS_LIBRARY_BODY_SURFACE;
   // Token create state is managed by useTokenCreate hook (called below after dependencies)
   const [, setApplying] = useState(false);
   const [varDiffPending, setVarDiffPending] = useState<VariableDiffPendingState | null>(null);
@@ -2220,7 +2218,6 @@ export function TokenList({
   return (
     <div
       className="relative flex h-full min-h-0 flex-col"
-      data-tokens-library-surface-slot={librarySurfaceSlot}
       onKeyDown={handleListKeyDown}
     >
       {/* Copy feedback toast (⌘⌥C alias-ref or ⌘⇧C preferred-format) */}

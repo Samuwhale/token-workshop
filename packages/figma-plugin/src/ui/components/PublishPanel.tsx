@@ -1031,7 +1031,7 @@ export function PublishPanel({
                   onReset={resetStandardRoutingDraft}
                   onSave={() => void saveStandardRouting()}
                 />
-                <label className="flex items-start gap-2 pt-2 border-t border-[var(--color-figma-border)] cursor-pointer">
+                <label className="flex items-start gap-2 pt-3 mt-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={createStylesPref}
@@ -1646,7 +1646,7 @@ function DisclosureSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-b border-[var(--color-figma-border)] py-4">
+    <section className="py-4">
       <button
         type="button"
         onClick={onToggle}

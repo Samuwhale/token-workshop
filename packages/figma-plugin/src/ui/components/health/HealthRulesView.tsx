@@ -30,14 +30,14 @@ export function HealthRulesView({
       className="flex h-full flex-col overflow-y-auto px-4 py-4"
       style={{ scrollbarWidth: "thin" }}
     >
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-4 flex items-center gap-2">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1.5 rounded px-1.5 py-1 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
           aria-label="Back to Review"
         >
-          <ArrowLeft size={14} strokeWidth={2} aria-hidden />
+          <ArrowLeft size={12} strokeWidth={2} aria-hidden />
           <span>Review</span>
         </button>
         <h2 className="text-body font-semibold text-[var(--color-figma-text)]">

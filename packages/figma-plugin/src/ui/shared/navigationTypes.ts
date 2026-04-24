@@ -18,29 +18,11 @@ export type PublishSubTab = "publish-figma" | "publish-code";
 export type SubTab =
   | LibrarySubTab
   | "inspect"
-  | "coverage"
   | "repair"
   | PublishSubTab;
 export type SecondarySurfaceId =
   | "shortcuts"
   | "settings";
-export type SurfaceKind =
-  | "workspace-screen"
-  | "contextual-sub-screen"
-  | "secondary-takeover"
-  | "contextual-panel"
-  | "transient-overlay";
-export type SurfacePresentation =
-  | "route"
-  | "full-height-body"
-  | "full-takeover"
-  | "split-pane"
-  | "centered-dialog"
-  | "bottom-sheet";
-export type SurfaceCloseBehavior =
-  | "none"
-  | "restore-underlying-surface"
-  | "dismiss-in-place";
 export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
@@ -48,9 +30,6 @@ export type TokensLibraryContextualSurface =
   | "generated-group-editor"
   | "color-analysis"
   | "import";
-export type TokensLibrarySurfaceSlot =
-  | "library-body"
-  | "contextual-panel";
 export type TokensLibraryGeneratedGroupEditorTarget =
   | {
       mode: "edit";
@@ -85,13 +64,6 @@ export interface TokenContextNavigationRequest {
   navigationHistory?: TokenContextNavigationHistoryEntry[];
 }
 
-export interface SurfaceTransition {
-  kind: SurfaceKind;
-  presentation: SurfacePresentation;
-  closeBehavior: SurfaceCloseBehavior;
-  usage: string;
-}
-
 /**
  * Internal routing structure — kept for PanelRouter compatibility.
  * The app shell remaps these internal route buckets into user-facing workspaces
@@ -116,7 +88,6 @@ export const TOP_TABS: {
     label: "Canvas",
     subTabs: [
       { id: "inspect", label: "Selection" },
-      { id: "coverage", label: "Coverage" },
       { id: "repair", label: "Repair" },
     ],
   },
@@ -170,14 +141,12 @@ export interface WorkspaceSection extends WorkspaceRoute {
   id: SubTab;
   label: string;
   summaryTitle?: string;
-  transition?: SurfaceTransition;
 }
 
 export interface WorkspaceTab extends WorkspaceRoute {
   id: WorkspaceId;
   label: string;
   summaryTitle?: string;
-  transition: SurfaceTransition;
   sections?: WorkspaceSection[];
   /** Additional routes that should keep this workspace selected. */
   matchRoutes?: WorkspaceRoute[];
@@ -188,14 +157,12 @@ export interface SecondarySurface {
   label: string;
   summaryTitle: string;
   access: SecondarySurfaceAccess;
-  transition: SurfaceTransition;
 }
 
 export interface UtilityAction {
   id: UtilityActionId;
   label: string;
   description: string;
-  transition?: SurfaceTransition;
 }
 
 export interface UtilitySection {
@@ -282,108 +249,6 @@ const route = (topTab: TopTab, subTab: SubTab): WorkspaceRoute => ({
   topTab,
   subTab,
 });
-const workspaceTransition = (usage: string): SurfaceTransition => ({
-  kind: "workspace-screen",
-  presentation: "route",
-  closeBehavior: "none",
-  usage,
-});
-
-const contextualSubScreenTransition = (
-  presentation: Extract<SurfacePresentation, "route" | "full-height-body">,
-  usage: string,
-): SurfaceTransition => ({
-  kind: "contextual-sub-screen",
-  presentation,
-  closeBehavior: "restore-underlying-surface",
-  usage,
-});
-
-const secondaryTakeoverTransition = (usage: string): SurfaceTransition => ({
-  kind: "secondary-takeover",
-  presentation: "full-height-body",
-  closeBehavior: "restore-underlying-surface",
-  usage,
-});
-
-const transientOverlayTransition = (
-  presentation: Extract<
-    SurfacePresentation,
-    "centered-dialog" | "bottom-sheet"
-  >,
-  usage: string,
-): SurfaceTransition => ({
-  kind: "transient-overlay",
-  presentation,
-  closeBehavior: "dismiss-in-place",
-  usage,
-});
-
-export const CONTEXTUAL_PANEL_TRANSITIONS = {
-  fullTakeover: {
-    kind: "contextual-panel",
-    presentation: "full-takeover",
-    closeBehavior: "restore-underlying-surface",
-    usage: "Edit in place.",
-  },
-} satisfies Record<"fullTakeover", SurfaceTransition>;
-
-export const TOKENS_LIBRARY_SURFACE_CONTRACT = {
-  body: {
-    id: "library-body",
-    label: "Library",
-    usage:
-      "Browse, search, and filter tokens.",
-  },
-  contextualPanel: {
-    id: "contextual-panel",
-    label: "Library tools",
-    usage: "Compare, edit, and preview tools.",
-    presentation: CONTEXTUAL_PANEL_TRANSITIONS.fullTakeover,
-    surfaces: {
-      compare: {
-        label: "Compare",
-        usage: "Compare tokens or mode options.",
-      },
-      "collection-details": {
-        label: "Collection details",
-        usage: "Review collection structure, metadata, and modes.",
-      },
-      "token-details": {
-        label: "Token details",
-        usage: "Inspect, edit, or create a token.",
-      },
-      "generated-group-editor": {
-        label: "Generated group editor",
-        usage: "Configure a generated group.",
-      },
-      "color-analysis": {
-        label: "Color analysis",
-        usage: "Contrast matrix and lightness scale inspector.",
-      },
-      import: {
-        label: "Import",
-        usage: "Import tokens from Figma or files.",
-      },
-    } satisfies Record<
-      TokensLibraryContextualSurface,
-      { label: string; usage: string }
-    >,
-  },
-} satisfies {
-  body: { id: TokensLibrarySurfaceSlot; label: string; usage: string };
-  contextualPanel: {
-    id: TokensLibrarySurfaceSlot;
-    label: string;
-    usage: string;
-    presentation: SurfaceTransition;
-    surfaces: Record<
-      TokensLibraryContextualSurface,
-      { label: string; usage: string }
-    >;
-  };
-};
-
 // ---------------------------------------------------------------------------
 // Sidebar groups — sections that organize workspace items
 // ---------------------------------------------------------------------------
@@ -424,38 +289,10 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryTitle: "Library",
     topTab: "library",
     subTab: "tokens",
-    transition: workspaceTransition("Browse and edit tokens."),
     sections: [
-      {
-        id: "tokens",
-        label: "Tokens",
-        topTab: "library",
-        subTab: "tokens",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Browse, search, and edit tokens.",
-        ),
-      },
-      {
-        id: "health",
-        label: "Review",
-        topTab: "library",
-        subTab: "health",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Review issues, cleanup opportunities, and token quality.",
-        ),
-      },
-      {
-        id: "history",
-        label: "History",
-        topTab: "library",
-        subTab: "history",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Review recent edits, checkpoints, and versions.",
-        ),
-      },
+      { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
+      { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
+      { id: "history", label: "History", topTab: "library", subTab: "history" },
     ],
     matchRoutes: [
       route("library", "tokens"),
@@ -469,44 +306,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryTitle: "Canvas",
     topTab: "canvas",
     subTab: "inspect",
-    transition: workspaceTransition(
-      "Inspect, match, create, bind, and repair tokens on the current selection.",
-    ),
     sections: [
-      {
-        id: "inspect",
-        label: "Selection",
-        topTab: "canvas",
-        subTab: "inspect",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Inspect, match, create, and bind tokens for the current selection.",
-        ),
-      },
-      {
-        id: "coverage",
-        label: "Coverage",
-        topTab: "canvas",
-        subTab: "coverage",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "See where tokens are and aren't used across the canvas.",
-        ),
-      },
-      {
-        id: "repair",
-        label: "Repair",
-        topTab: "canvas",
-        subTab: "repair",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Fix broken or stale token bindings.",
-        ),
-      },
+      { id: "inspect", label: "Selection", topTab: "canvas", subTab: "inspect" },
+      { id: "repair",  label: "Repair",    topTab: "canvas", subTab: "repair" },
     ],
     matchRoutes: [
       route("canvas", "inspect"),
-      route("canvas", "coverage"),
       route("canvas", "repair"),
     ],
   },
@@ -516,30 +321,9 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     summaryTitle: "Publish",
     topTab: "publish",
     subTab: "publish-figma",
-    transition: workspaceTransition(
-      "Publish tokens to Figma, Git, and code.",
-    ),
     sections: [
-      {
-        id: "publish-figma",
-        label: "Figma",
-        topTab: "publish",
-        subTab: "publish-figma",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Publish tokens to Figma variables and styles.",
-        ),
-      },
-      {
-        id: "publish-code",
-        label: "Code",
-        topTab: "publish",
-        subTab: "publish-code",
-        transition: contextualSubScreenTransition(
-          "full-height-body",
-          "Generate platform token files.",
-        ),
-      },
+      { id: "publish-figma", label: "Figma", topTab: "publish", subTab: "publish-figma" },
+      { id: "publish-code",  label: "Code",  topTab: "publish", subTab: "publish-code" },
     ],
     matchRoutes: [
       route("publish", "publish-figma"),
@@ -550,20 +334,8 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
 
 
 export const SECONDARY_SURFACES: SecondarySurface[] = [
-  {
-    id: "shortcuts",
-    label: "Shortcuts",
-    summaryTitle: "Shortcuts",
-    access: "settings-help",
-    transition: secondaryTakeoverTransition("Keyboard shortcut reference."),
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    summaryTitle: "Settings",
-    access: "shell-menu",
-    transition: secondaryTakeoverTransition("Preferences and recovery."),
-  },
+  { id: "shortcuts", label: "Shortcuts", summaryTitle: "Shortcuts", access: "settings-help" },
+  { id: "settings",  label: "Settings",  summaryTitle: "Settings",  access: "shell-menu" },
 ];
 
 export const UTILITY_MENU: UtilityMenu = {
@@ -577,29 +349,9 @@ export const UTILITY_MENU: UtilityMenu = {
       label: "Actions",
       description: "",
       actions: [
-        {
-          id: "command-palette",
-          label: "Commands",
-          description: "Search commands and jump to tasks.",
-          transition: transientOverlayTransition(
-            "centered-dialog",
-            "Search and run commands.",
-          ),
-        },
-        {
-          id: "paste-tokens",
-          label: "Paste tokens",
-          description: "Paste token data to import.",
-          transition: transientOverlayTransition(
-            "centered-dialog",
-            "Paste token data to import.",
-          ),
-        },
-        {
-          id: "window-size",
-          label: "Window size",
-          description: "Toggle compact or expanded layout.",
-        },
+        { id: "command-palette", label: "Commands",     description: "Search commands and jump to tasks." },
+        { id: "paste-tokens",    label: "Paste tokens",  description: "Paste token data to import." },
+        { id: "window-size",     label: "Window size",   description: "Toggle compact or expanded layout." },
       ],
     },
   ],
@@ -812,13 +564,7 @@ export function resolveWorkspaceSection(
 function resolveWorkspaceCurrentDepthLabel(
   section: WorkspaceSection | null,
 ): string {
-  if (!section) {
-    return "Workspace";
-  }
-
-  return section.transition?.kind === "contextual-sub-screen"
-    ? "Contextual screen"
-    : "Section";
+  return section ? "Section" : "Workspace";
 }
 
 export function resolveWorkspaceSummary(

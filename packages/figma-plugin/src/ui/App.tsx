@@ -34,7 +34,6 @@ import type {
   TopTab,
 } from "./shared/navigationTypes";
 import {
-  CONTEXTUAL_PANEL_TRANSITIONS,
   SIDEBAR_GROUPS,
   WORKSPACE_TABS,
   resolveWorkspaceSummary,
@@ -794,6 +793,17 @@ export function App() {
     validationIsStale,
     refreshValidation,
   } = useValidationCache({ serverUrl, connected, tokenChangeKey });
+  // Aggregate actionable-issue count surfaced as a sidebar badge on the Review
+  // section, so broken aliases / lint errors are visible without drilling in.
+  const reviewBadgeCount = useMemo(() => {
+    const validationActionable = (validationIssues ?? []).filter(
+      (issue) => issue.severity === "error" || issue.severity === "warning",
+    ).length;
+    const lintActionable = lintViolations.filter(
+      (violation) => violation.severity === "error" || violation.severity === "warning",
+    ).length;
+    return validationActionable + lintActionable;
+  }, [validationIssues, lintViolations]);
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
   const sidebarBoundary = useResizableBoundary({
     storageKey: STORAGE_KEYS.SIDEBAR_WIDTH,
@@ -811,8 +821,6 @@ export function App() {
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(
     () => new Set([activeWorkspace.id]),
   );
-  const contextualEditorTransition = CONTEXTUAL_PANEL_TRANSITIONS.fullTakeover;
-
   const {
     publishPending,
     setPublishPending,
@@ -1433,7 +1441,6 @@ export function App() {
       clearNotificationHistory,
     },
     editor: {
-      contextualEditorTransition,
       guardEditorAction,
       registerEditorSession,
       requestEditorClose,
@@ -1590,14 +1597,10 @@ export function App() {
       >
         {/* Accordion navigation */}
         <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-1 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
-          {SIDEBAR_GROUPS.map((group, groupIndex) => (
+          {SIDEBAR_GROUPS.map((group) => (
             <div
               key={group.id}
-              className={`flex flex-col gap-px ${
-                groupIndex > 0
-                  ? `mt-2 border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'pt-1.5' : 'pt-2'}`
-                  : ''
-              }`}
+              className="flex flex-col gap-px"
             >
               {group.items.map((item) => {
                 const isWorkspaceActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
@@ -1758,20 +1761,35 @@ export function App() {
                             isSectionExpanded ? "max-h-40 opacity-100 mt-0.5 mb-1" : "max-h-0 opacity-0"
                           }`}
                         >
-                          {sections.map((section) => (
-                            <button
-                              key={section.id}
-                              onClick={() => handleSubTabClick(section)}
-                              tabIndex={isSectionExpanded ? 0 : -1}
-                              className={`w-full rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
-                                activeSubTab === section.subTab && isWorkspaceActive
-                                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                              }`}
-                            >
-                              {section.label}
-                            </button>
-                          ))}
+                          {sections.map((section) => {
+                            const showReviewBadge =
+                              item.id === "library" &&
+                              section.id === "health" &&
+                              reviewBadgeCount > 0 &&
+                              !(activeSubTab === section.subTab && isWorkspaceActive);
+                            return (
+                              <button
+                                key={section.id}
+                                onClick={() => handleSubTabClick(section)}
+                                tabIndex={isSectionExpanded ? 0 : -1}
+                                className={`flex w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
+                                  activeSubTab === section.subTab && isWorkspaceActive
+                                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                                }`}
+                              >
+                                <span className="min-w-0 flex-1 truncate">{section.label}</span>
+                                {showReviewBadge ? (
+                                  <span
+                                    aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
+                                    className="shrink-0 tabular-nums text-secondary font-medium text-[var(--color-figma-warning)]"
+                                  >
+                                    {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
                         </div>
                       );
                     })()}

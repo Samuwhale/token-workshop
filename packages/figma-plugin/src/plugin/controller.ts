@@ -6,7 +6,7 @@ import { applyVariables, readFigmaVariables, deleteOrphanVariables, scanTokenVar
 import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
-import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
+import { selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
 
 figma.showUI(__html__, { width: 680, height: 720, themeColors: true });
@@ -39,7 +39,7 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 // ---------------------------------------------------------------------------
 // Scan cancellation
 // ---------------------------------------------------------------------------
-// Long-running scans (heatmap, consistency, coverage, token-usage) each keep
+// Long-running scans (heatmap, consistency, token-usage) each keep
 // their own active signal. Starting a new token-usage scan should not abort an
 // unrelated heatmap or consistency scan that the user explicitly kicked off.
 // The UI sends `cancel-scan` to abort either the matching requestId or all
@@ -48,7 +48,6 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 
 type ScanKind =
   | 'token-usage-map'
-  | 'component-coverage'
   | 'canvas-heatmap'
   | 'single-token-usage'
   | 'consistency';
@@ -146,7 +145,6 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'resize':                     [['width', 'number'], ['height', 'number']],
   'delete-orphan-variables':    [['knownPaths', 'array']],
   'scan-token-usage':           [],
-  'scan-component-coverage':    [],
   'select-node':                [['nodeId', 'string']],
   'select-next-sibling':        [],
   'scan-canvas-heatmap':        [],
@@ -509,17 +507,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('scan-token-usage', e);
       } finally {
         clearScanSignal('token-usage-map', signal);
-      }
-      break;
-    }
-    case 'scan-component-coverage': {
-      const signal = createScanSignal('component-coverage');
-      try {
-        await scanComponentCoverage(msg.correlationId, signal);
-      } catch (e) {
-        reportError('scan-component-coverage', e);
-      } finally {
-        clearScanSignal('component-coverage', signal);
       }
       break;
     }

@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
 import { SelectionInspector } from "../components/SelectionInspector";
-import { CanvasAnalysisPanel } from "../components/CanvasAnalysisPanel";
 import { CanvasRepairPanel } from "../components/CanvasRepairPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import {
@@ -10,10 +9,7 @@ import {
   useSyncContext,
 } from "../contexts/ConnectionContext";
 import { useCollectionStateContext, useTokenFlatMapContext } from "../contexts/TokenDataContext";
-import {
-  useSelectionContext,
-  useHeatmapContext,
-} from "../contexts/InspectContext";
+import { useSelectionContext } from "../contexts/InspectContext";
 import {
   useNavigationContext,
   type RepairPrefillEntry,
@@ -28,34 +24,13 @@ import type { useTokenContextNavigation } from "../hooks/useTokenContextNavigati
 import type { LibraryReviewSummary } from "../shared/reviewSummary";
 import { resolveCollectionIdForPath } from "../shared/collectionPathLookup";
 
-type SubTab = "inspect" | "coverage" | "repair";
+type SubTab = "inspect" | "repair";
 
 interface CanvasRouterProps {
   subTab: SubTab;
   reviewTotals: LibraryReviewSummary["totals"];
   openScopedHealth: (collectionId: string) => void;
   openTokenInContext: ReturnType<typeof useTokenContextNavigation>;
-}
-
-function CanvasCoverageGate({
-  triggerHeatmapScan,
-  heatmapLoading,
-  heatmapResult,
-  heatmapError,
-}: {
-  triggerHeatmapScan: () => void;
-  heatmapLoading: boolean;
-  heatmapResult: unknown;
-  heatmapError: string | null;
-}) {
-  const triggeredRef = useRef(false);
-  useEffect(() => {
-    if (triggeredRef.current) return;
-    if (heatmapLoading || heatmapResult || heatmapError) return;
-    triggeredRef.current = true;
-    triggerHeatmapScan();
-  }, [triggerHeatmapScan, heatmapLoading, heatmapResult, heatmapError]);
-  return null;
 }
 
 function CanvasRepairPanelMount({
@@ -93,13 +68,6 @@ export function CanvasRouter({
   } = useCollectionStateContext();
   const { allTokensFlat, pathToCollectionId, collectionIdsByPath } = useTokenFlatMapContext();
   const { selectedNodes, selectionLoading } = useSelectionContext();
-  const {
-    heatmapResult,
-    heatmapLoading,
-    heatmapError,
-    heatmapProgress,
-    triggerHeatmapScan,
-  } = useHeatmapContext();
   const {
     navigateTo,
     pendingRepairPrefill,
@@ -199,63 +167,6 @@ export function CanvasRouter({
               setPendingRepairPrefill(entries ?? null);
               navigateTo("canvas", "repair");
             }}
-          />
-        </ErrorBoundary>
-      </div>
-    );
-  }
-
-  if (subTab === "coverage") {
-    return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        {deliveryStrip}
-        <ErrorBoundary
-          panelName="Canvas coverage"
-          onReset={() => navigateTo("canvas", "inspect")}
-        >
-          <CanvasCoverageGate
-            triggerHeatmapScan={triggerHeatmapScan}
-            heatmapLoading={heatmapLoading}
-            heatmapResult={heatmapResult}
-            heatmapError={heatmapError}
-          />
-          <CanvasAnalysisPanel
-            availableTokens={allTokensFlat}
-            heatmapResult={heatmapResult}
-            heatmapLoading={heatmapLoading}
-            heatmapProgress={heatmapProgress}
-            heatmapError={heatmapError}
-            onSelectNodes={(ids) =>
-              parent.postMessage(
-                {
-                  pluginMessage: { type: "select-heatmap-nodes", nodeIds: ids },
-                },
-                "*",
-              )
-            }
-            onBatchBind={(nodeIds, tokenPath, property) => {
-              const entry = allTokensFlat[tokenPath];
-              if (!entry) return;
-              parent.postMessage(
-                {
-                  pluginMessage: {
-                    type: "batch-bind-heatmap-nodes",
-                    nodeIds,
-                    tokenPath,
-                    tokenType: entry.$type,
-                    targetProperty: property,
-                    resolvedValue: entry.$value,
-                  },
-                },
-                "*",
-              );
-            }}
-            onSelectNode={(nodeId) =>
-              parent.postMessage(
-                { pluginMessage: { type: "select-node", nodeId } },
-                "*",
-              )
-            }
           />
         </ErrorBoundary>
       </div>

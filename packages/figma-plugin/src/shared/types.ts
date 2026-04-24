@@ -527,11 +527,6 @@ export interface DeleteOrphanVariablesMessage {
   correlationId?: string;
 }
 
-export interface ScanComponentCoverageMessage {
-  type: 'scan-component-coverage';
-  correlationId?: string;
-}
-
 export interface SelectNodeMessage {
   type: 'select-node';
   nodeId: string;
@@ -912,15 +907,6 @@ export interface CanvasHeatmapResultMessage {
   }[];
 }
 
-export interface ComponentCoverageResultMessage {
-  type: 'component-coverage-result';
-  correlationId?: string;
-  totalComponents: number;
-  tokenizedComponents: number;
-  untokenized: { id: string; name: string; hardcodedCount: number }[];
-  totalUntokenized: number;
-}
-
 export interface ExtractedTokensResponseMessage {
   type: 'extracted-tokens';
   tokens: ExtractedTokenEntry[];
@@ -1003,12 +989,6 @@ export interface CanvasHeatmapErrorMessage {
   error: string;
 }
 
-export interface ComponentCoverageErrorMessage {
-  type: 'component-coverage-error';
-  error: string;
-  correlationId?: string;
-}
-
 export interface ConsistencyScanProgressMessage {
   type: 'consistency-scan-progress';
   processed: number;
@@ -1054,8 +1034,6 @@ export type ControllerMessage =
   | CanvasHeatmapProgressMessage
   | CanvasHeatmapResultMessage
   | CanvasHeatmapErrorMessage
-  | ComponentCoverageResultMessage
-  | ComponentCoverageErrorMessage
   | ExtractedTokensResponseMessage
   | SelectionResponseMessage
   | LayerSearchResultMessage
@@ -1100,8 +1078,6 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'canvas-heatmap-progress',
   'canvas-heatmap-result',
   'canvas-heatmap-error',
-  'component-coverage-result',
-  'component-coverage-error',
   'extracted-tokens',
   'selection',
   'search-layers-result',
@@ -1135,7 +1111,6 @@ export type PluginMessage =
   | NotifyMessage
   | ResizeMessage
   | DeleteOrphanVariablesMessage
-  | ScanComponentCoverageMessage
   | SelectNodeMessage
   | ScanTokenUsageMessage
   | ScanCanvasHeatmapMessage

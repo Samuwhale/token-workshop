@@ -130,7 +130,7 @@ function SuggestionCard({
 
       {/* Expanded instance list */}
       {expanded && (
-        <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+        <div className="mt-1">
           {rejected && (
             <div className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]">
               Create a token from the actual value for any layer below.
@@ -324,7 +324,7 @@ export function ConsistencyPanel({
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 shrink-0">
         {scanning ? (
           <button
             onClick={handleCancel}

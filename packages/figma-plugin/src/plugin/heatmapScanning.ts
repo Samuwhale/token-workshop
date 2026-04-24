@@ -4,51 +4,6 @@ import { applyToNodes } from './selectionHandling.js';
 import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
 import { rgbToHex } from './colorUtils.js';
 
-// Scan component nodes for token coverage
-export async function scanComponentCoverage(correlationId?: string, signal?: { aborted: boolean }) {
-  try {
-    const components = figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] });
-    const CHECKABLE_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius'];
-
-    let tokenized = 0;
-    const untokenized: { id: string; name: string; hardcodedCount: number }[] = [];
-
-    for (const node of components) {
-      if (signal?.aborted) {
-        figma.ui.postMessage({ type: 'component-coverage-cancelled', correlationId });
-        return;
-      }
-
-      const applicableProps = collectApplicableBindableProperties(node, CHECKABLE_PROPS);
-      const boundProps = collectBoundBindableProperties(node);
-
-      let hardcodedCount = 0;
-      for (const property of applicableProps) {
-        if (!boundProps.has(property)) {
-          hardcodedCount++;
-        }
-      }
-
-      if (applicableProps.size > 0 && hardcodedCount === 0) {
-        tokenized++;
-      } else {
-        untokenized.push({ id: node.id, name: node.name, hardcodedCount });
-      }
-    }
-
-    figma.ui.postMessage({
-      type: 'component-coverage-result',
-      totalComponents: components.length,
-      tokenizedComponents: tokenized,
-      untokenized: untokenized.slice(0, 100),
-      totalUntokenized: untokenized.length,
-      correlationId,
-    });
-  } catch (error) {
-    figma.ui.postMessage({ type: 'component-coverage-error', error: String(error), correlationId });
-  }
-}
-
 // Select a node by ID on the canvas
 export async function selectNode(nodeId: string) {
   try {

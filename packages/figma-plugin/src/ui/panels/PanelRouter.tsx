@@ -79,10 +79,7 @@ import type {
   TokensLibraryContextualSurface,
   TokensLibraryGeneratedGroupEditorTarget,
 } from "../shared/navigationTypes";
-import {
-  getMostRelevantImportDestinationCollection,
-  TOKENS_LIBRARY_SURFACE_CONTRACT,
-} from "../shared/navigationTypes";
+import { getMostRelevantImportDestinationCollection } from "../shared/navigationTypes";
 import { resolveCollectionIdForPath } from "../shared/collectionPathLookup";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import type { ToastAction } from "../shared/toastBus";
@@ -928,9 +925,16 @@ export function PanelRouter({
           requestClose: controller.requestEditorClose,
         },
         onSaved: handleTokenDetailsSaved,
+        onRenamed: (newPath: string) => {
+          setTokenDetails((current) =>
+            current ? { ...current, path: newPath, name: undefined } : null,
+          );
+          setHighlightedToken(newPath);
+        },
         onSaveAndCreateAnother: handleTokenDetailsSaveAndCreateAnother,
         collections,
         onRefresh: controller.refreshAll,
+        pushUndo: controller.pushUndo,
         availableFonts: controller.availableFonts,
         fontWeightsByFamily: controller.fontWeightsByFamily,
         derivedTokenPaths,
@@ -1204,10 +1208,7 @@ export function PanelRouter({
     };
 
   const renderTokensLibraryBody = () => (
-    <div
-      className="flex-1 min-w-0 overflow-hidden"
-      data-tokens-library-surface-slot={TOKENS_LIBRARY_SURFACE_CONTRACT.body.id}
-    >
+    <div className="flex-1 min-w-0 overflow-hidden">
       <TokenList
         ctx={{ collectionId: currentCollectionId, collectionIds, serverUrl, connected, selectedNodes }}
         data={{
@@ -1244,14 +1245,6 @@ export function PanelRouter({
   ) => (
     <div
       className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden panel-slide-in"
-      data-surface-kind={controller.contextualEditorTransition.kind}
-      data-surface-presentation={
-        controller.contextualEditorTransition.presentation
-      }
-      data-tokens-library-surface-slot={
-        TOKENS_LIBRARY_SURFACE_CONTRACT.contextualPanel.id
-      }
-      data-tokens-library-contextual-surface={surfaceState.surface}
       onKeyDown={(e) => {
         if (
           (e.key === "]" || e.key === "[") &&
@@ -1325,7 +1318,7 @@ export function PanelRouter({
     return secondaryRenderer ? secondaryRenderer() : null;
   }
 
-  const renderCanvasSubTab = (subTab: "inspect" | "coverage" | "repair") => (
+  const renderCanvasSubTab = (subTab: "inspect" | "repair") => (
     <CanvasRouter
       subTab={subTab}
       reviewTotals={libraryReview.totals}
@@ -1348,7 +1341,6 @@ export function PanelRouter({
     },
     canvas: {
       inspect: () => renderCanvasSubTab("inspect"),
-      coverage: () => renderCanvasSubTab("coverage"),
       repair: () => renderCanvasSubTab("repair"),
     },
     publish: {
