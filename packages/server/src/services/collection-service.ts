@@ -15,6 +15,7 @@ import {
   normalizeSelectedModes,
   readTokenModeValuesForCollection,
   readTokenCollectionModeValues,
+  stableStringify,
   writeTokenCollectionModeValues,
   writeTokenModeValuesForCollection,
   type Token,
@@ -40,7 +41,6 @@ import {
   snapshotCollections,
   snapshotPaths,
 } from "./operation-log.js";
-import { stableStringify } from "./stable-stringify.js";
 import {
   copyCollectionModeKey,
   findFolderRenameConflicts,
@@ -2290,8 +2290,8 @@ export class CollectionService {
         writeTokenCollectionModeValues(nextToken, nextModes);
 
         if (
-          JSON.stringify(nextToken.$extensions ?? null) ===
-          JSON.stringify(token.$extensions ?? null)
+          stableStringify(nextToken.$extensions ?? null) ===
+          stableStringify(token.$extensions ?? null)
         ) {
           continue;
         }
@@ -2535,8 +2535,8 @@ export class CollectionService {
 
               if (
                 nextModeName in collectionModes &&
-                JSON.stringify(collectionModes[nextModeName]) !==
-                  JSON.stringify(collectionModes[previousModeName])
+                stableStringify(collectionModes[nextModeName]) !==
+                  stableStringify(collectionModes[previousModeName])
               ) {
                 throw new ConflictError(
                   `Token-authored mode data already exists under "${nextModeName}" in collection "${collectionId}"`,

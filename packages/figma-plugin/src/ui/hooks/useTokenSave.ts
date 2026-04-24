@@ -1,17 +1,24 @@
 import { useCallback, useRef } from 'react';
-import { createGeneratorOwnershipKey, getGeneratorManagedOutputs, type TokenCollection } from '@tokenmanager/core';
+import {
+  createGeneratorOwnershipKey,
+  getGeneratorManagedOutputs,
+  readTokenModeValuesForCollection,
+  writeTokenModeValuesForCollection,
+  type Token,
+  type TokenCollection,
+} from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { ApiError } from '../shared/apiFetch';
 import {
   applyTokenMutationSuccess,
   createTokenBody,
+  type TokenMutationBody,
   createTokenValueBody,
   updateToken,
 } from '../shared/tokenMutations';
 import { apiFetch } from '../shared/apiFetch';
 import type { TokenGenerator } from './useGenerators';
-import { sanitizeEditorCollectionModeValues } from '../shared/collectionModeUtils';
 import { cloneValue } from '../../shared/clone';
 
 export interface UseTokenSaveParams {
@@ -147,14 +154,25 @@ export function useTokenSave({
   const handleDescriptionSave = useCallback(async (path: string, description: string) => {
     if (!connected) return;
     const oldEntry = perCollectionFlat?.[collectionId]?.[path] ?? allTokensFlat[path];
+    const nextDescription = description.length > 0 ? description : null;
     try {
-      await updateToken(serverUrl, collectionId, path, createTokenBody({ $description: description }));
+      await updateToken(
+        serverUrl,
+        collectionId,
+        path,
+        createTokenBody({ $description: nextDescription }),
+      );
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
     if (onPushUndo && oldEntry) {
-      const oldDesc = (oldEntry as unknown as Record<string, unknown>).$description ?? '';
+      const previousDescription = Object.prototype.hasOwnProperty.call(
+        oldEntry,
+        '$description',
+      )
+        ? ((oldEntry as unknown as Record<string, unknown>).$description as string | undefined) ?? null
+        : null;
       const capturedCollectionId = collectionId;
       const capturedUrl = serverUrl;
       onPushUndo({
@@ -164,7 +182,12 @@ export function useTokenSave({
             onError?.(`Undo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({ $description: oldDesc as string }));
+          await updateToken(
+            capturedUrl,
+            capturedCollectionId,
+            path,
+            createTokenBody({ $description: previousDescription }),
+          );
           onRefresh();
         },
         redo: async () => {
@@ -172,7 +195,12 @@ export function useTokenSave({
             onError?.(`Redo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
             return;
           }
-          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({ $description: description }));
+          await updateToken(
+            capturedUrl,
+            capturedCollectionId,
+            path,
+            createTokenBody({ $description: nextDescription }),
+          );
           onRefresh();
         },
       });
@@ -184,6 +212,125 @@ export function useTokenSave({
     });
   }, [connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
 
+  const commitCollectionModeMutation = useCallback(async ({
+    path,
+    targetCollectionId,
+    description,
+    mutateModeValues,
+    allowGeneratedEdit = false,
+  }: {
+    path: string;
+    targetCollectionId: string;
+    description: string;
+    mutateModeValues: (
+      nextModeValues: ReturnType<typeof readTokenModeValuesForCollection>,
+      currentEntry: TokenMapEntry,
+      targetCollection: TokenCollection,
+    ) => void;
+    allowGeneratedEdit?: boolean;
+  }): Promise<boolean> => {
+    if (!connected) {
+      return false;
+    }
+    if (!allowGeneratedEdit && findProducingGenerator(path)) {
+      onError?.(
+        "This generated token must be edited through its generator, saved as a manual exception, or detached first.",
+      );
+      return false;
+    }
+
+    const targetCollection = collections?.find(
+      (collection) => collection.id === targetCollectionId,
+    );
+    if (!targetCollection) {
+      onError?.(`Save failed: collection "${targetCollectionId}" is unavailable`);
+      return false;
+    }
+
+    const currentEntry =
+      perCollectionFlat?.[targetCollectionId]?.[path] ?? allTokensFlat[path];
+    if (!currentEntry) {
+      onError?.(`Save failed: token "${path}" is unavailable in "${targetCollectionId}"`);
+      return false;
+    }
+
+    const nextToken: Token = {
+      $type: currentEntry.$type as Token["$type"],
+      $value: cloneValue(currentEntry.$value) as Token["$value"],
+      ...(currentEntry.$extensions
+        ? { $extensions: structuredClone(currentEntry.$extensions) }
+        : {}),
+    };
+    const nextModeValues = readTokenModeValuesForCollection(
+      nextToken,
+      targetCollection,
+    );
+    mutateModeValues(nextModeValues, currentEntry, targetCollection);
+    writeTokenModeValuesForCollection(nextToken, targetCollection, nextModeValues);
+
+    const previousMutation: TokenMutationBody = createTokenBody({
+      $value: cloneValue(currentEntry.$value),
+      $extensions: currentEntry.$extensions
+        ? structuredClone(currentEntry.$extensions)
+        : null,
+    });
+    const nextMutation: TokenMutationBody = createTokenBody({
+      $value: cloneValue(nextToken.$value),
+      $extensions: nextToken.$extensions
+        ? structuredClone(nextToken.$extensions)
+        : null,
+    });
+
+    try {
+      await updateToken(serverUrl, targetCollectionId, path, nextMutation);
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : "Save failed: network error");
+      return false;
+    }
+
+    if (onPushUndo) {
+      const capturedUrl = serverUrl;
+      const capturedCollectionId = targetCollectionId;
+      onPushUndo({
+        description,
+        restore: async () => {
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Undo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
+            return;
+          }
+          await updateToken(capturedUrl, capturedCollectionId, path, previousMutation);
+          onRefresh();
+        },
+        redo: async () => {
+          if (collectionIdRef.current !== capturedCollectionId) {
+            onError?.(`Redo skipped: active collection changed to "${collectionIdRef.current}" (operation was on "${capturedCollectionId}")`);
+            return;
+          }
+          await updateToken(capturedUrl, capturedCollectionId, path, nextMutation);
+          onRefresh();
+        },
+      });
+    }
+
+    await applyTokenMutationSuccess({
+      onRefresh,
+      onRecordTouch,
+      touchedPath: path,
+    });
+    return true;
+  }, [
+    allTokensFlat,
+    collections,
+    connected,
+    findProducingGenerator,
+    onError,
+    onPushUndo,
+    onRecordTouch,
+    onRefresh,
+    perCollectionFlat,
+    serverUrl,
+  ]);
+
   const handleMultiModeInlineSave = useCallback(async (
     path: string,
     _type: string,
@@ -194,184 +341,34 @@ export function useTokenSave({
     _previousState?: { type?: string; value: unknown },
     options?: MultiModeSaveOptions,
   ) => {
-    if (!connected) return;
-    if (!options?.allowGeneratedEdit && findProducingGenerator(path)) {
-      onError?.(
-        "This generated token must be edited through its generator, saved as a manual exception, or detached first.",
-      );
-      return;
-    }
-
-    // Read the current token to get its full $extensions for deep merge.
-    // The server PATCH replaces $extensions wholesale, so we must send
-    // the complete merged object.
-    const currentEntry = perCollectionFlat?.[targetCollectionId]?.[path] ?? allTokensFlat[path];
-    const previousExtensions = currentEntry?.$extensions
-      ? structuredClone(currentEntry.$extensions)
-      : undefined;
-
-    // Build the merged extensions with the new mode value
-    const nextExtensions = currentEntry?.$extensions
-      ? structuredClone(currentEntry.$extensions)
-      : {};
-    const tokenmanager =
-      nextExtensions.tokenmanager &&
-      typeof nextExtensions.tokenmanager === 'object' &&
-      !Array.isArray(nextExtensions.tokenmanager)
-        ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
-        : {};
-    const modes =
-      tokenmanager.modes &&
-      typeof tokenmanager.modes === 'object' &&
-      !Array.isArray(tokenmanager.modes)
-        ? { ...(tokenmanager.modes as Record<string, Record<string, unknown>>) }
-        : {};
-    const targetCollection =
-      collections?.find((collection) => collection.id === targetCollectionId) ?? null;
-    const normalizedModes = sanitizeEditorCollectionModeValues(
-      modes,
-      targetCollection,
-    );
-    const collectionModes = normalizedModes[targetCollectionId]
-      ? { ...normalizedModes[targetCollectionId] }
-      : {};
-    collectionModes[optionName] = newValue;
-    tokenmanager.modes = { [targetCollectionId]: collectionModes };
-    nextExtensions.tokenmanager = tokenmanager;
-
-    try {
-      await updateToken(serverUrl, targetCollectionId, path, createTokenBody({
-        $extensions: nextExtensions,
-      }));
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
-      return;
-    }
-    if (onPushUndo) {
-      const capturedUrl = serverUrl;
-      const capturedCollectionId = targetCollectionId;
-      onPushUndo({
-        description: `Edit mode ${optionName} for ${path}`,
-        restore: async () => {
-          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
-            $extensions: previousExtensions,
-          }));
-          onRefresh();
-        },
-        redo: async () => {
-          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
-            $extensions: nextExtensions,
-          }));
-          onRefresh();
-        },
-      });
-    }
-    await applyTokenMutationSuccess({
-      onRefresh,
-      onRecordTouch,
-      touchedPath: path,
+    await commitCollectionModeMutation({
+      path,
+      targetCollectionId,
+      description: `Edit mode ${optionName} for ${path}`,
+      allowGeneratedEdit: options?.allowGeneratedEdit,
+      mutateModeValues: (nextModeValues) => {
+        nextModeValues[optionName] = cloneValue(newValue);
+      },
     });
   }, [
-    collections,
-    connected,
-    findProducingGenerator,
-    serverUrl,
-    allTokensFlat,
-    onRefresh,
-    onPushUndo,
-    onRecordTouch,
-    onError,
-    perCollectionFlat,
+    commitCollectionModeMutation,
   ]);
 
   const handleCopyValueToAllModes = useCallback(async (
     path: string,
     targetCollectionId: string,
   ) => {
-    if (!connected) return;
-    if (findProducingGenerator(path)) {
-      onError?.(
-        "This generated token must be edited through its generator, saved as a manual exception, or detached first.",
-      );
-      return;
-    }
-    const targetCollection = collections?.find(
-      (collection) => collection.id === targetCollectionId,
-    );
-    if (!targetCollection) return;
-    const currentEntry =
-      perCollectionFlat?.[targetCollectionId]?.[path] ?? allTokensFlat[path];
-    const sourceValue = currentEntry?.$value;
-
-    const previousExtensions = currentEntry?.$extensions
-      ? structuredClone(currentEntry.$extensions)
-      : undefined;
-    const nextExtensions = currentEntry?.$extensions
-      ? structuredClone(currentEntry.$extensions)
-      : {};
-    const tokenmanager =
-      nextExtensions.tokenmanager &&
-      typeof nextExtensions.tokenmanager === "object" &&
-      !Array.isArray(nextExtensions.tokenmanager)
-        ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
-        : {};
-    const nextCollectionModes: Record<string, unknown> = {};
-    for (let i = 1; i < targetCollection.modes.length; i += 1) {
-      nextCollectionModes[targetCollection.modes[i].name] =
-        typeof sourceValue === "object" && sourceValue !== null
-          ? structuredClone(sourceValue)
-          : sourceValue;
-    }
-    tokenmanager.modes = { [targetCollectionId]: nextCollectionModes };
-    nextExtensions.tokenmanager = tokenmanager;
-
-    try {
-      await updateToken(
-        serverUrl,
-        targetCollectionId,
-        path,
-        createTokenBody({ $extensions: nextExtensions }),
-      );
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : "Save failed: network error");
-      return;
-    }
-    if (onPushUndo) {
-      const capturedUrl = serverUrl;
-      const capturedCollectionId = targetCollectionId;
-      onPushUndo({
-        description: `Copy value to all modes for ${path}`,
-        restore: async () => {
-          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
-            $extensions: previousExtensions,
-          }));
-          onRefresh();
-        },
-        redo: async () => {
-          await updateToken(capturedUrl, capturedCollectionId, path, createTokenBody({
-            $extensions: nextExtensions,
-          }));
-          onRefresh();
-        },
-      });
-    }
-    await applyTokenMutationSuccess({
-      onRefresh,
-      onRecordTouch,
-      touchedPath: path,
+    await commitCollectionModeMutation({
+      path,
+      targetCollectionId,
+      description: `Copy value to all modes for ${path}`,
+      mutateModeValues: (nextModeValues, currentEntry, targetCollection) => {
+        for (const mode of targetCollection.modes) {
+          nextModeValues[mode.name] = cloneValue(currentEntry.$value);
+        }
+      },
     });
-  }, [
-    allTokensFlat,
-    collections,
-    connected,
-    findProducingGenerator,
-    onError,
-    onPushUndo,
-    onRecordTouch,
-    onRefresh,
-    perCollectionFlat,
-    serverUrl,
-  ]);
+  }, [commitCollectionModeMutation]);
 
   const handleSaveGeneratedException = useCallback(async (
     path: string,

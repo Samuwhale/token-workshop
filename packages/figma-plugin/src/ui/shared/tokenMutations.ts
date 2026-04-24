@@ -1,3 +1,8 @@
+import {
+  normalizeTokenScopeValues,
+  readTokenScopes,
+  stripTokenScopesFromExtensions,
+} from '@tokenmanager/core';
 import type { ApiError } from './apiFetch';
 import { apiFetch } from './apiFetch';
 import { dispatchToast } from './toastBus';
@@ -6,6 +11,14 @@ import { tokenPathToUrlSegment } from './utils';
 export interface TokenMutationRequest {
   $type?: string;
   $value?: unknown;
+  $description?: string | null;
+  $extensions?: Record<string, unknown> | null;
+  $scopes?: string[] | null;
+}
+
+export interface TokenMutationSnapshotToken {
+  $type?: string;
+  $value: unknown;
   $description?: string;
   $extensions?: Record<string, unknown>;
 }
@@ -13,10 +26,12 @@ export interface TokenMutationRequest {
 export interface TokenValueDraftInput {
   type?: string | null;
   value: unknown;
-  description?: string;
+  description?: string | null;
   extensions?: Record<string, unknown> | null;
   scopes?: readonly string[] | null;
   defaultScopes?: readonly string[] | null;
+  clearEmptyDescription?: boolean;
+  clearEmptyExtensions?: boolean;
 }
 
 export type TokenMutationBody = TokenMutationRequest;
@@ -51,29 +66,27 @@ export function normalizeTokenMutationType(type: string | null | undefined): str
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-export function normalizeTokenScopes(
+function normalizeTokenScopes(
   scopes?: readonly string[] | null,
   defaultScopes?: readonly string[] | null,
 ): string[] | undefined {
-  const nextScopes = scopes && scopes.length > 0
-    ? scopes
-    : defaultScopes && defaultScopes.length > 0
-      ? defaultScopes
-      : undefined;
-  return nextScopes ? [...nextScopes] : undefined;
+  const nextScopes =
+    scopes !== undefined && scopes !== null
+      ? scopes
+      : defaultScopes !== undefined && defaultScopes !== null
+        ? defaultScopes
+        : undefined;
+  if (nextScopes === undefined) {
+    return undefined;
+  }
+  return normalizeTokenScopeValues(nextScopes);
 }
 
-export function createTokenExtensions({
-  extensions,
-  scopes,
-  defaultScopes,
-}: Pick<TokenValueDraftInput, 'extensions' | 'scopes' | 'defaultScopes'>): Record<string, unknown> | undefined {
-  const nextExtensions = extensions ? { ...extensions } : {};
-  const normalizedScopes = normalizeTokenScopes(scopes, defaultScopes);
-  if (normalizedScopes) {
-    nextExtensions['com.figma.scopes'] = normalizedScopes;
-  }
-  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
+function readScopesFromExtensions(
+  extensions?: Record<string, unknown> | null,
+): string[] | undefined {
+  const scopes = readTokenScopes({ $extensions: extensions ?? undefined });
+  return scopes.length > 0 ? scopes : undefined;
 }
 
 export function createTokenValueBody({
@@ -83,12 +96,50 @@ export function createTokenValueBody({
   extensions,
   scopes,
   defaultScopes,
+  clearEmptyDescription = false,
+  clearEmptyExtensions = false,
 }: TokenValueDraftInput): TokenMutationBody {
+  const hasExplicitScopes = scopes !== undefined && scopes !== null;
+  const normalizedScopes = hasExplicitScopes
+    ? normalizeTokenScopes(scopes)
+    : normalizeTokenScopes(defaultScopes) ?? readScopesFromExtensions(extensions);
+  const normalizedExtensions = stripTokenScopesFromExtensions(extensions);
+  const normalizedDescription =
+    description === null
+      ? null
+      : description === undefined
+        ? undefined
+        : description.length > 0 || !clearEmptyDescription
+          ? description
+          : null;
   return createTokenBody({
     $type: normalizeTokenMutationType(type),
     $value: value,
-    $description: description,
-    $extensions: createTokenExtensions({ extensions, scopes, defaultScopes }),
+    $description: normalizedDescription,
+    $scopes:
+      normalizedScopes ??
+      (hasExplicitScopes || clearEmptyExtensions ? null : undefined),
+    $extensions:
+      normalizedExtensions ??
+      (clearEmptyExtensions ? null : undefined),
+  });
+}
+
+export function createTokenMutationBodyFromSnapshot(
+  token: TokenMutationSnapshotToken,
+): TokenMutationBody {
+  const extensions = token.$extensions
+    ? structuredClone(token.$extensions)
+    : undefined;
+  const scopes = readScopesFromExtensions(extensions);
+  const normalizedExtensions = stripTokenScopesFromExtensions(extensions);
+
+  return createTokenBody({
+    $type: normalizeTokenMutationType(token.$type),
+    $value: token.$value,
+    $description: token.$description ?? null,
+    $scopes: scopes ?? null,
+    $extensions: normalizedExtensions ?? null,
   });
 }
 

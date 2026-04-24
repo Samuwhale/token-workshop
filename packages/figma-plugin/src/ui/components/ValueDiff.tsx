@@ -1,4 +1,6 @@
 
+import { stableStringify } from "../shared/utils";
+
 interface ValueDiffProps {
   type: string;
   before: any;
@@ -131,7 +133,7 @@ function TypoPreviewSwatch({ value }: { value: any }) {
 }
 
 export function ValueDiff({ type, before, after }: ValueDiffProps) {
-  if (JSON.stringify(before) === JSON.stringify(after)) return null;
+  if (stableStringify(before) === stableStringify(after)) return null;
 
   if (type === 'color') {
     const b6 = typeof before === 'string' ? before.slice(0, 7) : null;

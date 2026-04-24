@@ -5,7 +5,7 @@ import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
 import { AUTHORING } from "../shared/editorClasses";
 import { apiFetch } from "../shared/apiFetch";
-import { createTokenValueBody } from "../shared/tokenMutations";
+import { buildTokenEditorValueBody } from "../shared/tokenEditorPayload";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
 import type { TokenCollection } from "@tokenmanager/core";
@@ -49,8 +49,6 @@ import {
   hasSyncSnapshotChange,
   resolveSyncComparableValue,
 } from "../shared/tokenSync";
-import { sanitizeEditorCollectionModeValues } from "../shared/collectionModeUtils";
-import { omitTokenEditorReservedExtensions } from "../shared/tokenEditorTypes";
 
 import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
 import { valueFormatHint } from "./tokenListHelpers";
@@ -874,60 +872,24 @@ export function TokenDetails({
   }, []);
 
   const rawJsonPreview = useMemo(() => {
-    const extensions: Record<string, unknown> = {};
-    if (scopes.length > 0) {
-      extensions["com.figma.scopes"] = scopes;
-    }
-
-    const tokenManagerExtensions: Record<string, unknown> =
-      passthroughTokenManagerRef.current
-        ? { ...passthroughTokenManagerRef.current }
-        : {};
-    if (colorModifiers.length > 0) {
-      tokenManagerExtensions.colorModifier = colorModifiers;
-    }
-
     const editorCollection =
       collections.find((collection) => collection.id === ownerCollectionId) ?? null;
-    const cleanModes = sanitizeEditorCollectionModeValues(
-      modeValues,
-      editorCollection,
-    );
-
-    if (Object.keys(cleanModes).length > 0) {
-      tokenManagerExtensions.modes = cleanModes;
-    }
-    if (lifecycle !== "published") {
-      tokenManagerExtensions.lifecycle = lifecycle;
-    }
-    if (extendsPath) {
-      tokenManagerExtensions.extends = extendsPath;
-    }
-    if (Object.keys(tokenManagerExtensions).length > 0) {
-      extensions.tokenmanager = tokenManagerExtensions;
-    }
-
-    const trimmedExtensions = extensionsJsonText.trim();
-    if (trimmedExtensions && trimmedExtensions !== "{}") {
-      try {
-        const parsedExtensions = JSON.parse(trimmedExtensions);
-        if (parsedExtensions && typeof parsedExtensions === "object" && !Array.isArray(parsedExtensions)) {
-          Object.assign(
-            extensions,
-            omitTokenEditorReservedExtensions(parsedExtensions),
-          );
-        }
-      } catch {
-        // Keep the preview focused on the valid payload we can infer from the form.
-      }
-    }
-
     return JSON.stringify(
-      createTokenValueBody({
-        type: tokenType,
+      buildTokenEditorValueBody({
+        tokenType,
         value,
-        description: description || undefined,
-        extensions,
+        description,
+        scopes,
+        colorModifiers,
+        modeValues,
+        collection: editorCollection,
+        passthroughTokenManager: passthroughTokenManagerRef.current,
+        lifecycle,
+        extendsPath,
+        extensionsJsonText,
+        clearEmptyDescription: !isCreateMode,
+        clearEmptyExtensions: !isCreateMode,
+        ignoreInvalidExtensionsJson: true,
       }),
       null,
       2,
@@ -943,6 +905,7 @@ export function TokenDetails({
     tokenType,
     value,
     collections,
+    isCreateMode,
     ownerCollectionId,
     passthroughTokenManagerRef,
   ]);
@@ -1511,7 +1474,7 @@ export function TokenDetails({
                 }
               >
                 {modeValue.modes.map((mode, modeIdx) => {
-                  const modeVal = mode.value === "" ? undefined : mode.value;
+                  const modeVal = mode.value;
                   const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
                   const initialModeVal =
                     modeIdx === 0
@@ -1519,7 +1482,7 @@ export function TokenDetails({
                       : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
                   const isModeModified =
                     initialModeVal !== undefined &&
-                    stableStringify(modeVal ?? "") !== stableStringify(initialModeVal ?? "");
+                    stableStringify(modeVal) !== stableStringify(initialModeVal);
                   const showModeLabel = modeValue.modes.length >= 2;
 
                   return (
@@ -1550,7 +1513,7 @@ export function TokenDetails({
                                   ? modeValue.modes.length - 1
                                   : modeIdx - 1;
                               const sourceValue = modeValue.modes[sourceIdx].value;
-                              if (sourceValue !== "" && sourceValue != null) {
+                              if (sourceValue != null) {
                                 mode.setValue(cloneModeValue(sourceValue));
                               }
                             }
@@ -1559,17 +1522,15 @@ export function TokenDetails({
                       allowCopyToAll={
                         isEditMode &&
                         modeValue.modes.length > 1 &&
-                        modeVal !== "" &&
                         modeVal != null
                       }
                       onCopyToAll={
                         isEditMode &&
                         modeValue.modes.length > 1 &&
-                        modeVal !== "" &&
                         modeVal != null
                           ? () => {
                               const sourceValue = mode.value;
-                              if (sourceValue === "" || sourceValue == null) return;
+                              if (sourceValue == null) return;
                               modeValue.modes.forEach((destMode, destIdx) => {
                                 if (destIdx === modeIdx) return;
                                 destMode.setValue(cloneModeValue(sourceValue));

@@ -1,4 +1,9 @@
-import { getTokenLifecycle, type TokenLifecycle } from "@tokenmanager/core";
+import {
+  getTokenLifecycle,
+  normalizeTokenScopeValues,
+  readTokenScopes,
+  type TokenLifecycle,
+} from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 
 export const FIGMA_SCOPE_OPTIONS: Record<
@@ -154,14 +159,11 @@ export function readTokenPresentationMetadata(
 } {
   const metadataEntry = entry as TokenPresentationEntry | undefined;
   const extensions = metadataEntry?.$extensions;
-  const scopesFromExtensions = extensions?.["com.figma.scopes"] as unknown;
   const metadata = readTokenManagerMetadata(extensions);
   const scopes = Array.isArray(metadataEntry?.$scopes)
-    ? metadataEntry.$scopes
-      : Array.isArray(scopesFromExtensions)
-      ? scopesFromExtensions.filter(
-          (value): value is string => typeof value === "string",
-        )
+    ? normalizeTokenScopeValues(metadataEntry.$scopes) ?? []
+      : extensions
+      ? readTokenScopes({ $extensions: extensions })
       : [];
 
   return {

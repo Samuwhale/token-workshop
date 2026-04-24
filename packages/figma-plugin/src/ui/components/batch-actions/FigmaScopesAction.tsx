@@ -29,7 +29,7 @@ export function FigmaScopesAction({
     try {
       const patches = selectedEntries.map(({ path }) => ({
         path,
-        patch: { $extensions: { 'com.figma.scopes': selectedScopes } },
+        patch: { $scopes: selectedScopes },
       }));
       const result = await apiFetch<{ ok: boolean; updated: number; operationId: string }>(
         `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch-update`,

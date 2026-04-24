@@ -77,7 +77,7 @@ import {
 } from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
-import { tokenPathToUrlSegment } from "./shared/utils";
+import { stableStringify, tokenPathToUrlSegment } from "./shared/utils";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
@@ -494,7 +494,7 @@ export function App() {
           c = curr[key];
         if (
           p.$type !== c.$type ||
-          JSON.stringify(p.$value) !== JSON.stringify(c.$value)
+          stableStringify(p.$value) !== stableStringify(c.$value)
         )
           changed++;
       }

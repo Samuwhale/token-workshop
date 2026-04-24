@@ -147,9 +147,7 @@ export function useIssueActions({
         throw new Error(getUnsupportedIssueFixMessage(issue));
       }
 
-      if (issue.suggestedFix === "add-description") {
-        await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $description: "" }));
-      } else if (issue.suggestedFix === "flatten-alias-chain" || issue.suggestedFix === "extract-to-alias") {
+      if (issue.suggestedFix === "flatten-alias-chain" || issue.suggestedFix === "extract-to-alias") {
         await updateToken(serverUrl, issue.collectionId, issue.path, createTokenBody({ $value: issue.suggestion! }));
       } else if (issue.suggestedFix === "delete-token") {
         await deleteToken(serverUrl, issue.collectionId, issue.path);

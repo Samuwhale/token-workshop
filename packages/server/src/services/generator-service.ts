@@ -24,7 +24,6 @@ import type {
 import {
   DIMENSION_UNITS,
   evalExpr,
-  readTokenCollectionModeValues,
   runColorRampGenerator,
   runTypeScaleGenerator,
   runSpacingScaleGenerator,
@@ -36,12 +35,13 @@ import {
   runDarkModeInversionGenerator,
   applyOverrides,
   getGeneratorManagedOutputPaths,
+  stableStringify,
   substituteVars,
+  tokenChangesAcrossModesInCollection,
   validateStepName,
 } from "@tokenmanager/core";
 import type { TokenStore } from "./token-store.js";
 import type { TokenPathRename } from "./operation-log.js";
-import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError, BadRequestError, ConflictError } from "../errors.js";
 import { expectJsonObject, formatJsonFilePath, parseJsonFile } from "../utils/json-file.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -968,10 +968,10 @@ export class GeneratorService {
   async reloadFromDisk(): Promise<"changed" | "removed" | "unchanged"> {
     try {
       const nextGenerators = await this.readGeneratorsFromDisk();
-      const prevSerialized = JSON.stringify(
+      const prevSerialized = stableStringify(
         Array.from(this.generators.values()),
       );
-      const nextSerialized = JSON.stringify(
+      const nextSerialized = stableStringify(
         Array.from(nextGenerators.values()),
       );
       this.generators = nextGenerators;
@@ -1066,21 +1066,7 @@ export class GeneratorService {
       if (collectionModeCount <= 1) {
         continue;
       }
-      const sourceTokenModes = readTokenCollectionModeValues(token)[
-        collectionId
-      ];
-      if (!sourceTokenModes) {
-        continue;
-      }
-      const baseValue = stableStringify(token.$value);
-      const hasModeSensitiveSourceValue = Object.values(sourceTokenModes).some(
-        (value) =>
-          value !== undefined &&
-          value !== null &&
-          value !== "" &&
-          stableStringify(value) !== baseValue,
-      );
-      if (hasModeSensitiveSourceValue) {
+      if (tokenChangesAcrossModesInCollection(token, collectionId)) {
         return `Keep updated is unavailable because source token "${sourceToken}" changes across modes. Rerun from the current view so the active mode stays explicit.`;
       }
     }

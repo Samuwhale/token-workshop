@@ -1,8 +1,12 @@
 import StyleDictionary from 'style-dictionary';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { makeReferenceGlobalRegex, resolveRefValue, isReference } from '@tokenmanager/core';
-import { stableStringify } from '../stable-stringify.js';
+import {
+  isReference,
+  makeReferenceGlobalRegex,
+  resolveRefValue,
+  stableStringify,
+} from '@tokenmanager/core';
 import type { ExporterContext, FlatToken } from './types.js';
 
 type JsonPrimitive = string | number | boolean | null;

@@ -1,26 +1,20 @@
 import type {
   SelectedModes,
   TokenCollection,
-  TokenModeValues,
 } from "@tokenmanager/core";
 import type { TokenEditorModeValues } from "./tokenEditorTypes";
 import {
   readTokenCollectionModeValues,
+  sanitizeModeValuesForCollection,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { resolveAllAliases } from "../../shared/resolveAlias";
 
-type TokenModeMap = TokenModeValues;
-
 function readTokenModes(
   entry: TokenMapEntry | undefined,
-): TokenModeMap | null {
+): ReturnType<typeof readTokenCollectionModeValues> | null {
   const modes = readTokenCollectionModeValues(entry);
   return Object.keys(modes).length > 0 ? modes : null;
-}
-
-function getSecondaryModeNames(collection: TokenCollection): Set<string> {
-  return new Set(collection.modes.slice(1).map((mode) => mode.name));
 }
 
 export function readEditorCollectionModeValues(
@@ -36,17 +30,12 @@ export function readEditorCollectionModeValues(
     return {};
   }
 
-  const secondaryModeNames = getSecondaryModeNames(collection);
-  if (secondaryModeNames.size === 0) {
-    return {};
-  }
-
-  const filteredEntries = Object.entries(optionMap as Record<string, unknown>).filter(
-    ([modeName]) => secondaryModeNames.has(modeName),
+  const filteredModes = sanitizeModeValuesForCollection(
+    collection,
+    optionMap as Record<string, unknown>,
   );
-
-  return filteredEntries.length > 0
-    ? { [collection.id]: Object.fromEntries(filteredEntries) }
+  return Object.keys(filteredModes).length > 0
+    ? { [collection.id]: filteredModes }
     : {};
 }
 
@@ -58,26 +47,17 @@ export function sanitizeEditorCollectionModeValues(
     return {};
   }
 
-  const secondaryModeNames = getSecondaryModeNames(collection);
-  if (secondaryModeNames.size === 0) {
-    return {};
-  }
-
   const collectionModes = modeValues[collection.id];
   if (!collectionModes || typeof collectionModes !== "object") {
     return {};
   }
 
-  const filteredEntries = Object.entries(collectionModes).filter(
-    ([modeName, value]) =>
-      secondaryModeNames.has(modeName) &&
-      value !== "" &&
-      value !== undefined &&
-      value !== null,
+  const filteredModes = sanitizeModeValuesForCollection(
+    collection,
+    collectionModes,
   );
-
-  return filteredEntries.length > 0
-    ? { [collection.id]: Object.fromEntries(filteredEntries) }
+  return Object.keys(filteredModes).length > 0
+    ? { [collection.id]: filteredModes }
     : {};
 }
 

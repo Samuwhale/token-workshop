@@ -17,7 +17,7 @@ import type { LintConfig } from "./lint.js";
 import type {
   TokenStore,
 } from "./token-store.js";
-import { stableStringify } from "./stable-stringify.js";
+import { stableStringify } from "@tokenmanager/core";
 import { NotFoundError, ConflictError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { expectJsonArray, parseJsonFile } from "../utils/json-file.js";

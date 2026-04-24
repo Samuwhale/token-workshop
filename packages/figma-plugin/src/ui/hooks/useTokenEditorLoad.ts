@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { ColorModifierOp, TokenCollection } from '@tokenmanager/core';
-import { validateColorModifiers } from '@tokenmanager/core';
+import { readTokenScopes, validateColorModifiers } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { readEditorCollectionModeValues } from '../shared/collectionModeUtils';
 import { getErrorMessage, tokenPathToUrlSegment, isAbortError, stableStringify } from '../shared/utils';
@@ -110,8 +110,8 @@ export function useTokenEditorLoad({
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
         setDescription(token?.$description || '');
-        const savedScopes = extensions['com.figma.scopes'];
-        setScopes(Array.isArray(savedScopes) ? savedScopes : []);
+        const savedScopes = readTokenScopes({ $extensions: extensions });
+        setScopes(savedScopes);
         const savedModifiers = tokenManager.colorModifier;
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
@@ -131,7 +131,7 @@ export function useTokenEditorLoad({
         initialRef.current = {
           value: token?.$value ?? '',
           description: token?.$description || '',
-          scopes: Array.isArray(savedScopes) ? savedScopes : [],
+          scopes: savedScopes,
           type: token?.$type || 'string',
           colorModifiers: loadedModifiers,
           modeValues: loadedModes,

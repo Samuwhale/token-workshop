@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useCollectionStateContext, useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import type { LintConfig, LintRuleConfig, LintRuleCollectionOverride, Severity } from '../hooks/useLintConfig';
 import { LINT_RULE_REGISTRY, LINT_PRESETS, buildLintConfigFromPreset } from '../shared/lintRules';
+import { stableStringify } from '../shared/utils';
 
 const SEVERITIES: Severity[] = ['error', 'warning', 'info'];
 
@@ -65,7 +66,7 @@ function getPresetBaseId(config: LintConfig): string | null {
       return (
         current.enabled === baseline.enabled &&
         (current.severity ?? 'warning') === (baseline.severity ?? 'warning') &&
-        JSON.stringify(current.options ?? {}) === JSON.stringify(baseline.options ?? {})
+        stableStringify(current.options ?? {}) === stableStringify(baseline.options ?? {})
       );
     });
     if (matchesPreset) {

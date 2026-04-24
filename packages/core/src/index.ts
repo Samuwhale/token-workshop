@@ -84,6 +84,8 @@ export {
   isValidCollectionName,
   findCollectionById,
   readTokenCollectionModeValues,
+  tokenChangesAcrossModesInCollection,
+  sanitizeModeValuesForCollection,
   readTokenModeValuesForCollection,
   buildTokenExtensionsWithCollectionModes,
   writeTokenCollectionModeValues,
@@ -96,6 +98,14 @@ export {
   serializeTokenCollections,
   readCollectionsFileState,
 } from './collections.js';
+export { stableStringify } from './stable-stringify.js';
+export {
+  FIGMA_SCOPE_EXTENSION_KEY,
+  buildTokenExtensionsWithScopes,
+  normalizeTokenScopeValues,
+  readTokenScopes,
+  stripTokenScopesFromExtensions,
+} from './token-scopes.js';
 
 // DTCG file-format types & utilities
 export type { DTCGToken, DTCGGroup, DTCGFile } from './dtcg-types.js';

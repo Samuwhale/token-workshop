@@ -8,6 +8,7 @@ import type {
 import {
   readCollectionsFileState,
   serializeTokenCollections,
+  stableStringify,
 } from "@tokenmanager/core";
 import { ConflictError, NotFoundError } from "../errors.js";
 import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
@@ -267,7 +268,7 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
     reloadFromDisk(): Promise<"changed" | "removed" | "unchanged"> {
       return lock.withLock(async () => {
         const previousMtimeMs = cachedMtimeMs;
-        const previousSerialized = cache === null ? null : JSON.stringify(cache);
+        const previousSerialized = cache === null ? null : stableStringify(cache);
         const { state, mtimeMs, exists } = await loadStateFromDisk();
 
         if (!exists) {
@@ -285,7 +286,7 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
           return "unchanged";
         }
 
-        const nextSerialized = JSON.stringify(state);
+        const nextSerialized = stableStringify(state);
         cache = structuredClone(state);
         cachedMtimeMs = mtimeMs;
         return previousSerialized === nextSerialized ? "unchanged" : "changed";
@@ -304,7 +305,7 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
 
     async saveState(state: CollectionState): Promise<void> {
       const validatedState = validateCollectionState(state);
-      if (JSON.stringify(cache) === JSON.stringify(validatedState)) {
+      if (stableStringify(cache) === stableStringify(validatedState)) {
         return;
       }
       const data = {

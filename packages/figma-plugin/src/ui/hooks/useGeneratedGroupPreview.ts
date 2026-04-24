@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { getErrorMessage, isAbortError } from '../shared/utils';
+import { getErrorMessage, isAbortError, stableStringify } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import type {
   GeneratorType,
@@ -340,5 +340,5 @@ export function useGeneratedGroupPreview({
 }
 
 function stableValueChanged(before: unknown, after: unknown): boolean {
-  return JSON.stringify(before) !== JSON.stringify(after);
+  return stableStringify(before) !== stableStringify(after);
 }

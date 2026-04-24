@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { flattenTokenGroup } from "@tokenmanager/core";
+import { flattenTokenGroup, stableStringify } from "@tokenmanager/core";
 import type {
   ResolverFile,
   TokenCollection,
@@ -15,7 +15,6 @@ import type { ResolverStore } from "./resolver-store.js";
 import type { GeneratorService } from "./generator-service.js";
 import type { CollectionService } from "./collection-service.js";
 import type { LintConfig, LintConfigStore } from "./lint.js";
-import { stableStringify } from "./stable-stringify.js";
 import { NotFoundError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { setTokenAtPath } from "./token-tree-utils.js";

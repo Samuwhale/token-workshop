@@ -5,6 +5,7 @@ import type { TokenMapEntry } from '../../../shared/types';
 import { OverrideTable } from './generatorShared';
 import { BezierCurveEditor } from './BezierCurveEditor';
 import { wcagContrast } from '../../shared/colorUtils';
+import { stableStringify } from '../../shared/utils';
 import { TokenRefInput } from '../TokenRefInput';
 
 /** Convert a Lab L* value to a neutral-gray hex swatch color. */
@@ -320,7 +321,8 @@ export function ColorRampConfigEditor({ config, onChange, onInteractionStart, so
     p.config.lightEnd === config.lightEnd &&
     p.config.darkEnd === config.darkEnd &&
     Math.abs(p.config.chromaBoost - config.chromaBoost) < 0.01 &&
-    JSON.stringify(p.config.lightnessCurve) === JSON.stringify(config.lightnessCurve ?? [0.42, 0, 0.58, 1])
+    stableStringify(p.config.lightnessCurve) ===
+      stableStringify(config.lightnessCurve ?? [0.42, 0, 0.58, 1])
   )?.id;
 
   const handlePresetSelect = (preset: ColorRampParameterPreset) => {

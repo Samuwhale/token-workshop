@@ -1,11 +1,10 @@
 import {
-  readTokenCollectionModeValues,
+  tokenChangesAcrossModesInCollection,
   type TokenCollection,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import type { GeneratorType } from "../hooks/useGenerators";
 import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
-import { stableStringify } from "./utils";
 
 export type DashboardStatus = ReturnType<typeof getGeneratorDashboardStatus>;
 
@@ -54,21 +53,12 @@ export function getGeneratedGroupKeepUpdatedAvailability(params: {
     if (collectionModeCount <= 1) {
       continue;
     }
-    const sourceTokenModes = readTokenCollectionModeValues(
-      sourceDefinition.token,
-    )[sourceDefinition.collectionId];
-    if (!sourceTokenModes) {
-      continue;
-    }
-    const baseValue = stableStringify(sourceDefinition.token.$value);
-    const hasModeSensitiveSourceValue = Object.values(sourceTokenModes).some(
-      (value) =>
-        value !== undefined &&
-        value !== null &&
-        value !== "" &&
-        stableStringify(value) !== baseValue,
-    );
-    if (hasModeSensitiveSourceValue) {
+    if (
+      tokenChangesAcrossModesInCollection(
+        sourceDefinition.token,
+        sourceDefinition.collectionId,
+      )
+    ) {
       return {
         supported: false,
         reason:

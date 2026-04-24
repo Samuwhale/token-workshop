@@ -1,8 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import {
+  buildTokenExtensionsWithScopes,
   CROSS_COLLECTION_SEARCH_HAS_VALUES,
   SUPPORTED_SEARCH_SCOPE_VALUES,
   buildTokenExtensionsWithCollectionModes,
+  normalizeTokenScopeValues,
+  sanitizeModeValuesForCollection,
+  stableStringify,
   TOKEN_TYPE_VALUES,
   TokenValidator,
   flattenTokenGroup,
@@ -10,6 +14,7 @@ import {
   isReference,
   parseReference,
   readTokenCollectionModeValues,
+  readTokenScopes,
   type Token,
   type TokenCollection,
   type TokenGroup,
@@ -36,27 +41,51 @@ import {
   renameGroupCommand,
   renameTokenCommand,
 } from '../services/token-mutation-commands.js';
-import { normalizeScopedVariableToken } from '../services/token-tree-utils.js';
-import { stableStringify } from '../services/stable-stringify.js';
+import {
+  validateTokenPath,
+  normalizeScopedVariableToken,
+} from '../services/token-tree-utils.js';
+import { isValidCollectionName } from '../services/collection-helpers.js';
 
 interface TokenMutationRouteBody {
   $type?: string;
   $value?: unknown;
-  $description?: string;
-  $extensions?: Record<string, unknown>;
+  $description?: string | null;
+  $extensions?: Record<string, unknown> | null;
+  $scopes?: string[] | null;
 }
 
 interface BatchTokenMutationRouteBody extends TokenMutationRouteBody {
   path: string;
-  $scopes?: string[];
 }
 
 function validateTokenBody(body: unknown): body is TokenMutationRouteBody {
   if (typeof body !== 'object' || body === null) return false;
   const b = body as Record<string, unknown>;
   if ('$type' in b && b.$type !== undefined && !TOKEN_TYPE_VALUES.has(b.$type as string)) return false;
-  if ('$description' in b && b.$description !== undefined && typeof b.$description !== 'string') return false;
-  if ('$extensions' in b && b.$extensions !== undefined && (typeof b.$extensions !== 'object' || b.$extensions === null || Array.isArray(b.$extensions))) return false;
+  if (
+    '$description' in b &&
+    b.$description !== undefined &&
+    b.$description !== null &&
+    typeof b.$description !== 'string'
+  ) {
+    return false;
+  }
+  if (
+    '$extensions' in b &&
+    b.$extensions !== undefined &&
+    b.$extensions !== null &&
+    (typeof b.$extensions !== 'object' || Array.isArray(b.$extensions))
+  ) return false;
+  if (
+    '$scopes' in b &&
+    b.$scopes !== undefined &&
+    b.$scopes !== null &&
+    (!Array.isArray(b.$scopes) ||
+      b.$scopes.some((scope) => typeof scope !== 'string'))
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -79,17 +108,22 @@ function isValidTokenPath(path: unknown): path is string {
   if (typeof path !== 'string') return false;
   if (path.length === 0 || path.length > PATH_MAX_LEN) return false;
   if (path !== path.trim()) return false;
-  if (path.startsWith('.') || path.endsWith('.')) return false;
-  if (path.includes('..')) return false;
-  return true;
+  try {
+    validateTokenPath(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Validates a collection ID: non-empty string, no leading/trailing whitespace, no null bytes or path traversal. */
 function isValidCollectionId(name: unknown): name is string {
-  if (typeof name !== 'string') return false;
-  if (name.length === 0 || name !== name.trim()) return false;
-  if (name.includes('\0') || name.includes('..')) return false;
-  return true;
+  return (
+    typeof name === 'string' &&
+    name.length > 0 &&
+    name === name.trim() &&
+    isValidCollectionName(name)
+  );
 }
 
 /** Validates a single segment key (direct child name): non-empty string, no leading/trailing whitespace. */
@@ -98,7 +132,15 @@ function isNonEmptyTrimmedString(v: unknown): v is string {
 }
 
 function wildcardParamToTokenPath(pathParam: string): string {
-  return pathParam.split('/').join('.');
+  if (pathParam.length === 0) {
+    return '';
+  }
+  try {
+    const decodedPath = pathParam.split('/').map(decodeURIComponent).join('.');
+    return isValidTokenPath(decodedPath) ? decodedPath : '';
+  } catch {
+    return '';
+  }
 }
 
 function validateCollectionScopedModeValues(
@@ -149,21 +191,9 @@ function normalizeTokenModesForCollectionWrite<T extends Pick<Token, '$extension
     return nextToken;
   }
 
-  const hadExtensions = Object.prototype.hasOwnProperty.call(
-    nextToken,
-    '$extensions',
-  );
-  const secondaryModeNames = new Set(
-    collection.modes.slice(1).map((mode) => mode.name),
-  );
-  const normalizedCollectionModes = Object.fromEntries(
-    Object.entries(collectionModes).filter(
-      ([modeName, value]) =>
-        secondaryModeNames.has(modeName) &&
-        value !== '' &&
-        value !== undefined &&
-        value !== null,
-    ),
+  const normalizedCollectionModes = sanitizeModeValuesForCollection(
+    collection,
+    collectionModes,
   );
   const nextModes = { ...currentModes };
   if (Object.keys(normalizedCollectionModes).length > 0) {
@@ -176,10 +206,8 @@ function normalizeTokenModesForCollectionWrite<T extends Pick<Token, '$extension
     nextToken,
     nextModes,
   );
-  if (nextExtensions !== undefined) {
+  if (nextExtensions) {
     nextToken.$extensions = nextExtensions;
-  } else if (hadExtensions) {
-    nextToken.$extensions = undefined;
   } else {
     delete nextToken.$extensions;
   }
@@ -203,6 +231,95 @@ function normalizeTokenGroupModesForCollectionWrite(
     Object.assign(token, normalizedToken);
   }
   return nextTokens;
+}
+
+function normalizeCreateRouteBody(
+  body: TokenMutationRouteBody,
+): Token {
+  if (body.$value === undefined) {
+    throw new Error('Create route body must include $value');
+  }
+
+  const nextExtensions = normalizeRouteExtensions(body);
+
+  return {
+    ...(body.$type !== undefined
+      ? { $type: body.$type as Token['$type'] }
+      : {}),
+    $value: body.$value as Token['$value'],
+    ...(body.$description !== undefined && body.$description !== null
+      ? { $description: body.$description }
+      : {}),
+    ...(nextExtensions
+      ? { $extensions: nextExtensions }
+      : {}),
+  };
+}
+
+function normalizeRouteExtensions(
+  body: Pick<TokenMutationRouteBody, '$extensions' | '$scopes'>,
+): Record<string, unknown> | undefined {
+  const normalizedExtensionScopes = normalizeTokenScopeValues(
+    readTokenScopes({
+      $extensions:
+        body.$extensions && body.$extensions !== null
+          ? body.$extensions
+          : undefined,
+    }),
+  );
+
+  const normalizedScopes =
+    '$scopes' in body
+      ? normalizeTokenScopeValues(body.$scopes)
+      : normalizedExtensionScopes;
+  return buildTokenExtensionsWithScopes(body.$extensions, normalizedScopes);
+}
+
+function normalizeUpdateRouteExtensions(
+  body: Pick<TokenMutationRouteBody, '$extensions' | '$scopes'>,
+  existingToken?: Pick<Token, '$extensions'> | null,
+): Record<string, unknown> | undefined {
+  if ('$extensions' in body) {
+    return normalizeRouteExtensions(body);
+  }
+
+  if ('$scopes' in body) {
+    return normalizeRouteExtensions({
+      $extensions:
+        existingToken?.$extensions &&
+        typeof existingToken.$extensions === 'object' &&
+        !Array.isArray(existingToken.$extensions)
+          ? structuredClone(existingToken.$extensions)
+          : undefined,
+      $scopes: body.$scopes,
+    });
+  }
+
+  return undefined;
+}
+
+function normalizeUpdateRouteBody(
+  body: TokenMutationRouteBody,
+  existingToken?: Pick<Token, '$extensions'> | null,
+): Partial<Pick<Token, '$type' | '$value' | '$description' | '$extensions'>> {
+  const nextBody: Partial<
+    Pick<Token, '$type' | '$value' | '$description' | '$extensions'>
+  > = {};
+
+  if ('$type' in body) {
+    nextBody.$type = body.$type as Token['$type'];
+  }
+  if ('$value' in body) {
+    nextBody.$value = body.$value as Token['$value'];
+  }
+  if ('$description' in body) {
+    nextBody.$description = body.$description ?? undefined;
+  }
+  if ('$extensions' in body || '$scopes' in body) {
+    nextBody.$extensions = normalizeUpdateRouteExtensions(body, existingToken);
+  }
+
+  return nextBody;
 }
 
 function mergeCollectionSnapshot(
@@ -799,10 +916,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'patches must be a non-empty array' });
     }
     for (const p of patches) {
+      if (!p || typeof p !== 'object' || Array.isArray(p)) {
+        return reply.status(400).send({ error: 'Each entry must be an object with path and patch' });
+      }
       if (!isValidTokenPath(p.path)) {
         return reply.status(400).send({ error: 'Each entry must have a valid non-empty path with no leading/trailing dots' });
       }
-      if (!p.patch || typeof p.patch !== 'object') {
+      if (!p.patch || typeof p.patch !== 'object' || Array.isArray(p.patch)) {
         return reply.status(400).send({ error: `Each entry must have a patch object (got invalid patch for "${p.path}")` });
       }
       if (!validateTokenBody(p.patch)) {
@@ -816,13 +936,33 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const validModeNames = new Set(
           collection.modes.map((mode) => mode.name),
         );
-        const normalizedPatches = patches.map((entry) => ({
-          path: entry.path,
-          patch: normalizeTokenModesForCollectionWrite(
-            entry.patch as Partial<Token>,
-            collection,
-          ),
-        }));
+        const normalizedPatches: Array<{ path: string; patch: Partial<Token> }> =
+          [];
+        for (const entry of patches) {
+          const existingToken = await fastify.tokenStore.getToken(
+            collectionId,
+            entry.path,
+          );
+          if (!existingToken) {
+            return reply
+              .status(404)
+              .send({
+                error: `Token "${entry.path}" not found in collection "${collectionId}"`,
+              });
+          }
+          normalizedPatches.push({
+            path: entry.path,
+            patch: normalizeTokenModesForCollectionWrite(
+              normalizeScopedVariableToken(
+                normalizeUpdateRouteBody(
+                  entry.patch as TokenMutationRouteBody,
+                  existingToken,
+                ),
+              ) as Partial<Token>,
+              collection,
+            ),
+          });
+        }
         // Type-aware validation for each patch (needs existing token for inherited type)
         for (const p of normalizedPatches) {
           const modeError = await validateTokenModesForCollectionWrite(
@@ -1158,28 +1298,37 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if (!Array.isArray(rawTokens) || rawTokens.length === 0) {
       return reply.status(400).send({ error: 'tokens must be a non-empty array' });
     }
-    const tokens = rawTokens.map((token) =>
-      normalizeScopedVariableToken(token),
-    );
     if (strategy !== 'skip' && strategy !== 'overwrite' && strategy !== 'merge') {
       return reply.status(400).send({ error: 'strategy must be "skip", "overwrite", or "merge"' });
     }
-    for (const t of tokens) {
-      const tokenPath = t.path;
+    const tokens: Array<{
+      path: string;
+      token: Token;
+    }> = [];
+    for (const rawToken of rawTokens) {
+      if (!rawToken || typeof rawToken !== 'object' || Array.isArray(rawToken)) {
+        return reply.status(400).send({ error: 'Each token must be an object with path and token fields' });
+      }
+      const { path: tokenPath, ...rawTokenBody } =
+        rawToken as BatchTokenMutationRouteBody;
       if (!isValidTokenPath(tokenPath)) {
         return reply.status(400).send({ error: 'Each token must have a valid non-empty path with no leading/trailing dots' });
       }
-      if (t.$value === undefined) {
-        return reply.status(400).send({ error: `Token "${tokenPath}" must have a $value` });
-      }
-      if (!validateTokenBody(t)) {
+      if (!validateTokenBody(rawTokenBody)) {
         return reply.status(400).send({ error: `Invalid token body for "${tokenPath}": $type must be a valid DTCG token type` });
       }
-      // Type-aware value validation when $type is explicitly provided
-      if (t.$type) {
-        const valueErr = validateTokenValue(t.$value, t.$type, tokenPath);
-        if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${tokenPath}" (type "${t.$type}"): ${valueErr}` });
+      const token = normalizeScopedVariableToken(
+        normalizeCreateRouteBody(rawTokenBody),
+      );
+      if (token.$value === undefined) {
+        return reply.status(400).send({ error: `Token "${tokenPath}" must have a $value` });
       }
+      // Type-aware value validation when $type is explicitly provided
+      if (token.$type) {
+        const valueErr = validateTokenValue(token.$value, token.$type, tokenPath);
+        if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${tokenPath}" (type "${token.$type}"): ${valueErr}` });
+      }
+      tokens.push({ path: tokenPath, token });
     }
     return withLock(async () => {
       try {
@@ -1189,10 +1338,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           collection.modes.map((mode) => mode.name),
         );
         // Check alias targets exist (allow intra-batch references)
-        const batchPaths = new Set(tokens.map(t => t.path));
-        const normalizedTokens = tokens.map((token) => ({
-          ...token,
-          token: normalizeTokenModesForCollectionWrite(token as Token, collection),
+        const batchPaths = new Set(tokens.map(({ path }) => path));
+        const normalizedTokens = tokens.map(({ path, token }) => ({
+          path,
+          token: normalizeTokenModesForCollectionWrite(token, collection),
         }));
         for (const t of normalizedTokens) {
           const modeError = await validateTokenModesForCollectionWrite(
@@ -1213,7 +1362,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        const paths = tokens.map(t => t.path);
+        const paths = tokens.map(({ path }) => path);
         const before = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         const result = await fastify.tokenStore.batchUpsertTokens(
           collectionId,
@@ -1754,7 +1903,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!validateTokenBody(rawBody)) {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
-      const body = normalizeScopedVariableToken(rawBody);
+      const body = normalizeScopedVariableToken(
+        normalizeCreateRouteBody(rawBody),
+      );
 
       // Type-aware value validation (can be done before acquiring the lock)
       if (body.$type) {
@@ -1830,11 +1981,22 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!validateTokenBody(rawBody)) {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
-      const body = normalizeScopedVariableToken(rawBody);
 
       return withLock(async () => {
         try {
           await fastify.collectionService.requireCollectionsExist([collectionId]);
+          const existingToken = await fastify.tokenStore.getToken(
+            collectionId,
+            tokenPath,
+          );
+          if (!existingToken) {
+            return reply.status(404).send({
+              error: `Token "${tokenPath}" not found in collection "${collectionId}"`,
+            });
+          }
+          const body = normalizeScopedVariableToken(
+            normalizeUpdateRouteBody(rawBody, existingToken),
+          );
           const collection = await loadCollectionDefinition(collectionId);
           const normalizedBody = normalizeTokenModesForCollectionWrite(
             body as Partial<Token>,
@@ -1850,8 +2012,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
           // Validate $value against effective type (own or inherited from existing token)
           if (normalizedBody.$value !== undefined) {
-            const existingForType = await fastify.tokenStore.getToken(collectionId, tokenPath);
-            const effectiveType = normalizedBody.$type ?? existingForType?.$type;
+            const effectiveType = normalizedBody.$type ?? existingToken.$type;
             if (effectiveType) {
               const valueErr = validateTokenValue(normalizedBody.$value, effectiveType, tokenPath);
               if (valueErr) return reply.status(400).send({ error: `Invalid $value for type "${effectiveType}": ${valueErr}` });

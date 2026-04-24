@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
+import { stableStringify } from "@tokenmanager/core";
 import { handleRouteError } from "../errors.js";
 import { getSnapshotTokenPath } from "../services/operation-log.js";
-import { stableStringify } from "../services/stable-stringify.js";
 
 export const operationRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;

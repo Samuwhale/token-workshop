@@ -1,7 +1,6 @@
 import type { ValidationIssue } from "../hooks/useValidationCache";
 
 const DIRECT_FIX_LABELS: Record<string, string> = {
-  "add-description": "Add desc",
   "flatten-alias-chain": "Flatten",
   "extract-to-alias": "Make alias",
   "delete-token": "Delete",
@@ -13,7 +12,6 @@ export function canApplyIssueFixDirectly(
   issue: Pick<ValidationIssue, "suggestedFix" | "suggestion">,
 ): boolean {
   switch (issue.suggestedFix) {
-    case "add-description":
     case "delete-token":
       return true;
     case "flatten-alias-chain":
@@ -34,6 +32,8 @@ export function getUnsupportedIssueFixMessage(
   issue: Pick<ValidationIssue, "suggestedFix" | "rule">,
 ): string {
   switch (issue.suggestedFix) {
+    case "add-description":
+      return "Descriptions need authored text. Open the token and write a real description.";
     case "replace-deprecated-reference":
       return "Deprecated references need a replacement token. Use the Deprecated review view to choose one.";
     case "promote-to-shared-alias":

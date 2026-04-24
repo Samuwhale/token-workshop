@@ -12,13 +12,14 @@ import {
   parseReference,
   makeReferenceGlobalRegex,
   flattenTokenGroup,
+  readTokenScopes,
+  stableStringify,
   TokenResolver,
 } from "@tokenmanager/core";
 import { NotFoundError, ConflictError, BadRequestError } from "../errors.js";
 import type { TokenPathRename } from "./operation-log.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
-import { stableStringify } from "./stable-stringify.js";
 import {
   validateTokenPath,
   pathExistsAt,
@@ -37,6 +38,7 @@ import {
   normalizeScopedVariableTokenGroup,
   type AliasChange,
 } from "./token-tree-utils.js";
+import { isValidCollectionName } from "./collection-helpers.js";
 
 import { isSafeRegex } from "./token-tree-utils.js";
 export { isSafeRegex };
@@ -98,13 +100,6 @@ function getTokenGeneratorId(token: Pick<Token, "$extensions">): string | null {
   }
   const generatorId = (ext as { generatorId?: unknown }).generatorId;
   return typeof generatorId === "string" ? generatorId : null;
-}
-
-function getTokenScopes(token: Pick<Token, "$extensions">): string[] {
-  const rawScopes = token.$extensions?.["com.figma.scopes"];
-  return Array.isArray(rawScopes)
-    ? rawScopes.filter((scope): scope is string => typeof scope === "string")
-    : [];
 }
 
 export class TokenStore {
@@ -799,7 +794,7 @@ export class TokenStore {
     oldCollectionId: string,
     newCollectionId: string,
   ): Promise<void> {
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newCollectionId)) {
+    if (!isValidCollectionName(newCollectionId)) {
       throw new BadRequestError(
         "Collection name must contain only alphanumeric characters, dashes, underscores, and / for folders",
       );
@@ -862,15 +857,13 @@ export class TokenStore {
     tokenPath: string,
     token: Token,
   ): Promise<void> {
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(collectionId)) {
+    if (!isValidCollectionName(collectionId)) {
       throw new BadRequestError(
         `Invalid collection name "${collectionId}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`,
       );
     }
     validateTokenPath(tokenPath);
-    token = normalizeScopedVariableToken(token);
-    // Auto-persist formula metadata so Style Dictionary export can output calc()
-    token = this.enrichFormulaExtension(token);
+    token = this.normalizeStoredToken(token);
     // Check for circular references before persisting
     this.checkCircularReferences([{ path: tokenPath, value: token.$value }]);
     const collection = this.collections.get(collectionId);
@@ -878,7 +871,7 @@ export class TokenStore {
       throw new NotFoundError(`Collection "${collectionId}" not found`);
     }
     const snapshot = this.snapshotCollectionTokens(collectionId);
-    setTokenAtPath(collection.tokens, tokenPath, token);
+    setTokenAtPath(collection.tokens, tokenPath, structuredClone(token));
     try {
       await this.saveCollection(collectionId);
     } catch (err) {
@@ -897,25 +890,18 @@ export class TokenStore {
     const collection = this.collections.get(collectionId);
     if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
     const existing = getTokenAtPath(collection.tokens, tokenPath);
+    const existingWithInheritedType = getTokenAtPathWithInheritedType(
+      collection.tokens,
+      tokenPath,
+    );
     if (!existing)
       throw new NotFoundError(
         `Token "${tokenPath}" not found in collection "${collectionId}"`,
       );
-    token = normalizeScopedVariableToken(token);
-    // Auto-persist formula metadata so Style Dictionary export can output calc()
-    if ("$value" in token && token.$value !== undefined) {
-      const enriched = this.enrichFormulaExtension({
-        $value: token.$value,
-        $extensions: token.$extensions ?? existing.$extensions,
-      });
-      const originalExtensions = token.$extensions ?? existing.$extensions;
-      if (
-        JSON.stringify(enriched.$extensions) !==
-        JSON.stringify(originalExtensions)
-      ) {
-        token = { ...token, $extensions: enriched.$extensions };
-      }
-    }
+    token = this.normalizeStoredTokenPatch(
+      existingWithInheritedType ?? existing,
+      token,
+    );
     // Check for circular references before persisting
     if ("$value" in token && token.$value !== undefined) {
       this.checkCircularReferences([{ path: tokenPath, value: token.$value }]);
@@ -923,10 +909,7 @@ export class TokenStore {
     // Replace known token fields explicitly so stale properties don't persist.
     // A partial update only touches keys that are present in the incoming object.
     const snapshot = this.snapshotCollectionTokens(collectionId);
-    if ("$value" in token) existing.$value = token.$value!;
-    if ("$type" in token) existing.$type = token.$type;
-    if ("$description" in token) existing.$description = token.$description;
-    if ("$extensions" in token) existing.$extensions = token.$extensions;
+    this.applyTokenPatch(existing, token);
     try {
       await this.saveCollection(collectionId);
     } catch (err) {
@@ -943,7 +926,7 @@ export class TokenStore {
     tokens: Array<{ path: string; token: Token }>,
     strategy: "skip" | "overwrite" | "merge",
   ): Promise<{ imported: number; skipped: number }> {
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(collectionId)) {
+    if (!isValidCollectionName(collectionId)) {
       throw new BadRequestError(
         `Invalid collection name "${collectionId}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`,
       );
@@ -971,29 +954,43 @@ export class TokenStore {
     await this.withBatch(async () => {
       try {
         for (const { path: tokenPath, token } of tokens) {
-          const enriched = this.enrichFormulaExtension(
-            normalizeScopedVariableToken(token),
-          );
+          const normalizedToken = this.normalizeStoredToken(token);
           const existing = getTokenAtPath(collection.tokens, tokenPath);
           if (existing) {
             if (strategy === "overwrite") {
-              if ("$value" in enriched) existing.$value = enriched.$value;
-              if ("$type" in enriched) existing.$type = enriched.$type;
-              if ("$description" in enriched)
-                existing.$description = enriched.$description;
-              if ("$extensions" in enriched)
-                existing.$extensions = enriched.$extensions;
+              setTokenAtPath(
+                collection.tokens,
+                tokenPath,
+                structuredClone(normalizedToken),
+              );
               imported++;
             } else if (strategy === "merge") {
               // Update value/type from incoming, preserve local description and extensions
-              if ("$value" in enriched) existing.$value = enriched.$value;
-              if ("$type" in enriched) existing.$type = enriched.$type;
+              const existingWithInheritedType =
+                getTokenAtPathWithInheritedType(collection.tokens, tokenPath) ??
+                existing;
+              const mergedPatch = this.normalizeStoredTokenPatch(
+                existingWithInheritedType,
+                {
+                  ...("$value" in normalizedToken
+                    ? { $value: normalizedToken.$value }
+                    : {}),
+                  ...("$type" in normalizedToken
+                    ? { $type: normalizedToken.$type }
+                    : {}),
+                },
+              );
+              this.applyTokenPatch(existing, mergedPatch);
               imported++;
             } else {
               skipped++;
             }
           } else {
-            setTokenAtPath(collection.tokens, tokenPath, enriched);
+            setTokenAtPath(
+              collection.tokens,
+              tokenPath,
+              structuredClone(normalizedToken),
+            );
             imported++;
           }
         }
@@ -1070,7 +1067,11 @@ export class TokenStore {
           if (token === null) {
             deleteTokenAtPath(collection.tokens, tokenPath);
           } else {
-            setTokenAtPath(collection.tokens, tokenPath, structuredClone(token));
+            setTokenAtPath(
+              collection.tokens,
+              tokenPath,
+              structuredClone(this.normalizeStoredToken(token)),
+            );
           }
         }
         await this.saveCollection(collectionId);
@@ -1434,9 +1435,9 @@ export class TokenStore {
         }
 
         if (normalizedScopes && normalizedScopes.length > 0) {
-          const tokenScopes = getTokenScopes(entry.token);
+          const tokenScopes = readTokenScopes(entry.token);
           if (
-            tokenScopes.length > 0 &&
+            tokenScopes.length === 0 ||
             !tokenScopes.some((tokenScope) => allowedScopeValues?.has(tokenScope))
           ) {
             continue;
@@ -1980,24 +1981,20 @@ export class TokenStore {
     const circularChecks: Array<{ path: string; value: unknown }> = [];
     for (const { path: tokenPath, patch } of patches) {
       const existing = getTokenAtPath(collection.tokens, tokenPath);
+      const existingWithInheritedType = getTokenAtPathWithInheritedType(
+        collection.tokens,
+        tokenPath,
+      );
       if (!existing)
         throw new NotFoundError(
           `Token "${tokenPath}" not found in collection "${collectionId}"`,
         );
-      let enrichedPatch = patch;
-      if ("$value" in patch && patch.$value !== undefined) {
-        const enriched = this.enrichFormulaExtension({
-          $value: patch.$value,
-          $extensions: patch.$extensions ?? existing.$extensions,
-        });
-        const originalExtensions = patch.$extensions ?? existing.$extensions;
-        if (
-          JSON.stringify(enriched.$extensions) !==
-          JSON.stringify(originalExtensions)
-        ) {
-          enrichedPatch = { ...patch, $extensions: enriched.$extensions };
-        }
-        circularChecks.push({ path: tokenPath, value: patch.$value });
+      const enrichedPatch = this.normalizeStoredTokenPatch(
+        existingWithInheritedType ?? existing,
+        patch,
+      );
+      if ("$value" in enrichedPatch && enrichedPatch.$value !== undefined) {
+        circularChecks.push({ path: tokenPath, value: enrichedPatch.$value });
       }
       enrichedPatches.push({ path: tokenPath, patch: enrichedPatch });
     }
@@ -2010,11 +2007,7 @@ export class TokenStore {
       try {
         for (const { path: tokenPath, patch } of enrichedPatches) {
           const existing = getTokenAtPath(collection.tokens, tokenPath)!;
-          if ("$value" in patch) existing.$value = patch.$value!;
-          if ("$type" in patch) existing.$type = patch.$type;
-          if ("$description" in patch)
-            existing.$description = patch.$description;
-          if ("$extensions" in patch) existing.$extensions = patch.$extensions;
+          this.applyTokenPatch(existing, patch);
         }
         await this.saveCollection(collectionId);
       } catch (err) {
@@ -2303,18 +2296,144 @@ export class TokenStore {
   private enrichFormulaExtension(
     token: Pick<Token, "$value" | "$extensions">,
   ): Token {
-    if (typeof token.$value === "string" && isFormula(token.$value)) {
-      const existing = token.$extensions;
-      const tm = existing?.tokenmanager ?? {};
-      return {
-        ...token,
-        $extensions: {
-          ...existing,
-          tokenmanager: { ...tm, formula: token.$value },
-        },
-      } as Token;
+    const formulaValue =
+      typeof token.$value === "string" && isFormula(token.$value)
+        ? token.$value
+        : null;
+    const existingExtensions =
+      token.$extensions &&
+      typeof token.$extensions === "object" &&
+      !Array.isArray(token.$extensions)
+        ? { ...token.$extensions }
+        : undefined;
+    const existingTokenManager =
+      existingExtensions?.tokenmanager &&
+      typeof existingExtensions.tokenmanager === "object" &&
+      !Array.isArray(existingExtensions.tokenmanager)
+        ? {
+            ...(existingExtensions.tokenmanager as Record<string, unknown>),
+          }
+        : undefined;
+    const nextTokenManager = existingTokenManager
+      ? { ...existingTokenManager }
+      : undefined;
+    if (formulaValue === null && nextTokenManager) {
+      delete nextTokenManager.formula;
     }
-    return token as Token;
+
+    let nextExtensions = existingExtensions
+      ? { ...existingExtensions }
+      : undefined;
+    if (formulaValue !== null) {
+      nextExtensions = {
+        ...nextExtensions,
+        tokenmanager: {
+          ...(nextTokenManager ?? {}),
+          formula: formulaValue,
+        },
+      };
+    } else if (nextExtensions && "tokenmanager" in nextExtensions) {
+      if (nextTokenManager && Object.keys(nextTokenManager).length > 0) {
+        nextExtensions.tokenmanager = nextTokenManager;
+      } else {
+        delete nextExtensions.tokenmanager;
+      }
+    }
+
+    if (!nextExtensions || Object.keys(nextExtensions).length === 0) {
+      return token.$extensions === undefined
+        ? (token as Token)
+        : ({ ...token, $extensions: undefined } as Token);
+    }
+
+    return {
+      ...token,
+      $extensions: nextExtensions,
+    } as Token;
+  }
+
+  private normalizeStoredToken(token: Token): Token {
+    const normalized = this.enrichFormulaExtension(
+      normalizeScopedVariableToken(token),
+    );
+    if (normalized.$description == null) {
+      delete normalized.$description;
+    }
+    if (normalized.$extensions == null) {
+      delete normalized.$extensions;
+    }
+    return normalized;
+  }
+
+  private normalizeStoredTokenPatch(
+    normalizationBase: Token,
+    patch: Partial<Token>,
+  ): Partial<Token> {
+    let nextPatch = patch;
+    if ("$description" in nextPatch && nextPatch.$description == null) {
+      nextPatch = { ...nextPatch, $description: undefined };
+    }
+    if ("$extensions" in nextPatch && nextPatch.$extensions == null) {
+      nextPatch = { ...nextPatch, $extensions: undefined };
+    }
+
+    const baseline = this.normalizeStoredToken(structuredClone(normalizationBase));
+    const nextToken = structuredClone(normalizationBase);
+    this.applyTokenPatch(nextToken, nextPatch);
+    const normalizedNextToken = this.normalizeStoredToken(nextToken);
+
+    const normalizedPatch: Partial<Token> = {};
+    const tokenFields = [
+      "$type",
+      "$value",
+      "$description",
+      "$extensions",
+    ] as const;
+
+    for (const field of tokenFields) {
+      const previousValue = baseline[field];
+      const nextValue = normalizedNextToken[field];
+      if (stableStringify(previousValue) === stableStringify(nextValue)) {
+        continue;
+      }
+
+      if (
+        (field === "$description" || field === "$extensions") &&
+        nextValue === undefined
+      ) {
+        normalizedPatch[field] = undefined;
+        continue;
+      }
+
+      normalizedPatch[field] = nextValue as never;
+    }
+
+    return normalizedPatch;
+  }
+
+  private applyTokenPatch(existing: Token, patch: Partial<Token>): void {
+    if ("$value" in patch) existing.$value = patch.$value!;
+    if ("$type" in patch) {
+      if (patch.$type === undefined) {
+        delete existing.$type;
+      } else {
+        existing.$type = patch.$type;
+      }
+    }
+    if ("$description" in patch) {
+      if (patch.$description === undefined) {
+        delete existing.$description;
+      } else {
+        existing.$description = patch.$description;
+      }
+    }
+    if ("$extensions" in patch) {
+      if (patch.$extensions === undefined) {
+        delete existing.$extensions;
+      } else {
+        existing.$extensions = patch.$extensions;
+      }
+    }
   }
 
   // ----- Group creation -----

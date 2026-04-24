@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import type { ColorModifierOp } from '@tokenmanager/core';
+import { TokenValidator, type ColorModifierOp, type Token } from '@tokenmanager/core';
 import { ApiError } from '../shared/apiFetch';
 import { getErrorMessage, stableStringify } from '../shared/utils';
 import {
   applyTokenMutationSuccess,
   createToken,
-  createTokenValueBody,
+  createTokenMutationBodyFromSnapshot,
+  type TokenMutationBody,
   deleteToken,
   fetchToken,
   updateToken,
@@ -14,15 +15,46 @@ import { clearEditorDraft } from './useTokenEditorUtils';
 import type { UndoSlot } from './useUndo';
 import { matchesShortcut } from '../shared/shortcutRegistry';
 import type { TokenCollection } from '@tokenmanager/core';
-import { sanitizeEditorCollectionModeValues } from '../shared/collectionModeUtils';
+import { buildTokenEditorValueBody } from '../shared/tokenEditorPayload';
 import type {
   TokenEditorLifecycle,
+  TokenEditorServerToken,
   TokenEditorModeValues,
-  TokenEditorTokenManagerExtension,
   TokenEditorTokenResponse,
   TokenEditorValue,
 } from '../shared/tokenEditorTypes';
-import { omitTokenEditorReservedExtensions } from '../shared/tokenEditorTypes';
+
+const tokenValidator = new TokenValidator();
+
+function isTokenSnapshotWithValue(
+  token: TokenEditorServerToken | null,
+): token is TokenEditorServerToken & Pick<Token, '$value'> {
+  return Boolean(token) && Object.prototype.hasOwnProperty.call(token, '$value');
+}
+
+function getModeValueValidationError(
+  tokenType: string,
+  modeName: string,
+  value: unknown,
+): string | null {
+  if (value === undefined || value === null) {
+    return `All modes must have a value (${modeName} is empty)`;
+  }
+
+  const result = tokenValidator.validate(
+    {
+      $type: tokenType as Token['$type'],
+      $value: value as Token['$value'],
+    },
+    modeName,
+  );
+  if (result.valid) {
+    return null;
+  }
+
+  const [firstError] = result.errors;
+  return firstError ?? `Invalid value for mode "${modeName}"`;
+}
 
 interface UseTokenEditorSaveParams {
   serverUrl: string;
@@ -108,18 +140,18 @@ export function useTokenEditorSave({
       return false;
     }
     if (collection && collection.modes.length >= 2) {
-      const isEmpty = (v: unknown) => v === '' || v === undefined || v === null;
-      if (isEmpty(value)) {
-        setSaveRetryArgs(null);
-        setError(`All modes must have a value (${collection.modes[0].name} is empty)`);
-        return false;
-      }
       const collectionModes = modeValues[collectionId] ?? {};
-      for (let i = 1; i < collection.modes.length; i++) {
+      for (let i = 0; i < collection.modes.length; i++) {
         const modeName = collection.modes[i].name;
-        if (isEmpty(collectionModes[modeName])) {
+        const modeValue = i === 0 ? value : collectionModes[modeName];
+        const modeValueError = getModeValueValidationError(
+          tokenType,
+          modeName,
+          modeValue,
+        );
+        if (modeValueError) {
           setSaveRetryArgs(null);
-          setError(`All modes must have a value (${modeName} is empty)`);
+          setError(modeValueError);
           return false;
         }
       }
@@ -142,54 +174,30 @@ export function useTokenEditorSave({
         }
       }
 
-      const extensions: Record<string, any> = {};
-      if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
-      const tmExt: TokenEditorTokenManagerExtension = passthroughTokenManagerRef.current
-        ? { ...passthroughTokenManagerRef.current }
-        : {};
-      if (colorModifiers.length > 0) {
-        tmExt.colorModifier = colorModifiers;
-      } else {
-        delete tmExt.colorModifier;
+      let body: TokenMutationBody;
+      try {
+        body = buildTokenEditorValueBody({
+          tokenType,
+          value,
+          description,
+          scopes,
+          colorModifiers,
+          modeValues,
+          collection,
+          passthroughTokenManager: passthroughTokenManagerRef.current,
+          lifecycle,
+          extendsPath,
+          extensionsJsonText,
+          clearEmptyDescription: !isCreateMode,
+          clearEmptyExtensions: !isCreateMode,
+        });
+      } catch (err) {
+        console.debug('[TokenEditor] invalid extensions JSON:', err);
+        setSaveRetryArgs(null);
+        setError('Invalid JSON in Extensions — fix before saving');
+        setSaving(false);
+        return false;
       }
-      const cleanModes = sanitizeEditorCollectionModeValues(modeValues, collection);
-      if (Object.keys(cleanModes).length > 0) {
-        tmExt.modes = cleanModes;
-      } else {
-        delete tmExt.modes;
-      }
-      if (lifecycle !== 'published') {
-        tmExt.lifecycle = lifecycle;
-      } else {
-        delete tmExt.lifecycle;
-      }
-      if (extendsPath) {
-        tmExt.extends = extendsPath;
-      } else {
-        delete tmExt.extends;
-      }
-      if (Object.keys(tmExt).length > 0) extensions.tokenmanager = tmExt;
-      const trimmedExtJson = extensionsJsonText.trim();
-      if (trimmedExtJson && trimmedExtJson !== '{}') {
-        try {
-          const parsed = JSON.parse(trimmedExtJson);
-          if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-            Object.assign(extensions, omitTokenEditorReservedExtensions(parsed));
-          }
-        } catch (err) {
-          console.debug('[TokenEditor] invalid extensions JSON:', err);
-          setSaveRetryArgs(null);
-          setError('Invalid JSON in Extensions — fix before saving');
-          setSaving(false);
-          return false;
-        }
-      }
-      const body = createTokenValueBody({
-        type: tokenType,
-        value,
-        description: description || undefined,
-        extensions,
-      });
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
       if (isCreateMode) {
@@ -209,8 +217,15 @@ export function useTokenEditorSave({
                 },
               });
             } else if (initialServerSnapshotRef.current !== null) {
-              const previousTokenJson = initialServerSnapshotRef.current;
-              const previousBody = JSON.parse(previousTokenJson);
+              const previousSnapshot = JSON.parse(
+                initialServerSnapshotRef.current,
+              ) as TokenEditorServerToken | null;
+              if (!isTokenSnapshotWithValue(previousSnapshot)) {
+                throw new Error('Token editor undo snapshot is missing $value');
+              }
+              const previousBody = createTokenMutationBodyFromSnapshot(
+                previousSnapshot,
+              );
               pushUndo({
                 description: `Edited token "${targetPath}"`,
                 restore: async () => {

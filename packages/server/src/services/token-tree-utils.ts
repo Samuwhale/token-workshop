@@ -1,4 +1,5 @@
 import {
+  readTokenScopes,
   type Token,
   type TokenGroup,
   type TokenType,
@@ -27,13 +28,6 @@ const FLOAT_SCOPE_TOKEN_TYPES: Record<string, string> = {
  */
 type TokenTreeNode = TokenGroup[string]; // Token | TokenGroup | TokenType | string | undefined
 
-function getTokenScopes(token: { $extensions?: Record<string, unknown> }): string[] {
-  const rawScopes = token.$extensions?.['com.figma.scopes'];
-  return Array.isArray(rawScopes)
-    ? rawScopes.filter((scope): scope is string => typeof scope === 'string')
-    : [];
-}
-
 function normalizeScopedVariableTokenValue(value: unknown, nextType: string): unknown {
   if (nextType === 'dimension') {
     if (typeof value === 'number') {
@@ -46,7 +40,7 @@ function normalizeScopedVariableTokenValue(value: unknown, nextType: string): un
 function normalizeScopedVariableTokenShape<
   T extends { $type?: string; $value?: unknown; $extensions?: Record<string, unknown> },
 >(token: T): T {
-  const scopes = getTokenScopes(token);
+  const scopes = readTokenScopes(token);
   if (scopes.length === 0) {
     return token;
   }

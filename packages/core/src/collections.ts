@@ -9,6 +9,7 @@ import type {
   TokenExtensions,
   ViewPreset,
 } from "./types.js";
+import { stableStringify } from "./stable-stringify.js";
 
 export const COLLECTION_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
@@ -142,6 +143,49 @@ export function readTokenCollectionModeValues(
   return modes;
 }
 
+export function tokenChangesAcrossModesInCollection(
+  token: Pick<Token, "$value" | "$extensions"> | undefined,
+  collectionId: string,
+): boolean {
+  if (!token || collectionId.trim().length === 0) {
+    return false;
+  }
+
+  const collectionModes = readTokenCollectionModeValues(token)[collectionId];
+  if (!collectionModes) {
+    return false;
+  }
+
+  const primaryValue = stableStringify(token.$value);
+  return Object.values(collectionModes).some(
+    (value) =>
+      value !== undefined &&
+      value !== null &&
+      stableStringify(value) !== primaryValue,
+  );
+}
+
+export function sanitizeModeValuesForCollection(
+  collection: Pick<TokenCollection, "modes">,
+  modeValues: Record<string, unknown>,
+): Record<string, unknown> {
+  const secondaryModeNames = new Set(
+    collection.modes.slice(1).map((mode) => mode.name),
+  );
+  if (secondaryModeNames.size === 0) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(modeValues).filter(
+      ([modeName, value]) =>
+        secondaryModeNames.has(modeName) &&
+        value !== undefined &&
+        value !== null,
+    ),
+  );
+}
+
 export function buildTokenExtensionsWithCollectionModes(
   token: Pick<Token, "$extensions">,
   nextModes: TokenModeValues,
@@ -227,12 +271,10 @@ export function writeTokenModeValuesForCollection(
   token.$value = modeValues[primaryModeName] as Token["$value"];
 
   const nextModes = readTokenCollectionModeValues(token);
-  const nextCollectionModes: Record<string, unknown> = {};
-  for (const mode of collection.modes.slice(1)) {
-    if (mode.name in modeValues) {
-      nextCollectionModes[mode.name] = modeValues[mode.name];
-    }
-  }
+  const nextCollectionModes = sanitizeModeValuesForCollection(
+    collection,
+    modeValues,
+  );
 
   if (Object.keys(nextCollectionModes).length > 0) {
     nextModes[collection.id] = nextCollectionModes;

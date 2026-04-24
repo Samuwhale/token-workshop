@@ -1,14 +1,13 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import path from "node:path";
 import fs from "node:fs/promises";
-import { flattenTokenGroup, type Token } from "@tokenmanager/core";
+import { flattenTokenGroup, stableStringify, type Token } from "@tokenmanager/core";
 import { BadRequestError, GitTimeoutError } from "../errors.js";
 import type { CollectionStore } from "./collection-store.js";
 import type { TokenStore } from "./token-store.js";
 import type { GeneratorService } from "./generator-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
-import { stableStringify } from "./stable-stringify.js";
 
 /**
  * Timeout (ms) applied to all git network operations (fetch, pull, push).

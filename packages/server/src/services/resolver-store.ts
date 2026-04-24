@@ -17,6 +17,7 @@ import type {
   ResolverResult,
 } from "@tokenmanager/core";
 import {
+  stableStringify,
   validateResolverFile,
   resolveResolverTokens,
 } from "@tokenmanager/core";
@@ -621,8 +622,8 @@ export class ResolverStore {
     }
 
     const next = data as ResolverFile;
-    const previousSerialized = previous ? JSON.stringify(previous) : null;
-    const nextSerialized = JSON.stringify(next);
+    const previousSerialized = previous ? stableStringify(previous) : null;
+    const nextSerialized = stableStringify(next);
     this.resolvers.set(name, next);
     // Clear any prior load error for this resolver on successful load
     this.loadErrors.delete(name);

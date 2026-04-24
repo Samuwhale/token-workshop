@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getTokenLifecycle, isDTCGToken } from '@tokenmanager/core';
+import { getTokenLifecycle, isDTCGToken, readTokenScopes } from '@tokenmanager/core';
 import type {
   DTCGGroup,
   TokenValue,
@@ -54,8 +54,7 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
     const path = prefix ? `${prefix}.${key}` : key;
     if (isDTCGToken(value)) {
       const $type = value.$type ?? inheritedType ?? 'unknown';
-      const rawScopes = value.$extensions?.['com.figma.scopes'];
-      const $scopes = Array.isArray(rawScopes) ? rawScopes as string[] : undefined;
+      const $scopes = readTokenScopes(value);
       const $lifecycle = compactTokenLifecycle(getTokenLifecycle(value));
       out.push([path, {
         $value: value.$value as TokenValue | TokenReference,
@@ -63,7 +62,7 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
         $name: key,
         ...(value.$description ? { $description: value.$description } : {}),
         ...(value.$extensions ? { $extensions: value.$extensions } : {}),
-        ...($scopes ? { $scopes } : {}),
+        ...($scopes.length > 0 ? { $scopes } : {}),
         ...($lifecycle ? { $lifecycle } : {}),
       }]);
     } else if (typeof value === 'object' && !Array.isArray(value)) {
@@ -431,7 +430,7 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
     const path = prefix ? `${prefix}.${key}` : key;
     if (value && typeof value === 'object' && '$value' in value) {
       const token = value as import('@tokenmanager/core').DTCGToken;
-      const rawScopes = token.$extensions?.['com.figma.scopes'];
+      const tokenScopes = readTokenScopes(token);
       nodes.push({
         path,
         name: key,
@@ -439,20 +438,20 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
         $value: token.$value as import('@tokenmanager/core').TokenValue | undefined,
         $description: token.$description,
         $extensions: token.$extensions as Record<string, unknown> | undefined,
-        $scopes: Array.isArray(rawScopes) ? rawScopes.filter((scope): scope is string => typeof scope === 'string') : undefined,
+        $scopes: tokenScopes.length > 0 ? tokenScopes : undefined,
         $lifecycle: compactTokenLifecycle(getTokenLifecycle(token)),
         isGroup: false,
       });
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
       const tokenGroup = value as import('@tokenmanager/core').DTCGGroup;
-      const rawScopes = tokenGroup.$extensions?.['com.figma.scopes'];
+      const groupScopes = readTokenScopes(tokenGroup);
       nodes.push({
         path,
         name: key,
         $type: tokenGroup.$type,
         $description: tokenGroup.$description,
         $extensions: tokenGroup.$extensions,
-        $scopes: Array.isArray(rawScopes) ? rawScopes.filter((scope): scope is string => typeof scope === 'string') : undefined,
+        $scopes: groupScopes.length > 0 ? groupScopes : undefined,
         $lifecycle: compactTokenLifecycle(getTokenLifecycle(tokenGroup)),
         isGroup: true,
         children: buildTree(tokenGroup, path),
