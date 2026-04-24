@@ -520,4 +520,6 @@ export interface TokenTreeNodeProps {
   multiModeValues: MultiModeValue[];
   /** Grid template shared between the table header and every row so columns align. */
   gridTemplate: string;
+  /** Resolve multi-mode values for any token path — used by group rows to aggregate descendant previews. */
+  getValuesForPath?: (tokenPath: string) => MultiModeValue[];
 }

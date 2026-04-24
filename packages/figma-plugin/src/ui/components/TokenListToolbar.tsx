@@ -4,6 +4,7 @@ import {
   ArrowUpDown,
   ChevronRight,
   MoreHorizontal,
+  Plus,
   Search,
   Sparkles,
   Target,
@@ -142,12 +143,20 @@ export function TokenListToolbar({
 }: TokenListToolbarProps) {
   const actionsMenu = useDropdownMenu();
   const sortMenu = useDropdownMenu();
+  const createMenu = useDropdownMenu();
   const runMenuAction = useCallback(
     (action: () => void) => {
       action();
       actionsMenu.close({ restoreFocus: false });
     },
     [actionsMenu],
+  );
+  const runCreateAction = useCallback(
+    (action: () => void) => {
+      action();
+      createMenu.close({ restoreFocus: false });
+    },
+    [createMenu],
   );
   const closeSortMenu = useCallback(() => {
     sortMenu.close({ restoreFocus: false });
@@ -172,9 +181,10 @@ export function TokenListToolbar({
   const hasEditActions =
     Boolean(onSelectTokens) || Boolean(onBulkEdit) || Boolean(onFindReplace);
   const hasGroupOps = overflowMenuProps?.hasGroups === true;
-  const hasOverflowActions = hasCreateActions || hasEditActions || hasGroupOps;
+  const hasOverflowActions = hasEditActions || hasGroupOps;
   const showOverflow =
     hasTokens && viewMode === "tree" && hasOverflowActions;
+  const showCreate = hasTokens && viewMode === "tree" && hasCreateActions;
 
   const sortActive =
     Boolean(overflowMenuProps) &&
@@ -448,6 +458,79 @@ export function TokenListToolbar({
             </div>
           ) : null}
 
+          {showCreate ? (
+            <div className="relative shrink-0">
+              <button
+                ref={createMenu.triggerRef}
+                type="button"
+                onClick={createMenu.toggle}
+                disabled={!connected}
+                aria-expanded={createMenu.open}
+                aria-haspopup="menu"
+                aria-label="Create"
+                title="Create"
+                className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                  createMenu.open
+                    ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
+                    : "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)]"
+                } disabled:opacity-40`}
+              >
+                <Plus size={12} strokeWidth={2} aria-hidden />
+                <span>Create</span>
+              </button>
+
+              {createMenu.open ? (
+                <div
+                  ref={createMenu.menuRef}
+                  className="absolute right-0 top-full z-50 mt-1 w-60 rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                  role="menu"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => runCreateAction(handleOpenNewGroupDialog)}
+                    disabled={!connected}
+                    className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  >
+                    New group
+                  </button>
+                  {onCreateGeneratedGroup ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(onCreateGeneratedGroup)}
+                      disabled={!connected}
+                      className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    >
+                      <Sparkles size={11} strokeWidth={1.5} aria-hidden />
+                      Generate group
+                    </button>
+                  ) : null}
+                  {onShowPasteModal ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(onShowPasteModal)}
+                      disabled={!connected}
+                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    >
+                      Paste JSON
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => runCreateAction(openTableCreate)}
+                    disabled={!connected}
+                    className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  >
+                    Token table
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {showOverflow ? (
             <div className="relative shrink-0">
               <button
@@ -495,57 +578,9 @@ export function TokenListToolbar({
                     </>
                   ) : null}
 
-                  {hasCreateActions ? (
-                    <>
-                      {hasGroupOps ? <div className="h-1.5" aria-hidden /> : null}
-                      <MenuSectionLabel>Create</MenuSectionLabel>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => runMenuAction(handleOpenNewGroupDialog)}
-                        disabled={!connected}
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                      >
-                        New group
-                      </button>
-                      {onCreateGeneratedGroup ? (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => runMenuAction(onCreateGeneratedGroup)}
-                          disabled={!connected}
-                          className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                        >
-                          <Sparkles size={11} strokeWidth={1.5} aria-hidden />
-                          Generate group
-                        </button>
-                      ) : null}
-                      {onShowPasteModal ? (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => runMenuAction(onShowPasteModal)}
-                          disabled={!connected}
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                        >
-                          Paste JSON
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => runMenuAction(openTableCreate)}
-                        disabled={!connected}
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                      >
-                        Token table
-                      </button>
-                    </>
-                  ) : null}
-
                   {hasEditActions ? (
                     <>
-                      {hasGroupOps || hasCreateActions ? (
+                      {hasGroupOps ? (
                         <div className="h-1.5" aria-hidden />
                       ) : null}
                       <MenuSectionLabel>Edit</MenuSectionLabel>

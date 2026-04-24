@@ -53,6 +53,7 @@ import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
 import type { GeneratedTokenResult } from "../../hooks/useGenerators";
 import { getGeneratedGroupKeepUpdatedAvailability } from "../../shared/generatedGroupUtils";
+import { aggregateGroupForMode, GroupModePreview } from "./GroupModePreview";
 
 export const TokenGroupNode = memo(
   function TokenGroupNode(props: TokenTreeNodeProps) {
@@ -284,6 +285,31 @@ export const TokenGroupNode = memo(
       targetGenerator,
     ]);
     const collectionCoverageSummary = collectionCoverage?.get(node.path) ?? null;
+
+    // Aggregate descendant values per mode so collapsed groups preview what's
+    // inside without the user having to expand — especially valuable for nested
+    // groups several levels deep.
+    const hasModeColumns = props.multiModeValues.length > 0;
+    const groupModeAggregates = useMemo(() => {
+      if (isExpanded || !hasModeColumns || !props.getValuesForPath) {
+        return null;
+      }
+      const map = new Map<string, ReturnType<typeof aggregateGroupForMode>>();
+      for (const mv of props.multiModeValues) {
+        map.set(
+          mv.optionName,
+          aggregateGroupForMode(node, mv.optionName, props.getValuesForPath),
+        );
+      }
+      return map;
+    }, [
+      isExpanded,
+      hasModeColumns,
+      node,
+      props.multiModeValues,
+      props.getValuesForPath,
+    ]);
+
     const groupPresentation = readTokenPresentationMetadata(node);
     const groupScopeSummary =
       node.$type && groupPresentation.scopes.length > 0
@@ -408,11 +434,17 @@ export const TokenGroupNode = memo(
           data-group-path={node.path}
           data-node-name={node.name}
           onFocus={() => onGroupRovingFocus(node.path)}
-          className={`sticky left-0 z-[1] relative flex items-center gap-1 px-1.5 py-1 cursor-pointer transition-colors group/group token-row-hover ${targetGenerator ? "bg-[var(--color-figma-generator)]/[0.03] hover:bg-[var(--color-figma-generator)]/[0.08]" : "bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)]"} ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
+          className={`relative cursor-pointer transition-colors group/group token-row-hover ${targetGenerator ? "bg-[var(--color-figma-generator)]/[0.03] hover:bg-[var(--color-figma-generator)]/[0.08]" : "bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)]"} ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
           data-roving-focus={groupRovingFocusPath === node.path || undefined}
-          style={{
-            paddingLeft: `${computePaddingLeft(depth, 8)}px`,
-          }}
+          style={
+            hasModeColumns
+              ? {
+                  display: "grid",
+                  gridTemplateColumns: props.gridTemplate,
+                  alignItems: "stretch",
+                }
+              : undefined
+          }
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onDoubleClick={() => {
             if (!renamingGroup && structuralActionsEnabled) {
@@ -506,153 +538,175 @@ export const TokenGroupNode = memo(
             setGroupMenuPos(clampMenuPosition(e.clientX, e.clientY, 192, 420));
           }}
         >
-          <DepthBar depth={depth} />
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 8 8"
-            className={`transition-transform shrink-0 ${isExpanded ? "rotate-90" : ""}`}
-            fill="currentColor"
-            aria-hidden="true"
+          <div
+            className={`${hasModeColumns ? "sticky left-0 z-[1] min-w-0" : ""} flex items-center gap-1 px-1.5 py-1 ${hasModeColumns ? (dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "bg-[var(--color-figma-error)]/10" : "bg-[var(--color-figma-accent)]/10") : targetGenerator ? "bg-[var(--color-figma-generator)]/[0.03] group-hover/group:bg-[var(--color-figma-generator)]/[0.08]" : "bg-[var(--color-figma-bg)] group-hover/group:bg-[var(--color-figma-bg-hover)]") : ""}`}
+            style={{
+              paddingLeft: `${computePaddingLeft(depth, 8)}px`,
+            }}
           >
-            <path d="M2 1l4 3-4 3V1z" />
-          </svg>
-          {renamingGroup ? (
-            <div
-              className="flex flex-col flex-1 min-w-0 gap-0.5"
-              onClick={(e) => e.stopPropagation()}
+            <DepthBar depth={depth} />
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 8 8"
+              className={`transition-transform shrink-0 ${isExpanded ? "rotate-90" : ""}`}
+              fill="currentColor"
+              aria-hidden="true"
             >
-              <div className="flex items-center gap-1">
-                <input
-                  ref={renameGroupInputRef}
-                  value={renameGroupVal}
-                  onChange={(e) => {
-                    setRenameGroupVal(e.target.value);
-                    setRenameGroupError("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.stopPropagation();
-                      confirmGroupRename();
-                    }
-                    if (e.key === "Escape") {
-                      e.stopPropagation();
-                      cancelGroupRename();
-                    }
-                  }}
-                  aria-label="Rename group"
-                  className={`flex-1 text-body font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameGroupError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
-                />
-                <button
-                  onClick={confirmGroupRename}
-                  disabled={!renameGroupVal.trim()}
-                  className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={cancelGroupRename}
-                  className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
-                >
-                  Cancel
-                </button>
+              <path d="M2 1l4 3-4 3V1z" />
+            </svg>
+            {renamingGroup ? (
+              <div
+                className="flex flex-col flex-1 min-w-0 gap-0.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-1">
+                  <input
+                    ref={renameGroupInputRef}
+                    value={renameGroupVal}
+                    onChange={(e) => {
+                      setRenameGroupVal(e.target.value);
+                      setRenameGroupError("");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.stopPropagation();
+                        confirmGroupRename();
+                      }
+                      if (e.key === "Escape") {
+                        e.stopPropagation();
+                        cancelGroupRename();
+                      }
+                    }}
+                    aria-label="Rename group"
+                    className={`flex-1 text-body font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameGroupError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
+                  />
+                  <button
+                    onClick={confirmGroupRename}
+                    disabled={!renameGroupVal.trim()}
+                    className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelGroupRename}
+                    className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {renameGroupError && (
+                  <p
+                    role="alert"
+                    className="text-secondary text-[var(--color-figma-error)]"
+                  >
+                    {renameGroupError}
+                  </p>
+                )}
               </div>
-              {renameGroupError && (
-                <p
-                  role="alert"
-                  className="text-secondary text-[var(--color-figma-error)]"
-                >
-                  {renameGroupError}
-                </p>
-              )}
-            </div>
-          ) : (
-            isCategoryHeader ? (
-              <span className="flex-1 text-body font-medium text-[var(--color-figma-text-secondary)]">
-                {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
-              </span>
             ) : (
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-body font-medium text-[var(--color-figma-text)]">
+              isCategoryHeader ? (
+                <span className="flex-1 text-body font-medium text-[var(--color-figma-text-secondary)]">
                   {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                 </span>
-                {groupMetadataSegments.length > 0 && (
-                  <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
-                    {renderRowMetadataSegments(groupMetadataSegments)}
-                  </div>
-                )}
-              </div>
-            )
-          )}
-          {!renamingGroup && (
-            <div className="flex items-center gap-1 shrink-0 ml-auto">
-              {collectionCoverageSummary &&
-                collectionCoverageSummary.total > 0 &&
-                collectionCoverageSummary.totalMissing > 0 && (
-                  <span
-                    className="shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
-                    title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
-                  >
-                    {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
+              ) : (
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-body font-medium text-[var(--color-figma-text)]">
+                    {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                   </span>
-                )}
-              {targetGenerator && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (targetGenerator.id) onEditGeneratedGroup?.(targetGenerator.id);
-                  }}
-                  disabled={!targetGenerator.id || !onEditGeneratedGroup}
-                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${
-                    targetGenerator.isStale
-                      ? "text-[var(--color-figma-generator)]"
-                      : "text-[var(--color-figma-text-tertiary)]"
-                  } hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-accent)] disabled:cursor-default disabled:opacity-60`}
-                  title={targetGenerator.isStale ? "Generated (source changed) — click to edit" : "Generated group — click to edit"}
-                  aria-label="Edit generator"
-                >
-                  <GeneratedGlyph size={12} className="shrink-0" />
-                </button>
-              )}
-              <div
-                className={`flex items-center gap-0.5 shrink-0 ${selectMode || !structuralActionsEnabled ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
-              >
-                {onZoomIntoGroup && (
+                  {groupMetadataSegments.length > 0 && (
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
+                      {renderRowMetadataSegments(groupMetadataSegments)}
+                    </div>
+                  )}
+                </div>
+              )
+            )}
+            {!renamingGroup && (
+              <div className="flex items-center gap-1 shrink-0 ml-auto">
+                {collectionCoverageSummary &&
+                  collectionCoverageSummary.total > 0 &&
+                  collectionCoverageSummary.totalMissing > 0 && (
+                    <span
+                      className="shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
+                      title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
+                    >
+                      {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
+                    </span>
+                  )}
+                {targetGenerator && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); onZoomIntoGroup(node.path); }}
-                    title="Focus on this group"
-                    aria-label="Focus on this group"
-                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (targetGenerator.id) onEditGeneratedGroup?.(targetGenerator.id);
+                    }}
+                    disabled={!targetGenerator.id || !onEditGeneratedGroup}
+                    className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${
+                      targetGenerator.isStale
+                        ? "text-[var(--color-figma-generator)]"
+                        : "text-[var(--color-figma-text-tertiary)]"
+                    } hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-accent)] disabled:cursor-default disabled:opacity-60`}
+                    title={targetGenerator.isStale ? "Generated (source changed) — click to edit" : "Generated group — click to edit"}
+                    aria-label="Edit generator"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
+                    <GeneratedGlyph size={12} className="shrink-0" />
                   </button>
                 )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onCreateSibling?.(node.path, inferGroupTokenType(node.children)); }}
-                  title="Add token to group"
-                  aria-label="Add token to group"
-                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                <div
+                  className={`flex items-center gap-0.5 shrink-0 ${selectMode || !structuralActionsEnabled ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 420));
-                  }}
-                  title="Group actions"
-                  aria-label="Group actions"
-                  aria-haspopup="menu"
-                  aria-expanded={!!groupMenuPos}
-                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
-                </button>
+                  {onZoomIntoGroup && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onZoomIntoGroup(node.path); }}
+                      title="Focus on this group"
+                      aria-label="Focus on this group"
+                      className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCreateSibling?.(node.path, inferGroupTokenType(node.children)); }}
+                    title="Add token to group"
+                    aria-label="Add token to group"
+                    className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 420));
+                    }}
+                    title="Group actions"
+                    aria-label="Group actions"
+                    aria-haspopup="menu"
+                    aria-expanded={!!groupMenuPos}
+                    className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          {hasModeColumns &&
+            props.multiModeValues.map((mv) => {
+              const aggregate = groupModeAggregates?.get(mv.optionName);
+              return (
+                <div
+                  key={mv.optionName}
+                  className="min-w-0 flex items-center px-1.5 overflow-hidden"
+                >
+                  {aggregate ? (
+                    <GroupModePreview aggregate={aggregate} />
+                  ) : null}
+                </div>
+              );
+            })}
+          {hasModeColumns && <div aria-hidden="true" />}
         </div>
 
         {/* Group context menu — tiered with "More..." expander */}
@@ -1111,6 +1165,7 @@ export const TokenGroupNode = memo(
               }
               multiModeValues={props.multiModeValues}
               gridTemplate={props.gridTemplate}
+              getValuesForPath={props.getValuesForPath}
             />
           ))}
       </div>

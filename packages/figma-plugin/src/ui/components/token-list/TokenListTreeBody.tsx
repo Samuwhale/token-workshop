@@ -898,6 +898,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 }
                 multiModeValues={getMultiModeValues(node.path)}
                 gridTemplate={gridTemplate}
+                getValuesForPath={getMultiModeValues}
               />
             );
           })}
