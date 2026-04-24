@@ -71,6 +71,7 @@ export interface StepSourceProps {
   typeNeedsValue: boolean;
   hasValue: boolean;
   sourceTokenPath?: string;
+  sourceCollectionId?: string;
   sourceTokenValue?: any;
   inlineValue: unknown;
   previewTokens: GeneratedTokenResult[];
@@ -81,13 +82,17 @@ export interface StepSourceProps {
   overwrittenEntries: OverwrittenEntry[];
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onConfigInteractionStart: () => void;
   onConfigChange: (type: GeneratorType, cfg: GeneratorConfig) => void;
-  onSourcePathChange: (value: string) => void;
+  onSourcePathChange: (
+    value: string,
+    options?: { collectionId?: string },
+  ) => void;
   onInlineValueChange: (value: unknown) => void;
   onOverrideChange: (
     stepName: string,
@@ -108,6 +113,7 @@ export function StepSource({
   typeNeedsValue,
   hasValue,
   sourceTokenPath,
+  sourceCollectionId,
   sourceTokenValue,
   inlineValue,
   previewTokens,
@@ -118,6 +124,7 @@ export function StepSource({
   overwrittenEntries,
   allTokensFlat,
   pathToCollectionId,
+  collectionIdsByPath,
   canUndo,
   canRedo,
   onUndo,
@@ -283,10 +290,12 @@ export function StepSource({
               typeExpectsColor ? "color" : typeExpectsDimension ? "dimension" : null
             }
             sourceTokenPath={sourceTokenPath}
+            sourceCollectionId={sourceCollectionId}
             sourceTokenValue={sourceTokenValue}
             inlineValue={inlineValue}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
+            collectionIdsByPath={collectionIdsByPath}
             onSourcePathChange={onSourcePathChange}
             onInlineValueChange={onInlineValueChange}
           />

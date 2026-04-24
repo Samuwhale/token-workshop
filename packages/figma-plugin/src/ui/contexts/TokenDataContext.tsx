@@ -220,9 +220,12 @@ function GeneratorProvider({
   serverUrl: string;
   connected: boolean;
 }) {
+  const { pathToCollectionId, collectionIdsByPath } = useTokenFlatMapContext();
   const { generators, loading: generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths } = useGenerators(
     serverUrl,
     connected,
+    pathToCollectionId,
+    collectionIdsByPath,
   );
 
   const value = useMemo<GeneratorContextValue>(

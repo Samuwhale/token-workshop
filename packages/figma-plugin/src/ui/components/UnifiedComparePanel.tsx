@@ -21,7 +21,7 @@ export interface UnifiedComparePanelProps {
 
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  pathToStorageCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collections: TokenCollection[];
   collectionIds: string[];
 

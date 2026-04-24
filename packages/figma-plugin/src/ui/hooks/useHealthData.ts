@@ -17,7 +17,6 @@ import {
 export interface UnifiedTokenEntry {
   $value: unknown;
   $type: string;
-  collectionId: string;
   $extensions?: TokenMapEntry["$extensions"];
   $scopes?: string[];
   $lifecycle?: TokenMapEntry["$lifecycle"];
@@ -86,7 +85,6 @@ const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
 export interface UseHealthDataParams {
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   tokenUsageCounts: Record<string, number>;
   tokenUsageReady?: boolean;
@@ -110,7 +108,6 @@ export interface HealthDataResult {
 
 export function useHealthData({
   allTokensFlat,
-  pathToCollectionId,
   perCollectionFlat,
   tokenUsageCounts,
   tokenUsageReady = false,
@@ -136,14 +133,13 @@ export function useHealthData({
       result[path] = {
         $value: entry.$value,
         $type: entry.$type,
-        collectionId: pathToCollectionId[path] ?? "",
         $extensions: entry.$extensions,
         $scopes: entry.$scopes,
         $lifecycle: entry.$lifecycle,
       };
     }
     return result;
-  }, [allTokensFlat, pathToCollectionId]);
+  }, [allTokensFlat]);
 
   const resolveColorHex = useMemo(() => {
     return (path: string, visited = new Set<string>()): string | null => {

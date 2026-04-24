@@ -15,7 +15,6 @@ import { LightnessInspectorPanel } from "./LightnessInspectorPanel";
 
 export interface ColorAnalysisPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collections: TokenCollection[];
   currentCollectionId: string;
@@ -25,7 +24,6 @@ export interface ColorAnalysisPanelProps {
 
 export function ColorAnalysisPanel({
   allTokensFlat,
-  pathToCollectionId,
   perCollectionFlat,
   collections,
   currentCollectionId,
@@ -34,7 +32,6 @@ export function ColorAnalysisPanel({
 }: ColorAnalysisPanelProps) {
   const { allColorTokens } = useHealthData({
     allTokensFlat,
-    pathToCollectionId,
     perCollectionFlat,
     tokenUsageCounts: {},
     validationIssues: null,

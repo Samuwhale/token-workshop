@@ -90,12 +90,12 @@ export function useTokenSave({
     previousState?: { type?: string; value: unknown },
   ) => {
     if (!connected) return;
-    // Prefer the raw per-collection entry (alias refs intact) over the resolved
-    // cross-collection entry from allTokensFlat. For composite tokens (shadow,
+    // Prefer the raw per-collection entry (alias refs intact) over the shared
+    // flat fallback. For composite tokens (shadow,
     // typography, etc.) whose sub-properties may be aliases, restoring the resolved
     // value on undo would bake the resolved values into the file and destroy the
     // alias references. Using the per-collection entry also ensures undo is captured
-    // when the token lives in a collection outside the current resolved flat map.
+    // when the token lives in a collection outside the current working collection.
     const oldEntry = perCollectionFlat?.[collectionId]?.[path] ?? allTokensFlat[path];
     const previousSnapshot = previousState
       ? {

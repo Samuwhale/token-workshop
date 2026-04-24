@@ -5,6 +5,7 @@ import {
 } from '@tokenmanager/core';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
+import { createGeneratedGroupSourceKeys } from '../shared/generatorSource';
 
 // ---------------------------------------------------------------------------
 // Types (defined inline — do not import from @tokenmanager/core in the plugin)
@@ -175,6 +176,7 @@ export interface TokenGenerator {
   type: GeneratorType;
   name: string;
   sourceToken?: string;
+  sourceCollectionId?: string;
   inlineValue?: unknown;
   targetCollection: string;
   targetGroup: string;
@@ -251,7 +253,12 @@ export function getGeneratorDashboardStatus(
   return 'upToDate';
 }
 
-export function useGenerators(serverUrl: string, connected: boolean): UseGeneratorsResult {
+export function useGenerators(
+  serverUrl: string,
+  connected: boolean,
+  pathToCollectionId?: Record<string, string>,
+  collectionIdsByPath?: Record<string, string[]>,
+): UseGeneratorsResult {
   const [generators, setGenerators] = useState<TokenGenerator[]>([]);
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -284,13 +291,19 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
   const generatorsBySource = useMemo(() => {
     const map = new Map<string, TokenGenerator[]>();
     for (const gen of generators) {
-      if (!gen.sourceToken) continue;
-      const key = gen.sourceToken;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(gen);
+      const keys = createGeneratedGroupSourceKeys({
+        sourceTokenPath: gen.sourceToken,
+        sourceCollectionId: gen.sourceCollectionId,
+        pathToCollectionId,
+        collectionIdsByPath,
+      });
+      for (const key of keys) {
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(gen);
+      }
     }
     return map;
-  }, [generators]);
+  }, [collectionIdsByPath, generators, pathToCollectionId]);
 
   const generatorsByTargetGroup = useMemo(() => {
     const map = new Map<string, TokenGenerator>();

@@ -59,6 +59,11 @@ import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvance
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 import { TokenDetailsSection } from "./token-details/TokenDetailsSection";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
+import {
+  getCollectionIdsForPath,
+  pathExistsInCollection,
+  resolveCollectionIdForPath,
+} from "../shared/collectionPathLookup";
 
 interface TokenDetailsProps {
   tokenPath: string;
@@ -71,6 +76,7 @@ interface TokenDetailsProps {
   backLabel?: string;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   generators?: TokenGenerator[];
   isCreateMode?: boolean;
   initialType?: string;
@@ -110,6 +116,19 @@ function cloneModeValue<T>(value: T): T {
     : value;
 }
 
+function formatCollectionIdList(collectionIds: string[]): string {
+  if (collectionIds.length === 0) {
+    return "";
+  }
+  if (collectionIds.length === 1) {
+    return collectionIds[0];
+  }
+  if (collectionIds.length === 2) {
+    return `${collectionIds[0]} and ${collectionIds[1]}`;
+  }
+  return `${collectionIds.slice(0, -1).join(", ")}, and ${collectionIds.at(-1)}`;
+}
+
 
 export function TokenDetails({
   tokenPath,
@@ -122,6 +141,7 @@ export function TokenDetails({
   backLabel,
   allTokensFlat = {},
   pathToCollectionId = {},
+  collectionIdsByPath = {},
   generators = [],
   isCreateMode = false,
   initialType,
@@ -147,18 +167,22 @@ export function TokenDetails({
   requiresWorkingCollectionForEdit = false,
   onMakeWorkingCollection,
 }: TokenDetailsProps) {
-  const effectivePathToCollectionId = pathToCollectionId;
   const ownerCollectionId = useMemo(
     () =>
       explicitCollectionId ??
       (isCreateMode
         ? currentCollectionId
-        : effectivePathToCollectionId[tokenPath] ?? currentCollectionId),
+        : resolveCollectionIdForPath({
+            path: tokenPath,
+            pathToCollectionId,
+            collectionIdsByPath,
+          }).collectionId ?? currentCollectionId),
     [
+      collectionIdsByPath,
       explicitCollectionId,
-      effectivePathToCollectionId,
       isCreateMode,
       currentCollectionId,
+      pathToCollectionId,
       tokenPath,
     ],
   );
@@ -315,8 +339,11 @@ export function TokenDetails({
   } = typeParsing;
   const generators$ = useTokenEditorGenerators({
     tokenPath,
+    tokenCollectionId: ownerCollectionId,
     tokenType,
     generators,
+    pathToCollectionId,
+    collectionIdsByPath,
   });
   const {
     existingGeneratorsForToken,
@@ -736,8 +763,19 @@ export function TokenDetails({
     if (!isCreateMode) return false;
     const trimmed = editPath.trim();
     if (!trimmed) return false;
-    return trimmed in allTokensFlat;
-  }, [isCreateMode, editPath, allTokensFlat]);
+    return pathExistsInCollection({
+      path: trimmed,
+      collectionId: ownerCollectionId,
+      pathToCollectionId,
+      collectionIdsByPath,
+    });
+  }, [
+    collectionIdsByPath,
+    editPath,
+    isCreateMode,
+    ownerCollectionId,
+    pathToCollectionId,
+  ]);
 
   useEffect(() => {
     editorSessionHost.registerSession({
@@ -1099,6 +1137,14 @@ export function TokenDetails({
 
   const trimmedEditPath = editPath.trim();
   const trimmedEditLeaf = trimmedEditPath.split(".").filter(Boolean).pop() ?? "";
+  const conflictingOtherCollectionIds =
+    isCreateMode && trimmedEditPath
+      ? getCollectionIdsForPath({
+          path: trimmedEditPath,
+          pathToCollectionId,
+          collectionIdsByPath,
+        }).filter((collectionId) => collectionId !== ownerCollectionId)
+      : [];
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
   const footerNote =
     isCreateMode && duplicatePath
@@ -1668,7 +1714,16 @@ export function TokenDetails({
             {duplicatePath ? (
               <p className="tm-token-details__error-copy">
                 A token with this path already exists in{" "}
-                {pathToCollectionId[trimmedEditPath] || ownerCollectionId}.
+                {ownerCollectionId}.
+              </p>
+            ) : null}
+            {!duplicatePath && conflictingOtherCollectionIds.length > 0 ? (
+              <p className="tm-token-details__field-help">
+                This path is already used in{" "}
+                {formatCollectionIdList(conflictingOtherCollectionIds)}.
+                Creating it here will make references to{" "}
+                <span className="font-mono">{trimmedEditPath}</span> ambiguous
+                across collections.
               </p>
             ) : null}
 
@@ -1953,6 +2008,7 @@ export function TokenDetails({
             {canBeGeneratorSource && !valueIsAlias ? (
               <TokenEditorDerivedGroups
                 tokenPath={tokenPath}
+                tokenCollectionId={ownerCollectionId}
                 tokenName={tokenName}
                 tokenType={tokenType}
                 value={value}

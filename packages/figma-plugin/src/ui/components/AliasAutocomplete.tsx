@@ -49,7 +49,7 @@ export function AliasAutocomplete({
   onSelect,
   onClose,
 }: AliasAutocompleteProps) {
-  const { perCollectionFlat } = useTokenFlatMapContext();
+  const { perCollectionFlat, collectionIdsByPath } = useTokenFlatMapContext();
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -65,9 +65,10 @@ export function AliasAutocomplete({
     () => buildScopedTokenCandidates({
       allTokensFlat,
       pathToCollectionId,
+      collectionIdsByPath,
       perCollectionFlat,
     }),
-    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+    [allTokensFlat, pathToCollectionId, collectionIdsByPath, perCollectionFlat],
   );
 
   const { entries, totalCount, hasRecent } = useMemo(() => {

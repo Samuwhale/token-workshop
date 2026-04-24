@@ -23,11 +23,13 @@ import { getSingleObviousGeneratorType } from "./generators/generatorUtils";
 import {
   getGeneratedGroupKeepUpdatedAvailability,
   getGeneratedGroupTypeLabel,
+  resolveGeneratedGroupSourceContext,
 } from "../shared/generatedGroupUtils";
 
 export interface GeneratedGroupEditorProps {
   serverUrl: string;
   sourceTokenPath?: string;
+  sourceCollectionId?: string;
   sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
@@ -56,6 +58,7 @@ export interface GeneratedGroupEditorProps {
     info: GeneratorSaveSuccessInfo,
   ) => ToastAction | undefined;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   onPushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   presentation?: "modal" | "panel";
   editorSessionHost?: {
@@ -81,6 +84,7 @@ function getDialogTitle(params: {
 export function GeneratedGroupEditor({
   serverUrl,
   sourceTokenPath,
+  sourceCollectionId,
   sourceTokenName,
   sourceTokenType,
   sourceTokenValue,
@@ -99,6 +103,7 @@ export function GeneratedGroupEditor({
   onInterceptSemanticMapping,
   getSuccessToastAction,
   pathToCollectionId,
+  collectionIdsByPath,
   onPushUndo,
   presentation = "modal",
   editorSessionHost,
@@ -106,6 +111,7 @@ export function GeneratedGroupEditor({
   const dialog = useGeneratedGroupDialog({
     serverUrl,
     sourceTokenPath,
+    sourceCollectionId,
     sourceTokenName,
     sourceTokenType,
     sourceTokenValue,
@@ -114,6 +120,9 @@ export function GeneratedGroupEditor({
     template,
     initialDraft,
     allTokensFlat,
+    pathToCollectionId,
+    perCollectionFlat,
+    collectionIdsByPath,
     sourceValuesFlat,
     onSaved,
     onInterceptSemanticMapping,
@@ -121,12 +130,22 @@ export function GeneratedGroupEditor({
     pushUndo: onPushUndo,
   });
   const requestClose = editorSessionHost?.requestClose ?? onClose;
-  const activeSourceValue =
-    (dialog.editableSourcePath &&
-      sourceValuesFlat?.[dialog.editableSourcePath]?.$value) ??
-    (dialog.editableSourcePath === sourceTokenPath
-      ? sourceTokenValue
-      : undefined);
+  const activeSource = resolveGeneratedGroupSourceContext({
+    sourceTokenPath: dialog.editableSourcePath || sourceTokenPath,
+    sourceCollectionId:
+      dialog.editableSourceCollectionId ??
+      existingGenerator?.sourceCollectionId ??
+      sourceCollectionId,
+    sourceValuesFlat,
+    allTokensFlat,
+    pathToCollectionId,
+    collectionIdsByPath,
+    perCollectionFlat,
+    fallbackValue:
+      dialog.editableSourcePath === sourceTokenPath ? sourceTokenValue : undefined,
+  });
+  const activeSourceEntry = activeSource.entry;
+  const activeSourceValue = activeSource.value;
   const activeModeLabel = useMemo(() => {
     const collection = collections.find(
       (candidate) => candidate.id === dialog.targetCollection,
@@ -140,30 +159,37 @@ export function GeneratedGroupEditor({
     () =>
       getGeneratedGroupKeepUpdatedAvailability({
         sourceTokenPath: dialog.editableSourcePath || sourceTokenPath,
-        sourceTokenEntry:
-          (dialog.editableSourcePath
-            ? allTokensFlat?.[dialog.editableSourcePath]
-            : undefined) ??
-          (sourceTokenPath ? allTokensFlat?.[sourceTokenPath] : undefined),
+        sourceCollectionId:
+          dialog.editableSourceCollectionId ??
+          existingGenerator?.sourceCollectionId ??
+          sourceCollectionId,
+        sourceTokenEntry: activeSourceEntry,
         collections,
         pathToCollectionId,
+        collectionIdsByPath,
         perCollectionFlat,
       }),
     [
-      allTokensFlat,
+      activeSourceEntry,
+      collectionIdsByPath,
       collections,
+      dialog.editableSourceCollectionId,
       dialog.editableSourcePath,
+      existingGenerator?.sourceCollectionId,
       pathToCollectionId,
       perCollectionFlat,
+      sourceCollectionId,
       sourceTokenPath,
     ],
   );
+  const keepUpdated = dialog.keepUpdated;
+  const setKeepUpdated = dialog.setKeepUpdated;
 
   useEffect(() => {
-    if (!keepUpdatedAvailability.supported && dialog.keepUpdated) {
-      dialog.setKeepUpdated(false);
+    if (!keepUpdatedAvailability.supported && keepUpdated) {
+      setKeepUpdated(false);
     }
-  }, [dialog, keepUpdatedAvailability.supported]);
+  }, [keepUpdated, keepUpdatedAvailability.supported, setKeepUpdated]);
 
   const hasPrefilledSource = Boolean(sourceTokenPath?.trim());
   const hasExplicitOutcome = Boolean(template || initialDraft?.selectedType);
@@ -257,11 +283,6 @@ export function GeneratedGroupEditor({
 
       return (
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          {dialog.existingTokensError && (
-            <div role="alert" className={AUTHORING.error}>
-              {dialog.existingTokensError}
-            </div>
-          )}
           <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
             <button
               type="button"
@@ -550,6 +571,7 @@ export function GeneratedGroupEditor({
                 typeNeedsValue={dialog.typeNeedsValue}
                 hasValue={dialog.hasValue}
                 sourceTokenPath={dialog.editableSourcePath || undefined}
+                sourceCollectionId={dialog.editableSourceCollectionId}
                 sourceTokenValue={activeSourceValue}
                 inlineValue={dialog.inlineValue}
                 previewTokens={dialog.previewTokens}
@@ -560,6 +582,7 @@ export function GeneratedGroupEditor({
                 overwrittenEntries={dialog.overwrittenEntries}
                 allTokensFlat={allTokensFlat}
                 pathToCollectionId={pathToCollectionId}
+                collectionIdsByPath={collectionIdsByPath}
                 canUndo={dialog.canUndo}
                 canRedo={dialog.canRedo}
                 onUndo={dialog.handleUndo}

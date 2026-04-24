@@ -8,8 +8,8 @@ import type { TokenCollection } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
-import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
 import { computeGeneratorImpacts, computeModeImpacts } from '../shared/tokenImpact';
+import { entryReferencesAnyTokenPath } from '../shared/tokenUsage';
 
 export interface UseTokenDeleteParams {
   connected: boolean;
@@ -17,6 +17,8 @@ export interface UseTokenDeleteParams {
   collectionId: string;
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   generators?: TokenGenerator[];
   collections?: TokenCollection[];
@@ -35,6 +37,8 @@ export function useTokenDelete({
   collectionId,
   tokens,
   allTokensFlat,
+  pathToCollectionId,
+  collectionIdsByPath,
   perCollectionFlat,
   generators,
   collections,
@@ -52,74 +56,124 @@ export function useTokenDelete({
   const collectionIdRef = useRef(collectionId);
   collectionIdRef.current = collectionId;
 
-  const requestDeleteToken = useCallback((path: string) => {
-    if (!connected) return;
-    const affectedRefs: AffectedRef[] = [];
-    const source = perCollectionFlat ?? { '': allTokensFlat };
-    for (const [sName, flatSet] of Object.entries(source)) {
-      for (const [tokenPath, token] of Object.entries(flatSet)) {
-        if (tokenPath === path) continue;
-        const val = token.$value;
-        if (!isAlias(val)) continue;
-        if (extractAliasPath(val) === path) {
-          affectedRefs.push({ path: tokenPath, collectionId: sName });
+  const getImpactCollections = useCallback(
+    (): Record<string, Record<string, TokenMapEntry>> =>
+      perCollectionFlat ?? { [collectionId]: allTokensFlat },
+    [allTokensFlat, collectionId, perCollectionFlat],
+  );
+
+  const getCurrentCollectionFlat = useCallback(
+    (): Record<string, TokenMapEntry> =>
+      perCollectionFlat?.[collectionId] ?? allTokensFlat,
+    [allTokensFlat, collectionId, perCollectionFlat],
+  );
+
+  const collectAffectedRefs = useCallback(
+    (
+      targetPaths: ReadonlySet<string>,
+      excludedPaths: ReadonlySet<string>,
+    ): AffectedRef[] => {
+      const affectedRefs: AffectedRef[] = [];
+      const seen = new Set<string>();
+
+      for (const [candidateCollectionId, flatSet] of Object.entries(
+        getImpactCollections(),
+      )) {
+        for (const [tokenPath, token] of Object.entries(flatSet)) {
+          if (excludedPaths.has(tokenPath)) {
+            continue;
+          }
+          if (!entryReferencesAnyTokenPath(token, targetPaths)) {
+            continue;
+          }
+
+          const refKey = `${candidateCollectionId}:${tokenPath}`;
+          if (seen.has(refKey)) {
+            continue;
+          }
+          seen.add(refKey);
+          affectedRefs.push({ path: tokenPath, collectionId: candidateCollectionId });
         }
       }
-    }
+
+      return affectedRefs;
+    },
+    [getImpactCollections],
+  );
+
+  const buildDeleteImpacts = useCallback(
+    (targetPaths: ReadonlySet<string>, excludedPaths: ReadonlySet<string>) => {
+      const source = getImpactCollections();
+      return {
+        affectedRefs: collectAffectedRefs(targetPaths, excludedPaths),
+        generatorImpacts: computeGeneratorImpacts(
+          new Set(targetPaths),
+          collectionId,
+          generators ?? [],
+          pathToCollectionId,
+          collectionIdsByPath,
+        ),
+        modeImpacts: computeModeImpacts(
+          new Set(targetPaths),
+          collectionId,
+          collections ?? [],
+          source,
+        ),
+      };
+    },
+    [
+      collectAffectedRefs,
+      collectionId,
+      collectionIdsByPath,
+      collections,
+      generators,
+      getImpactCollections,
+      pathToCollectionId,
+    ],
+  );
+
+  const collectGroupPathsFromCurrentCollection = useCallback(
+    (groupPath: string): Set<string> => {
+      const targetPaths = new Set<string>();
+      const prefix = `${groupPath}.`;
+
+      for (const tokenPath of Object.keys(getCurrentCollectionFlat())) {
+        if (tokenPath === groupPath || tokenPath.startsWith(prefix)) {
+          targetPaths.add(tokenPath);
+        }
+      }
+
+      return targetPaths;
+    },
+    [getCurrentCollectionFlat],
+  );
+
+  const requestDeleteToken = useCallback((path: string) => {
+    if (!connected) return;
     const targetPaths = new Set([path]);
-    const generatorImpacts = computeGeneratorImpacts(targetPaths, generators ?? []);
-    const modeImpacts = computeModeImpacts(targetPaths, collections ?? [], source);
+    const { affectedRefs, generatorImpacts, modeImpacts } =
+      buildDeleteImpacts(targetPaths, targetPaths);
+    setDeleteError(null);
     setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, modeImpacts });
-  }, [connected, allTokensFlat, perCollectionFlat, generators, collections]);
+  }, [buildDeleteImpacts, connected]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
     if (!connected) return;
-    const affectedRefs: AffectedRef[] = [];
-    const prefix = `${path}.`;
-    const source = perCollectionFlat ?? { '': allTokensFlat };
-    // Collect all token paths under this group
-    const groupPaths = new Set<string>();
-    for (const flatSet of Object.values(source)) {
-      for (const tokenPath of Object.keys(flatSet)) {
-        if (tokenPath === path || tokenPath.startsWith(prefix)) groupPaths.add(tokenPath);
-      }
-    }
-    for (const [sName, flatSet] of Object.entries(source)) {
-      for (const [tokenPath, token] of Object.entries(flatSet)) {
-        if (tokenPath === path || tokenPath.startsWith(prefix)) continue;
-        const val = token.$value;
-        if (!isAlias(val)) continue;
-        const aliasPath = extractAliasPath(val);
-        if (aliasPath && (aliasPath === path || aliasPath.startsWith(prefix))) {
-          affectedRefs.push({ path: tokenPath, collectionId: sName });
-        }
-      }
-    }
-    const generatorImpacts = computeGeneratorImpacts(groupPaths, generators ?? []);
-    const modeImpacts = computeModeImpacts(groupPaths, collections ?? [], source);
+    const groupPaths = collectGroupPathsFromCurrentCollection(path);
+    const { affectedRefs, generatorImpacts, modeImpacts } =
+      buildDeleteImpacts(groupPaths, groupPaths);
+    setDeleteError(null);
     setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, modeImpacts });
-  }, [connected, allTokensFlat, perCollectionFlat, generators, collections]);
+  }, [buildDeleteImpacts, collectGroupPathsFromCurrentCollection, connected]);
 
   const requestBulkDelete = useCallback((selectedPaths: Set<string>) => {
     if (!connected || selectedPaths.size === 0) return;
     const paths = [...selectedPaths];
-    const affectedRefs: AffectedRef[] = [];
-    const source = perCollectionFlat ?? { '': allTokensFlat };
-    for (const [sName, flatSet] of Object.entries(source)) {
-      for (const [tokenPath, token] of Object.entries(flatSet)) {
-        if (selectedPaths.has(tokenPath)) continue;
-        const val = token.$value;
-        if (!isAlias(val)) continue;
-        const aliasPath = extractAliasPath(val);
-        if (aliasPath && selectedPaths.has(aliasPath)) {
-          affectedRefs.push({ path: tokenPath, collectionId: sName });
-        }
-      }
-    }
-    const generatorImpacts = computeGeneratorImpacts(selectedPaths, generators ?? []);
-    const modeImpacts = computeModeImpacts(selectedPaths, collections ?? [], source);
+    const { affectedRefs, generatorImpacts, modeImpacts } =
+      buildDeleteImpacts(selectedPaths, selectedPaths);
+    setDeleteError(null);
     setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, modeImpacts });
-  }, [connected, allTokensFlat, perCollectionFlat, generators, collections]);
+  }, [buildDeleteImpacts, connected]);
 
   const executeDelete = useCallback(async () => {
     if (!deleteConfirm) return;
@@ -201,8 +255,9 @@ export function useTokenDelete({
 
       onRefresh();
     } catch (err) {
-      console.error('Failed to delete:', err);
-      setDeleteError(getErrorMessage(err, 'Delete failed'));
+      const errorMessage = getErrorMessage(err, 'Delete failed');
+      setDeleteError(errorMessage);
+      onError?.(errorMessage);
       onRefresh();
     } finally {
       onSetOperationLoading(null);

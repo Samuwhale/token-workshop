@@ -107,19 +107,12 @@ export function getRecentTokens(): RecentToken[] {
 
 export function getRecentTokenPaths(options?: {
   collectionId?: string;
-  pathToCollectionId?: Record<string, string>;
 }): string[] {
   const recentTokens = getRecentTokens();
   const result: string[] = [];
   const seenPaths = new Set<string>();
   for (const entry of recentTokens) {
     if (options?.collectionId && entry.collectionId !== options.collectionId) {
-      continue;
-    }
-    if (
-      options?.pathToCollectionId &&
-      options.pathToCollectionId[entry.path] !== entry.collectionId
-    ) {
       continue;
     }
     if (seenPaths.has(entry.path)) continue;

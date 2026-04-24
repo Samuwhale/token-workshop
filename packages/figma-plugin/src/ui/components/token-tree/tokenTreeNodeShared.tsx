@@ -113,7 +113,13 @@ export function GeneratedGlyph({
 export function formatGeneratedGroupSummaryTitle(generator: TokenGenerator): string {
   return [
     `Generated group: ${generator.name}`,
-    generator.sourceToken ? `Source token: ${generator.sourceToken}` : null,
+    generator.sourceToken
+      ? `Source token: ${generator.sourceToken}${
+          generator.sourceCollectionId
+            ? ` (${generator.sourceCollectionId})`
+            : ""
+        }`
+      : null,
     generator.isStale ? "Source changed" : null,
   ]
     .filter(Boolean)
@@ -172,7 +178,7 @@ export function GeneratedGroupSummaryRow({
   onDuplicate?: () => void;
   onDelete?: () => Promise<void> | void;
   onDetach?: () => Promise<void> | void;
-  onNavigateToSourceToken?: (path: string) => void;
+  onNavigateToSourceToken?: (path: string, collectionId?: string) => void;
 }) {
   const sourceLabel = generator.sourceToken || "Standalone";
   const typeLabel = getGeneratedGroupTypeLabel(generator.type);
@@ -220,7 +226,10 @@ export function GeneratedGroupSummaryRow({
                 <button
                   type="button"
                   onClick={() =>
-                    onNavigateToSourceToken(generator.sourceToken!)
+                    onNavigateToSourceToken(
+                      generator.sourceToken!,
+                      generator.sourceCollectionId,
+                    )
                   }
                   className="font-mono text-[var(--color-figma-accent)] hover:underline"
                   title={`Navigate to ${generator.sourceToken}`}

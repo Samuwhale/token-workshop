@@ -95,6 +95,8 @@ export interface TokenListData {
   unresolvedAllTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token paths to their collection id */
   pathToCollectionId?: Record<string, string>;
+  /** Maps token paths to every collection that currently defines them */
+  collectionIdsByPath?: Record<string, string[]>;
 }
 
 export interface TokenListActions {
@@ -314,6 +316,7 @@ export interface TokenTreeSharedDataContextType {
   allTokensFlat: Record<string, TokenMapEntry>;
   modeResolvedTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   collections?: TokenCollection[];
 }

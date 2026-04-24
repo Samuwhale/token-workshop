@@ -52,7 +52,10 @@ import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
 import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
 import type { GeneratedTokenResult } from "../../hooks/useGenerators";
-import { getGeneratedGroupKeepUpdatedAvailability } from "../../shared/generatedGroupUtils";
+import {
+  getGeneratedGroupKeepUpdatedAvailability,
+  getGeneratedGroupSourceTokenEntry,
+} from "../../shared/generatedGroupUtils";
 import { aggregateGroupByModes, GroupModePreview } from "./GroupModePreview";
 
 export const TokenGroupNode = memo(
@@ -86,6 +89,7 @@ export const TokenGroupNode = memo(
       modeResolvedTokensFlat,
       perCollectionFlat,
       pathToCollectionId,
+      collectionIdsByPath,
       collections,
     } = useTokenTreeSharedData();
 
@@ -231,15 +235,22 @@ export const TokenGroupNode = memo(
       }
       return getGeneratedGroupKeepUpdatedAvailability({
         sourceTokenPath: targetGenerator.sourceToken,
-        sourceTokenEntry: targetGenerator.sourceToken
-          ? allTokensFlat[targetGenerator.sourceToken]
-          : undefined,
+        sourceCollectionId: targetGenerator.sourceCollectionId,
+        sourceTokenEntry: getGeneratedGroupSourceTokenEntry({
+          sourceTokenPath: targetGenerator.sourceToken,
+          sourceCollectionId: targetGenerator.sourceCollectionId,
+          allTokensFlat,
+          collectionIdsByPath,
+          perCollectionFlat,
+        }),
         collections,
         pathToCollectionId,
+        collectionIdsByPath,
         perCollectionFlat,
       }).reason;
     }, [
       allTokensFlat,
+      collectionIdsByPath,
       collections,
       pathToCollectionId,
       perCollectionFlat,

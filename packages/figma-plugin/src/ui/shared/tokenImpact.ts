@@ -2,6 +2,10 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenCollection } from '@tokenmanager/core';
 import type { GeneratorImpact, ModeImpact } from '../components/tokenListTypes';
+import {
+  createGeneratedGroupSourceKeys,
+  hasGeneratedGroupSourceKeyMatch,
+} from './generatorSource';
 
 /**
  * Returns all $tokenRefs entries from a generator's config as a flat
@@ -23,11 +27,31 @@ function extractTokenRefs(config: TokenGenerator['config']): Record<string, stri
  */
 export function computeGeneratorImpacts(
   targetPaths: Set<string>,
+  sourceCollectionId: string,
   generators: TokenGenerator[],
+  pathToCollectionId?: Record<string, string>,
+  collectionIdsByPath?: Record<string, string[]>,
 ): GeneratorImpact[] {
   const impacts: GeneratorImpact[] = [];
+  const targetSourceKeys = new Set<string>();
+  for (const path of targetPaths) {
+    for (const key of createGeneratedGroupSourceKeys({
+      sourceTokenPath: path,
+      sourceCollectionId,
+      pathToCollectionId,
+      collectionIdsByPath,
+    })) {
+      targetSourceKeys.add(key);
+    }
+  }
   for (const gen of generators) {
-    if (gen.sourceToken && targetPaths.has(gen.sourceToken)) {
+    if (hasGeneratedGroupSourceKeyMatch({
+      sourceTokenPath: gen.sourceToken,
+      sourceCollectionId: gen.sourceCollectionId,
+      targetSourceKeys,
+      pathToCollectionId,
+      collectionIdsByPath,
+    })) {
       impacts.push({
         generatorId: gen.id,
         generatorName: gen.name,
@@ -57,37 +81,44 @@ export function computeGeneratorImpacts(
  */
 export function computeModeImpacts(
   targetPaths: Set<string>,
+  sourceCollectionId: string,
   collections: TokenCollection[],
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
 ): ModeImpact[] {
+  const collection = collections.find(
+    (candidate) => candidate.id === sourceCollectionId,
+  );
+  const collectionFlat = perCollectionFlat[sourceCollectionId];
+  if (!collection || !collectionFlat) {
+    return [];
+  }
+
   const seen = new Set<string>();
   const impacts: ModeImpact[] = [];
-  const tokenEntries = Object.values(perCollectionFlat).flatMap((flatSet) =>
-    Object.entries(flatSet),
-  );
 
-  for (const collection of collections) {
-    for (const option of collection.modes) {
-      for (const [path, entry] of tokenEntries) {
-        if (!targetPaths.has(path)) continue;
-        const modes = (entry.$extensions as {
-          tokenmanager?: {
-            modes?: Record<string, Record<string, unknown>>;
-          };
-        } | undefined)?.tokenmanager?.modes;
-        if (modes?.[collection.id]?.[option.name] === undefined) continue;
+  for (const option of collection.modes) {
+    for (const path of targetPaths) {
+      const entry = collectionFlat[path];
+      if (!entry) continue;
 
-        const impactKey = `${collection.id}:${option.name}`;
-        if (!seen.has(impactKey)) {
-          seen.add(impactKey);
-          impacts.push({
-            collectionName: collection.id,
-            optionName: option.name,
-          });
-        }
-        break;
+      const modes = (entry.$extensions as {
+        tokenmanager?: {
+          modes?: Record<string, Record<string, unknown>>;
+        };
+      } | undefined)?.tokenmanager?.modes;
+      if (modes?.[sourceCollectionId]?.[option.name] === undefined) continue;
+
+      const impactKey = `${sourceCollectionId}:${option.name}`;
+      if (!seen.has(impactKey)) {
+        seen.add(impactKey);
+        impacts.push({
+          collectionName: sourceCollectionId,
+          optionName: option.name,
+        });
       }
+      break;
     }
   }
+
   return impacts;
 }

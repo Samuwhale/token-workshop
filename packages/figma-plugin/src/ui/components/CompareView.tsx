@@ -448,6 +448,7 @@ interface OptionResult {
 interface CrossCollectionModeProps {
   tokenPath: string;
   allTokensFlat: Record<string, TokenMapEntry>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collections: TokenCollection[];
   pathToCollectionId: Record<string, string>;
   onClose: () => void;
@@ -456,6 +457,7 @@ interface CrossCollectionModeProps {
 function CrossCollectionMode({
   tokenPath,
   allTokensFlat,
+  perCollectionFlat,
   collections,
   pathToCollectionId,
   onClose,
@@ -471,9 +473,11 @@ function CrossCollectionMode({
           collections,
           allTokensFlat,
           pathToCollectionId,
+          perCollectionFlat,
         );
         const entry = resolved[tokenPath];
-        const rawEntry = allTokensFlat[tokenPath];
+        const rawEntry =
+          perCollectionFlat[collection.id]?.[tokenPath] ?? allTokensFlat[tokenPath];
         const aliasCheck = rawEntry ? isAlias(rawEntry.$value) : false;
         let aliasRef: string | undefined;
         if (aliasCheck && rawEntry) {
@@ -492,7 +496,7 @@ function CrossCollectionMode({
       }
     }
     return out;
-  }, [collections, allTokensFlat, pathToCollectionId, tokenPath]);
+  }, [collections, allTokensFlat, pathToCollectionId, perCollectionFlat, tokenPath]);
 
   const collectionStats = useMemo(() => {
     const map = new Map<string, { allSame: boolean; anyMissing: boolean }>();
@@ -635,7 +639,7 @@ interface ModePairsModeProps {
   collections: TokenCollection[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  pathToStorageCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onEditToken?: (collectionId: string, path: string) => void;
   initialOptionKeyA?: string;
   initialOptionKeyB?: string;
@@ -645,7 +649,7 @@ function ModePairsMode({
   collections,
   allTokensFlat,
   pathToCollectionId,
-  pathToStorageCollectionId,
+  perCollectionFlat,
   onEditToken,
   initialOptionKeyA,
   initialOptionKeyB,
@@ -667,8 +671,16 @@ function ModePairsMode({
       collections,
       allTokensFlat,
       pathToCollectionId,
+      perCollectionFlat,
     );
-  }, [optionKeyA, flatOptions, collections, allTokensFlat, pathToCollectionId]);
+  }, [
+    optionKeyA,
+    flatOptions,
+    collections,
+    allTokensFlat,
+    pathToCollectionId,
+    perCollectionFlat,
+  ]);
 
   const resolvedB = useMemo(() => {
     if (!optionKeyB) return null;
@@ -680,11 +692,30 @@ function ModePairsMode({
       collections,
       allTokensFlat,
       pathToCollectionId,
+      perCollectionFlat,
     );
-  }, [optionKeyB, flatOptions, collections, allTokensFlat, pathToCollectionId]);
+  }, [
+    optionKeyB,
+    flatOptions,
+    collections,
+    allTokensFlat,
+    pathToCollectionId,
+    perCollectionFlat,
+  ]);
+
+  const selectedOptionA = useMemo(
+    () => flatOptions.find((option) => option.key === optionKeyA) ?? null,
+    [flatOptions, optionKeyA],
+  );
+  const selectedOptionB = useMemo(
+    () => flatOptions.find((option) => option.key === optionKeyB) ?? null,
+    [flatOptions, optionKeyB],
+  );
 
   const diffs = useMemo(() => {
-    if (!resolvedA || !resolvedB) return [];
+    if (!resolvedA || !resolvedB || !selectedOptionA || !selectedOptionB) {
+      return [];
+    }
     const allPaths = new Set([...Object.keys(resolvedA), ...Object.keys(resolvedB)]);
     const result: Array<{
       path: string;
@@ -707,13 +738,13 @@ function ModePairsMode({
           type: entA?.$type ?? entB?.$type ?? 'unknown',
           valueA: valA,
           valueB: valB,
-          collectionA: pathToStorageCollectionId[path] ?? null,
-          collectionB: pathToStorageCollectionId[path] ?? null,
+          collectionA: entA ? selectedOptionA.collectionId : null,
+          collectionB: entB ? selectedOptionB.collectionId : null,
         });
       }
     }
     return result.sort((a, b) => a.path.localeCompare(b.path));
-  }, [resolvedA, resolvedB, pathToStorageCollectionId]);
+  }, [resolvedA, resolvedB, selectedOptionA, selectedOptionB]);
 
   const availableTypes = useMemo(() => {
     const types = new Set(diffs.map(d => d.type));
@@ -1408,7 +1439,7 @@ interface CompareViewProps {
 
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  pathToStorageCollectionId: Record<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collections: TokenCollection[];
   collectionIds: string[];
 
@@ -1441,7 +1472,7 @@ export function CompareView({
   onClearTokenPath,
   allTokensFlat,
   pathToCollectionId,
-  pathToStorageCollectionId,
+  perCollectionFlat,
   collections,
   collectionIds,
   modeOptionsKey,
@@ -1520,6 +1551,7 @@ export function CompareView({
             <CrossCollectionMode
               tokenPath={tokenPath}
               allTokensFlat={allTokensFlat}
+              perCollectionFlat={perCollectionFlat}
               collections={collections}
               pathToCollectionId={pathToCollectionId}
               onClose={onClearTokenPath}
@@ -1533,7 +1565,7 @@ export function CompareView({
             collections={collections}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
-            pathToStorageCollectionId={pathToStorageCollectionId}
+            perCollectionFlat={perCollectionFlat}
             initialOptionKeyA={modeOptionsDefaultA}
             initialOptionKeyB={modeOptionsDefaultB}
             onEditToken={onEditToken}

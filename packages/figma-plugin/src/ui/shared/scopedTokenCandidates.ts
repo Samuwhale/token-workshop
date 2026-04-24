@@ -4,6 +4,7 @@ import {
   createRecentTokenKey,
   getRecentTokens,
 } from './recentTokens';
+import { getCollectionIdsForPath } from './collectionPathLookup';
 
 export interface ScopedTokenCandidate {
   key: string;
@@ -17,6 +18,7 @@ export interface ScopedTokenCandidate {
 interface BuildScopedTokenCandidatesParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
 }
 
@@ -43,6 +45,7 @@ function resolveScopedEntry(
 export function buildScopedTokenCandidates({
   allTokensFlat,
   pathToCollectionId = {},
+  collectionIdsByPath = {},
   perCollectionFlat = {},
 }: BuildScopedTokenCandidatesParams): ScopedTokenCandidate[] {
   const scopedCollections = Object.entries(perCollectionFlat);
@@ -71,15 +74,20 @@ export function buildScopedTokenCandidates({
   }
 
   for (const [path, entry] of Object.entries(allTokensFlat)) {
-    const collectionId = pathToCollectionId[path] ?? '';
-    ownerCounts.set(path, (ownerCounts.get(path) ?? 0) + 1);
+    const collectionIds = getCollectionIdsForPath({
+      path,
+      pathToCollectionId,
+      collectionIdsByPath,
+    });
+    const collectionId = collectionIds[0] ?? '';
+    ownerCounts.set(path, collectionIds.length > 0 ? collectionIds.length : 1);
     candidates.push({
       key: collectionId ? createRecentTokenKey(path, collectionId) : path,
       path,
       collectionId,
       entry,
       resolvedEntry: resolveScopedEntry(entry, allTokensFlat, allTokensFlat),
-      isAmbiguousPath: false,
+      isAmbiguousPath: collectionIds.length > 1,
     });
   }
 

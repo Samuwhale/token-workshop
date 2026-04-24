@@ -48,10 +48,9 @@ export interface EditorShellController {
   displayedLeafNodesRef: MutableRefObject<TokenNode[]>;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   handleEditorNavigate: (direction: 1 | -1) => void;
-  handleEditorSave: (savedPath: string) => void;
-  handleEditorSaveAndCreateAnother: (
+  handleEditorSave: (
     savedPath: string,
-    savedType: string,
+    savedCollectionId: string,
   ) => void;
   availableFonts: string[];
   fontWeightsByFamily: Record<string, number[]>;

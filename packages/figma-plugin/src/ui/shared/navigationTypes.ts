@@ -38,6 +38,7 @@ export type TokensLibraryGeneratedGroupEditorTarget =
   | {
       mode: "create";
       sourceTokenPath?: string;
+      sourceCollectionId?: string;
       sourceTokenName?: string;
       sourceTokenType?: string;
       sourceTokenValue?: unknown;

@@ -142,6 +142,29 @@ export function mergeSnapshots(
   return Object.assign({}, ...snapshots);
 }
 
+export async function restoreSnapshotEntries(
+  tokenStore: Pick<TokenStore, "restoreSnapshot">,
+  snapshot: Record<string, SnapshotEntry>,
+): Promise<void> {
+  const itemsByCollection = new Map<
+    string,
+    Array<{ path: string; token: SnapshotEntry["token"] }>
+  >();
+
+  for (const [snapshotKey, entry] of Object.entries(snapshot)) {
+    const items = itemsByCollection.get(entry.collectionId) ?? [];
+    items.push({
+      path: getSnapshotTokenPath(snapshotKey, entry.collectionId),
+      token: entry.token ? structuredClone(entry.token) : null,
+    });
+    itemsByCollection.set(entry.collectionId, items);
+  }
+
+  for (const [collectionId, items] of itemsByCollection) {
+    await tokenStore.restoreSnapshot(collectionId, items);
+  }
+}
+
 function findSnapshotEntryForTokenPath(
   snapshot: Record<string, SnapshotEntry>,
   tokenPath: string,

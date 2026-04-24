@@ -7,6 +7,7 @@ import { getSingleObviousGeneratorType } from "../generators/generatorUtils";
 
 export interface TokenEditorDerivedGroupsProps {
   tokenPath: string;
+  tokenCollectionId: string;
   tokenName?: string;
   tokenType: string;
   value: any;
@@ -16,6 +17,7 @@ export interface TokenEditorDerivedGroupsProps {
 
 export function TokenEditorDerivedGroups({
   tokenPath,
+  tokenCollectionId,
   tokenName,
   tokenType,
   value,
@@ -41,6 +43,7 @@ export function TokenEditorDerivedGroups({
           openGeneratedGroupEditor({
             mode: 'create',
             sourceTokenPath: tokenPath,
+            sourceCollectionId: tokenCollectionId,
             sourceTokenName: tokenName,
             sourceTokenType: tokenType,
             sourceTokenValue: value,
@@ -100,6 +103,7 @@ export function TokenEditorDerivedGroups({
           openGeneratedGroupEditor({
             mode: 'create',
             sourceTokenPath: tokenPath,
+            sourceCollectionId: tokenCollectionId,
             sourceTokenName: tokenName,
             sourceTokenType: tokenType,
             sourceTokenValue: value,

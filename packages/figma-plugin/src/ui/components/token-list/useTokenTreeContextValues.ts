@@ -19,6 +19,7 @@ interface SharedDataDeps {
   effectiveAllTokensFlat: Record<string, TokenMapEntry>;
   modeResolvedTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   collections?: TokenCollection[];
 }
@@ -29,6 +30,7 @@ export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDat
       allTokensFlat: deps.effectiveAllTokensFlat,
       modeResolvedTokensFlat: deps.modeResolvedTokensFlat,
       pathToCollectionId: deps.pathToCollectionId,
+      collectionIdsByPath: deps.collectionIdsByPath,
       perCollectionFlat: deps.perCollectionFlat,
       collections: deps.collections,
     }),
@@ -36,6 +38,7 @@ export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDat
       deps.effectiveAllTokensFlat,
       deps.modeResolvedTokensFlat,
       deps.pathToCollectionId,
+      deps.collectionIdsByPath,
       deps.perCollectionFlat,
       deps.collections,
     ],

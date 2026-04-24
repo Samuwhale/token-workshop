@@ -13,7 +13,31 @@ export function resolveModeOption(
   collections: TokenCollection[],
   allTokensFlat: Record<string, TokenMapEntry>,
   pathToCollectionId: Record<string, string>,
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>,
 ): Record<string, TokenMapEntry> {
+  const getScopedTokens = (collectionId: string) => {
+    const collectionFlat = perCollectionFlat?.[collectionId];
+    if (!collectionFlat) {
+      return {
+        flatTokens: allTokensFlat,
+        flatPathToCollectionId: pathToCollectionId,
+      };
+    }
+
+    return {
+      flatTokens: {
+        ...allTokensFlat,
+        ...collectionFlat,
+      },
+      flatPathToCollectionId: {
+        ...pathToCollectionId,
+        ...Object.fromEntries(
+          Object.keys(collectionFlat).map((path) => [path, collectionId]),
+        ),
+      },
+    };
+  };
+
   if (!option) {
     return applyModeSelectionsToTokens(
       allTokensFlat,
@@ -22,13 +46,17 @@ export function resolveModeOption(
       pathToCollectionId,
     );
   }
+  const { flatTokens, flatPathToCollectionId } = getScopedTokens(
+    option.collectionId,
+  );
+
   return applyModeSelectionsToTokens(
-    allTokensFlat,
+    flatTokens,
     collections,
     {
       [option.collectionId]: option.optionName,
     },
-    pathToCollectionId,
+    flatPathToCollectionId,
   );
 }
 

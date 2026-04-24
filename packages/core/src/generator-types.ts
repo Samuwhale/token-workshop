@@ -271,6 +271,11 @@ export interface TokenGenerator {
    */
   sourceToken?: string;
   /**
+   * Collection that owns `sourceToken` when the same path exists in multiple collections.
+   * When absent, source resolution falls back to the first matching collection.
+   */
+  sourceCollectionId?: string;
+  /**
    * Inline base value used when no sourceToken is bound.
    * For color generators: a hex string (e.g. "#6366F1").
    * For dimension generators: a { value, unit } object (e.g. { value: 16, unit: "px" }).

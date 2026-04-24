@@ -1,8 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { handleRouteError } from '../errors.js';
+import { BadRequestError, handleRouteError } from '../errors.js';
 import {
   buildCollectionSnapshotKey,
   listSnapshotTokenPaths,
+  mergeSnapshots,
+  restoreSnapshotEntries,
   snapshotGroup,
   type RollbackStep,
   type SnapshotEntry,
@@ -78,8 +80,183 @@ interface DeleteGeneratorResult {
   tokensDeleted: number;
 }
 
+function hasOwn(
+  value: Record<string, unknown>,
+  key: string,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function readOptionalStringUpdate(
+  body: Record<string, unknown>,
+  key: string,
+): { present: boolean; value: string | undefined } {
+  if (!hasOwn(body, key)) {
+    return { present: false, value: undefined };
+  }
+
+  return {
+    present: true,
+    value: normalizeOptionalString(body[key], key),
+  };
+}
+
+function readOptionalBooleanUpdate(
+  body: Record<string, unknown>,
+  key: string,
+): { present: boolean; value: boolean } {
+  if (!hasOwn(body, key)) {
+    return { present: false, value: false };
+  }
+
+  const value = body[key];
+  if (typeof value !== 'boolean') {
+    throw new BadRequestError(`${key} must be a boolean when provided`);
+  }
+
+  return {
+    present: true,
+    value,
+  };
+}
+
+function readOptionalStringValue(
+  body: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  if (!hasOwn(body, key)) {
+    return undefined;
+  }
+
+  return normalizeOptionalString(body[key], key);
+}
+
+function readRequiredStringValue(
+  body: Record<string, unknown>,
+  key: string,
+): string {
+  const value = body[key];
+  if (typeof value !== 'string') {
+    throw new BadRequestError(`${key} is required`);
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new BadRequestError(`${key} is required`);
+  }
+
+  return normalized;
+}
+
+function readGeneratorSourceBinding(
+  body: Record<string, unknown>,
+): {
+  sourceToken?: string;
+  sourceCollectionId?: string;
+} {
+  const sourceToken = readOptionalStringValue(body, 'sourceToken');
+  if (!sourceToken) {
+    if (hasOwn(body, 'sourceCollectionId')) {
+      throw new BadRequestError('sourceCollectionId requires sourceToken');
+    }
+    return {};
+  }
+
+  return {
+    sourceToken,
+    sourceCollectionId: readOptionalStringValue(body, 'sourceCollectionId'),
+  };
+}
+
+function normalizeOptionalString(
+  value: unknown,
+  key: string,
+): string | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    throw new BadRequestError(`${key} must be a string when provided`);
+  }
+
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
 function getGeneratorCollectionIds(generator: Pick<TokenGenerator, 'targetCollection'>): string[] {
   return generator.targetCollection ? [generator.targetCollection] : [];
+}
+
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function normalizeSnapshotSemanticLayer(
+  value: unknown,
+): GeneratorSnapshotTarget['semanticLayer'] {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const candidate = value as {
+    prefix?: unknown;
+    mappings?: unknown;
+  };
+  if (
+    typeof candidate.prefix !== 'string' ||
+    !Array.isArray(candidate.mappings)
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...candidate,
+    prefix: candidate.prefix,
+    mappings: candidate.mappings,
+  };
+}
+
+function applyGeneratorSnapshotTargetUpdates(
+  generator: GeneratorSnapshotTarget,
+  updates: Pick<
+    GeneratorUpdateInput,
+    'targetCollection' | 'targetGroup' | 'semanticLayer'
+  >,
+): GeneratorSnapshotTarget {
+  const nextSemanticLayer =
+    updates.semanticLayer !== undefined
+      ? normalizeSnapshotSemanticLayer(updates.semanticLayer)
+      : generator.semanticLayer;
+  return {
+    targetCollection: updates.targetCollection ?? generator.targetCollection,
+    targetGroup: updates.targetGroup ?? generator.targetGroup,
+    semanticLayer: nextSemanticLayer,
+  };
+}
+
+async function rethrowAfterRecovery(
+  operation: string,
+  recoverySteps: Array<{ label: string; run: () => Promise<void> }>,
+  error: unknown,
+): Promise<never> {
+  const failures: string[] = [];
+  for (const step of recoverySteps) {
+    try {
+      await step.run();
+    } catch (recoveryError) {
+      failures.push(`${step.label}: ${formatErrorMessage(recoveryError)}.`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `${operation} failed and recovery could not be completed. ` +
+        `Original error: ${formatErrorMessage(error)}. ` +
+        failures.join(' '),
+    );
+  }
+
+  throw error;
 }
 
 async function snapshotTokenPaths(
@@ -163,10 +340,14 @@ function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
 }
 
 async function validateGeneratorTargetCollections(
-  generator: Pick<TokenGenerator, 'targetCollection'>,
+  generator: Pick<TokenGenerator, 'targetCollection' | 'sourceCollectionId'>,
   requireCollectionsExist: (collectionIds: Iterable<string>) => Promise<void>,
 ): Promise<void> {
-  await requireCollectionsExist([generator.targetCollection]);
+  await requireCollectionsExist(
+    [generator.targetCollection, generator.sourceCollectionId].filter(
+      (collectionId): collectionId is string => Boolean(collectionId),
+    ),
+  );
 }
 
 export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
@@ -246,24 +427,40 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/generators — create a new generator and run it immediately
   fastify.post<{ Body: CreateBody }>('/generators', async (request, reply) => {
-    const { type, sourceToken, inlineValue, targetCollection, targetGroup, name, config, overrides } = request.body ?? {} as CreateBody;
-    if (typeof type !== 'string' || typeof targetCollection !== 'string' || typeof targetGroup !== 'string' || !type || !targetCollection || !targetGroup) {
-      return reply.status(400).send({
-        error: 'type, targetCollection, and targetGroup are required',
-      });
+    const body = (request.body ?? {}) as CreateBody;
+    const bodyRecord = body as Record<string, unknown>;
+    const { inlineValue, config, overrides } = body;
+    let type: string;
+    let targetCollection: string;
+    let targetGroup: string;
+    let sourceToken: string | undefined;
+    let sourceCollectionId: string | undefined;
+    let generatorName: string | undefined;
+    let rollbackSnapshot: SnapshotMap = {};
+    try {
+      type = readRequiredStringValue(bodyRecord, 'type');
+      targetCollection = readRequiredStringValue(bodyRecord, 'targetCollection');
+      targetGroup = readRequiredStringValue(bodyRecord, 'targetGroup');
+      generatorName = readOptionalStringValue(bodyRecord, 'name');
+      ({ sourceToken, sourceCollectionId } =
+        readGeneratorSourceBinding(bodyRecord));
+    } catch (err) {
+      return handleRouteError(reply, err);
     }
     return withLock(async () => {
       try {
         await validateGeneratorTargetCollections(
           {
             targetCollection,
+            sourceCollectionId,
           },
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
         );
         await fastify.generatorService.assertKeepUpdatedSupported(
           {
-            enabled: request.body?.enabled,
-            sourceToken: sourceToken ?? undefined,
+            enabled: body.enabled,
+            sourceToken,
+            sourceCollectionId,
           },
           fastify.tokenStore,
           fastify.collectionService,
@@ -272,27 +469,58 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'generator-create',
           description: (generator) => `Create generated group "${generator.name}" → ${generator.targetGroup}`,
           collectionId: targetCollection,
-          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, {
-            targetCollection,
-            targetGroup,
-            semanticLayer: request.body?.semanticLayer,
-          } as GeneratorSnapshotTarget),
+          captureBefore: async () => {
+            rollbackSnapshot = await snapshotGeneratorOutputs(
+              fastify.tokenStore,
+              {
+                targetCollection,
+                targetGroup,
+                semanticLayer: body.semanticLayer,
+              } as GeneratorSnapshotTarget,
+            );
+            return rollbackSnapshot;
+          },
           mutate: async () => {
-            const generator = await fastify.generatorService.create({
+            const created = await fastify.generatorService.create({
               type,
-              sourceToken: sourceToken ?? undefined,
+              sourceToken,
+              sourceCollectionId,
               inlineValue: inlineValue ?? undefined,
               targetCollection,
               targetGroup,
-              name: typeof name === 'string' ? name : sourceToken ? `${sourceToken} ${type}` : type,
+              name: generatorName ?? (sourceToken ? `${sourceToken} ${type}` : type),
               config,
               overrides,
-              semanticLayer: request.body?.semanticLayer,
+              semanticLayer: body.semanticLayer,
             });
-            await fastify.generatorService.run(generator.id, fastify.tokenStore, {
-              sourceValueOverride: request.body?.sourceValue,
-            });
-            return generator;
+            try {
+              await fastify.generatorService.run(created.id, fastify.tokenStore, {
+                sourceValueOverride: body.sourceValue,
+              });
+            } catch (err) {
+              return rethrowAfterRecovery(
+                `Creating generator "${created.name}"`,
+                [
+                  {
+                    label: 'Token rollback failed',
+                    run: async () =>
+                      restoreSnapshotEntries(
+                        fastify.tokenStore,
+                        rollbackSnapshot,
+                      ),
+                  },
+                  {
+                    label: 'Generator rollback failed',
+                    run: async () => {
+                      await fastify.generatorService.delete(created.id);
+                    },
+                  },
+                ],
+                err,
+              );
+            }
+
+            return (await fastify.generatorService.getById(created.id)) ?? created;
           },
           captureAfter: (generator) => snapshotGeneratorOutputs(fastify.tokenStore, generator),
           rollbackSteps: (generator) => [{ action: 'delete-generator', id: generator.id }],
@@ -307,17 +535,37 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   // IMPORTANT: must be registered before /:id routes so the static segment wins
   fastify.post<{ Body: PreviewBody }>('/generators/preview', async (request, reply) => {
     const body = request.body ?? {} as PreviewBody;
-    if (typeof body.type !== 'string' || body.type === '') {
-      return reply.status(400).send({ error: 'type is required' });
+    const bodyRecord = body as Record<string, unknown>;
+    let type: string;
+    let targetCollection: string;
+    let targetGroup: string;
+    let sourceToken: string | undefined;
+    let sourceCollectionId: string | undefined;
+    try {
+      type = readRequiredStringValue(bodyRecord, 'type');
+      targetCollection = readRequiredStringValue(bodyRecord, 'targetCollection');
+      targetGroup = readRequiredStringValue(bodyRecord, 'targetGroup');
+      ({ sourceToken, sourceCollectionId } =
+        readGeneratorSourceBinding(bodyRecord));
+    } catch (err) {
+      return handleRouteError(reply, err);
     }
     try {
+      await validateGeneratorTargetCollections(
+        {
+          targetCollection,
+          sourceCollectionId,
+        },
+        (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
+      );
       const preview = await fastify.generatorService.previewWithAnalysis(
         {
-          type: body.type,
-          sourceToken: body.sourceToken,
+          type,
+          sourceToken,
+          sourceCollectionId,
           inlineValue: body.inlineValue,
-          targetGroup: body.targetGroup ?? '',
-          targetCollection: body.targetCollection ?? '',
+          targetGroup,
+          targetCollection,
           config: body.config,
           overrides: body.overrides,
           semanticLayer: body.semanticLayer,
@@ -356,38 +604,104 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Build a sanitized update object with only known fields
         const updates: GeneratorUpdateInput = {};
+        const enabledUpdate = readOptionalBooleanUpdate(body, 'enabled');
+        const sourceTokenUpdate = readOptionalStringUpdate(body, 'sourceToken');
+        const sourceCollectionIdUpdate = readOptionalStringUpdate(
+          body,
+          'sourceCollectionId',
+        );
 
-        if (typeof body.name === 'string') updates.name = body.name;
-        if (typeof body.enabled === 'boolean') updates.enabled = body.enabled;
-        if (typeof body.sourceToken === 'string') updates.sourceToken = body.sourceToken;
-        if (typeof body.targetCollection === 'string') updates.targetCollection = body.targetCollection;
-        if (typeof body.targetGroup === 'string') updates.targetGroup = body.targetGroup;
-        if (body.inlineValue !== undefined) updates.inlineValue = body.inlineValue;
+        if (enabledUpdate.present) {
+          updates.enabled = enabledUpdate.value;
+        }
+        if (sourceTokenUpdate.present) {
+          updates.sourceToken = sourceTokenUpdate.value;
+        }
+        if (sourceCollectionIdUpdate.present) {
+          updates.sourceCollectionId = sourceCollectionIdUpdate.value;
+        }
+        if (hasOwn(body, 'name')) {
+          updates.name = readRequiredStringValue(body, 'name');
+        }
+        if (hasOwn(body, 'targetCollection')) {
+          updates.targetCollection = readRequiredStringValue(
+            body,
+            'targetCollection',
+          );
+        }
+        if (hasOwn(body, 'targetGroup')) {
+          updates.targetGroup = readRequiredStringValue(body, 'targetGroup');
+        }
+        if (hasOwn(body, 'inlineValue')) {
+          updates.inlineValue = body.inlineValue ?? undefined;
+        }
         if (body.type !== undefined) updates.type = body.type;
         if (body.overrides !== undefined) updates.overrides = body.overrides;
         if (body.config !== undefined) updates.config = body.config;
         if (body.semanticLayer !== undefined) updates.semanticLayer = body.semanticLayer;
+        const nextTargetCollection = hasOwn(
+          updates as Record<string, unknown>,
+          'targetCollection',
+        )
+          ? updates.targetCollection ?? existing.targetCollection
+          : existing.targetCollection;
+        const nextEnabled = hasOwn(updates as Record<string, unknown>, 'enabled')
+          ? updates.enabled
+          : existing.enabled;
+        const nextSourceToken = hasOwn(
+          updates as Record<string, unknown>,
+          'sourceToken',
+        )
+          ? updates.sourceToken
+          : existing.sourceToken;
+        const nextSourceCollectionId = hasOwn(
+          updates as Record<string, unknown>,
+          'sourceCollectionId',
+        )
+          ? updates.sourceCollectionId
+          : existing.sourceCollectionId;
+        if (nextSourceCollectionId && !nextSourceToken) {
+          throw new BadRequestError(
+            'sourceCollectionId requires sourceToken',
+          );
+        }
 
         await validateGeneratorTargetCollections(
           {
-            targetCollection: updates.targetCollection ?? existing.targetCollection,
+            targetCollection: nextTargetCollection,
+            sourceCollectionId: nextSourceCollectionId,
           },
           (collectionIds) => fastify.collectionService.requireCollectionsExist(collectionIds),
         );
         await fastify.generatorService.assertKeepUpdatedSupported(
           {
-            enabled: updates.enabled ?? existing.enabled,
-            sourceToken: updates.sourceToken ?? existing.sourceToken,
+            enabled: nextEnabled,
+            sourceToken: nextSourceToken,
+            sourceCollectionId: nextSourceCollectionId,
           },
           fastify.tokenStore,
           fastify.collectionService,
+        );
+        let rollbackSnapshot: SnapshotMap = {};
+        const nextSnapshotTarget = applyGeneratorSnapshotTargetUpdates(
+          existing,
+          updates,
         );
 
         return await executeLoggedGeneratorMutation<TokenGenerator>({
           type: 'generator-update',
           description: (generator) => `Update generated group "${generator.name}"`,
           collectionId: (generator) => generator.targetCollection,
-          captureBefore: () => snapshotGeneratorOutputs(fastify.tokenStore, existing),
+          captureBefore: async () => {
+            rollbackSnapshot = mergeSnapshots(
+              await snapshotGeneratorOutputs(fastify.tokenStore, existing),
+              await snapshotGeneratorOutputs(
+                fastify.tokenStore,
+                nextSnapshotTarget,
+              ),
+            );
+            return rollbackSnapshot;
+          },
           mutate: async () => {
             const generator = await fastify.generatorService.update(
               request.params.id,
@@ -396,11 +710,35 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
             // Skip re-run when only the enabled flag changed — it's a state toggle, not a config change.
             const onlyEnabledChanged = Object.keys(updates).every(k => k === 'enabled');
             if (!onlyEnabledChanged) {
-              await fastify.generatorService.run(generator.id, fastify.tokenStore, {
-                sourceValueOverride: body.sourceValue,
-              });
+              try {
+                await fastify.generatorService.run(generator.id, fastify.tokenStore, {
+                  sourceValueOverride: body.sourceValue,
+                });
+              } catch (err) {
+                return rethrowAfterRecovery(
+                  `Updating generator "${generator.name}"`,
+                  [
+                    {
+                      label: 'Token rollback failed',
+                      run: async () =>
+                        restoreSnapshotEntries(
+                          fastify.tokenStore,
+                          rollbackSnapshot,
+                        ),
+                    },
+                    {
+                      label: 'Generator rollback failed',
+                      run: async () => {
+                        await fastify.generatorService.restore(existing);
+                      },
+                    },
+                  ],
+                  err,
+                );
+              }
             }
-            return generator;
+
+            return (await fastify.generatorService.getById(generator.id)) ?? generator;
           },
           captureAfter: (generator) => snapshotGeneratorOutputs(fastify.tokenStore, generator),
           rollbackSteps: [{ action: 'create-generator', generator: existing }],

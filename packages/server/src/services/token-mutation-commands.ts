@@ -1,4 +1,5 @@
 import type {
+  GeneratorCollectionMoveUpdate,
   GeneratorPathRenameUpdate,
   GeneratorService,
 } from "./generator-service.js";
@@ -10,6 +11,7 @@ import {
   listSnapshotTokenPaths,
   mergeSnapshots,
   qualifySnapshotEntries,
+  restoreSnapshotEntries,
   snapshotGroup,
   snapshotPaths,
 } from "./operation-log.js";
@@ -37,6 +39,7 @@ interface LoggedMutationConfig<TResult> {
   ) => string[];
   pathRenames?: (result: TResult) => Array<{ oldPath: string; newPath: string }>;
   generatorUpdates?: (result: TResult) => GeneratorPathRenameUpdate[];
+  generatorCollectionMoves?: (result: TResult) => GeneratorCollectionMoveUpdate[];
 }
 
 function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
@@ -46,6 +49,36 @@ function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
       ...listSnapshotTokenPaths(after),
     ]),
   ];
+}
+
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function rollbackFailedMutation(
+  services: MutationCommandServices,
+  mutationType: string,
+  beforeSnapshot: SnapshotMap,
+  operationId: string | undefined,
+  error: unknown,
+): Promise<never> {
+  try {
+    if (operationId) {
+      await services.operationLog.rollback(operationId, {
+        tokenStore: services.tokenStore,
+      });
+    } else {
+      await restoreSnapshotEntries(services.tokenStore, beforeSnapshot);
+    }
+  } catch (rollbackError) {
+    throw new Error(
+      `${mutationType} failed and rollback could not be completed. ` +
+        `Original error: ${formatErrorMessage(error)}. ` +
+        `Rollback error: ${formatErrorMessage(rollbackError)}.`,
+    );
+  }
+
+  throw error;
 }
 
 async function captureQualifiedPathsSnapshot(
@@ -76,29 +109,48 @@ async function executeLoggedMutation<TResult>(
 ): Promise<{ result: TResult; operationId: string }> {
   const beforeSnapshot = await config.captureBefore();
   const result = await config.mutate();
-  const afterSnapshot = await config.captureAfter(result);
 
-  const entry = await services.operationLog.record({
-    type: config.type,
-    description:
-      typeof config.description === "function"
-        ? config.description(result)
-        : config.description,
-    resourceId: config.collectionId,
-    affectedPaths:
-      config.affectedPaths?.(beforeSnapshot, afterSnapshot, result) ??
-      listAffectedPaths(beforeSnapshot, afterSnapshot),
-    beforeSnapshot,
-    afterSnapshot,
-    pathRenames: config.pathRenames?.(result),
-  });
+  let operationId: string | undefined;
+  try {
+    const afterSnapshot = await config.captureAfter(result);
+    const entry = await services.operationLog.record({
+      type: config.type,
+      description:
+        typeof config.description === "function"
+          ? config.description(result)
+          : config.description,
+      resourceId: config.collectionId,
+      affectedPaths:
+        config.affectedPaths?.(beforeSnapshot, afterSnapshot, result) ??
+        listAffectedPaths(beforeSnapshot, afterSnapshot),
+      beforeSnapshot,
+      afterSnapshot,
+      pathRenames: config.pathRenames?.(result),
+    });
+    operationId = entry.id;
 
-  const generatorUpdates = config.generatorUpdates?.(result) ?? [];
-  if (generatorUpdates.length > 0) {
-    await services.generatorService.applyPathRenames(generatorUpdates);
+    const generatorUpdates = config.generatorUpdates?.(result) ?? [];
+    if (generatorUpdates.length > 0) {
+      await services.generatorService.applyPathRenames(generatorUpdates);
+    }
+    const generatorCollectionMoves =
+      config.generatorCollectionMoves?.(result) ?? [];
+    if (generatorCollectionMoves.length > 0) {
+      await services.generatorService.applyCollectionMoves(
+        generatorCollectionMoves,
+      );
+    }
+  } catch (error) {
+    return rollbackFailedMutation(
+      services,
+      config.type,
+      beforeSnapshot,
+      operationId,
+      error,
+    );
   }
 
-  return { result, operationId: entry.id };
+  return { result, operationId: operationId! };
 }
 
 export async function renameGroupCommand(
@@ -170,6 +222,15 @@ export async function moveGroupCommand(
           groupPath,
         ),
       ),
+    generatorCollectionMoves: () => [
+      {
+        scope: "group",
+        oldCollectionId: sourceCollectionId,
+        newCollectionId: targetCollectionId,
+        oldPath: groupPath,
+        newPath: groupPath,
+      },
+    ],
   });
 }
 
@@ -291,6 +352,15 @@ export async function moveTokenCommand(
           [targetPath],
         ),
       ),
+    generatorCollectionMoves: () => [
+      {
+        scope: "token",
+        oldCollectionId: sourceCollectionId,
+        newCollectionId: targetCollectionId,
+        oldPath: tokenPath,
+        newPath: targetPath,
+      },
+    ],
   });
 }
 
@@ -414,6 +484,14 @@ export async function batchMoveTokensCommand(
           paths,
         ),
       ),
+    generatorCollectionMoves: () =>
+      paths.map((path) => ({
+        scope: "token" as const,
+        oldCollectionId: sourceCollectionId,
+        newCollectionId: targetCollectionId,
+        oldPath: path,
+        newPath: path,
+      })),
   });
 }
 

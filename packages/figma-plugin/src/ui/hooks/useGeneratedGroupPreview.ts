@@ -112,6 +112,7 @@ export interface GeneratorPreviewRequest {
   serverUrl: string;
   selectedType: GeneratorType;
   sourceTokenPath?: string;
+  sourceCollectionId?: string;
   inlineValue?: unknown;
   targetGroup: string;
   targetCollection: string;
@@ -127,6 +128,7 @@ export async function requestGeneratedGroupPreview({
   serverUrl,
   selectedType,
   sourceTokenPath,
+  sourceCollectionId,
   inlineValue,
   targetGroup,
   targetCollection,
@@ -150,6 +152,9 @@ export async function requestGeneratedGroupPreview({
 
   if (sourceTokenPath) {
     body.sourceToken = sourceTokenPath;
+    if (sourceCollectionId) {
+      body.sourceCollectionId = sourceCollectionId;
+    }
   } else if (inlineValue !== undefined && inlineValue !== '') {
     body.inlineValue = inlineValue;
   }
@@ -166,6 +171,7 @@ interface UseGeneratorPreviewParams {
   serverUrl: string;
   selectedType: GeneratorType;
   sourceTokenPath?: string;
+  sourceCollectionId?: string;
   inlineValue?: unknown;
   sourceValue?: unknown;
   targetGroup: string;
@@ -181,7 +187,6 @@ export interface UseGeneratorPreviewReturn {
   previewTokens: GeneratedTokenResult[];
   previewLoading: boolean;
   previewError: string;
-  existingTokensError: string;
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
   previewDiff: GeneratorPreviewDiff | null;
@@ -212,6 +217,7 @@ export function useGeneratedGroupPreview({
   serverUrl,
   selectedType,
   sourceTokenPath,
+  sourceCollectionId,
   inlineValue,
   sourceValue,
   targetGroup,
@@ -243,6 +249,7 @@ export function useGeneratedGroupPreview({
           serverUrl,
           selectedType,
           sourceTokenPath,
+          sourceCollectionId,
           inlineValue,
           sourceValue,
           targetGroup,
@@ -275,6 +282,7 @@ export function useGeneratedGroupPreview({
     selectedType,
     serverUrl,
     sourceValue,
+    sourceCollectionId,
     sourceTokenPath,
     targetGroup,
     targetCollection,
@@ -330,7 +338,6 @@ export function useGeneratedGroupPreview({
     previewTokens,
     previewLoading,
     previewError,
-    existingTokensError: '',
     overwrittenEntries,
     existingOverwritePathSet,
     previewDiff,

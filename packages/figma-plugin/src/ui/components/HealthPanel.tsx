@@ -131,7 +131,6 @@ export function HealthPanel({
     unusedTokens,
   } = useHealthData({
     allTokensFlat,
-    pathToCollectionId,
     perCollectionFlat,
     tokenUsageCounts,
     tokenUsageReady,

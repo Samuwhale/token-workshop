@@ -257,6 +257,7 @@ export const TokenLeafNode = memo(
       onOpenGeneratedGroupEditor({
         mode: "create",
         sourceTokenPath: node.path,
+        sourceCollectionId: collectionId,
         sourceTokenName: node.name,
         sourceTokenType: node.$type,
         sourceTokenValue: node.$value,
@@ -268,7 +269,7 @@ export const TokenLeafNode = memo(
             }
           : {}),
       });
-    }, [closeTokenMenus, node.$type, node.$value, node.name, node.path, onOpenGeneratedGroupEditor, quickGeneratorType]);
+    }, [closeTokenMenus, collectionId, node.$type, node.$value, node.name, node.path, onOpenGeneratedGroupEditor, quickGeneratorType]);
 
     // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
     useEffect(() => {
@@ -1453,10 +1454,8 @@ export const TokenLeafNode = memo(
                         tabIndex={-1}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
-                          const tokenCollectionId = pathToCollectionId?.[node.path];
-                          if (!tokenCollectionId) return;
                           closeTokenMenus();
-                          onCopyValueToAllModes(node.path, tokenCollectionId);
+                          onCopyValueToAllModes(node.path, collectionId);
                         }}
                         className={MENU_ITEM_CLASS}
                       >

@@ -13,6 +13,8 @@ export interface UseTokenRenameParams {
   collectionId: string;
   generators?: TokenGenerator[];
   collections?: TokenCollection[];
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   allTokensFlat?: Record<string, TokenMapEntry>;
   onRefresh: () => void;
@@ -28,6 +30,8 @@ export function useTokenRename({
   collectionId,
   generators,
   collections,
+  pathToCollectionId,
+  collectionIdsByPath,
   perCollectionFlat,
   allTokensFlat,
   onRefresh,
@@ -41,8 +45,6 @@ export function useTokenRename({
 
   const collectionIdRef = useRef(collectionId);
   collectionIdRef.current = collectionId;
-  const serverUrlRef = useRef(serverUrl);
-  serverUrlRef.current = serverUrl;
 
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string, updateAliases = true) => {
     if (!connected) return;
@@ -121,8 +123,19 @@ export function useTokenRename({
     }
     const targetPaths = new Set([oldPath]);
     const source = perCollectionFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
-    const generatorImpacts = computeGeneratorImpacts(targetPaths, generators ?? []);
-    const modeImpacts = computeModeImpacts(targetPaths, collections ?? [], source);
+    const generatorImpacts = computeGeneratorImpacts(
+      targetPaths,
+      collectionId,
+      generators ?? [],
+      pathToCollectionId,
+      collectionIdsByPath,
+    );
+    const modeImpacts = computeModeImpacts(
+      targetPaths,
+      collectionId,
+      collections ?? [],
+      source,
+    );
     if (data.count > 0 || generatorImpacts.length > 0 || modeImpacts.length > 0) {
       setRenameTokenConfirm({
         oldPath,
@@ -135,7 +148,7 @@ export function useTokenRename({
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [connected, serverUrl, collectionId, generators, collections, perCollectionFlat, allTokensFlat, executeTokenRename, onError]);
+  }, [collectionId, collectionIdsByPath, collections, connected, executeTokenRename, generators, pathToCollectionId, perCollectionFlat, allTokensFlat, onError, serverUrl]);
 
   return {
     renameTokenConfirm,

@@ -333,6 +333,7 @@ export async function startServer(config: ServerConfig) {
         .withLock(() =>
           generatorService.runForSourceToken(
             tokenPath,
+            event.collectionId,
             tokenStore,
             collectionService,
           ),

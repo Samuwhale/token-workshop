@@ -26,9 +26,10 @@ export interface GeneratorSaveSuccessInfo {
 interface GeneratorMutationBody {
   type: GeneratorType;
   name: string;
-  sourceToken?: string;
+  sourceToken?: string | null;
+  sourceCollectionId?: string | null;
   sourceValue?: unknown;
-  inlineValue?: unknown;
+  inlineValue?: unknown | null;
   targetCollection: string;
   targetGroup: string;
   enabled: boolean;
@@ -44,6 +45,7 @@ interface UseGeneratorSaveParams {
   selectedType: GeneratorType;
   name: string;
   sourceTokenPath?: string;
+  sourceCollectionId?: string;
   inlineValue?: unknown;
   sourceValue?: unknown;
   targetCollection: string;
@@ -105,6 +107,7 @@ export function useGeneratedGroupSave({
   selectedType,
   name,
   sourceTokenPath,
+  sourceCollectionId,
   inlineValue,
   sourceValue,
   targetCollection,
@@ -158,6 +161,7 @@ export function useGeneratedGroupSave({
   const buildGeneratorMutationBody = useCallback(
     ({
       sourceTokenPath,
+      sourceCollectionId,
       sourceValue,
       inlineValue,
       targetGroup,
@@ -170,6 +174,7 @@ export function useGeneratedGroupSave({
       skipSemanticLayer = Boolean(onInterceptSemanticMapping),
     }: {
       sourceTokenPath?: string;
+      sourceCollectionId?: string;
       sourceValue?: unknown;
       inlineValue?: unknown;
       targetGroup: string;
@@ -197,16 +202,26 @@ export function useGeneratedGroupSave({
             : null;
 
       const effectiveName = name.trim() || autoNameFromGroup(targetGroup, selectedType);
+      const normalizedSourceTokenPath = sourceTokenPath?.trim() || undefined;
+      const normalizedSourceCollectionId =
+        normalizedSourceTokenPath && sourceCollectionId?.trim()
+          ? sourceCollectionId.trim()
+          : undefined;
 
       return {
         type: selectedType,
         name: effectiveName,
-        sourceToken: sourceTokenPath || undefined,
-        sourceValue: sourceTokenPath ? sourceValue : undefined,
+        sourceToken: normalizedSourceTokenPath ?? null,
+        sourceCollectionId: normalizedSourceTokenPath
+          ? normalizedSourceCollectionId ?? null
+          : null,
+        sourceValue: normalizedSourceTokenPath ? sourceValue : undefined,
         inlineValue:
-          !sourceTokenPath && inlineValue !== undefined && inlineValue !== ""
+          !normalizedSourceTokenPath &&
+          inlineValue !== undefined &&
+          inlineValue !== ""
             ? inlineValue
-            : undefined,
+            : null,
         targetCollection,
         targetGroup,
         enabled: keepUpdated,
@@ -233,7 +248,7 @@ export function useGeneratedGroupSave({
     }
     if (typeNeedsValue && !hasValue) {
       setSaveError(
-        "This generated group needs a source token or base value.",
+        "This generated group needs a source token or source value.",
       );
       return false;
     }
@@ -256,6 +271,7 @@ export function useGeneratedGroupSave({
       try {
         const body = buildGeneratorMutationBody({
           sourceTokenPath,
+          sourceCollectionId,
           sourceValue,
           inlineValue,
           targetGroup: targetGroupAtSave,
@@ -281,6 +297,7 @@ export function useGeneratedGroupSave({
             const prevGen = existingGenerator;
             const prevBody = buildGeneratorMutationBody({
               sourceTokenPath: prevGen.sourceToken,
+              sourceCollectionId: prevGen.sourceCollectionId,
               sourceValue: prevGen.lastRunSourceValue,
               inlineValue: prevGen.inlineValue,
               targetGroup: prevGen.targetGroup,
@@ -370,6 +387,7 @@ export function useGeneratedGroupSave({
       getToastAction,
       pushUndo,
       selectedType,
+      sourceCollectionId,
       sourceTokenPath,
       sourceValue,
     ],
@@ -386,6 +404,7 @@ export function useGeneratedGroupSave({
         serverUrl,
         selectedType,
         sourceTokenPath,
+        sourceCollectionId,
         inlineValue,
         sourceValue,
         targetGroup,
@@ -431,6 +450,7 @@ export function useGeneratedGroupSave({
     reviewedPreviewFingerprint,
     selectedType,
     serverUrl,
+    sourceCollectionId,
     sourceValue,
     sourceTokenPath,
     targetGroup,

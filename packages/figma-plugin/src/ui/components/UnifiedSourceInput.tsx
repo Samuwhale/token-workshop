@@ -1,60 +1,182 @@
-import { useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TokenPickerField } from './TokenPicker';
+import type { ScopedTokenCandidate } from '../shared/scopedTokenCandidates';
+import { buildScopedTokenCandidates } from '../shared/scopedTokenCandidates';
 import { ColorEditor } from './ValueEditors';
 import { CompactDimensionInput } from './generators/generatorShared';
 import { swatchBgColor } from '../shared/colorUtils';
-import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { SegmentedControl } from './SegmentedControl';
+import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
+import { resolveGeneratedGroupSourceContext } from '../shared/generatedGroupUtils';
 
 export type SourceMode = 'token' | 'value';
 
 export interface UnifiedSourceInputProps {
   expectedType: 'color' | 'dimension' | null;
   sourceTokenPath: string | undefined;
+  sourceCollectionId?: string;
   sourceTokenValue: unknown;
   inlineValue: unknown;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
-  onSourcePathChange: (path: string) => void;
+  collectionIdsByPath?: Record<string, string[]>;
+  onSourcePathChange: (
+    path: string,
+    options?: { collectionId?: string },
+  ) => void;
   onInlineValueChange: (v: unknown) => void;
+}
+
+function formatValuePreview(value: unknown): string {
+  if (value == null) {
+    return '';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value);
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (typeof record.value === 'number') {
+      const unit = typeof record.unit === 'string' ? record.unit : '';
+      return `${record.value}${unit}`;
+    }
+    return JSON.stringify(value);
+  }
+  return String(value);
 }
 
 export function UnifiedSourceInput({
   expectedType,
   sourceTokenPath,
+  sourceCollectionId,
   sourceTokenValue: _sourceTokenValue,
   inlineValue,
   allTokensFlat,
   pathToCollectionId,
+  collectionIdsByPath,
   onSourcePathChange,
   onInlineValueChange,
 }: UnifiedSourceInputProps) {
+  const { perCollectionFlat, collectionIdsByPath: contextCollectionIdsByPath } =
+    useTokenFlatMapContext();
+  const effectiveCollectionIdsByPath =
+    collectionIdsByPath ?? contextCollectionIdsByPath;
   const [mode, setMode] = useState<SourceMode>(() =>
     sourceTokenPath ? 'token' : 'value',
   );
 
-  const stashedTokenPathRef = useRef<string>('');
+  const stashedSelectionRef = useRef<{
+    path: string;
+    collectionId?: string;
+  } | null>(null);
 
-  const linkedEntry = sourceTokenPath && allTokensFlat
-    ? allTokensFlat[sourceTokenPath]
-    : undefined;
+  const linkedSource = useMemo(
+    () =>
+      resolveGeneratedGroupSourceContext({
+        sourceTokenPath,
+        sourceCollectionId,
+        allTokensFlat,
+        perCollectionFlat,
+        pathToCollectionId,
+        collectionIdsByPath: effectiveCollectionIdsByPath,
+        fallbackValue: _sourceTokenValue,
+      }),
+    [
+      _sourceTokenValue,
+      allTokensFlat,
+      effectiveCollectionIdsByPath,
+      pathToCollectionId,
+      perCollectionFlat,
+      sourceCollectionId,
+      sourceTokenPath,
+    ],
+  );
+  const linkedEntry = linkedSource.entry;
+  const resolvedDisplay = linkedEntry ? linkedSource.value : undefined;
 
-  const resolvedDisplay = useMemo(() => {
-    if (!linkedEntry || !allTokensFlat) return undefined;
-    let v = linkedEntry.$value;
-    if (isAlias(v)) {
-      const result = resolveTokenValue(v, linkedEntry.$type, allTokensFlat);
-      if (result.value != null) v = result.value;
-    }
-    return v;
-  }, [linkedEntry, allTokensFlat]);
+  useEffect(() => {
+    setMode(sourceTokenPath ? 'token' : 'value');
+  }, [sourceTokenPath]);
 
   const filterType = expectedType === 'color'
     ? 'color'
     : expectedType === 'dimension'
       ? 'dimension'
       : undefined;
+
+  const matchingSuggestions = useMemo(() => {
+    if (!allTokensFlat) {
+      return [];
+    }
+
+    const candidates = buildScopedTokenCandidates({
+      allTokensFlat,
+      pathToCollectionId,
+      collectionIdsByPath: effectiveCollectionIdsByPath,
+      perCollectionFlat,
+    });
+
+    if (expectedType === 'color' && typeof inlineValue === 'string') {
+      const normalizedHex = inlineValue.toLowerCase().slice(0, 7);
+      if (!/^#[0-9a-f]{6}$/.test(normalizedHex)) return [];
+      return candidates
+        .filter(
+          (candidate) =>
+            candidate.entry.$type === 'color' &&
+            typeof candidate.resolvedEntry.$value === 'string' &&
+            candidate.resolvedEntry.$value.toLowerCase().slice(0, 7) ===
+              normalizedHex,
+        )
+        .slice(0, 5)
+        .map((candidate) => ({
+          key: candidate.key,
+          path: candidate.path,
+          collectionId: candidate.collectionId,
+          value: candidate.resolvedEntry.$value as string,
+          isAmbiguousPath: candidate.isAmbiguousPath,
+        }));
+    }
+
+    if (
+      expectedType === 'dimension' &&
+      typeof inlineValue === 'object' &&
+      inlineValue !== null &&
+      'value' in (inlineValue as Record<string, unknown>)
+    ) {
+      const { value: inlineNumber, unit: inlineUnit } = inlineValue as {
+        value: number;
+        unit: string;
+      };
+      return candidates
+        .filter((candidate) => {
+          if (candidate.entry.$type !== 'dimension') return false;
+          const value = candidate.resolvedEntry.$value;
+          if (
+            typeof value !== 'object' ||
+            value == null ||
+            !('value' in (value as Record<string, unknown>))
+          ) {
+            return false;
+          }
+          const dimensionValue = value as { value: number; unit?: string };
+          return (
+            dimensionValue.value === inlineNumber &&
+            (dimensionValue.unit ?? 'px') === inlineUnit
+          );
+        })
+        .slice(0, 5)
+        .map((candidate) => ({
+          key: candidate.key,
+          path: candidate.path,
+          collectionId: candidate.collectionId,
+          value: formatValuePreview(candidate.resolvedEntry.$value),
+          isAmbiguousPath: candidate.isAmbiguousPath,
+        }));
+    }
+
+    return [];
+  }, [allTokensFlat, expectedType, inlineValue, pathToCollectionId, effectiveCollectionIdsByPath, perCollectionFlat]);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -67,13 +189,18 @@ export function UnifiedSourceInput({
         label="Source input mode"
         onChange={(newMode) => {
           if (newMode === 'token' && mode !== 'token') {
-            if (stashedTokenPathRef.current) {
-              onSourcePathChange(stashedTokenPathRef.current);
-              stashedTokenPathRef.current = '';
+            if (stashedSelectionRef.current) {
+              onSourcePathChange(stashedSelectionRef.current.path, {
+                collectionId: stashedSelectionRef.current.collectionId,
+              });
+              stashedSelectionRef.current = null;
             }
           } else if (newMode === 'value' && mode !== 'value') {
             if (sourceTokenPath) {
-              stashedTokenPathRef.current = sourceTokenPath;
+              stashedSelectionRef.current = {
+                path: sourceTokenPath,
+                collectionId: sourceCollectionId,
+              };
               onSourcePathChange('');
             }
             if (inlineValue === undefined || inlineValue === '') {
@@ -89,6 +216,7 @@ export function UnifiedSourceInput({
         <div className="flex flex-col gap-2">
           <TokenPickerField
             value={sourceTokenPath || undefined}
+            selectedCollectionId={sourceCollectionId}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
             filterType={filterType}
@@ -99,7 +227,15 @@ export function UnifiedSourceInput({
                   ? 'Pick a dimension token…'
                   : 'Pick a token…'
             }
-            onSelect={(path) => onSourcePathChange(path)}
+            onSelect={(
+              path,
+              _resolvedValue,
+              _entry,
+              selection?: ScopedTokenCandidate,
+            ) =>
+              onSourcePathChange(path, {
+                collectionId: selection?.collectionId,
+              })}
             onClear={() => onSourcePathChange('')}
           />
           {sourceTokenPath && resolvedDisplay != null && (
@@ -111,9 +247,7 @@ export function UnifiedSourceInput({
                 />
               )}
               <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">
-                {typeof resolvedDisplay === 'object'
-                  ? JSON.stringify(resolvedDisplay)
-                  : String(resolvedDisplay)}
+                {formatValuePreview(resolvedDisplay)}
               </span>
             </div>
           )}
@@ -158,17 +292,18 @@ export function UnifiedSourceInput({
 
           {expectedType === null && (
             <p className="text-body text-[var(--color-figma-text-secondary)]">
-              This outcome does not require a base value.
+              This outcome does not require a source value.
             </p>
           )}
 
           {allTokensFlat && inlineValue != null && (
             <MatchingTokenSuggestions
               expectedType={expectedType}
-              inlineValue={inlineValue}
-              allTokensFlat={allTokensFlat}
-              onBindToken={path => {
-                onSourcePathChange(path);
+              matches={matchingSuggestions}
+              onBindToken={(selection) => {
+                onSourcePathChange(selection.path, {
+                  collectionId: selection.collectionId,
+                });
                 setMode('token');
               }}
             />
@@ -181,55 +316,19 @@ export function UnifiedSourceInput({
 
 function MatchingTokenSuggestions({
   expectedType,
-  inlineValue,
-  allTokensFlat,
+  matches,
   onBindToken,
 }: {
   expectedType: 'color' | 'dimension' | null;
-  inlineValue: unknown;
-  allTokensFlat: Record<string, TokenMapEntry>;
-  onBindToken: (path: string) => void;
+  matches: Array<{
+    key: string;
+    path: string;
+    collectionId?: string;
+    value: string;
+    isAmbiguousPath: boolean;
+  }>;
+  onBindToken: (selection: { path: string; collectionId?: string }) => void;
 }) {
-  const matches = useMemo(() => {
-    if (expectedType === 'color' && typeof inlineValue === 'string') {
-      const normHex = inlineValue.toLowerCase().slice(0, 7);
-      if (!/^#[0-9a-f]{6}$/.test(normHex)) return [];
-      return Object.entries(allTokensFlat)
-        .filter(
-          ([, e]) =>
-            e.$type === 'color' &&
-            typeof e.$value === 'string' &&
-            (e.$value as string).toLowerCase().slice(0, 7) === normHex,
-        )
-        .slice(0, 5)
-        .map(([path, e]) => ({ path, value: e.$value as string }));
-    }
-    if (
-      expectedType === 'dimension' &&
-      typeof inlineValue === 'object' &&
-      inlineValue !== null &&
-      'value' in (inlineValue as Record<string, unknown>)
-    ) {
-      const { value: numVal, unit } = inlineValue as {
-        value: number;
-        unit: string;
-      };
-      return Object.entries(allTokensFlat)
-        .filter(([, e]) => {
-          if (e.$type !== 'dimension') return false;
-          const v = e.$value;
-          if (typeof v === 'object' && v !== null && 'value' in (v as Record<string, unknown>)) {
-            const dv = v as { value: number; unit?: string };
-            return dv.value === numVal && (dv.unit ?? 'px') === unit;
-          }
-          return false;
-        })
-        .slice(0, 5)
-        .map(([path, e]) => ({ path, value: String(e.$value) }));
-    }
-    return [];
-  }, [expectedType, inlineValue, allTokensFlat]);
-
   if (matches.length === 0) return null;
 
   return (
@@ -238,10 +337,10 @@ function MatchingTokenSuggestions({
         Existing tokens with this value:
       </span>
       <div className="flex flex-col gap-0.5">
-        {matches.map(({ path, value: tv }) => (
+        {matches.map(({ key, path, collectionId, value: tv, isAmbiguousPath }) => (
           <button
-            key={path}
-            onClick={() => onBindToken(path)}
+            key={key}
+            onClick={() => onBindToken({ path, collectionId })}
             className="flex items-center gap-2 px-2 py-1 rounded hover:bg-[var(--color-figma-accent)]/10 text-left group"
           >
             {expectedType === 'color' && typeof tv === 'string' && (
@@ -253,6 +352,11 @@ function MatchingTokenSuggestions({
             <span className="flex-1 text-secondary font-mono text-[var(--color-figma-text)] truncate">
               {path}
             </span>
+            {isAmbiguousPath && collectionId && (
+              <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
+                {collectionId}
+              </span>
+            )}
             <span className="text-secondary text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 shrink-0">
               Use token
             </span>

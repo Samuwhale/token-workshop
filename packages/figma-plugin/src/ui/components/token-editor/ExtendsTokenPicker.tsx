@@ -22,7 +22,7 @@ export function ExtendsTokenPicker({
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
 }) {
   const { workingCollectionId } = useCollectionStateContext();
-  const { perCollectionFlat } = useTokenFlatMapContext();
+  const { perCollectionFlat, collectionIdsByPath } = useTokenFlatMapContext();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,9 +30,10 @@ export function ExtendsTokenPicker({
     () => buildScopedTokenCandidates({
       allTokensFlat,
       pathToCollectionId,
+      collectionIdsByPath,
       perCollectionFlat,
     }),
-    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+    [allTokensFlat, pathToCollectionId, collectionIdsByPath, perCollectionFlat],
   );
   const candidates = useMemo(() => {
     return scopedCandidates.filter(

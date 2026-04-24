@@ -110,6 +110,7 @@ export class TokenStore {
   private flatTokens: Map<string, Array<{ token: Token; collectionId: string }>> =
     new Map();
   private resolver: TokenResolver | null = null;
+  private collectionResolvers: Map<string, TokenResolver> = new Map();
   /** Cross-collection dependents: refTarget -> list of {path, collectionId} that reference it. */
   private crossCollectionDependents: Map<
     string,
@@ -385,7 +386,7 @@ export class TokenStore {
   private rebuildFlatTokens(): void {
     if (this._batchDepth > 0) return; // deferred — endBatch() always rebuilds
     this.flatTokens = this.buildLiveFlatTokens(); // atomic swap — no reader sees a partial/empty map
-    this.rebuildResolver();
+    this.rebuildResolvers();
     this.rebuildCrossCollectionDependents();
   }
 
@@ -435,14 +436,34 @@ export class TokenStore {
     }
   }
 
-  private rebuildResolver(): void {
-    const allTokens: Record<string, Token> = {};
+  private rebuildResolvers(): void {
+    const mergedTokens: Record<string, Token> = {};
+    const collectionOverrides = new Map<string, Record<string, Token>>();
+
     for (const [tokenPath, entries] of this.flatTokens) {
       if (entries.length > 0) {
-        allTokens[tokenPath] = entries[0].token;
+        mergedTokens[tokenPath] = entries[0].token;
+      }
+      for (const entry of entries) {
+        let tokens = collectionOverrides.get(entry.collectionId);
+        if (!tokens) {
+          tokens = {};
+          collectionOverrides.set(entry.collectionId, tokens);
+        }
+        tokens[tokenPath] = entry.token;
       }
     }
-    this.resolver = new TokenResolver(allTokens, "__merged__");
+
+    this.resolver = new TokenResolver(mergedTokens, "__merged__");
+    this.collectionResolvers = new Map(
+      Array.from(collectionOverrides, ([collectionId, tokens]) => [
+        collectionId,
+        // Collection-pinned reads must stay inside that collection. Falling
+        // back to merged tokens from other collections can silently resolve an
+        // overlapping path from the wrong source and diverge from the UI.
+        new TokenResolver(tokens, collectionId),
+      ]),
+    );
   }
 
   /** Build cross-collection dependents map by scanning ALL token entries across all collections. */
@@ -1173,6 +1194,38 @@ export class TokenStore {
     }
   }
 
+  async resolveTokenInCollection(
+    tokenPath: string,
+    preferredCollectionId?: string,
+  ): Promise<ResolvedToken | undefined> {
+    if (!preferredCollectionId) {
+      return this.resolveToken(tokenPath);
+    }
+
+    const collectionResolver = this.collectionResolvers.get(preferredCollectionId);
+    if (!collectionResolver) {
+      return undefined;
+    }
+
+    const collectionEntry =
+      this.flatTokens
+        .get(tokenPath)
+        ?.find((entry) => entry.collectionId === preferredCollectionId) ?? null;
+    if (!collectionEntry) {
+      return undefined;
+    }
+
+    try {
+      const resolved = collectionResolver.resolve(tokenPath);
+      return {
+        ...resolved,
+        collectionId: preferredCollectionId,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   /** Get all tokens in a collection as a flat map of path -> Token. */
   async getFlatTokensForCollection(
     collectionId: string,
@@ -1202,6 +1255,19 @@ export class TokenStore {
       collectionId: e.collectionId,
       token: e.token,
     }));
+  }
+
+  getTokenDefinitionsInCollection(
+    tokenPath: string,
+    preferredCollectionId?: string,
+  ): Array<{ collectionId: string; token: Token }> {
+    const definitions = this.getTokenDefinitions(tokenPath);
+    if (!preferredCollectionId) {
+      return definitions;
+    }
+    return definitions.filter(
+      (definition) => definition.collectionId === preferredCollectionId,
+    );
   }
 
   /** Get all flat tokens across all collections (includes all collection versions per path). */

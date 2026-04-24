@@ -46,7 +46,7 @@ export function useTokenDataLoading({
       setTokensLoading(true);
       fetchAllTokensFlatWithCollections(serverUrl, controller.signal).then(({ flat, pathToCollectionId: nextPathToCollectionId, collectionIdsByPath: nextCollectionIdsByPath, perCollectionFlat: nextPerCollectionFlat }) => {
         if (gen !== flatFetchGenRef.current) return; // stale response
-        setAllTokensFlat(resolveAllAliases(flat));
+        setAllTokensFlat(flat);
         setPathToCollectionId(nextPathToCollectionId);
         setCollectionIdsByPath(nextCollectionIdsByPath);
         setPerCollectionFlat(nextPerCollectionFlat);

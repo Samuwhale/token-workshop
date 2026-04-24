@@ -101,6 +101,7 @@ export type GeneratorUpdateInput = Partial<
 export type GeneratorPreviewInput = Pick<
   TokenGenerator,
   | "sourceToken"
+  | "sourceCollectionId"
   | "inlineValue"
   | "targetGroup"
   | "targetCollection"
@@ -242,9 +243,22 @@ export type GeneratorPathRenameUpdate =
   | ({ scope: "token" } & TokenPathRename)
   | ({ scope: "group" } & TokenPathRename);
 
+export type GeneratorCollectionMoveUpdate =
+  | ({
+      scope: "token";
+      oldCollectionId: string;
+      newCollectionId: string;
+    } & TokenPathRename)
+  | ({
+      scope: "group";
+      oldCollectionId: string;
+      newCollectionId: string;
+    } & TokenPathRename);
+
 type GeneratorExecutionInput = {
   type: TokenGenerator["type"];
   sourceToken?: TokenGenerator["sourceToken"];
+  sourceCollectionId?: TokenGenerator["sourceCollectionId"];
   inlineValue?: TokenGenerator["inlineValue"];
   targetGroup: TokenGenerator["targetGroup"];
   config: TokenGenerator["config"];
@@ -881,19 +895,19 @@ function normalizeStoredGenerator(raw: unknown): TokenGenerator {
   if (!isObj(raw)) throw new BadRequestError("entry is not an object");
   if (typeof raw.id !== "string" || raw.id === "")
     throw new BadRequestError('missing or invalid "id"');
-  if (typeof raw.name !== "string")
-    throw new BadRequestError('missing or invalid "name"');
-  if (typeof raw.targetCollection !== "string")
-    throw new BadRequestError('missing or invalid "targetCollection"');
-  if (typeof raw.targetGroup !== "string")
-    throw new BadRequestError('missing or invalid "targetGroup"');
+  const name = normalizeRequiredStoredString(raw.name, "name");
+  const targetCollection = normalizeRequiredStoredString(
+    raw.targetCollection,
+    "targetCollection",
+  );
+  const targetGroup = normalizeRequiredStoredString(
+    raw.targetGroup,
+    "targetGroup",
+  );
   if (typeof raw.createdAt !== "string")
     throw new BadRequestError('missing or invalid "createdAt"');
   if (typeof raw.updatedAt !== "string")
     throw new BadRequestError('missing or invalid "updatedAt"');
-  if (raw.sourceToken !== undefined && typeof raw.sourceToken !== "string") {
-    throw new BadRequestError("sourceToken must be a string when provided");
-  }
   if (raw.enabled !== undefined && typeof raw.enabled !== "boolean") {
     throw new BadRequestError("enabled must be a boolean when provided");
   }
@@ -906,14 +920,29 @@ function normalizeStoredGenerator(raw: unknown): TokenGenerator {
   const semanticLayer = normalizeSemanticLayer(raw.semanticLayer);
   const detachedPaths = normalizeDetachedPaths(raw.detachedPaths);
   const lastRunError = normalizeLastRunError(raw.lastRunError);
+  const hasSourceCollectionId = raw.sourceCollectionId !== undefined;
+  const sourceToken = normalizeOptionalStoredString(
+    raw.sourceToken,
+    "sourceToken",
+  );
+  if (hasSourceCollectionId && !sourceToken) {
+    throw new BadRequestError("sourceCollectionId requires sourceToken");
+  }
+  const sourceCollectionId = sourceToken
+    ? normalizeOptionalStoredString(
+        raw.sourceCollectionId,
+        "sourceCollectionId",
+      )
+    : undefined;
   return {
     id: raw.id,
     type,
-    name: raw.name,
-    ...(raw.sourceToken !== undefined && { sourceToken: raw.sourceToken }),
+    name,
+    ...(sourceToken !== undefined && { sourceToken }),
+    ...(sourceCollectionId !== undefined && { sourceCollectionId }),
     ...(raw.inlineValue !== undefined && { inlineValue: raw.inlineValue }),
-    targetCollection: raw.targetCollection,
-    targetGroup: raw.targetGroup,
+    targetCollection,
+    targetGroup,
     config: normalizeGeneratorConfig(type, raw.config),
     ...(semanticLayer && { semanticLayer }),
     ...(detachedPaths && { detachedPaths }),
@@ -927,6 +956,54 @@ function normalizeStoredGenerator(raw: unknown): TokenGenerator {
     }),
     ...(lastRunError && { lastRunError }),
   };
+}
+
+function normalizeOptionalStoredString(
+  value: unknown,
+  fieldName: string,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new BadRequestError(`${fieldName} must be a string when provided`);
+  }
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
+function normalizeRequiredStoredString(
+  value: unknown,
+  fieldName: string,
+): string {
+  if (typeof value !== "string") {
+    throw new BadRequestError(`missing or invalid "${fieldName}"`);
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new BadRequestError(`missing or invalid "${fieldName}"`);
+  }
+  return normalized;
+}
+
+function generatorReadsFromCollection(
+  generator: Pick<TokenGenerator, "sourceCollectionId">,
+  collectionId: string,
+): boolean {
+  return !generator.sourceCollectionId || generator.sourceCollectionId === collectionId;
+}
+
+function generatorDependsOnGenerator(
+  downstream: Pick<TokenGenerator, "id" | "sourceToken" | "sourceCollectionId">,
+  upstream: Pick<TokenGenerator, "id" | "targetCollection" | "targetGroup">,
+): boolean {
+  if (downstream.id === upstream.id || !downstream.sourceToken) {
+    return false;
+  }
+  if (!downstream.sourceToken.startsWith(`${upstream.targetGroup}.`)) {
+    return false;
+  }
+  return generatorReadsFromCollection(downstream, upstream.targetCollection);
 }
 
 export class GeneratorService {
@@ -1051,13 +1128,17 @@ export class GeneratorService {
 
   private async getKeepUpdatedDisabledReason(
     sourceToken: string | undefined,
-    tokenStore: Pick<TokenStore, "getTokenDefinitions">,
+    sourceCollectionId: string | undefined,
+    tokenStore: Pick<TokenStore, "getTokenDefinitionsInCollection">,
     collectionModeCounts: Map<string, number>,
   ): Promise<string | null> {
     if (!sourceToken) {
       return "Keep updated is unavailable because this generated group has no source token.";
     }
-    const sourceDefinitions = tokenStore.getTokenDefinitions(sourceToken);
+    const sourceDefinitions = tokenStore.getTokenDefinitionsInCollection(
+      sourceToken,
+      sourceCollectionId,
+    );
     if (sourceDefinitions.length === 0) {
       return null;
     }
@@ -1074,8 +1155,8 @@ export class GeneratorService {
   }
 
   async assertKeepUpdatedSupported(
-    generator: Pick<TokenGenerator, "enabled" | "sourceToken">,
-    tokenStore: Pick<TokenStore, "getTokenDefinitions">,
+    generator: Pick<TokenGenerator, "enabled" | "sourceToken" | "sourceCollectionId">,
+    tokenStore: Pick<TokenStore, "getTokenDefinitionsInCollection">,
     collectionLookup: {
       getCollectionsOverview(): Promise<{
         collections: Array<{ id: string; modes: Array<{ name: string }> }>;
@@ -1089,6 +1170,7 @@ export class GeneratorService {
       await this.getCollectionModeCounts(collectionLookup);
     const disabledReason = await this.getKeepUpdatedDisabledReason(
       generator.sourceToken,
+      generator.sourceCollectionId,
       tokenStore,
       collectionModeCounts,
     );
@@ -1098,7 +1180,7 @@ export class GeneratorService {
   }
 
   async disableUnsupportedKeepUpdated(
-    tokenStore: Pick<TokenStore, "getTokenDefinitions">,
+    tokenStore: Pick<TokenStore, "getTokenDefinitionsInCollection">,
     collectionLookup: {
       getCollectionsOverview(): Promise<{
         collections: Array<{ id: string; modes: Array<{ name: string }> }>;
@@ -1114,6 +1196,7 @@ export class GeneratorService {
       }
       const disabledReason = await this.getKeepUpdatedDisabledReason(
         generator.sourceToken,
+        generator.sourceCollectionId,
         tokenStore,
         collectionModeCounts,
       );
@@ -1138,7 +1221,10 @@ export class GeneratorService {
   }
 
   async getDashboardItems(
-    tokenStore: Pick<TokenStore, "resolveToken" | "getTokenDefinitions">,
+    tokenStore: Pick<
+      TokenStore,
+      "resolveTokenInCollection" | "getTokenDefinitionsInCollection"
+    >,
     collectionLookup: {
       getCollectionsOverview(): Promise<{
         collections: Array<{ id: string; modes: Array<{ name: string }> }>;
@@ -1159,8 +1245,7 @@ export class GeneratorService {
     for (const downstream of generators) {
       if (!downstream.sourceToken) continue;
       for (const upstream of generators) {
-        if (upstream.id === downstream.id) continue;
-        if (!downstream.sourceToken.startsWith(`${upstream.targetGroup}.`)) {
+        if (!generatorDependsOnGenerator(downstream, upstream)) {
           continue;
         }
         upstreamIdsByGenerator.get(downstream.id)?.push(upstream.id);
@@ -1180,6 +1265,7 @@ export class GeneratorService {
           generator.enabled === false
             ? await this.getKeepUpdatedDisabledReason(
                 generator.sourceToken,
+                generator.sourceCollectionId,
                 tokenStore,
                 collectionModeCounts,
               )
@@ -1188,9 +1274,12 @@ export class GeneratorService {
           return { id: generator.id, isStale: false, staleReason: undefined };
         }
 
-        const resolved = await tokenStore.resolveToken(generator.sourceToken).catch(
-          () => undefined,
-        );
+        const resolved = await tokenStore
+          .resolveTokenInCollection(
+            generator.sourceToken,
+            generator.sourceCollectionId,
+          )
+          .catch(() => undefined);
         if (!resolved) {
           return {
             id: generator.id,
@@ -1567,17 +1656,60 @@ export class GeneratorService {
     newCollectionId: string,
   ): Promise<number> {
     let count = 0;
+    const previous = new Map<string, TokenGenerator>();
     for (const [id, gen] of this.generators) {
-      if (gen.targetCollection === oldCollectionId) {
+      if (
+        gen.targetCollection === oldCollectionId ||
+        gen.sourceCollectionId === oldCollectionId
+      ) {
+        previous.set(id, gen);
         this.generators.set(id, {
           ...gen,
-          targetCollection: newCollectionId,
+          ...(gen.targetCollection === oldCollectionId
+            ? { targetCollection: newCollectionId }
+            : {}),
+          ...(gen.sourceCollectionId === oldCollectionId
+            ? { sourceCollectionId: newCollectionId }
+            : {}),
         });
         count++;
       }
     }
-    if (count > 0) await this.saveGenerators();
+    if (count === 0) {
+      return 0;
+    }
+    try {
+      await this.saveGenerators();
+    } catch (err) {
+      this.restoreGenerators(previous);
+      throw err;
+    }
     return count;
+  }
+
+  private restoreGenerators(previous: Map<string, TokenGenerator>): void {
+    for (const [id, generator] of previous) {
+      this.generators.set(id, generator);
+    }
+  }
+
+  private async persistGeneratorMutations(
+    previous: Map<string, TokenGenerator>,
+    dependencyErrorMessage: string,
+  ): Promise<void> {
+    try {
+      this.buildDependencyOrder();
+    } catch {
+      this.restoreGenerators(previous);
+      throw new BadRequestError(dependencyErrorMessage);
+    }
+
+    try {
+      await this.saveGenerators();
+    } catch (err) {
+      this.restoreGenerators(previous);
+      throw err;
+    }
   }
 
   /**
@@ -1594,6 +1726,7 @@ export class GeneratorService {
     }
 
     let count = 0;
+    const previous = new Map<string, TokenGenerator>();
     for (const [id, gen] of this.generators) {
       let nextSourceToken = gen.sourceToken;
       let nextTargetGroup = gen.targetGroup;
@@ -1646,6 +1779,7 @@ export class GeneratorService {
         stableStringify(nextDetachedPaths ?? []) !==
           stableStringify(gen.detachedPaths ?? [])
       ) {
+        previous.set(id, gen);
         this.generators.set(id, {
           ...gen,
           ...(nextSourceToken !== undefined ? { sourceToken: nextSourceToken } : {}),
@@ -1657,7 +1791,136 @@ export class GeneratorService {
         count++;
       }
     }
-    if (count > 0) await this.saveGenerators();
+
+    if (count === 0) {
+      return 0;
+    }
+
+    await this.persistGeneratorMutations(
+      previous,
+      "Applying token path updates would introduce a circular dependency. " +
+        "Ensure no generator sources from its own output group.",
+    );
+
+    return count;
+  }
+
+  /**
+   * Apply cross-collection token/group moves to generator source and target bindings.
+   * Source bindings are updated when the moved path matches the generator's source token.
+   * Target bindings are updated when the moved group matches the generator's output group.
+   */
+  async applyCollectionMoves(
+    moves: GeneratorCollectionMoveUpdate[],
+  ): Promise<number> {
+    if (moves.length === 0) {
+      return 0;
+    }
+
+    let count = 0;
+    const previous = new Map<string, TokenGenerator>();
+    for (const [id, gen] of this.generators) {
+      let nextSourceToken = gen.sourceToken;
+      let nextSourceCollectionId = gen.sourceCollectionId;
+      let nextTargetCollection = gen.targetCollection;
+      let nextTargetGroup = gen.targetGroup;
+      let nextDetachedPaths = gen.detachedPaths
+        ? [...gen.detachedPaths]
+        : undefined;
+
+      for (const move of moves) {
+        if (move.scope === "token") {
+          const sourceMatches =
+            nextSourceToken === move.oldPath &&
+            (!nextSourceCollectionId ||
+              nextSourceCollectionId === move.oldCollectionId);
+          if (sourceMatches) {
+            nextSourceToken = move.newPath;
+            nextSourceCollectionId = move.newCollectionId;
+          }
+          if (
+            nextDetachedPaths &&
+            nextTargetCollection === move.oldCollectionId
+          ) {
+            nextDetachedPaths = nextDetachedPaths.map((path) =>
+              path === move.oldPath ? move.newPath : path,
+            );
+          }
+          continue;
+        }
+
+        const prefix = `${move.oldPath}.`;
+        const sourceMatchesCollection =
+          !nextSourceCollectionId ||
+          nextSourceCollectionId === move.oldCollectionId;
+        if (nextSourceToken && sourceMatchesCollection) {
+          if (nextSourceToken === move.oldPath) {
+            nextSourceToken = move.newPath;
+            nextSourceCollectionId = move.newCollectionId;
+          } else if (nextSourceToken.startsWith(prefix)) {
+            nextSourceToken =
+              move.newPath + nextSourceToken.slice(move.oldPath.length);
+            nextSourceCollectionId = move.newCollectionId;
+          }
+        }
+
+        if (nextTargetCollection !== move.oldCollectionId) {
+          continue;
+        }
+        if (nextTargetGroup === move.oldPath) {
+          nextTargetGroup = move.newPath;
+          nextTargetCollection = move.newCollectionId;
+        } else if (nextTargetGroup.startsWith(prefix)) {
+          nextTargetGroup =
+            move.newPath + nextTargetGroup.slice(move.oldPath.length);
+          nextTargetCollection = move.newCollectionId;
+        }
+        if (nextDetachedPaths) {
+          nextDetachedPaths = nextDetachedPaths.map((path) => {
+            if (path === move.oldPath) return move.newPath;
+            if (path.startsWith(prefix)) {
+              return move.newPath + path.slice(move.oldPath.length);
+            }
+            return path;
+          });
+        }
+      }
+
+      if (
+        nextSourceToken !== gen.sourceToken ||
+        nextSourceCollectionId !== gen.sourceCollectionId ||
+        nextTargetCollection !== gen.targetCollection ||
+        nextTargetGroup !== gen.targetGroup ||
+        stableStringify(nextDetachedPaths ?? []) !==
+          stableStringify(gen.detachedPaths ?? [])
+      ) {
+        previous.set(id, gen);
+        this.generators.set(id, {
+          ...gen,
+          ...(nextSourceToken !== undefined ? { sourceToken: nextSourceToken } : {}),
+          ...(nextSourceCollectionId !== undefined
+            ? { sourceCollectionId: nextSourceCollectionId }
+            : { sourceCollectionId: undefined }),
+          targetCollection: nextTargetCollection,
+          targetGroup: nextTargetGroup,
+          ...(nextDetachedPaths && nextDetachedPaths.length > 0
+            ? { detachedPaths: [...new Set(nextDetachedPaths)].sort() }
+            : { detachedPaths: undefined }),
+        });
+        count++;
+      }
+    }
+
+    if (count === 0) {
+      return 0;
+    }
+
+    await this.persistGeneratorMutations(
+      previous,
+      "Applying collection moves would introduce a circular dependency. " +
+        "Ensure no generator sources from its own output group.",
+    );
+
     return count;
   }
 
@@ -1787,6 +2050,7 @@ export class GeneratorService {
       semanticLayer?: GeneratorSemanticLayer;
     } = {
       sourceToken: data.sourceToken,
+      sourceCollectionId: data.sourceCollectionId,
       inlineValue: data.inlineValue,
       targetGroup: data.targetGroup,
       targetCollection: data.targetCollection,
@@ -2115,6 +2379,7 @@ export class GeneratorService {
    */
   async runForSourceToken(
     tokenPath: string,
+    sourceCollectionId: string,
     tokenStore: TokenStore,
     collectionLookup: {
       getCollectionsOverview(): Promise<{
@@ -2133,8 +2398,12 @@ export class GeneratorService {
       if (generator.sourceToken !== tokenPath || generator.enabled === false) {
         continue;
       }
+      if (!generatorReadsFromCollection(generator, sourceCollectionId)) {
+        continue;
+      }
       const disabledReason = await this.getKeepUpdatedDisabledReason(
         generator.sourceToken,
+        generator.sourceCollectionId,
         tokenStore,
         collectionModeCounts,
       );
@@ -2188,10 +2457,7 @@ export class GeneratorService {
       if (gen.enabled === false) continue;
       for (const affectedId of affected) {
         const affectedGen = this.generators.get(affectedId);
-        if (
-          affectedGen &&
-          gen.sourceToken.startsWith(affectedGen.targetGroup + ".")
-        ) {
+        if (affectedGen && generatorDependsOnGenerator(gen, affectedGen)) {
           affected.add(genId);
           break;
         }
@@ -2213,8 +2479,7 @@ export class GeneratorService {
             .map((failedId) => this.generators.get(failedId))
             .find(
               (failedGen) =>
-                failedGen &&
-                gen.sourceToken!.startsWith(failedGen.targetGroup + "."),
+                failedGen && generatorDependsOnGenerator(gen, failedGen),
             )
         : undefined;
       if (blockingGen) {
@@ -2299,15 +2564,17 @@ export class GeneratorService {
 
     for (const [id, gen] of this.generators) {
       if (!gen.sourceToken) continue;
-      for (const [prefix, producerIds] of producerByGroup) {
-        if (gen.sourceToken.startsWith(prefix + ".")) {
-          for (const producerId of producerIds) {
-            if (producerId !== id) {
-              // id depends on producerId
-              edges.get(producerId)!.add(id);
-              inDegree.set(id, (inDegree.get(id) ?? 0) + 1);
-            }
+      for (const [producerGroup, producerIds] of producerByGroup) {
+        if (!gen.sourceToken.startsWith(producerGroup + ".")) {
+          continue;
+        }
+        for (const producerId of producerIds) {
+          const producer = this.generators.get(producerId);
+          if (!producer || !generatorDependsOnGenerator(gen, producer)) {
+            continue;
           }
+          edges.get(producerId)!.add(id);
+          inDegree.set(id, (inDegree.get(id) ?? 0) + 1);
         }
       }
     }
@@ -2390,7 +2657,10 @@ export class GeneratorService {
     if (sourceValueOverride !== undefined) {
       lastRunSourceValue = sourceValueOverride;
     } else if (generator.sourceToken) {
-      const resolved = await tokenStore.resolveToken(generator.sourceToken);
+      const resolved = await tokenStore.resolveTokenInCollection(
+        generator.sourceToken,
+        generator.sourceCollectionId,
+      );
       if (resolved) lastRunSourceValue = resolved.$value;
     }
     // Re-read after all awaits — prevents overwriting concurrent update() mutations.
@@ -2878,7 +3148,10 @@ export class GeneratorService {
     let resolvedValue: unknown;
     if (needsSource) {
       if (sourceToken) {
-        const resolved = await tokenStore.resolveToken(sourceToken);
+        const resolved = await tokenStore.resolveTokenInCollection(
+          sourceToken,
+          generator.sourceCollectionId,
+        );
         if (!resolved) {
           throw new NotFoundError(
             `Source token "${sourceToken}" not found or could not be resolved`,

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import type {
   TokenGenerator,
   GeneratorType,
@@ -29,6 +29,9 @@ import type { UndoSlot } from "./useUndo";
 import type { ToastAction } from "../shared/toastBus";
 import { stableStringify } from "../shared/utils";
 import { cloneValue } from "../../shared/clone";
+import {
+  resolveGeneratedGroupSourceContext,
+} from "../shared/generatedGroupUtils";
 
 import type { OverwrittenEntry } from "./useGeneratedGroupPreview";
 export type { OverwrittenEntry } from "./useGeneratedGroupPreview";
@@ -36,6 +39,7 @@ export type { OverwrittenEntry } from "./useGeneratedGroupPreview";
 interface UseGeneratorDialogParams {
   serverUrl: string;
   sourceTokenPath?: string;
+  sourceCollectionId?: string;
   sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
@@ -45,6 +49,12 @@ interface UseGeneratorDialogParams {
   initialDraft?: GeneratorDialogInitialDraft;
   /** Flat token map for source path lookups (used by recommendedType). */
   allTokensFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
+  pathToCollectionId?: Record<string, string>;
+  perCollectionFlat?: Record<
+    string,
+    Record<string, import("../../shared/types").TokenMapEntry>
+  >;
+  collectionIdsByPath?: Record<string, string[]>;
   /** Mode-resolved token map for previewing source values in the currently selected mode. */
   sourceValuesFlat?: Record<string, import("../../shared/types").TokenMapEntry>;
   onSaved: (info?: GeneratorSaveSuccessInfo) => void;
@@ -172,6 +182,7 @@ interface GeneratorDirtySnapshot {
   targetCollection: string;
   targetGroup: string;
   editableSourcePath: string;
+  editableSourceCollectionId?: string;
   inlineValue: unknown;
   configs: Partial<Record<GeneratorType, GeneratorConfig>>;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
@@ -257,6 +268,7 @@ interface UseGeneratorDialogReturn {
   targetCollection: string;
   targetGroup: string;
   editableSourcePath: string;
+  editableSourceCollectionId?: string;
   inlineValue: unknown;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   previewTokens: GeneratedTokenResult[];
@@ -266,7 +278,6 @@ interface UseGeneratorDialogReturn {
   previewAnalysis: GeneratorPreviewAnalysis | null;
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
-  existingTokensError: string;
   saving: boolean;
   saveError: string;
   showConfirmation: boolean;
@@ -283,7 +294,10 @@ interface UseGeneratorDialogReturn {
   handleTypeChange: (type: GeneratorType) => void;
   handleNameChange: (value: string) => void;
   setTargetGroup: (value: string) => void;
-  setEditableSourcePath: (value: string) => void;
+  setEditableSourcePath: (
+    value: string,
+    options?: { collectionId?: string },
+  ) => void;
   setInlineValue: (value: unknown) => void;
   handleConfigChange: (type: GeneratorType, cfg: GeneratorConfig) => void;
   handleOverrideChange: (
@@ -307,6 +321,7 @@ interface UseGeneratorDialogReturn {
 export function useGeneratedGroupDialog({
   serverUrl,
   sourceTokenPath,
+  sourceCollectionId,
   sourceTokenName,
   sourceTokenType = "",
   sourceTokenValue,
@@ -315,6 +330,9 @@ export function useGeneratedGroupDialog({
   template,
   initialDraft,
   allTokensFlat,
+  pathToCollectionId,
+  perCollectionFlat,
+  collectionIdsByPath,
   sourceValuesFlat,
   onSaved,
   onInterceptSemanticMapping,
@@ -335,27 +353,46 @@ export function useGeneratedGroupDialog({
   const [editableSourcePath, setEditableSourcePathRaw] = useState(
     existingGenerator?.sourceToken ?? sourceTokenPath ?? "",
   );
+  const [editableSourceCollectionId, setEditableSourceCollectionId] = useState<
+    string | undefined
+  >(existingGenerator?.sourceCollectionId ?? sourceCollectionId);
 
   const recommendedType = useMemo(() => {
     // Use the current editable source path so the recommendation reacts to
     // user changes, falling back to the initial props.
-    const effectivePath = editableSourcePath || existingGenerator?.sourceToken || sourceTokenPath;
+    const effectivePath =
+      editableSourcePath || existingGenerator?.sourceToken || sourceTokenPath;
     if (!effectivePath) return undefined;
-    // Look up the live token entry so we react to path edits in the dialog.
-    const liveEntry = allTokensFlat?.[effectivePath];
-    const effectiveType = liveEntry?.$type ?? sourceTokenType;
-    const effectiveValue = liveEntry?.$value ?? sourceTokenValue;
+    const liveSource = resolveGeneratedGroupSourceContext({
+      sourceTokenPath: effectivePath,
+      sourceCollectionId:
+        editableSourceCollectionId ??
+        existingGenerator?.sourceCollectionId ??
+        sourceCollectionId,
+      allTokensFlat,
+      pathToCollectionId,
+      collectionIdsByPath,
+      perCollectionFlat,
+    });
+    const effectiveType = liveSource.entry?.$type ?? sourceTokenType;
+    const effectiveValue = liveSource.entry?.$value ?? sourceTokenValue;
     if (effectiveType) {
       return detectGeneratorType(effectiveType, effectiveValue);
     }
     return undefined;
   }, [
     editableSourcePath,
+    editableSourceCollectionId,
     existingGenerator?.sourceToken,
+    existingGenerator?.sourceCollectionId,
     sourceTokenPath,
+    sourceCollectionId,
     sourceTokenType,
     sourceTokenValue,
     allTokensFlat,
+    pathToCollectionId,
+    collectionIdsByPath,
+    perCollectionFlat,
   ]);
 
   const initialType: GeneratorType =
@@ -441,6 +478,8 @@ export function useGeneratedGroupDialog({
       targetCollection: initialTargetCollection,
       targetGroup: initialTargetGroup,
       editableSourcePath: existingGenerator?.sourceToken ?? sourceTokenPath ?? "",
+      editableSourceCollectionId:
+        existingGenerator?.sourceCollectionId ?? sourceCollectionId,
       inlineValue: initialInlineValue,
       configs: initialConfigs,
       pendingOverrides: initialPendingOverrides,
@@ -571,15 +610,26 @@ export function useGeneratedGroupDialog({
   // --- Sub-hooks ---
 
   const effectiveSourcePath = editableSourcePath.trim() || undefined;
+  const previewSource = resolveGeneratedGroupSourceContext({
+    sourceTokenPath: effectiveSourcePath,
+    sourceCollectionId: editableSourceCollectionId,
+    sourceValuesFlat,
+    allTokensFlat,
+    pathToCollectionId,
+    collectionIdsByPath,
+    perCollectionFlat,
+    fallbackValue:
+      effectiveSourcePath === sourceTokenPath ? sourceTokenValue : undefined,
+  });
   const previewSourceValue =
-    (effectiveSourcePath && sourceValuesFlat?.[effectiveSourcePath]?.$value) ??
-    (effectiveSourcePath === sourceTokenPath ? sourceTokenValue : undefined);
+    effectiveSourcePath && !previewSource.entry
+      ? undefined
+      : previewSource.value;
 
   const {
     previewTokens,
     previewLoading,
     previewError,
-    existingTokensError,
     overwrittenEntries,
     existingOverwritePathSet,
     previewFingerprint,
@@ -588,6 +638,7 @@ export function useGeneratedGroupDialog({
     serverUrl,
     selectedType,
     sourceTokenPath: effectiveSourcePath,
+    sourceCollectionId: effectiveSourcePath ? editableSourceCollectionId : undefined,
     inlineValue,
     sourceValue: previewSourceValue,
     targetGroup,
@@ -628,6 +679,7 @@ export function useGeneratedGroupDialog({
     selectedType,
     name,
     sourceTokenPath: effectiveSourcePath,
+    sourceCollectionId: effectiveSourcePath ? editableSourceCollectionId : undefined,
     inlineValue,
     sourceValue: previewSourceValue,
     targetCollection,
@@ -659,6 +711,7 @@ export function useGeneratedGroupDialog({
       targetCollection,
       targetGroup,
       editableSourcePath,
+      editableSourceCollectionId,
       inlineValue,
       configs,
       pendingOverrides,
@@ -674,6 +727,7 @@ export function useGeneratedGroupDialog({
   }, [
     configs,
     editableSourcePath,
+    editableSourceCollectionId,
     inlineValue,
     name,
     pendingOverrides,
@@ -707,15 +761,21 @@ export function useGeneratedGroupDialog({
   };
 
   const setEditableSourcePath = useCallback(
-    (v: string) => {
+    (v: string, options?: { collectionId?: string }) => {
       setEditableSourcePathRaw(v);
+      setEditableSourceCollectionId(
+        v.trim()
+          ? options?.collectionId ??
+              (v.trim() === sourceTokenPath ? sourceCollectionId : undefined)
+          : undefined,
+      );
       if (nameWasAutoRef.current) {
         setName(v.trim()
           ? autoName(v.trim(), selectedType)
           : autoNameFromGroup(targetGroup, selectedType));
       }
     },
-    [selectedType, targetGroup],
+    [selectedType, sourceCollectionId, sourceTokenPath, targetGroup],
   );
 
   const handleNameChange = (value: string) => {
@@ -794,6 +854,14 @@ export function useGeneratedGroupDialog({
     [setSelectedSemanticPatternId],
   );
 
+  useEffect(() => {
+    return () => {
+      if (undoDebounceRef.current) {
+        clearTimeout(undoDebounceRef.current);
+      }
+    };
+  }, []);
+
   return {
     // Derived
     isEditing,
@@ -817,6 +885,7 @@ export function useGeneratedGroupDialog({
     targetCollection,
     targetGroup,
     editableSourcePath,
+    editableSourceCollectionId,
     inlineValue,
     pendingOverrides,
     previewTokens,
@@ -826,7 +895,6 @@ export function useGeneratedGroupDialog({
     previewAnalysis,
     overwrittenEntries,
     existingOverwritePathSet,
-    existingTokensError,
     saving,
     saveError,
     showConfirmation,

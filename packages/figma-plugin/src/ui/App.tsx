@@ -68,6 +68,8 @@ import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
 import { useValidationCache } from "./hooks/useValidationCache";
+import { createGeneratedGroupSourceKey } from "./shared/generatorSource";
+import { resolveGeneratedGroupSourceContext } from "./shared/generatedGroupUtils";
 import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
 import {
@@ -167,6 +169,8 @@ export function App() {
   );
   const {
     allTokensFlat,
+    pathToCollectionId,
+    collectionIdsByPath,
     perCollectionFlat,
     modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
@@ -284,6 +288,14 @@ export function App() {
     },
     [inspectingCollection, switchContextualSurface],
   );
+  const handleCollectionMergeComplete = useCallback(
+    (sourceCollectionId: string, targetCollectionId: string) => {
+      handleInspectedCollectionMerge(sourceCollectionId, targetCollectionId);
+      recentlyTouched.removeForCollection(sourceCollectionId);
+      starredTokens.removeForCollection(sourceCollectionId);
+    },
+    [handleInspectedCollectionMerge, recentlyTouched, starredTokens],
+  );
   const handleInspectedCollectionSplit = useCallback(
     ({
       sourceCollectionId,
@@ -311,6 +323,29 @@ export function App() {
       switchContextualSurface({ surface: null });
     },
     [inspectingCollection, switchContextualSurface],
+  );
+  const handleCollectionSplitComplete = useCallback(
+    ({
+      sourceCollectionId,
+      createdCollectionIds,
+      deleteOriginal,
+    }: {
+      sourceCollectionId: string;
+      createdCollectionIds: string[];
+      deleteOriginal: boolean;
+    }) => {
+      handleInspectedCollectionSplit({
+        sourceCollectionId,
+        createdCollectionIds,
+        deleteOriginal,
+      });
+      if (!deleteOriginal) {
+        return;
+      }
+      recentlyTouched.removeForCollection(sourceCollectionId);
+      starredTokens.removeForCollection(sourceCollectionId);
+    },
+    [handleInspectedCollectionSplit, recentlyTouched, starredTokens],
   );
   const openCollectionPicker = useCallback(() => {
     dismissEphemeralOverlays();
@@ -696,10 +731,18 @@ export function App() {
     [tokenDetails, setHighlightedToken, setTokenDetails],
   );
   const handleEditorSave = useCallback(
-    (savedPath: string) => {
+    (savedPath: string, savedCollectionId: string) => {
       setHighlightedToken(savedPath);
       setTokenDetails(null);
-      const affectedGens = generatorsBySource.get(savedPath) ?? [];
+      const sourceKey = createGeneratedGroupSourceKey({
+        sourceTokenPath: savedPath,
+        sourceCollectionId: savedCollectionId,
+        pathToCollectionId,
+        collectionIdsByPath,
+      });
+      const affectedGens = sourceKey
+        ? (generatorsBySource.get(sourceKey) ?? [])
+        : [];
       refreshAll();
       if (affectedGens.length > 0) {
         const n = affectedGens.length;
@@ -709,10 +752,16 @@ export function App() {
             label: "Re-run",
             onClick: async () => {
               for (const generatedGroup of affectedGens) {
-                const sourceValue =
-                  generatedGroup.sourceToken
-                    ? modeResolvedTokensFlat[generatedGroup.sourceToken]?.$value
-                    : undefined;
+                const sourcePath = generatedGroup.sourceToken;
+                const sourceValue = resolveGeneratedGroupSourceContext({
+                  sourceTokenPath: sourcePath,
+                  sourceCollectionId: generatedGroup.sourceCollectionId,
+                  sourceValuesFlat: modeResolvedTokensFlat,
+                  allTokensFlat,
+                  pathToCollectionId,
+                  collectionIdsByPath,
+                  perCollectionFlat,
+                }).value;
                 try {
                   await apiFetch(`${serverUrl}/api/generators/${generatedGroup.id}/run`, {
                     method: "POST",
@@ -742,26 +791,12 @@ export function App() {
       pushActionToast,
       serverUrl,
       refreshGenerators,
+      collectionIdsByPath,
+      allTokensFlat,
+      pathToCollectionId,
+      perCollectionFlat,
       modeResolvedTokensFlat,
     ],
-  );
-  const handleEditorSaveAndCreateAnother = useCallback(
-    (savedPath: string, savedType: string) => {
-      setHighlightedToken(savedPath);
-      refreshAll();
-      // Derive parent prefix from saved path for sibling creation
-      const segments = savedPath.split(".");
-      const parentPrefix =
-        segments.length > 1 ? segments.slice(0, -1).join(".") + "." : "";
-      setTokenDetails({
-        path: parentPrefix,
-        collectionId: currentCollectionId,
-        mode: "edit",
-        isCreate: true,
-        initialType: savedType,
-      });
-    },
-    [refreshAll, setHighlightedToken, setTokenDetails, currentCollectionId],
   );
   const handleNavigateToCollection = useCallback(
     (targetCollectionId: string, tokenPath: string) => {
@@ -926,8 +961,8 @@ export function App() {
     setErrorToast,
     markDisconnected,
     pushUndo,
-    onMergeComplete: handleInspectedCollectionMerge,
-    onSplitComplete: handleInspectedCollectionSplit,
+    onMergeComplete: handleCollectionMergeComplete,
+    onSplitComplete: handleCollectionSplitComplete,
   });
 
   // Create a collection by name — shared by dialogs, collection pickers, and onboarding.
@@ -1448,7 +1483,6 @@ export function App() {
       tokenListCompareRef,
       handleEditorNavigate,
       handleEditorSave,
-      handleEditorSaveAndCreateAnother,
       availableFonts,
       fontWeightsByFamily,
     },

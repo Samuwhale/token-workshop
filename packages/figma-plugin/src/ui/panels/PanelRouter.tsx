@@ -389,7 +389,6 @@ export function PanelRouter({
     unusedTokenCountsByCollection,
   } = useHealthData({
     allTokensFlat,
-    pathToCollectionId,
     perCollectionFlat,
     tokenUsageCounts,
     tokenUsageReady: hasTokenUsageScanResult,
@@ -719,13 +718,21 @@ export function PanelRouter({
 
   const handleTokenDetailsSaved = useCallback(
     (savedPath: string) => {
+      const savedCollectionId =
+        tokenDetails?.collectionId ?? currentCollectionId;
       if (tokenDetails?.isCreate) {
         persistLastCreateGroup(savedPath);
         setCreateFromEmpty(false);
       }
-      handleEditorSave(savedPath);
+      handleEditorSave(savedPath, savedCollectionId);
     },
-    [tokenDetails?.isCreate, handleEditorSave, setCreateFromEmpty],
+    [
+      currentCollectionId,
+      tokenDetails?.collectionId,
+      tokenDetails?.isCreate,
+      handleEditorSave,
+      setCreateFromEmpty,
+    ],
   );
 
   const handleTokenDetailsSaveAndCreateAnother = useCallback(
@@ -909,6 +916,7 @@ export function PanelRouter({
         backLabel: tokenDetails.backLabel,
         allTokensFlat,
         pathToCollectionId,
+        collectionIdsByPath,
         generators,
         isCreateMode: tokenDetails.isCreate,
         initialType: tokenDetails.initialType,
@@ -981,7 +989,7 @@ export function PanelRouter({
       onClearTokenPath={() => setTokensComparePath("")}
       allTokensFlat={allTokensFlat}
       pathToCollectionId={pathToCollectionId}
-      pathToStorageCollectionId={pathToCollectionId}
+      perCollectionFlat={perCollectionFlat}
       collections={collections}
       collectionIds={collectionIds}
       modeOptionsKey={tokensCompareModeKey}
@@ -1020,7 +1028,12 @@ export function PanelRouter({
               ? (editingGeneratedGroupData?.targetCollection ?? currentCollectionId)
               : editingGeneratedGroup.initialDraft?.targetCollection ??
                 (editingGeneratedGroup.sourceTokenPath
-                  ? (pathToCollectionId?.[editingGeneratedGroup.sourceTokenPath] ??
+                  ? (editingGeneratedGroup.sourceCollectionId ??
+                    resolveCollectionIdForPath({
+                      path: editingGeneratedGroup.sourceTokenPath,
+                      pathToCollectionId,
+                      collectionIdsByPath,
+                    }).collectionId ??
                     currentCollectionId)
                   : currentCollectionId),
           allTokensFlat,
@@ -1030,6 +1043,10 @@ export function PanelRouter({
           sourceTokenPath:
             editingGeneratedGroup.mode === "create"
               ? editingGeneratedGroup.sourceTokenPath
+              : undefined,
+          sourceCollectionId:
+            editingGeneratedGroup.mode === "create"
+              ? editingGeneratedGroup.sourceCollectionId
               : undefined,
           sourceTokenName:
             editingGeneratedGroup.mode === "create"
@@ -1060,6 +1077,7 @@ export function PanelRouter({
               ? editingGeneratedGroup.template
               : undefined,
           pathToCollectionId,
+          collectionIdsByPath,
           onClose: () => {
             setEditingGeneratedGroup(null);
             controller.refreshAll();
@@ -1086,6 +1104,7 @@ export function PanelRouter({
       : editingGeneratedGroup
         ? `create:${JSON.stringify({
             sourceTokenPath: editingGeneratedGroup.sourceTokenPath ?? null,
+            sourceCollectionId: editingGeneratedGroup.sourceCollectionId ?? null,
             sourceTokenType: editingGeneratedGroup.sourceTokenType ?? null,
             sourceTokenValue: editingGeneratedGroup.sourceTokenValue ?? null,
             intentPreset: editingGeneratedGroup.intentPreset ?? null,
@@ -1150,7 +1169,6 @@ export function PanelRouter({
           content: (
             <ColorAnalysisPanel
               allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
               perCollectionFlat={perCollectionFlat}
               collections={collections}
               currentCollectionId={currentCollectionId}
@@ -1222,6 +1240,7 @@ export function PanelRouter({
           collections,
           unresolvedAllTokensFlat: allTokensFlat,
           pathToCollectionId,
+          collectionIdsByPath,
         }}
         actions={tokenListActions}
         recentlyTouched={controller.recentlyTouched}

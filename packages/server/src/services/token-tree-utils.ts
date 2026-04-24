@@ -1,4 +1,5 @@
 import {
+  readTokenCollectionModeValues,
   readTokenScopes,
   type Token,
   type TokenGroup,
@@ -27,6 +28,66 @@ const FLOAT_SCOPE_TOKEN_TYPES: Record<string, string> = {
  * or a leaf token (with $value). Used as the traversal cursor type.
  */
 type TokenTreeNode = TokenGroup[string]; // Token | TokenGroup | TokenType | string | undefined
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getStoredTokenModeValues(
+  token: Pick<Token, "$extensions">,
+): Record<string, Record<string, unknown>> | null {
+  const tokenManager = isPlainRecord(token.$extensions?.tokenmanager)
+    ? (token.$extensions.tokenmanager as Record<string, unknown>)
+    : null;
+  return isPlainRecord(tokenManager?.modes)
+    ? (tokenManager.modes as Record<string, Record<string, unknown>>)
+    : null;
+}
+
+function visitMutableTokenAuthoredValues(
+  token: Token,
+  visitor: (params: { value: unknown; set: (nextValue: unknown) => void }) => void,
+): void {
+  visitor({
+    value: token.$value,
+    set: (nextValue) => {
+      token.$value = nextValue as Token["$value"];
+    },
+  });
+
+  const storedModes = getStoredTokenModeValues(token);
+  if (!storedModes) {
+    return;
+  }
+
+  for (const collectionModes of Object.values(storedModes)) {
+    if (!isPlainRecord(collectionModes)) {
+      continue;
+    }
+    for (const modeName of Object.keys(collectionModes)) {
+      visitor({
+        value: collectionModes[modeName],
+        set: (nextValue) => {
+          collectionModes[modeName] = nextValue;
+        },
+      });
+    }
+  }
+}
+
+function visitTokenAuthoredValues(
+  token: Token,
+  visitor: (value: unknown) => void,
+): void {
+  visitor(token.$value);
+
+  const modeValues = readTokenCollectionModeValues(token);
+  for (const collectionModes of Object.values(modeValues)) {
+    for (const modeValue of Object.values(collectionModes)) {
+      visitor(modeValue);
+    }
+  }
+}
 
 function normalizeScopedVariableTokenValue(value: unknown, nextType: string): unknown {
   if (nextType === 'dimension') {
@@ -103,40 +164,49 @@ export function normalizeScopedVariableTokenGroup(tokens: TokenGroup): boolean {
 // ----- Tree walkers -----
 
 /**
- * Walk every $value in a token tree and apply `updateString` to string values
- * (including string leaves inside composite/object $values).
- * Returns the number of $value fields that were modified.
+ * Walk every authored token value in a token tree and apply `updateString` to
+ * string values, including nested strings inside composite/object values and
+ * per-mode values stored in `$extensions.tokenmanager.modes`.
+ * Returns the number of string values that were modified.
  */
 export function walkAliasValues(
   group: TokenGroup,
   updateString: (s: string) => string | null,
 ): number {
   let count = 0;
-  const updateComposite = (obj: Record<string, unknown>) => {
-    for (const k of Object.keys(obj)) {
-      const v = obj[k];
-      if (typeof v === 'string') {
-        const replaced = updateString(v);
-        if (replaced !== null) { obj[k] = replaced; count++; }
-      } else if (typeof v === 'object' && v !== null) {
-        updateComposite(v as Record<string, unknown>);
+
+  const updateValue = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      const replaced = updateString(value);
+      if (replaced !== null) {
+        count++;
+        return replaced;
+      }
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      for (let index = 0; index < value.length; index += 1) {
+        value[index] = updateValue(value[index]);
+      }
+      return value;
+    }
+
+    if (isPlainRecord(value)) {
+      for (const key of Object.keys(value)) {
+        value[key] = updateValue(value[key]);
       }
     }
+
+    return value;
   };
-  const walk = (obj: TokenGroup) => {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key];
-      if (key === '$value' && typeof val === 'string') {
-        const replaced = updateString(val);
-        if (replaced !== null) { (obj as Record<string, unknown>)[key] = replaced; count++; }
-      } else if (key === '$value' && typeof val === 'object' && val !== null) {
-        updateComposite(val as Record<string, unknown>);
-      } else if (typeof val === 'object' && val !== null) {
-        walk(val as TokenGroup);
-      }
-    }
-  };
-  walk(group);
+
+  walkLeafTokens(group, (_tokenPath, token) => {
+    visitMutableTokenAuthoredValues(token, ({ value, set }) => {
+      set(updateValue(value));
+    });
+  });
+
   return count;
 }
 
@@ -355,7 +425,7 @@ export interface AliasChange {
 }
 
 /**
- * Read-only scan: find every $value in `group` that contains alias references
+ * Read-only scan: find every authored token value in `group` that contains alias references
  * matching any key in `pathMap`, and return the before/after strings.
  * Does NOT mutate the group.
  */
@@ -366,58 +436,47 @@ export function previewBulkAliasChanges(
   const refRegex = /\{([^}]+)\}/g;
   const changes: AliasChange[] = [];
 
-  const scanComposite = (obj: Record<string, unknown>, parentPath: string) => {
-    for (const k of Object.keys(obj)) {
-      const v = obj[k];
-      if (typeof v === 'string' && v.includes('{')) {
-        let matched = false;
-        const result = v.replace(refRegex, (_match, refPath) => {
-          if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
-          return _match;
-        });
-        if (matched) {
-          changes.push({ tokenPath: parentPath, oldValue: v, newValue: result });
+  const scanValue = (value: unknown, tokenPath: string): void => {
+    if (typeof value === 'string' && value.includes('{')) {
+      let matched = false;
+      const result = value.replace(refRegex, (_match, refPath) => {
+        if (pathMap.has(refPath)) {
+          matched = true;
+          return `{${pathMap.get(refPath)}}`;
         }
-      } else if (typeof v === 'object' && v !== null) {
-        scanComposite(v as Record<string, unknown>, parentPath);
+        return _match;
+      });
+      if (matched) {
+        changes.push({ tokenPath, oldValue: value, newValue: result });
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        scanValue(item, tokenPath);
+      }
+      return;
+    }
+
+    if (isPlainRecord(value)) {
+      for (const nestedValue of Object.values(value)) {
+        scanValue(nestedValue, tokenPath);
       }
     }
   };
 
-  const walk = (obj: TokenGroup, prefix: string) => {
-    for (const key of Object.keys(obj)) {
-      if (key.startsWith('$')) {
-        if (key === '$value') {
-          const val = obj[key];
-          const path = prefix.slice(0, -1); // remove trailing '.'
-          if (typeof val === 'string' && val.includes('{')) {
-            let matched = false;
-            const result = (val as string).replace(refRegex, (_match, refPath) => {
-              if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
-              return _match;
-            });
-            if (matched) {
-              changes.push({ tokenPath: path, oldValue: val as string, newValue: result });
-            }
-          } else if (typeof val === 'object' && val !== null) {
-            scanComposite(val as Record<string, unknown>, path);
-          }
-        }
-        continue;
-      }
-      const child = obj[key];
-      if (typeof child === 'object' && child !== null) {
-        walk(child as TokenGroup, prefix + key + '.');
-      }
-    }
-  };
+  walkLeafTokens(group, (tokenPath, token) => {
+    visitTokenAuthoredValues(token, (value) => {
+      scanValue(value, tokenPath);
+    });
+  });
 
-  walk(group, '');
   return changes;
 }
 
 /**
- * Read-only scan for group renames: find every $value containing alias references
+ * Read-only scan for group renames: find every authored token value containing alias references
  * to tokens under `oldGroupPath` and return before/after strings.
  */
 export function previewGroupAliasChanges(
@@ -446,22 +505,12 @@ export function previewGroupAliasChanges(
     }
   };
 
-  const walk = (obj: TokenGroup, prefix: string) => {
-    for (const key of Object.keys(obj)) {
-      if (key.startsWith('$')) {
-        if (key === '$value') {
-          scanValue(obj[key], prefix.slice(0, -1));
-        }
-        continue;
-      }
-      const child = obj[key];
-      if (typeof child === 'object' && child !== null) {
-        walk(child as TokenGroup, prefix + key + '.');
-      }
-    }
-  };
+  walkLeafTokens(group, (tokenPath, token) => {
+    visitTokenAuthoredValues(token, (value) => {
+      scanValue(value, tokenPath);
+    });
+  });
 
-  walk(group, '');
   return changes;
 }
 

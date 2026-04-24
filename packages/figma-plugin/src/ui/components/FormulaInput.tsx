@@ -139,7 +139,7 @@ export function FormulaInput({
   placeholder = '{spacing.base} * 2',
   autoFocus,
 }: FormulaInputProps) {
-  const { perCollectionFlat } = useTokenFlatMapContext();
+  const { perCollectionFlat, collectionIdsByPath } = useTokenFlatMapContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [cursorPos, setCursorPos] = useState(value.length);
@@ -150,9 +150,10 @@ export function FormulaInput({
     () => buildScopedTokenCandidates({
       allTokensFlat,
       pathToCollectionId,
+      collectionIdsByPath,
       perCollectionFlat,
     }),
-    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+    [allTokensFlat, pathToCollectionId, collectionIdsByPath, perCollectionFlat],
   );
 
   // Determine if cursor is inside a {ref} and extract the query

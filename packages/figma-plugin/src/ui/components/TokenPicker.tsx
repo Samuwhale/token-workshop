@@ -54,6 +54,8 @@ export interface TokenPickerProps {
 export interface TokenPickerFieldProps extends Omit<TokenPickerProps, 'onClose'> {
   /** Currently linked token path, or undefined if not linked. */
   value: string | undefined;
+  /** Collection that owns the linked token when the path is ambiguous. */
+  selectedCollectionId?: string;
   /** Called when the user clears the linked token. */
   onClear: () => void;
   /** Label shown above the field. */
@@ -88,11 +90,22 @@ function formatValuePreview(value: unknown): string {
 function resolveEntry(
   entry: TokenMapEntry,
   allTokensFlat: Record<string, TokenMapEntry>,
+  scopedTokens?: Record<string, TokenMapEntry>,
 ): TokenMapEntry {
   if (!isAlias(entry.$value)) return entry;
-  const result = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
+  const result = resolveTokenValue(
+    entry.$value,
+    entry.$type,
+    scopedTokens ?? allTokensFlat,
+  );
   if (result.value != null) {
     return { ...entry, $value: result.value, $type: result.$type };
+  }
+  if (scopedTokens != null) {
+    const fallback = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
+    if (fallback.value != null) {
+      return { ...entry, $value: fallback.value, $type: fallback.$type };
+    }
   }
   return entry;
 }
@@ -116,7 +129,7 @@ export function TokenPickerDropdown({
   placeholder = 'Search tokens…',
   autoFocus = true,
 }: TokenPickerProps) {
-  const { perCollectionFlat } = useTokenFlatMapContext();
+  const { perCollectionFlat, collectionIdsByPath } = useTokenFlatMapContext();
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
@@ -150,9 +163,10 @@ export function TokenPickerDropdown({
     () => buildScopedTokenCandidates({
       allTokensFlat,
       pathToCollectionId,
+      collectionIdsByPath,
       perCollectionFlat,
     }),
-    [allTokensFlat, pathToCollectionId, perCollectionFlat],
+    [allTokensFlat, pathToCollectionId, collectionIdsByPath, perCollectionFlat],
   );
 
   const { entries, totalCount, hasRecent } = useMemo(() => {
@@ -354,6 +368,7 @@ export function TokenPickerDropdown({
  */
 export function TokenPickerField({
   value,
+  selectedCollectionId,
   onSelect,
   onClear,
   allTokensFlat,
@@ -368,6 +383,7 @@ export function TokenPickerField({
 }: TokenPickerFieldProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const { perCollectionFlat } = useTokenFlatMapContext();
 
   // Close on outside click
   useEffect(() => {
@@ -382,19 +398,35 @@ export function TokenPickerField({
   }, [open]);
 
   const handleSelect = useCallback(
-    (path: string, resolvedValue: unknown, entry: TokenMapEntry) => {
+    (
+      path: string,
+      resolvedValue: unknown,
+      entry: TokenMapEntry,
+      selection?: ScopedTokenCandidate,
+    ) => {
       setOpen(false);
-      onSelect(path, resolvedValue, entry);
+      onSelect(path, resolvedValue, entry, selection);
     },
     [onSelect],
   );
 
   // Resolve the linked token for display
-  const linkedEntry = value ? allTokensFlat[value] : undefined;
+  const linkedEntry =
+    value == null
+      ? undefined
+      : (selectedCollectionId
+          ? perCollectionFlat?.[selectedCollectionId]?.[value]
+          : undefined) ?? allTokensFlat[value];
   const linkedResolved = useMemo(() => {
     if (!linkedEntry) return undefined;
-    return resolveEntry(linkedEntry, allTokensFlat);
-  }, [linkedEntry, allTokensFlat]);
+    return resolveEntry(
+      linkedEntry,
+      allTokensFlat,
+      selectedCollectionId
+        ? perCollectionFlat?.[selectedCollectionId]
+        : undefined,
+    );
+  }, [allTokensFlat, linkedEntry, perCollectionFlat, selectedCollectionId]);
 
   const linkedValueStr = linkedResolved
     ? formatValuePreview(linkedResolved.$value)

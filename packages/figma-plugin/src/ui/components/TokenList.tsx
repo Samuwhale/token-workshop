@@ -35,6 +35,7 @@ import type { LintViolation } from "../hooks/useLint";
 import type {
   TokenListProps,
   MultiModeValue,
+  TokenListData,
 } from "./tokenListTypes";
 import { VIRTUAL_OVERSCAN } from "./tokenListTypes";
 import { TokenTreeProvider } from "./TokenTreeContext";
@@ -59,7 +60,11 @@ import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { useBoundTokenPaths } from "../hooks/useBoundTokenPaths";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
-import { getGeneratedGroupKeepUpdatedAvailability, getGeneratedGroupTypeLabel } from "../shared/generatedGroupUtils";
+import {
+  getGeneratedGroupKeepUpdatedAvailability,
+  getGeneratedGroupTypeLabel,
+  resolveGeneratedGroupSourceContext,
+} from "../shared/generatedGroupUtils";
 import {
   buildReferencedTokenPathSetFromEntries,
   isTokenEntryUnused,
@@ -145,6 +150,7 @@ export function TokenList({
     collections = [],
     unresolvedAllTokensFlat,
     pathToCollectionId = {},
+    collectionIdsByPath,
   },
   actions: {
     onEdit,
@@ -298,20 +304,37 @@ export function TokenList({
     [collectionId],
   );
 
+  const getGeneratorSourceValue = useCallback(
+    (
+      generator: Pick<
+        NonNullable<TokenListData["generators"]>[number],
+        "sourceToken" | "sourceCollectionId"
+      >,
+    ) =>
+      resolveGeneratedGroupSourceContext({
+        sourceTokenPath: generator.sourceToken,
+        sourceCollectionId: generator.sourceCollectionId,
+        allTokensFlat,
+        pathToCollectionId,
+        collectionIdsByPath,
+        perCollectionFlat,
+      }).value,
+    [allTokensFlat, collectionIdsByPath, pathToCollectionId, perCollectionFlat],
+  );
+
   const staleGeneratorSignature = useMemo(
     () =>
       stableStringify(
         staleGeneratorsForSet.map((generator) => ({
           id: generator.id,
           sourceToken: generator.sourceToken ?? null,
-          currentSourceValue: generator.sourceToken
-            ? (allTokensFlat[generator.sourceToken]?.$value ?? null)
-            : null,
+          sourceCollectionId: generator.sourceCollectionId ?? null,
+          currentSourceValue: getGeneratorSourceValue(generator) ?? null,
           lastRunAt: generator.lastRunAt ?? null,
           lastRunSourceValue: generator.lastRunSourceValue ?? null,
         })),
       ),
-    [staleGeneratorsForSet, allTokensFlat],
+    [staleGeneratorsForSet, getGeneratorSourceValue],
   );
 
   const [
@@ -1226,6 +1249,8 @@ export function TokenList({
     collectionIds,
     tokens,
     allTokensFlat,
+    pathToCollectionId,
+    collectionIdsByPath,
     perCollectionFlat,
     generators,
     collections,
@@ -1323,10 +1348,7 @@ export function TokenList({
   const handleRunGeneratedGroup = useCallback(
     async (generatorId: string) => {
       const generator = generators?.find((candidate) => candidate.id === generatorId);
-      const sourceValue =
-        generator?.sourceToken
-          ? allTokensFlat[generator.sourceToken]?.$value
-          : undefined;
+      const sourceValue = generator ? getGeneratorSourceValue(generator) : undefined;
       try {
         await apiFetch(`${serverUrl}/api/generators/${generatorId}/run`, {
           method: "POST",
@@ -1343,21 +1365,27 @@ export function TokenList({
         onError?.("Failed to regenerate — check server connection");
       }
     },
-    [allTokensFlat, onRefresh, onError, generators, serverUrl],
+    [getGeneratorSourceValue, onRefresh, onError, generators, serverUrl],
   );
 
   const handleToggleGeneratedGroupEnabled = useCallback(
     async (generatorId: string, enabled: boolean) => {
       const generator = generators?.find((candidate) => candidate.id === generatorId);
+      const sourceContext = resolveGeneratedGroupSourceContext({
+        sourceTokenPath: generator?.sourceToken,
+        sourceCollectionId: generator?.sourceCollectionId,
+        allTokensFlat: unresolvedAllTokensFlat ?? allTokensFlat,
+        pathToCollectionId,
+        collectionIdsByPath,
+        perCollectionFlat,
+      });
       const keepUpdatedAvailability = getGeneratedGroupKeepUpdatedAvailability({
         sourceTokenPath: generator?.sourceToken,
-        sourceTokenEntry:
-          (generator?.sourceToken &&
-            (unresolvedAllTokensFlat?.[generator.sourceToken] ??
-              allTokensFlat[generator.sourceToken])) ||
-          undefined,
+        sourceCollectionId: generator?.sourceCollectionId,
+        sourceTokenEntry: sourceContext.entry,
         collections,
         pathToCollectionId,
+        collectionIdsByPath,
         perCollectionFlat,
       });
       if (enabled && !keepUpdatedAvailability.supported) {
@@ -1385,6 +1413,7 @@ export function TokenList({
     [
       allTokensFlat,
       collections,
+      collectionIdsByPath,
       onError,
       onRefresh,
       onRefreshGeneratedGroups,
@@ -1407,19 +1436,33 @@ export function TokenList({
         onError?.("Generated group no longer exists");
         return;
       }
-      const sourceEntry = generator.sourceToken
-        ? allTokensFlat[generator.sourceToken]
-        : undefined;
+      const sourceContext = resolveGeneratedGroupSourceContext({
+        sourceTokenPath: generator.sourceToken,
+        sourceCollectionId: generator.sourceCollectionId,
+        allTokensFlat,
+        pathToCollectionId,
+        collectionIdsByPath,
+        perCollectionFlat,
+      });
       onOpenGeneratedGroupEditor({
         mode: "create",
         sourceTokenPath: generator.sourceToken,
+        sourceCollectionId: generator.sourceCollectionId,
         sourceTokenName: generator.sourceToken?.split(".").pop(),
-        sourceTokenType: sourceEntry?.$type,
-        sourceTokenValue: sourceEntry?.$value ?? generator.inlineValue,
+        sourceTokenType: sourceContext.entry?.$type,
+        sourceTokenValue: sourceContext.entry?.$value ?? generator.inlineValue,
         initialDraft: createGeneratedGroupDuplicateDraft(generator),
       });
     },
-    [allTokensFlat, onError, onOpenGeneratedGroupEditor, generators],
+    [
+      allTokensFlat,
+      collectionIdsByPath,
+      generators,
+      onError,
+      onOpenGeneratedGroupEditor,
+      pathToCollectionId,
+      perCollectionFlat,
+    ],
   );
 
   const handleDeleteGeneratedGroup = useCallback(
@@ -1480,10 +1523,7 @@ export function TokenList({
     try {
       for (const generator of staleGeneratorsForSet) {
         try {
-          const sourceValue =
-            generator.sourceToken
-              ? allTokensFlat[generator.sourceToken]?.$value
-              : undefined;
+          const sourceValue = getGeneratorSourceValue(generator);
           const result = await apiFetch<{ count?: number }>(
             `${serverUrl}/api/generators/${generator.id}/run`,
             {
@@ -1518,7 +1558,7 @@ export function TokenList({
     } finally {
       setRunningStaleGenerators(false);
     }
-  }, [allTokensFlat, runningStaleGenerators, staleGeneratorsForSet, serverUrl, onRefresh]);
+  }, [getGeneratorSourceValue, runningStaleGenerators, staleGeneratorsForSet, serverUrl, onRefresh]);
 
   const tokenPromotion = useTokenPromotion({
     connected,
@@ -2092,6 +2132,7 @@ export function TokenList({
     effectiveAllTokensFlat,
     modeResolvedTokensFlat: allTokensFlat,
     pathToCollectionId,
+    collectionIdsByPath,
     perCollectionFlat,
     collections,
   });

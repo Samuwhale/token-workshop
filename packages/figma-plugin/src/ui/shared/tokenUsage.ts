@@ -51,6 +51,25 @@ function collectReferencedPathsFromEntry<T extends TokenUsageEntry>(
   }
 }
 
+export function entryReferencesAnyTokenPath<T extends TokenUsageEntry>(
+  entry: T,
+  targetPaths: ReadonlySet<string>,
+): boolean {
+  if (targetPaths.size === 0) {
+    return false;
+  }
+
+  const referencedPaths = new Set<string>();
+  collectReferencedPathsFromEntry(entry, referencedPaths);
+  for (const path of referencedPaths) {
+    if (targetPaths.has(path)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function buildReferencedTokenPathSetFromEntries<
   T extends TokenUsageEntry,
 >(entries: Iterable<T>): Set<string> {
