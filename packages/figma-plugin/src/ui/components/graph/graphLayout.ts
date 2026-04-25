@@ -103,3 +103,134 @@ export function runDagreLayout(
 
   return { positions, clusters, width: maxX, height: maxY };
 }
+
+const FOCUS_COLUMN_WIDTH = 260;
+const FOCUS_VERTICAL_GAP = 12;
+
+/**
+ * Deterministic columnar layout for focus mode: pin the focused node at
+ * (0, 0); lay each upstream BFS hop in a column to the left and each
+ * downstream hop in a column to the right. Camera stays stable across edits
+ * because positions are a pure function of the subgraph topology.
+ */
+export function layoutFocused(
+  subgraph: GraphRenderModel,
+  focusId: GraphNodeId,
+): LayoutResult {
+  const positions = new Map<GraphNodeId, NodePosition>();
+  if (!subgraph.nodes.has(focusId)) {
+    return { positions, clusters: new Map(), width: 0, height: 0 };
+  }
+
+  const focusNode = subgraph.nodes.get(focusId)!;
+  const focusDims = nodeDimensions(focusNode);
+  positions.set(focusId, {
+    x: -focusDims.width / 2,
+    y: -focusDims.height / 2,
+    width: focusDims.width,
+    height: focusDims.height,
+  });
+
+  const columnsByHop = new Map<number, GraphNodeId[]>();
+  collectColumn(subgraph, focusId, "upstream", columnsByHop);
+  const upstream = new Map(columnsByHop);
+  columnsByHop.clear();
+  collectColumn(subgraph, focusId, "downstream", columnsByHop);
+  const downstream = new Map(columnsByHop);
+
+  let minY = -focusDims.height / 2;
+  let maxY = focusDims.height / 2;
+  let minX = -focusDims.width / 2;
+  let maxX = focusDims.width / 2;
+
+  const place = (
+    nodeIds: GraphNodeId[],
+    hop: number,
+    side: "upstream" | "downstream",
+  ) => {
+    if (nodeIds.length === 0) return;
+    const sorted = [...nodeIds].sort(orderForLayout(subgraph));
+    let totalHeight = 0;
+    const dims = sorted.map((id) => {
+      const n = subgraph.nodes.get(id);
+      const d = n ? nodeDimensions(n) : { width: 200, height: 44 };
+      totalHeight += d.height;
+      return d;
+    });
+    totalHeight += FOCUS_VERTICAL_GAP * Math.max(sorted.length - 1, 0);
+
+    let cursorY = -totalHeight / 2;
+    const columnX = (side === "upstream" ? -1 : 1) * FOCUS_COLUMN_WIDTH * hop;
+
+    sorted.forEach((id, i) => {
+      const d = dims[i];
+      const x = columnX - d.width / 2;
+      positions.set(id, { x, y: cursorY, width: d.width, height: d.height });
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x + d.width);
+      minY = Math.min(minY, cursorY);
+      maxY = Math.max(maxY, cursorY + d.height);
+      cursorY += d.height + FOCUS_VERTICAL_GAP;
+    });
+  };
+
+  for (const [hop, ids] of upstream) place(ids, hop, "upstream");
+  for (const [hop, ids] of downstream) place(ids, hop, "downstream");
+
+  return {
+    positions,
+    clusters: new Map(),
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}
+
+function collectColumn(
+  graph: GraphRenderModel,
+  anchor: GraphNodeId,
+  side: "upstream" | "downstream",
+  columnsByHop: Map<number, GraphNodeId[]>,
+): void {
+  const visited = new Set<GraphNodeId>([anchor]);
+  let frontier: GraphNodeId[] = [anchor];
+  let hop = 0;
+  while (frontier.length > 0) {
+    hop++;
+    const next: GraphNodeId[] = [];
+    for (const nodeId of frontier) {
+      const edgeIds =
+        side === "upstream"
+          ? graph.incoming.get(nodeId) ?? []
+          : graph.outgoing.get(nodeId) ?? [];
+      for (const edgeId of edgeIds) {
+        const edge = graph.edges.get(edgeId);
+        if (!edge) continue;
+        const otherId = side === "upstream" ? edge.from : edge.to;
+        if (visited.has(otherId)) continue;
+        visited.add(otherId);
+        next.push(otherId);
+        const list = columnsByHop.get(hop);
+        if (list) list.push(otherId);
+        else columnsByHop.set(hop, [otherId]);
+      }
+    }
+    frontier = next;
+  }
+}
+
+function orderForLayout(
+  graph: GraphRenderModel,
+): (a: GraphNodeId, b: GraphNodeId) => number {
+  return (a, b) => {
+    const na = graph.nodes.get(a);
+    const nb = graph.nodes.get(b);
+    return labelForOrdering(na).localeCompare(labelForOrdering(nb));
+  };
+}
+
+function labelForOrdering(node: GraphRenderNode | undefined): string {
+  if (!node) return "";
+  if (node.kind === "token" || node.kind === "ghost") return node.path;
+  if (node.kind === "generator") return node.name;
+  return node.label;
+}

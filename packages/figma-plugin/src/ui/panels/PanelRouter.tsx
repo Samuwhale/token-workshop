@@ -1814,9 +1814,6 @@ export function PanelRouter({
                 returnLabel: "Back to graph",
               });
             }}
-            onCreateToken={(collectionId) => {
-              openCreateLauncher({ currentCollectionId: collectionId });
-            }}
             onCompareTokens={(a, b) => {
               setTokensComparePaths(new Set([a.path, b.path]));
               setTokensCompareMode("tokens");

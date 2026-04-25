@@ -29456,7 +29456,6 @@
         "demo/tokens/$collections.json",
         "demo/tokens/primitives.tokens.json",
         "demo/tokens/semantic.tokens.json",
-        "packages/backlog-runner",
         "packages/figma-plugin/src/ui/App.tsx",
         "packages/figma-plugin/src/ui/components/CommandPalette.tsx",
         "packages/figma-plugin/src/ui/components/DeliveryStatusStrip.tsx",

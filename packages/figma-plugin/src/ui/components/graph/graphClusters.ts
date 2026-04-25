@@ -1,15 +1,13 @@
 import type {
   AliasEdge,
-  GraphEdgeId,
   GeneratorProducesEdge,
   GeneratorSourceEdge,
   GraphEdge,
+  GraphEdgeId,
   GraphModel,
   GraphNode,
   GraphNodeId,
 } from "@tokenmanager/core";
-
-const COLLAPSE_THRESHOLD = 80;
 
 export interface GraphClusterNode {
   kind: "cluster";
@@ -44,12 +42,11 @@ export interface GraphRenderModel {
   fingerprint: string;
 }
 
-interface ClusterInfo {
+interface ClusterLabelInfo {
   id: GraphNodeId;
   label: string;
   collectionId?: string;
   groupPath?: string;
-  nodeIds: GraphNodeId[];
 }
 
 function groupPathFromTokenPath(path: string): string {
@@ -61,7 +58,7 @@ function groupPathFromTokenPath(path: string): string {
 function clusterInfoForNode(
   node: GraphNode,
   selectedCollectionIds: string[],
-): Omit<ClusterInfo, "nodeIds"> | null {
+): ClusterLabelInfo | null {
   const multiCollection = selectedCollectionIds.length > 1;
   if (node.kind === "token") {
     const groupPath = groupPathFromTokenPath(node.path);
@@ -103,83 +100,79 @@ function clusterInfoForNode(
 export function getGraphNodeClusterInfo(
   node: GraphNode | undefined,
   selectedCollectionIds: string[],
-): Omit<ClusterInfo, "nodeIds"> | null {
+): ClusterLabelInfo | null {
   if (!node) return null;
   return clusterInfoForNode(node, selectedCollectionIds);
 }
 
-export function getGraphNodeClusterId(
-  node: GraphNode | undefined,
-  selectedCollectionIds: string[],
-): GraphNodeId | null {
-  return getGraphNodeClusterInfo(node, selectedCollectionIds)?.id ?? null;
+const DEFAULT_AGGREGATE_MAX = 8;
+
+type Side = "upstream" | "downstream";
+
+interface NeighbourMeta {
+  hop: number;
+  side: Side;
 }
 
-export function collapseGraphClusters(
-  graph: GraphModel,
-  params: {
-    focusNodeId: GraphNodeId | null;
-    expandedClusterIds: ReadonlySet<GraphNodeId>;
-    selectedCollectionIds: string[];
-    enabled: boolean;
-    threshold?: number;
-  },
+/**
+ * Collapse same-kind sibling neighbours of an anchor that exceed `max` per
+ * (side, hop, kind) bucket into a single cluster pill. Used by the focus-mode
+ * subgraph: a fan-out of 50 generated colors at hop 1 becomes one "50 tokens"
+ * pill, while a small mixed fan-out is left intact.
+ *
+ * Edges crossing a cluster boundary are aggregated using the same
+ * `aggregateCount` + `sourceEdgeIds` shape that downstream renderers already
+ * expect.
+ */
+export function aggregateNeighbours(
+  subgraph: GraphModel,
+  anchorId: GraphNodeId,
+  max: number = DEFAULT_AGGREGATE_MAX,
 ): GraphRenderModel {
-  const threshold = params.threshold ?? COLLAPSE_THRESHOLD;
-  if (!params.enabled || graph.nodes.size <= threshold) {
-    return graphToRenderModel(graph);
+  const meta = new Map<GraphNodeId, NeighbourMeta>();
+  if (subgraph.nodes.has(anchorId)) {
+    bfsSide(subgraph, anchorId, "upstream", meta);
+    bfsSide(subgraph, anchorId, "downstream", meta);
   }
 
-  const clusters = new Map<GraphNodeId, ClusterInfo>();
-  for (const node of graph.nodes.values()) {
-    const base = clusterInfoForNode(node, params.selectedCollectionIds);
-    if (!base) continue;
-    const existing = clusters.get(base.id);
-    if (existing) {
-      existing.nodeIds.push(node.id);
-    } else {
-      clusters.set(base.id, { ...base, nodeIds: [node.id] });
-    }
+  const groups = new Map<string, GraphNodeId[]>();
+  for (const [nodeId, info] of meta) {
+    const node = subgraph.nodes.get(nodeId);
+    if (!node) continue;
+    const key = `${info.side}:${info.hop}:${node.kind}`;
+    const list = groups.get(key);
+    if (list) list.push(nodeId);
+    else groups.set(key, [nodeId]);
   }
 
-  const focalClusterId = getGraphNodeClusterId(
-    params.focusNodeId ? graph.nodes.get(params.focusNodeId) : undefined,
-    params.selectedCollectionIds,
-  );
   const collapsedNodeIds = new Map<GraphNodeId, GraphNodeId>();
-  const nodes = new Map<GraphNodeId, GraphRenderNode>();
-
-  for (const cluster of clusters.values()) {
-    const shouldCollapse =
-      cluster.id !== focalClusterId &&
-      !params.expandedClusterIds.has(cluster.id) &&
-      cluster.nodeIds.length > 1;
-    if (!shouldCollapse) continue;
-    const clusterNode: GraphClusterNode = {
+  const clusterNodes = new Map<GraphNodeId, GraphClusterNode>();
+  for (const [key, ids] of groups) {
+    if (ids.length <= max) continue;
+    const clusterId = `cluster:agg:${anchorId}:${key}`;
+    const sample = subgraph.nodes.get(ids[0]);
+    clusterNodes.set(clusterId, {
       kind: "cluster",
-      id: cluster.id,
-      label: cluster.label,
-      collectionId: cluster.collectionId,
-      groupPath: cluster.groupPath,
-      count: cluster.nodeIds.length,
-    };
-    nodes.set(cluster.id, clusterNode);
-    for (const nodeId of cluster.nodeIds) {
-      collapsedNodeIds.set(nodeId, cluster.id);
-    }
+      id: clusterId,
+      label: pluraliseKind(sample?.kind ?? "token", ids.length),
+      count: ids.length,
+    });
+    for (const id of ids) collapsedNodeIds.set(id, clusterId);
   }
 
-  for (const [nodeId, node] of graph.nodes) {
-    if (!collapsedNodeIds.has(nodeId)) {
-      nodes.set(nodeId, node);
-    }
+  const nodes = new Map<GraphNodeId, GraphRenderNode>();
+  for (const [nodeId, node] of subgraph.nodes) {
+    if (!collapsedNodeIds.has(nodeId)) nodes.set(nodeId, node);
+  }
+  for (const [clusterId, cluster] of clusterNodes) {
+    nodes.set(clusterId, cluster);
   }
 
   const edges = new Map<GraphEdgeId, GraphRenderEdge>();
   const outgoing = new Map<GraphNodeId, GraphEdgeId[]>();
   const incoming = new Map<GraphNodeId, GraphEdgeId[]>();
 
-  for (const edge of graph.edges.values()) {
+  for (const edge of subgraph.edges.values()) {
     const from = collapsedNodeIds.get(edge.from) ?? edge.from;
     const to = collapsedNodeIds.get(edge.to) ?? edge.to;
     if (from === to) continue;
@@ -208,12 +201,55 @@ export function collapseGraphClusters(
     edges,
     outgoing,
     incoming,
-    fingerprint: `${graph.fingerprint}:collapsed:${[
-      ...params.expandedClusterIds,
-    ]
-      .sort()
-      .join(",")}:${nodes.size}:${edges.size}`,
+    fingerprint: `${subgraph.fingerprint}:agg:${anchorId}:${nodes.size}:${edges.size}`,
   };
+}
+
+export function graphToRenderModel(graph: GraphModel): GraphRenderModel {
+  return {
+    nodes: new Map(graph.nodes),
+    edges: new Map(graph.edges),
+    outgoing: new Map(graph.outgoing),
+    incoming: new Map(graph.incoming),
+    fingerprint: graph.fingerprint,
+  };
+}
+
+function bfsSide(
+  graph: GraphModel,
+  anchor: GraphNodeId,
+  side: Side,
+  meta: Map<GraphNodeId, NeighbourMeta>,
+): void {
+  const visited = new Set<GraphNodeId>([anchor]);
+  let frontier: GraphNodeId[] = [anchor];
+  let hop = 0;
+  while (frontier.length > 0) {
+    hop++;
+    const next: GraphNodeId[] = [];
+    for (const nodeId of frontier) {
+      const edgeIds =
+        side === "upstream"
+          ? graph.incoming.get(nodeId) ?? []
+          : graph.outgoing.get(nodeId) ?? [];
+      for (const edgeId of edgeIds) {
+        const edge = graph.edges.get(edgeId);
+        if (!edge) continue;
+        const otherId = side === "upstream" ? edge.from : edge.to;
+        if (visited.has(otherId)) continue;
+        visited.add(otherId);
+        if (!meta.has(otherId)) meta.set(otherId, { hop, side });
+        next.push(otherId);
+      }
+    }
+    frontier = next;
+  }
+}
+
+function pluraliseKind(kind: GraphNode["kind"], count: number): string {
+  if (kind === "generator") return `${count} generators`;
+  if (kind === "ghost") return `${count} broken refs`;
+  return `${count} tokens`;
 }
 
 function projectAggregateEdge(
@@ -231,7 +267,7 @@ function projectAggregateEdge(
       modeNames: [...edge.modeNames],
       aggregateCount: 1,
       sourceEdgeIds: [edge.id],
-    } satisfies GraphRenderEdge;
+    };
   }
   if (edge.kind === "generator-produces") {
     return {
@@ -241,7 +277,7 @@ function projectAggregateEdge(
       to,
       aggregateCount: 1,
       sourceEdgeIds: [edge.id],
-    } satisfies GraphRenderEdge;
+    };
   }
   return {
     ...edge,
@@ -250,7 +286,7 @@ function projectAggregateEdge(
     to,
     aggregateCount: 1,
     sourceEdgeIds: [edge.id],
-  } satisfies GraphRenderEdge;
+  };
 }
 
 function mergeAggregateEdge(target: GraphRenderEdge, source: GraphEdge): void {
@@ -276,14 +312,4 @@ function pushAdjacency(
   const existing = map.get(nodeId);
   if (existing) existing.push(edgeId);
   else map.set(nodeId, [edgeId]);
-}
-
-function graphToRenderModel(graph: GraphModel): GraphRenderModel {
-  return {
-    nodes: new Map(graph.nodes),
-    edges: new Map(graph.edges),
-    outgoing: new Map(graph.outgoing),
-    incoming: new Map(graph.incoming),
-    fingerprint: graph.fingerprint,
-  };
 }

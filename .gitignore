@@ -10,13 +10,5 @@ tokens/
 !demo/tokens/*.tokens.json
 .claude/settings.local.json
 .claude/worktrees/
-.backlog.lock/
-.backlog-git.lock/
-.backlog-pass.lock/
-.backlog-runner/
-scripts/backlog/runner-*.log
-.backlog-runner/state.sqlite
-.backlog-runner/logs/
 .playwright-mcp/
 package-lock.json
-backlog-stop

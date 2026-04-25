@@ -1,4 +1,0 @@
-[submodule "packages/backlog-runner"]
-	path = packages/backlog-runner
-	url = https://github.com/Samuwhale/backlog-runner.git
-	branch = main

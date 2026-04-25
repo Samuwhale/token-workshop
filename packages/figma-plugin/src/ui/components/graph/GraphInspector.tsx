@@ -17,7 +17,7 @@ import { isAlias } from "../../../shared/resolveAlias";
 
 interface GraphInspectorProps {
   graph: GraphModel;
-  selectedNodeId: GraphNodeId | null;
+  focusId: GraphNodeId | null;
   selectedEdgeId: string | null;
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
@@ -33,7 +33,7 @@ interface GraphInspectorProps {
 
 export function GraphInspector({
   graph,
-  selectedNodeId,
+  focusId,
   selectedEdgeId,
   collections,
   perCollectionFlat,
@@ -43,7 +43,7 @@ export function GraphInspector({
   onSelectNode,
   onSelectEdge,
 }: GraphInspectorProps) {
-  const node = selectedNodeId ? graph.nodes.get(selectedNodeId) : null;
+  const node = focusId ? graph.nodes.get(focusId) : null;
   const edge = selectedEdgeId ? graph.edges.get(selectedEdgeId) : null;
 
   if (edge && edge.kind === "alias") {
