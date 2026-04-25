@@ -1,11 +1,14 @@
 import { memo } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, useStore, type NodeProps } from "@xyflow/react";
 import type { GeneratorGraphNode } from "@tokenmanager/core";
 
 export interface GeneratorNodeData extends Record<string, unknown> {
   generator: GeneratorGraphNode;
   isFocused?: boolean;
+  isDimmed?: boolean;
 }
+
+const ZOOM_THRESHOLD = 0.7;
 
 function isGeneratorNodeData(data: unknown): data is GeneratorNodeData {
   return (
@@ -17,10 +20,12 @@ function isGeneratorNodeData(data: unknown): data is GeneratorNodeData {
 }
 
 function GeneratorNodeImpl({ data, selected }: NodeProps) {
+  const zoom = useStore((s) => s.transform[2]);
   if (!isGeneratorNodeData(data)) {
     return null;
   }
-  const { generator, isFocused } = data;
+  const { generator, isFocused, isDimmed } = data;
+  const isCompact = zoom < ZOOM_THRESHOLD;
   const errored = generator.health === "generator-error";
   const missingSource = generator.health === "broken";
   const borderClass = errored
@@ -40,8 +45,8 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`flex h-14 items-center gap-2 rounded-full border bg-[var(--color-figma-generator)]/10 px-3 text-secondary text-[var(--color-figma-text)] ${borderClass}`}
-      style={{ width: 200 }}
+      className={`tm-graph-node flex h-14 items-center gap-2 rounded-full border bg-[var(--color-figma-generator)]/10 px-3 text-secondary text-[var(--color-figma-text)] transition-opacity ${borderClass}`}
+      style={{ width: 200, opacity: isDimmed ? 0.25 : 1 }}
       title={generator.errorMessage ?? generator.name}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-generator)]" />
@@ -53,11 +58,13 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
       </span>
       <span className="flex min-w-0 flex-col leading-tight">
         <span className="truncate font-medium">{generator.name}</span>
-        <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
-          {generator.outputCount} outputs
-          {!generator.enabled ? " · disabled" : ""}
-          {statusLabel ? ` · ${statusLabel}` : ""}
-        </span>
+        {!isCompact ? (
+          <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {generator.outputCount} outputs
+            {!generator.enabled ? " · disabled" : ""}
+            {statusLabel ? ` · ${statusLabel}` : ""}
+          </span>
+        ) : null}
       </span>
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-generator)]" />
     </div>

@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Filter, Search, X } from "lucide-react";
 import type { GraphModel, TokenCollection } from "@tokenmanager/core";
 
@@ -22,7 +23,7 @@ interface GraphToolbarProps {
   onResetView: () => void;
 }
 
-export function GraphToolbar({
+export const GraphToolbar = forwardRef<HTMLInputElement, GraphToolbarProps>(function GraphToolbar({
   graph,
   focusedPath,
   workingCollectionLabel,
@@ -35,7 +36,7 @@ export function GraphToolbar({
   onSearchQueryChange,
   onClearFocus,
   onResetView,
-}: GraphToolbarProps) {
+}, searchInputRef) {
   const tokenCount = [...graph.nodes.values()].filter(
     (n) => n.kind === "token",
   ).length;
@@ -198,10 +199,11 @@ export function GraphToolbar({
       <div className="flex flex-1 items-center gap-1 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2">
         <Search size={10} strokeWidth={2} className="text-[var(--color-figma-text-tertiary)]" aria-hidden />
         <input
+          ref={searchInputRef}
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
-          placeholder="Search tokens and generators"
+          placeholder="Search tokens and generators (press / or ⌘K)"
           aria-label="Search graph"
           className="min-w-0 flex-1 bg-transparent py-1 text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
         />
@@ -216,4 +218,4 @@ export function GraphToolbar({
       </button>
     </div>
   );
-}
+});

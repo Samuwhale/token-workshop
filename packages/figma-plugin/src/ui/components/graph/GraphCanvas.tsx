@@ -13,10 +13,14 @@ import {
   type Node,
   type NodeMouseHandler,
   type OnConnect,
+  type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import { dispatchToast } from "../../shared/toastBus";
 import { wouldCreateAliasCycle } from "./graphScope";
 import { NodeContextMenu, type NodeContextMenuItem } from "./NodeContextMenu";
+import { SelectionActionBar } from "./SelectionActionBar";
+import { useGraphKeyboardNav } from "../../hooks/useGraphKeyboardNav";
+import { useGraphLayout } from "../../hooks/useGraphLayout";
 import type { GraphModel, GraphNodeId } from "@tokenmanager/core";
 import type {
   GraphRenderEdge,
@@ -30,7 +34,7 @@ import { ClusterNode } from "./nodes/ClusterNode";
 import { AliasEdge as AliasEdgeComponent } from "./edges/AliasEdge";
 import { GeneratorSourceEdge } from "./edges/GeneratorSourceEdge";
 import { GeneratorProducesEdge } from "./edges/GeneratorProducesEdge";
-import { runDagreLayout, nodeDimensions } from "./graphLayout";
+import { nodeDimensions } from "./graphLayout";
 import "@xyflow/react/dist/style.css";
 
 interface GraphCanvasProps {
@@ -57,6 +61,11 @@ interface GraphCanvasProps {
     screenX: number;
     screenY: number;
   }) => void;
+  onCompareTokens?: (
+    a: { path: string; collectionId: string },
+    b: { path: string; collectionId: string },
+  ) => void;
+  onFocusSearch?: () => void;
   resetViewToken: number;
   editingEnabled?: boolean;
 }
@@ -97,6 +106,8 @@ function GraphCanvasInner({
   onRequestDeleteGenerator,
   onRequestRewire,
   onRequestDetach,
+  onCompareTokens,
+  onFocusSearch,
   resetViewToken,
   editingEnabled = false,
 }: GraphCanvasProps) {
@@ -108,6 +119,8 @@ function GraphCanvasInner({
     y: number;
     items: NodeContextMenuItem[];
   } | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<GraphNodeId | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<GraphNodeId[]>([]);
 
   // Track screen-space pointer for popover anchoring on connect/Backspace.
   useEffect(() => {
@@ -118,10 +131,24 @@ function GraphCanvasInner({
     return () => document.removeEventListener("pointermove", onMove);
   }, []);
 
-  const layout = useMemo(
-    () => runDagreLayout(graph, { rankdir: "LR", selectedCollectionIds }),
-    [graph, selectedCollectionIds],
-  );
+  const layout = useGraphLayout({ graph, selectedCollectionIds });
+
+  // Active set during hover: hovered node + 1-hop neighbors. Empty set means
+  // "no hover, draw everything at full opacity".
+  const activeNodeIds = useMemo<Set<GraphNodeId> | null>(() => {
+    if (!hoveredNodeId || !graph.nodes.has(hoveredNodeId)) return null;
+    const active = new Set<GraphNodeId>([hoveredNodeId]);
+    if (focusNodeId && graph.nodes.has(focusNodeId)) active.add(focusNodeId);
+    for (const edgeId of graph.outgoing.get(hoveredNodeId) ?? []) {
+      const edge = graph.edges.get(edgeId);
+      if (edge) active.add(edge.to);
+    }
+    for (const edgeId of graph.incoming.get(hoveredNodeId) ?? []) {
+      const edge = graph.edges.get(edgeId);
+      if (edge) active.add(edge.from);
+    }
+    return active;
+  }, [graph, hoveredNodeId, focusNodeId]);
 
   const nodes = useMemo(() => {
     const rfNodes: Node[] = [];
@@ -151,18 +178,24 @@ function GraphCanvasInner({
     for (const node of graph.nodes.values()) {
       const pos = layout.positions.get(node.id) ?? { x: 0, y: 0 };
       const dims = nodeDimensions(node);
-      rfNodes.push(buildRfNode(node, pos, dims, focusNodeId));
+      const isDimmed = activeNodeIds !== null && !activeNodeIds.has(node.id);
+      rfNodes.push(buildRfNode(node, pos, dims, focusNodeId, isDimmed));
     }
     return rfNodes;
-  }, [focusNodeId, graph, layout.clusters, layout.positions]);
+  }, [activeNodeIds, focusNodeId, graph, layout.clusters, layout.positions]);
 
   const edges = useMemo(() => {
     const rfEdges: Edge[] = [];
     for (const edge of graph.edges.values()) {
-      rfEdges.push(buildRfEdge(edge, graph, collectionModeCountById, highlightEdgeId));
+      const isDimmed =
+        activeNodeIds !== null &&
+        !(activeNodeIds.has(edge.from) && activeNodeIds.has(edge.to));
+      rfEdges.push(
+        buildRfEdge(edge, graph, collectionModeCountById, highlightEdgeId, isDimmed),
+      );
     }
     return rfEdges;
-  }, [collectionModeCountById, graph, highlightEdgeId]);
+  }, [activeNodeIds, collectionModeCountById, graph, highlightEdgeId]);
 
   // Fit view whenever fingerprint changes or user asks for reset
   useEffect(() => {
@@ -191,13 +224,50 @@ function GraphCanvasInner({
     );
   }, [focusNodeId, reactFlow]);
 
-  const handleNodeClick: NodeMouseHandler = (_event, rfNode) => {
-    const node = graph.nodes.get(rfNode.id);
-    if (!node) return;
-    if (node.kind === "token") onSelectToken(node.path, node.collectionId);
-    else if (node.kind === "generator") onSelectGenerator(node.generatorId);
-    else if (node.kind === "cluster") onExpandCluster(node.id);
+  const openNodeDetails = useCallback(
+    (nodeId: GraphNodeId) => {
+      const node = graph.nodes.get(nodeId);
+      if (!node) return;
+      if (node.kind === "token") onSelectToken(node.path, node.collectionId);
+      else if (node.kind === "generator") onSelectGenerator(node.generatorId);
+      else if (node.kind === "cluster") onExpandCluster(node.id);
+    },
+    [graph, onExpandCluster, onSelectGenerator, onSelectToken],
+  );
+
+  const handleNodeClick: NodeMouseHandler = (event, rfNode) => {
+    // Shift / meta-click adds to selection; don't open details on those.
+    if (event.shiftKey || event.metaKey || event.ctrlKey) return;
+    openNodeDetails(rfNode.id);
   };
+
+  const handleNodeDoubleClick: NodeMouseHandler = (event, rfNode) => {
+    event.preventDefault();
+    onFocusNode(rfNode.id);
+  };
+
+  const handleNodeMouseEnter: NodeMouseHandler = useCallback((_event, rfNode) => {
+    setHoveredNodeId(rfNode.id);
+  }, []);
+
+  const handleNodeMouseLeave: NodeMouseHandler = useCallback(() => {
+    setHoveredNodeId(null);
+  }, []);
+
+  useGraphKeyboardNav({
+    enabled: true,
+    layout,
+    graph,
+    onActivate: openNodeDetails,
+    onFocusSearch,
+  });
+
+  const handleSelectionChange: OnSelectionChangeFunc = useCallback(
+    ({ nodes: selNodes }) => {
+      setSelectedNodeIds(selNodes.map((n) => n.id));
+    },
+    [],
+  );
 
   const copyToClipboard = useCallback((value: string) => {
     navigator.clipboard
@@ -398,20 +468,44 @@ function GraphCanvasInner({
     ],
   );
 
+  const selectedTokenNodes = useMemo(() => {
+    const out: { path: string; collectionId: string; nodeId: GraphNodeId }[] = [];
+    for (const id of selectedNodeIds) {
+      const node = graph.nodes.get(id);
+      if (node?.kind === "token") {
+        out.push({ path: node.path, collectionId: node.collectionId, nodeId: id });
+      }
+    }
+    return out;
+  }, [graph, selectedNodeIds]);
+
+  const handleClearSelection = useCallback(() => {
+    reactFlow.setNodes((current) =>
+      current.map((n) => (n.selected ? { ...n, selected: false } : n)),
+    );
+  }, [reactFlow]);
+
   return (
-    <div className="tm-graph h-full w-full">
+    <div className="tm-graph relative h-full w-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
         edgeTypes={EDGE_TYPES}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={handleNodeDoubleClick}
+        onNodeMouseEnter={handleNodeMouseEnter}
+        onNodeMouseLeave={handleNodeMouseLeave}
         onNodeContextMenu={handleNodeContextMenu}
         onPaneClick={() => setContextMenu(null)}
         onConnect={handleConnect}
         isValidConnection={isValidConnection}
         onEdgeClick={handleEdgeClick}
+        onSelectionChange={handleSelectionChange}
         deleteKeyCode={null}
+        multiSelectionKeyCode={["Shift", "Meta"]}
+        selectionOnDrag
+        selectionKeyCode="Shift"
         onlyRenderVisibleElements
         fitView
         fitViewOptions={{ padding: 0.2 }}
@@ -422,6 +516,42 @@ function GraphCanvasInner({
         <Background color="var(--color-figma-border)" gap={24} size={1} />
         <Controls showInteractive={false} />
       </ReactFlow>
+      {selectedTokenNodes.length >= 2 ? (
+        <SelectionActionBar
+          tokens={selectedTokenNodes}
+          onClear={handleClearSelection}
+          onCompare={
+            onCompareTokens && selectedTokenNodes.length === 2
+              ? () =>
+                  onCompareTokens(
+                    {
+                      path: selectedTokenNodes[0].path,
+                      collectionId: selectedTokenNodes[0].collectionId,
+                    },
+                    {
+                      path: selectedTokenNodes[1].path,
+                      collectionId: selectedTokenNodes[1].collectionId,
+                    },
+                  )
+              : undefined
+          }
+          onCopyPaths={() =>
+            copyToClipboard(
+              selectedTokenNodes.map((n) => n.path).join("\n"),
+            )
+          }
+          onDelete={
+            onRequestDeleteToken
+              ? () => {
+                  for (const n of selectedTokenNodes) {
+                    onRequestDeleteToken(n.path, n.collectionId);
+                  }
+                  handleClearSelection();
+                }
+              : undefined
+          }
+        />
+      ) : null}
       {contextMenu ? (
         <NodeContextMenu
           x={contextMenu.x}
@@ -439,6 +569,7 @@ function buildRfNode(
   position: { x: number; y: number },
   dims: { width: number; height: number },
   focusNodeId: GraphNodeId | null,
+  isDimmed: boolean,
 ): Node {
   const isFocused = node.id === focusNodeId;
   if (node.kind === "token") {
@@ -448,10 +579,11 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { token: node, isFocused },
+      data: { token: node, isFocused, isDimmed },
       selectable: true,
       draggable: false,
       connectable: true,
+      focusable: true,
     };
   }
   if (node.kind === "generator") {
@@ -461,10 +593,11 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { generator: node, isFocused },
+      data: { generator: node, isFocused, isDimmed },
       selectable: true,
       draggable: false,
       connectable: false,
+      focusable: true,
     };
   }
   if (node.kind === "cluster") {
@@ -474,10 +607,11 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { cluster: node, variant: "pill" },
+      data: { cluster: node, variant: "pill", isDimmed },
       selectable: true,
       draggable: false,
       connectable: false,
+      focusable: true,
     };
   }
   return {
@@ -486,10 +620,11 @@ function buildRfNode(
     position,
     width: dims.width,
     height: dims.height,
-    data: { ghost: node },
+    data: { ghost: node, isDimmed },
     selectable: false,
     draggable: false,
     connectable: false,
+    focusable: false,
   };
 }
 
@@ -498,6 +633,7 @@ function buildRfEdge(
   graph: GraphRenderModel,
   collectionModeCountById: Map<string, number>,
   highlightEdgeId: string | null,
+  isDimmed: boolean,
 ): Edge {
   const aggregateCount = edge.aggregateCount;
   const isHighlighted = Boolean(
@@ -511,7 +647,7 @@ function buildRfEdge(
     target: edge.to,
     type: edge.kind,
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    data: { isHighlighted, aggregateCount },
+    data: { isHighlighted, isDimmed, aggregateCount },
   };
   if (edge.kind !== "alias") {
     return base;

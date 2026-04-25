@@ -43,6 +43,7 @@ interface ToastBusDetail {
   message: string;
   variant: ToastVariant;
   action?: ToastAction;
+  secondaryAction?: ToastAction;
   destination?: NotificationDestination;
 }
 
@@ -59,6 +60,7 @@ export function dispatchToast(
   variant: ToastVariant,
   options?: {
     action?: ToastAction;
+    secondaryAction?: ToastAction;
     destination?: NotificationDestination;
   },
 ): void {
@@ -68,6 +70,7 @@ export function dispatchToast(
         message,
         variant,
         action: options?.action,
+        secondaryAction: options?.secondaryAction,
         destination: options?.destination,
       },
     }),
@@ -87,15 +90,16 @@ export function useToastBusListener(
     action: ToastAction,
     variant?: ToastVariant,
     destination?: NotificationDestination,
+    secondaryAction?: ToastAction,
   ) => void,
 ): void {
   useEffect(() => {
     const handler = (e: Event) => {
-      const { message, variant, action, destination } = (
+      const { message, variant, action, secondaryAction, destination } = (
         e as CustomEvent<ToastBusDetail>
       ).detail;
       if (action && pushAction) {
-        pushAction(message, action, variant, destination);
+        pushAction(message, action, variant, destination, secondaryAction);
         return;
       }
       if (variant === "error") {

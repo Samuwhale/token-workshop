@@ -36,6 +36,7 @@ export interface TokenGraphNode {
   displayName: string;
   $type?: string;
   swatchColor?: string;
+  valuePreview?: string;
   health: GraphHealthStatus;
   isGeneratorManaged: boolean;
   ownerGeneratorId?: string;
@@ -174,6 +175,7 @@ function fingerprintNode(node: GraphNode): string {
       node.displayName,
       node.$type ?? "",
       node.swatchColor ?? "",
+      node.valuePreview ?? "",
       node.health,
       node.isGeneratorManaged ? "1" : "0",
       node.ownerGeneratorId ?? "",
@@ -267,6 +269,28 @@ function getTokenSwatchColor(
   return extractReferencePaths(primaryValue).length === 0
     ? primaryValue
     : undefined;
+}
+
+function getTokenValuePreview(
+  entry: GraphTokenLike,
+  collection: TokenCollection,
+  modeValues: Record<string, unknown>,
+): string | undefined {
+  // Color tokens already convey their value through the swatch.
+  if (entry.$type === "color") return undefined;
+  const primaryModeName = collection.modes[0]?.name;
+  const value = primaryModeName ? modeValues[primaryModeName] : undefined;
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return undefined;
+    return trimmed.length > 18 ? `${trimmed.slice(0, 17)}…` : trimmed;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  // Composite values (typography, shadow) — show a compact tag.
+  return entry.$type ? `{${entry.$type}}` : undefined;
 }
 
 interface ResolvedGraphTarget {
@@ -588,6 +612,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
         displayName: path.split(".").pop() ?? path,
         $type: entry.$type,
         swatchColor: getTokenSwatchColor(entry, collection, modeValues),
+        valuePreview: getTokenValuePreview(entry, collection, modeValues),
         health: "ok",
         isGeneratorManaged: Boolean(ownerGenerator),
         ownerGeneratorId: ownerGenerator?.id,

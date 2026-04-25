@@ -197,6 +197,17 @@ function MessageRow({
       <span className="flex-1 min-w-0 break-words line-clamp-3">
         {toast.message}
       </span>
+      {toast.secondaryAction && (
+        <button
+          onClick={() => {
+            toast.secondaryAction!.onClick();
+            onDismiss(toast.id);
+          }}
+          className="shrink-0 px-2 py-0.5 rounded text-secondary text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          {toast.secondaryAction.label}
+        </button>
+      )}
       {toast.action && (
         <button
           onClick={() => {

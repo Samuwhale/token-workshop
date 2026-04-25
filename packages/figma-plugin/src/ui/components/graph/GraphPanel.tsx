@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
-  GraphEdge,
   GraphModel,
-  GraphNode,
   GraphNodeId,
   GraphValidationIssue,
   TokenCollection,
@@ -12,9 +10,9 @@ import { tokenNodeId, generatorNodeId } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { TokensLibraryGeneratedGroupEditorTarget } from "../../shared/navigationTypes";
 import { useGraphData } from "../../hooks/useGraphData";
-import { useTokensWorkspaceController } from "../../contexts/WorkspaceControllerContext";
-import { filterByCollections, selectSubgraph } from "./graphScope";
-import { collapseGraphClusters } from "./graphClusters";
+import { useGraphScope, type GraphFilters } from "../../hooks/useGraphScope";
+import { useGraphMutations } from "../../hooks/useGraphMutations";
+import { usePersistedJsonState } from "../../hooks/usePersistedState";
 import { GraphCanvas } from "./GraphCanvas";
 import { GraphToolbar } from "./GraphToolbar";
 import { GraphEmptyState } from "./GraphEmptyState";
@@ -38,15 +36,13 @@ interface GraphPanelProps {
   validationIssues?: GraphValidationIssue[];
   onNavigateToToken: (path: string, collectionId: string) => void;
   onCreateToken: (collectionId: string) => void;
+  onCompareTokens?: (
+    a: { path: string; collectionId: string },
+    b: { path: string; collectionId: string },
+  ) => void;
   onOpenGeneratedGroupEditor: (
     target: TokensLibraryGeneratedGroupEditorTarget,
   ) => void;
-}
-
-interface GraphFilters {
-  tokenType: string;
-  health: string;
-  generatorType: string;
 }
 
 const DEFAULT_GRAPH_FILTERS: GraphFilters = {
@@ -65,180 +61,6 @@ function resolveFocusIntentNodeId(
     return generatorNodeId(intent.generatorId);
   }
   return intent.nodeId;
-}
-
-function filterGraphBySearch(
-  graph: GraphModel,
-  searchQuery: string,
-  focusNodeId: GraphNodeId | null,
-) {
-  const query = searchQuery.trim().toLowerCase();
-  if (!query) {
-    return { graph, hasMatches: true };
-  }
-
-  const matched = new Set<GraphNodeId>();
-  for (const node of graph.nodes.values()) {
-    if (node.kind === "token" || node.kind === "ghost") {
-      if (node.path.toLowerCase().includes(query)) {
-        matched.add(node.id);
-      }
-      continue;
-    }
-    if (node.name.toLowerCase().includes(query)) {
-      matched.add(node.id);
-    }
-  }
-
-  if (matched.size === 0) {
-    return {
-      graph: {
-        nodes: new Map<GraphNodeId, GraphNode>(),
-        edges: new Map<string, GraphEdge>(),
-        outgoing: new Map<GraphNodeId, string[]>(),
-        incoming: new Map<GraphNodeId, string[]>(),
-        fingerprint: `${graph.fingerprint}:q:${query}:empty`,
-      },
-      hasMatches: false,
-    };
-  }
-
-  if (focusNodeId && graph.nodes.has(focusNodeId)) {
-    matched.add(focusNodeId);
-  }
-
-  for (const edge of graph.edges.values()) {
-    if (matched.has(edge.from) || matched.has(edge.to)) {
-      matched.add(edge.from);
-      matched.add(edge.to);
-    }
-  }
-
-  const keptNodes = new Map<GraphNodeId, GraphNode>();
-  for (const [id, node] of graph.nodes) {
-    if (matched.has(id)) {
-      keptNodes.set(id, node);
-    }
-  }
-
-  const keptEdges = new Map<string, GraphEdge>();
-  const outgoing = new Map<GraphNodeId, string[]>();
-  const incoming = new Map<GraphNodeId, string[]>();
-  for (const [id, edge] of graph.edges) {
-    if (!matched.has(edge.from) || !matched.has(edge.to)) {
-      continue;
-    }
-    keptEdges.set(id, edge);
-    const out = outgoing.get(edge.from);
-    if (out) out.push(id);
-    else outgoing.set(edge.from, [id]);
-    const inc = incoming.get(edge.to);
-    if (inc) inc.push(id);
-    else incoming.set(edge.to, [id]);
-  }
-
-  return {
-    graph: {
-      nodes: keptNodes,
-      edges: keptEdges,
-      outgoing,
-      incoming,
-      fingerprint: `${graph.fingerprint}:q:${query}`,
-    },
-    hasMatches: true,
-  };
-}
-
-function filterGraphByFilters(
-  graph: GraphModel,
-  filters: GraphFilters,
-  focusNodeId: GraphNodeId | null,
-): GraphModel {
-  if (
-    filters.tokenType === "all" &&
-    filters.health === "all" &&
-    filters.generatorType === "all"
-  ) {
-    return graph;
-  }
-
-  const keptNodeIds = new Set<GraphNodeId>();
-  for (const node of graph.nodes.values()) {
-    let keep = true;
-    if (node.kind === "token") {
-      if (filters.tokenType !== "all" && node.$type !== filters.tokenType) {
-        keep = false;
-      }
-      if (filters.health === "issues" && node.health === "ok") {
-        keep = false;
-      } else if (
-        filters.health !== "all" &&
-        filters.health !== "issues" &&
-        node.health !== filters.health
-      ) {
-        keep = false;
-      }
-    } else if (node.kind === "generator") {
-      if (
-        filters.generatorType !== "all" &&
-        node.generatorType !== filters.generatorType
-      ) {
-        keep = false;
-      }
-      if (filters.health === "issues" && node.health === "ok") {
-        keep = false;
-      } else if (
-        filters.health !== "all" &&
-        filters.health !== "issues" &&
-        node.health !== filters.health
-      ) {
-        keep = false;
-      }
-    } else if (filters.health !== "all" && filters.health !== "issues") {
-      keep = false;
-    }
-
-    if (keep || node.id === focusNodeId) {
-      keptNodeIds.add(node.id);
-    }
-  }
-
-  return sliceGraph(graph, keptNodeIds, `filters:${JSON.stringify(filters)}`);
-}
-
-function sliceGraph(
-  graph: GraphModel,
-  keptNodeIds: Set<GraphNodeId>,
-  fingerprintSuffix: string,
-): GraphModel {
-  const nodes = new Map<GraphNodeId, GraphNode>();
-  for (const [id, node] of graph.nodes) {
-    if (keptNodeIds.has(id)) {
-      nodes.set(id, node);
-    }
-  }
-
-  const edges = new Map<string, GraphEdge>();
-  const outgoing = new Map<GraphNodeId, string[]>();
-  const incoming = new Map<GraphNodeId, string[]>();
-  for (const [id, edge] of graph.edges) {
-    if (!keptNodeIds.has(edge.from) || !keptNodeIds.has(edge.to)) continue;
-    edges.set(id, edge);
-    const out = outgoing.get(edge.from);
-    if (out) out.push(id);
-    else outgoing.set(edge.from, [id]);
-    const inc = incoming.get(edge.to);
-    if (inc) inc.push(id);
-    else incoming.set(edge.to, [id]);
-  }
-
-  return {
-    nodes,
-    edges,
-    outgoing,
-    incoming,
-    fingerprint: `${graph.fingerprint}:${fingerprintSuffix}`,
-  };
 }
 
 function resolveIntentHighlightEdgeId(
@@ -293,24 +115,42 @@ export function GraphPanel({
   validationIssues,
   onNavigateToToken,
   onCreateToken,
+  onCompareTokens,
   onOpenGeneratedGroupEditor,
 }: GraphPanelProps) {
+  // focusNodeId is intentionally NOT persisted — focus is per-session and
+  // resets when the user switches collections (per spec §1).
   const [focusNodeId, setFocusNodeId] = useState<GraphNodeId | null>(null);
   const [highlightEdgeId, setHighlightEdgeId] = useState<string | null>(null);
   const [pendingFocusIntent, setPendingFocusIntent] =
     useState<LibraryGraphFocusIntent | null>(() => consumePendingGraphFocus());
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(
-    () => [workingCollectionId].filter(Boolean),
+  // Persisted scope, keyed by working collection so each collection gets its
+  // own remembered filter / search state.
+  const persistKeySuffix = workingCollectionId || "default";
+  const [searchQuery, setSearchQuery] = usePersistedJsonState<string>(
+    `graph:search:${persistKeySuffix}`,
+    "",
   );
-  const [filters, setFilters] = useState<GraphFilters>(DEFAULT_GRAPH_FILTERS);
+  const [selectedCollectionIds, setSelectedCollectionIds] =
+    usePersistedJsonState<string[]>(
+      `graph:collections:${persistKeySuffix}`,
+      [workingCollectionId].filter(Boolean),
+    );
+  const [filters, setFilters] = usePersistedJsonState<GraphFilters>(
+    `graph:filters:${persistKeySuffix}`,
+    DEFAULT_GRAPH_FILTERS,
+  );
   const [expandedClusterIds, setExpandedClusterIds] = useState<
     Set<GraphNodeId>
   >(() => new Set());
   const [resetViewToken, setResetViewToken] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const handleFocusSearch = useCallback(() => {
+    searchInputRef.current?.focus();
+    searchInputRef.current?.select();
+  }, []);
 
-  const { applyAliasRewire, applyAliasDetach, handlePaletteDeleteToken } =
-    useTokensWorkspaceController();
+  const { rewire, detach, deleteToken } = useGraphMutations();
 
   const [rewireRequest, setRewireRequest] = useState<{
     sourceNodeId: GraphNodeId;
@@ -338,8 +178,10 @@ export function GraphPanel({
     validationIssues,
   });
 
+  // Reset session-only state when switching working collection. Persisted
+  // state (selectedCollectionIds, searchQuery, filters) is keyed by
+  // workingCollectionId and rehydrates automatically via usePersistedJsonState.
   useEffect(() => {
-    setSelectedCollectionIds([workingCollectionId].filter(Boolean));
     setFocusNodeId(null);
     setHighlightEdgeId(null);
     setExpandedClusterIds(new Set());
@@ -412,14 +254,15 @@ export function GraphPanel({
     return selected.length > 0 ? selected : [workingCollectionId].filter(Boolean);
   }, [collections, selectedCollectionIds, workingCollectionId]);
 
-  const collectionScoped = useMemo(() => {
-    return filterByCollections(fullGraph, activeCollectionIds);
-  }, [activeCollectionIds, fullGraph]);
-
-  const filteredGraph = useMemo(
-    () => filterGraphByFilters(collectionScoped, filters, focusNodeId),
-    [collectionScoped, filters, focusNodeId],
-  );
+  const { collectionScoped, displayGraph, searchGraph, hasSearchMatches } =
+    useGraphScope({
+      fullGraph,
+      selectedCollectionIds: activeCollectionIds,
+      filters,
+      searchQuery,
+      focusNodeId,
+      expandedClusterIds,
+    });
 
   // The graph view is collection-scoped. If the user switches collections and
   // the old focus is no longer represented in this scoped view, drop it so the
@@ -433,33 +276,6 @@ export function GraphPanel({
       setHighlightEdgeId(null);
     }
   }, [collectionScoped, focusNodeId, pendingFocusIntent]);
-
-  const focusedGraph = useMemo(
-    () => selectSubgraph(filteredGraph, { focusNodeId }),
-    [filteredGraph, focusNodeId],
-  );
-  const searchBaseGraph = searchQuery.trim() ? filteredGraph : focusedGraph;
-
-  const searchResult = useMemo(
-    () => filterGraphBySearch(searchBaseGraph, searchQuery, focusNodeId),
-    [searchBaseGraph, searchQuery, focusNodeId],
-  );
-  const displayGraph = useMemo(
-    () =>
-      collapseGraphClusters(searchResult.graph, {
-        focusNodeId,
-        expandedClusterIds,
-        selectedCollectionIds: activeCollectionIds,
-        enabled: !searchQuery.trim(),
-      }),
-    [
-      activeCollectionIds,
-      expandedClusterIds,
-      focusNodeId,
-      searchQuery,
-      searchResult.graph,
-    ],
-  );
 
   const collectionModeCountById = useMemo(() => {
     const map = new Map<string, number>();
@@ -520,6 +336,7 @@ export function GraphPanel({
           onSearchQueryChange={handleSearchQueryChange}
           onClearFocus={clearGraphFocus}
           onResetView={() => setResetViewToken((t) => t + 1)}
+          ref={searchInputRef}
         />
         <div className="flex-1">
           <GraphEmptyState
@@ -549,6 +366,7 @@ export function GraphPanel({
           onSearchQueryChange={handleSearchQueryChange}
           onClearFocus={clearGraphFocus}
           onResetView={() => setResetViewToken((t) => t + 1)}
+          ref={searchInputRef}
         />
         <div className="flex-1">
           <GraphEmptyState
@@ -565,7 +383,7 @@ export function GraphPanel({
     );
   }
 
-  if (!searchResult.hasMatches) {
+  if (!hasSearchMatches) {
     return (
       <div className="flex h-full min-h-0 flex-col">
         <GraphToolbar
@@ -581,6 +399,7 @@ export function GraphPanel({
           onSearchQueryChange={handleSearchQueryChange}
           onClearFocus={clearGraphFocus}
           onResetView={() => setResetViewToken((t) => t + 1)}
+          ref={searchInputRef}
         />
         <div className="flex-1">
           <GraphEmptyState
@@ -639,7 +458,7 @@ export function GraphPanel({
             });
           }}
           onRequestDeleteToken={(path, collectionId) => {
-            handlePaletteDeleteToken(path, collectionId);
+            deleteToken(path, collectionId);
           }}
           onRequestRewire={({ sourceNodeId, targetNodeId, screenX, screenY }) => {
             setRewireRequest({
@@ -652,10 +471,12 @@ export function GraphPanel({
           onRequestDetach={({ edgeId, screenX, screenY }) => {
             setDetachRequest({ edgeId, screenX, screenY });
           }}
+          onCompareTokens={onCompareTokens}
+          onFocusSearch={handleFocusSearch}
           editingEnabled
           resetViewToken={resetViewToken}
         />
-        <GraphSROutline graph={searchResult.graph} focusNodeId={focusNodeId} />
+        <GraphSROutline graph={searchGraph} focusNodeId={focusNodeId} />
       </div>
       {rewireRequest
         ? (() => {
@@ -687,7 +508,7 @@ export function GraphPanel({
                   setRewireRequest((current) =>
                     current ? { ...current, busy: true, error: undefined } : current,
                   );
-                  const result = await applyAliasRewire({
+                  const result = await rewire({
                     tokenPath: sourceNode.path,
                     tokenCollectionId: sourceNode.collectionId,
                     targetPath: targetNode.path,
@@ -732,7 +553,7 @@ export function GraphPanel({
                   setDetachRequest((current) =>
                     current ? { ...current, busy: true, error: undefined } : current,
                   );
-                  const result = await applyAliasDetach({
+                  const result = await detach({
                     tokenPath: downstream.path,
                     tokenCollectionId: downstream.collectionId,
                     modeLiterals,

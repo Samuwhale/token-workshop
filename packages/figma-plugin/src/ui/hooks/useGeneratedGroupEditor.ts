@@ -67,7 +67,7 @@ interface UseGeneratorDialogParams {
   }) => void;
   getSuccessToastAction?: (
     info: GeneratorSaveSuccessInfo,
-  ) => ToastAction | undefined;
+  ) => { action?: ToastAction; secondaryAction?: ToastAction } | undefined;
   pushUndo?: (slot: UndoSlot) => void;
 }
 

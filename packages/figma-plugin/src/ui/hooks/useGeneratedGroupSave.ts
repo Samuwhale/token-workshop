@@ -67,7 +67,7 @@ interface UseGeneratorSaveParams {
   }) => void;
   getSuccessToastAction?: (
     info: GeneratorSaveSuccessInfo,
-  ) => ToastAction | undefined;
+  ) => { action?: ToastAction; secondaryAction?: ToastAction } | undefined;
   pushUndo?: (slot: UndoSlot) => void;
   requestPreviewRefresh: () => void;
   initialKeepUpdated: boolean;
@@ -151,7 +151,7 @@ export function useGeneratedGroupSave({
     string | null
   >(initialSelectedSemanticPatternId);
   const overwriteCheckRequestIdRef = useRef(0);
-  const getToastAction = useCallback(
+  const getToastActions = useCallback(
     (
       generatorIdAtSave: string,
       targetGroupAtSave: string,
@@ -161,7 +161,7 @@ export function useGeneratedGroupSave({
         generatorId: generatorIdAtSave,
         targetGroup: targetGroupAtSave,
         targetCollection: targetCollectionAtSave,
-      }),
+      }) ?? {},
     [getSuccessToastAction],
   );
   const buildGeneratorMutationBody = useCallback(
@@ -355,17 +355,19 @@ export function useGeneratedGroupSave({
           generatorType: selectedType,
         });
         const displayName = name.trim() || autoNameFromGroup(targetGroupAtSave, selectedType);
+        const toastActions = getToastActions(
+          savedGen.id,
+          targetGroupAtSave,
+          targetCollectionAtSave,
+        );
         dispatchToast(
           isEditing
             ? `Generated group "${displayName}" updated`
             : `Generated group "${displayName}" created`,
           "success",
           {
-            action: getToastAction(
-              savedGen.id,
-              targetGroupAtSave,
-              targetCollectionAtSave,
-            ),
+            action: toastActions.action,
+            secondaryAction: toastActions.secondaryAction,
             destination: {
               kind: "workspace",
               topTab: "library",
@@ -395,7 +397,7 @@ export function useGeneratedGroupSave({
       onSaved,
       onInterceptSemanticMapping,
       previewTokens,
-      getToastAction,
+      getToastActions,
       pushUndo,
       selectedType,
       sourceCollectionId,

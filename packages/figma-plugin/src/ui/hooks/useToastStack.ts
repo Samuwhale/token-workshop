@@ -10,6 +10,7 @@ export interface ToastItem {
   message: string;
   variant: ToastVariant;
   action?: ToastAction;
+  secondaryAction?: ToastAction;
   destination?: NotificationDestination;
 }
 
@@ -90,11 +91,12 @@ export function useToastStack() {
       action: ToastAction,
       variant: ToastVariant = "success",
       destination?: NotificationDestination,
+      secondaryAction?: ToastAction,
     ) => {
       const id = nextId.current++;
       setToasts((prev) => [
         ...prev,
-        { id, message, variant, action, destination },
+        { id, message, variant, action, secondaryAction, destination },
       ]);
       addToHistory(message, variant, destination);
       return id;

@@ -1235,3 +1235,13 @@ button.tm-token-details__text-button:disabled:hover {
     scroll-behavior: auto !important;
   }
 }
+
+.tm-graph .react-flow__node:focus,
+.tm-graph .react-flow__node:focus-visible {
+  outline: none;
+}
+.tm-graph .react-flow__node:focus-visible .tm-graph-node {
+  outline: 2px solid var(--color-figma-accent);
+  outline-offset: 2px;
+}
+

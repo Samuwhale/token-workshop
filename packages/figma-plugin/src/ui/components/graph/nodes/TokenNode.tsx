@@ -1,11 +1,14 @@
 import { memo } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, useStore, type NodeProps } from "@xyflow/react";
 import type { TokenGraphNode } from "@tokenmanager/core";
 
 export interface TokenNodeData extends Record<string, unknown> {
   token: TokenGraphNode;
   isFocused?: boolean;
+  isDimmed?: boolean;
 }
+
+const ZOOM_THRESHOLD = 0.7;
 
 function isTokenNodeData(data: unknown): data is TokenNodeData {
   return (
@@ -17,10 +20,12 @@ function isTokenNodeData(data: unknown): data is TokenNodeData {
 }
 
 function TokenNodeImpl({ data, selected }: NodeProps) {
+  const zoom = useStore((s) => s.transform[2]);
   if (!isTokenNodeData(data)) {
     return null;
   }
-  const { token, isFocused } = data;
+  const { token, isFocused, isDimmed } = data;
+  const isCompact = zoom < ZOOM_THRESHOLD;
   const borderClass =
     token.health === "cycle"
       ? "border-[var(--color-figma-warning)]"
@@ -32,8 +37,8 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`group flex h-11 items-center gap-2 rounded-md border bg-[var(--color-figma-bg-secondary)] px-2 text-secondary text-[var(--color-figma-text)] shadow-[0_1px_0_rgba(0,0,0,0.15)] ${borderClass}`}
-      style={{ width: 200 }}
+      className={`tm-graph-node group flex h-11 items-center gap-2 rounded-md border bg-[var(--color-figma-bg-secondary)] px-2 text-secondary text-[var(--color-figma-text)] shadow-[0_1px_0_rgba(0,0,0,0.15)] transition-opacity ${borderClass}`}
+      style={{ width: 200, opacity: isDimmed ? 0.25 : 1 }}
       title={token.path}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]" />
@@ -48,12 +53,19 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
           {tokenTypeGlyph(token.$type)}
         </span>
       ) : null}
-      <span className="flex min-w-0 flex-col leading-tight">
+      <span className="flex min-w-0 flex-1 flex-col leading-tight">
         <span className="truncate font-medium">{token.displayName}</span>
-        <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
-          {token.path}
-        </span>
+        {!isCompact ? (
+          <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {token.path}
+          </span>
+        ) : null}
       </span>
+      {!isCompact && token.valuePreview ? (
+        <span className="ml-1 max-w-[68px] shrink-0 truncate text-right font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
+          {token.valuePreview}
+        </span>
+      ) : null}
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]" />
     </div>
   );

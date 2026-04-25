@@ -4,6 +4,7 @@ import type { GhostGraphNode } from "@tokenmanager/core";
 
 export interface GhostNodeData extends Record<string, unknown> {
   ghost: GhostGraphNode;
+  isDimmed?: boolean;
 }
 
 function isGhostNodeData(data: unknown): data is GhostNodeData {
@@ -19,13 +20,13 @@ function GhostNodeImpl({ data }: NodeProps) {
   if (!isGhostNodeData(data)) {
     return null;
   }
-  const { ghost } = data;
+  const { ghost, isDimmed } = data;
   const reasonLabel = ghost.reason === "ambiguous" ? "ambiguous" : "missing";
 
   return (
     <div
-      className="flex h-10 items-center gap-2 rounded-md border border-dashed border-[var(--color-figma-error)]/60 bg-transparent px-2 text-secondary text-[var(--color-figma-text-secondary)]"
-      style={{ width: 180 }}
+      className="tm-graph-node flex h-10 items-center gap-2 rounded-md border border-dashed border-[var(--color-figma-error)]/60 bg-transparent px-2 text-secondary text-[var(--color-figma-text-secondary)] transition-opacity"
+      style={{ width: 180, opacity: isDimmed ? 0.25 : 1 }}
       title={`${ghost.path} (${reasonLabel})`}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-error)]/60" />

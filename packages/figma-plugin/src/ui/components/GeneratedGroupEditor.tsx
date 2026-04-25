@@ -56,7 +56,7 @@ export interface GeneratedGroupEditorProps {
   }) => void;
   getSuccessToastAction?: (
     info: GeneratorSaveSuccessInfo,
-  ) => ToastAction | undefined;
+  ) => { action?: ToastAction; secondaryAction?: ToastAction } | undefined;
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
   onPushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;

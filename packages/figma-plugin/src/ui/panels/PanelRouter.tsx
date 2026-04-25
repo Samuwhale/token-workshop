@@ -636,7 +636,7 @@ export function PanelRouter({
     ],
   );
 
-  const getViewTokensToastAction = useCallback(
+  const buildViewTokensAction = useCallback(
     (info: GeneratorSaveSuccessInfo): ToastAction => ({
       label: "View tokens",
       onClick: () => openGeneratedTokens(info.targetGroup, info.targetCollection),
@@ -644,7 +644,7 @@ export function PanelRouter({
     [openGeneratedTokens],
   );
 
-  const getViewInGraphToastAction = useCallback(
+  const buildViewInGraphAction = useCallback(
     (info: GeneratorSaveSuccessInfo): ToastAction => ({
       label: "See outputs in graph",
       onClick: () => {
@@ -656,6 +656,17 @@ export function PanelRouter({
       },
     }),
     [currentCollectionId, navigateTo, setCurrentCollectionId],
+  );
+
+  const getGeneratorSuccessToastActions = useCallback(
+    (info: GeneratorSaveSuccessInfo, originatedFromGraph: boolean) =>
+      originatedFromGraph
+        ? { action: buildViewInGraphAction(info) }
+        : {
+            action: buildViewTokensAction(info),
+            secondaryAction: buildViewInGraphAction(info),
+          },
+    [buildViewInGraphAction, buildViewTokensAction],
   );
 
   const handleTokenDetailsBack = useCallback(() => {
@@ -1123,10 +1134,11 @@ export function PanelRouter({
             }
             openGeneratedTokens(info.targetGroup, info.targetCollection);
           },
-          getSuccessToastAction:
-            editingGeneratedGroup?.origin === "graph"
-              ? getViewInGraphToastAction
-              : getViewTokensToastAction,
+          getSuccessToastAction: (info: GeneratorSaveSuccessInfo) =>
+            getGeneratorSuccessToastActions(
+              info,
+              editingGeneratedGroup?.origin === "graph",
+            ),
           onPushUndo: controller.pushUndo,
           presentation: "panel" as const,
           editorSessionHost: {
@@ -1800,6 +1812,11 @@ export function PanelRouter({
             }}
             onCreateToken={(collectionId) => {
               openCreateLauncher({ currentCollectionId: collectionId });
+            }}
+            onCompareTokens={(a, b) => {
+              setTokensComparePaths(new Set([a.path, b.path]));
+              setTokensCompareMode("tokens");
+              setShowTokensCompare(true);
             }}
             onOpenGeneratedGroupEditor={openGeneratedGroupEditor}
           />
