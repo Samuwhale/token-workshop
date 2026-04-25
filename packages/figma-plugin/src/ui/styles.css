@@ -766,19 +766,45 @@ button.tm-token-details__list-row:hover {
   background: color-mix(in srgb, var(--color-figma-bg-secondary) 40%, transparent);
 }
 
-.tm-token-details__generated-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-figma-warning) 8%, transparent);
-}
-
-.tm-token-details__generated-actions {
+.tm-token-details__related-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px 12px;
+}
+
+.tm-token-details__generator-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 70%, transparent);
+  font-size: var(--font-size-sm);
+  line-height: var(--leading-body);
+}
+
+.tm-token-details__generator-banner-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+  flex: 1 1 220px;
+  color: var(--color-figma-text-secondary);
+}
+
+.tm-token-details__generator-banner-name {
+  font-weight: 500;
+  color: var(--color-figma-text);
+}
+
+.tm-token-details__generator-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-left: auto;
 }
 
 .tm-token-details__contrast-grid {
@@ -1149,6 +1175,35 @@ button.tm-token-details__text-button:disabled:hover {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.tm-generator-authoring__overview {
+  display: grid;
+  gap: 12px 24px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 60%, transparent);
+}
+
+.tm-generator-authoring__overview-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.tm-generator-authoring__overview-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-figma-text-secondary);
+}
+
+.tm-generator-authoring__overview-value {
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  color: var(--color-figma-text);
+  overflow-wrap: anywhere;
+}
+
 .tm-generator-authoring__metric-card {
   display: flex;
   min-inline-size: 0;
@@ -1201,6 +1256,10 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-generator-authoring__metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .tm-generator-authoring__overview {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 @container authoring-surface (min-width: 600px) {
@@ -1243,5 +1302,33 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-graph .react-flow__node:focus-visible .tm-graph-node {
   outline: 2px solid var(--color-figma-accent);
   outline-offset: 2px;
+}
+.tm-graph-controls.react-flow__controls {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--color-figma-border);
+  background: color-mix(in srgb, var(--color-figma-bg) 85%, transparent);
+  backdrop-filter: blur(4px);
+  box-shadow: none;
+}
+.tm-graph-controls .react-flow__controls-button {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--color-figma-text-secondary);
+  border-radius: 3px;
+}
+.tm-graph-controls .react-flow__controls-button:hover {
+  background: var(--color-figma-bg-hover);
+  color: var(--color-figma-text);
+}
+.tm-graph-controls .react-flow__controls-button svg {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
 }
 

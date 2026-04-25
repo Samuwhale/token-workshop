@@ -1,7 +1,6 @@
 /**
  * Shared risk detail sections — overwrite risks, manual conflicts,
  * deleted outputs, and detached outputs.
- * Used only by StepSave.
  */
 import type { GeneratorPreviewAnalysis } from '../../hooks/useGeneratedGroupPreview';
 import { ValueDiff } from '../ValueDiff';

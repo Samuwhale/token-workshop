@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type {
   GeneratorType,
   GeneratorConfig,
@@ -30,42 +30,9 @@ import { TYPE_LABELS } from "../generators/generatorUtils";
 import { UnifiedSourceInput } from "../UnifiedSourceInput";
 import { Spinner } from "../Spinner";
 import { AUTHORING } from "../../shared/editorClasses";
-import { cloneStarterConfigForGeneratorType, GRAPH_TEMPLATES, type GraphTemplate } from "../graph-templates";
-
-function TemplateSuggestion({
-  template,
-  onApply,
-  onDismiss,
-}: {
-  template: GraphTemplate;
-  onApply: () => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 px-2.5 py-1.5 text-secondary">
-      <span className="min-w-0 flex-1 truncate text-[var(--color-figma-text)]">
-        Start from <span className="font-medium">{template.label}</span>?
-      </span>
-      <button
-        type="button"
-        onClick={onApply}
-        className="shrink-0 font-medium text-[var(--color-figma-accent)] hover:underline"
-      >
-        Apply
-      </button>
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-      >
-        &times;
-      </button>
-    </div>
-  );
-}
+import { cloneStarterConfigForGeneratorType } from "../graph-templates";
 
 export interface StepSourceProps {
-  isEditing: boolean;
   selectedType: GeneratorType;
   currentConfig: GeneratorConfig;
   typeNeedsValue: boolean;
@@ -107,7 +74,6 @@ export interface StepSourceProps {
 }
 
 export function StepSource({
-  isEditing,
   selectedType,
   currentConfig,
   typeNeedsValue,
@@ -140,8 +106,6 @@ export function StepSource({
   detachedCount = 0,
   collectionModeLabel = null,
 }: StepSourceProps) {
-  const [templateDismissed, setTemplateDismissed] = useState(false);
-  const [outputExpanded, setOutputExpanded] = useState(true);
   const overwritePaths = useMemo(
     () => new Set(overwrittenEntries.map((entry) => entry.path)),
     [overwrittenEntries],
@@ -182,10 +146,6 @@ export function StepSource({
     selectedType === "typeScale" ||
     selectedType === "spacingScale" ||
     selectedType === "borderRadiusScale";
-  const matchingTemplate =
-    !isEditing && !templateDismissed
-      ? GRAPH_TEMPLATES.find((template) => template.generatorType === selectedType)
-      : undefined;
 
   const renderPreview = () => {
     if (selectedType === "colorRamp") {
@@ -268,21 +228,6 @@ export function StepSource({
 
   return (
     <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
-      {matchingTemplate && (
-        <TemplateSuggestion
-          template={matchingTemplate}
-          onApply={() => {
-            const starterConfig = cloneStarterConfigForGeneratorType(selectedType);
-            if (starterConfig) {
-              onConfigInteractionStart();
-              onConfigChange(selectedType, starterConfig);
-            }
-            setTemplateDismissed(true);
-          }}
-          onDismiss={() => setTemplateDismissed(true)}
-        />
-      )}
-
       {typeNeedsValue && (
         <div className={AUTHORING.generatorSectionCard}>
           <UnifiedSourceInput
@@ -305,51 +250,11 @@ export function StepSource({
       {destination && (
         <div className={AUTHORING.generatorSectionCard}>
           {detachedCount > 0 && (
-            <div className="mb-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text)]">
+            <div className="mb-3 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/10 px-2.5 py-1.5 text-secondary text-[var(--color-figma-text)]">
               {detachedCount} detached token{detachedCount === 1 ? "" : "s"}
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => setOutputExpanded((value) => !value)}
-            className="flex w-full items-center justify-between gap-2 text-left"
-          >
-            <div className="flex items-center gap-2">
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 10 10"
-                fill="currentColor"
-                className={`shrink-0 text-[var(--color-figma-text-secondary)] transition-transform ${outputExpanded ? "rotate-90" : ""}`}
-              >
-                <path d="M3 1.5l4 3.5-4 3.5V1.5z" />
-              </svg>
-              <span className="text-secondary font-medium text-[var(--color-figma-text)]">
-                Collection and group
-              </span>
-            </div>
-            {!outputExpanded && (
-              <div className="max-w-[65%] text-right text-secondary text-[var(--color-figma-text-secondary)]">
-                <div className="truncate">
-                  Collection{" "}
-                  <span className="font-mono text-[var(--color-figma-text)]">
-                    {destination.targetCollection}
-                  </span>
-                </div>
-                <div className="truncate">
-                  Group{" "}
-                  <span className="font-mono text-[var(--color-figma-text)]">
-                    {destination.targetGroup || "Choose a group"}
-                  </span>
-                </div>
-              </div>
-            )}
-          </button>
-          {outputExpanded && (
-            <div className="mt-3">
-              <StepWhere {...destination} inline />
-            </div>
-          )}
+          <StepWhere {...destination} />
         </div>
       )}
 

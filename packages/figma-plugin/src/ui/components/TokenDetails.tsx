@@ -389,11 +389,7 @@ export function TokenDetails({
     useState(false);
   const activeProducingGenerator =
     detachedFromGenerator ? null : producingGenerator;
-  const [generatedTokenChoiceOpen, setGeneratedTokenChoiceOpen] =
-    useState(false);
-  const [generatedTokenChoiceBusy, setGeneratedTokenChoiceBusy] =
-    useState<"manual-exception" | "detach" | null>(null);
-  const pendingGeneratedSaveArgsRef = useRef<[boolean, boolean] | null>(null);
+  const [lockingException, setLockingException] = useState(false);
   const generatedSaveBypassRef = useRef(false);
 
   const [addingEditorMode, setAddingEditorMode] = useState(false);
@@ -488,8 +484,12 @@ export function TokenDetails({
   ]);
   const canCreateManualException =
     hasGeneratedValueChanges && !hasGeneratedNonValueChanges;
+  const canLockAsException = !hasGeneratedNonValueChanges;
 
   const requestClose = editorSessionHost.requestClose;
+  const [pendingGeneratorSave, setPendingGeneratorSave] = useState<
+    { forceOverwrite: boolean; createAnother: boolean } | null
+  >(null);
   const beforeSaveGeneratedToken = useCallback(
     async (forceOverwrite: boolean, createAnother: boolean) => {
       if (
@@ -502,8 +502,7 @@ export function TokenDetails({
         }
         return true;
       }
-      pendingGeneratedSaveArgsRef.current = [forceOverwrite, createAnother];
-      setGeneratedTokenChoiceOpen(true);
+      setPendingGeneratorSave({ forceOverwrite, createAnother });
       return false;
     },
     [activeProducingGenerator, isCreateMode],
@@ -624,8 +623,7 @@ export function TokenDetails({
 
   useEffect(() => {
     setDetachedFromGenerator(false);
-    setGeneratedTokenChoiceOpen(false);
-    pendingGeneratedSaveArgsRef.current = null;
+    setPendingGeneratorSave(null);
     generatedSaveBypassRef.current = false;
   }, [tokenPath, producingGenerator?.id]);
 
@@ -706,90 +704,100 @@ export function TokenDetails({
     return stepName;
   }, [activeProducingGenerator, tokenPath]);
 
-  const handleSaveManualException = useCallback(async () => {
-    if (!canCreateManualException) {
-      setError(
-        "Manual exceptions only support value edits. Detach this token if you need to keep the other changes.",
-      );
-      return;
-    }
-    const stepName = getProducingGeneratorStepName();
-    if (!activeProducingGenerator || !stepName) {
-      setError("This token cannot store a manual exception. Edit the generator or detach it instead.");
-      return;
-    }
-
-    setGeneratedTokenChoiceBusy("manual-exception");
-    try {
-      setError(null);
-      await apiFetch(
-        `${serverUrl}/api/generators/${activeProducingGenerator.id}/steps/${encodeURIComponent(stepName)}/override`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            value,
-            locked: true,
-          }),
-        },
-      );
-      clearEditorDraft(ownerCollectionId, tokenPath);
-      onSaved?.(tokenPath);
-      onRefresh?.();
-      dispatchToast(
-        `Saved manual exception for "${tokenPath}"`,
-        "success",
-        {
-          destination: {
-            kind: "token",
-            tokenPath,
-            collectionId: ownerCollectionId,
-          },
-        },
-      );
-      setGeneratedTokenChoiceOpen(false);
-      pendingGeneratedSaveArgsRef.current = null;
-      onBack();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to save manual exception",
-      );
-    } finally {
-      setGeneratedTokenChoiceBusy(null);
-    }
-  }, [
-    activeProducingGenerator,
-    canCreateManualException,
-    getProducingGeneratorStepName,
-    onBack,
-    onRefresh,
-    onSaved,
-    ownerCollectionId,
-    serverUrl,
-    tokenPath,
-    value,
-  ]);
-
-  const handleDetachAndSaveGeneratedToken = useCallback(async () => {
-    const saveArgs = pendingGeneratedSaveArgsRef.current ?? [false, false];
-    setGeneratedTokenChoiceBusy("detach");
-    try {
-      const detached = await handleDetachGeneratorOwnership();
-      if (!detached) {
+  const persistException = useCallback(
+    async (options: { closeAfter: boolean }) => {
+      if (!canLockAsException) {
+        setError(
+          "Manual exceptions only support value edits. Detach this token if you need to keep the other changes.",
+        );
         return;
       }
+      const stepName = getProducingGeneratorStepName();
+      if (!activeProducingGenerator || !stepName) {
+        setError("This token cannot store a manual exception. Edit the generator or detach it instead.");
+        return;
+      }
+
+      setLockingException(true);
+      try {
+        setError(null);
+        await apiFetch(
+          `${serverUrl}/api/generators/${activeProducingGenerator.id}/steps/${encodeURIComponent(stepName)}/override`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              value,
+              locked: true,
+            }),
+          },
+        );
+        clearEditorDraft(ownerCollectionId, tokenPath);
+        onSaved?.(tokenPath);
+        onRefresh?.();
+        dispatchToast(
+          `Locked "${tokenPath}" as a manual exception`,
+          "success",
+          {
+            destination: {
+              kind: "token",
+              tokenPath,
+              collectionId: ownerCollectionId,
+            },
+          },
+        );
+        if (options.closeAfter) onBack();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to save manual exception",
+        );
+      } finally {
+        setLockingException(false);
+      }
+    },
+    [
+      activeProducingGenerator,
+      canLockAsException,
+      getProducingGeneratorStepName,
+      onRefresh,
+      onSaved,
+      onBack,
+      ownerCollectionId,
+      serverUrl,
+      tokenPath,
+      value,
+    ],
+  );
+
+  const handleInlineMakeException = useCallback(
+    () => persistException({ closeAfter: false }),
+    [persistException],
+  );
+
+  const detachAndSave = useCallback(
+    async (forceOverwrite: boolean, createAnother: boolean) => {
+      const detached = await handleDetachGeneratorOwnership();
+      if (!detached) return;
       generatedSaveBypassRef.current = true;
-      setGeneratedTokenChoiceOpen(false);
-      pendingGeneratedSaveArgsRef.current = null;
-      await handleSaveRef.current(saveArgs[0], saveArgs[1]);
-    } finally {
-      setGeneratedTokenChoiceBusy(null);
+      await handleSaveRef.current(forceOverwrite, createAnother);
+    },
+    [handleDetachGeneratorOwnership, handleSaveRef],
+  );
+
+  useEffect(() => {
+    if (!pendingGeneratorSave) return;
+    const args = pendingGeneratorSave;
+    setPendingGeneratorSave(null);
+    if (canLockAsException) {
+      void persistException({ closeAfter: true });
+    } else {
+      void detachAndSave(args.forceOverwrite, args.createAnother);
     }
-  }, [handleDetachGeneratorOwnership, handleSaveRef]);
+  }, [pendingGeneratorSave, canLockAsException, persistException, detachAndSave]);
 
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
@@ -1178,12 +1186,21 @@ export function TokenDetails({
         }).filter((collectionId) => collectionId !== ownerCollectionId)
       : [];
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
+  const generatorSaveHint =
+    isEditMode &&
+    !isCreateMode &&
+    activeProducingGenerator &&
+    isDirty
+      ? canCreateManualException
+        ? "Saving creates a manual exception unless you edit the generator."
+        : "Saving will detach this token from the generator unless you edit the generator."
+      : null;
   const footerNote =
     isCreateMode && duplicatePath
       ? "Path already exists."
       : isCreateMode && !trimmedEditPath
         ? "Enter a token path."
-        : saveBlockReason;
+        : saveBlockReason ?? generatorSaveHint;
 
   const handleCopyPath = () => {
     navigator.clipboard.writeText(tokenPath);
@@ -1609,16 +1626,16 @@ export function TokenDetails({
     onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
   };
 
-  const valueSectionDescription =
-    modeValue.modes.length >= 2
-      ? "Every mode is visible here. Edit each one directly or reference another token."
-      : undefined;
+  const valueSectionTitle =
+    modeValue.modes.length >= 2 ? "Mode values" : "Value";
+  const tokenTypeDisplayLabel =
+    tokenType.charAt(0).toUpperCase() + tokenType.slice(1);
   const valueSectionActions = !isCreateMode ? (
     isInspectMode ? (
       <span
-        className={`px-1.5 py-0.5 rounded text-secondary font-medium uppercase ${tokenTypeBadgeClass(tokenType)}`}
+        className={`px-1.5 py-0.5 rounded text-secondary font-medium ${tokenTypeBadgeClass(tokenType)}`}
       >
-        {tokenType}
+        {tokenTypeDisplayLabel}
       </span>
     ) : (
       <TypePicker
@@ -1675,6 +1692,65 @@ export function TokenDetails({
           }
           onNavigateToToken={onNavigateToToken}
         />
+
+        {activeProducingGenerator ? (
+          <div
+            className="tm-token-details__generator-banner"
+            role="region"
+            aria-label="Generator ownership"
+          >
+            <div className="tm-token-details__generator-banner-summary">
+              <span>Generated by</span>
+              <span className="tm-token-details__generator-banner-name" title={activeProducingGenerator.name}>
+                {activeProducingGenerator.name}
+              </span>
+            </div>
+            <div className="tm-token-details__generator-banner-actions">
+              {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) ? (
+                <button
+                  type="button"
+                  onClick={openGeneratedSource}
+                  className="tm-token-details__text-button"
+                >
+                  Edit generator
+                </button>
+              ) : null}
+              {isEditMode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleInlineMakeException();
+                    }}
+                    disabled={
+                      detachingGeneratorOwnership ||
+                      lockingException ||
+                      !canLockAsException
+                    }
+                    title={
+                      !canLockAsException
+                        ? "Manual exceptions only preserve the value. Detach this token if you also changed description, scope, lifecycle, or extensions."
+                        : undefined
+                    }
+                    className="tm-token-details__text-button"
+                  >
+                    {lockingException ? "Locking…" : "Make exception"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleDetachGeneratorOwnership();
+                    }}
+                    disabled={detachingGeneratorOwnership || lockingException}
+                    className="tm-token-details__text-button tm-token-details__text-button--muted"
+                  >
+                    {detachingGeneratorOwnership ? "Detaching…" : "Detach"}
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         {isCreateMode ? (
           <div className="tm-token-details__setup">
@@ -1781,8 +1857,7 @@ export function TokenDetails({
         ) : null}
 
         <TokenDetailsSection
-          title="Value"
-          description={valueSectionDescription}
+          title={valueSectionTitle}
           actions={valueSectionActions}
           variant="primary"
         >
@@ -1923,19 +1998,25 @@ export function TokenDetails({
             {isInspectMode && colorModifiers.length > 0 ? (
               <div className="tm-token-details__field">
                 <span className="tm-token-details__field-label">Color modifiers</span>
-                <pre className="tm-token-details__code-block">
-                  {JSON.stringify(colorModifiers, null, 2)}
-                </pre>
+                <ul className="tm-token-details__list-box">
+                  {colorModifiers.map((mod, idx) => {
+                    const summary =
+                      mod.type === "mix"
+                        ? `Mix with ${mod.color} at ${Math.round((mod.ratio ?? 0) * 100)}%`
+                        : `${mod.type.charAt(0).toUpperCase()}${mod.type.slice(1)} ${Math.round((mod.amount ?? 0) * 100)}%`;
+                    return (
+                      <li key={idx} className="tm-token-details__list-row">
+                        <span className={LONG_TEXT_CLASSES.textPrimary}>{summary}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             ) : null}
           </div>
         </TokenDetailsSection>
 
-        <TokenDetailsSection
-          title="Details"
-          description="Description, usage constraints, and lifecycle."
-          variant="secondary"
-        >
+        <TokenDetailsSection title="Details" variant="secondary">
           <div className="tm-token-details__details-stack">
             <div className="tm-token-details__field">
               <span className="tm-token-details__field-label">Description</span>
@@ -2023,7 +2104,6 @@ export function TokenDetails({
         {!isCreateMode ? (
           <TokenDetailsSection
             title="Related"
-            description="Checks, generated state, and downstream impact."
             variant="support"
             contentClassName="tm-token-details__support-stack"
           >
@@ -2049,71 +2129,26 @@ export function TokenDetails({
               />
             ) : null}
 
-            {activeProducingGenerator ? (
-              <div className="tm-token-details__generated-card">
-                <div className="tm-token-details__subsection-copy">
-                  <h4 className="tm-token-details__subsection-title">Generated</h4>
-                  <p className="tm-token-details__subsection-description">
-                    Managed by{" "}
-                    <span className="font-medium text-[var(--color-figma-text)]">
-                      {activeProducingGenerator.name}
-                    </span>
-                    {isInspectMode
-                      ? ". Edit the generator to change the source rules for this token."
-                      : ". Saving here will ask whether to edit the generator, keep a manual exception, or detach this token."}
-                  </p>
-                </div>
-                <div className="tm-token-details__generated-actions">
-                  {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) ? (
-                    <button
-                      type="button"
-                      onClick={openGeneratedSource}
-                      className="tm-token-details__text-button"
-                    >
-                      Edit generator
-                    </button>
-                  ) : null}
-                  {isEditMode ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleDetachGeneratorOwnership();
-                      }}
-                      disabled={detachingGeneratorOwnership}
-                      className="tm-token-details__text-button tm-token-details__text-button--muted"
-                    >
-                      {detachingGeneratorOwnership ? "Detaching…" : "Detach from generator"}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-
             {onViewInGraph || (isInspectMode && onOpenInHealth) ? (
-              <div className="tm-token-details__field">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="tm-token-details__field-label">Explore</span>
-                  <div className="flex items-center gap-2">
-                    {onViewInGraph ? (
-                      <button
-                        type="button"
-                        onClick={() => onViewInGraph(tokenPath, ownerCollectionId)}
-                        className="tm-token-details__text-button"
-                      >
-                        View in graph
-                      </button>
-                    ) : null}
-                    {isInspectMode && onOpenInHealth ? (
-                      <button
-                        type="button"
-                        onClick={onOpenInHealth}
-                        className="tm-token-details__text-button"
-                      >
-                        Open in review
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
+              <div className="tm-token-details__related-actions">
+                {onViewInGraph ? (
+                  <button
+                    type="button"
+                    onClick={() => onViewInGraph(tokenPath, ownerCollectionId)}
+                    className="tm-token-details__text-button"
+                  >
+                    View in graph
+                  </button>
+                ) : null}
+                {isInspectMode && onOpenInHealth ? (
+                  <button
+                    type="button"
+                    onClick={onOpenInHealth}
+                    className="tm-token-details__text-button"
+                  >
+                    Open in review
+                  </button>
+                ) : null}
               </div>
             ) : null}
 
@@ -2258,95 +2293,6 @@ export function TokenDetails({
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />
-      )}
-
-      {generatedTokenChoiceOpen && activeProducingGenerator && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setGeneratedTokenChoiceOpen(false);
-            }
-          }}
-        >
-          <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
-            <div className="px-4 pt-4 pb-3">
-              <h3 className="text-heading font-semibold text-[var(--color-figma-text)]">
-                This token is generated
-              </h3>
-              <p className="mt-1.5 text-body leading-relaxed text-[var(--color-figma-text-secondary)]">
-                <span className="font-medium text-[var(--color-figma-text)]">
-                  {activeProducingGenerator.name}
-                </span>{" "}
-                owns <span className="font-mono text-[var(--color-figma-text)]">{tokenPath}</span>.
-                Choose how this edit should behave before saving.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 px-4 pb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setGeneratedTokenChoiceOpen(false);
-                  pendingGeneratedSaveArgsRef.current = null;
-                  if (onOpenGeneratedGroupEditor) {
-                    openGeneratedGroupEditor({
-                      mode: "edit",
-                      id: activeProducingGenerator.id,
-                    });
-                    requestClose();
-                    return;
-                  }
-                  onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
-                }}
-                className="rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-left text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-              >
-                Edit generator
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleSaveManualException();
-                }}
-                disabled={
-                  generatedTokenChoiceBusy !== null || !canCreateManualException
-                }
-                className="rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-left text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
-              >
-                {generatedTokenChoiceBusy === "manual-exception"
-                  ? "Saving manual exception…"
-                  : "Make manual exception"}
-              </button>
-              {!canCreateManualException && (
-                <p className="px-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
-                  Manual exceptions only preserve the generated value. Detach this token if you need to keep description, scope, mode, lifecycle, or extension edits.
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  void handleDetachAndSaveGeneratedToken();
-                }}
-                disabled={generatedTokenChoiceBusy !== null}
-                className="rounded-md border border-[var(--color-figma-border)] px-3 py-2 text-left text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
-              >
-                {generatedTokenChoiceBusy === "detach"
-                  ? "Detaching…"
-                  : "Detach from generator"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setGeneratedTokenChoiceOpen(false);
-                  pendingGeneratedSaveArgsRef.current = null;
-                }}
-                disabled={generatedTokenChoiceBusy !== null}
-                className="text-body text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Conflict confirmation */}

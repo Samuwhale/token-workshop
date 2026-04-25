@@ -34,6 +34,7 @@ import { ClusterNode } from "./nodes/ClusterNode";
 import { AliasEdge as AliasEdgeComponent } from "./edges/AliasEdge";
 import { GeneratorSourceEdge } from "./edges/GeneratorSourceEdge";
 import { GeneratorProducesEdge } from "./edges/GeneratorProducesEdge";
+import { GraphLegend } from "./GraphLegend";
 import { nodeDimensions } from "./graphLayout";
 import "@xyflow/react/dist/style.css";
 
@@ -46,10 +47,11 @@ interface GraphCanvasProps {
   selectedCollectionIds: string[];
   onSelectToken: (path: string, collectionId: string) => void;
   onSelectGenerator: (generatorId: string) => void;
+  onActivateToken: (path: string, collectionId: string) => void;
+  onActivateGenerator: (generatorId: string) => void;
   onFocusNode: (nodeId: GraphNodeId) => void;
   onExpandCluster: (clusterId: GraphNodeId) => void;
   onRequestDeleteToken?: (path: string, collectionId: string) => void;
-  onRequestDeleteGenerator?: (generatorId: string) => void;
   onRequestRewire?: (params: {
     sourceNodeId: GraphNodeId;
     targetNodeId: GraphNodeId;
@@ -66,6 +68,7 @@ interface GraphCanvasProps {
     b: { path: string; collectionId: string },
   ) => void;
   onFocusSearch?: () => void;
+  onSelectEdge?: (edgeId: string | null) => void;
   resetViewToken: number;
   editingEnabled?: boolean;
 }
@@ -100,14 +103,16 @@ function GraphCanvasInner({
   selectedCollectionIds,
   onSelectToken,
   onSelectGenerator,
+  onActivateToken,
+  onActivateGenerator,
   onFocusNode,
   onExpandCluster,
   onRequestDeleteToken,
-  onRequestDeleteGenerator,
   onRequestRewire,
   onRequestDetach,
   onCompareTokens,
   onFocusSearch,
+  onSelectEdge,
   resetViewToken,
   editingEnabled = false,
 }: GraphCanvasProps) {
@@ -133,17 +138,23 @@ function GraphCanvasInner({
 
   const layout = useGraphLayout({ graph, selectedCollectionIds });
 
-  // Active set during hover: hovered node + 1-hop neighbors. Empty set means
-  // "no hover, draw everything at full opacity".
+  // Active set: hover takes precedence; else focus-driven 1-hop neighborhood.
+  // Returning null means "no emphasis — draw everything at full opacity".
   const activeNodeIds = useMemo<Set<GraphNodeId> | null>(() => {
-    if (!hoveredNodeId || !graph.nodes.has(hoveredNodeId)) return null;
-    const active = new Set<GraphNodeId>([hoveredNodeId]);
+    const anchor =
+      hoveredNodeId && graph.nodes.has(hoveredNodeId)
+        ? hoveredNodeId
+        : focusNodeId && graph.nodes.has(focusNodeId)
+          ? focusNodeId
+          : null;
+    if (!anchor) return null;
+    const active = new Set<GraphNodeId>([anchor]);
     if (focusNodeId && graph.nodes.has(focusNodeId)) active.add(focusNodeId);
-    for (const edgeId of graph.outgoing.get(hoveredNodeId) ?? []) {
+    for (const edgeId of graph.outgoing.get(anchor) ?? []) {
       const edge = graph.edges.get(edgeId);
       if (edge) active.add(edge.to);
     }
-    for (const edgeId of graph.incoming.get(hoveredNodeId) ?? []) {
+    for (const edgeId of graph.incoming.get(anchor) ?? []) {
       const edge = graph.edges.get(edgeId);
       if (edge) active.add(edge.from);
     }
@@ -212,15 +223,17 @@ function GraphCanvasInner({
     reactFlow.fitView({ padding: 0.2, duration: 180 });
   }, [resetViewToken, reactFlow]);
 
-  // Center on focus node when it changes
+  // Pan to the focus node without changing the user's zoom level. Forcing
+  // zoom on every selection used to wipe out the designer's pan/zoom state.
   useEffect(() => {
     if (!focusNodeId) return;
     const node = reactFlow.getNode(focusNodeId);
     if (!node) return;
+    const currentZoom = reactFlow.getZoom();
     reactFlow.setCenter(
       node.position.x + (node.measured?.width ?? 200) / 2,
       node.position.y + (node.measured?.height ?? 44) / 2,
-      { zoom: 1, duration: 200 },
+      { zoom: currentZoom, duration: 200 },
     );
   }, [focusNodeId, reactFlow]);
 
@@ -241,9 +254,24 @@ function GraphCanvasInner({
     openNodeDetails(rfNode.id);
   };
 
+  const activateNode = useCallback(
+    (nodeId: GraphNodeId) => {
+      const node = graph.nodes.get(nodeId);
+      if (!node) return;
+      if (node.kind === "token") {
+        onActivateToken(node.path, node.collectionId);
+      } else if (node.kind === "generator") {
+        onActivateGenerator(node.generatorId);
+      } else if (node.kind === "cluster") {
+        onExpandCluster(node.id);
+      }
+    },
+    [graph, onActivateToken, onActivateGenerator, onExpandCluster],
+  );
+
   const handleNodeDoubleClick: NodeMouseHandler = (event, rfNode) => {
     event.preventDefault();
-    onFocusNode(rfNode.id);
+    activateNode(rfNode.id);
   };
 
   const handleNodeMouseEnter: NodeMouseHandler = useCallback((_event, rfNode) => {
@@ -258,7 +286,7 @@ function GraphCanvasInner({
     enabled: true,
     layout,
     graph,
-    onActivate: openNodeDetails,
+    onActivate: activateNode,
     onFocusSearch,
   });
 
@@ -354,12 +382,18 @@ function GraphCanvasInner({
     [interactionGraph, editingEnabled, onRequestRewire],
   );
 
-  const handleEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
-    // ReactFlow toggles selection by default; we just need to capture the
-    // click so the canvas pane handler doesn't fire and clear the menu.
-    event.stopPropagation();
-    void edge;
-  }, []);
+  const handleEdgeClick: EdgeMouseHandler = useCallback(
+    (event, edge) => {
+      event.stopPropagation();
+      onSelectEdge?.(edge.id);
+    },
+    [onSelectEdge],
+  );
+
+  const handlePaneClick = useCallback(() => {
+    setContextMenu(null);
+    onSelectEdge?.(null);
+  }, [onSelectEdge]);
 
   // Disable xyflow's default delete-on-Backspace; we open a confirm popover
   // instead and let the user choose modes.
@@ -428,19 +462,12 @@ function GraphCanvasInner({
       } else if (node.kind === "generator") {
         items.push({
           label: "Edit generator",
-          onClick: () => onSelectGenerator(node.generatorId),
+          onClick: () => onActivateGenerator(node.generatorId),
         });
         items.push({
           label: "Focus on this",
           onClick: () => onFocusNode(node.id),
         });
-        if (onRequestDeleteGenerator) {
-          items.push({
-            label: "Delete generator",
-            danger: true,
-            onClick: () => onRequestDeleteGenerator(node.generatorId),
-          });
-        }
       } else if (node.kind === "cluster") {
         items.push({
           label: "Expand group",
@@ -459,11 +486,10 @@ function GraphCanvasInner({
     [
       graph,
       onSelectToken,
-      onSelectGenerator,
+      onActivateGenerator,
       onFocusNode,
       onExpandCluster,
       onRequestDeleteToken,
-      onRequestDeleteGenerator,
       copyToClipboard,
     ],
   );
@@ -497,7 +523,7 @@ function GraphCanvasInner({
         onNodeMouseEnter={handleNodeMouseEnter}
         onNodeMouseLeave={handleNodeMouseLeave}
         onNodeContextMenu={handleNodeContextMenu}
-        onPaneClick={() => setContextMenu(null)}
+        onPaneClick={handlePaneClick}
         onConnect={handleConnect}
         isValidConnection={isValidConnection}
         onEdgeClick={handleEdgeClick}
@@ -513,9 +539,22 @@ function GraphCanvasInner({
         nodesConnectable={editingEnabled}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="var(--color-figma-border)" gap={24} size={1} />
-        <Controls showInteractive={false} />
+        <Background
+          color="var(--color-figma-border)"
+          gap={20}
+          size={1}
+          style={{ background: "var(--color-figma-bg)" }}
+        />
+        <Controls
+          showInteractive={false}
+          showFitView={false}
+          position="bottom-right"
+          className="tm-graph-controls"
+        />
       </ReactFlow>
+      <div className="pointer-events-none absolute bottom-3 left-3 z-20">
+        <GraphLegend />
+      </div>
       {selectedTokenNodes.length >= 2 ? (
         <SelectionActionBar
           tokens={selectedTokenNodes}

@@ -8,14 +8,15 @@ import {
 
 export interface GraphFilters {
   tokenType: string;
-  health: string;
-  generatorType: string;
 }
+
+export type GraphView = "all" | "issues" | "generators";
 
 export interface GraphScopeInput {
   fullGraph: GraphModel;
   selectedCollectionIds: string[];
   filters: GraphFilters;
+  view: GraphView;
   searchQuery: string;
   focusNodeId: GraphNodeId | null;
   expandedClusterIds: Set<GraphNodeId>;
@@ -41,6 +42,7 @@ export function useGraphScope({
   fullGraph,
   selectedCollectionIds,
   filters,
+  view,
   searchQuery,
   focusNodeId,
   expandedClusterIds,
@@ -50,9 +52,14 @@ export function useGraphScope({
     [fullGraph, selectedCollectionIds],
   );
 
+  const viewScoped = useMemo(
+    () => applyViewFilter(collectionScoped, view, focusNodeId),
+    [collectionScoped, view, focusNodeId],
+  );
+
   const filteredGraph = useMemo(
-    () => filterGraphByFilters(collectionScoped, filters, focusNodeId),
-    [collectionScoped, filters, focusNodeId],
+    () => filterGraphByFilters(viewScoped, filters, focusNodeId),
+    [viewScoped, filters, focusNodeId],
   );
 
   const focusedGraph = useMemo(
@@ -92,55 +99,65 @@ export function useGraphScope({
   };
 }
 
+function applyViewFilter(
+  graph: GraphModel,
+  view: GraphView,
+  focusNodeId: GraphNodeId | null,
+): GraphModel {
+  if (view === "all") return graph;
+
+  const keep = new Set<GraphNodeId>();
+
+  if (view === "issues") {
+    for (const node of graph.nodes.values()) {
+      if (node.kind === "ghost") {
+        keep.add(node.id);
+      } else if (node.kind === "token" || node.kind === "generator") {
+        if (node.health !== "ok") keep.add(node.id);
+      }
+    }
+    for (const edge of graph.edges.values()) {
+      if (
+        edge.kind === "alias" &&
+        (edge.inCycle || edge.isMissingTarget || edge.issueRules?.length)
+      ) {
+        keep.add(edge.from);
+        keep.add(edge.to);
+      }
+    }
+  } else {
+    // view === "generators"
+    for (const node of graph.nodes.values()) {
+      if (node.kind === "generator") keep.add(node.id);
+    }
+    for (const edge of graph.edges.values()) {
+      if (edge.kind === "generator-source" || edge.kind === "generator-produces") {
+        keep.add(edge.from);
+        keep.add(edge.to);
+      }
+    }
+  }
+
+  if (focusNodeId && graph.nodes.has(focusNodeId)) keep.add(focusNodeId);
+
+  return sliceGraph(graph, keep, `view:${view}`);
+}
+
 function filterGraphByFilters(
   graph: GraphModel,
   filters: GraphFilters,
   focusNodeId: GraphNodeId | null,
 ): GraphModel {
-  if (
-    filters.tokenType === "all" &&
-    filters.health === "all" &&
-    filters.generatorType === "all"
-  ) {
+  if (filters.tokenType === "all") {
     return graph;
   }
 
   const keptNodeIds = new Set<GraphNodeId>();
   for (const node of graph.nodes.values()) {
-    let keep = true;
-    if (node.kind === "token") {
-      if (filters.tokenType !== "all" && node.$type !== filters.tokenType) {
-        keep = false;
-      }
-      if (filters.health === "issues" && node.health === "ok") {
-        keep = false;
-      } else if (
-        filters.health !== "all" &&
-        filters.health !== "issues" &&
-        node.health !== filters.health
-      ) {
-        keep = false;
-      }
-    } else if (node.kind === "generator") {
-      if (
-        filters.generatorType !== "all" &&
-        node.generatorType !== filters.generatorType
-      ) {
-        keep = false;
-      }
-      if (filters.health === "issues" && node.health === "ok") {
-        keep = false;
-      } else if (
-        filters.health !== "all" &&
-        filters.health !== "issues" &&
-        node.health !== filters.health
-      ) {
-        keep = false;
-      }
-    } else if (filters.health !== "all" && filters.health !== "issues") {
-      keep = false;
-    }
-
+    const keep =
+      node.kind !== "token" ||
+      filters.tokenType === "all" ||
+      node.$type === filters.tokenType;
     if (keep || node.id === focusNodeId) {
       keptNodeIds.add(node.id);
     }

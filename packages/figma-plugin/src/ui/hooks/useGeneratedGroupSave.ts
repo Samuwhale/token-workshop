@@ -14,7 +14,6 @@ import type {
 import { autoNameFromGroup } from "../components/generators/generatorUtils";
 import {
   requestGeneratedGroupPreview,
-  requiresGeneratedGroupReview,
   type GeneratorPreviewAnalysis,
 } from "./useGeneratedGroupPreview";
 
@@ -56,7 +55,6 @@ interface UseGeneratorSaveParams {
   typeNeedsValue: boolean;
   hasValue: boolean;
   previewTokens: GeneratedTokenResult[];
-  previewFingerprint: string;
   previewAnalysis: GeneratorPreviewAnalysis | null;
   onSaved: (info?: GeneratorSaveSuccessInfo) => void;
   onInterceptSemanticMapping?: (data: {
@@ -69,7 +67,6 @@ interface UseGeneratorSaveParams {
     info: GeneratorSaveSuccessInfo,
   ) => { action?: ToastAction; secondaryAction?: ToastAction } | undefined;
   pushUndo?: (slot: UndoSlot) => void;
-  requestPreviewRefresh: () => void;
   initialKeepUpdated: boolean;
   initialSemanticEnabled: boolean;
   initialSemanticPrefix: string;
@@ -80,8 +77,6 @@ interface UseGeneratorSaveParams {
 export interface UseGeneratorSaveReturn {
   saving: boolean;
   saveError: string;
-  showConfirmation: boolean;
-  previewReviewStale: boolean;
   overwritePendingPaths: string[];
   overwriteCheckLoading: boolean;
   overwriteCheckError: string;
@@ -91,9 +86,6 @@ export interface UseGeneratorSaveReturn {
   semanticMappings: Array<{ semantic: string; step: string }>;
   selectedSemanticPatternId: string | null;
   handleQuickSave: () => Promise<boolean>;
-  handleSave: () => Promise<boolean>;
-  handleConfirmSave: () => Promise<boolean>;
-  handleCancelConfirmation: () => void;
   setKeepUpdated: (v: boolean) => void;
   setSemanticEnabled: (v: boolean) => void;
   setSemanticPrefix: (v: string) => void;
@@ -118,13 +110,11 @@ export function useGeneratedGroupSave({
   typeNeedsValue,
   hasValue,
   previewTokens,
-  previewFingerprint,
   previewAnalysis,
   onSaved,
   onInterceptSemanticMapping,
   getSuccessToastAction,
   pushUndo,
-  requestPreviewRefresh,
   initialKeepUpdated,
   initialSemanticEnabled,
   initialSemanticPrefix,
@@ -133,9 +123,6 @@ export function useGeneratedGroupSave({
 }: UseGeneratorSaveParams): UseGeneratorSaveReturn {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [previewReviewStale, setPreviewReviewStale] = useState(false);
-  const [reviewedPreviewFingerprint, setReviewedPreviewFingerprint] = useState("");
   const [overwritePendingPaths, setOverwritePendingPaths] = useState<string[]>(
     () => previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
   );
@@ -296,7 +283,6 @@ export function useGeneratedGroupSave({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        setShowConfirmation(false);
 
         if (pushUndo) {
           if (isEditing && existingGenerator) {
@@ -431,17 +417,6 @@ export function useGeneratedGroupSave({
       setOverwritePendingPaths(
         latestPreview.analysis.manualEditConflicts.map((entry) => entry.path),
       );
-      if (
-        reviewedPreviewFingerprint &&
-        latestPreview.analysis.fingerprint !== reviewedPreviewFingerprint
-      ) {
-        requestPreviewRefresh();
-        setPreviewReviewStale(true);
-        setSaveError(
-          "Preview changed since you reviewed it. Review the updated conflicts before saving.",
-        );
-        return false;
-      }
       return true;
     } catch (err) {
       if (overwriteCheckRequestIdRef.current !== requestId) return false;
@@ -459,8 +434,6 @@ export function useGeneratedGroupSave({
     existingGenerator,
     inlineValue,
     pendingOverrides,
-    requestPreviewRefresh,
-    reviewedPreviewFingerprint,
     selectedType,
     serverUrl,
     sourceCollectionId,
@@ -470,67 +443,12 @@ export function useGeneratedGroupSave({
     targetCollection,
   ]);
 
-  /** Step 1: Validate inputs and either commit directly (no risks) or show
-   *  the confirmation preview. Captures the reviewed preview fingerprint so
-   *  confirm can detect staleness.
-   */
-  const handleSave = useCallback(async () => {
-    if (!validateBeforeSave()) return false;
-
-    setReviewedPreviewFingerprint(previewFingerprint);
-
-    // No risks — skip confirmation and commit directly
-    if (!requiresGeneratedGroupReview(previewAnalysis)) {
-      const revalidated = await revalidatePreview();
-      if (revalidated) {
-        return commitSave(
-          keepUpdated,
-          semanticEnabled,
-          semanticPrefix,
-          semanticMappings,
-          targetGroup.trim(),
-          targetCollection,
-        );
-      }
-      // Revalidation revealed issues — show confirmation so user can review
-      setShowConfirmation(true);
-      return false;
-    }
-
-    // Has risks — show confirmation screen
-    setPreviewReviewStale(false);
-    setOverwritePendingPaths(
-      previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
-    );
-    setOverwriteCheckError("");
-    setShowConfirmation(true);
-    return false;
-  }, [
-    commitSave,
-    previewAnalysis,
-    previewFingerprint,
-    revalidatePreview,
-    semanticEnabled,
-    semanticMappings,
-    semanticPrefix,
-    keepUpdated,
-    targetGroup,
-    targetCollection,
-    validateBeforeSave,
-  ]);
-
   const handleQuickSave = useCallback(async () => {
     if (!validateBeforeSave()) return false;
-    setReviewedPreviewFingerprint(previewFingerprint);
-    if (requiresGeneratedGroupReview(previewAnalysis)) {
-      setPreviewReviewStale(false);
-      setOverwritePendingPaths(
-        previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
-      );
-      setOverwriteCheckError("");
-      setShowConfirmation(true);
-      return false;
-    }
+    setOverwritePendingPaths(
+      previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
+    );
+    setOverwriteCheckError("");
     const revalidated = await revalidatePreview();
     if (!revalidated) return false;
     return commitSave(
@@ -544,7 +462,6 @@ export function useGeneratedGroupSave({
   }, [
     validateBeforeSave,
     commitSave,
-    previewFingerprint,
     previewAnalysis,
     revalidatePreview,
     keepUpdated,
@@ -554,60 +471,10 @@ export function useGeneratedGroupSave({
     targetGroup,
     targetCollection,
   ]);
-
-  /** Step 2: Commit the save. Overwrites are already known (shown in review view).
-   *  The server applies semantic aliases together with the generator run.
-   */
-  const handleConfirmSave = useCallback(async () => {
-    if (previewReviewStale) {
-      if (!previewFingerprint) {
-        setSaveError("Refreshing preview…");
-        return false;
-      }
-      setReviewedPreviewFingerprint(previewFingerprint);
-      setPreviewReviewStale(false);
-      setSaveError("");
-      return false;
-    }
-    const revalidated = await revalidatePreview();
-    if (!revalidated) return false;
-    return commitSave(
-      keepUpdated,
-      semanticEnabled,
-      semanticPrefix,
-      semanticMappings,
-      targetGroup.trim(),
-      targetCollection,
-    );
-  }, [
-    commitSave,
-    previewFingerprint,
-    previewReviewStale,
-    revalidatePreview,
-    keepUpdated,
-    semanticEnabled,
-    semanticPrefix,
-    semanticMappings,
-    targetGroup,
-    targetCollection,
-  ]);
-
-  const handleCancelConfirmation = useCallback(() => {
-    setShowConfirmation(false);
-    setPreviewReviewStale(false);
-    setReviewedPreviewFingerprint("");
-    setOverwritePendingPaths(
-      previewAnalysis?.manualEditConflicts.map((entry) => entry.path) ?? [],
-    );
-    setOverwriteCheckLoading(false);
-    setOverwriteCheckError("");
-  }, [previewAnalysis]);
 
   return {
     saving,
     saveError,
-    showConfirmation,
-    previewReviewStale,
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,
@@ -617,9 +484,6 @@ export function useGeneratedGroupSave({
     semanticMappings,
     selectedSemanticPatternId,
     handleQuickSave,
-    handleSave,
-    handleConfirmSave,
-    handleCancelConfirmation,
     setKeepUpdated,
     setSemanticEnabled,
     setSemanticPrefix,

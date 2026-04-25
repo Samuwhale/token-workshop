@@ -1583,16 +1583,20 @@ export function PanelRouter({
     header,
     contextualPanel,
     railBottomPanel,
+    hideCollectionsRail,
   }: {
     body: ReactNode;
     section: "tokens" | "graph" | "health" | "history";
     header?: ReactNode;
     contextualPanel?: ReactNode;
     railBottomPanel?: ReactNode;
+    hideCollectionsRail?: boolean;
   }): ReactNode {
     return (
       <div className="flex h-full min-h-0 overflow-hidden">
-        {renderLibraryCollectionsRail(section, railBottomPanel)}
+        {hideCollectionsRail
+          ? null
+          : renderLibraryCollectionsRail(section, railBottomPanel)}
         <div className="flex min-h-0 min-w-0 flex-1 bg-[var(--color-figma-bg)]">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {(fetchError || tokensError) && (
@@ -1629,7 +1633,7 @@ export function PanelRouter({
                 onKeyDown={sideEditorBoundary.onKeyDown}
               />
               <div
-                className="shrink-0 overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
+                className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
                 style={{ width: sideEditorBoundary.size }}
               >
                 {contextualPanel}
@@ -1823,7 +1827,7 @@ export function PanelRouter({
         </ErrorBoundary>
       </div>
     );
-    return renderLibraryScaffold({ body, section: "graph" });
+    return renderLibraryScaffold({ body, section: "graph", hideCollectionsRail: true });
   }
 
   function renderLibraryHealth(): ReactNode {

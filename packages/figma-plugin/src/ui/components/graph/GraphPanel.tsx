@@ -10,12 +10,16 @@ import { tokenNodeId, generatorNodeId } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { TokensLibraryGeneratedGroupEditorTarget } from "../../shared/navigationTypes";
 import { useGraphData } from "../../hooks/useGraphData";
-import { useGraphScope, type GraphFilters } from "../../hooks/useGraphScope";
+import {
+  useGraphScope,
+  type GraphFilters,
+  type GraphView,
+} from "../../hooks/useGraphScope";
 import { useGraphMutations } from "../../hooks/useGraphMutations";
 import { usePersistedJsonState } from "../../hooks/usePersistedState";
 import { GraphCanvas } from "./GraphCanvas";
 import { GraphToolbar } from "./GraphToolbar";
-import { GraphEmptyState } from "./GraphEmptyState";
+import { GraphInspector } from "./GraphInspector";
 import { GraphSROutline } from "./GraphSROutline";
 import { RewireConfirm } from "./interactions/RewireConfirm";
 import { DetachConfirm } from "./interactions/DetachConfirm";
@@ -47,8 +51,6 @@ interface GraphPanelProps {
 
 const DEFAULT_GRAPH_FILTERS: GraphFilters = {
   tokenType: "all",
-  health: "all",
-  generatorType: "all",
 };
 
 function resolveFocusIntentNodeId(
@@ -118,14 +120,13 @@ export function GraphPanel({
   onCompareTokens,
   onOpenGeneratedGroupEditor,
 }: GraphPanelProps) {
-  // focusNodeId is intentionally NOT persisted — focus is per-session and
-  // resets when the user switches collections (per spec §1).
+  // focusNodeId is the inspector selection AND the spatial focus subject —
+  // intentionally NOT persisted. Resets when the working collection changes.
   const [focusNodeId, setFocusNodeId] = useState<GraphNodeId | null>(null);
   const [highlightEdgeId, setHighlightEdgeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [pendingFocusIntent, setPendingFocusIntent] =
     useState<LibraryGraphFocusIntent | null>(() => consumePendingGraphFocus());
-  // Persisted scope, keyed by working collection so each collection gets its
-  // own remembered filter / search state.
   const persistKeySuffix = workingCollectionId || "default";
   const [searchQuery, setSearchQuery] = usePersistedJsonState<string>(
     `graph:search:${persistKeySuffix}`,
@@ -139,6 +140,10 @@ export function GraphPanel({
   const [filters, setFilters] = usePersistedJsonState<GraphFilters>(
     `graph:filters:${persistKeySuffix}`,
     DEFAULT_GRAPH_FILTERS,
+  );
+  const [view, setView] = usePersistedJsonState<GraphView>(
+    `graph:view:${persistKeySuffix}`,
+    "all",
   );
   const [expandedClusterIds, setExpandedClusterIds] = useState<
     Set<GraphNodeId>
@@ -178,18 +183,13 @@ export function GraphPanel({
     validationIssues,
   });
 
-  // Reset session-only state when switching working collection. Persisted
-  // state (selectedCollectionIds, searchQuery, filters) is keyed by
-  // workingCollectionId and rehydrates automatically via usePersistedJsonState.
   useEffect(() => {
     setFocusNodeId(null);
     setHighlightEdgeId(null);
+    setSelectedEdgeId(null);
     setExpandedClusterIds(new Set());
   }, [workingCollectionId]);
 
-  // Store external focus intents locally until the scoped graph is ready to
-  // represent the target node. This avoids dropping "View in graph" requests
-  // during collection switches or transient graph reloads.
   useEffect(() => {
     return subscribeGraphFocusIntent(() => {
       setPendingFocusIntent(consumePendingGraphFocus());
@@ -226,14 +226,12 @@ export function GraphPanel({
     setHighlightEdgeId(
       resolveIntentHighlightEdgeId(fullGraph, targetNodeId, pendingFocusIntent),
     );
+    setSelectedEdgeId(null);
     setPendingFocusIntent(null);
   }, [fullGraph, pendingFocusIntent]);
 
-  // Validate focus against current graph — a rename or delete can orphan it
   useEffect(() => {
-    if (pendingFocusIntent) {
-      return;
-    }
+    if (pendingFocusIntent) return;
     if (focusNodeId && !fullGraph.nodes.has(focusNodeId)) {
       setFocusNodeId(null);
       setHighlightEdgeId(null);
@@ -244,7 +242,10 @@ export function GraphPanel({
     if (highlightEdgeId && !fullGraph.edges.has(highlightEdgeId)) {
       setHighlightEdgeId(null);
     }
-  }, [fullGraph, highlightEdgeId]);
+    if (selectedEdgeId && !fullGraph.edges.has(selectedEdgeId)) {
+      setSelectedEdgeId(null);
+    }
+  }, [fullGraph, highlightEdgeId, selectedEdgeId]);
 
   const activeCollectionIds = useMemo(() => {
     const known = new Set(collections.map((collection) => collection.id));
@@ -259,18 +260,14 @@ export function GraphPanel({
       fullGraph,
       selectedCollectionIds: activeCollectionIds,
       filters,
+      view,
       searchQuery,
       focusNodeId,
       expandedClusterIds,
     });
 
-  // The graph view is collection-scoped. If the user switches collections and
-  // the old focus is no longer represented in this scoped view, drop it so the
-  // toolbar and canvas do not drift out of sync.
   useEffect(() => {
-    if (pendingFocusIntent) {
-      return;
-    }
+    if (pendingFocusIntent) return;
     if (focusNodeId && !collectionScoped.nodes.has(focusNodeId)) {
       setFocusNodeId(null);
       setHighlightEdgeId(null);
@@ -282,18 +279,6 @@ export function GraphPanel({
     for (const c of collections) map.set(c.id, c.modes.length);
     return map;
   }, [collections]);
-
-  const workingCollection = collections.find((c) => c.id === workingCollectionId);
-  const workingLabel = workingCollection?.id ?? workingCollectionId ?? "No collection";
-
-  const focusedPath = useMemo(() => {
-    if (!focusNodeId) return null;
-    const node = fullGraph.nodes.get(focusNodeId);
-    if (!node) return null;
-    if (node.kind === "token") return node.path;
-    if (node.kind === "generator") return node.name;
-    return node.path;
-  }, [focusNodeId, fullGraph]);
 
   const handleSelectedCollectionIdsChange = (next: string[]) => {
     setSelectedCollectionIds(next);
@@ -310,173 +295,159 @@ export function GraphPanel({
     setExpandedClusterIds(new Set());
   };
 
+  const handleViewChange = (next: GraphView) => {
+    setView(next);
+    setExpandedClusterIds(new Set());
+  };
+
   const clearGraphFocus = () => {
     setFocusNodeId(null);
     setHighlightEdgeId(null);
+    setSelectedEdgeId(null);
   };
 
   const tokenCount = [...collectionScoped.nodes.values()].filter(
     (n) => n.kind === "token",
   ).length;
   const connectionCount = collectionScoped.edges.size;
+  const visibleTokenCount = [...displayGraph.nodes.values()].filter(
+    (n) => n.kind === "token",
+  ).length;
+  const visibleClusterCount = [...displayGraph.nodes.values()].filter(
+    (n) => n.kind === "cluster",
+  ).length;
 
-  if (tokenCount === 0) {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <GraphToolbar
-          graph={collectionScoped}
-          focusedPath={null}
-          workingCollectionLabel={workingLabel}
-          collections={collections}
-          selectedCollectionIds={activeCollectionIds}
-          filters={filters}
-          searchQuery={searchQuery}
-          onSelectedCollectionIdsChange={handleSelectedCollectionIdsChange}
-          onFiltersChange={handleFiltersChange}
-          onSearchQueryChange={handleSearchQueryChange}
-          onClearFocus={clearGraphFocus}
-          onResetView={() => setResetViewToken((t) => t + 1)}
-          ref={searchInputRef}
-        />
-        <div className="flex-1">
-          <GraphEmptyState
-            kind="no-tokens"
-            onAddToken={() => {
-              onCreateToken(workingCollectionId);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (connectionCount === 0) {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <GraphToolbar
-          graph={collectionScoped}
-          focusedPath={null}
-          workingCollectionLabel={workingLabel}
-          collections={collections}
-          selectedCollectionIds={activeCollectionIds}
-          filters={filters}
-          searchQuery={searchQuery}
-          onSelectedCollectionIdsChange={handleSelectedCollectionIdsChange}
-          onFiltersChange={handleFiltersChange}
-          onSearchQueryChange={handleSearchQueryChange}
-          onClearFocus={clearGraphFocus}
-          onResetView={() => setResetViewToken((t) => t + 1)}
-          ref={searchInputRef}
-        />
-        <div className="flex-1">
-          <GraphEmptyState
-            kind="no-connections"
-            onAddGenerator={() =>
-              onOpenGeneratedGroupEditor({
-                mode: "create",
-                origin: "graph",
-              })
-            }
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasSearchMatches) {
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <GraphToolbar
-          graph={collectionScoped}
-          focusedPath={focusedPath}
-          workingCollectionLabel={workingLabel}
-          collections={collections}
-          selectedCollectionIds={activeCollectionIds}
-          filters={filters}
-          searchQuery={searchQuery}
-          onSelectedCollectionIdsChange={handleSelectedCollectionIdsChange}
-          onFiltersChange={handleFiltersChange}
-          onSearchQueryChange={handleSearchQueryChange}
-          onClearFocus={clearGraphFocus}
-          onResetView={() => setResetViewToken((t) => t + 1)}
-          ref={searchInputRef}
-        />
-        <div className="flex-1">
-          <GraphEmptyState
-            kind="scope-empty"
-            onClearSearch={() => handleSearchQueryChange("")}
-          />
-        </div>
-      </div>
-    );
-  }
+  const overlay = resolveOverlay({
+    tokenCount,
+    connectionCount,
+    hasSearchMatches,
+    visibleTokenCount,
+    visibleClusterCount,
+    view,
+  });
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
       <GraphToolbar
         graph={collectionScoped}
-        focusedPath={focusedPath}
-        workingCollectionLabel={workingLabel}
         collections={collections}
         selectedCollectionIds={activeCollectionIds}
         filters={filters}
         searchQuery={searchQuery}
+        view={view}
+        hasFocus={Boolean(focusNodeId)}
         onSelectedCollectionIdsChange={handleSelectedCollectionIdsChange}
         onFiltersChange={handleFiltersChange}
         onSearchQueryChange={handleSearchQueryChange}
+        onViewChange={handleViewChange}
         onClearFocus={clearGraphFocus}
         onResetView={() => setResetViewToken((t) => t + 1)}
+        ref={searchInputRef}
       />
-      <div className="relative flex-1">
-        <GraphCanvas
-          graph={displayGraph}
-          interactionGraph={fullGraph}
-          collectionModeCountById={collectionModeCountById}
-          focusNodeId={focusNodeId}
-          highlightEdgeId={highlightEdgeId}
-          selectedCollectionIds={activeCollectionIds}
-          onSelectToken={(path, collectionId) => {
-            const targetId = tokenNodeId(collectionId, path);
-            setFocusNodeId(targetId);
-            onNavigateToToken(path, collectionId);
-          }}
-          onSelectGenerator={(generatorId) => {
-            setFocusNodeId(generatorNodeId(generatorId));
-            onOpenGeneratedGroupEditor({
-              mode: "edit",
-              id: generatorId,
-              origin: "graph",
-            });
-          }}
-          onFocusNode={(nodeId) => setFocusNodeId(nodeId)}
-          onExpandCluster={(clusterId) => {
-            setExpandedClusterIds((current) => {
-              if (current.has(clusterId)) return current;
-              const next = new Set(current);
-              next.add(clusterId);
-              return next;
-            });
-          }}
-          onRequestDeleteToken={(path, collectionId) => {
-            deleteToken(path, collectionId);
-          }}
-          onRequestRewire={({ sourceNodeId, targetNodeId, screenX, screenY }) => {
-            setRewireRequest({
-              sourceNodeId,
-              targetNodeId,
-              screenX,
-              screenY,
-            });
-          }}
-          onRequestDetach={({ edgeId, screenX, screenY }) => {
-            setDetachRequest({ edgeId, screenX, screenY });
-          }}
-          onCompareTokens={onCompareTokens}
-          onFocusSearch={handleFocusSearch}
-          editingEnabled
-          resetViewToken={resetViewToken}
-        />
-        <GraphSROutline graph={searchGraph} focusNodeId={focusNodeId} />
+      <div className="flex min-h-0 flex-1">
+        <div className="relative min-h-0 min-w-0 flex-1">
+          {overlay ? null : (
+            <GraphCanvas
+              graph={displayGraph}
+              interactionGraph={fullGraph}
+              collectionModeCountById={collectionModeCountById}
+              focusNodeId={focusNodeId}
+              highlightEdgeId={highlightEdgeId}
+              selectedCollectionIds={activeCollectionIds}
+              onSelectToken={(path, collectionId) => {
+                const targetId = tokenNodeId(collectionId, path);
+                setFocusNodeId(targetId);
+                setSelectedEdgeId(null);
+              }}
+              onSelectGenerator={(generatorId) => {
+                setFocusNodeId(generatorNodeId(generatorId));
+                setSelectedEdgeId(null);
+              }}
+              onActivateToken={(path, collectionId) => {
+                onNavigateToToken(path, collectionId);
+              }}
+              onActivateGenerator={(generatorId) =>
+                onOpenGeneratedGroupEditor({
+                  mode: "edit",
+                  id: generatorId,
+                  origin: "graph",
+                })
+              }
+              onFocusNode={(nodeId) => {
+                setFocusNodeId(nodeId);
+                setSelectedEdgeId(null);
+              }}
+              onExpandCluster={(clusterId) => {
+                setExpandedClusterIds((current) => {
+                  if (current.has(clusterId)) return current;
+                  const next = new Set(current);
+                  next.add(clusterId);
+                  return next;
+                });
+              }}
+              onRequestDeleteToken={(path, collectionId) => {
+                deleteToken(path, collectionId);
+              }}
+              onRequestRewire={({ sourceNodeId, targetNodeId, screenX, screenY }) => {
+                setRewireRequest({
+                  sourceNodeId,
+                  targetNodeId,
+                  screenX,
+                  screenY,
+                });
+              }}
+              onRequestDetach={({ edgeId, screenX, screenY }) => {
+                setDetachRequest({ edgeId, screenX, screenY });
+              }}
+              onCompareTokens={onCompareTokens}
+              onFocusSearch={handleFocusSearch}
+              onSelectEdge={(edgeId) => {
+                setSelectedEdgeId(edgeId);
+                if (edgeId) setFocusNodeId(null);
+              }}
+              editingEnabled
+              resetViewToken={resetViewToken}
+            />
+          )}
+          {overlay ? (
+            <GraphCanvasOverlay
+              kind={overlay}
+              view={view}
+              onAddToken={() => onCreateToken(workingCollectionId)}
+              onAddGenerator={() =>
+                onOpenGeneratedGroupEditor({ mode: "create", origin: "graph" })
+              }
+              onClearSearch={() => handleSearchQueryChange("")}
+              onShowAll={() => handleViewChange("all")}
+            />
+          ) : null}
+          <GraphSROutline graph={searchGraph} focusNodeId={focusNodeId} />
+        </div>
+        {focusNodeId || selectedEdgeId ? (
+          <div className="hidden w-[280px] shrink-0 border-l border-[var(--color-figma-border)] sm:block">
+            <GraphInspector
+              graph={fullGraph}
+              selectedNodeId={focusNodeId}
+              selectedEdgeId={selectedEdgeId}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              onNavigateToToken={onNavigateToToken}
+              onEditGenerator={(generatorId) =>
+                onOpenGeneratedGroupEditor({
+                  mode: "edit",
+                  id: generatorId,
+                  origin: "graph",
+                })
+              }
+              onCompareTokens={onCompareTokens}
+              onSelectNode={(nodeId) => {
+                setFocusNodeId(nodeId);
+                setSelectedEdgeId(null);
+              }}
+              onSelectEdge={(edgeId) => setSelectedEdgeId(edgeId)}
+            />
+          </div>
+        ) : null}
       </div>
       {rewireRequest
         ? (() => {
@@ -572,6 +543,136 @@ export function GraphPanel({
             );
           })()
         : null}
+    </div>
+  );
+}
+
+type CanvasOverlayKind =
+  | "no-tokens"
+  | "no-connections"
+  | "scope-empty"
+  | "view-empty";
+
+function resolveOverlay({
+  tokenCount,
+  connectionCount,
+  hasSearchMatches,
+  visibleTokenCount,
+  visibleClusterCount,
+  view,
+}: {
+  tokenCount: number;
+  connectionCount: number;
+  hasSearchMatches: boolean;
+  visibleTokenCount: number;
+  visibleClusterCount: number;
+  view: GraphView;
+}): CanvasOverlayKind | null {
+  if (tokenCount === 0) return "no-tokens";
+  if (connectionCount === 0) return "no-connections";
+  if (!hasSearchMatches) return "scope-empty";
+  if (
+    view !== "all" &&
+    visibleTokenCount === 0 &&
+    visibleClusterCount === 0
+  ) {
+    return "view-empty";
+  }
+  return null;
+}
+
+function GraphCanvasOverlay({
+  kind,
+  view,
+  onAddToken,
+  onAddGenerator,
+  onClearSearch,
+  onShowAll,
+}: {
+  kind: CanvasOverlayKind;
+  view: GraphView;
+  onAddToken: () => void;
+  onAddGenerator: () => void;
+  onClearSearch: () => void;
+  onShowAll: () => void;
+}) {
+  const dotted = (
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundColor: "var(--color-figma-bg)",
+        backgroundImage:
+          "radial-gradient(var(--color-figma-border) 1px, transparent 1px)",
+        backgroundSize: "20px 20px",
+      }}
+      aria-hidden
+    />
+  );
+
+  let title = "";
+  let description = "";
+  let primary: { label: string; onClick: () => void } | null = null;
+  let secondary: { label: string; onClick: () => void } | null = null;
+
+  if (kind === "no-tokens") {
+    title = "No tokens in this collection yet";
+    description = "Add a token to start building dependencies.";
+    primary = { label: "Add token", onClick: onAddToken };
+  } else if (kind === "no-connections") {
+    title = "Nothing aliased or generated here";
+    description = "Add a generator or alias tokens to draw connections.";
+    primary = { label: "Add generator", onClick: onAddGenerator };
+  } else if (kind === "view-empty") {
+    if (view === "issues") {
+      title = "No issues in this scope";
+      description = "Aliases resolve cleanly and no cycles were detected.";
+    } else {
+      title = "No generators in this scope";
+      description = "Generators show up here once they're added.";
+      primary = { label: "Add generator", onClick: onAddGenerator };
+    }
+    secondary = { label: "Show all", onClick: onShowAll };
+  } else {
+    title = "No matches in this scope";
+    description = "Adjust your search to keep working in the graph.";
+    secondary = { label: "Clear search", onClick: onClearSearch };
+  }
+
+  return (
+    <div className="absolute inset-0">
+      {dotted}
+      <div className="pointer-events-none absolute inset-0 flex items-start justify-start p-6">
+        <div className="pointer-events-auto flex max-w-[320px] flex-col gap-1 text-secondary">
+          <div className="font-medium text-[var(--color-figma-text)]">
+            {title}
+          </div>
+          <div className="text-[var(--color-figma-text-secondary)]">
+            {description}
+          </div>
+          {primary || secondary ? (
+            <div className="mt-2 flex items-center gap-2">
+              {primary ? (
+                <button
+                  type="button"
+                  onClick={primary.onClick}
+                  className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                >
+                  {primary.label}
+                </button>
+              ) : null}
+              {secondary ? (
+                <button
+                  type="button"
+                  onClick={secondary.onClick}
+                  className="rounded px-2.5 py-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  {secondary.label}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

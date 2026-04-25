@@ -274,14 +274,11 @@ interface UseGeneratorDialogReturn {
   previewTokens: GeneratedTokenResult[];
   previewLoading: boolean;
   previewError: string;
-  previewFingerprint: string;
   previewAnalysis: GeneratorPreviewAnalysis | null;
   overwrittenEntries: OverwrittenEntry[];
   existingOverwritePathSet: Set<string>;
   saving: boolean;
   saveError: string;
-  showConfirmation: boolean;
-  previewReviewStale: boolean;
   overwritePendingPaths: string[];
   overwriteCheckLoading: boolean;
   overwriteCheckError: string;
@@ -308,9 +305,6 @@ interface UseGeneratorDialogReturn {
   handleOverrideClear: (stepName: string) => void;
   clearAllOverrides: () => void;
   handleQuickSave: () => Promise<boolean>;
-  handleSave: () => Promise<boolean>;
-  handleConfirmSave: () => Promise<boolean>;
-  handleCancelConfirmation: () => void;
   setKeepUpdated: (v: boolean) => void;
   setSemanticEnabled: (v: boolean) => void;
   setSemanticPrefix: (v: string) => void;
@@ -605,7 +599,6 @@ export function useGeneratedGroupDialog({
   const lockedCount = Object.values(pendingOverrides).filter(
     (o) => o.locked,
   ).length;
-  const [previewRefreshNonce, setPreviewRefreshNonce] = useState(0);
 
   // --- Sub-hooks ---
 
@@ -632,7 +625,6 @@ export function useGeneratedGroupDialog({
     previewError,
     overwrittenEntries,
     existingOverwritePathSet,
-    previewFingerprint,
     previewAnalysis,
   } = useGeneratedGroupPreview({
     serverUrl,
@@ -647,14 +639,11 @@ export function useGeneratedGroupDialog({
     pendingOverrides,
     existingGeneratorId: existingGenerator?.id,
     detachedPaths: existingGenerator?.detachedPaths,
-    refreshNonce: previewRefreshNonce,
   });
 
   const {
     saving,
     saveError,
-    showConfirmation,
-    previewReviewStale,
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,
@@ -664,9 +653,6 @@ export function useGeneratedGroupDialog({
     semanticMappings,
     selectedSemanticPatternId,
     handleQuickSave,
-    handleSave,
-    handleConfirmSave,
-    handleCancelConfirmation,
     setKeepUpdated,
     setSemanticEnabled,
     setSemanticPrefix,
@@ -689,14 +675,11 @@ export function useGeneratedGroupDialog({
     typeNeedsValue,
     hasValue,
     previewTokens,
-    previewFingerprint,
     previewAnalysis,
     onSaved,
     onInterceptSemanticMapping,
     getSuccessToastAction,
     pushUndo,
-    requestPreviewRefresh: () =>
-      setPreviewRefreshNonce((current) => current + 1),
     initialKeepUpdated,
     initialSemanticEnabled,
     initialSemanticPrefix,
@@ -891,14 +874,11 @@ export function useGeneratedGroupDialog({
     previewTokens,
     previewLoading,
     previewError,
-    previewFingerprint,
     previewAnalysis,
     overwrittenEntries,
     existingOverwritePathSet,
     saving,
     saveError,
-    showConfirmation,
-    previewReviewStale,
     overwritePendingPaths,
     overwriteCheckLoading,
     overwriteCheckError,
@@ -918,9 +898,6 @@ export function useGeneratedGroupDialog({
     handleOverrideClear,
     clearAllOverrides,
     handleQuickSave,
-    handleSave,
-    handleConfirmSave,
-    handleCancelConfirmation,
     setKeepUpdated: setKeepUpdatedDirty,
     setSemanticEnabled: setSemanticEnabledDirty,
     setSemanticPrefix: setSemanticPrefixDirty,

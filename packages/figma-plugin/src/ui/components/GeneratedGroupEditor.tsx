@@ -15,7 +15,7 @@ import { requiresGeneratedGroupReview } from "../hooks/useGeneratedGroupPreview"
 import { StepIntent } from "./generated-group-editor/StepIntent";
 import { StepSource } from "./generated-group-editor/StepSource";
 import type { StepWhereProps } from "./generated-group-editor/StepWhere";
-import { StepSave } from "./generated-group-editor/StepSave";
+import { SaveImpactPanel } from "./generated-group-editor/SaveImpactPanel";
 import { Spinner } from "./Spinner";
 import type { ToastAction } from "../shared/toastBus";
 import { GRAPH_TEMPLATES } from "./graph-templates";
@@ -262,92 +262,53 @@ export function GeneratedGroupEditor({
     dialog.targetGroup.trim().length > 0 &&
     (!dialog.typeNeedsValue || dialog.hasValue);
 
+  const hasReviewableImpact = requiresGeneratedGroupReview(dialog.previewAnalysis);
+
   const handleSave = async () => {
-    if (dialog.showConfirmation) {
-      await dialog.handleConfirmSave();
-    } else {
-      await dialog.handleSave();
-    }
+    await dialog.handleQuickSave();
   };
 
-  const footerContent = (() => {
-    if (dialog.showConfirmation) {
-      const saveLabel = (() => {
-        if (dialog.saving) return dialog.isEditing ? "Saving…" : "Creating…";
-        if (dialog.overwriteCheckLoading) return "Checking…";
-        if (dialog.previewReviewStale) return "Review update";
-        return dialog.isEditing
-          ? `Save group (${dialog.previewTokens.length} token${dialog.previewTokens.length === 1 ? "" : "s"})`
-          : "Create group";
-      })();
+  const saveLabel = (() => {
+    if (dialog.saving) return dialog.isEditing ? "Saving…" : "Creating…";
+    if (dialog.overwriteCheckLoading) return "Checking…";
+    if (dialog.isEditing) return "Save changes";
+    return "Create group";
+  })();
 
-      return (
-        <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
-            <button
-              type="button"
-              onClick={dialog.handleCancelConfirmation}
-              className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
-            >
-              Back
-            </button>
-            <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
-                className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
-              >
-                {dialog.saving && <Spinner size="sm" className="text-white" />}
-                {saveLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
+  const missingFields: string[] = [];
+  if (!dialog.targetGroup.trim()) missingFields.push("group");
 
-    const missingFields: string[] = [];
-    if (!dialog.targetGroup.trim()) missingFields.push("group");
-
-    return (
-      <div className={AUTHORING_SURFACE_CLASSES.footer}>
-        {missingFields.length > 0 && !dialog.saving && (
-          <p className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-            {missingFields.length === 1
-              ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
-              : `Required: ${missingFields.join(", ")}.`}
-          </p>
-        )}
-        <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+  const footerContent = (
+    <div className={AUTHORING_SURFACE_CLASSES.footer}>
+      {missingFields.length > 0 && !dialog.saving && (
+        <p className={AUTHORING_SURFACE_CLASSES.footerMeta}>
+          {missingFields.length === 1
+            ? `${missingFields[0].charAt(0).toUpperCase() + missingFields[0].slice(1)} is required.`
+            : `Required: ${missingFields.join(", ")}.`}
+        </p>
+      )}
+      <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
+        <button
+          type="button"
+          onClick={requestClose}
+          className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
+        >
+          Cancel
+        </button>
+        <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
           <button
             type="button"
-            onClick={requestClose}
-            className={`${AUTHORING_SURFACE_CLASSES.footerSecondary} ${AUTHORING.footerBtnSecondary}`}
+            onClick={handleSave}
+            disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
+            className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
           >
-            Cancel
+            {dialog.saving && <Spinner size="sm" className="text-white" />}
+            {saveLabel}
           </button>
-          <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!canSave || dialog.saving || dialog.overwriteCheckLoading}
-              className={`${AUTHORING.footerBtnPrimary} flex items-center justify-center gap-1.5`}
-            >
-              {dialog.saving && <Spinner size="sm" className="text-white" />}
-              {dialog.overwriteCheckLoading
-                ? "Checking…"
-                : requiresGeneratedGroupReview(dialog.previewAnalysis)
-                  ? "Review changes"
-                  : dialog.isEditing
-                    ? "Save group"
-                    : "Create group"}
-            </button>
-          </div>
         </div>
       </div>
-    );
-  })();
+    </div>
+  );
 
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
@@ -365,18 +326,15 @@ export function GeneratedGroupEditor({
       return;
     }
     const {
-      handleConfirmSave,
       handleQuickSave,
       isDirty,
       overwriteCheckLoading,
       saving,
-      showConfirmation,
     } = dialog;
     editorSessionHost.registerSession({
       isDirty,
       canSave: canSave && !saving && !overwriteCheckLoading,
-      save: () =>
-        showConfirmation ? handleConfirmSave() : handleQuickSave(),
+      save: () => handleQuickSave(),
       discard: async () => {
         onClose();
       },
@@ -452,120 +410,95 @@ export function GeneratedGroupEditor({
           footer={footerContent}
           bodyClassName={AUTHORING_SURFACE_CLASSES.bodyStack}
         >
-          <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
-            <div className={AUTHORING.generatorSectionCard}>
-              <div className="flex flex-wrap items-start gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
-                <span>
-                  Collection{" "}
-                  <span className="font-mono text-[var(--color-figma-text)]">
-                    {dialog.targetCollection}
-                  </span>
+          {!outcomeChooserVisible && (
+            <section
+              className={`${AUTHORING.generatorRoot} tm-generator-authoring__overview`}
+              aria-label="Generator overview"
+            >
+              <div className="tm-generator-authoring__overview-cell">
+                <span className="tm-generator-authoring__overview-label">Source</span>
+                <span className="tm-generator-authoring__overview-value font-mono">
+                  {activeSourceLabel ?? "—"}
                 </span>
-                {activeModeLabel && (
-                  <span>
-                    Mode{" "}
-                    <span className="text-[var(--color-figma-text)]">
+              </div>
+              <div className="tm-generator-authoring__overview-cell tm-generator-authoring__overview-cell--type">
+                <span className="tm-generator-authoring__overview-label">Type</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="tm-generator-authoring__overview-value truncate">
+                    {getGeneratedGroupTypeLabel(dialog.selectedType)}
+                  </span>
+                  {canChangeOutcome && (
+                    <button
+                      type="button"
+                      onClick={() => setOutcomeChooserVisible(true)}
+                      className="shrink-0 rounded border border-[var(--color-figma-border)] px-2 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    >
+                      Change
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="tm-generator-authoring__overview-cell">
+                <span className="tm-generator-authoring__overview-label">Tokens</span>
+                <span className="tm-generator-authoring__overview-value">
+                  {dialog.previewLoading
+                    ? "Calculating…"
+                    : `${dialog.previewTokens.length} generated`}
+                </span>
+              </div>
+              <div className="tm-generator-authoring__overview-cell">
+                <span className="tm-generator-authoring__overview-label">Collection</span>
+                <span className="tm-generator-authoring__overview-value">
+                  <span className="font-mono">{dialog.targetCollection}</span>
+                  {activeModeLabel && (
+                    <span className="text-[var(--color-figma-text-secondary)]">
+                      {" · "}
                       {activeModeLabel}
                     </span>
-                  </span>
-                )}
-                {activeSourceLabel && (
-                  <span>
-                    Source token{" "}
-                    <span className="font-mono text-[var(--color-figma-text)]">
-                      {activeSourceLabel}
-                    </span>
-                  </span>
-                )}
+                  )}
+                </span>
               </div>
-            </div>
-          </section>
-          {dialog.showConfirmation ? (
-            <StepSave
-              name={dialog.name}
-              targetGroup={dialog.targetGroup}
-              targetCollection={dialog.targetCollection}
-              collectionModeLabel={activeModeLabel}
+            </section>
+          )}
+          {!dialog.isEditing && outcomeChooserVisible ? (
+            <StepIntent
+              templates={intentTemplates}
+              title={intentTitle}
+              description={intentDescription}
               selectedType={dialog.selectedType}
-              isEditing={dialog.isEditing}
-              keepUpdated={dialog.keepUpdated}
-              previewTokens={dialog.previewTokens}
-              previewAnalysis={dialog.previewAnalysis}
-              existingOverwritePathSet={dialog.existingOverwritePathSet}
-              overwritePendingPaths={dialog.overwritePendingPaths}
-              overwriteCheckLoading={dialog.overwriteCheckLoading}
-              overwriteCheckError={dialog.overwriteCheckError}
-              saveError={dialog.saveError}
-              previewReviewStale={dialog.previewReviewStale}
+              recommendedType={dialog.recommendedType}
+              connected
+              currentCollectionId={currentCollectionId}
+              sourceTokenPath={sourceTokenPath}
+              sourceTokenName={sourceTokenName}
+              sourceTokenType={sourceTokenType}
+              prefilled={false}
+              onTypeChange={(type) => {
+                dialog.handleTypeChange(type);
+              }}
+              onTemplateApply={(_template, draft) => {
+                if (draft.selectedType) dialog.handleTypeChange(draft.selectedType);
+                if (draft.configs) {
+                  const type = draft.selectedType ?? dialog.selectedType;
+                  const config = draft.configs[type];
+                  if (config) dialog.handleConfigChange(type, config);
+                }
+                if (draft.name && draft.nameIsAuto) dialog.handleNameChange(draft.name);
+                if (draft.targetGroup) dialog.setTargetGroup(draft.targetGroup);
+                if (draft.keepUpdated !== undefined) dialog.setKeepUpdated(draft.keepUpdated);
+                if (draft.semanticEnabled !== undefined) dialog.setSemanticEnabled(draft.semanticEnabled);
+                if (draft.semanticPrefix) dialog.setSemanticPrefix(draft.semanticPrefix);
+                if (draft.semanticMappings) dialog.setSemanticMappings(draft.semanticMappings);
+                if (draft.selectedSemanticPatternId !== undefined) {
+                  dialog.setSelectedSemanticPatternId(draft.selectedSemanticPatternId);
+                }
+                setOutcomeChooserVisible(false);
+              }}
+              onConfigChange={dialog.handleConfigChange}
             />
           ) : (
             <>
-              {!dialog.isEditing && (
-                outcomeChooserVisible ? (
-                  <StepIntent
-                    templates={intentTemplates}
-                    title={intentTitle}
-                    description={intentDescription}
-                    selectedType={dialog.selectedType}
-                    recommendedType={dialog.recommendedType}
-                    connected
-                    currentCollectionId={currentCollectionId}
-                    sourceTokenPath={sourceTokenPath}
-                    sourceTokenName={sourceTokenName}
-                    sourceTokenType={sourceTokenType}
-                    prefilled={false}
-                    onTypeChange={(type) => {
-                      dialog.handleTypeChange(type);
-                    }}
-                    onTemplateApply={(_template, draft) => {
-                      if (draft.selectedType) dialog.handleTypeChange(draft.selectedType);
-                      if (draft.configs) {
-                        const type = draft.selectedType ?? dialog.selectedType;
-                        const config = draft.configs[type];
-                        if (config) dialog.handleConfigChange(type, config);
-                      }
-                      if (draft.name && draft.nameIsAuto) dialog.handleNameChange(draft.name);
-                      if (draft.targetGroup) dialog.setTargetGroup(draft.targetGroup);
-                      if (draft.keepUpdated !== undefined) dialog.setKeepUpdated(draft.keepUpdated);
-                      if (draft.semanticEnabled !== undefined) dialog.setSemanticEnabled(draft.semanticEnabled);
-                      if (draft.semanticPrefix) dialog.setSemanticPrefix(draft.semanticPrefix);
-                      if (draft.semanticMappings) dialog.setSemanticMappings(draft.semanticMappings);
-                      if (draft.selectedSemanticPatternId !== undefined) {
-                        dialog.setSelectedSemanticPatternId(draft.selectedSemanticPatternId);
-                      }
-                      setOutcomeChooserVisible(false);
-                    }}
-                    onConfigChange={dialog.handleConfigChange}
-                  />
-                ) : (
-                  <section className={`${AUTHORING.generatorRoot} ${AUTHORING.generatorSection}`}>
-                    <div className={AUTHORING.generatorSectionCard}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-                            Outcome
-                          </p>
-                          <p className="mt-0.5 text-subheading font-medium text-[var(--color-figma-text)]">
-                            {getGeneratedGroupTypeLabel(dialog.selectedType)}
-                          </p>
-                        </div>
-                        {canChangeOutcome && (
-                          <button
-                            type="button"
-                            onClick={() => setOutcomeChooserVisible(true)}
-                            className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                          >
-                            Change
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </section>
-                )
-              )}
-
               <StepSource
-                isEditing={dialog.isEditing}
                 selectedType={dialog.selectedType}
                 currentConfig={dialog.currentConfig}
                 typeNeedsValue={dialog.typeNeedsValue}
@@ -597,6 +530,18 @@ export function GeneratedGroupEditor({
                 destination={destinationProps}
                 detachedCount={existingGenerator?.detachedPaths?.length ?? 0}
                 collectionModeLabel={activeModeLabel}
+              />
+
+              <SaveImpactPanel
+                previewAnalysis={dialog.previewAnalysis}
+                previewTokens={dialog.previewTokens}
+                targetCollection={dialog.targetCollection}
+                hasReviewableImpact={hasReviewableImpact}
+                overwritePendingPaths={dialog.overwritePendingPaths}
+                overwriteCheckLoading={dialog.overwriteCheckLoading}
+                overwriteCheckError={dialog.overwriteCheckError}
+                saveError={dialog.saveError}
+                keepUpdated={dialog.keepUpdated}
               />
             </>
           )}
