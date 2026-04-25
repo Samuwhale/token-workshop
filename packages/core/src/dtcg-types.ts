@@ -90,6 +90,25 @@ export function parseReference(ref: string): string {
   return match[1];
 }
 
+/**
+ * Extract all referenced token paths from a value.
+ *
+ * Returns one path for a pure alias, every referenced path for a formula,
+ * and an empty list for literal/non-string values.
+ */
+export function extractReferencePaths(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  if (isReference(value)) return [parseReference(value)];
+  if (!isFormula(value)) return [];
+  const regex = makeReferenceGlobalRegex();
+  const paths: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(value)) !== null) {
+    paths.push(match[1]);
+  }
+  return paths;
+}
+
 // ---------------------------------------------------------------------------
 // Reference resolution
 // ---------------------------------------------------------------------------

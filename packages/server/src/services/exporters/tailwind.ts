@@ -25,12 +25,16 @@ const TAILWIND_THEME_KEYS: Record<string, string> = {
  * Tokens with unrecognized $type are skipped.
  */
 function generateTailwindConfig(tokens: FlatToken[]): string {
-  const themeExtend: Record<string, any> = {};
+  const themeExtend: Record<string, unknown> = {};
   for (const token of tokens) {
     const tailwindKey = token.type ? TAILWIND_THEME_KEYS[token.type] : undefined;
     if (!tailwindKey) continue;
     if (!(tailwindKey in themeExtend)) themeExtend[tailwindKey] = {};
-    setNested(themeExtend[tailwindKey], token.path.split('.'), token.value);
+    setNested(
+      themeExtend[tailwindKey] as Record<string, unknown>,
+      token.path.split('.'),
+      token.value,
+    );
   }
   const themeContent = serializeJsValue({ extend: themeExtend }, 2);
   return `/** @type {import('tailwindcss').Config} */\nmodule.exports = {\n  theme: ${themeContent},\n};\n`;

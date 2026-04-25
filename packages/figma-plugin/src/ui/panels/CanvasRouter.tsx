@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { resolveCollectionIdForPath } from "@tokenmanager/core";
 import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
 import { SelectionInspector } from "../components/SelectionInspector";
 import { CanvasRepairPanel } from "../components/CanvasRepairPanel";
@@ -22,8 +23,6 @@ import {
 import { useSelectionHealth } from "../hooks/useSelectionHealth";
 import type { useTokenContextNavigation } from "../hooks/useTokenContextNavigation";
 import type { LibraryReviewSummary } from "../shared/reviewSummary";
-import { resolveCollectionIdForPath } from "../shared/collectionPathLookup";
-
 type SubTab = "inspect" | "repair";
 
 interface CanvasRouterProps {
@@ -141,6 +140,7 @@ export function CanvasRouter({
                 path,
                 pathToCollectionId,
                 collectionIdsByPath,
+                preferredCollectionId: currentCollectionId,
               });
               if (!resolution.collectionId) {
                 tokens.setErrorToast(

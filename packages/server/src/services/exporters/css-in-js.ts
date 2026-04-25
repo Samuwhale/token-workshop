@@ -6,7 +6,7 @@ import { setNested, serializeJsValue } from './utils.js';
  * All tokens are placed in a nested TypeScript const object keyed by their paths.
  */
 function generateCssInJs(tokens: FlatToken[]): string {
-  const themeObj: Record<string, any> = {};
+  const themeObj: Record<string, unknown> = {};
   for (const token of tokens) {
     setNested(themeObj, token.path.split('.'), token.value);
   }

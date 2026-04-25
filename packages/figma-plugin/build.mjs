@@ -73,6 +73,9 @@ async function buildUI() {
     resolve: {
       alias: pluginAliases,
     },
+    // xyflow and its dependencies read `process.env.NODE_ENV` at module load;
+    // without this, the IIFE bundle throws `process is not defined` at runtime.
+    define: { 'process.env.NODE_ENV': '"production"' },
   };
 
   if (isWatch) {

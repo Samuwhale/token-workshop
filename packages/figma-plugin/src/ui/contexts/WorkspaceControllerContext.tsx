@@ -89,6 +89,18 @@ export interface TokensWorkspaceController {
     collectionId?: string,
   ) => void;
   handlePaletteDeleteToken: (path: string, collectionId: string) => void;
+  applyAliasRewire: (params: {
+    tokenPath: string;
+    tokenCollectionId: string;
+    targetPath: string;
+    targetCollectionId: string;
+    modeNames: string[];
+  }) => Promise<{ ok: boolean; error?: string }>;
+  applyAliasDetach: (params: {
+    tokenPath: string;
+    tokenCollectionId: string;
+    modeLiterals: Record<string, unknown>;
+  }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export interface ApplyWorkspaceController {

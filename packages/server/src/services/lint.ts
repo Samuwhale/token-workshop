@@ -832,6 +832,9 @@ export interface ValidationIssue {
   path: string;
   rule: string;
   message: string;
+  targetPath?: string;
+  targetCollectionId?: string;
+  cyclePath?: string[];
   suggestedFix?: string;
   /** Concrete fix target — e.g. the alias path to use. */
   suggestion?: string;
@@ -926,6 +929,7 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
           path: tokenPath,
           rule: 'broken-alias',
           message: `Alias "${token.$value}" references non-existent token "${refPath}".`,
+          targetPath: refPath,
           suggestedFix: 'delete-token',
         });
       }
@@ -939,6 +943,7 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
           path: tokenPath,
           rule: 'circular-reference',
           message: `Circular reference: ${cycle.join(' → ')}`,
+          cyclePath: cycle,
         });
       }
 

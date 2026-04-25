@@ -9,6 +9,7 @@
 
 import type { TokenType } from './types.js';
 import type { DimensionUnit } from './constants.js';
+import { getCollectionIdsForPath } from './collection-paths.js';
 
 export type GeneratorType =
   | 'colorRamp'
@@ -384,6 +385,107 @@ export function createGeneratorOwnershipKey(
   return `${collectionId}\u0000${path}`;
 }
 
+export function getGeneratorSourceCollectionIds(params: {
+  sourceTokenPath?: string;
+  sourceCollectionId?: string;
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
+}): string[] {
+  const sourceTokenPath = params.sourceTokenPath?.trim();
+  if (!sourceTokenPath) {
+    return [];
+  }
+
+  const explicitCollectionId = params.sourceCollectionId?.trim();
+  if (explicitCollectionId) {
+    return [explicitCollectionId];
+  }
+
+  return getCollectionIdsForPath({
+    path: sourceTokenPath,
+    pathToCollectionId: params.pathToCollectionId,
+    collectionIdsByPath: params.collectionIdsByPath,
+  });
+}
+
+export function getGeneratorSourceCollectionId(params: {
+  sourceTokenPath?: string;
+  sourceCollectionId?: string;
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
+}): string | undefined {
+  return getGeneratorSourceCollectionIds(params)[0];
+}
+
+export function createGeneratorSourceKeys(params: {
+  sourceTokenPath?: string;
+  sourceCollectionId?: string;
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
+}): string[] {
+  const sourceTokenPath = params.sourceTokenPath?.trim();
+  if (!sourceTokenPath) {
+    return [];
+  }
+
+  const sourceCollectionIds = getGeneratorSourceCollectionIds(params);
+  if (sourceCollectionIds.length === 0) {
+    return [createGeneratorOwnershipKey("", sourceTokenPath)];
+  }
+
+  return sourceCollectionIds.map((collectionId) =>
+    createGeneratorOwnershipKey(collectionId, sourceTokenPath),
+  );
+}
+
+export function createGeneratorSourceKey(params: {
+  sourceTokenPath?: string;
+  sourceCollectionId?: string;
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
+}): string | undefined {
+  return createGeneratorSourceKeys(params)[0];
+}
+
+export function hasGeneratorSourceKeyMatch(params: {
+  sourceTokenPath?: string;
+  sourceCollectionId?: string;
+  targetSourceKeys: ReadonlySet<string>;
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
+}): boolean {
+  if (params.targetSourceKeys.size === 0) {
+    return false;
+  }
+
+  return createGeneratorSourceKeys(params).some((key) =>
+    params.targetSourceKeys.has(key),
+  );
+}
+
+export function getGeneratorConfigTokenRefs(
+  config: GeneratorConfig | Record<string, unknown>,
+): Record<string, string> {
+  const configRecord = config as Record<string, unknown>;
+  const refs = configRecord.$tokenRefs;
+  if (!refs || typeof refs !== "object" || Array.isArray(refs)) {
+    return {};
+  }
+
+  const normalizedRefs: Record<string, string> = {};
+  for (const [field, value] of Object.entries(refs)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    const tokenPath = value.trim();
+    if (!tokenPath) {
+      continue;
+    }
+    normalizedRefs[field] = tokenPath;
+  }
+  return normalizedRefs;
+}
+
 export function getGeneratorStepNames(
   config: GeneratorConfig | Record<string, unknown>,
 ): string[] {
@@ -444,6 +546,47 @@ export function getGeneratorManagedOutputPaths(
   >,
 ): string[] {
   return [...new Set(getGeneratorManagedOutputs(generator).map((output) => output.path))];
+}
+
+export interface GeneratorGraphOutput extends GeneratorManagedOutput {
+  kind: "step" | "semantic";
+  /** Semantic name (without the layer prefix) when kind === "semantic". */
+  semantic?: string;
+}
+
+export function getGeneratorOutputsForGraph(
+  generator: Pick<
+    TokenGenerator,
+    | "config"
+    | "detachedPaths"
+    | "targetGroup"
+    | "targetCollection"
+    | "semanticLayer"
+  >,
+): GeneratorGraphOutput[] {
+  const outputs = new Map<string, GeneratorGraphOutput>();
+  for (const output of getGeneratorManagedOutputs(generator)) {
+    outputs.set(output.key, { ...output, kind: "step" });
+  }
+  const layer = generator.semanticLayer;
+  if (!layer || layer.mappings.length === 0) {
+    return [...outputs.values()];
+  }
+  const detached = new Set(generator.detachedPaths ?? []);
+  for (const mapping of layer.mappings) {
+    const path = `${layer.prefix}.${mapping.semantic}`;
+    if (detached.has(path)) continue;
+    const output: GeneratorGraphOutput = {
+      collectionId: generator.targetCollection,
+      path,
+      stepName: mapping.step,
+      semantic: mapping.semantic,
+      key: createGeneratorOwnershipKey(generator.targetCollection, path),
+      kind: "semantic",
+    };
+    outputs.set(output.key, output);
+  }
+  return [...outputs.values()];
 }
 
 // ---------------------------------------------------------------------------

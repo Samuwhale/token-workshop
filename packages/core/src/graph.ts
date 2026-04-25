@@ -1,0 +1,817 @@
+import type { TokenCollection } from "./types.js";
+import type {
+  TokenGenerator,
+  GeneratorType,
+  GeneratorManagedOutput,
+} from "./generator-types.js";
+import {
+  createGeneratorOwnershipKey,
+  getGeneratorOutputsForGraph,
+} from "./generator-types.js";
+import { readTokenModeValuesForCollection } from "./collections.js";
+import { resolveCollectionIdForPath } from "./collection-paths.js";
+import { extractReferencePaths } from "./dtcg-types.js";
+
+// Pure dependency-graph construction. Reusable server-side (future lint rules,
+// health scans) and client-side (graph view, detach popover).
+
+export type GraphNodeId = string;
+export type GraphEdgeId = string;
+
+export type GraphHealthStatus = "ok" | "broken" | "cycle" | "generator-error";
+
+export type GhostReason = "missing" | "ambiguous";
+
+export interface GraphTokenLike {
+  $value: unknown;
+  $type?: string;
+  $extensions?: unknown;
+}
+
+export interface TokenGraphNode {
+  kind: "token";
+  id: GraphNodeId;
+  path: string;
+  collectionId: string;
+  displayName: string;
+  $type?: string;
+  swatchColor?: string;
+  health: GraphHealthStatus;
+  isGeneratorManaged: boolean;
+  ownerGeneratorId?: string;
+  hasDependents: boolean;
+  hasDependencies: boolean;
+}
+
+export interface GeneratorGraphNode {
+  kind: "generator";
+  id: GraphNodeId;
+  generatorId: string;
+  generatorType: GeneratorType;
+  name: string;
+  sourceTokenPath?: string;
+  sourceCollectionId?: string;
+  targetCollection: string;
+  targetGroup: string;
+  outputCount: number;
+  enabled: boolean;
+  health: GraphHealthStatus;
+  sourceIssue?: GhostReason;
+  errorMessage?: string;
+}
+
+export interface GhostGraphNode {
+  kind: "ghost";
+  id: GraphNodeId;
+  path: string;
+  collectionId?: string;
+  reason: GhostReason;
+}
+
+export type GraphNode = TokenGraphNode | GeneratorGraphNode | GhostGraphNode;
+
+export interface AliasEdge {
+  kind: "alias";
+  id: GraphEdgeId;
+  from: GraphNodeId;
+  to: GraphNodeId;
+  modeNames: string[];
+  inCycle?: boolean;
+  isMissingTarget?: boolean;
+  issueRules?: string[];
+}
+
+export interface GeneratorSourceEdge {
+  kind: "generator-source";
+  id: GraphEdgeId;
+  from: GraphNodeId;
+  to: GraphNodeId;
+}
+
+export interface GeneratorProducesEdge {
+  kind: "generator-produces";
+  id: GraphEdgeId;
+  from: GraphNodeId;
+  to: GraphNodeId;
+  stepName: string;
+  semantic?: string;
+}
+
+export type GraphEdge = AliasEdge | GeneratorSourceEdge | GeneratorProducesEdge;
+
+export interface GraphModel {
+  nodes: Map<GraphNodeId, GraphNode>;
+  edges: Map<GraphEdgeId, GraphEdge>;
+  outgoing: Map<GraphNodeId, GraphEdgeId[]>;
+  incoming: Map<GraphNodeId, GraphEdgeId[]>;
+  fingerprint: string;
+}
+
+export interface BuildGraphInput {
+  collections: TokenCollection[];
+  tokensByCollection: Record<string, Record<string, GraphTokenLike>>;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
+  generators: TokenGenerator[];
+  derivedTokenPaths: Map<string, TokenGenerator>;
+  validationIssues?: GraphValidationIssue[];
+}
+
+export interface GraphValidationIssue {
+  rule: string;
+  path?: string;
+  collectionId?: string;
+  message: string;
+  targetPath?: string;
+  targetCollectionId?: string;
+  cyclePath?: string[];
+}
+
+const TOKEN_PREFIX = "token";
+const GENERATOR_PREFIX = "gen";
+const GHOST_PREFIX = "ghost";
+
+export function tokenNodeId(collectionId: string, path: string): GraphNodeId {
+  return `${TOKEN_PREFIX}:${collectionId}::${path}`;
+}
+
+export function generatorNodeId(generatorId: string): GraphNodeId {
+  return `${GENERATOR_PREFIX}:${generatorId}`;
+}
+
+function ghostNodeId(path: string, collectionId?: string): GraphNodeId {
+  return `${GHOST_PREFIX}:${collectionId ?? "?"}::${path}`;
+}
+
+function djb2(input: string): string {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash + input.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function pushAdjacency(
+  map: Map<GraphNodeId, GraphEdgeId[]>,
+  nodeId: GraphNodeId,
+  edgeId: GraphEdgeId,
+): void {
+  const existing = map.get(nodeId);
+  if (existing) {
+    existing.push(edgeId);
+  } else {
+    map.set(nodeId, [edgeId]);
+  }
+}
+
+function fingerprintNode(node: GraphNode): string {
+  if (node.kind === "token") {
+    return [
+      node.kind,
+      node.id,
+      node.path,
+      node.collectionId,
+      node.displayName,
+      node.$type ?? "",
+      node.swatchColor ?? "",
+      node.health,
+      node.isGeneratorManaged ? "1" : "0",
+      node.ownerGeneratorId ?? "",
+      node.hasDependents ? "1" : "0",
+      node.hasDependencies ? "1" : "0",
+    ].join("\u0001");
+  }
+
+  if (node.kind === "generator") {
+    return [
+      node.kind,
+      node.id,
+      node.generatorId,
+      node.generatorType,
+      node.name,
+      node.sourceTokenPath ?? "",
+      node.sourceCollectionId ?? "",
+      node.targetCollection,
+      node.targetGroup,
+      String(node.outputCount),
+      node.enabled ? "1" : "0",
+      node.health,
+      node.sourceIssue ?? "",
+      node.errorMessage ?? "",
+    ].join("\u0001");
+  }
+
+  return [
+    node.kind,
+    node.id,
+    node.path,
+    node.collectionId ?? "",
+    node.reason,
+  ].join("\u0001");
+}
+
+function fingerprintEdge(edge: GraphEdge): string {
+  if (edge.kind === "alias") {
+    return [
+      edge.kind,
+      edge.id,
+      edge.from,
+      edge.to,
+      edge.modeNames.join(","),
+      edge.inCycle ? "1" : "0",
+      edge.isMissingTarget ? "1" : "0",
+      edge.issueRules?.join(",") ?? "",
+    ].join("\u0001");
+  }
+
+  if (edge.kind === "generator-produces") {
+    return [
+      edge.kind,
+      edge.id,
+      edge.from,
+      edge.to,
+      edge.stepName,
+      edge.semantic ?? "",
+    ].join("\u0001");
+  }
+
+  return [edge.kind, edge.id, edge.from, edge.to].join("\u0001");
+}
+
+function readGraphModeValues(
+  entry: GraphTokenLike,
+  collection: TokenCollection,
+): Record<string, unknown> {
+  return readTokenModeValuesForCollection(
+    {
+      $value: entry.$value,
+      ...(entry.$extensions ? { $extensions: entry.$extensions } : {}),
+    },
+    collection,
+  );
+}
+
+function getTokenSwatchColor(
+  entry: GraphTokenLike,
+  collection: TokenCollection,
+  modeValues: Record<string, unknown>,
+): string | undefined {
+  if (entry.$type !== "color") {
+    return undefined;
+  }
+  const primaryModeName = collection.modes[0]?.name;
+  const primaryValue = primaryModeName ? modeValues[primaryModeName] : undefined;
+  if (typeof primaryValue !== "string" || primaryValue.trim().length === 0) {
+    return undefined;
+  }
+  return extractReferencePaths(primaryValue).length === 0
+    ? primaryValue
+    : undefined;
+}
+
+interface ResolvedGraphTarget {
+  nodeId: GraphNodeId;
+  collectionId?: string;
+  reason: "resolved" | GhostReason;
+}
+
+function ensureGhostNode(
+  ghostIntents: Map<GraphNodeId, GhostGraphNode>,
+  path: string,
+  collectionId: string | undefined,
+  reason: GhostReason,
+): GraphNodeId {
+  const id = ghostNodeId(path, collectionId);
+  if (!ghostIntents.has(id)) {
+    ghostIntents.set(id, {
+      kind: "ghost",
+      id,
+      path,
+      collectionId,
+      reason,
+    });
+  }
+  return id;
+}
+
+function resolveGraphTarget(params: {
+  path: string;
+  nodes: Map<GraphNodeId, GraphNode>;
+  ghostIntents: Map<GraphNodeId, GhostGraphNode>;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
+  explicitCollectionId?: string;
+  preferredCollectionId?: string;
+}): ResolvedGraphTarget {
+  const explicitCollectionId = params.explicitCollectionId?.trim();
+  if (explicitCollectionId) {
+    const candidate = tokenNodeId(explicitCollectionId, params.path);
+    if (params.nodes.has(candidate)) {
+      return {
+        nodeId: candidate,
+        collectionId: explicitCollectionId,
+        reason: "resolved",
+      };
+    }
+    return {
+      nodeId: ensureGhostNode(
+        params.ghostIntents,
+        params.path,
+        explicitCollectionId,
+        "missing",
+      ),
+      collectionId: explicitCollectionId,
+      reason: "missing",
+    };
+  }
+
+  const resolution = resolveCollectionIdForPath({
+    path: params.path,
+    pathToCollectionId: params.pathToCollectionId,
+    collectionIdsByPath: params.collectionIdsByPath,
+    preferredCollectionId: params.preferredCollectionId,
+  });
+  if (
+    resolution.reason === "missing" ||
+    resolution.reason === "ambiguous" ||
+    !resolution.collectionId
+  ) {
+    const reason = resolution.reason === "ambiguous" ? "ambiguous" : "missing";
+    return {
+      nodeId: ensureGhostNode(
+        params.ghostIntents,
+        params.path,
+        resolution.collectionId,
+        reason,
+      ),
+      collectionId: resolution.collectionId,
+      reason,
+    };
+  }
+
+  const candidate = tokenNodeId(resolution.collectionId, params.path);
+  if (params.nodes.has(candidate)) {
+    return {
+      nodeId: candidate,
+      collectionId: resolution.collectionId,
+      reason: "resolved",
+    };
+  }
+
+  return {
+    nodeId: ensureGhostNode(
+      params.ghostIntents,
+      params.path,
+      resolution.collectionId,
+      "missing",
+    ),
+    collectionId: resolution.collectionId,
+    reason: "missing",
+  };
+}
+
+// Tarjan's SCC over the alias-edge subgraph. Returns the set of edge ids whose
+// endpoints are in a non-trivial SCC (size > 1, or a single-node SCC with a
+// self-loop). Those edges are the ones that belong to cycles.
+function computeAliasCycleEdges(
+  nodes: Map<GraphNodeId, GraphNode>,
+  aliasEdges: AliasEdge[],
+): { cycleEdgeIds: Set<GraphEdgeId>; cycleNodeIds: Set<GraphNodeId> } {
+  const outgoingAlias = new Map<GraphNodeId, Array<{ to: GraphNodeId; edgeId: GraphEdgeId }>>();
+  for (const edge of aliasEdges) {
+    const list = outgoingAlias.get(edge.from);
+    if (list) list.push({ to: edge.to, edgeId: edge.id });
+    else outgoingAlias.set(edge.from, [{ to: edge.to, edgeId: edge.id }]);
+  }
+
+  const index = new Map<GraphNodeId, number>();
+  const lowlink = new Map<GraphNodeId, number>();
+  const onStack = new Set<GraphNodeId>();
+  const stack: GraphNodeId[] = [];
+  let nextIndex = 0;
+  const sccs: GraphNodeId[][] = [];
+
+  const strongconnect = (v: GraphNodeId): void => {
+    index.set(v, nextIndex);
+    lowlink.set(v, nextIndex);
+    nextIndex++;
+    stack.push(v);
+    onStack.add(v);
+
+    for (const { to } of outgoingAlias.get(v) ?? []) {
+      if (!index.has(to)) {
+        strongconnect(to);
+        lowlink.set(v, Math.min(lowlink.get(v)!, lowlink.get(to)!));
+      } else if (onStack.has(to)) {
+        lowlink.set(v, Math.min(lowlink.get(v)!, index.get(to)!));
+      }
+    }
+
+    if (lowlink.get(v) === index.get(v)) {
+      const component: GraphNodeId[] = [];
+      let w: GraphNodeId;
+      do {
+        w = stack.pop()!;
+        onStack.delete(w);
+        component.push(w);
+      } while (w !== v);
+      sccs.push(component);
+    }
+  };
+
+  for (const nodeId of nodes.keys()) {
+    if (!index.has(nodeId)) {
+      strongconnect(nodeId);
+    }
+  }
+
+  const cycleNodeIds = new Set<GraphNodeId>();
+  for (const component of sccs) {
+    if (component.length > 1) {
+      for (const id of component) cycleNodeIds.add(id);
+      continue;
+    }
+    const [only] = component;
+    const neighbors = outgoingAlias.get(only);
+    if (neighbors && neighbors.some((n) => n.to === only)) {
+      cycleNodeIds.add(only);
+    }
+  }
+
+  const cycleEdgeIds = new Set<GraphEdgeId>();
+  for (const edge of aliasEdges) {
+    if (cycleNodeIds.has(edge.from) && cycleNodeIds.has(edge.to)) {
+      cycleEdgeIds.add(edge.id);
+    }
+  }
+
+  return { cycleEdgeIds, cycleNodeIds };
+}
+
+function parseBrokenAliasTarget(message: string): string | undefined {
+  const match = message.match(/non-existent token "([^"]+)"/);
+  return match?.[1];
+}
+
+function parseCyclePath(message: string): string[] | undefined {
+  const [, rawCycle] = message.split("Circular reference:");
+  if (!rawCycle) return undefined;
+  const paths = rawCycle
+    .split("→")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return paths.length > 1 ? paths : undefined;
+}
+
+function pushIssueRule(edge: AliasEdge, rule: string): void {
+  const current = edge.issueRules ?? [];
+  if (!current.includes(rule)) {
+    edge.issueRules = [...current, rule].sort();
+  }
+}
+
+function applyValidationIssuesToGraph(params: {
+  issues: GraphValidationIssue[];
+  nodes: Map<GraphNodeId, GraphNode>;
+  edges: Map<GraphEdgeId, GraphEdge>;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
+}): void {
+  const {
+    issues,
+    nodes,
+    edges,
+    pathToCollectionId,
+    collectionIdsByPath,
+  } = params;
+
+  for (const issue of issues) {
+    if (!issue.path || !issue.collectionId) continue;
+    const downstreamId = tokenNodeId(issue.collectionId, issue.path);
+    const downstream = nodes.get(downstreamId);
+    if (!downstream || downstream.kind !== "token") continue;
+
+    if (issue.rule === "broken-alias") {
+      const targetPath = issue.targetPath ?? parseBrokenAliasTarget(issue.message);
+      if (!targetPath) continue;
+      for (const edge of edges.values()) {
+        if (edge.kind !== "alias" || edge.to !== downstreamId) continue;
+        const upstream = nodes.get(edge.from);
+        if (
+          (upstream?.kind === "ghost" || upstream?.kind === "token") &&
+          upstream.path === targetPath
+        ) {
+          edge.isMissingTarget = edge.isMissingTarget || upstream.kind === "ghost";
+          pushIssueRule(edge, issue.rule);
+          if (downstream.health !== "cycle") {
+            downstream.health = "broken";
+          }
+        }
+      }
+      continue;
+    }
+
+    if (issue.rule === "circular-reference") {
+      const cyclePath = issue.cyclePath ?? parseCyclePath(issue.message);
+      if (!cyclePath) continue;
+      for (let index = 0; index < cyclePath.length - 1; index++) {
+        const sourcePath = cyclePath[index];
+        const targetPath = cyclePath[index + 1];
+        const sourceCollectionId = resolveCollectionIdForPath({
+          path: sourcePath,
+          pathToCollectionId,
+          collectionIdsByPath,
+          preferredCollectionId: issue.collectionId,
+        }).collectionId;
+        const targetCollectionId = resolveCollectionIdForPath({
+          path: targetPath,
+          pathToCollectionId,
+          collectionIdsByPath,
+          preferredCollectionId: sourceCollectionId ?? issue.collectionId,
+        }).collectionId;
+        if (!sourceCollectionId || !targetCollectionId) continue;
+
+        const edgeId = `alias:${tokenNodeId(targetCollectionId, targetPath)}->${tokenNodeId(sourceCollectionId, sourcePath)}`;
+        const edge = edges.get(edgeId);
+        if (edge?.kind === "alias") {
+          edge.inCycle = true;
+          pushIssueRule(edge, issue.rule);
+        }
+        const sourceNode = nodes.get(tokenNodeId(sourceCollectionId, sourcePath));
+        if (sourceNode?.kind === "token") {
+          sourceNode.health = "cycle";
+        }
+      }
+    }
+  }
+}
+
+export function buildGraph(input: BuildGraphInput): GraphModel {
+  const {
+    collections,
+    tokensByCollection,
+    pathToCollectionId,
+    collectionIdsByPath,
+    generators,
+    derivedTokenPaths,
+    validationIssues,
+  } = input;
+
+  const nodes = new Map<GraphNodeId, GraphNode>();
+  const edges = new Map<GraphEdgeId, GraphEdge>();
+  const outgoing = new Map<GraphNodeId, GraphEdgeId[]>();
+  const incoming = new Map<GraphNodeId, GraphEdgeId[]>();
+  const ghostIntents = new Map<GraphNodeId, GhostGraphNode>();
+  const generatorOutputsById = new Map<
+    string,
+    ReturnType<typeof getGeneratorOutputsForGraph>
+  >();
+  const generatorSourceTargets = new Map<string, ResolvedGraphTarget | null>();
+  const modeValuesByTokenId = new Map<GraphNodeId, Record<string, unknown>>();
+
+  // 1. Token nodes
+  for (const collection of collections) {
+    const entries = tokensByCollection[collection.id];
+    if (!entries) continue;
+    for (const [path, entry] of Object.entries(entries)) {
+      const id = tokenNodeId(collection.id, path);
+      const modeValues = readGraphModeValues(entry, collection);
+      modeValuesByTokenId.set(id, modeValues);
+      const ownerGenerator = derivedTokenPaths.get(
+        createGeneratorOwnershipKey(collection.id, path),
+      );
+      nodes.set(id, {
+        kind: "token",
+        id,
+        path,
+        collectionId: collection.id,
+        displayName: path.split(".").pop() ?? path,
+        $type: entry.$type,
+        swatchColor: getTokenSwatchColor(entry, collection, modeValues),
+        health: "ok",
+        isGeneratorManaged: Boolean(ownerGenerator),
+        ownerGeneratorId: ownerGenerator?.id,
+        hasDependents: false,
+        hasDependencies: false,
+      });
+    }
+  }
+
+  // 2. Generator nodes
+  for (const generator of generators) {
+    const id = generatorNodeId(generator.id);
+    const outputs = getGeneratorOutputsForGraph(generator);
+    const sourceTarget = generator.sourceToken
+      ? resolveGraphTarget({
+          path: generator.sourceToken,
+          explicitCollectionId: generator.sourceCollectionId,
+          nodes,
+          ghostIntents,
+          pathToCollectionId,
+          collectionIdsByPath,
+        })
+      : null;
+    const sourceIssue =
+      sourceTarget && sourceTarget.reason !== "resolved"
+        ? sourceTarget.reason
+        : undefined;
+    generatorOutputsById.set(generator.id, outputs);
+    generatorSourceTargets.set(generator.id, sourceTarget);
+    nodes.set(id, {
+      kind: "generator",
+      id,
+      generatorId: generator.id,
+      generatorType: generator.type,
+      name: generator.name,
+      sourceTokenPath: generator.sourceToken,
+      sourceCollectionId: sourceTarget?.collectionId,
+      targetCollection: generator.targetCollection,
+      targetGroup: generator.targetGroup,
+      outputCount: outputs.length,
+      enabled: generator.enabled !== false,
+      health: generator.lastRunError
+        ? "generator-error"
+        : sourceIssue
+          ? "broken"
+          : "ok",
+      ...(sourceIssue ? { sourceIssue } : {}),
+      errorMessage:
+        generator.lastRunError?.message ??
+        (sourceIssue === "missing"
+          ? `Source token "${generator.sourceToken}" is missing.`
+          : sourceIssue === "ambiguous"
+            ? `Source token "${generator.sourceToken}" is ambiguous across collections.`
+            : undefined),
+    });
+  }
+
+  // 3. Alias edges — mode-aware, deduped per (upstream, downstream) pair
+  interface AliasAcc {
+    from: GraphNodeId;
+    to: GraphNodeId;
+    modeNames: Set<string>;
+    isMissingTarget: boolean;
+  }
+  const aliasAcc = new Map<GraphEdgeId, AliasAcc>();
+
+  for (const collection of collections) {
+    const entries = tokensByCollection[collection.id];
+    if (!entries) continue;
+    for (const [path, entry] of Object.entries(entries)) {
+      const downstreamId = tokenNodeId(collection.id, path);
+      const modeValues =
+        modeValuesByTokenId.get(downstreamId) ??
+        readGraphModeValues(entry, collection);
+      for (const [modeName, value] of Object.entries(modeValues)) {
+        for (const refPath of extractReferencePaths(value)) {
+          const upstreamTarget = resolveGraphTarget({
+            path: refPath,
+            preferredCollectionId: collection.id,
+            nodes,
+            ghostIntents,
+            pathToCollectionId,
+            collectionIdsByPath,
+          });
+          const edgeId = `alias:${upstreamTarget.nodeId}->${downstreamId}`;
+          const existing = aliasAcc.get(edgeId);
+          if (existing) {
+            existing.modeNames.add(modeName);
+          } else {
+            aliasAcc.set(edgeId, {
+              from: upstreamTarget.nodeId,
+              to: downstreamId,
+              modeNames: new Set([modeName]),
+              isMissingTarget: upstreamTarget.reason !== "resolved",
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Materialize ghost nodes discovered during alias-edge build
+  for (const ghost of ghostIntents.values()) {
+    nodes.set(ghost.id, ghost);
+  }
+
+  const aliasEdges: AliasEdge[] = [];
+  for (const [edgeId, acc] of aliasAcc) {
+    const edge: AliasEdge = {
+      kind: "alias",
+      id: edgeId,
+      from: acc.from,
+      to: acc.to,
+      modeNames: [...acc.modeNames].sort(),
+      ...(acc.isMissingTarget ? { isMissingTarget: true } : {}),
+    };
+    edges.set(edgeId, edge);
+    aliasEdges.push(edge);
+    pushAdjacency(outgoing, acc.from, edgeId);
+    pushAdjacency(incoming, acc.to, edgeId);
+  }
+
+  // 4. Generator source + produces edges
+  for (const generator of generators) {
+    const generatorId = generatorNodeId(generator.id);
+    const sourceTarget = generatorSourceTargets.get(generator.id);
+
+    if (generator.sourceToken && sourceTarget) {
+      const edgeId = `gen-src:${sourceTarget.nodeId}->${generatorId}`;
+      const edge: GeneratorSourceEdge = {
+        kind: "generator-source",
+        id: edgeId,
+        from: sourceTarget.nodeId,
+        to: generatorId,
+      };
+      edges.set(edgeId, edge);
+      pushAdjacency(outgoing, sourceTarget.nodeId, edgeId);
+      pushAdjacency(incoming, generatorId, edgeId);
+    }
+
+    for (const output of generatorOutputsById.get(generator.id) ?? []) {
+      const producedId = tokenNodeId(output.collectionId, output.path);
+      if (!nodes.has(producedId)) continue;
+      const edgeId = `gen-prod:${generatorId}->${producedId}`;
+      const edge: GeneratorProducesEdge = {
+        kind: "generator-produces",
+        id: edgeId,
+        from: generatorId,
+        to: producedId,
+        stepName: output.stepName,
+        ...(output.kind === "semantic" && output.semantic
+          ? { semantic: output.semantic }
+          : {}),
+      };
+      edges.set(edgeId, edge);
+      pushAdjacency(outgoing, generatorId, edgeId);
+      pushAdjacency(incoming, producedId, edgeId);
+    }
+  }
+
+  // 5. Cycle detection over alias subgraph
+  const { cycleEdgeIds, cycleNodeIds } = computeAliasCycleEdges(nodes, aliasEdges);
+  for (const edgeId of cycleEdgeIds) {
+    const edge = edges.get(edgeId);
+    if (edge && edge.kind === "alias") edge.inCycle = true;
+  }
+  for (const nodeId of cycleNodeIds) {
+    const node = nodes.get(nodeId);
+    if (node && node.kind === "token") node.health = "cycle";
+  }
+
+  if (validationIssues && validationIssues.length > 0) {
+    applyValidationIssuesToGraph({
+      issues: validationIssues,
+      nodes,
+      edges,
+      pathToCollectionId,
+      collectionIdsByPath,
+    });
+  }
+
+  // 6. Broken ref marking — any alias edge with a ghost upstream marks the
+  // downstream token's health as 'broken' (unless already in a cycle)
+  for (const edge of aliasEdges) {
+    if (!edge.isMissingTarget) continue;
+    const downstream = nodes.get(edge.to);
+    if (downstream && downstream.kind === "token" && downstream.health === "ok") {
+      downstream.health = "broken";
+    }
+  }
+
+  // 7. hasDependents / hasDependencies precompute
+  for (const node of nodes.values()) {
+    if (node.kind !== "token") continue;
+    const out = outgoing.get(node.id);
+    const inc = incoming.get(node.id);
+    // Alias edges where this node is `from` = this node is used by others
+    node.hasDependents = Boolean(
+      out?.some((id) => {
+        const e = edges.get(id);
+        return e?.kind === "alias";
+      }),
+    );
+    // Alias edges where this node is `to` = this node references others
+    node.hasDependencies = Boolean(
+      inc?.some((id) => {
+        const e = edges.get(id);
+        return e?.kind === "alias";
+      }),
+    );
+  }
+
+  // 8. Fingerprint — sorted node + edge ids, hashed
+  const nodeFingerprints = [...nodes.values()]
+    .map((node) => fingerprintNode(node))
+    .sort();
+  const edgeFingerprints = [...edges.values()]
+    .map((edge) => fingerprintEdge(edge))
+    .sort();
+  const fingerprint = djb2(
+    nodeFingerprints.join("|") + "::" + edgeFingerprints.join("|"),
+  );
+
+  return { nodes, edges, outgoing, incoming, fingerprint };
+}
+
+export type { GeneratorManagedOutput };

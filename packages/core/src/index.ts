@@ -98,6 +98,15 @@ export {
   serializeTokenCollections,
   readCollectionsFileState,
 } from './collections.js';
+export type {
+  CollectionPathResolutionReason,
+  CollectionPathResolution,
+} from './collection-paths.js';
+export {
+  getCollectionIdsForPath,
+  pathExistsInCollection,
+  resolveCollectionIdForPath,
+} from './collection-paths.js';
 export { stableStringify } from './stable-stringify.js';
 export {
   FIGMA_SCOPE_EXTENSION_KEY,
@@ -115,6 +124,7 @@ export {
   isReference,
   isFormula,
   parseReference,
+  extractReferencePaths,
   flattenTokenGroup,
   resolveRefValue,
 } from './dtcg-types.js';
@@ -203,11 +213,19 @@ export type {
 } from './generator-types.js';
 export {
   createGeneratorOwnershipKey,
+  getGeneratorConfigTokenRefs,
+  createGeneratorSourceKey,
+  createGeneratorSourceKeys,
+  getGeneratorSourceCollectionId,
+  getGeneratorSourceCollectionIds,
   getGeneratorManagedOutputPaths,
   getGeneratorManagedOutputs,
+  getGeneratorOutputsForGraph,
   getGeneratorStepNames,
+  hasGeneratorSourceKeyMatch,
   validateStepName,
 } from './generator-types.js';
+export type { GeneratorGraphOutput } from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
@@ -219,6 +237,36 @@ export {
   DEFAULT_CUSTOM_SCALE_CONFIG,
   DEFAULT_DARK_MODE_INVERSION_CONFIG,
 } from './generator-types.js';
+
+// Token resolution (mode-aware ancestor walker)
+export { resolveTokenAncestors } from './token-resolve.js';
+export type {
+  AncestorChainRow,
+  AncestorChainByMode,
+  AncestorTerminalKind,
+  ResolveTokenAncestorsParams,
+} from './token-resolve.js';
+
+// Graph
+export { buildGraph, tokenNodeId, generatorNodeId } from './graph.js';
+export type {
+  GraphNodeId,
+  GraphEdgeId,
+  GraphHealthStatus,
+  GhostReason,
+  GraphTokenLike,
+  TokenGraphNode,
+  GeneratorGraphNode,
+  GhostGraphNode,
+  GraphNode,
+  AliasEdge,
+  GeneratorSourceEdge,
+  GeneratorProducesEdge,
+  GraphEdge,
+  GraphModel,
+  BuildGraphInput,
+  GraphValidationIssue,
+} from './graph.js';
 
 // Generator engine
 export {

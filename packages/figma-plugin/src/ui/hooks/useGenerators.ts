@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   createGeneratorOwnershipKey,
+  createGeneratorSourceKeys,
   getGeneratorManagedOutputs,
 } from '@tokenmanager/core';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { isAbortError } from '../shared/utils';
-import { createGeneratedGroupSourceKeys } from '../shared/generatorSource';
 
 // ---------------------------------------------------------------------------
 // Types (defined inline — do not import from @tokenmanager/core in the plugin)
@@ -291,7 +291,7 @@ export function useGenerators(
   const generatorsBySource = useMemo(() => {
     const map = new Map<string, TokenGenerator[]>();
     for (const gen of generators) {
-      const keys = createGeneratedGroupSourceKeys({
+      const keys = createGeneratorSourceKeys({
         sourceTokenPath: gen.sourceToken,
         sourceCollectionId: gen.sourceCollectionId,
         pathToCollectionId,

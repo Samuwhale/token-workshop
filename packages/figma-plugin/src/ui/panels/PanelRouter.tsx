@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
+import { resolveCollectionIdForPath } from "@tokenmanager/core";
 import { CanvasRouter } from "./CanvasRouter";
 import { ExportRouter } from "./ExportRouter";
 import { SyncRouter } from "./SyncRouter";
@@ -79,11 +80,12 @@ import type {
   TokensLibraryGeneratedGroupEditorTarget,
 } from "../shared/navigationTypes";
 import { getMostRelevantImportDestinationCollection } from "../shared/navigationTypes";
-import { resolveCollectionIdForPath } from "../shared/collectionPathLookup";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import type { ToastAction } from "../shared/toastBus";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
 import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
+import { GraphPanel } from "../components/graph/GraphPanel";
+import { setPendingGraphFocus } from "../shared/graphFocusIntent";
 
 const DEFAULT_CREATE_TYPE = "color";
 
@@ -516,6 +518,7 @@ export function PanelRouter({
             path: options.path,
             pathToCollectionId,
             collectionIdsByPath,
+            preferredCollectionId: currentCollectionId,
           });
       const targetCollectionId = resolution.collectionId;
       if (!targetCollectionId) {
@@ -639,6 +642,20 @@ export function PanelRouter({
       onClick: () => openGeneratedTokens(info.targetGroup, info.targetCollection),
     }),
     [openGeneratedTokens],
+  );
+
+  const getViewInGraphToastAction = useCallback(
+    (info: GeneratorSaveSuccessInfo): ToastAction => ({
+      label: "See outputs in graph",
+      onClick: () => {
+        if (info.targetCollection !== currentCollectionId) {
+          setCurrentCollectionId(info.targetCollection);
+        }
+        setPendingGraphFocus({ kind: "generator", generatorId: info.generatorId });
+        navigateTo("library", "graph");
+      },
+    }),
+    [currentCollectionId, navigateTo, setCurrentCollectionId],
   );
 
   const handleTokenDetailsBack = useCallback(() => {
@@ -917,6 +934,7 @@ export function PanelRouter({
         allTokensFlat,
         pathToCollectionId,
         collectionIdsByPath,
+        perCollectionFlat,
         generators,
         isCreateMode: tokenDetails.isCreate,
         initialType: tokenDetails.initialType,
@@ -950,6 +968,13 @@ export function PanelRouter({
           }),
         onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
         onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
+        onViewInGraph: (path: string, collectionId: string) => {
+          if (collectionId !== currentCollectionId) {
+            setCurrentCollectionId(collectionId);
+          }
+          setPendingGraphFocus({ kind: "token", path, collectionId });
+          navigateTo("library", "graph");
+        },
         lintViolations: healthSignals.lintViolationsForCurrent,
         syncSnapshot:
           Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
@@ -1033,6 +1058,7 @@ export function PanelRouter({
                       path: editingGeneratedGroup.sourceTokenPath,
                       pathToCollectionId,
                       collectionIdsByPath,
+                      preferredCollectionId: currentCollectionId,
                     }).collectionId ??
                     currentCollectionId)
                   : currentCollectionId),
@@ -1083,13 +1109,24 @@ export function PanelRouter({
             controller.refreshAll();
           },
           onSaved: (info?: GeneratorSaveSuccessInfo) => {
+            const launchedFromGraph = editingGeneratedGroup?.origin === "graph";
             setEditingGeneratedGroup(null);
             controller.refreshAll();
-            if (info) {
-              openGeneratedTokens(info.targetGroup, info.targetCollection);
+            if (!info) return;
+            if (launchedFromGraph) {
+              setPendingGraphFocus({
+                kind: "generator",
+                generatorId: info.generatorId,
+              });
+              navigateTo("library", "graph");
+              return;
             }
+            openGeneratedTokens(info.targetGroup, info.targetCollection);
           },
-          getSuccessToastAction: getViewTokensToastAction,
+          getSuccessToastAction:
+            editingGeneratedGroup?.origin === "graph"
+              ? getViewInGraphToastAction
+              : getViewTokensToastAction,
           onPushUndo: controller.pushUndo,
           presentation: "panel" as const,
           editorSessionHost: {
@@ -1348,6 +1385,7 @@ export function PanelRouter({
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     library: {
       tokens: renderLibraryTokens,
+      graph: renderLibraryGraph,
       health: renderLibraryHealth,
       history: renderLibraryHistory,
     },
@@ -1444,11 +1482,11 @@ export function PanelRouter({
   }
 
   function renderLibraryCollectionsRail(
-    section: "tokens" | "health" | "history",
+    section: "tokens" | "graph" | "health" | "history",
     bottomPanel?: ReactNode,
   ): ReactNode {
     const allCollectionsScope =
-      section === "tokens"
+      section === "tokens" || section === "graph"
         ? undefined
         : {
             selected:
@@ -1482,7 +1520,7 @@ export function PanelRouter({
       <LibraryCollectionsRail
         collections={collections}
         currentCollectionId={
-          section === "tokens"
+          section === "tokens" || section === "graph"
             ? currentCollectionId
             : section === "health"
               ? healthScope.mode === "current"
@@ -1535,7 +1573,7 @@ export function PanelRouter({
     railBottomPanel,
   }: {
     body: ReactNode;
-    section: "tokens" | "health" | "history";
+    section: "tokens" | "graph" | "health" | "history";
     header?: ReactNode;
     contextualPanel?: ReactNode;
     railBottomPanel?: ReactNode;
@@ -1735,6 +1773,42 @@ export function PanelRouter({
     );
   }
 
+  function renderLibraryGraph(): ReactNode {
+    const body = (
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary
+          panelName="Graph"
+          onReset={() => navigateTo("library", "tokens")}
+        >
+          <GraphPanel
+            collections={collections}
+            workingCollectionId={currentCollectionId}
+            generators={generators}
+            derivedTokenPaths={derivedTokenPaths}
+            perCollectionFlat={perCollectionFlat}
+            pathToCollectionId={pathToCollectionId}
+            collectionIdsByPath={collectionIdsByPath}
+            validationIssues={controller.validationIssues ?? undefined}
+            onNavigateToToken={(path, collectionId) => {
+              openTokenInContext({
+                path,
+                collectionId,
+                mode: "inspect",
+                origin: "graph",
+                returnLabel: "Back to graph",
+              });
+            }}
+            onCreateToken={(collectionId) => {
+              openCreateLauncher({ currentCollectionId: collectionId });
+            }}
+            onOpenGeneratedGroupEditor={openGeneratedGroupEditor}
+          />
+        </ErrorBoundary>
+      </div>
+    );
+    return renderLibraryScaffold({ body, section: "graph" });
+  }
+
   function renderLibraryHealth(): ReactNode {
     const body = (
       <div className="h-full min-h-0 overflow-hidden">
@@ -1762,6 +1836,23 @@ export function PanelRouter({
                 origin: "health",
                 returnLabel: "Back to Review",
               });
+            }}
+            onViewIssueInGraph={(issue) => {
+              if (issue.collectionId !== currentCollectionId) {
+                setCurrentCollectionId(issue.collectionId);
+              }
+              setPendingGraphFocus({
+                kind: "token",
+                path: issue.path,
+                collectionId: issue.collectionId,
+                issue: {
+                  rule: issue.rule,
+                  targetPath: issue.targetPath,
+                  targetCollectionId: issue.targetCollectionId,
+                  cyclePath: issue.cyclePath,
+                },
+              });
+              navigateTo("library", "graph");
             }}
             validationIssues={controller.validationIssues}
             validationLoading={controller.validationLoading}

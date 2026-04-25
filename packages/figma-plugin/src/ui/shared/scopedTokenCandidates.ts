@@ -1,11 +1,10 @@
 import type { TokenMapEntry } from '../../shared/types';
+import { getCollectionIdsForPath } from '@tokenmanager/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import {
   createRecentTokenKey,
   getRecentTokens,
 } from './recentTokens';
-import { getCollectionIdsForPath } from './collectionPathLookup';
-
 export interface ScopedTokenCandidate {
   key: string;
   path: string;

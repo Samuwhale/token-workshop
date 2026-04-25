@@ -8,6 +8,9 @@ export interface ValidationIssue {
   collectionId: string;
   severity: 'error' | 'warning' | 'info';
   message: string;
+  targetPath?: string;
+  targetCollectionId?: string;
+  cyclePath?: string[];
   suggestedFix?: string;
   /** Concrete fix target — e.g. an alias path like `{primitive.color}` */
   suggestion?: string;

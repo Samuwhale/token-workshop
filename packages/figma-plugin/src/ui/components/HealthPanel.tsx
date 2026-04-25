@@ -37,6 +37,7 @@ export interface HealthPanelProps {
   tokenUsageCounts: Record<string, number>;
   tokenUsageReady: boolean;
   onNavigateToToken?: (path: string, collectionId: string) => void;
+  onViewIssueInGraph?: (issue: ValidationIssue) => void;
   validationIssues: ValidationIssue[] | null;
   validationLoading: boolean;
   validationError: string | null;
@@ -69,6 +70,7 @@ export function HealthPanel({
   tokenUsageCounts,
   tokenUsageReady,
   onNavigateToToken,
+  onViewIssueInGraph,
   validationIssues: validationIssuesProp,
   validationLoading,
   validationError,
@@ -476,6 +478,7 @@ export function HealthPanel({
             onFix={applyIssueFix}
             onIgnore={handleSuppress}
             onNavigateToToken={onNavigateToToken}
+            onViewIssueInGraph={onViewIssueInGraph}
             initialTokenPath={activeIssueTokenPath}
             selectedIssueKey={scope.issueKey ?? null}
             selectedTokenPath={activeIssueTokenPath}

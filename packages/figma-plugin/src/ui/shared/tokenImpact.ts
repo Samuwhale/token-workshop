@@ -1,25 +1,13 @@
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenCollection } from '@tokenmanager/core';
-import type { GeneratorImpact, ModeImpact } from '../components/tokenListTypes';
 import {
-  createGeneratedGroupSourceKeys,
-  hasGeneratedGroupSourceKeyMatch,
-} from './generatorSource';
-
-/**
- * Returns all $tokenRefs entries from a generator's config as a flat
- * Record<fieldName, tokenPath>. Handles all GeneratorConfig variants.
- */
-function extractTokenRefs(config: TokenGenerator['config']): Record<string, string> {
-  const refs = (config as unknown as { $tokenRefs?: Record<string, string | undefined> }).$tokenRefs;
-  if (!refs) return {};
-  const out: Record<string, string> = {};
-  for (const [key, val] of Object.entries(refs)) {
-    if (typeof val === 'string') out[key] = val;
-  }
-  return out;
-}
+  createGeneratorSourceKeys,
+  getGeneratorConfigTokenRefs,
+  hasGeneratorSourceKeyMatch,
+  readTokenCollectionModeValues,
+  type TokenCollection,
+} from '@tokenmanager/core';
+import type { GeneratorImpact, ModeImpact } from '../components/tokenListTypes';
 
 /**
  * Compute which generators reference any of the given token paths (directly
@@ -32,10 +20,10 @@ export function computeGeneratorImpacts(
   pathToCollectionId?: Record<string, string>,
   collectionIdsByPath?: Record<string, string[]>,
 ): GeneratorImpact[] {
-  const impacts: GeneratorImpact[] = [];
+  const impacts = new Map<string, GeneratorImpact>();
   const targetSourceKeys = new Set<string>();
   for (const path of targetPaths) {
-    for (const key of createGeneratedGroupSourceKeys({
+    for (const key of createGeneratorSourceKeys({
       sourceTokenPath: path,
       sourceCollectionId,
       pathToCollectionId,
@@ -45,24 +33,24 @@ export function computeGeneratorImpacts(
     }
   }
   for (const gen of generators) {
-    if (hasGeneratedGroupSourceKeyMatch({
+    if (hasGeneratorSourceKeyMatch({
       sourceTokenPath: gen.sourceToken,
       sourceCollectionId: gen.sourceCollectionId,
       targetSourceKeys,
       pathToCollectionId,
       collectionIdsByPath,
     })) {
-      impacts.push({
+      impacts.set(`${gen.id}:source`, {
         generatorId: gen.id,
         generatorName: gen.name,
         generatorType: gen.type,
         role: 'source',
       });
     }
-    const refs = extractTokenRefs(gen.config);
+    const refs = getGeneratorConfigTokenRefs(gen.config);
     for (const [field, path] of Object.entries(refs)) {
       if (targetPaths.has(path)) {
-        impacts.push({
+        impacts.set(`${gen.id}:config-ref:${field}`, {
           generatorId: gen.id,
           generatorName: gen.name,
           generatorType: gen.type,
@@ -72,7 +60,7 @@ export function computeGeneratorImpacts(
       }
     }
   }
-  return impacts;
+  return [...impacts.values()];
 }
 
 /**
@@ -101,12 +89,8 @@ export function computeModeImpacts(
       const entry = collectionFlat[path];
       if (!entry) continue;
 
-      const modes = (entry.$extensions as {
-        tokenmanager?: {
-          modes?: Record<string, Record<string, unknown>>;
-        };
-      } | undefined)?.tokenmanager?.modes;
-      if (modes?.[sourceCollectionId]?.[option.name] === undefined) continue;
+      const collectionModes = readTokenCollectionModeValues(entry)[sourceCollectionId];
+      if (collectionModes?.[option.name] === undefined) continue;
 
       const impactKey = `${sourceCollectionId}:${option.name}`;
       if (!seen.has(impactKey)) {

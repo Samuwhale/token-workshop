@@ -1,11 +1,12 @@
 import {
+  getGeneratorSourceCollectionIds,
+  getGeneratorSourceCollectionId,
   tokenChangesAcrossModesInCollection,
   type TokenCollection,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import type { GeneratorType } from "../hooks/useGenerators";
 import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
-import { getGeneratedGroupSourceCollectionId } from "./generatorSource";
 import { isAlias, resolveTokenValue } from "../../shared/resolveAlias";
 
 export type DashboardStatus = ReturnType<typeof getGeneratorDashboardStatus>;
@@ -21,6 +22,7 @@ export interface ResolvedGeneratedGroupSourceContext {
   entry?: TokenMapEntry;
   value: unknown;
   sourceCollectionExplicit: boolean;
+  isAmbiguous: boolean;
 }
 
 function hasExplicitSourceCollectionId(sourceCollectionId?: string): boolean {
@@ -43,6 +45,54 @@ function getGeneratedGroupSourceFallbackEntry(params: {
   }
 
   return params.sourceValuesFlat?.[sourceTokenPath];
+}
+
+function resolveGeneratedGroupSourceEntry(params: {
+  sourceTokenPath: string;
+  sourceCollectionId?: string;
+  sourceTokenEntry?: TokenMapEntry;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
+  sourceValuesFlat?: Record<string, TokenMapEntry>;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
+  sourceCollectionExplicit: boolean;
+  isAmbiguous: boolean;
+}): {
+  collectionId?: string;
+  entry?: TokenMapEntry;
+} {
+  const sourceCollectionIds = getGeneratorSourceCollectionIds({
+    sourceTokenPath: params.sourceTokenPath,
+    sourceCollectionId: params.sourceCollectionId,
+    pathToCollectionId: params.pathToCollectionId,
+    collectionIdsByPath: params.collectionIdsByPath,
+  });
+  const collectionId = params.isAmbiguous ? undefined : sourceCollectionIds[0];
+
+  if (collectionId) {
+    const collectionEntry =
+      params.perCollectionFlat?.[collectionId]?.[params.sourceTokenPath];
+    if (collectionEntry) {
+      return { collectionId, entry: collectionEntry };
+    }
+
+    if (params.sourceTokenEntry) {
+      return { collectionId, entry: params.sourceTokenEntry };
+    }
+  }
+
+  if (!params.sourceCollectionExplicit && !params.isAmbiguous) {
+    return {
+      collectionId,
+      entry:
+        params.sourceTokenEntry ??
+        params.sourceValuesFlat?.[params.sourceTokenPath] ??
+        params.allTokensFlat?.[params.sourceTokenPath],
+    };
+  }
+
+  return { collectionId, entry: params.sourceTokenEntry };
 }
 
 export function getGeneratedGroupSourceTokenEntry(params: {
@@ -77,6 +127,7 @@ export function resolveGeneratedGroupSourceContext(params: {
     return {
       value: params.fallbackValue,
       sourceCollectionExplicit,
+      isAmbiguous: false,
     };
   }
 
@@ -86,26 +137,26 @@ export function resolveGeneratedGroupSourceContext(params: {
     sourceTokenEntry: params.sourceTokenEntry,
     sourceValuesFlat: params.sourceValuesFlat,
   });
-  const collectionId = getGeneratedGroupSourceCollectionId({
+  const sourceCollectionIds = getGeneratorSourceCollectionIds({
     sourceTokenPath,
     sourceCollectionId: params.sourceCollectionId,
     pathToCollectionId: params.pathToCollectionId,
     collectionIdsByPath: params.collectionIdsByPath,
   });
-
-  let entry: TokenMapEntry | undefined;
-  if (collectionId) {
-    entry = params.perCollectionFlat?.[collectionId]?.[sourceTokenPath];
-  } else {
-    entry = sourceTokenEntry;
-  }
-
-  // Once a generator is pinned to a collection, do not silently pick the same
-  // path from another collection. That hides missing bindings and can preview
-  // the wrong source token when paths overlap across collections.
-  if (!entry && !sourceCollectionExplicit) {
-    entry = sourceTokenEntry ?? params.allTokensFlat?.[sourceTokenPath];
-  }
+  const isAmbiguous =
+    !sourceCollectionExplicit && sourceCollectionIds.length > 1;
+  const { collectionId, entry } = resolveGeneratedGroupSourceEntry({
+    sourceTokenPath,
+    sourceCollectionId: params.sourceCollectionId,
+    sourceTokenEntry,
+    perCollectionFlat: params.perCollectionFlat,
+    sourceValuesFlat: params.sourceValuesFlat,
+    allTokensFlat: params.allTokensFlat,
+    pathToCollectionId: params.pathToCollectionId,
+    collectionIdsByPath: params.collectionIdsByPath,
+    sourceCollectionExplicit,
+    isAmbiguous,
+  });
 
   if (!entry) {
     return {
@@ -113,6 +164,7 @@ export function resolveGeneratedGroupSourceContext(params: {
       collectionId,
       value: params.fallbackValue,
       sourceCollectionExplicit,
+      isAmbiguous,
     };
   }
 
@@ -124,6 +176,7 @@ export function resolveGeneratedGroupSourceContext(params: {
       entry,
       value,
       sourceCollectionExplicit,
+      isAmbiguous,
     };
   }
 
@@ -138,11 +191,12 @@ export function resolveGeneratedGroupSourceContext(params: {
         entry,
         value: resolved.value,
         sourceCollectionExplicit,
+        isAmbiguous,
       };
     }
   }
 
-  if (!sourceCollectionExplicit && params.allTokensFlat) {
+  if (!sourceCollectionExplicit && !isAmbiguous && params.allTokensFlat) {
     const resolved = resolveTokenValue(value, entry.$type, params.allTokensFlat);
     if (resolved.value != null) {
       return {
@@ -151,6 +205,7 @@ export function resolveGeneratedGroupSourceContext(params: {
         entry,
         value: resolved.value,
         sourceCollectionExplicit,
+        isAmbiguous,
       };
     }
   }
@@ -161,6 +216,7 @@ export function resolveGeneratedGroupSourceContext(params: {
     entry,
     value,
     sourceCollectionExplicit,
+    isAmbiguous,
   };
 }
 
@@ -181,7 +237,28 @@ export function getGeneratedGroupKeepUpdatedAvailability(params: {
         "Keep updated is unavailable because this generated group has no source token.",
     };
   }
-  const resolvedSourceCollectionId = getGeneratedGroupSourceCollectionId(params);
+  const sourceCollectionExplicit = hasExplicitSourceCollectionId(
+    params.sourceCollectionId,
+  );
+  const resolvedSourceCollectionIds = getGeneratorSourceCollectionIds({
+    sourceTokenPath: params.sourceTokenPath,
+    sourceCollectionId: params.sourceCollectionId,
+    pathToCollectionId: params.pathToCollectionId,
+    collectionIdsByPath: params.collectionIdsByPath,
+  });
+  if (!sourceCollectionExplicit && resolvedSourceCollectionIds.length > 1) {
+    return {
+      supported: false,
+      reason:
+        "Keep updated is unavailable because this source token path exists in multiple collections. Pick a specific source collection first.",
+    };
+  }
+  const resolvedSourceCollectionId = getGeneratorSourceCollectionId({
+    sourceTokenPath: params.sourceTokenPath,
+    sourceCollectionId: params.sourceCollectionId,
+    pathToCollectionId: params.pathToCollectionId,
+    collectionIdsByPath: params.collectionIdsByPath,
+  });
   const sourceDefinitions = Object.entries(params.perCollectionFlat ?? {}).flatMap(
     ([collectionId, collectionTokens]) => {
       if (

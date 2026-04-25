@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { TokenNode } from './useTokens';
 import {
   resolveCollectionIdForPath,
   type CollectionPathResolutionReason,
-} from '../shared/collectionPathLookup';
+} from '@tokenmanager/core';
+import type { TokenNode } from './useTokens';
 
 interface NavHistoryEntry {
   path: string | null;
@@ -37,6 +37,7 @@ export function useTokenNavigation(
         path: aliasPath,
         pathToCollectionId,
         collectionIdsByPath,
+        preferredCollectionId: currentCollectionId,
       });
       const targetCollectionId = resolution.collectionId;
       if (!targetCollectionId) {
@@ -75,6 +76,7 @@ export function useTokenNavigation(
             path: pendingHighlight,
             pathToCollectionId,
             collectionIdsByPath,
+            preferredCollectionId: currentCollectionId,
           }).collectionId
         : undefined
     );

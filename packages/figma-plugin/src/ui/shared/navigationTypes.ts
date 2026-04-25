@@ -13,7 +13,7 @@ export type TopTab =
   | "library"
   | "canvas"
   | "publish";
-export type LibrarySubTab = "tokens" | "health" | "history";
+export type LibrarySubTab = "tokens" | "graph" | "health" | "history";
 export type PublishSubTab = "publish-figma" | "publish-code";
 export type SubTab =
   | LibrarySubTab
@@ -30,13 +30,17 @@ export type TokensLibraryContextualSurface =
   | "generated-group-editor"
   | "color-analysis"
   | "import";
+export type TokensLibraryGeneratedGroupEditorOrigin = "tokens" | "graph";
+
 export type TokensLibraryGeneratedGroupEditorTarget =
   | {
       mode: "edit";
       id: string;
+      origin?: TokensLibraryGeneratedGroupEditorOrigin;
     }
   | {
       mode: "create";
+      origin?: TokensLibraryGeneratedGroupEditorOrigin;
       sourceTokenPath?: string;
       sourceCollectionId?: string;
       sourceTokenName?: string;
@@ -80,6 +84,7 @@ export const TOP_TABS: {
     label: "Library",
     subTabs: [
       { id: "tokens", label: "Tokens" },
+      { id: "graph", label: "Graph" },
       { id: "health", label: "Review" },
       { id: "history", label: "History" },
     ],
@@ -292,11 +297,13 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     subTab: "tokens",
     sections: [
       { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
+      { id: "graph",   label: "Graph",   topTab: "library", subTab: "graph" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
       { id: "history", label: "History", topTab: "library", subTab: "history" },
     ],
     matchRoutes: [
       route("library", "tokens"),
+      route("library", "graph"),
       route("library", "health"),
       route("library", "history"),
     ],

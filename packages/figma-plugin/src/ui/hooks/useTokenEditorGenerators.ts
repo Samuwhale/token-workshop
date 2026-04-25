@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { TokenGenerator } from './useGenerators';
 import {
-  createGeneratedGroupSourceKeys,
-  hasGeneratedGroupSourceKeyMatch,
-} from '../shared/generatorSource';
+  createGeneratorSourceKeys,
+  hasGeneratorSourceKeyMatch,
+} from '@tokenmanager/core';
+import type { TokenGenerator } from './useGenerators';
 
 interface UseTokenEditorGeneratorsParams {
   tokenPath: string;
@@ -23,7 +23,7 @@ export function useTokenEditorGenerators({
   collectionIdsByPath,
 }: UseTokenEditorGeneratorsParams) {
   const existingGeneratorsForToken = useMemo(() => {
-    const sourceKeys = new Set(createGeneratedGroupSourceKeys({
+    const sourceKeys = new Set(createGeneratorSourceKeys({
       sourceTokenPath: tokenPath,
       sourceCollectionId: tokenCollectionId,
       pathToCollectionId,
@@ -34,7 +34,7 @@ export function useTokenEditorGenerators({
     }
 
     return generators.filter((generator) =>
-      hasGeneratedGroupSourceKeyMatch({
+      hasGeneratorSourceKeyMatch({
         sourceTokenPath: generator.sourceToken,
         sourceCollectionId: generator.sourceCollectionId,
         targetSourceKeys: sourceKeys,

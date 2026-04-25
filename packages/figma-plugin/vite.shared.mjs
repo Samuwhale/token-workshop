@@ -14,11 +14,14 @@ export const pluginAliases = {
 };
 
 export function handleUiBuildWarning(warning, defaultHandler) {
-  const fromLucideReact =
+  const fromIgnoredDependency =
     typeof warning.id === 'string' &&
-    warning.id.includes('/lucide-react/dist/esm/');
+    (
+      warning.id.includes('/lucide-react/dist/esm/') ||
+      warning.id.includes('/@xyflow/react/dist/esm/')
+    );
 
-  if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && fromLucideReact) {
+  if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && fromIgnoredDependency) {
     return;
   }
 

@@ -251,6 +251,11 @@ export function UnifiedSourceInput({
               </span>
             </div>
           )}
+          {sourceTokenPath && linkedSource.isAmbiguous && (
+            <p className="text-body text-[var(--color-figma-warning)]">
+              This source path exists in multiple collections. Pick the source token again to bind it to one collection explicitly.
+            </p>
+          )}
         </div>
       )}
 

@@ -122,7 +122,8 @@ export function useTokenRename({
       return;
     }
     const targetPaths = new Set([oldPath]);
-    const source = perCollectionFlat ?? (allTokensFlat ? { '': allTokensFlat } : {});
+    const source =
+      perCollectionFlat ?? (allTokensFlat ? { [collectionId]: allTokensFlat } : {});
     const generatorImpacts = computeGeneratorImpacts(
       targetPaths,
       collectionId,

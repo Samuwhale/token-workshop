@@ -68,7 +68,7 @@ import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
 import { useValidationCache } from "./hooks/useValidationCache";
-import { createGeneratedGroupSourceKey } from "./shared/generatorSource";
+import { createGeneratorSourceKey } from "@tokenmanager/core";
 import { resolveGeneratedGroupSourceContext } from "./shared/generatedGroupUtils";
 import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
@@ -78,7 +78,8 @@ import {
 } from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
-import { stableStringify, tokenPathToUrlSegment } from "./shared/utils";
+import { getErrorMessage, stableStringify, tokenPathToUrlSegment } from "./shared/utils";
+import { detachAliasModes, rewireAliasModes } from "./shared/aliasMutations";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
@@ -734,7 +735,7 @@ export function App() {
     (savedPath: string, savedCollectionId: string) => {
       setHighlightedToken(savedPath);
       setTokenDetails(null);
-      const sourceKey = createGeneratedGroupSourceKey({
+      const sourceKey = createGeneratorSourceKey({
         sourceTokenPath: savedPath,
         sourceCollectionId: savedCollectionId,
         pathToCollectionId,
@@ -1511,6 +1512,81 @@ export function App() {
         collectionId = currentCollectionId,
       ) => setPaletteDeleteConfirm({ paths, label, collectionId }),
       handlePaletteDeleteToken,
+      applyAliasRewire: async ({
+        tokenPath,
+        tokenCollectionId,
+        targetPath,
+        targetCollectionId,
+        modeNames,
+      }: {
+        tokenPath: string;
+        tokenCollectionId: string;
+        targetPath: string;
+        targetCollectionId: string;
+        modeNames: string[];
+      }) => {
+        const collection = collections.find(
+          (c) => c.id === tokenCollectionId,
+        );
+        if (!collection) {
+          const message = `Collection "${tokenCollectionId}" not found`;
+          setErrorToast(message);
+          return { ok: false, error: message };
+        }
+        try {
+          await rewireAliasModes({
+            serverUrl,
+            collection,
+            tokenPath,
+            targetPath,
+            targetCollectionId,
+            pathToCollectionId,
+            collectionIdsByPath,
+            modeNames:
+              modeNames.length > 0
+                ? modeNames
+                : collection.modes.map((mode) => mode.name),
+          });
+          refreshAll();
+          return { ok: true };
+        } catch (err) {
+          const message = getErrorMessage(err);
+          setErrorToast(`Could not rewire alias: ${message}`);
+          return { ok: false, error: message };
+        }
+      },
+      applyAliasDetach: async ({
+        tokenPath,
+        tokenCollectionId,
+        modeLiterals,
+      }: {
+        tokenPath: string;
+        tokenCollectionId: string;
+        modeLiterals: Record<string, unknown>;
+      }) => {
+        const collection = collections.find(
+          (c) => c.id === tokenCollectionId,
+        );
+        if (!collection) {
+          const message = `Collection "${tokenCollectionId}" not found`;
+          setErrorToast(message);
+          return { ok: false, error: message };
+        }
+        try {
+          await detachAliasModes({
+            serverUrl,
+            collection,
+            tokenPath,
+            modeLiterals,
+          });
+          refreshAll();
+          return { ok: true };
+        } catch (err) {
+          const message = getErrorMessage(err);
+          setErrorToast(`Could not detach alias: ${message}`);
+          return { ok: false, error: message };
+        }
+      },
     },
     apply: {
       triggerCreateToken,

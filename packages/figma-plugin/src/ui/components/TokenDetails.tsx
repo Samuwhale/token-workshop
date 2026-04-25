@@ -7,7 +7,13 @@ import { AUTHORING } from "../shared/editorClasses";
 import { apiFetch } from "../shared/apiFetch";
 import { buildTokenEditorValueBody } from "../shared/tokenEditorPayload";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { createGeneratorOwnershipKey, resolveRefValue } from "@tokenmanager/core";
+import {
+  createGeneratorOwnershipKey,
+  getCollectionIdsForPath,
+  pathExistsInCollection,
+  resolveCollectionIdForPath,
+  resolveRefValue,
+} from "@tokenmanager/core";
 import type { TokenCollection } from "@tokenmanager/core";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
@@ -31,6 +37,8 @@ import { PathAutocomplete } from "./PathAutocomplete";
 import { useTokenEditorFields } from "../hooks/useTokenEditorFields";
 import { useTokenEditorLoad } from "../hooks/useTokenEditorLoad";
 import { useTokenDependents } from "../hooks/useTokenDependents";
+import { useTokenAncestors } from "../hooks/useTokenAncestors";
+import { formatTokenValueForDisplay } from "../shared/tokenFormatting";
 import { useTokenTypeParsing } from "../hooks/useTokenTypeParsing";
 import { useTokenEditorUIState } from "../hooks/useTokenEditorUIState";
 import { useTokenEditorSave } from "../hooks/useTokenEditorSave";
@@ -59,12 +67,6 @@ import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvance
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 import { TokenDetailsSection } from "./token-details/TokenDetailsSection";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
-import {
-  getCollectionIdsForPath,
-  pathExistsInCollection,
-  resolveCollectionIdForPath,
-} from "../shared/collectionPathLookup";
-
 interface TokenDetailsProps {
   tokenPath: string;
   tokenName?: string;
@@ -77,6 +79,7 @@ interface TokenDetailsProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   generators?: TokenGenerator[];
   isCreateMode?: boolean;
   initialType?: string;
@@ -100,6 +103,7 @@ interface TokenDetailsProps {
   ) => void;
   onNavigateToGeneratedGroup?: (generatorId: string) => void;
   onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
+  onViewInGraph?: (path: string, collectionId: string) => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
@@ -114,6 +118,23 @@ function cloneModeValue<T>(value: T): T {
   return typeof value === "object" && value !== null
     ? structuredClone(value)
     : value;
+}
+
+function getAncestorRowStatusLabel(
+  status: "missing" | "ambiguous" | "cycle" | undefined,
+): string | null {
+  if (!status) return null;
+  if (status === "ambiguous") return "ambiguous";
+  return status;
+}
+
+function getAncestorTerminalNote(
+  terminalKind: "literal" | "missing" | "ambiguous" | "cycle" | "depth",
+): string | null {
+  if (terminalKind === "depth") {
+    return "Chain truncated after too many hops.";
+  }
+  return null;
 }
 
 function formatCollectionIdList(collectionIds: string[]): string {
@@ -142,6 +163,7 @@ export function TokenDetails({
   allTokensFlat = {},
   pathToCollectionId = {},
   collectionIdsByPath = {},
+  perCollectionFlat = {},
   generators = [],
   isCreateMode = false,
   initialType,
@@ -158,6 +180,7 @@ export function TokenDetails({
   onNavigateToToken,
   onNavigateToGeneratedGroup,
   onOpenGeneratedGroupEditor,
+  onViewInGraph,
   pushUndo,
   lintViolations = [],
   syncSnapshot,
@@ -176,6 +199,7 @@ export function TokenDetails({
             path: tokenPath,
             pathToCollectionId,
             collectionIdsByPath,
+            preferredCollectionId: currentCollectionId,
           }).collectionId ?? currentCollectionId),
     [
       collectionIdsByPath,
@@ -301,11 +325,19 @@ export function TokenDetails({
   const { loading, pendingDraft, setPendingDraft, initialServerSnapshotRef } =
     loadResult;
 
-  const { dependents, dependentsLoading: _dependentsLoading } = useTokenDependents({
+  const { dependents } = useTokenDependents({
     serverUrl,
     collectionId: ownerCollectionId,
     tokenPath,
     isCreateMode,
+  });
+  const ancestors = useTokenAncestors({
+    tokenPath,
+    collectionId: ownerCollectionId,
+    collections,
+    perCollectionFlat,
+    pathToCollectionId,
+    collectionIdsByPath,
   });
   const typeParsing = useTokenTypeParsing({
     tokenType,
@@ -2057,19 +2089,115 @@ export function TokenDetails({
               </div>
             ) : null}
 
+            {onViewInGraph || (isInspectMode && onOpenInHealth) ? (
+              <div className="tm-token-details__field">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="tm-token-details__field-label">Explore</span>
+                  <div className="flex items-center gap-2">
+                    {onViewInGraph ? (
+                      <button
+                        type="button"
+                        onClick={() => onViewInGraph(tokenPath, ownerCollectionId)}
+                        className="tm-token-details__text-button"
+                      >
+                        View in graph
+                      </button>
+                    ) : null}
+                    {isInspectMode && onOpenInHealth ? (
+                      <button
+                        type="button"
+                        onClick={onOpenInHealth}
+                        className="tm-token-details__text-button"
+                      >
+                        Open in review
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {!ancestors.isEmpty ? (
+              <div className="tm-token-details__field">
+                <span className="tm-token-details__field-label">Resolves to</span>
+                <div className="tm-token-details__list-box">
+                  {ancestors.chains.map((chain) => (
+                    <div key={chain.modeName}>
+                      {ancestors.chains.length > 1 ? (
+                        <div className="tm-token-details__list-note">{chain.modeName}</div>
+                      ) : null}
+                      {chain.rows.map((row, rowIdx) => {
+                        const key = `${chain.modeName}::${rowIdx}::${row.path}`;
+                        const crossCollection =
+                          row.collectionId && row.collectionId !== ownerCollectionId;
+                        const statusLabel = getAncestorRowStatusLabel(row.status);
+                        const tags = (
+                          <>
+                            {crossCollection ? (
+                              <span className="tm-token-details__mini-tag">{row.collectionId}</span>
+                            ) : null}
+                            {row.formulaSource ? (
+                              <span
+                                className="tm-token-details__mini-tag"
+                                title={row.formulaSource}
+                              >
+                                formula
+                              </span>
+                            ) : null}
+                            {statusLabel ? (
+                              <span className="tm-token-details__mini-tag">{statusLabel}</span>
+                            ) : null}
+                          </>
+                        );
+                        if (
+                          onNavigateToToken &&
+                          row.collectionId &&
+                          row.status !== "missing" &&
+                          row.status !== "ambiguous"
+                        ) {
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => onNavigateToToken(row.path, row.collectionId)}
+                              className="tm-token-details__list-row"
+                              title={`Open ${row.path}`}
+                            >
+                              <span className={LONG_TEXT_CLASSES.monoPrimary}>{row.path}</span>
+                              {tags}
+                            </button>
+                          );
+                        }
+                        return (
+                          <div key={key} className="tm-token-details__list-row">
+                            <span className={LONG_TEXT_CLASSES.monoPrimary}>{row.path}</span>
+                            {tags}
+                          </div>
+                        );
+                      })}
+                      {chain.terminalKind === "literal" && chain.terminalValue !== undefined ? (
+                        <div className="tm-token-details__list-row">
+                          <span className={LONG_TEXT_CLASSES.monoPrimary}>
+                            {formatTokenValueForDisplay(chain.terminalType, chain.terminalValue)}
+                          </span>
+                        </div>
+                      ) : null}
+                      {(() => {
+                        const terminalNote = getAncestorTerminalNote(chain.terminalKind);
+                        return terminalNote ? (
+                          <div className="tm-token-details__list-note">{terminalNote}</div>
+                        ) : null;
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {dependents.length > 0 ? (
               <div className="tm-token-details__field">
                 <div className="flex items-center justify-between gap-2">
                   <span className="tm-token-details__field-label">Dependent tokens</span>
-                  {isInspectMode && onOpenInHealth ? (
-                    <button
-                      type="button"
-                      onClick={onOpenInHealth}
-                      className="tm-token-details__text-button"
-                    >
-                      Open in review
-                    </button>
-                  ) : null}
                 </div>
                 <div className="tm-token-details__list-box">
                   {dependents.slice(0, 20).map((dep) =>

@@ -16,15 +16,17 @@ export function useTokenDependents({
   isCreateMode,
 }: UseTokenDependentsParams) {
   const [dependents, setDependents] = useState<Array<{ path: string; collectionId: string }>>([]);
-  const [dependentsLoading, setDependentsLoading] = useState(false);
 
   const encodedTokenPath = tokenPathToUrlSegment(tokenPath);
 
   useEffect(() => {
-    if (isCreateMode) return;
+    if (isCreateMode || !collectionId || !tokenPath) {
+      setDependents([]);
+      return;
+    }
     const controller = new AbortController();
     const fetchDependents = async () => {
-      setDependentsLoading(true);
+      setDependents([]);
       try {
         const data = await apiFetch<{ dependents?: Array<{ path: string; collectionId: string }> }>(
           `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/dependents/${encodedTokenPath}`,
@@ -34,13 +36,11 @@ export function useTokenDependents({
       } catch (err) {
         if (isAbortError(err)) return;
         console.warn('[TokenEditor] failed to fetch dependents:', err);
-      } finally {
-        setDependentsLoading(false);
       }
     };
     fetchDependents();
     return () => controller.abort();
   }, [serverUrl, collectionId, tokenPath, isCreateMode, encodedTokenPath]);
 
-  return { dependents, dependentsLoading };
+  return { dependents };
 }

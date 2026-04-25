@@ -25,6 +25,14 @@ function isModeValuesRecord(value: unknown): value is TokenModeValues {
   return isPlainObject(value);
 }
 
+type ExtensionsReadableToken = {
+  $extensions?: unknown;
+};
+
+type ModeReadableToken = ExtensionsReadableToken & {
+  $value: unknown;
+};
+
 function normalizeCollectionMode(value: unknown): CollectionMode | null {
   if (!isPlainObject(value)) {
     return null;
@@ -126,7 +134,7 @@ export function findCollectionById(
 }
 
 export function readTokenCollectionModeValues(
-  token: Pick<Token, "$extensions"> | undefined,
+  token: ExtensionsReadableToken | undefined,
 ): TokenModeValues {
   const rawModes = (token?.$extensions as TokenExtensions | undefined)?.tokenmanager?.modes;
   if (!isModeValuesRecord(rawModes)) {
@@ -230,7 +238,7 @@ export function writeTokenCollectionModeValues(
 }
 
 export function readTokenModeValuesForCollection(
-  token: Pick<Token, "$value" | "$extensions">,
+  token: ModeReadableToken,
   collection: Pick<TokenCollection, "id" | "modes">,
 ): Record<string, unknown> {
   const primaryModeName = collection.modes[0]?.name;

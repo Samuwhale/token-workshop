@@ -44,6 +44,10 @@ function ColorSwatch({ color }: { color: string }) {
   );
 }
 
+function getMatchColor(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
 export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNudgeProps) {
   if (matches.length === 0) return null;
 
@@ -51,6 +55,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
 
   if (matches.length === 1) {
     const m = matches[0];
+    const matchColor = isColor ? getMatchColor(m.resolvedValue) : null;
     const pathParts = m.path.split('.');
     const leafName = pathParts[pathParts.length - 1];
     return (
@@ -63,7 +68,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
             onClick={() => onAccept(m.path)}
             className="inline-flex items-center gap-1 font-medium hover:underline cursor-pointer bg-transparent border-none p-0 text-[var(--color-figma-accent)] text-secondary"
           >
-            {isColor && <ColorSwatch color={m.resolvedValue} />}
+            {matchColor ? <ColorSwatch color={matchColor} /> : null}
             <strong>{`{${formatDisplayPath(m.path, leafName)}}`}</strong>
           </button>
           <MatchLabel label={m.label} />
@@ -107,6 +112,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
         )}
       </div>
       {matches.map((m) => {
+        const matchColor = isColor ? getMatchColor(m.resolvedValue) : null;
         const pathParts = m.path.split('.');
         const leafName = pathParts[pathParts.length - 1];
         return (
@@ -116,7 +122,7 @@ export function TokenNudge({ matches, tokenType, onAccept, onDismiss }: TokenNud
             onClick={() => onAccept(m.path)}
             className="flex items-center gap-1.5 w-full px-2 py-1 hover:bg-[var(--color-figma-accent)]/15 cursor-pointer bg-transparent border-none text-left text-[var(--color-figma-accent)] text-secondary transition-colors"
           >
-            {isColor && <ColorSwatch color={m.resolvedValue} />}
+            {matchColor ? <ColorSwatch color={matchColor} /> : null}
             <strong className="flex-1 min-w-0 truncate">{`{${formatDisplayPath(m.path, leafName)}}`}</strong>
             <MatchLabel label={m.label} />
             {m.label === 'Close' && isColor && (

@@ -19,6 +19,7 @@ import {
 } from "./useGeneratedGroupPreview";
 
 export interface GeneratorSaveSuccessInfo {
+  generatorId: string;
   targetGroup: string;
   targetCollection: string;
 }
@@ -151,8 +152,13 @@ export function useGeneratedGroupSave({
   >(initialSelectedSemanticPatternId);
   const overwriteCheckRequestIdRef = useRef(0);
   const getToastAction = useCallback(
-    (targetGroupAtSave: string, targetCollectionAtSave: string) =>
+    (
+      generatorIdAtSave: string,
+      targetGroupAtSave: string,
+      targetCollectionAtSave: string,
+    ) =>
       getSuccessToastAction?.({
+        generatorId: generatorIdAtSave,
         targetGroup: targetGroupAtSave,
         targetCollection: targetCollectionAtSave,
       }),
@@ -355,7 +361,11 @@ export function useGeneratedGroupSave({
             : `Generated group "${displayName}" created`,
           "success",
           {
-            action: getToastAction(targetGroupAtSave, targetCollectionAtSave),
+            action: getToastAction(
+              savedGen.id,
+              targetGroupAtSave,
+              targetCollectionAtSave,
+            ),
             destination: {
               kind: "workspace",
               topTab: "library",
@@ -364,6 +374,7 @@ export function useGeneratedGroupSave({
           },
         );
         onSaved({
+          generatorId: savedGen.id,
           targetGroup: targetGroupAtSave,
           targetCollection: targetCollectionAtSave,
         });
