@@ -25,10 +25,11 @@ import {
   type GraphHopDepth,
 } from "../../hooks/useFocusedSubgraph";
 import type { GraphModel, GraphNodeId } from "@tokenmanager/core";
-import type {
-  GraphRenderEdge,
-  GraphRenderModel,
-  GraphRenderNode,
+import {
+  bucketKeyFromClusterId,
+  type GraphRenderEdge,
+  type GraphRenderModel,
+  type GraphRenderNode,
 } from "./graphClusters";
 import { TokenNode } from "./nodes/TokenNode";
 import { GeneratorNode } from "./nodes/GeneratorNode";
@@ -37,7 +38,6 @@ import { ClusterNode } from "./nodes/ClusterNode";
 import { AliasEdge as AliasEdgeComponent } from "./edges/AliasEdge";
 import { GeneratorSourceEdge } from "./edges/GeneratorSourceEdge";
 import { GeneratorProducesEdge } from "./edges/GeneratorProducesEdge";
-import { GraphLegend } from "./GraphLegend";
 import { layoutFocused, nodeDimensions, type LayoutResult } from "./graphLayout";
 import "@xyflow/react/dist/style.css";
 
@@ -122,6 +122,13 @@ function FocusCanvasInner({
   } | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<GraphNodeId | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<GraphNodeId[]>([]);
+  const [expandedBuckets, setExpandedBuckets] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  useEffect(() => {
+    setExpandedBuckets(new Set());
+  }, [focusId]);
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
@@ -136,59 +143,51 @@ function FocusCanvasInner({
     focusId,
     hopDepth,
     scopeCollectionIds,
+    expandedBuckets,
   );
 
   const layout: LayoutResult = useMemo(
     () =>
-      focusId && !isEmpty
+      focusId
         ? layoutFocused(subgraph, focusId)
         : { positions: new Map(), clusters: new Map(), width: 0, height: 0 },
-    [subgraph, focusId, isEmpty],
+    [subgraph, focusId],
   );
 
-  // Hover precedence over focus for the 1-hop emphasis ring.
-  const activeNodeIds = useMemo<Set<GraphNodeId> | null>(() => {
-    const anchor =
-      hoveredNodeId && subgraph.nodes.has(hoveredNodeId)
-        ? hoveredNodeId
-        : focusId && subgraph.nodes.has(focusId)
-          ? focusId
-          : null;
-    if (!anchor) return null;
-    const active = new Set<GraphNodeId>([anchor]);
-    if (focusId && subgraph.nodes.has(focusId)) active.add(focusId);
-    for (const edgeId of subgraph.outgoing.get(anchor) ?? []) {
-      const edge = subgraph.edges.get(edgeId);
-      if (edge) active.add(edge.to);
-    }
-    for (const edgeId of subgraph.incoming.get(anchor) ?? []) {
-      const edge = subgraph.edges.get(edgeId);
-      if (edge) active.add(edge.from);
-    }
-    return active;
-  }, [subgraph, hoveredNodeId, focusId]);
+  const expandCluster = useCallback((clusterId: GraphNodeId) => {
+    if (!focusId) return;
+    const bucketKey = bucketKeyFromClusterId(focusId, clusterId);
+    if (!bucketKey) return;
+    setExpandedBuckets((current) => {
+      const next = new Set(current);
+      next.add(bucketKey);
+      return next;
+    });
+  }, [focusId]);
 
   const nodes = useMemo(() => {
     const rfNodes: Node[] = [];
     for (const node of subgraph.nodes.values()) {
       const pos = layout.positions.get(node.id) ?? { x: 0, y: 0 };
       const dims = nodeDimensions(node);
-      const isDimmed = activeNodeIds !== null && !activeNodeIds.has(node.id);
-      rfNodes.push(buildRfNode(node, pos, dims, focusId, isDimmed));
+      rfNodes.push(buildRfNode(node, pos, dims, focusId, expandCluster));
     }
     return rfNodes;
-  }, [activeNodeIds, focusId, subgraph, layout.positions]);
+  }, [focusId, subgraph, layout.positions, expandCluster]);
 
   const edges = useMemo(() => {
     const rfEdges: Edge[] = [];
     for (const edge of subgraph.edges.values()) {
-      const isDimmed =
-        activeNodeIds !== null &&
-        !(activeNodeIds.has(edge.from) && activeNodeIds.has(edge.to));
-      rfEdges.push(buildRfEdge(edge, subgraph, collectionModeCountById, isDimmed));
+      const isEmphasized = Boolean(
+        hoveredNodeId &&
+          (edge.from === hoveredNodeId || edge.to === hoveredNodeId),
+      );
+      rfEdges.push(
+        buildRfEdge(edge, subgraph, collectionModeCountById, isEmphasized),
+      );
     }
     return rfEdges;
-  }, [activeNodeIds, collectionModeCountById, subgraph]);
+  }, [hoveredNodeId, collectionModeCountById, subgraph]);
 
   // Pan to the focus node without changing zoom. Deliberately no `fitView`
   // on data change — that was the source of "where did my graph go?" jumps
@@ -211,7 +210,6 @@ function FocusCanvasInner({
       if (!node) return;
       if (node.kind === "token") onSelectToken(node.path, node.collectionId);
       else if (node.kind === "generator") onSelectGenerator(node.generatorId);
-      // Cluster pills are inert in PR1; PR2 ships a "show more" affordance.
     },
     [subgraph, onSelectGenerator, onSelectToken],
   );
@@ -479,7 +477,7 @@ function FocusCanvasInner({
     return (
       <div className="tm-graph relative flex h-full w-full items-center justify-center">
         <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-          Pick a token to focus on.
+          This token isn’t in the current scope.
         </div>
       </div>
     );
@@ -529,9 +527,6 @@ function FocusCanvasInner({
           className="tm-graph-controls"
         />
       </ReactFlow>
-      <div className="pointer-events-none absolute bottom-3 left-3 z-20">
-        <GraphLegend />
-      </div>
       {selectedTokenNodes.length >= 2 ? (
         <SelectionActionBar
           tokens={selectedTokenNodes}
@@ -585,7 +580,7 @@ function buildRfNode(
   position: { x: number; y: number },
   dims: { width: number; height: number },
   focusId: GraphNodeId | null,
-  isDimmed: boolean,
+  expandCluster: (clusterId: GraphNodeId) => void,
 ): Node {
   const isFocused = node.id === focusId;
   if (node.kind === "token") {
@@ -595,7 +590,7 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { token: node, isFocused, isDimmed },
+      data: { token: node, isFocused },
       selectable: true,
       draggable: false,
       connectable: true,
@@ -609,7 +604,7 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { generator: node, isFocused, isDimmed },
+      data: { generator: node, isFocused },
       selectable: true,
       draggable: false,
       connectable: false,
@@ -623,7 +618,11 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { cluster: node, variant: "pill", isDimmed },
+      data: {
+        cluster: node,
+        variant: "pill",
+        onExpand: () => expandCluster(node.id),
+      },
       selectable: true,
       draggable: false,
       connectable: false,
@@ -636,7 +635,7 @@ function buildRfNode(
     position,
     width: dims.width,
     height: dims.height,
-    data: { ghost: node, isDimmed },
+    data: { ghost: node },
     selectable: false,
     draggable: false,
     connectable: false,
@@ -648,7 +647,7 @@ function buildRfEdge(
   edge: GraphRenderEdge,
   graph: GraphRenderModel,
   collectionModeCountById: Map<string, number>,
-  isDimmed: boolean,
+  isEmphasized: boolean,
 ): Edge {
   const aggregateCount = edge.aggregateCount;
   const base = {
@@ -657,7 +656,7 @@ function buildRfEdge(
     target: edge.to,
     type: edge.kind,
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    data: { isHighlighted: false, isDimmed, aggregateCount },
+    data: { isHighlighted: false, isEmphasized, aggregateCount },
   };
   if (edge.kind !== "alias") {
     return base;

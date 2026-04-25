@@ -11,10 +11,13 @@ import type { TokensLibraryGeneratedGroupEditorTarget } from "../../shared/navig
 import { useGraphData } from "../../hooks/useGraphData";
 import { useGraphMutations } from "../../hooks/useGraphMutations";
 import { usePersistedJsonState } from "../../hooks/usePersistedState";
+import { useGraphRecents } from "../../hooks/useGraphRecents";
+import { useIssuesGroups } from "../../hooks/useIssuesGroups";
 import type { GraphHopDepth } from "../../hooks/useFocusedSubgraph";
 import { GraphCanvas, type GraphMode } from "./GraphCanvas";
 import { GraphInspector } from "./GraphInspector";
 import { GraphSROutline } from "./GraphSROutline";
+import { GraphToolbar } from "./GraphToolbar";
 import { RewireConfirm } from "./interactions/RewireConfirm";
 import { DetachConfirm } from "./interactions/DetachConfirm";
 import {
@@ -205,6 +208,8 @@ export function GraphPanel({
     setGraphState((current) => ({ ...current, hopDepth: next }));
   const setFocusId = (next: GraphNodeId | null) =>
     setGraphState((current) => ({ ...current, focusId: next }));
+  const setScopeCollectionIds = (next: string[]) =>
+    setGraphState((current) => ({ ...current, scopeCollectionIds: next }));
 
   const handleSelectIssue = (primaryNodeId: GraphNodeId) => {
     setGraphState((current) => ({
@@ -215,16 +220,32 @@ export function GraphPanel({
     setSelectedEdgeId(null);
   };
 
+  useGraphRecents(fullGraph, focusId);
+
+  const issueGroups = useIssuesGroups(fullGraph, activeCollectionIds);
+  const issuesCount = useMemo(
+    () => issueGroups.reduce((n, g) => n + g.entries.length, 0),
+    [issueGroups],
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
-      {import.meta.env.DEV ? (
-        <DevDebugControl
-          mode={mode}
-          hopDepth={hopDepth}
-          onModeChange={setMode}
-          onHopDepthChange={setHopDepth}
-        />
-      ) : null}
+      <GraphToolbar
+        mode={mode}
+        focusId={focusId}
+        hopDepth={hopDepth}
+        scopeCollectionIds={activeCollectionIds}
+        collections={collections}
+        fullGraph={fullGraph}
+        issuesCount={issuesCount}
+        onModeChange={setMode}
+        onFocusChange={(nodeId) => {
+          setFocusId(nodeId);
+          setSelectedEdgeId(null);
+        }}
+        onHopDepthChange={setHopDepth}
+        onScopeChange={setScopeCollectionIds}
+      />
       <div className="flex min-h-0 flex-1">
         <div className="relative min-h-0 min-w-0 flex-1">
           <GraphCanvas
@@ -233,6 +254,7 @@ export function GraphPanel({
             focusId={focusId}
             hopDepth={hopDepth}
             scopeCollectionIds={activeCollectionIds}
+            collections={collections}
             collectionModeCountById={collectionModeCountById}
             selectedEdgeId={selectedEdgeId}
             onSelectToken={(path, collectionId) => {
@@ -258,6 +280,7 @@ export function GraphPanel({
               setSelectedEdgeId(null);
             }}
             onSelectIssue={handleSelectIssue}
+            onShowIssues={() => setMode("issues")}
             onRequestDeleteToken={(path, collectionId) => {
               deleteToken(path, collectionId);
             }}
@@ -402,51 +425,3 @@ export function GraphPanel({
   );
 }
 
-const HOP_DEPTHS: GraphHopDepth[] = [1, 2, "chain"];
-const MODES: GraphMode[] = ["focus", "issues"];
-
-function DevDebugControl({
-  mode,
-  hopDepth,
-  onModeChange,
-  onHopDepthChange,
-}: {
-  mode: GraphMode;
-  hopDepth: GraphHopDepth;
-  onModeChange: (next: GraphMode) => void;
-  onHopDepthChange: (next: GraphHopDepth) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
-      {MODES.map((m) => (
-        <button
-          key={m}
-          type="button"
-          onClick={() => onModeChange(m)}
-          className={`rounded px-1.5 py-0.5 ${
-            mode === m
-              ? "bg-[var(--color-figma-accent)] text-white"
-              : "border border-[var(--color-figma-border)]"
-          }`}
-        >
-          {m}
-        </button>
-      ))}
-      <span className="w-4" aria-hidden />
-      {HOP_DEPTHS.map((d) => (
-        <button
-          key={String(d)}
-          type="button"
-          onClick={() => onHopDepthChange(d)}
-          className={`rounded px-1.5 py-0.5 ${
-            hopDepth === d
-              ? "bg-[var(--color-figma-accent)] text-white"
-              : "border border-[var(--color-figma-border)]"
-          }`}
-        >
-          {String(d)}
-        </button>
-      ))}
-    </div>
-  );
-}

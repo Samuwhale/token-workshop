@@ -124,10 +124,20 @@ interface NeighbourMeta {
  * `aggregateCount` + `sourceEdgeIds` shape that downstream renderers already
  * expect.
  */
+export function bucketKeyFromClusterId(
+  anchorId: GraphNodeId,
+  clusterId: GraphNodeId,
+): string | null {
+  const prefix = `cluster:agg:${anchorId}:`;
+  if (!clusterId.startsWith(prefix)) return null;
+  return clusterId.slice(prefix.length);
+}
+
 export function aggregateNeighbours(
   subgraph: GraphModel,
   anchorId: GraphNodeId,
   max: number = DEFAULT_AGGREGATE_MAX,
+  expandedBucketKeys?: ReadonlySet<string>,
 ): GraphRenderModel {
   const meta = new Map<GraphNodeId, NeighbourMeta>();
   if (subgraph.nodes.has(anchorId)) {
@@ -149,6 +159,7 @@ export function aggregateNeighbours(
   const clusterNodes = new Map<GraphNodeId, GraphClusterNode>();
   for (const [key, ids] of groups) {
     if (ids.length <= max) continue;
+    if (expandedBucketKeys?.has(key)) continue;
     const clusterId = `cluster:agg:${anchorId}:${key}`;
     const sample = subgraph.nodes.get(ids[0]);
     clusterNodes.set(clusterId, {
@@ -194,6 +205,19 @@ export function aggregateNeighbours(
     edges.set(edgeId, projected);
     pushAdjacency(outgoing, from, edgeId);
     pushAdjacency(incoming, to, edgeId);
+  }
+
+  // Relabel clusters whose only incoming edges are `generator-produces` as
+  // `produces · N`, so a generator's many outputs read as one relationship.
+  for (const [clusterId, cluster] of clusterNodes) {
+    const incomingIds = incoming.get(clusterId) ?? [];
+    if (incomingIds.length === 0) continue;
+    const allProduces = incomingIds.every(
+      (id) => edges.get(id)?.kind === "generator-produces",
+    );
+    if (allProduces) {
+      cluster.label = `produces · ${cluster.count}`;
+    }
   }
 
   return {

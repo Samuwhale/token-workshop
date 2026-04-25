@@ -13,6 +13,7 @@ export interface GraphIssueEntry {
   collectionId: string;
   primaryNodeId: GraphNodeId;
   relatedNodeIds: GraphNodeId[];
+  relatedEdgeId?: string;
   modeNames?: string[];
   message: string;
 }
@@ -63,6 +64,7 @@ export function useIssuesGroups(
         collectionId: downstream.collectionId,
         primaryNodeId: downstream.id,
         relatedNodeIds: [edge.from],
+        relatedEdgeId: edge.id,
         modeNames: edge.modeNames,
         message: `${downstream.path} → ${upstreamLabel}`,
       });

@@ -1,7 +1,12 @@
-import type { GraphModel, GraphNodeId } from "@tokenmanager/core";
+import type {
+  GraphModel,
+  GraphNodeId,
+  TokenCollection,
+} from "@tokenmanager/core";
 import type { GraphHopDepth } from "../../hooks/useFocusedSubgraph";
 import { FocusCanvas } from "./FocusCanvas";
-import { IssuesPlaceholder } from "./IssuesPlaceholder";
+import { GraphFocusEmpty } from "./GraphFocusEmpty";
+import { GraphIssuesList } from "./GraphIssuesList";
 
 export type GraphMode = "focus" | "issues";
 
@@ -11,6 +16,7 @@ interface GraphCanvasProps {
   focusId: GraphNodeId | null;
   hopDepth: GraphHopDepth;
   scopeCollectionIds: string[];
+  collections: TokenCollection[];
   collectionModeCountById: Map<string, number>;
   selectedEdgeId: string | null;
   onSelectToken: (path: string, collectionId: string) => void;
@@ -19,6 +25,7 @@ interface GraphCanvasProps {
   onActivateGenerator: (generatorId: string) => void;
   onFocusNode: (nodeId: GraphNodeId) => void;
   onSelectIssue: (primaryNodeId: GraphNodeId) => void;
+  onShowIssues: () => void;
   onRequestDeleteToken?: (path: string, collectionId: string) => void;
   onRequestRewire?: (params: {
     sourceNodeId: GraphNodeId;
@@ -45,6 +52,7 @@ export function GraphCanvas({
   focusId,
   hopDepth,
   scopeCollectionIds,
+  collections,
   collectionModeCountById,
   selectedEdgeId,
   onSelectToken,
@@ -53,6 +61,7 @@ export function GraphCanvas({
   onActivateGenerator,
   onFocusNode,
   onSelectIssue,
+  onShowIssues,
   onRequestDeleteToken,
   onRequestRewire,
   onRequestDetach,
@@ -62,10 +71,22 @@ export function GraphCanvas({
 }: GraphCanvasProps) {
   if (mode === "issues") {
     return (
-      <IssuesPlaceholder
+      <GraphIssuesList
         fullGraph={fullGraph}
         scopeCollectionIds={scopeCollectionIds}
-        onSelectIssue={onSelectIssue}
+        collections={collections}
+        onOpenInFocus={onSelectIssue}
+        onRequestDetach={onRequestDetach}
+      />
+    );
+  }
+  if (focusId === null) {
+    return (
+      <GraphFocusEmpty
+        fullGraph={fullGraph}
+        scopeCollectionIds={scopeCollectionIds}
+        onSelectFocus={onFocusNode}
+        onShowIssues={onShowIssues}
       />
     );
   }

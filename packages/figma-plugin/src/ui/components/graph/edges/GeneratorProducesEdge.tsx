@@ -13,7 +13,10 @@ export function GeneratorProducesEdge(props: EdgeProps) {
     data,
     selected,
   } = props;
-  const typed = (data ?? {}) as { isHighlighted?: boolean; isDimmed?: boolean };
+  const typed = (data ?? {}) as {
+    isHighlighted?: boolean;
+    isEmphasized?: boolean;
+  };
   const [path] = getBezierPath({
     sourceX,
     sourceY,
@@ -35,9 +38,8 @@ export function GeneratorProducesEdge(props: EdgeProps) {
       markerEnd={markerEnd}
       style={{
         stroke: color,
-        strokeWidth: typed.isHighlighted ? 2.5 : 1,
-        opacity: typed.isDimmed ? 0.2 : 1,
-        transition: "opacity 120ms",
+        strokeWidth: typed.isHighlighted || typed.isEmphasized ? 2.5 : 1,
+        transition: "stroke-width 120ms",
       }}
     />
   );

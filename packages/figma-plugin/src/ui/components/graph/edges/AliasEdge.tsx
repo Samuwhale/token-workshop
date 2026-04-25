@@ -6,7 +6,7 @@ export interface AliasEdgeData extends Record<string, unknown> {
   isCrossCollection?: boolean;
   totalCollectionModes?: number;
   isHighlighted?: boolean;
-  isDimmed?: boolean;
+  isEmphasized?: boolean;
   aggregateCount?: number;
 }
 
@@ -44,9 +44,8 @@ export function AliasEdge(props: EdgeProps) {
 
   const style = {
     stroke: color,
-    strokeWidth: typed.isHighlighted ? 2.5 : 1.5,
-    opacity: typed.isDimmed ? 0.2 : 1,
-    transition: "opacity 120ms",
+    strokeWidth: typed.isHighlighted || typed.isEmphasized ? 2.5 : 1.5,
+    transition: "stroke-width 120ms",
     ...(edge?.isMissingTarget ? { strokeDasharray: "4 3" } : {}),
   };
 

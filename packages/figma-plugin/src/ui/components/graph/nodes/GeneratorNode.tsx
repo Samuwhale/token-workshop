@@ -1,14 +1,11 @@
 import { memo } from "react";
-import { Handle, Position, useStore, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { GeneratorGraphNode } from "@tokenmanager/core";
 
 export interface GeneratorNodeData extends Record<string, unknown> {
   generator: GeneratorGraphNode;
   isFocused?: boolean;
-  isDimmed?: boolean;
 }
-
-const ZOOM_THRESHOLD = 0.7;
 
 function isGeneratorNodeData(data: unknown): data is GeneratorNodeData {
   return (
@@ -20,21 +17,23 @@ function isGeneratorNodeData(data: unknown): data is GeneratorNodeData {
 }
 
 function GeneratorNodeImpl({ data, selected }: NodeProps) {
-  const zoom = useStore((s) => s.transform[2]);
   if (!isGeneratorNodeData(data)) {
     return null;
   }
-  const { generator, isFocused, isDimmed } = data;
-  const isCompact = zoom < ZOOM_THRESHOLD;
+  const { generator, isFocused } = data;
   const errored = generator.health === "generator-error";
   const missingSource = generator.health === "broken";
+  const isAccented = selected || isFocused;
   const borderClass = errored
     ? "border-[var(--color-figma-error)]"
     : missingSource
       ? "border-[var(--color-figma-warning)]"
-    : selected || isFocused
-      ? "border-[var(--color-figma-accent)]"
-      : "border-[var(--color-figma-generator)]/60";
+      : isAccented
+        ? "border-[var(--color-figma-accent)]"
+        : "border-[var(--color-figma-generator)]/60";
+  const ringClass = isAccented
+    ? "ring-2 ring-[var(--color-figma-accent)]/40 ring-offset-0"
+    : "";
   const statusLabel = errored
     ? "failed"
     : generator.sourceIssue === "ambiguous"
@@ -45,8 +44,8 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`tm-graph-node flex h-14 items-center gap-2 rounded-full border bg-[var(--color-figma-generator)]/10 px-3 text-secondary text-[var(--color-figma-text)] transition-opacity ${borderClass}`}
-      style={{ width: 200, opacity: isDimmed ? 0.25 : 1 }}
+      className={`tm-graph-node flex h-14 items-center gap-2 rounded-full border bg-[var(--color-figma-generator)]/10 px-3 text-secondary text-[var(--color-figma-text)] ${borderClass} ${ringClass}`}
+      style={{ width: 200 }}
       title={generator.errorMessage ?? generator.name}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-generator)]" />
@@ -58,13 +57,11 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
       </span>
       <span className="flex min-w-0 flex-col leading-tight">
         <span className="truncate font-medium">{generator.name}</span>
-        {!isCompact ? (
-          <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {generator.outputCount} outputs
-            {!generator.enabled ? " · disabled" : ""}
-            {statusLabel ? ` · ${statusLabel}` : ""}
-          </span>
-        ) : null}
+        <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
+          {generator.outputCount} outputs
+          {!generator.enabled ? " · disabled" : ""}
+          {statusLabel ? ` · ${statusLabel}` : ""}
+        </span>
       </span>
       <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-generator)]" />
     </div>

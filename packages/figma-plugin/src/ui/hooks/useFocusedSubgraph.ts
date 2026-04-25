@@ -28,6 +28,7 @@ export function useFocusedSubgraph(
   focusId: GraphNodeId | null,
   hopDepth: GraphHopDepth,
   scopeCollectionIds: string[],
+  expandedBucketKeys?: ReadonlySet<string>,
 ): UseFocusedSubgraphResult {
   const scoped = useMemo(
     () => filterByCollections(fullGraph, scopeCollectionIds),
@@ -62,9 +63,14 @@ export function useFocusedSubgraph(
       hasMoreHops = expanded.nodes.size > sliced.nodes.size;
     }
 
-    const aggregated = aggregateNeighbours(sliced, focusId, FOCUS_AGGREGATE_MAX);
+    const aggregated = aggregateNeighbours(
+      sliced,
+      focusId,
+      FOCUS_AGGREGATE_MAX,
+      expandedBucketKeys,
+    );
     return { subgraph: aggregated, hasMoreHops, isEmpty: false };
-  }, [scoped, focusId, hopDepth]);
+  }, [scoped, focusId, hopDepth, expandedBucketKeys]);
 }
 
 function depthFor(hopDepth: GraphHopDepth): number {
