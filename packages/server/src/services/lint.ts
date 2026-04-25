@@ -25,7 +25,7 @@ export interface LintRuleConfig {
   /**
    * Exclude token paths matching these prefix patterns from this rule.
    * A pattern matches if the token path equals the pattern or starts with "<pattern>.".
-   * Example: ["legacy", "internal.raw"] skips paths under the "legacy" and "internal.raw" groups.
+   * Example: ["internal.raw"] skips paths under the "internal.raw" group.
    */
   excludePaths?: string[];
   /**
@@ -120,7 +120,7 @@ function parseSuppressionKey(
   }
 }
 
-export function canonicalizeSuppressionKey(key: string): string | null {
+function canonicalizeSuppressionKey(key: string): string | null {
   const parsed = parseSuppressionKey(key);
   if (!parsed) {
     return null;

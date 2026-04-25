@@ -5,7 +5,7 @@
  * can map them to HTTP status codes without fragile string matching.
  */
 
-export class HttpError extends Error {
+class HttpError extends Error {
   readonly statusCode: number;
   constructor(statusCode: number, message: string) {
     super(message);

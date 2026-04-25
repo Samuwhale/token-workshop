@@ -169,7 +169,7 @@ export function normalizeScopedVariableTokenGroup(tokens: TokenGroup): boolean {
  * per-mode values stored in `$extensions.tokenmanager.modes`.
  * Returns the number of string values that were modified.
  */
-export function walkAliasValues(
+function walkAliasValues(
   group: TokenGroup,
   updateString: (s: string) => string | null,
 ): number {
@@ -214,7 +214,7 @@ export function walkAliasValues(
  * Walk all leaf tokens under a token group object, calling `visitor` for each.
  * Skips `$`-prefixed keys (DTCG metadata).
  */
-export function walkLeafTokens(
+function walkLeafTokens(
   obj: TokenGroup,
   visitor: (relativePath: string, token: Token) => void,
   prefix = '',

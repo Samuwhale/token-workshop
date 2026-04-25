@@ -22,7 +22,7 @@ import { SelectionActionBar } from "./SelectionActionBar";
 import { useGraphKeyboardNav } from "../../hooks/useGraphKeyboardNav";
 import {
   useFocusedSubgraph,
-  type GraphHopDepth,
+  type GraphHopDepthSetting,
 } from "../../hooks/useFocusedSubgraph";
 import type { GraphModel, GraphNodeId } from "@tokenmanager/core";
 import {
@@ -35,16 +35,18 @@ import { TokenNode } from "./nodes/TokenNode";
 import { GeneratorNode } from "./nodes/GeneratorNode";
 import { GhostNode } from "./nodes/GhostNode";
 import { ClusterNode } from "./nodes/ClusterNode";
+import { LaneLabelNode } from "./nodes/LaneLabelNode";
 import { AliasEdge as AliasEdgeComponent } from "./edges/AliasEdge";
 import { GeneratorSourceEdge } from "./edges/GeneratorSourceEdge";
 import { GeneratorProducesEdge } from "./edges/GeneratorProducesEdge";
 import { layoutFocused, nodeDimensions, type LayoutResult } from "./graphLayout";
+import { collectionAccentHue } from "./collectionAccent";
 import "@xyflow/react/dist/style.css";
 
 interface FocusCanvasProps {
   fullGraph: GraphModel;
   focusId: GraphNodeId | null;
-  hopDepth: GraphHopDepth;
+  hopDepth: GraphHopDepthSetting;
   scopeCollectionIds: string[];
   collectionModeCountById: Map<string, number>;
   selectedEdgeId: string | null;
@@ -65,11 +67,9 @@ interface FocusCanvasProps {
     screenX: number;
     screenY: number;
   }) => void;
-  onCompareTokens?: (
-    a: { path: string; collectionId: string },
-    b: { path: string; collectionId: string },
-  ) => void;
   onSelectEdge: (edgeId: string | null) => void;
+  onSelectionChange?: (selectedNodeIds: GraphNodeId[]) => void;
+  onExpandMoreHops?: () => void;
   editingEnabled?: boolean;
 }
 
@@ -78,6 +78,7 @@ const NODE_TYPES = {
   generator: GeneratorNode,
   ghost: GhostNode,
   cluster: ClusterNode,
+  lane: LaneLabelNode,
 };
 
 const EDGE_TYPES = {
@@ -109,8 +110,9 @@ function FocusCanvasInner({
   onRequestDeleteToken,
   onRequestRewire,
   onRequestDetach,
-  onCompareTokens,
   onSelectEdge,
+  onSelectionChange,
+  onExpandMoreHops,
   editingEnabled = false,
 }: FocusCanvasProps) {
   const reactFlow = useReactFlow();
@@ -130,6 +132,22 @@ function FocusCanvasInner({
     setExpandedBuckets(new Set());
   }, [focusId]);
 
+  // When the focus jumps (e.g. user clicks a token in the inspector while a
+  // multi-select is active), React Flow's internal node selection won't clear
+  // by itself. Without this, the parent's `selectedTokenIds` would resync to
+  // the still-selected nodes on the next interaction and the compare view
+  // would flicker back. Clear both states whenever focus moves.
+  useEffect(() => {
+    setSelectedNodeIds([]);
+    onSelectionChange?.([]);
+    reactFlow.setNodes((current) =>
+      current.map((n) => (n.selected ? { ...n, selected: false } : n)),
+    );
+    // onSelectionChange is part of the contract; we deliberately don't depend
+    // on its identity to avoid clearing on every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, reactFlow]);
+
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
       lastPointerRef.current = { x: event.clientX, y: event.clientY };
@@ -138,7 +156,7 @@ function FocusCanvasInner({
     return () => document.removeEventListener("pointermove", onMove);
   }, []);
 
-  const { subgraph, isEmpty } = useFocusedSubgraph(
+  const { subgraph, isEmpty, hasMoreHops } = useFocusedSubgraph(
     fullGraph,
     focusId,
     hopDepth,
@@ -150,7 +168,14 @@ function FocusCanvasInner({
     () =>
       focusId
         ? layoutFocused(subgraph, focusId)
-        : { positions: new Map(), clusters: new Map(), width: 0, height: 0 },
+        : {
+            positions: new Map(),
+            clusters: new Map(),
+            lanes: [],
+            focusCollectionId: null,
+            width: 0,
+            height: 0,
+          },
     [subgraph, focusId],
   );
 
@@ -167,13 +192,35 @@ function FocusCanvasInner({
 
   const nodes = useMemo(() => {
     const rfNodes: Node[] = [];
+    // Lane labels render first (lower in the array → painted under tokens).
+    // ID keys on (collection, columnX) so React Flow keeps the same DOM node
+    // when hop depth changes the band index but not the band's column.
+    layout.lanes.forEach((lane) => {
+      rfNodes.push({
+        id: `lane:${lane.collectionId}:${Math.round(lane.x)}`,
+        type: "lane",
+        position: { x: lane.x, y: lane.y },
+        width: lane.width,
+        height: lane.height,
+        data: {
+          label: lane.label,
+          accentColor: collectionAccentHue(lane.collectionId),
+          width: lane.width,
+          height: lane.height,
+        },
+        selectable: false,
+        draggable: false,
+        connectable: false,
+        focusable: false,
+      });
+    });
     for (const node of subgraph.nodes.values()) {
       const pos = layout.positions.get(node.id) ?? { x: 0, y: 0 };
       const dims = nodeDimensions(node);
       rfNodes.push(buildRfNode(node, pos, dims, focusId, expandCluster));
     }
     return rfNodes;
-  }, [focusId, subgraph, layout.positions, expandCluster]);
+  }, [focusId, subgraph, layout.positions, layout.lanes, expandCluster]);
 
   const edges = useMemo(() => {
     const rfEdges: Edge[] = [];
@@ -254,9 +301,11 @@ function FocusCanvasInner({
 
   const handleSelectionChange: OnSelectionChangeFunc = useCallback(
     ({ nodes: selNodes }) => {
-      setSelectedNodeIds(selNodes.map((n) => n.id));
+      const ids = selNodes.map((n) => n.id);
+      setSelectedNodeIds(ids);
+      onSelectionChange?.(ids);
     },
-    [],
+    [onSelectionChange],
   );
 
   const copyToClipboard = useCallback((value: string) => {
@@ -531,21 +580,6 @@ function FocusCanvasInner({
         <SelectionActionBar
           tokens={selectedTokenNodes}
           onClear={handleClearSelection}
-          onCompare={
-            onCompareTokens && selectedTokenNodes.length === 2
-              ? () =>
-                  onCompareTokens(
-                    {
-                      path: selectedTokenNodes[0].path,
-                      collectionId: selectedTokenNodes[0].collectionId,
-                    },
-                    {
-                      path: selectedTokenNodes[1].path,
-                      collectionId: selectedTokenNodes[1].collectionId,
-                    },
-                  )
-              : undefined
-          }
           onCopyPaths={() =>
             copyToClipboard(
               selectedTokenNodes.map((n) => n.path).join("\n"),
@@ -570,6 +604,16 @@ function FocusCanvasInner({
           items={contextMenu.items}
           onClose={() => setContextMenu(null)}
         />
+      ) : null}
+      {hasMoreHops && onExpandMoreHops ? (
+        <button
+          type="button"
+          onClick={onExpandMoreHops}
+          className="pointer-events-auto absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] text-[var(--color-figma-text-secondary)] shadow-md hover:bg-[var(--color-figma-bg-hover)]"
+          title="Show one more hop in each direction"
+        >
+          Expand
+        </button>
       ) : null}
     </div>
   );
@@ -656,18 +700,15 @@ function buildRfEdge(
     target: edge.to,
     type: edge.kind,
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
-    data: { isHighlighted: false, isEmphasized, aggregateCount },
+    data: {
+      isEmphasized,
+      aggregateCount,
+    },
   };
   if (edge.kind !== "alias") {
     return base;
   }
-  const fromNode = graph.nodes.get(edge.from);
   const toNode = graph.nodes.get(edge.to);
-  const isCrossCollection = Boolean(
-    fromNode?.kind === "token" &&
-      toNode?.kind === "token" &&
-      fromNode.collectionId !== toNode.collectionId,
-  );
   const totalCollectionModes =
     toNode?.kind === "token"
       ? collectionModeCountById.get(toNode.collectionId)
@@ -677,7 +718,6 @@ function buildRfEdge(
     data: {
       ...base.data,
       edge,
-      isCrossCollection,
       totalCollectionModes,
     },
   };

@@ -3,7 +3,10 @@ import {
   createTokenValueBody,
   type TokenMutationBody,
 } from "./tokenMutations";
-import { sanitizeEditorCollectionModeValues } from "./collectionModeUtils";
+import {
+  completeEditorCollectionModeValues,
+  sanitizeEditorCollectionModeValues,
+} from "./collectionModeUtils";
 import {
   omitTokenEditorReservedExtensions,
   type TokenEditorLifecycle,
@@ -31,6 +34,7 @@ interface BuildTokenEditorValueBodyParams {
 
 function buildTokenEditorExtensions({
   colorModifiers,
+  value,
   modeValues,
   collection,
   passthroughTokenManager,
@@ -40,7 +44,7 @@ function buildTokenEditorExtensions({
   ignoreInvalidExtensionsJson,
 }: Omit<
   BuildTokenEditorValueBodyParams,
-  "tokenType" | "value" | "description" | "clearEmptyDescription" | "clearEmptyExtensions"
+  "tokenType" | "description" | "clearEmptyDescription" | "clearEmptyExtensions"
 >): Record<string, unknown> {
   let extensions: Record<string, unknown> | undefined;
   const tokenManagerExtensions: TokenEditorTokenManagerExtension =
@@ -51,7 +55,10 @@ function buildTokenEditorExtensions({
     delete tokenManagerExtensions.colorModifier;
   }
 
-  const cleanModes = sanitizeEditorCollectionModeValues(modeValues, collection);
+  const cleanModes = sanitizeEditorCollectionModeValues(
+    completeEditorCollectionModeValues(modeValues, collection, value),
+    collection,
+  );
   if (Object.keys(cleanModes).length > 0) {
     tokenManagerExtensions.modes = cleanModes;
   } else {

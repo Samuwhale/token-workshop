@@ -2,7 +2,6 @@ import type { TokenCollection } from "./types.js";
 import type {
   TokenGenerator,
   GeneratorType,
-  GeneratorManagedOutput,
 } from "./generator-types.js";
 import {
   createGeneratorOwnershipKey,
@@ -838,5 +837,3 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
 
   return { nodes, edges, outgoing, incoming, fingerprint };
 }
-
-export type { GeneratorManagedOutput };

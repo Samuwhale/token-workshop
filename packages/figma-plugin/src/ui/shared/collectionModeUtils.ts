@@ -61,6 +61,28 @@ export function sanitizeEditorCollectionModeValues(
     : {};
 }
 
+export function completeEditorCollectionModeValues(
+  modeValues: TokenEditorModeValues,
+  collection: TokenCollection | null | undefined,
+  primaryModeValue: unknown,
+): TokenEditorModeValues {
+  if (!collection || collection.modes.length < 2) {
+    return {};
+  }
+
+  const collectionModes = { ...(modeValues[collection.id] ?? {}) };
+  for (const mode of collection.modes.slice(1)) {
+    if (
+      collectionModes[mode.name] === undefined ||
+      collectionModes[mode.name] === null
+    ) {
+      collectionModes[mode.name] = primaryModeValue;
+    }
+  }
+
+  return { [collection.id]: collectionModes };
+}
+
 export function applyModeSelectionsToTokens(
   allTokensFlat: Record<string, TokenMapEntry>,
   collections: TokenCollection[],

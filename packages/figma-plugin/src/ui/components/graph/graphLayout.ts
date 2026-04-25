@@ -13,9 +13,22 @@ export interface NodePosition {
   height: number;
 }
 
+export interface LaneBand {
+  collectionId: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface LayoutResult {
   positions: Map<GraphNodeId, NodePosition>;
   clusters: Map<GraphNodeId, { label: string; x: number; y: number; width: number; height: number }>;
+  /** Per-column collection bands. Empty when there's only one collection in scope. */
+  lanes: LaneBand[];
+  /** Collection of the focused node, when known — used by renderers to tint cross-collection nodes. */
+  focusCollectionId: string | null;
   width: number;
   height: number;
 }
@@ -101,11 +114,20 @@ export function runDagreLayout(
     });
   }
 
-  return { positions, clusters, width: maxX, height: maxY };
+  return {
+    positions,
+    clusters,
+    lanes: [],
+    focusCollectionId: null,
+    width: maxX,
+    height: maxY,
+  };
 }
 
 const FOCUS_COLUMN_WIDTH = 260;
 const FOCUS_VERTICAL_GAP = 12;
+const FOCUS_LANE_GAP = 14;
+const FOCUS_LANE_LABEL_HEIGHT = 16;
 
 /**
  * Deterministic columnar layout for focus mode: pin the focused node at
@@ -118,11 +140,20 @@ export function layoutFocused(
   focusId: GraphNodeId,
 ): LayoutResult {
   const positions = new Map<GraphNodeId, NodePosition>();
+  const lanes: LaneBand[] = [];
   if (!subgraph.nodes.has(focusId)) {
-    return { positions, clusters: new Map(), width: 0, height: 0 };
+    return {
+      positions,
+      clusters: new Map(),
+      lanes,
+      focusCollectionId: null,
+      width: 0,
+      height: 0,
+    };
   }
 
   const focusNode = subgraph.nodes.get(focusId)!;
+  const focusCollectionId = collectionIdOf(focusNode);
   const focusDims = nodeDimensions(focusNode);
   positions.set(focusId, {
     x: -focusDims.width / 2,
@@ -149,28 +180,81 @@ export function layoutFocused(
     side: "upstream" | "downstream",
   ) => {
     if (nodeIds.length === 0) return;
-    const sorted = [...nodeIds].sort(orderForLayout(subgraph));
+    const sorted = [...nodeIds].sort(
+      orderForLayout(subgraph, focusCollectionId),
+    );
+
+    // Group by collection in the order they appear after sorting (focus
+    // collection first, then alphabetical).
+    const bands: { collectionId: string; ids: GraphNodeId[] }[] = [];
+    for (const id of sorted) {
+      const cid = collectionIdOf(subgraph.nodes.get(id)) ?? "";
+      const last = bands[bands.length - 1];
+      if (last && last.collectionId === cid) last.ids.push(id);
+      else bands.push({ collectionId: cid, ids: [id] });
+    }
+
+    // Show a band label only for cross-collection bands (focus's own
+    // collection is the visual baseline). When the column is single-collection
+    // and that collection IS the focus collection, no label appears.
+    const labelFor = (cid: string) =>
+      cid && cid !== focusCollectionId ? cid : null;
+
+    // Total height = sum of band heights + lane gaps between bands.
     let totalHeight = 0;
-    const dims = sorted.map((id) => {
-      const n = subgraph.nodes.get(id);
-      const d = n ? nodeDimensions(n) : { width: 200, height: 44 };
-      totalHeight += d.height;
-      return d;
+    const bandDims: { width: number; height: number }[][] = [];
+    bands.forEach((band, bi) => {
+      const dimsForBand = band.ids.map((id) => {
+        const n = subgraph.nodes.get(id);
+        return n ? nodeDimensions(n) : { width: 200, height: 44 };
+      });
+      bandDims.push(dimsForBand);
+      const innerGap = FOCUS_VERTICAL_GAP * Math.max(band.ids.length - 1, 0);
+      const labelH = labelFor(band.collectionId) ? FOCUS_LANE_LABEL_HEIGHT : 0;
+      const bandH =
+        labelH +
+        innerGap +
+        dimsForBand.reduce((s, d) => s + d.height, 0);
+      totalHeight += bandH;
+      if (bi < bands.length - 1) totalHeight += FOCUS_LANE_GAP;
     });
-    totalHeight += FOCUS_VERTICAL_GAP * Math.max(sorted.length - 1, 0);
 
     let cursorY = -totalHeight / 2;
     const columnX = (side === "upstream" ? -1 : 1) * FOCUS_COLUMN_WIDTH * hop;
 
-    sorted.forEach((id, i) => {
-      const d = dims[i];
-      const x = columnX - d.width / 2;
-      positions.set(id, { x, y: cursorY, width: d.width, height: d.height });
-      minX = Math.min(minX, x);
-      maxX = Math.max(maxX, x + d.width);
-      minY = Math.min(minY, cursorY);
-      maxY = Math.max(maxY, cursorY + d.height);
-      cursorY += d.height + FOCUS_VERTICAL_GAP;
+    bands.forEach((band, bi) => {
+      const label = labelFor(band.collectionId);
+      const bandStartY = cursorY;
+      if (label) cursorY += FOCUS_LANE_LABEL_HEIGHT;
+
+      const dimsForBand = bandDims[bi];
+      band.ids.forEach((id, i) => {
+        const d = dimsForBand[i];
+        const x = columnX - d.width / 2;
+        positions.set(id, { x, y: cursorY, width: d.width, height: d.height });
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x + d.width);
+        minY = Math.min(minY, cursorY);
+        maxY = Math.max(maxY, cursorY + d.height);
+        cursorY += d.height + FOCUS_VERTICAL_GAP;
+      });
+      if (band.ids.length > 0) cursorY -= FOCUS_VERTICAL_GAP;
+
+      const bandEndY = cursorY;
+      // Emit a lane band only for cross-collection groups; the focus
+      // collection is the visual baseline and gets no chrome.
+      if (label) {
+        lanes.push({
+          collectionId: band.collectionId,
+          label,
+          x: columnX - FOCUS_COLUMN_WIDTH / 2 + 8,
+          y: bandStartY,
+          width: FOCUS_COLUMN_WIDTH - 16,
+          height: bandEndY - bandStartY,
+        });
+      }
+
+      if (bi < bands.length - 1) cursorY += FOCUS_LANE_GAP;
     });
   };
 
@@ -180,9 +264,19 @@ export function layoutFocused(
   return {
     positions,
     clusters: new Map(),
+    lanes,
+    focusCollectionId,
     width: maxX - minX,
     height: maxY - minY,
   };
+}
+
+function collectionIdOf(node: GraphRenderNode | undefined): string | null {
+  if (!node) return null;
+  if (node.kind === "token") return node.collectionId;
+  if (node.kind === "generator") return node.targetCollection;
+  if (node.kind === "ghost") return node.collectionId ?? null;
+  return null;
 }
 
 function collectColumn(
@@ -220,10 +314,19 @@ function collectColumn(
 
 function orderForLayout(
   graph: GraphRenderModel,
+  focusCollectionId: string | null,
 ): (a: GraphNodeId, b: GraphNodeId) => number {
   return (a, b) => {
     const na = graph.nodes.get(a);
     const nb = graph.nodes.get(b);
+    // Sort by collection first (focus collection wins), then by label inside
+    // each band so each column reads as collection-grouped + alphabetical.
+    const ca = collectionIdOf(na) ?? "";
+    const cb = collectionIdOf(nb) ?? "";
+    const aIsFocus = focusCollectionId !== null && ca === focusCollectionId;
+    const bIsFocus = focusCollectionId !== null && cb === focusCollectionId;
+    if (aIsFocus !== bIsFocus) return aIsFocus ? -1 : 1;
+    if (ca !== cb) return ca.localeCompare(cb);
     return labelForOrdering(na).localeCompare(labelForOrdering(nb));
   };
 }

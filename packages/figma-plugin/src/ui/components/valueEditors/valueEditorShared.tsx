@@ -2,13 +2,13 @@
  * Shared utilities and sub-components used across multiple value editors.
  */
 import { useState, useRef, memo, type Ref } from 'react';
+import { Link2 } from 'lucide-react';
 import { evalExpr } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { isAlias, extractAliasPath } from '../../../shared/resolveAlias';
 import { FontFamilyPicker } from '../FontFamilyPicker';
-import { AUTHORING, fieldBorderClass } from '../../shared/editorClasses';
-import { FieldMessage } from '../../shared/FieldMessage';
+import { AUTHORING } from '../../shared/editorClasses';
 
 /** Per-type format hints shown below the "Value" label in the token editor. */
 export const VALUE_FORMAT_HINTS: Record<string, string> = {
@@ -168,10 +168,7 @@ export const SubPropInput = memo(function SubPropInput({
             : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
         }`}
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-        </svg>
+        <Link2 size={10} strokeWidth={2} aria-hidden />
       </button>
       {showAC && (
         <AliasAutocomplete
@@ -258,10 +255,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         title="Reference a token"
         className="p-0.5 rounded shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-        </svg>
+        <Link2 size={10} strokeWidth={2} aria-hidden />
       </button>
     </div>
   );
@@ -318,11 +312,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
             aria-label="Clear reference"
             className="p-0.5 rounded shrink-0 transition-colors text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-              <line x1="4" y1="4" x2="20" y2="20"/>
-            </svg>
+            <Link2 size={10} strokeWidth={2} aria-hidden />
           </button>
         )}
         {showAC && (
@@ -364,10 +354,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
         title="Reference a token"
         className="p-0.5 rounded shrink-0 transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-        </svg>
+        <Link2 size={10} strokeWidth={2} aria-hidden />
       </button>
     </div>
   );
@@ -392,6 +379,3 @@ export const FONT_WEIGHTS = [
   { value: 800, label: '800 ExtraBold' },
   { value: 900, label: '900 Black' },
 ];
-
-// Re-export for convenience — consumers can get fieldBorderClass + FieldMessage from here
-export { fieldBorderClass, FieldMessage };

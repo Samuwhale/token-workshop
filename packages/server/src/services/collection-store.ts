@@ -52,7 +52,7 @@ export interface CollectionStore {
   ): Promise<T>;
 }
 
-export function validateCollectionState(state: CollectionState): CollectionState {
+function validateCollectionState(state: CollectionState): CollectionState {
   const nextState = structuredClone(state);
   const collectionIdSet = new Set<string>();
   const duplicateCollectionIds = new Set<string>();

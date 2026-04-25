@@ -527,7 +527,7 @@ function renderBezierCurve(width: number, height: number, x1: number, y1: number
 function buildGradientCss(value: any): string | null {
   if (typeof value === 'string' && value.includes('gradient')) return value;
 
-  // Bare array of stops (legacy/loose shape)
+  // Bare array of stops from imported token files.
   if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] && 'color' in value[0]) {
     const sorted = [...(value as Array<{ color: string; position?: number }>)]
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));

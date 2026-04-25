@@ -220,7 +220,7 @@ function* parseConflictRegions(
  * Parse git conflict markers from raw file content.
  * Returns the conflict regions found. If no markers are found, returns [].
  */
-export function parseConflictMarkers(content: string): ConflictRegion[] {
+function parseConflictMarkers(content: string): ConflictRegion[] {
   const regions: ConflictRegion[] = [];
   for (const { region } of parseConflictRegions(content.split("\n"))) {
     if (region) {
@@ -238,7 +238,7 @@ export function parseConflictMarkers(content: string): ConflictRegion[] {
  * Rebuild a file by replacing conflict markers with the chosen side.
  * choices maps region index to 'ours' or 'theirs'.
  */
-export function resolveConflictContent(
+function resolveConflictContent(
   content: string,
   choices: Record<number, "ours" | "theirs">,
 ): string {

@@ -121,7 +121,7 @@ export function runColorRampGenerator(
     }
 
     const t = n > 1 ? i / (n - 1) : 0.5;
-    // Use bezier curve if provided, otherwise legacy power curve
+    // Use a custom bezier curve when provided; otherwise use the default power curve.
     const eased = config.lightnessCurve
       ? evaluateCubicBezier(t, config.lightnessCurve[0], config.lightnessCurve[1], config.lightnessCurve[2], config.lightnessCurve[3])
       : Math.pow(t, 0.85);

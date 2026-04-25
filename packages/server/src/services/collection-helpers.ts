@@ -1,5 +1,4 @@
 import {
-  COLLECTION_NAME_RE as CORE_COLLECTION_NAME_RE,
   flattenTokenGroup,
   isValidCollectionName as isCoreValidCollectionName,
   isDTCGToken,
@@ -16,9 +15,8 @@ import {
 } from "./operation-log.js";
 import { setTokenAtPath } from "./token-tree-utils.js";
 
-export const COLLECTION_NAME_RE = CORE_COLLECTION_NAME_RE;
-export const FOLDER_ITEM_SUFFIX = "/";
-export const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
+const FOLDER_ITEM_SUFFIX = "/";
+const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
 
 export interface FolderCollectionRename {
   from: string;
@@ -29,11 +27,11 @@ export function isValidCollectionName(name: string): boolean {
   return isCoreValidCollectionName(name);
 }
 
-export function isFolderItemKey(item: string): boolean {
+function isFolderItemKey(item: string): boolean {
   return item.endsWith(FOLDER_ITEM_SUFFIX);
 }
 
-export function topLevelFolderName(collectionId: string): string | null {
+function topLevelFolderName(collectionId: string): string | null {
   const slashIdx = collectionId.indexOf("/");
   return slashIdx === -1 ? null : collectionId.slice(0, slashIdx);
 }

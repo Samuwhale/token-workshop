@@ -1,22 +1,16 @@
 import type {
   GraphModel,
   GraphNodeId,
-  TokenCollection,
 } from "@tokenmanager/core";
-import type { GraphHopDepth } from "../../hooks/useFocusedSubgraph";
+import type { GraphHopDepthSetting } from "../../hooks/useFocusedSubgraph";
 import { FocusCanvas } from "./FocusCanvas";
 import { GraphFocusEmpty } from "./GraphFocusEmpty";
-import { GraphIssuesList } from "./GraphIssuesList";
-
-export type GraphMode = "focus" | "issues";
 
 interface GraphCanvasProps {
-  mode: GraphMode;
   fullGraph: GraphModel;
   focusId: GraphNodeId | null;
-  hopDepth: GraphHopDepth;
+  hopDepth: GraphHopDepthSetting;
   scopeCollectionIds: string[];
-  collections: TokenCollection[];
   collectionModeCountById: Map<string, number>;
   selectedEdgeId: string | null;
   onSelectToken: (path: string, collectionId: string) => void;
@@ -24,8 +18,6 @@ interface GraphCanvasProps {
   onActivateToken: (path: string, collectionId: string) => void;
   onActivateGenerator: (generatorId: string) => void;
   onFocusNode: (nodeId: GraphNodeId) => void;
-  onSelectIssue: (primaryNodeId: GraphNodeId) => void;
-  onShowIssues: () => void;
   onRequestDeleteToken?: (path: string, collectionId: string) => void;
   onRequestRewire?: (params: {
     sourceNodeId: GraphNodeId;
@@ -38,21 +30,17 @@ interface GraphCanvasProps {
     screenX: number;
     screenY: number;
   }) => void;
-  onCompareTokens?: (
-    a: { path: string; collectionId: string },
-    b: { path: string; collectionId: string },
-  ) => void;
   onSelectEdge: (edgeId: string | null) => void;
+  onSelectionChange?: (selectedNodeIds: GraphNodeId[]) => void;
+  onExpandMoreHops?: () => void;
   editingEnabled?: boolean;
 }
 
 export function GraphCanvas({
-  mode,
   fullGraph,
   focusId,
   hopDepth,
   scopeCollectionIds,
-  collections,
   collectionModeCountById,
   selectedEdgeId,
   onSelectToken,
@@ -60,33 +48,20 @@ export function GraphCanvas({
   onActivateToken,
   onActivateGenerator,
   onFocusNode,
-  onSelectIssue,
-  onShowIssues,
   onRequestDeleteToken,
   onRequestRewire,
   onRequestDetach,
-  onCompareTokens,
   onSelectEdge,
+  onSelectionChange,
+  onExpandMoreHops,
   editingEnabled,
 }: GraphCanvasProps) {
-  if (mode === "issues") {
-    return (
-      <GraphIssuesList
-        fullGraph={fullGraph}
-        scopeCollectionIds={scopeCollectionIds}
-        collections={collections}
-        onOpenInFocus={onSelectIssue}
-        onRequestDetach={onRequestDetach}
-      />
-    );
-  }
   if (focusId === null) {
     return (
       <GraphFocusEmpty
         fullGraph={fullGraph}
         scopeCollectionIds={scopeCollectionIds}
         onSelectFocus={onFocusNode}
-        onShowIssues={onShowIssues}
       />
     );
   }
@@ -106,8 +81,9 @@ export function GraphCanvas({
       onRequestDeleteToken={onRequestDeleteToken}
       onRequestRewire={onRequestRewire}
       onRequestDetach={onRequestDetach}
-      onCompareTokens={onCompareTokens}
       onSelectEdge={onSelectEdge}
+      onSelectionChange={onSelectionChange}
+      onExpandMoreHops={onExpandMoreHops}
       editingEnabled={editingEnabled}
     />
   );

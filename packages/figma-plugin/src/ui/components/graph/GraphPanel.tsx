@@ -13,9 +13,12 @@ import { useGraphMutations } from "../../hooks/useGraphMutations";
 import { usePersistedJsonState } from "../../hooks/usePersistedState";
 import { useGraphRecents } from "../../hooks/useGraphRecents";
 import { useIssuesGroups } from "../../hooks/useIssuesGroups";
-import type { GraphHopDepth } from "../../hooks/useFocusedSubgraph";
-import { GraphCanvas, type GraphMode } from "./GraphCanvas";
+import type { GraphHopDepthSetting } from "../../hooks/useFocusedSubgraph";
+import { GraphCanvas } from "./GraphCanvas";
 import { GraphInspector } from "./GraphInspector";
+import { GraphInspectorRail } from "./GraphInspectorRail";
+import { GraphIssuesBanner } from "./GraphIssuesBanner";
+import { GraphIssuesPanel } from "./GraphIssuesPanel";
 import { GraphSROutline } from "./GraphSROutline";
 import { GraphToolbar } from "./GraphToolbar";
 import { RewireConfirm } from "./interactions/RewireConfirm";
@@ -46,19 +49,51 @@ interface GraphPanelProps {
 }
 
 interface GraphState {
-  mode: GraphMode;
   focusId: GraphNodeId | null;
-  hopDepth: GraphHopDepth;
+  hopDepth: GraphHopDepthSetting;
   scopeCollectionIds: string[];
+  showIssuesPanel: boolean;
+  inspectorCollapsed: boolean;
 }
 
 function defaultGraphState(workingCollectionId: string): GraphState {
   return {
-    mode: "focus",
     focusId: null,
-    hopDepth: 1,
+    hopDepth: "auto",
     scopeCollectionIds: [workingCollectionId].filter(Boolean),
+    showIssuesPanel: false,
+    inspectorCollapsed: false,
   };
+}
+
+// Persisted state may carry now-removed shapes from earlier graph versions
+// (the "chain" hop depth, the "issues" mode). Clamp invalid values to safe
+// defaults so the UI always reflects something reasonable.
+function migrateGraphState(value: unknown): GraphState | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Partial<GraphState> & {
+    hopDepth?: unknown;
+    mode?: unknown;
+  };
+  let mutated = false;
+  const next: Partial<GraphState> = { ...v };
+  if (v.hopDepth !== 1 && v.hopDepth !== 2 && v.hopDepth !== "auto") {
+    next.hopDepth = "auto";
+    mutated = true;
+  }
+  if ("mode" in v) {
+    delete (next as Record<string, unknown>).mode;
+    mutated = true;
+  }
+  if (typeof v.showIssuesPanel !== "boolean") {
+    next.showIssuesPanel = false;
+    mutated = true;
+  }
+  if (typeof v.inspectorCollapsed !== "boolean") {
+    next.inspectorCollapsed = false;
+    mutated = true;
+  }
+  return mutated ? (next as GraphState) : null;
 }
 
 function resolveFocusIntentNodeId(
@@ -91,9 +126,24 @@ export function GraphPanel({
     `graph:state:${persistKeySuffix}`,
     defaultGraphState(workingCollectionId),
   );
-  const { mode, focusId, hopDepth, scopeCollectionIds } = graphState;
+
+  // Sanitise legacy persisted shapes. The setter-callback form reads
+  // `current` straight from React's queue, so even with concurrent
+  // mounts/renders we never overwrite a fresh value.
+  useEffect(() => {
+    setGraphState((current) => migrateGraphState(current) ?? current);
+  }, [setGraphState]);
+
+  const {
+    focusId,
+    hopDepth,
+    scopeCollectionIds,
+    showIssuesPanel,
+    inspectorCollapsed,
+  } = graphState;
 
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<GraphNodeId[]>([]);
   const [pendingFocusIntent, setPendingFocusIntent] =
     useState<LibraryGraphFocusIntent | null>(() => consumePendingGraphFocus());
 
@@ -127,7 +177,14 @@ export function GraphPanel({
 
   useEffect(() => {
     setSelectedEdgeId(null);
+    setSelectedNodeIds([]);
   }, [workingCollectionId]);
+
+  const selectedTokenIds = useMemo(
+    () =>
+      selectedNodeIds.filter((id) => fullGraph.nodes.get(id)?.kind === "token"),
+    [selectedNodeIds, fullGraph],
+  );
 
   useEffect(() => {
     return subscribeGraphFocusIntent(() => {
@@ -161,7 +218,6 @@ export function GraphPanel({
           : current.scopeCollectionIds;
       return {
         ...current,
-        mode: "focus",
         focusId: targetNodeId,
         scopeCollectionIds: nextScope,
       };
@@ -202,21 +258,19 @@ export function GraphPanel({
     return map;
   }, [collections]);
 
-  const setMode = (next: GraphMode) =>
-    setGraphState((current) => ({ ...current, mode: next }));
-  const setHopDepth = (next: GraphHopDepth) =>
+  const setHopDepth = (next: GraphHopDepthSetting) =>
     setGraphState((current) => ({ ...current, hopDepth: next }));
   const setFocusId = (next: GraphNodeId | null) =>
     setGraphState((current) => ({ ...current, focusId: next }));
   const setScopeCollectionIds = (next: string[]) =>
     setGraphState((current) => ({ ...current, scopeCollectionIds: next }));
+  const setShowIssuesPanel = (next: boolean) =>
+    setGraphState((current) => ({ ...current, showIssuesPanel: next }));
+  const setInspectorCollapsed = (next: boolean) =>
+    setGraphState((current) => ({ ...current, inspectorCollapsed: next }));
 
   const handleSelectIssue = (primaryNodeId: GraphNodeId) => {
-    setGraphState((current) => ({
-      ...current,
-      mode: "focus",
-      focusId: primaryNodeId,
-    }));
+    setFocusId(primaryNodeId);
     setSelectedEdgeId(null);
   };
 
@@ -228,17 +282,18 @@ export function GraphPanel({
     [issueGroups],
   );
 
+  const showInspector = Boolean(
+    focusId || selectedEdgeId || selectedTokenIds.length >= 2,
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
       <GraphToolbar
-        mode={mode}
         focusId={focusId}
         hopDepth={hopDepth}
         scopeCollectionIds={activeCollectionIds}
         collections={collections}
         fullGraph={fullGraph}
-        issuesCount={issuesCount}
-        onModeChange={setMode}
         onFocusChange={(nodeId) => {
           setFocusId(nodeId);
           setSelectedEdgeId(null);
@@ -247,14 +302,24 @@ export function GraphPanel({
         onScopeChange={setScopeCollectionIds}
       />
       <div className="flex min-h-0 flex-1">
+        {showIssuesPanel ? (
+          <GraphIssuesPanel
+            fullGraph={fullGraph}
+            groups={issueGroups}
+            collections={collections}
+            onOpenInFocus={handleSelectIssue}
+            onRequestDetach={({ edgeId, screenX, screenY }) => {
+              setDetachRequest({ edgeId, screenX, screenY });
+            }}
+            onClose={() => setShowIssuesPanel(false)}
+          />
+        ) : null}
         <div className="relative min-h-0 min-w-0 flex-1">
           <GraphCanvas
-            mode={mode}
             fullGraph={fullGraph}
             focusId={focusId}
             hopDepth={hopDepth}
             scopeCollectionIds={activeCollectionIds}
-            collections={collections}
             collectionModeCountById={collectionModeCountById}
             selectedEdgeId={selectedEdgeId}
             onSelectToken={(path, collectionId) => {
@@ -279,8 +344,6 @@ export function GraphPanel({
               setFocusId(nodeId);
               setSelectedEdgeId(null);
             }}
-            onSelectIssue={handleSelectIssue}
-            onShowIssues={() => setMode("issues")}
             onRequestDeleteToken={(path, collectionId) => {
               deleteToken(path, collectionId);
             }}
@@ -295,36 +358,55 @@ export function GraphPanel({
             onRequestDetach={({ edgeId, screenX, screenY }) => {
               setDetachRequest({ edgeId, screenX, screenY });
             }}
-            onCompareTokens={onCompareTokens}
             onSelectEdge={setSelectedEdgeId}
+            onSelectionChange={setSelectedNodeIds}
+            onExpandMoreHops={() => setHopDepth(2)}
             editingEnabled
           />
           <GraphSROutline graph={fullGraph} focusNodeId={focusId} />
+          {issuesCount > 0 && !showIssuesPanel ? (
+            <GraphIssuesBanner
+              groups={issueGroups}
+              onOpen={() => setShowIssuesPanel(true)}
+            />
+          ) : null}
         </div>
-        {focusId || selectedEdgeId ? (
-          <div className="hidden w-[280px] shrink-0 border-l border-[var(--color-figma-border)] sm:block">
-            <GraphInspector
+        {showInspector ? (
+          inspectorCollapsed ? (
+            <GraphInspectorRail
               graph={fullGraph}
               focusId={focusId}
               selectedEdgeId={selectedEdgeId}
-              collections={collections}
-              perCollectionFlat={perCollectionFlat}
-              onNavigateToToken={onNavigateToToken}
-              onEditGenerator={(generatorId) =>
-                onOpenGeneratedGroupEditor({
-                  mode: "edit",
-                  id: generatorId,
-                  origin: "graph",
-                })
-              }
-              onCompareTokens={onCompareTokens}
-              onSelectNode={(nodeId) => {
-                setFocusId(nodeId);
-                setSelectedEdgeId(null);
-              }}
-              onSelectEdge={(edgeId) => setSelectedEdgeId(edgeId)}
+              selectedTokenIds={selectedTokenIds}
+              onExpand={() => setInspectorCollapsed(false)}
             />
-          </div>
+          ) : (
+            <div className="w-[260px] shrink-0 border-l border-[var(--color-figma-border)]">
+              <GraphInspector
+                graph={fullGraph}
+                focusId={focusId}
+                selectedEdgeId={selectedEdgeId}
+                selectedTokenIds={selectedTokenIds}
+                collections={collections}
+                perCollectionFlat={perCollectionFlat}
+                onNavigateToToken={onNavigateToToken}
+                onEditGenerator={(generatorId) =>
+                  onOpenGeneratedGroupEditor({
+                    mode: "edit",
+                    id: generatorId,
+                    origin: "graph",
+                  })
+                }
+                onCompareTokens={onCompareTokens}
+                onSelectNode={(nodeId) => {
+                  setFocusId(nodeId);
+                  setSelectedEdgeId(null);
+                }}
+                onSelectEdge={(edgeId) => setSelectedEdgeId(edgeId)}
+                onCollapse={() => setInspectorCollapsed(true)}
+              />
+            </div>
+          )
         ) : null}
       </div>
       {rewireRequest
@@ -424,4 +506,3 @@ export function GraphPanel({
     </div>
   );
 }
-

@@ -26,16 +26,3 @@ export const EXPORTERS = new Map<ExportPlatform, PlatformExporter>([
   ['tailwind', tailwindExporter],
   ['css-in-js', cssInJsExporter],
 ]);
-
-export {
-  cssExporter,
-  scssExporter,
-  lessExporter,
-  dartExporter,
-  iosSwiftExporter,
-  androidExporter,
-  jsonExporter,
-  typescriptExporter,
-  tailwindExporter,
-  cssInJsExporter,
-};

@@ -21,10 +21,9 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
     return null;
   }
   const { token, isFocused } = data;
-  const primaryLabel = isFocused ? token.path : pathTail(token.path);
-  const showFullPath = Boolean(isFocused);
-  const showValuePreview = Boolean(isFocused) && Boolean(token.valuePreview);
+  const label = isFocused ? token.path : pathTail(token.path);
   const isAccented = selected || isFocused;
+  const showValuePreview = Boolean(isFocused) && Boolean(token.valuePreview);
   const borderClass =
     token.health === "cycle"
       ? "border-[var(--color-figma-warning)]"
@@ -32,36 +31,37 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
         ? "border-[var(--color-figma-error)]"
         : isAccented
           ? "border-[var(--color-figma-accent)]"
-          : "border-[var(--color-figma-border)]";
+          : "border-transparent group-hover:border-[var(--color-figma-border)]";
   const ringClass = isAccented
     ? "ring-2 ring-[var(--color-figma-accent)]/40 ring-offset-0"
     : "";
+  const labelToneClass = isAccented
+    ? "font-medium text-[var(--color-figma-text)]"
+    : "text-[var(--color-figma-text-secondary)] group-hover:text-[var(--color-figma-text)]";
+  const swatchBorderClass = isAccented
+    ? "border border-[var(--color-figma-border)]"
+    : "border border-transparent group-hover:border-[var(--color-figma-border)]";
 
   return (
     <div
-      className={`tm-graph-node group flex h-11 items-center gap-2 rounded-md border bg-[var(--color-figma-bg-secondary)] px-1.5 text-secondary text-[var(--color-figma-text)] shadow-[0_1px_0_rgba(0,0,0,0.15)] ${borderClass} ${ringClass}`}
+      className={`tm-graph-node group flex h-11 items-center gap-2 rounded-md border bg-[var(--color-figma-bg-secondary)] px-1.5 text-secondary shadow-[0_1px_0_rgba(0,0,0,0.15)] ${borderClass} ${ringClass}`}
       style={{ width: 200 }}
       title={token.path}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]" />
       {token.swatchColor ? (
         <span
-          className="h-4 w-4 shrink-0 rounded border border-[var(--color-figma-border)]"
+          className={`h-4 w-4 shrink-0 rounded ${swatchBorderClass}`}
           style={{ background: token.swatchColor }}
           aria-hidden
         />
-      ) : token.$type ? (
+      ) : isFocused && token.$type ? (
         <span className="font-mono text-[10px] leading-none text-[var(--color-figma-text-tertiary)]">
           {tokenTypeGlyph(token.$type)}
         </span>
       ) : null}
-      <span className="flex min-w-0 flex-1 flex-col leading-tight">
-        <span className="truncate font-medium">{primaryLabel}</span>
-        {showFullPath && primaryLabel !== token.path ? (
-          <span className="truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {token.path}
-          </span>
-        ) : null}
+      <span className={`min-w-0 flex-1 truncate leading-tight ${labelToneClass}`}>
+        {label}
       </span>
       {showValuePreview ? (
         <span className="ml-1 max-w-[68px] shrink-0 truncate text-right font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">

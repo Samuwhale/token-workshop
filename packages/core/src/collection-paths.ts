@@ -1,7 +1,7 @@
 export type CollectionPathResolutionReason =
   | "single"
   | "preferred"
-  | "legacy"
+  | "indexed"
   | "ambiguous"
   | "missing";
 
@@ -112,9 +112,9 @@ export function resolveCollectionIdForPath(params: {
     return { reason: "ambiguous" };
   }
 
-  const legacyCollectionId = normalizeCollectionId(pathToCollectionId[path]);
-  if (legacyCollectionId) {
-    return { collectionId: legacyCollectionId, reason: "legacy" };
+  const indexedCollectionId = normalizeCollectionId(pathToCollectionId[path]);
+  if (indexedCollectionId) {
+    return { collectionId: indexedCollectionId, reason: "indexed" };
   }
 
   return { reason: "missing" };

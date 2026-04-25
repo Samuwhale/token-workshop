@@ -41,7 +41,6 @@ import {
 import { isValidCollectionName } from "./collection-helpers.js";
 
 import { isSafeRegex } from "./token-tree-utils.js";
-export { isSafeRegex };
 
 interface StoredCollection {
   name: string;

@@ -19,6 +19,7 @@ interface GraphInspectorProps {
   graph: GraphModel;
   focusId: GraphNodeId | null;
   selectedEdgeId: string | null;
+  selectedTokenIds?: GraphNodeId[];
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onNavigateToToken: (path: string, collectionId: string) => void;
@@ -29,12 +30,14 @@ interface GraphInspectorProps {
   ) => void;
   onSelectNode: (nodeId: GraphNodeId | null) => void;
   onSelectEdge: (edgeId: string | null) => void;
+  onCollapse?: () => void;
 }
 
 export function GraphInspector({
   graph,
   focusId,
   selectedEdgeId,
+  selectedTokenIds,
   collections,
   perCollectionFlat,
   onNavigateToToken,
@@ -42,9 +45,32 @@ export function GraphInspector({
   onCompareTokens,
   onSelectNode,
   onSelectEdge,
+  onCollapse,
 }: GraphInspectorProps) {
   const node = focusId ? graph.nodes.get(focusId) : null;
   const edge = selectedEdgeId ? graph.edges.get(selectedEdgeId) : null;
+
+  // Multi-token side-by-side comparison takes priority over single-node detail
+  // when ≥2 tokens are selected — that's a deliberate user gesture (shift-click)
+  // and the inspector is the right surface for the comparison.
+  if (selectedTokenIds && selectedTokenIds.length >= 2) {
+    const tokens = selectedTokenIds
+      .map((id) => graph.nodes.get(id))
+      .filter((n): n is TokenGraphNode => n?.kind === "token");
+    if (tokens.length >= 2) {
+      return (
+        <Shell onCollapse={onCollapse}>
+          <CompareTokensInspector
+            tokens={tokens}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            onNavigateToToken={onNavigateToToken}
+            onSelectNode={onSelectNode}
+          />
+        </Shell>
+      );
+    }
+  }
 
   if (edge && edge.kind === "alias") {
     return (
@@ -102,9 +128,27 @@ export function GraphInspector({
   return null;
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({
+  children,
+  onCollapse,
+}: {
+  children: React.ReactNode;
+  onCollapse?: () => void;
+}) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto bg-[var(--color-figma-bg)] px-3 py-3 text-secondary text-[var(--color-figma-text)]">
+      {onCollapse ? (
+        <div className="sticky -top-3 z-10 -mx-3 -mt-3 mb-1 flex justify-end bg-[var(--color-figma-bg)] px-1.5 pt-1.5">
+          <button
+            type="button"
+            onClick={onCollapse}
+            aria-label="Collapse inspector"
+            className="rounded p-0.5 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          >
+            <ChevronRight size={12} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      ) : null}
       {children}
     </div>
   );
@@ -187,37 +231,11 @@ function TokenInspector({
       </Meta>
 
       {collection && modeValues ? (
-        <Section title="Values">
-          <div className="flex flex-col gap-1">
-            {collection.modes.map((mode) => {
-              const value = modeValues[mode.name];
-              const aliasRef = isAlias(value as never)
-                ? String(value)
-                : null;
-              return (
-                <div
-                  key={mode.name}
-                  className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-[var(--color-figma-bg-secondary)]"
-                >
-                  <span className="w-16 shrink-0 truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
-                    {mode.name}
-                  </span>
-                  {aliasRef ? (
-                    <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--color-figma-accent)]">
-                      {aliasRef}
-                    </span>
-                  ) : (
-                    <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--color-figma-text)]">
-                      {formatTokenValueForDisplay(token.$type, value, {
-                        emptyPlaceholder: "—",
-                      })}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Section>
+        <ModeValueMatrix
+          modes={collection.modes.map((m) => m.name)}
+          tokenType={token.$type}
+          modeValues={modeValues}
+        />
       ) : null}
 
       {upstream.length > 0 ? (
@@ -532,6 +550,179 @@ function AliasEdgeInspector({
           Clear selection
         </button>
       </div>
+    </div>
+  );
+}
+
+function ModeValueMatrix({
+  modes,
+  tokenType,
+  modeValues,
+}: {
+  modes: string[];
+  tokenType: string | undefined;
+  modeValues: Record<string, unknown>;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {modes.map((mode) => {
+        const value = modeValues[mode];
+        const aliasRef = isAlias(value as never) ? String(value) : null;
+        return (
+          <div key={mode} className="flex items-baseline gap-2">
+            <span className="w-14 shrink-0 truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
+              {mode}
+            </span>
+            {aliasRef ? (
+              <span
+                className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--color-figma-accent)]"
+                title={aliasRef}
+              >
+                {aliasRef}
+              </span>
+            ) : (
+              <span
+                className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--color-figma-text)]"
+                title={String(value ?? "")}
+              >
+                {formatTokenValueForDisplay(tokenType, value, {
+                  emptyPlaceholder: "—",
+                })}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CompareTokensInspector({
+  tokens,
+  collections,
+  perCollectionFlat,
+  onNavigateToToken,
+  onSelectNode,
+}: {
+  tokens: TokenGraphNode[];
+  collections: TokenCollection[];
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  onNavigateToToken: (path: string, collectionId: string) => void;
+  onSelectNode: (nodeId: GraphNodeId | null) => void;
+}) {
+  // Take up to 3 tokens — beyond that the matrix becomes unreadable in the
+  // 260px panel. The user can always pare down their selection.
+  const visible = tokens.slice(0, 3);
+
+  // Resolve each token's modeValues + collection.
+  const columns = visible.map((token) => {
+    const collection = collections.find((c) => c.id === token.collectionId);
+    const entry = perCollectionFlat[token.collectionId]?.[token.path];
+    const modeValues =
+      collection && entry
+        ? readTokenModeValuesForCollection(entry, collection)
+        : null;
+    const modeNames = collection?.modes.map((m) => m.name) ?? [];
+    return { token, collection, modeValues, modeNames };
+  });
+
+  // Union of mode names across selected tokens, in first-seen order. Asymmetry
+  // is meaningful: a missing mode renders as "—".
+  const modeUnion: string[] = [];
+  const seen = new Set<string>();
+  for (const col of columns) {
+    for (const m of col.modeNames) {
+      if (!seen.has(m)) {
+        seen.add(m);
+        modeUnion.push(m);
+      }
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        {visible.map((token) => (
+          <button
+            key={token.id}
+            type="button"
+            onClick={() => onSelectNode(token.id)}
+            onDoubleClick={() => onNavigateToToken(token.path, token.collectionId)}
+            className="flex items-center gap-2 rounded px-1 py-1 text-left hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            {token.swatchColor ? (
+              <span
+                className="h-3 w-3 shrink-0 rounded border border-[var(--color-figma-border)]"
+                style={{ background: token.swatchColor }}
+                aria-hidden
+              />
+            ) : (
+              <span className="font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
+                {tokenTypeGlyph(token.$type)}
+              </span>
+            )}
+            <span className="min-w-0 flex-1 truncate">{token.displayName}</span>
+            <span className="shrink-0 truncate font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
+              {token.collectionId}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {modeUnion.map((mode) => (
+          <div key={mode} className="flex flex-col gap-1">
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+              {mode}
+            </div>
+            {columns.map(({ token, modeValues, modeNames }) => {
+              const present = modeNames.includes(mode);
+              const value = modeValues?.[mode];
+              const aliasRef = isAlias(value as never) ? String(value) : null;
+              return (
+                <div
+                  key={token.id}
+                  className="flex items-baseline"
+                  // Rows always follow the token-list order at the top of the
+                  // panel, so a designer can read "row 1 = first token, row 2
+                  // = second" without per-row labels. The path tooltip is the
+                  // tie-breaker if order ever feels ambiguous.
+                  title={token.path}
+                >
+                  {!present ? (
+                    <span className="font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      —
+                    </span>
+                  ) : aliasRef ? (
+                    <span
+                      className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--color-figma-accent)]"
+                      title={aliasRef}
+                    >
+                      {aliasRef}
+                    </span>
+                  ) : (
+                    <span
+                      className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--color-figma-text)]"
+                      title={String(value ?? "")}
+                    >
+                      {formatTokenValueForDisplay(token.$type, value, {
+                        emptyPlaceholder: "—",
+                      })}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {tokens.length > visible.length ? (
+        <div className="px-1 text-[10px] text-[var(--color-figma-text-tertiary)]">
+          {tokens.length - visible.length} more selected — narrow your selection to
+          compare them.
+        </div>
+      ) : null}
     </div>
   );
 }
