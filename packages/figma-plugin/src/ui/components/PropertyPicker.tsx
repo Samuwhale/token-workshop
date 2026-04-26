@@ -93,12 +93,19 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
     }
   };
 
+  const clampedAnchor = anchorRect
+    ? {
+        top: Math.max(8, Math.min(anchorRect.top, window.innerHeight - 80)),
+        left: Math.max(8, Math.min(anchorRect.left, window.innerWidth - 156)),
+      }
+    : undefined;
+
   if (capFiltered.length === 0) {
     return (
       <div
         ref={ref}
-        className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 text-secondary text-[var(--color-figma-text-secondary)]"
-        style={anchorRect ? { top: anchorRect.top, left: anchorRect.left } : undefined}
+        className="fixed z-50 max-w-[calc(100vw-16px)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 text-secondary text-[var(--color-figma-text-secondary)]"
+        style={clampedAnchor}
       >
         No applicable properties for this layer
       </div>
@@ -108,8 +115,8 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[140px]"
-      style={anchorRect ? { top: anchorRect.top, left: anchorRect.left } : undefined}
+      className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[140px] max-w-[calc(100vw-16px)]"
+      style={clampedAnchor}
       onKeyDown={handleKeyDown}
     >
       <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] font-medium">

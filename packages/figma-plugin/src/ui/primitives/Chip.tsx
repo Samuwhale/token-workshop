@@ -20,10 +20,10 @@ export function Chip({ label, onRemove, title, tone = "accent" }: ChipProps) {
       onClick={onRemove}
       disabled={!removable}
       title={title ?? (removable ? `Remove ${label}` : label)}
-      className={`inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-secondary transition-colors ${toneClass}`}
+      className={`inline-flex h-[22px] min-w-0 max-w-full items-center gap-1 rounded-full px-2 text-secondary transition-colors ${toneClass}`}
     >
-      <span className="truncate">{label}</span>
-      {removable ? <X size={10} strokeWidth={1.5} aria-hidden /> : null}
+      <span className="min-w-0 truncate">{label}</span>
+      {removable ? <X size={10} strokeWidth={1.5} aria-hidden className="shrink-0" /> : null}
     </button>
   );
 }

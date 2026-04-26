@@ -136,7 +136,7 @@ function ScopeMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-30 flex w-56 flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
+          className="absolute right-0 top-[calc(100%+4px)] z-30 flex w-56 max-w-[calc(100vw-16px)] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
         >
           {!isAll ? (
             <button

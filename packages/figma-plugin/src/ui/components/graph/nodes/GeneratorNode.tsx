@@ -48,7 +48,7 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
       className={`tm-graph-node flex h-14 items-center gap-2 rounded-full border bg-[var(--color-figma-generator)]/10 px-3 text-secondary text-[var(--color-figma-text)] ${borderClass} ${ringClass}`}
       style={{
         width: 200,
-        opacity: dimmed ? 0.25 : 1,
+        opacity: dimmed && !selected ? 0.25 : 1,
         transition: "opacity 120ms",
       }}
       title={generator.errorMessage ?? generator.name}

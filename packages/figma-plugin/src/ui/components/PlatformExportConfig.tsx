@@ -385,7 +385,7 @@ export function PlatformExportConfig({
                       onChange={() => toggleCollection(collectionId)}
                       className="sr-only"
                     />
-                    <span className="text-body text-[var(--color-figma-text)] font-mono truncate">{collectionId}</span>
+                    <span className="text-body text-[var(--color-figma-text)] font-mono truncate min-w-0 flex-1">{collectionId}</span>
                   </label>
                 );
               })}

@@ -201,8 +201,8 @@ function CollectionPreflightCard({
                     key={generator.generatorId}
                     className="flex items-center justify-between gap-2 text-secondary text-[var(--color-figma-text-secondary)]"
                   >
-                    <span className="truncate">{generator.generatorName}</span>
-                    <span className="truncate font-mono text-secondary">
+                    <span className="min-w-0 flex-1 truncate">{generator.generatorName}</span>
+                    <span className="min-w-0 max-w-[55%] truncate font-mono text-secondary">
                       {generator.targetGroup}
                     </span>
                   </div>
@@ -734,7 +734,7 @@ export function SetSplitDialog({
                     key={preview.key}
                     className="flex items-center justify-between rounded bg-[var(--color-figma-bg-hover)] px-2 py-1"
                   >
-                    <span className="truncate font-mono text-body text-[var(--color-figma-text)]">
+                    <span className="min-w-0 flex-1 truncate font-mono text-body text-[var(--color-figma-text)]">
                       {preview.newCollectionId}
                     </span>
                     <span className="ml-2 shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">

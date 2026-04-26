@@ -114,7 +114,8 @@ export function AliasEdgeInspector({
             {edge.modeNames.map((m) => (
               <span
                 key={m}
-                className="rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-0.5 text-secondary text-[var(--color-figma-text)]"
+                className="max-w-full truncate rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-0.5 text-secondary text-[var(--color-figma-text)]"
+                title={m}
               >
                 {m}
               </span>

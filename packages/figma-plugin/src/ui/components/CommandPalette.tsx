@@ -728,8 +728,8 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                     <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                       <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
                     </svg>
-                    <span className="text-body font-mono truncate">{group.path}</span>
-                    <span className={`text-secondary shrink-0 ml-auto ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className="text-body font-mono truncate min-w-0 flex-1">{group.path}</span>
+                    <span className={`text-secondary shrink-0 ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
                       {group.childCount} token{group.childCount !== 1 ? 's' : ''}
                     </span>
                   </button>
@@ -766,9 +766,9 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                         {token.value.length > 20 ? token.value.slice(0, 20) + '…' : token.value}
                       </span>
                     ) : null}
-                    <span className="text-body font-mono truncate">{token.path}</span>
+                    <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
                     {token.set && (
-                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ml-auto ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium max-w-[40%] truncate ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                         {token.set}
                       </span>
                     )}

@@ -36,7 +36,7 @@ export function GeneratorProducesEdge(props: EdgeProps) {
         stroke: color,
         strokeWidth: typed.isEmphasized || selected ? 2.5 : 1,
         strokeDasharray: "2 4",
-        opacity: typed.dimmed ? 0.18 : 1,
+        opacity: typed.dimmed && !selected ? 0.18 : 1,
         transition: "stroke-width 120ms, opacity 120ms",
       }}
     />

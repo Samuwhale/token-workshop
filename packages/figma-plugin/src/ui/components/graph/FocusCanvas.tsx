@@ -187,13 +187,9 @@ function FocusCanvasInner({
     [subgraph, focusId],
   );
 
-  // Compute the hovered node's "own story" inside the focused subgraph: every
-  // node reachable from it without traversing *through* the focus node. The
-  // focus node itself is included if reached (it's still part of the story),
-  // but its other neighbors are not — otherwise hovering any sibling would
-  // sweep up the entire subgraph via focus and the dim would be a no-op.
-  // Hovering the focus node returns null (no dimming): the whole subgraph is
-  // already focus's story.
+  // BFS the hovered node's connected subtree, but don't expand *through* the
+  // focus node — otherwise every hover would sweep up the whole subgraph via
+  // the focus pivot and the dim would be a no-op.
   const relatedNodeIds = useMemo<ReadonlySet<GraphNodeId> | null>(() => {
     if (!hoveredNodeId) return null;
     if (hoveredNodeId === focusId) return null;
@@ -202,8 +198,6 @@ function FocusCanvasInner({
     const queue: GraphNodeId[] = [hoveredNodeId];
     while (queue.length > 0) {
       const current = queue.shift()!;
-      // Don't expand through the focus node — including it is enough; its
-      // wider neighborhood belongs to focus's story, not the hovered node's.
       if (current === focusId) continue;
       for (const edgeId of subgraph.outgoing.get(current) ?? []) {
         const edge = subgraph.edges.get(edgeId);
@@ -277,9 +271,6 @@ function FocusCanvasInner({
   const edges = useMemo(() => {
     const rfEdges: Edge[] = [];
     for (const edge of subgraph.edges.values()) {
-      // An edge is "in scope" of the hover when both endpoints are part of the
-      // hovered node's connected subtree — that's the relationship the user
-      // is exploring. Anything else fades into the background.
       const inHoverSubtree =
         relatedNodeIds != null &&
         relatedNodeIds.has(edge.from) &&

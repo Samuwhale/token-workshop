@@ -17,7 +17,7 @@ function isGhostNodeData(data: unknown): data is GhostNodeData {
   );
 }
 
-function GhostNodeImpl({ data }: NodeProps) {
+function GhostNodeImpl({ data, selected }: NodeProps) {
   if (!isGhostNodeData(data)) {
     return null;
   }
@@ -30,7 +30,7 @@ function GhostNodeImpl({ data }: NodeProps) {
       className="tm-graph-node flex h-10 items-center gap-2 rounded-md border border-dashed border-[var(--color-figma-error)]/60 bg-transparent px-2 text-secondary text-[var(--color-figma-text-secondary)]"
       style={{
         width: 180,
-        opacity: dimmed ? 0.25 : 1,
+        opacity: dimmed && !selected ? 0.25 : 1,
         transition: "opacity 120ms",
       }}
       title={`${ghost.path} — ${reasonLabel}`}

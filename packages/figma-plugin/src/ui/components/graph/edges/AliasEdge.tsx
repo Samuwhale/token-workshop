@@ -53,7 +53,7 @@ export function AliasEdge(props: EdgeProps) {
   const style = {
     stroke: color,
     strokeWidth: typed.isEmphasized || selected ? 2.25 : 1.25,
-    opacity: typed.dimmed ? 0.18 : 1,
+    opacity: typed.dimmed && !selected ? 0.18 : 1,
     transition: "stroke-width 120ms, stroke 120ms, opacity 120ms",
     ...(isMissing ? { strokeDasharray: "4 3" } : {}),
   };
@@ -67,7 +67,7 @@ export function AliasEdge(props: EdgeProps) {
     typed.totalCollectionModes != null &&
     edge.modeNames.length > 0 &&
     edge.modeNames.length < typed.totalCollectionModes;
-  const showChips = isPartialCoverage && !typed.dimmed;
+  const showChips = isPartialCoverage && (!typed.dimmed || selected);
   const chipsActive = Boolean(typed.isEmphasized || selected);
 
   return (

@@ -45,7 +45,7 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
       className={`tm-graph-node group flex h-11 items-center gap-2 rounded-md border bg-[var(--color-figma-bg-secondary)] px-2 text-secondary shadow-[0_1px_0_rgba(0,0,0,0.12)] ${borderClass}`}
       style={{
         width: 200,
-        opacity: dimmed ? 0.25 : 1,
+        opacity: dimmed && !selected ? 0.25 : 1,
         transition: "opacity 120ms",
       }}
       title={token.path}

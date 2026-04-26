@@ -51,9 +51,9 @@ export function WorkflowStageIndicators<StageId extends string>({
 }: WorkflowStageIndicatorsProps<StageId>) {
   return (
     <div className="flex items-center gap-1 px-3 py-1.5">
-      <div className="flex min-w-0 flex-1 items-center gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
         {stages.map((stage, index) => (
-          <div key={stage.id} className="flex items-center gap-0.5">
+          <div key={stage.id} className="flex min-w-0 items-center gap-0.5">
             {index > 0 && (
               <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-border)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mx-0.5 shrink-0">
                 <path d="M9 18l6-6-6-6" />

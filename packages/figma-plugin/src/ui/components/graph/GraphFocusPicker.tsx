@@ -157,7 +157,7 @@ export function GraphFocusPicker({
               <span className="min-w-0 flex-1 truncate font-medium text-[var(--color-figma-text)]">
                 {option.primary}
               </span>
-              <span className="shrink-0 truncate text-[10px] text-[var(--color-figma-text-tertiary)]">
+              <span className="shrink-0 truncate max-w-[45%] text-[10px] text-[var(--color-figma-text-tertiary)]">
                 {option.secondary}
               </span>
             </button>

@@ -332,7 +332,7 @@ export function GraphPanel({
           <GraphSROutline graph={fullGraph} focusNodeId={focusId} />
         </div>
         {showInspector ? (
-          <div className="w-[260px] shrink-0">
+          <div className="w-[min(260px,45%)] shrink-0">
             <GraphInspector
               graph={fullGraph}
               focusId={focusId}

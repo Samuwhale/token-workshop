@@ -394,7 +394,7 @@ export function FormulaInput({
               )}
 
               {/* Path */}
-              <span className="flex-1 text-secondary text-[var(--color-figma-text)] truncate font-mono">{path}</span>
+              <span className="flex-1 min-w-0 text-secondary text-[var(--color-figma-text)] truncate font-mono">{path}</span>
 
               {/* Value preview */}
               {formatValueShort(entry.$value) && (

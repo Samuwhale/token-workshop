@@ -94,11 +94,11 @@ export function InlineValuePopover({
   }, [handleSave, onClose, onTab]);
 
   // Compute popover position: prefer below the cell, flip above if needed.
-  const POPOVER_WIDTH = 320;
   const POPOVER_MAX_HEIGHT = 480;
   const MARGIN = 8;
+  const popoverWidth = Math.min(320, window.innerWidth - MARGIN * 2);
 
-  const left = Math.min(anchorRect.left, window.innerWidth - POPOVER_WIDTH - MARGIN);
+  const left = Math.max(MARGIN, Math.min(anchorRect.left, window.innerWidth - popoverWidth - MARGIN));
   const spaceBelow = window.innerHeight - anchorRect.bottom - MARGIN;
   const spaceAbove = anchorRect.top - MARGIN;
   const top = spaceBelow >= Math.min(POPOVER_MAX_HEIGHT, 200)
@@ -116,7 +116,7 @@ export function InlineValuePopover({
       style={{
         top,
         left,
-        width: POPOVER_WIDTH,
+        width: popoverWidth,
         maxHeight: POPOVER_MAX_HEIGHT,
       }}
       onClick={e => e.stopPropagation()}
@@ -124,15 +124,14 @@ export function InlineValuePopover({
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
-        <span className="text-body text-[var(--color-figma-text)] font-medium truncate min-w-0" title={tokenPath}>
+        <span className="text-body text-[var(--color-figma-text)] font-medium truncate min-w-0 flex-1" title={tokenPath}>
           {tokenName}
         </span>
         {modeLabel && (
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0 truncate max-w-[80px]" title={`Mode: ${modeLabel}`}>
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)] truncate max-w-[80px] min-w-0" title={`Mode: ${modeLabel}`}>
             {modeLabel}
           </span>
         )}
-        <span className="flex-1" />
         <span className={`px-1.5 py-0.5 rounded text-secondary font-medium shrink-0 ${typeBadgeClass}`}>
           {tokenType}
         </span>

@@ -77,7 +77,7 @@ export function CompareTokensInspector({
               )
             }
             trailing={
-              <span className="max-w-[120px] truncate font-mono text-secondary text-[var(--color-figma-text-tertiary)]">
+              <span className="max-w-[40%] truncate font-mono text-secondary text-[var(--color-figma-text-tertiary)]">
                 {token.collectionId}
               </span>
             }

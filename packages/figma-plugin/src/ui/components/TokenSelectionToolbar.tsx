@@ -34,7 +34,7 @@ const menuItemClass =
   'w-full flex items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40';
 const menuSeparator = 'border-t border-[var(--color-figma-border)] my-1';
 const menuPanel =
-  'absolute left-0 top-full z-50 mt-1 w-[180px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl';
+  'absolute right-0 top-full z-50 mt-1 w-[180px] max-w-[calc(100vw-16px)] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl';
 
 function ToolbarDropdown({
   label,
@@ -122,12 +122,16 @@ export function TokenSelectionToolbar({
         aria-label="Toggle select all"
         className="shrink-0 accent-[var(--color-figma-accent)]"
       />
-      <span className="text-secondary text-[var(--color-figma-text-secondary)] min-w-[3ch] tabular-nums">
+      <span className="text-secondary text-[var(--color-figma-text-secondary)] min-w-[3ch] tabular-nums shrink-0">
         {selectedPaths.size}/{displayedLeafPaths.size}
-        {searchQuery ? ` matching "${searchQuery}"` : ''}
       </span>
-      {selectedPaths.size === 1 && (
-        <span className="text-secondary text-[var(--color-figma-text-tertiary)] pl-1 truncate">
+      {searchQuery ? (
+        <span className="text-secondary text-[var(--color-figma-text-secondary)] min-w-0 truncate" title={`matching "${searchQuery}"`}>
+          matching &ldquo;{searchQuery}&rdquo;
+        </span>
+      ) : null}
+      {selectedPaths.size === 1 && !searchQuery && (
+        <span className="text-secondary text-[var(--color-figma-text-tertiary)] pl-1 min-w-0 truncate">
           Shift-click to add a range
         </span>
       )}

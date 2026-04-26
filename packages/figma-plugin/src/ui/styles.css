@@ -2,13 +2,13 @@
 
 @theme {
   --font-size-micro: 9px;
-  --font-size-secondary: 10px;
+  --font-size-secondary: 11px;
   --font-size-body: 11px;
   --font-size-subheading: 12px;
   --font-size-heading: 15px;
   --font-size-title: 18px;
   --font-size-xs: 9px;
-  --font-size-sm: 10px;
+  --font-size-sm: 11px;
   --font-size-base: 11px;
   --font-size-lg: 15px;
   --font-size-xl: 18px;
@@ -16,7 +16,7 @@
 
 :root {
   --font-size-xs: 9px;
-  --font-size-sm: 10px;
+  --font-size-sm: 11px;
   --font-size-base: 11px;
   --font-size-md: 12px;
   --font-size-lg: 15px;
@@ -280,8 +280,11 @@ select:focus-visible,
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  max-inline-size: 100%;
+  overflow: hidden;
   line-height: 1;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Toast slide-in animation */
@@ -955,6 +958,25 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-details__section-actions {
     justify-content: flex-start;
+  }
+}
+
+@container authoring-surface (max-width: 320px) {
+  .tm-authoring-surface__header {
+    padding: 8px 12px;
+  }
+
+  .tm-authoring-body-stack {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .tm-authoring-footer {
+    padding: 8px 12px;
+  }
+
+  .tm-token-details__contrast-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

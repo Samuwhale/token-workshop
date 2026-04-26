@@ -157,7 +157,7 @@ export function NoticeBanner({
       className={`flex items-center gap-2 px-3 py-1.5 border-b text-body shrink-0 ${BANNER_TONE[severity]}${className ? ` ${className}` : ''}`}
     >
       {severityIcon(severity)}
-      <span className="flex-1 min-w-0 text-[var(--color-figma-text)]">{children}</span>
+      <span className="flex-1 min-w-0 break-words text-[var(--color-figma-text)]">{children}</span>
       {actions}
       {onDismiss && (
         <button

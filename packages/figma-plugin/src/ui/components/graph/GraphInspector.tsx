@@ -149,7 +149,7 @@ function Shell({
           <X size={11} strokeWidth={2} aria-hidden />
         </button>
       ) : null}
-      <div className="pr-7">{children}</div>
+      <div className="pr-8">{children}</div>
     </div>
   );
 }

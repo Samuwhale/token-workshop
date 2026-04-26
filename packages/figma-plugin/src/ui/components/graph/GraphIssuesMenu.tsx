@@ -116,7 +116,7 @@ export function GraphIssuesMenu({
         </span>
       </button>
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+4px)] z-30 flex max-h-[60vh] w-[300px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg">
+        <div className="absolute right-0 top-[calc(100%+4px)] z-30 flex max-h-[60vh] w-[300px] max-w-[calc(100vw-16px)] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg">
           <div className="flex flex-1 flex-col gap-3 overflow-auto p-3">
             {buckets.map((bucket) => (
               <KindSection

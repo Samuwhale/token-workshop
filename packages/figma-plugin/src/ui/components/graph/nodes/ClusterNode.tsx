@@ -18,7 +18,7 @@ function isClusterNodeData(data: unknown): data is ClusterNodeData {
   );
 }
 
-function ClusterNodeImpl({ data }: NodeProps) {
+function ClusterNodeImpl({ data, selected }: NodeProps) {
   if (!isClusterNodeData(data)) return null;
   const { cluster, onExpand, dimmed } = data;
 
@@ -38,7 +38,7 @@ function ClusterNodeImpl({ data }: NodeProps) {
       }`}
       style={{
         width: 180,
-        opacity: dimmed ? 0.25 : 1,
+        opacity: dimmed && !selected ? 0.25 : 1,
         transition: "opacity 120ms",
       }}
       title={onExpand ? `${cluster.label} — click to expand` : cluster.label}

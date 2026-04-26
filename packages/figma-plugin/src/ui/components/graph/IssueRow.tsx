@@ -66,7 +66,7 @@ export function IssueRow({
         <button
           type="button"
           onClick={handleDetach}
-          className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)] opacity-0 transition-opacity hover:text-[var(--color-figma-text)] hover:underline group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+          className="hidden shrink-0 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)] hover:underline group-hover:inline group-focus-within:inline focus-visible:inline"
         >
           Detach
         </button>

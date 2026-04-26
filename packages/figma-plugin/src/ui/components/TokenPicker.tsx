@@ -298,7 +298,7 @@ export function TokenPickerDropdown({
 
               {/* Path */}
               <span
-                className={`flex-1 text-body text-[var(--color-figma-text)] truncate ${
+                className={`min-w-0 flex-1 text-body text-[var(--color-figma-text)] truncate ${
                   entry.$lifecycle === 'deprecated' ? 'line-through' : ''
                 }`}
               >
@@ -458,7 +458,7 @@ export function TokenPickerField({
             />
           )}
           <span
-            className="flex-1 text-body font-mono text-[var(--color-figma-accent)] truncate cursor-default"
+            className="min-w-0 flex-1 text-body font-mono text-[var(--color-figma-accent)] truncate cursor-default"
             title={value}
           >
             {value}

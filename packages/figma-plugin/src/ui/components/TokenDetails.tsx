@@ -1293,7 +1293,7 @@ export function TokenDetails({
               </div>
             ) : (
               <span
-                className="truncate font-mono text-body text-[var(--color-figma-text)]"
+                className="min-w-0 flex-1 truncate font-mono text-body text-[var(--color-figma-text)]"
                 title={tokenPath}
               >
                 {tokenPath}
@@ -1415,7 +1415,7 @@ export function TokenDetails({
       {isEditMode && pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-body">
           <Clock size={12} strokeWidth={1.5} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
-          <span className="flex-1 text-[var(--color-figma-warning)] truncate">
+          <span className="min-w-0 flex-1 text-[var(--color-figma-warning)] truncate">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
           <button
