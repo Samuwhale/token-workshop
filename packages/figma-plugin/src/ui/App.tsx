@@ -79,7 +79,11 @@ import {
 import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { getErrorMessage, stableStringify, tokenPathToUrlSegment } from "./shared/utils";
-import { detachAliasModes, rewireAliasModes } from "./shared/aliasMutations";
+import {
+  createAliasToken,
+  detachAliasModes,
+  rewireAliasModes,
+} from "./shared/aliasMutations";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
@@ -1552,6 +1556,44 @@ export function App() {
         } catch (err) {
           const message = getErrorMessage(err);
           setErrorToast(`Could not rewire alias: ${message}`);
+          return { ok: false, error: message };
+        }
+      },
+      createAliasToken: async ({
+        newPath,
+        collectionId,
+        type,
+        targetPath,
+        targetCollectionId,
+      }: {
+        newPath: string;
+        collectionId: string;
+        type: string | undefined;
+        targetPath: string;
+        targetCollectionId: string;
+      }) => {
+        const collection = collections.find((c) => c.id === collectionId);
+        if (!collection) {
+          const message = `Collection "${collectionId}" not found`;
+          setErrorToast(message);
+          return { ok: false, error: message };
+        }
+        try {
+          await createAliasToken({
+            serverUrl,
+            collection,
+            newPath,
+            type,
+            targetPath,
+            targetCollectionId,
+            pathToCollectionId,
+            collectionIdsByPath,
+          });
+          refreshAll();
+          return { ok: true };
+        } catch (err) {
+          const message = getErrorMessage(err);
+          setErrorToast(`Could not create token: ${message}`);
           return { ok: false, error: message };
         }
       },

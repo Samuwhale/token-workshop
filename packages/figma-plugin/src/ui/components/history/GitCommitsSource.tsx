@@ -404,7 +404,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
                     }]);
                   }}
                   disabled={restoring !== null}
-                  className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                  className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 focus-visible:opacity-100 pointer-events-none group-hover/row:pointer-events-auto group-focus-within/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
                   title={`Restore ${change.path} to its previous value`}
                 >
                   {restoring === change.path ? (

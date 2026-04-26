@@ -14,18 +14,22 @@ export function SelectionActionBar({
   onDelete,
 }: SelectionActionBarProps) {
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-1 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary text-[var(--color-figma-text)] shadow-lg">
-      <span className="px-1 text-[var(--color-figma-text-secondary)]">
+    <div
+      role="toolbar"
+      aria-label="Selection actions"
+      className="pointer-events-auto absolute left-1/2 top-3 z-30 flex h-7 max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-0.5 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] pl-3 pr-1 text-secondary text-[var(--color-figma-text)] shadow-md"
+    >
+      <span className="pr-2 text-[var(--color-figma-text-secondary)]">
         {tokens.length} selected
       </span>
-      <span className="h-3 w-px bg-[var(--color-figma-border)]" aria-hidden />
       {onCopyPaths ? (
         <button
           type="button"
           onClick={onCopyPaths}
-          className="flex items-center gap-1 rounded px-2 py-1 hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex h-6 items-center gap-1 rounded-full px-2 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          aria-label="Copy selected paths"
         >
-          <Copy size={10} strokeWidth={2} aria-hidden />
+          <Copy size={11} strokeWidth={2} aria-hidden />
           Copy paths
         </button>
       ) : null}
@@ -33,9 +37,10 @@ export function SelectionActionBar({
         <button
           type="button"
           onClick={onDelete}
-          className="flex items-center gap-1 rounded px-2 py-1 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+          className="flex h-6 items-center gap-1 rounded-full px-2 text-[var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_12%,transparent)]"
+          aria-label="Delete selected tokens"
         >
-          <Trash2 size={10} strokeWidth={2} aria-hidden />
+          <Trash2 size={11} strokeWidth={2} aria-hidden />
           Delete
         </button>
       ) : null}
@@ -43,9 +48,9 @@ export function SelectionActionBar({
         type="button"
         onClick={onClear}
         aria-label="Clear selection"
-        className="rounded p-1 text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
       >
-        <X size={10} strokeWidth={2} aria-hidden />
+        <X size={11} strokeWidth={2} aria-hidden />
       </button>
     </div>
   );

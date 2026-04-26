@@ -101,6 +101,13 @@ export interface TokensWorkspaceController {
     tokenCollectionId: string;
     modeLiterals: Record<string, unknown>;
   }) => Promise<{ ok: boolean; error?: string }>;
+  createAliasToken: (params: {
+    newPath: string;
+    collectionId: string;
+    type: string | undefined;
+    targetPath: string;
+    targetCollectionId: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export interface ApplyWorkspaceController {

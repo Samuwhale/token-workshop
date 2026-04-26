@@ -780,7 +780,7 @@ export function PlatformExportConfig({
                   </button>
                   <button
                     onClick={() => handleCopyFile(file)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] shrink-0"
+                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] shrink-0"
                     title={`Copy ${file.path} to clipboard`}
                     aria-label={`Copy ${file.path}`}
                   >

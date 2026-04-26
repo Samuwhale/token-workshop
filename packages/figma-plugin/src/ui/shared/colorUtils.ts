@@ -230,7 +230,7 @@ export function wcagContrast(hex1: string, hex2: string): number | null {
 
 /**
  * Get WCAG relative luminance for any CSS color string.
- * Falls back to hex parsing for backwards compat, uses core parser for CSS Color 4.
+ * Uses the fast hex parser first, then the core parser for CSS Color 4.
  */
 export function colorLuminance(colorStr: string): number | null {
   // Fast path for hex
@@ -252,7 +252,7 @@ export function colorLuminance(colorStr: string): number | null {
 
 /**
  * Get a CSS value suitable for `backgroundColor` style property.
- * Handles both hex (strips alpha for `.slice(0,7)` compat) and CSS Color 4 strings.
+ * Handles both hex values with alpha and CSS Color 4 strings.
  */
 export function swatchBgColor(colorStr: string): string {
   if (typeof colorStr !== 'string') return '#000000';

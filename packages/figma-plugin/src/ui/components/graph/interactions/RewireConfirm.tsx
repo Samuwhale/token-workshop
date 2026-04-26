@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ContextDialog, DialogActions, DialogError } from "./ContextDialog";
 
 interface RewireConfirmProps {
   x: number;
@@ -23,7 +24,6 @@ export function RewireConfirm({
   onConfirm,
   onCancel,
 }: RewireConfirmProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(modeNames),
   );
@@ -31,24 +31,6 @@ export function RewireConfirm({
   useEffect(() => {
     setSelected(new Set(modeNames));
   }, [modeNames]);
-
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onCancel]);
-
-  useEffect(() => {
-    const handlePointer = (event: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (containerRef.current.contains(event.target as Node)) return;
-      onCancel();
-    };
-    document.addEventListener("mousedown", handlePointer);
-    return () => document.removeEventListener("mousedown", handlePointer);
-  }, [onCancel]);
 
   const isMultiMode = modeNames.length > 1;
   const allSelected = selected.size === modeNames.length;
@@ -60,32 +42,46 @@ export function RewireConfirm({
   );
 
   return (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-label="Rewire alias"
-      style={{ left: x, top: y }}
-      className="fixed z-50 w-[280px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg"
-    >
-      <div className="text-secondary text-[var(--color-figma-text)]">
-        Make <span className="font-mono">{sourcePath}</span> alias{" "}
-        <span className="font-mono">{targetPath}</span>?
+    <ContextDialog x={x} y={y} ariaLabel="Rewire alias" onCancel={onCancel}>
+      <div className="flex flex-col gap-1">
+        <div className="font-medium text-[var(--color-figma-text)]">
+          Rewire alias
+        </div>
+        <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <span
+            className="font-mono text-[var(--color-figma-text)] break-all"
+            title={sourcePath}
+          >
+            {sourcePath}
+          </span>{" "}
+          will reference{" "}
+          <span
+            className="font-mono text-[var(--color-figma-text)] break-all"
+            title={targetPath}
+          >
+            {targetPath}
+          </span>
+          .
+        </div>
       </div>
       {isMultiMode ? (
-        <div className="mt-2 flex flex-col gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              setSelected(new Set(allSelected ? [] : modeNames));
-            }}
-            className="text-secondary text-[var(--color-figma-accent)] hover:underline self-start"
-          >
-            {allSelected ? "Deselect all" : "Apply to all modes"}
-          </button>
-          <ul className="flex flex-col gap-1 pt-1">
+        <div className="mt-3 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+              Modes
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set(allSelected ? [] : modeNames))}
+              className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+            >
+              {allSelected ? "Clear all" : "Select all"}
+            </button>
+          </div>
+          <ul className="flex flex-col">
             {modeNames.map((mode) => (
               <li key={mode}>
-                <label className="flex cursor-pointer items-center gap-2 text-secondary text-[var(--color-figma-text)]">
+                <label className="flex h-7 cursor-pointer items-center gap-2 rounded px-1 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
                   <input
                     type="checkbox"
                     checked={selected.has(mode)}
@@ -105,28 +101,15 @@ export function RewireConfirm({
           </ul>
         </div>
       ) : null}
-      {errorMessage ? (
-        <div className="mt-2 text-secondary text-[var(--color-figma-error)]">
-          {errorMessage}
-        </div>
-      ) : null}
-      <div className="mt-3 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-[var(--color-figma-border)] bg-transparent px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={busy || noneSelected}
-          onClick={() => onConfirm(orderedSelection)}
-          className="rounded-md bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-        >
-          {busy ? "Rewiring…" : "Rewire"}
-        </button>
-      </div>
-    </div>
+      {errorMessage ? <DialogError message={errorMessage} /> : null}
+      <DialogActions
+        busy={busy}
+        disabled={noneSelected}
+        confirmLabel="Rewire"
+        busyLabel="Rewiring…"
+        onCancel={onCancel}
+        onConfirm={() => onConfirm(orderedSelection)}
+      />
+    </ContextDialog>
   );
 }

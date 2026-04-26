@@ -1,6 +1,7 @@
 import { AlertTriangle, RefreshCcw } from "lucide-react";
 import type { ReactNode } from "react";
 import type { LintViolation } from "../../hooks/useLint";
+import { ListItem, Stack } from "../../primitives";
 import { TokenEditorLintBanner } from "../token-editor/TokenEditorLintBanner";
 
 type DependentToken = {
@@ -109,35 +110,30 @@ export function TokenDetailsStatusBanners({
                   {dependents.length !== 1 ? "s" : ""} may break
                 </button>
                 {showPendingDependents ? (
-                  <div className="tm-token-details__list-box">
-                    {dependents.slice(0, 20).map((dep) =>
-                      onNavigateToToken ? (
-                        <button
-                          key={dep.path}
-                          type="button"
-                          onClick={() => onNavigateToToken(dep.path, dep.collectionId)}
-                          className="tm-token-details__list-row"
-                          title={`Open ${dep.path}`}
-                        >
-                          <span className="tm-token-details__mono">{dep.path}</span>
-                          {dep.collectionId !== ownerCollectionId ? (
+                  <div className="max-h-36 overflow-y-auto">
+                    <Stack gap={1} className="p-1.5">
+                      {dependents.slice(0, 20).map((dep) => {
+                        const tag =
+                          dep.collectionId !== ownerCollectionId ? (
                             <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
-                          ) : null}
-                        </button>
-                      ) : (
-                        <div key={dep.path} className="tm-token-details__list-row">
-                          <span className="tm-token-details__mono">{dep.path}</span>
-                          {dep.collectionId !== ownerCollectionId ? (
-                            <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
-                          ) : null}
+                          ) : null;
+                        return (
+                          <ListItem
+                            key={dep.path}
+                            onClick={onNavigateToToken ? () => onNavigateToToken(dep.path, dep.collectionId) : undefined}
+                            title={onNavigateToToken ? `Open ${dep.path}` : undefined}
+                            trailing={tag}
+                          >
+                            <span className="tm-token-details__mono">{dep.path}</span>
+                          </ListItem>
+                        );
+                      })}
+                      {dependents.length > 20 ? (
+                        <div className="tm-token-details__list-note">
+                          and {dependents.length - 20} more…
                         </div>
-                      ),
-                    )}
-                    {dependents.length > 20 ? (
-                      <div className="tm-token-details__list-note">
-                        and {dependents.length - 20} more…
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </Stack>
                   </div>
                 ) : null}
               </div>

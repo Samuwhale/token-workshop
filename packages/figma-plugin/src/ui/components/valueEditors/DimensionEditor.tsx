@@ -1,4 +1,5 @@
 import { useState, memo } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
@@ -48,7 +49,7 @@ export const StepperInput = memo(function StepperInput({
           onMouseDown={e => { e.preventDefault(); step(1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] leading-none"
         >
-          <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor" aria-hidden="true"><path d="M0 5l3-4 3 4H0z"/></svg>
+          <ChevronUp size={8} strokeWidth={2} aria-hidden />
         </button>
         <button
           type="button"
@@ -57,7 +58,7 @@ export const StepperInput = memo(function StepperInput({
           onMouseDown={e => { e.preventDefault(); step(-1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)] leading-none"
         >
-          <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor" aria-hidden="true"><path d="M0 1l3 4 3-4H0z"/></svg>
+          <ChevronDown size={8} strokeWidth={2} aria-hidden />
         </button>
       </div>
     </div>
@@ -72,7 +73,7 @@ const UNIT_CONVERSIONS: Record<string, Record<string, ((v: number) => number) | 
 };
 
 export const DimensionEditor = memo(function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string>; autoFocus?: boolean }) {
-  const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
+  const val = typeof value === 'object' && value !== null ? value : { value: value ?? 0, unit: 'px' };
   const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
   const [conversionWarning, setConversionWarning] = useState<string | null>(null);

@@ -13,6 +13,8 @@ import {
   type Node,
   type NodeMouseHandler,
   type OnConnect,
+  type OnConnectEnd,
+  type OnConnectStart,
   type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import { dispatchToast } from "../../shared/toastBus";
@@ -70,6 +72,12 @@ interface FocusCanvasProps {
   onSelectEdge: (edgeId: string | null) => void;
   onSelectionChange?: (selectedNodeIds: GraphNodeId[]) => void;
   onExpandMoreHops?: () => void;
+  onClearFocus?: () => void;
+  onRequestCreateAliasToken?: (params: {
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+  }) => void;
   editingEnabled?: boolean;
 }
 
@@ -113,10 +121,14 @@ function FocusCanvasInner({
   onSelectEdge,
   onSelectionChange,
   onExpandMoreHops,
+  onClearFocus,
+  onRequestCreateAliasToken,
   editingEnabled = false,
 }: FocusCanvasProps) {
   const reactFlow = useReactFlow();
   const lastPointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const connectStartRef = useRef<GraphNodeId | null>(null);
+  const connectMadeWireRef = useRef(false);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -143,10 +155,7 @@ function FocusCanvasInner({
     reactFlow.setNodes((current) =>
       current.map((n) => (n.selected ? { ...n, selected: false } : n)),
     );
-    // onSelectionChange is part of the contract; we deliberately don't depend
-    // on its identity to avoid clearing on every parent re-render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusId, reactFlow]);
+  }, [focusId, onSelectionChange, reactFlow]);
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
@@ -170,7 +179,6 @@ function FocusCanvasInner({
         ? layoutFocused(subgraph, focusId)
         : {
             positions: new Map(),
-            clusters: new Map(),
             lanes: [],
             focusCollectionId: null,
             width: 0,
@@ -178,6 +186,40 @@ function FocusCanvasInner({
           },
     [subgraph, focusId],
   );
+
+  // Compute the hovered node's "own story" inside the focused subgraph: every
+  // node reachable from it without traversing *through* the focus node. The
+  // focus node itself is included if reached (it's still part of the story),
+  // but its other neighbors are not — otherwise hovering any sibling would
+  // sweep up the entire subgraph via focus and the dim would be a no-op.
+  // Hovering the focus node returns null (no dimming): the whole subgraph is
+  // already focus's story.
+  const relatedNodeIds = useMemo<ReadonlySet<GraphNodeId> | null>(() => {
+    if (!hoveredNodeId) return null;
+    if (hoveredNodeId === focusId) return null;
+    if (!subgraph.nodes.has(hoveredNodeId)) return null;
+    const related = new Set<GraphNodeId>([hoveredNodeId]);
+    const queue: GraphNodeId[] = [hoveredNodeId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      // Don't expand through the focus node — including it is enough; its
+      // wider neighborhood belongs to focus's story, not the hovered node's.
+      if (current === focusId) continue;
+      for (const edgeId of subgraph.outgoing.get(current) ?? []) {
+        const edge = subgraph.edges.get(edgeId);
+        if (!edge || related.has(edge.to)) continue;
+        related.add(edge.to);
+        queue.push(edge.to);
+      }
+      for (const edgeId of subgraph.incoming.get(current) ?? []) {
+        const edge = subgraph.edges.get(edgeId);
+        if (!edge || related.has(edge.from)) continue;
+        related.add(edge.from);
+        queue.push(edge.from);
+      }
+    }
+    return related;
+  }, [hoveredNodeId, focusId, subgraph]);
 
   const expandCluster = useCallback((clusterId: GraphNodeId) => {
     if (!focusId) return;
@@ -217,24 +259,45 @@ function FocusCanvasInner({
     for (const node of subgraph.nodes.values()) {
       const pos = layout.positions.get(node.id) ?? { x: 0, y: 0 };
       const dims = nodeDimensions(node);
-      rfNodes.push(buildRfNode(node, pos, dims, focusId, expandCluster));
+      const dimmed = relatedNodeIds != null && !relatedNodeIds.has(node.id);
+      rfNodes.push(
+        buildRfNode(node, pos, dims, focusId, expandCluster, dimmed),
+      );
     }
     return rfNodes;
-  }, [focusId, subgraph, layout.positions, layout.lanes, expandCluster]);
+  }, [
+    focusId,
+    subgraph,
+    layout.positions,
+    layout.lanes,
+    expandCluster,
+    relatedNodeIds,
+  ]);
 
   const edges = useMemo(() => {
     const rfEdges: Edge[] = [];
     for (const edge of subgraph.edges.values()) {
-      const isEmphasized = Boolean(
-        hoveredNodeId &&
-          (edge.from === hoveredNodeId || edge.to === hoveredNodeId),
-      );
+      // An edge is "in scope" of the hover when both endpoints are part of the
+      // hovered node's connected subtree — that's the relationship the user
+      // is exploring. Anything else fades into the background.
+      const inHoverSubtree =
+        relatedNodeIds != null &&
+        relatedNodeIds.has(edge.from) &&
+        relatedNodeIds.has(edge.to);
+      const isEmphasized = inHoverSubtree;
+      const dimmed = relatedNodeIds != null && !inHoverSubtree;
       rfEdges.push(
-        buildRfEdge(edge, subgraph, collectionModeCountById, isEmphasized),
+        buildRfEdge(
+          edge,
+          subgraph,
+          collectionModeCountById,
+          isEmphasized,
+          dimmed,
+        ),
       );
     }
     return rfEdges;
-  }, [hoveredNodeId, collectionModeCountById, subgraph]);
+  }, [relatedNodeIds, collectionModeCountById, subgraph]);
 
   // Pan to the focus node without changing zoom. Deliberately no `fitView`
   // on data change — that was the source of "where did my graph go?" jumps
@@ -341,11 +404,51 @@ function FocusCanvasInner({
     [fullGraph, editingEnabled],
   );
 
+  const handleConnectStart: OnConnectStart = useCallback((_event, params) => {
+    connectStartRef.current = (params.nodeId as GraphNodeId | null) ?? null;
+    connectMadeWireRef.current = false;
+  }, []);
+
+  const handleConnectEnd: OnConnectEnd = useCallback(
+    (event) => {
+      const sourceNodeId = connectStartRef.current;
+      connectStartRef.current = null;
+      if (!editingEnabled) return;
+      if (!sourceNodeId) return;
+      if (connectMadeWireRef.current) return;
+      const sourceNode = fullGraph.nodes.get(sourceNodeId);
+      if (!sourceNode || sourceNode.kind !== "token") return;
+      // Drop only counts as "create" when it lands on the pane background, not
+      // on another node/handle (those go through onConnect).
+      const target = event.target as HTMLElement | null;
+      const droppedOnPane = Boolean(target?.closest?.(".react-flow__pane"));
+      if (!droppedOnPane) return;
+      const touchEvent = event as TouchEvent;
+      const { x, y } =
+        "changedTouches" in event && touchEvent.changedTouches.length > 0
+          ? {
+              x: touchEvent.changedTouches[0].clientX,
+              y: touchEvent.changedTouches[0].clientY,
+            }
+          : {
+              x: (event as MouseEvent).clientX,
+              y: (event as MouseEvent).clientY,
+            };
+      onRequestCreateAliasToken?.({
+        sourceNodeId,
+        screenX: x,
+        screenY: y,
+      });
+    },
+    [editingEnabled, fullGraph, onRequestCreateAliasToken],
+  );
+
   const handleConnect: OnConnect = useCallback(
     (connection: Connection) => {
       if (!editingEnabled) return;
       const { source, target } = connection;
       if (!source || !target) return;
+      connectMadeWireRef.current = true;
       const sourceNode = fullGraph.nodes.get(source);
       const targetNode = fullGraph.nodes.get(target);
       if (
@@ -378,7 +481,7 @@ function FocusCanvasInner({
             return node.path;
           })
           .join(" → ");
-        dispatchToast(`Would create a cycle: ${formatted}`, "error");
+        dispatchToast(`Would create a circular reference: ${formatted}`, "error");
         return;
       }
       onRequestRewire?.({
@@ -402,7 +505,32 @@ function FocusCanvasInner({
   const handlePaneClick = useCallback(() => {
     setContextMenu(null);
     onSelectEdge(null);
-  }, [onSelectEdge]);
+    onClearFocus?.();
+  }, [onSelectEdge, onClearFocus]);
+
+  useEffect(() => {
+    if (!onClearFocus) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      // If a popover/menu is open, let it handle Escape itself.
+      if (contextMenu) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      event.preventDefault();
+      onSelectEdge(null);
+      onClearFocus();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClearFocus, onSelectEdge, contextMenu]);
 
   useEffect(() => {
     if (!editingEnabled) return;
@@ -545,6 +673,8 @@ function FocusCanvasInner({
         onNodeMouseLeave={handleNodeMouseLeave}
         onNodeContextMenu={handleNodeContextMenu}
         onPaneClick={handlePaneClick}
+        onConnectStart={handleConnectStart}
+        onConnectEnd={handleConnectEnd}
         onConnect={handleConnect}
         isValidConnection={isValidConnection}
         onEdgeClick={handleEdgeClick}
@@ -609,10 +739,10 @@ function FocusCanvasInner({
         <button
           type="button"
           onClick={onExpandMoreHops}
-          className="pointer-events-auto absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-[10px] text-[var(--color-figma-text-secondary)] shadow-md hover:bg-[var(--color-figma-bg-hover)]"
+          className="pointer-events-auto absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[var(--color-figma-bg)]/95 px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)] shadow-sm backdrop-blur-sm hover:bg-[var(--surface-hover)] hover:text-[var(--color-figma-text)]"
           title="Show one more hop in each direction"
         >
-          Expand
+          Show more
         </button>
       ) : null}
     </div>
@@ -625,6 +755,7 @@ function buildRfNode(
   dims: { width: number; height: number },
   focusId: GraphNodeId | null,
   expandCluster: (clusterId: GraphNodeId) => void,
+  dimmed: boolean,
 ): Node {
   const isFocused = node.id === focusId;
   if (node.kind === "token") {
@@ -634,7 +765,7 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { token: node, isFocused },
+      data: { token: node, isFocused, dimmed },
       selectable: true,
       draggable: false,
       connectable: true,
@@ -648,7 +779,7 @@ function buildRfNode(
       position,
       width: dims.width,
       height: dims.height,
-      data: { generator: node, isFocused },
+      data: { generator: node, isFocused, dimmed },
       selectable: true,
       draggable: false,
       connectable: false,
@@ -666,6 +797,7 @@ function buildRfNode(
         cluster: node,
         variant: "pill",
         onExpand: () => expandCluster(node.id),
+        dimmed,
       },
       selectable: true,
       draggable: false,
@@ -679,7 +811,7 @@ function buildRfNode(
     position,
     width: dims.width,
     height: dims.height,
-    data: { ghost: node },
+    data: { ghost: node, dimmed },
     selectable: false,
     draggable: false,
     connectable: false,
@@ -692,6 +824,7 @@ function buildRfEdge(
   graph: GraphRenderModel,
   collectionModeCountById: Map<string, number>,
   isEmphasized: boolean,
+  dimmed: boolean,
 ): Edge {
   const aggregateCount = edge.aggregateCount;
   const base = {
@@ -702,6 +835,7 @@ function buildRfEdge(
     markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
     data: {
       isEmphasized,
+      dimmed,
       aggregateCount,
     },
   };

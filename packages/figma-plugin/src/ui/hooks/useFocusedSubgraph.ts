@@ -31,9 +31,8 @@ interface UseFocusedSubgraphResult {
 // Per spec: collapse same-kind sibling neighbours of the focus into one pill
 // once a (side, hop, kind) bucket exceeds this count.
 const FOCUS_AGGREGATE_MAX = 8;
-// "auto" expands from 1 → 2 hops only when the 1-hop slice has fewer nodes
-// than this. Above the threshold, we'd risk crossing into a hairball; the
-// user can still pin depth=2 manually.
+// "auto" expands from 1 → 2 hops only when both slices stay below this node
+// count. Above the threshold, the user can still pin depth=2 manually.
 const AUTO_EXPAND_THRESHOLD = 8;
 // Hard ceiling on hop depth — keeps "auto" from runaway-expanding on narrow
 // graphs and matches the toolbar's max-pinnable value.
@@ -73,8 +72,9 @@ export function useFocusedSubgraph(
     let sliced;
     if (hopDepth === "auto") {
       const oneHop = slice(1);
-      if (oneHop.nodes.size <= AUTO_EXPAND_THRESHOLD) {
-        const twoHop = slice(2);
+      const twoHop =
+        oneHop.nodes.size <= AUTO_EXPAND_THRESHOLD ? slice(2) : null;
+      if (twoHop && twoHop.nodes.size <= AUTO_EXPAND_THRESHOLD) {
         sliced = twoHop;
         resolvedDepth = 2;
       } else {

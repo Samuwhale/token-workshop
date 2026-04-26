@@ -34,7 +34,7 @@ interface ModeValueEditorProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   autoFocus?: boolean;
-  baseValue?: unknown;
+  inheritedValue?: unknown;
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
   fontFamilyRef?: React.RefObject<HTMLInputElement>;
@@ -48,7 +48,7 @@ export function ModeValueEditor({
   allTokensFlat,
   pathToCollectionId,
   autoFocus,
-  baseValue,
+  inheritedValue,
   availableFonts,
   fontWeightsByFamily,
   fontFamilyRef,
@@ -95,7 +95,7 @@ export function ModeValueEditor({
           onChange={onChange}
           allTokensFlat={allTokensFlat ?? {}}
           pathToCollectionId={pathToCollectionId ?? {}}
-          baseValue={baseValue}
+          inheritedValue={inheritedValue}
           availableFonts={availableFonts}
           fontWeightsByFamily={fontWeightsByFamily}
           fontFamilyRef={fontFamilyRef}
@@ -109,7 +109,7 @@ export function ModeValueEditor({
           onChange={onChange}
           allTokensFlat={allTokensFlat ?? {}}
           pathToCollectionId={pathToCollectionId ?? {}}
-          baseValue={baseValue}
+          inheritedValue={inheritedValue}
         />
       );
     case 'border':
@@ -119,7 +119,7 @@ export function ModeValueEditor({
           onChange={onChange}
           allTokensFlat={allTokensFlat ?? {}}
           pathToCollectionId={pathToCollectionId ?? {}}
-          baseValue={baseValue}
+          inheritedValue={inheritedValue}
         />
       );
     case 'gradient':
@@ -138,7 +138,15 @@ export function ModeValueEditor({
     case 'strokeStyle':
       return <StrokeStyleEditor value={value ?? 'solid'} onChange={onChange} />;
     case 'composition':
-      return <CompositionEditor value={value ?? {}} onChange={onChange} baseValue={baseValue} />;
+      return (
+        <CompositionEditor
+          value={value ?? {}}
+          onChange={onChange}
+          inheritedValue={inheritedValue}
+          allTokensFlat={allTokensFlat ?? {}}
+          pathToCollectionId={pathToCollectionId ?? {}}
+        />
+      );
     case 'cubicBezier':
       return <CubicBezierEditor value={value ?? [0, 0, 1, 1]} onChange={onChange} />;
     case 'transition':

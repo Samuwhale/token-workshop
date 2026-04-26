@@ -13,8 +13,6 @@ export interface GraphClusterNode {
   kind: "cluster";
   id: GraphNodeId;
   label: string;
-  collectionId?: string;
-  groupPath?: string;
   count: number;
 }
 
@@ -40,69 +38,6 @@ export interface GraphRenderModel {
   outgoing: Map<GraphNodeId, GraphEdgeId[]>;
   incoming: Map<GraphNodeId, GraphEdgeId[]>;
   fingerprint: string;
-}
-
-interface ClusterLabelInfo {
-  id: GraphNodeId;
-  label: string;
-  collectionId?: string;
-  groupPath?: string;
-}
-
-function groupPathFromTokenPath(path: string): string {
-  const parts = path.split(".").filter(Boolean);
-  if (parts.length <= 1) return "Ungrouped";
-  return parts.slice(0, -1).join("/");
-}
-
-function clusterInfoForNode(
-  node: GraphNode,
-  selectedCollectionIds: string[],
-): ClusterLabelInfo | null {
-  const multiCollection = selectedCollectionIds.length > 1;
-  if (node.kind === "token") {
-    const groupPath = groupPathFromTokenPath(node.path);
-    const label = multiCollection
-      ? `${node.collectionId} / ${groupPath}`
-      : groupPath;
-    return {
-      id: `cluster:${node.collectionId}::${groupPath}`,
-      label,
-      collectionId: node.collectionId,
-      groupPath,
-    };
-  }
-
-  if (node.kind === "generator") {
-    const groupPath = node.targetGroup.replace(/\./g, "/") || "Generators";
-    const label = multiCollection
-      ? `${node.targetCollection} / ${groupPath}`
-      : groupPath;
-    return {
-      id: `cluster:${node.targetCollection}::${groupPath}`,
-      label,
-      collectionId: node.targetCollection,
-      groupPath,
-    };
-  }
-
-  const groupPath = groupPathFromTokenPath(node.path);
-  const collectionId = node.collectionId ?? "missing";
-  const label = multiCollection ? `${collectionId} / ${groupPath}` : groupPath;
-  return {
-    id: `cluster:${collectionId}::${groupPath}`,
-    label,
-    collectionId: node.collectionId,
-    groupPath,
-  };
-}
-
-export function getGraphNodeClusterInfo(
-  node: GraphNode | undefined,
-  selectedCollectionIds: string[],
-): ClusterLabelInfo | null {
-  if (!node) return null;
-  return clusterInfoForNode(node, selectedCollectionIds);
 }
 
 const DEFAULT_AGGREGATE_MAX = 8;

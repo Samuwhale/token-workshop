@@ -70,9 +70,9 @@ export interface TokenContextNavigationRequest {
 }
 
 /**
- * Internal routing structure — kept for PanelRouter compatibility.
- * The app shell remaps these internal route buckets into user-facing workspaces
- * below, but this table remains the source of truth for which panels exist.
+ * Internal routing structure.
+ * The app shell remaps these route buckets into user-facing workspaces below,
+ * and this table is the source of truth for which panels exist.
  */
 export const TOP_TABS: {
   id: TopTab;

@@ -1,15 +1,16 @@
 import { memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AUTHORING } from '../../shared/editorClasses';
+import { Field, Stack } from '../../primitives';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput, DimensionSubProp } from './valueEditorShared';
 
-export const BorderEditor = memo(function BorderEditor({ value, onChange, allTokensFlat, pathToCollectionId, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; baseValue?: any }) {
+export const BorderEditor = memo(function BorderEditor({ value, onChange, allTokensFlat, pathToCollectionId, inheritedValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; inheritedValue?: any }) {
   const rawVal = typeof value === 'object' ? value : {};
-  const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
-  const val = base ? { ...base, ...rawVal } : rawVal;
+  const inherited = typeof inheritedValue === 'object' && inheritedValue !== null ? inheritedValue : undefined;
+  const val = inherited ? { ...inherited, ...rawVal } : rawVal;
   const update = (key: string, v: any) => {
-    if (base) {
+    if (inherited) {
       onChange({ ...rawVal, [key]: v });
     } else {
       onChange({ ...val, [key]: v });
@@ -18,10 +19,9 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
   const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
 
   return (
-    <div className="flex flex-col gap-2">
-      <div>
-        <div className={AUTHORING.label}>Color</div>
-        <div className="flex gap-2 items-center">
+    <Stack gap={3}>
+      <Field label="Color">
+        <Stack direction="row" gap={2} align="center">
           {!isColorAlias && (
             <ColorSwatchButton
               color={val.color || '#000000'}
@@ -37,20 +37,18 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
             inputType="string"
             placeholder="#000000 or {token}"
           />
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <div className={AUTHORING.label}>Width</div>
+        </Stack>
+      </Field>
+      <Stack direction="row" gap={3}>
+        <Field label="Width" className="flex-1">
           <DimensionSubProp
             value={val.width ?? { value: 1, unit: 'px' }}
             onChange={v => update('width', v)}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
           />
-        </div>
-        <div className="flex-1">
-          <div className={AUTHORING.label}>Style</div>
+        </Field>
+        <Field label="Style" className="flex-1">
           <select
             value={val.style || 'solid'}
             onChange={e => update('style', e.target.value)}
@@ -61,8 +59,8 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
             <option value="dotted">Dotted</option>
             <option value="double">Double</option>
           </select>
-        </div>
-      </div>
-    </div>
+        </Field>
+      </Stack>
+    </Stack>
   );
 });

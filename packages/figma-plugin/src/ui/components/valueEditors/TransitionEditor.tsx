@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
-import { AUTHORING } from '../../shared/editorClasses';
+import { Field, Stack } from '../../primitives';
 import { DimensionSubProp } from './valueEditorShared';
 import { CubicBezierEditor } from './CubicBezierEditor';
 
@@ -13,9 +13,8 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
   const update = (patch: Record<string, any>) => onChange({ duration, delay, timingFunction, ...val, ...patch });
 
   return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <div className={AUTHORING.label}>Duration</div>
+    <Stack gap={3}>
+      <Field label="Duration">
         <DimensionSubProp
           value={typeof duration === 'string' ? duration : duration}
           onChange={v => update({ duration: v })}
@@ -24,9 +23,8 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
           units={['ms', 's']}
           placeholder="200"
         />
-      </div>
-      <div>
-        <div className={AUTHORING.label}>Delay</div>
+      </Field>
+      <Field label="Delay">
         <DimensionSubProp
           value={typeof delay === 'string' ? delay : delay}
           onChange={v => update({ delay: v })}
@@ -35,11 +33,10 @@ export const TransitionEditor = memo(function TransitionEditor({ value, onChange
           units={['ms', 's']}
           placeholder="0"
         />
-      </div>
-      <div>
-        <div className={AUTHORING.label}>Timing Function</div>
+      </Field>
+      <Field label="Timing Function">
         <CubicBezierEditor value={timingFunction} onChange={(tf: any) => update({ timingFunction: tf })} />
-      </div>
-    </div>
+      </Field>
+    </Stack>
   );
 });

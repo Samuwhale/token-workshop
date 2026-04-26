@@ -71,7 +71,7 @@ export function HealthHiddenView({
                   <button
                     onClick={() => onUnsuppress(key)}
                     disabled={suppressingKey === key}
-                    className="shrink-0 text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40 disabled:cursor-wait"
+                    className="shrink-0 text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 disabled:opacity-40 disabled:cursor-wait"
                   >
                     {suppressingKey === key ? "…" : "Show again"}
                   </button>

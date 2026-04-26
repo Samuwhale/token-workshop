@@ -1,15 +1,16 @@
 import { memo } from 'react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AUTHORING } from '../../shared/editorClasses';
+import { Field, Stack } from '../../primitives';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput } from './valueEditorShared';
 
-export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTokensFlat, pathToCollectionId, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; baseValue?: any }) {
+export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTokensFlat, pathToCollectionId, inheritedValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; inheritedValue?: any }) {
   const rawVal = typeof value === 'object' ? value : {};
-  const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
-  const val = base ? { ...base, ...rawVal } : rawVal;
+  const inherited = typeof inheritedValue === 'object' && inheritedValue !== null ? inheritedValue : undefined;
+  const val = inherited ? { ...inherited, ...rawVal } : rawVal;
   const update = (key: string, v: any) => {
-    if (base) {
+    if (inherited) {
       onChange({ ...rawVal, [key]: v });
     } else {
       onChange({ ...val, [key]: v });
@@ -20,10 +21,9 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
   const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
 
   return (
-    <div className="flex flex-col gap-2">
-      <div>
-        <div className={AUTHORING.label}>Color</div>
-        <div className="flex gap-2 items-center">
+    <Stack gap={3}>
+      <Field label="Color">
+        <Stack direction="row" gap={2} align="center">
           {!isColorAlias && (
             <ColorSwatchButton
               color={val.color || '#000000'}
@@ -39,28 +39,23 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
             inputType="string"
             placeholder="#00000040 or {token}"
           />
-        </div>
-      </div>
+        </Stack>
+      </Field>
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <div className={AUTHORING.label}>Offset X</div>
+        <Field label="Offset X">
           <SubPropInput value={getDim(val.offsetX)} onChange={v => setDim('offsetX', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </div>
-        <div>
-          <div className={AUTHORING.label}>Offset Y</div>
+        </Field>
+        <Field label="Offset Y">
           <SubPropInput value={getDim(val.offsetY)} onChange={v => setDim('offsetY', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </div>
-        <div>
-          <div className={AUTHORING.label}>Blur</div>
+        </Field>
+        <Field label="Blur">
           <SubPropInput value={getDim(val.blur)} onChange={v => setDim('blur', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </div>
-        <div>
-          <div className={AUTHORING.label}>Spread</div>
+        </Field>
+        <Field label="Spread">
           <SubPropInput value={getDim(val.spread)} onChange={v => setDim('spread', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </div>
+        </Field>
       </div>
-      <div>
-        <div className={AUTHORING.label}>Type</div>
+      <Field label="Type">
         <select
           value={val.type || 'dropShadow'}
           onChange={e => update('type', e.target.value)}
@@ -69,7 +64,7 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
           <option value="dropShadow">Drop Shadow</option>
           <option value="innerShadow">Inner Shadow</option>
         </select>
-      </div>
-    </div>
+      </Field>
+    </Stack>
   );
 });

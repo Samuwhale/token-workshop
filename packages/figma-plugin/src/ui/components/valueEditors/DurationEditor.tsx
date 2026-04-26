@@ -32,6 +32,7 @@ export const DurationEditor = memo(function DurationEditor({ value, onChange, au
       <div className="flex flex-wrap gap-1">
         {DURATION_PRESETS.map(p => (
           <button
+            type="button"
             key={p}
             onClick={() => onChange({ value: p, unit: 'ms' })}
             className={`px-2 py-0.5 rounded border text-secondary transition-colors ${ms === p && unit === 'ms' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}

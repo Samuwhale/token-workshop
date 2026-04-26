@@ -134,29 +134,45 @@ function bfsSubgraph(
   start: GraphNodeId,
   maxDepth: number,
 ): Set<GraphNodeId> {
+  // Walk upstream and downstream independently so the result matches the
+  // focus-mode layout, which assigns each node to a strict upstream- or
+  // downstream-only column. A bidirectional walk would happily collect
+  // "sibling" nodes (e.g. other tokens that alias the same target as the
+  // focus) that the layout has no column for — those would then collapse onto
+  // (0, 0) and overlap the focus node.
   const visited = new Set<GraphNodeId>([start]);
+  walkDirection(full, start, maxDepth, "upstream", visited);
+  walkDirection(full, start, maxDepth, "downstream", visited);
+  return visited;
+}
+
+function walkDirection(
+  full: GraphModel,
+  start: GraphNodeId,
+  maxDepth: number,
+  side: "upstream" | "downstream",
+  visited: Set<GraphNodeId>,
+): void {
   let frontier: GraphNodeId[] = [start];
   for (let d = 0; d < maxDepth; d++) {
     const next: GraphNodeId[] = [];
     for (const nodeId of frontier) {
-      const edgeIds = [
-        ...(full.outgoing.get(nodeId) ?? []),
-        ...(full.incoming.get(nodeId) ?? []),
-      ];
+      const edgeIds =
+        side === "upstream"
+          ? full.incoming.get(nodeId) ?? []
+          : full.outgoing.get(nodeId) ?? [];
       for (const edgeId of edgeIds) {
         const edge = full.edges.get(edgeId);
         if (!edge) continue;
-        const other = edge.from === nodeId ? edge.to : edge.from;
-        if (!visited.has(other)) {
-          visited.add(other);
-          next.push(other);
-        }
+        const other = side === "upstream" ? edge.from : edge.to;
+        if (visited.has(other)) continue;
+        visited.add(other);
+        next.push(other);
       }
     }
     if (next.length === 0) break;
     frontier = next;
   }
-  return visited;
 }
 
 function sliceModel(

@@ -2098,7 +2098,7 @@ export function TokenList({
         $type?: string,
         $value?: unknown,
       ) => {
-        handleOpenExtractToAlias(path, $type, $value as any);
+        handleOpenExtractToAlias(path, $type, $value);
       },
     };
     return () => {

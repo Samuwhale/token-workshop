@@ -33,6 +33,12 @@ interface GraphCanvasProps {
   onSelectEdge: (edgeId: string | null) => void;
   onSelectionChange?: (selectedNodeIds: GraphNodeId[]) => void;
   onExpandMoreHops?: () => void;
+  onClearFocus?: () => void;
+  onRequestCreateAliasToken?: (params: {
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+  }) => void;
   editingEnabled?: boolean;
 }
 
@@ -54,6 +60,8 @@ export function GraphCanvas({
   onSelectEdge,
   onSelectionChange,
   onExpandMoreHops,
+  onClearFocus,
+  onRequestCreateAliasToken,
   editingEnabled,
 }: GraphCanvasProps) {
   if (focusId === null) {
@@ -84,6 +92,8 @@ export function GraphCanvas({
       onSelectEdge={onSelectEdge}
       onSelectionChange={onSelectionChange}
       onExpandMoreHops={onExpandMoreHops}
+      onClearFocus={onClearFocus}
+      onRequestCreateAliasToken={onRequestCreateAliasToken}
       editingEnabled={editingEnabled}
     />
   );

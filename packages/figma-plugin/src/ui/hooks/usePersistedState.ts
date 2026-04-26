@@ -25,15 +25,18 @@ function usePersistedState<T>(
 ): [T, Dispatch<SetStateAction<T>>] {
   const [value, setValue] = useState<T>(() => read(key, defaultValue));
   const previousKeyRef = useRef(key);
+  const defaultValueRef = useRef(defaultValue);
+
+  defaultValueRef.current = defaultValue;
 
   useEffect(() => {
     if (previousKeyRef.current !== key) {
       previousKeyRef.current = key;
-      setValue(read(key, defaultValue));
+      setValue(read(key, defaultValueRef.current));
       return;
     }
     write(key, value);
-  }, [defaultValue, key, read, value, write]);
+  }, [key, read, value, write]);
 
   return [value, setValue];
 }

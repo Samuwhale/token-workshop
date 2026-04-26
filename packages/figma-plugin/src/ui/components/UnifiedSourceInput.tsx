@@ -362,7 +362,7 @@ function MatchingTokenSuggestions({
                 {collectionId}
               </span>
             )}
-            <span className="text-secondary text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 shrink-0">
+            <span className="text-secondary text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 shrink-0">
               Use token
             </span>
           </button>

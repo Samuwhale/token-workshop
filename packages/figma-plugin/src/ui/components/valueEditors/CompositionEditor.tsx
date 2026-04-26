@@ -1,6 +1,8 @@
 import { useState, memo } from 'react';
+import { X } from 'lucide-react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AUTHORING } from '../../shared/editorClasses';
+import { Stack } from '../../primitives';
 import { swatchBgColor } from '../../shared/colorUtils';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput } from './valueEditorShared';
@@ -67,7 +69,7 @@ function CompositionPropertyEditor({
 
   if (propType === 'color') {
     return (
-      <div className="flex gap-1.5 items-center flex-1">
+      <Stack direction="row" gap={2} align="center" className="flex-1">
         {!isAlias && typeof value === 'string' && value && !value.startsWith('{') && (
           <ColorSwatchButton
             color={value}
@@ -84,7 +86,7 @@ function CompositionPropertyEditor({
           inputType="string"
           placeholder="#000000 or {color.token}"
         />
-      </div>
+      </Stack>
     );
   }
 
@@ -111,7 +113,7 @@ function CompositionPropertyEditor({
 
   if (propType === 'number') {
     return (
-      <div className="flex gap-1.5 items-center flex-1">
+      <Stack direction="row" gap={2} align="center" className="flex-1">
         <input
           type="range"
           min="0"
@@ -139,7 +141,7 @@ function CompositionPropertyEditor({
           placeholder="0.5 or {opacity.token}"
           className="!w-20"
         />
-      </div>
+      </Stack>
     );
   }
 
@@ -159,7 +161,7 @@ function CompositionPropertyEditor({
       );
     }
     return (
-      <div className="flex gap-1.5 items-center flex-1">
+      <Stack direction="row" gap={2} align="center" className="flex-1">
         <button
           type="button"
           onClick={() => onChange(!value)}
@@ -177,7 +179,7 @@ function CompositionPropertyEditor({
           className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]"
           title="Use token reference"
         >{'{…}'}</button>
-      </div>
+      </Stack>
     );
   }
 
@@ -226,10 +228,10 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
   const visible = 'visible' in val ? (isRef(val.visible) ? true : !!val.visible) : true;
 
   if (!visible) return (
-    <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)]">
-      <div className={AUTHORING.label + ' mb-1'}>Preview</div>
-      <p className="text-secondary text-[var(--color-figma-text-tertiary)] italic">Hidden (visible = false)</p>
-    </div>
+    <Stack gap={1}>
+      <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Preview</span>
+      <p className="text-secondary text-[var(--color-figma-text-tertiary)] italic m-0">Hidden (visible = false)</p>
+    </Stack>
   );
 
   const shadowStr = (() => {
@@ -248,9 +250,10 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
 
   const hasPadding = pt > 0 || pr > 0 || pb > 0 || pl > 0;
 
+  const hasRefs = Object.keys(val).some(k => isRef(val[k]));
   return (
-    <div className="mt-2 pt-2 border-t border-[var(--color-figma-border)]">
-      <div className={AUTHORING.label + ' mb-1'}>Preview</div>
+    <Stack gap={1}>
+      <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Preview</span>
       <div className="flex items-center justify-center p-2 rounded bg-[var(--color-figma-bg)] border border-dashed border-[var(--color-figma-border)]">
         <div
           style={{
@@ -279,31 +282,33 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
           )}
         </div>
       </div>
-      {Object.keys(val).some(k => isRef(val[k])) && (
-        <p className="text-secondary text-[var(--color-figma-text-tertiary)] mt-1 italic">Token references shown with fallback values</p>
-      )}
-    </div>
+      {hasRefs ? (
+        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+          Token references shown with fallback values
+        </p>
+      ) : null}
+    </Stack>
   );
 }
 
-export const CompositionEditor = memo(function CompositionEditor({ value, onChange, baseValue, allTokensFlat = {}, pathToCollectionId = {} }: { value: any; onChange: (v: any) => void; baseValue?: any; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string> }) {
+export const CompositionEditor = memo(function CompositionEditor({ value, onChange, inheritedValue, allTokensFlat = {}, pathToCollectionId = {} }: { value: any; onChange: (v: any) => void; inheritedValue?: any; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string> }) {
   const [newProp, setNewProp] = useState(COMPOSITION_PROPERTIES[0]);
   const rawVal = typeof value === 'object' && value !== null ? value : {};
-  const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
-  const val = base ? { ...base, ...rawVal } : rawVal;
-  const isInherited = (key: string) => base && !(key in rawVal) && key in base;
+  const inherited = typeof inheritedValue === 'object' && inheritedValue !== null ? inheritedValue : undefined;
+  const val = inherited ? { ...inherited, ...rawVal } : rawVal;
+  const isInherited = (key: string) => inherited && !(key in rawVal) && key in inherited;
   const usedProps = Object.keys(val);
   const unusedProps = COMPOSITION_PROPERTIES.filter(p => !usedProps.includes(p));
 
   const update = (key: string, v: any) => {
-    if (base) {
+    if (inherited) {
       onChange({ ...rawVal, [key]: v });
     } else {
       onChange({ ...val, [key]: v });
     }
   };
   const remove = (key: string) => {
-    if (base) {
+    if (inherited) {
       const next = { ...rawVal };
       delete next[key];
       onChange(next);
@@ -321,7 +326,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
       typography: '', shadow: '',
     };
     const defaultVal = defaults[COMP_PROP_TYPE[prop] || 'string'] ?? '';
-    if (base) {
+    if (inherited) {
       onChange({ ...rawVal, [prop]: defaultVal });
     } else {
       onChange({ ...val, [prop]: defaultVal });
@@ -330,18 +335,17 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <Stack gap={3}>
       {usedProps.length === 0 && (
         <p className="text-secondary text-[var(--color-figma-text-secondary)]">No properties yet — add one below.</p>
       )}
       {usedProps.map(prop => (
-        <div key={prop} className="flex flex-col gap-0.5">
+        <div key={prop} className="flex flex-col gap-1">
           <div className="flex items-center gap-1">
-            <span className={`text-secondary shrink-0 ${isInherited(prop) ? 'text-[var(--color-figma-text-tertiary)] italic' : 'text-[var(--color-figma-text-secondary)]'}`} title={prop}>
+            <span className={`text-secondary shrink-0 font-medium ${isInherited(prop) ? 'text-[var(--color-figma-text-tertiary)] italic' : 'text-[var(--color-figma-text-secondary)]'}`} title={prop}>
               {COMP_PROP_LABELS[prop] || prop}
               {isInherited(prop) && <span className="text-secondary ml-0.5">(inherited)</span>}
             </span>
-            <span className="text-[8px] text-[var(--color-figma-text-tertiary)] opacity-60">{COMP_PROP_TYPE[prop] || 'string'}</span>
             <div className="flex-1" />
             <button
               type="button"
@@ -349,9 +353,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
               title={isInherited(prop) ? `Override ${prop}` : `Remove ${prop}`}
               className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
             >
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
+              <X size={8} strokeWidth={2} aria-hidden />
             </button>
           </div>
           <div className={`flex items-center${isInherited(prop) ? ' opacity-60' : ''}`}>
@@ -366,7 +368,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
         </div>
       ))}
       {unusedProps.length > 0 && (
-        <div className="flex items-center gap-1.5 pt-1 border-t border-[var(--color-figma-border)]">
+        <Stack direction="row" gap={2} align="center">
           <select
             value={newProp}
             onChange={e => setNewProp(e.target.value)}
@@ -379,9 +381,9 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
             onClick={addProp}
             className="px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
           >+ Add</button>
-        </div>
+        </Stack>
       )}
       <CompositionPreview val={val} />
-    </div>
+    </Stack>
   );
 });

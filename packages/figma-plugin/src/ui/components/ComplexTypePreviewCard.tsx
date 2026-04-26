@@ -185,8 +185,18 @@ function CompositionPreview({ value }: { value: Record<string, any> }) {
     <div className="text-secondary space-y-0.5">
       {entries.map(([key, val]) => (
         <div key={key} className="flex items-center gap-2">
-          <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]">{key}</span>
-          <span className="text-[var(--color-figma-text)] truncate">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+          <span
+            className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]"
+            title={key}
+          >
+            {key}
+          </span>
+          <span
+            className="text-[var(--color-figma-text)] truncate"
+            title={typeof val === 'object' ? JSON.stringify(val) : String(val)}
+          >
+            {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+          </span>
         </div>
       ))}
     </div>

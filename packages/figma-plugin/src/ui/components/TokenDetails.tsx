@@ -65,8 +65,8 @@ import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroup
 import type { LintViolation } from "../hooks/useLint";
 import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
-import { TokenDetailsSection } from "./token-details/TokenDetailsSection";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
+import { Field, ListItem, Section, Stack, Surface } from "../primitives";
 interface TokenDetailsProps {
   tokenPath: string;
   tokenName?: string;
@@ -1755,40 +1755,36 @@ export function TokenDetails({
         {isCreateMode ? (
           <div className="tm-token-details__setup">
             <div className="tm-token-details__setup-row">
-              <div
-                className="tm-token-details__setup-field tm-token-details__setup-field--path relative"
-                ref={pathInputWrapperRef}
-              >
-                <label className="tm-token-details__field-label">
-                  Token path
-                </label>
-                <input
-                  type="text"
-                  value={editPath}
-                  onChange={(e) => {
-                    setEditPath(e.target.value);
-                    setDisplayError(null);
-                    setShowPathAutocomplete(true);
-                  }}
-                  onFocus={() => {
-                    if (trimmedEditPath) setShowPathAutocomplete(true);
-                  }}
-                  onBlur={(e) => {
-                    if (
-                      !pathInputWrapperRef.current?.contains(e.relatedTarget as Node)
-                    ) {
-                      setShowPathAutocomplete(false);
-                    }
-                  }}
-                  placeholder={NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"}
-                  autoFocus
-                  autoComplete="off"
-                  className={`${AUTHORING.inputMono} ${
-                    duplicatePath
-                      ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
-                      : ""
-                  }`}
-                />
+              <div className="relative" ref={pathInputWrapperRef}>
+                <Field label="Token path">
+                  <input
+                    type="text"
+                    value={editPath}
+                    onChange={(e) => {
+                      setEditPath(e.target.value);
+                      setDisplayError(null);
+                      setShowPathAutocomplete(true);
+                    }}
+                    onFocus={() => {
+                      if (trimmedEditPath) setShowPathAutocomplete(true);
+                    }}
+                    onBlur={(e) => {
+                      if (
+                        !pathInputWrapperRef.current?.contains(e.relatedTarget as Node)
+                      ) {
+                        setShowPathAutocomplete(false);
+                      }
+                    }}
+                    placeholder={NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"}
+                    autoFocus
+                    autoComplete="off"
+                    className={`${AUTHORING.inputMono} ${
+                      duplicatePath
+                        ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
+                        : ""
+                    }`}
+                  />
+                </Field>
                 {showPathAutocomplete && trimmedEditPath ? (
                   <PathAutocomplete
                     query={editPath}
@@ -1803,15 +1799,14 @@ export function TokenDetails({
                 ) : null}
               </div>
 
-              <div className="tm-token-details__setup-field tm-token-details__setup-field--type">
-                <label className="tm-token-details__field-label">Type</label>
+              <Field label="Type">
                 <TypePicker
                   value={tokenType}
                   onChange={handleTypeChange}
                   title="Change token type"
                   className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
                 />
-              </div>
+              </Field>
             </div>
 
             <div className="tm-token-details__setup-meta">
@@ -1826,7 +1821,7 @@ export function TokenDetails({
               </p>
             ) : null}
             {!duplicatePath && conflictingOtherCollectionIds.length > 0 ? (
-              <p className="tm-token-details__field-help">
+              <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
                 This path is already used in{" "}
                 {formatCollectionIdList(conflictingOtherCollectionIds)}.
                 Creating it here will make references to{" "}
@@ -1837,7 +1832,7 @@ export function TokenDetails({
 
             {!editPath.includes(".") && createSuggestions.length > 0 ? (
               <div className="tm-token-details__suggestions">
-                <span className="tm-token-details__field-help">Try</span>
+                <span className="text-secondary text-[var(--color-figma-text-secondary)]">Try</span>
                 {createSuggestions.map((prefix) => (
                   <button
                     key={prefix}
@@ -1856,19 +1851,19 @@ export function TokenDetails({
           </div>
         ) : null}
 
-        <TokenDetailsSection
+        <Section
           title={valueSectionTitle}
           actions={valueSectionActions}
-          variant="primary"
+          emphasis="primary"
         >
-          <div
-            className="tm-token-details__value-stack"
+          <Stack
+            gap={3}
             ref={valueEditorContainerRef}
             onPaste={isEditMode ? handlePaste : undefined}
           >
-            <div className="tm-token-details__value-surface">
-              <div
-                className="tm-token-details__mode-stack"
+            <Surface variant="muted" padding="sm">
+              <Stack
+                gap={1}
                 title={
                   modeValue.modes.length >= 2
                     ? (valueFormatHint(tokenType) || undefined)
@@ -1877,7 +1872,7 @@ export function TokenDetails({
               >
                 {modeValue.modes.map((mode, modeIdx) => {
                   const modeVal = mode.value;
-                  const baseVal = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
+                  const inheritedValue = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
                   const initialModeVal =
                     modeIdx === 0
                       ? initialFieldsSnapshot?.value
@@ -1899,7 +1894,7 @@ export function TokenDetails({
                       pathToCollectionId={pathToCollectionId}
                       showModeLabel={showModeLabel}
                       autoFocus={modeIdx === 0 && !isCreateMode && isEditMode}
-                      baseValue={baseVal}
+                      inheritedValue={inheritedValue}
                       availableFonts={availableFonts}
                       fontWeightsByFamily={fontWeightsByFamily}
                       fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
@@ -1978,8 +1973,8 @@ export function TokenDetails({
                     Add mode
                   </button>
                 ) : null}
-              </div>
-            </div>
+              </Stack>
+            </Surface>
 
             {isEditMode &&
             tokenType === "color" &&
@@ -1996,36 +1991,34 @@ export function TokenDetails({
             ) : null}
 
             {isInspectMode && colorModifiers.length > 0 ? (
-              <div className="tm-token-details__field">
-                <span className="tm-token-details__field-label">Color modifiers</span>
-                <ul className="tm-token-details__list-box">
+              <Field label="Color modifiers">
+                <Stack gap={1}>
                   {colorModifiers.map((mod, idx) => {
                     const summary =
                       mod.type === "mix"
                         ? `Mix with ${mod.color} at ${Math.round((mod.ratio ?? 0) * 100)}%`
                         : `${mod.type.charAt(0).toUpperCase()}${mod.type.slice(1)} ${Math.round((mod.amount ?? 0) * 100)}%`;
                     return (
-                      <li key={idx} className="tm-token-details__list-row">
+                      <ListItem key={idx}>
                         <span className={LONG_TEXT_CLASSES.textPrimary}>{summary}</span>
-                      </li>
+                      </ListItem>
                     );
                   })}
-                </ul>
-              </div>
+                </Stack>
+              </Field>
             ) : null}
-          </div>
-        </TokenDetailsSection>
+          </Stack>
+        </Section>
 
-        <TokenDetailsSection title="Details" variant="secondary">
-          <div className="tm-token-details__details-stack">
-            <div className="tm-token-details__field">
-              <span className="tm-token-details__field-label">Description</span>
+        <Section title="Details" emphasis="secondary">
+          <Stack gap={4}>
+            <Field label="Description">
               {isInspectMode ? (
-                <p className="tm-token-details__read-text">
+                <p className="m-0 text-body text-[var(--color-figma-text)]">
                   {description ? (
                     description
                   ) : (
-                    <span className="tm-token-details__empty-text">
+                    <span className="italic text-[var(--color-figma-text-tertiary)]">
                       No description
                     </span>
                   )}
@@ -2039,18 +2032,17 @@ export function TokenDetails({
                   className="min-h-[56px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
                 />
               )}
-            </div>
+            </Field>
 
-            <div className="tm-token-details__details-grid">
+            <Stack direction="row" gap={4}>
               {FIGMA_SCOPE_OPTIONS[tokenType] ? (
-                <div className="tm-token-details__field">
-                  <span className="tm-token-details__field-label">Can apply to</span>
-                  <p className="tm-token-details__field-help">
-                    Pick the Figma fields this token is valid for. Leave empty to allow
-                    any compatible field.
-                  </p>
+                <Field
+                  label="Can apply to"
+                  help="Pick the Figma fields this token is valid for. Leave empty to allow any compatible field."
+                  className="flex-1"
+                >
                   {isInspectMode ? (
-                    <div className="tm-token-details__field-value">
+                    <div className="text-body text-[var(--color-figma-text)]">
                       {scopeLabels.length > 0
                         ? scopeLabels.join(", ")
                         : "Any compatible field"}
@@ -2063,27 +2055,20 @@ export function TokenDetails({
                       compact
                     />
                   )}
-                </div>
+                </Field>
               ) : null}
 
-              <div className="tm-token-details__field">
-                <span className="tm-token-details__field-label">Lifecycle</span>
-                {isInspectMode ? (
-                  <div className="tm-token-details__lifecycle-row">
-                    <span
-                      className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
-                      aria-hidden
-                    />
-                    <span className="tm-token-details__field-value">
+              <Field label="Lifecycle" className="flex-1">
+                <Stack direction="row" gap={2} align="center">
+                  <span
+                    className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
+                    aria-hidden
+                  />
+                  {isInspectMode ? (
+                    <span className="text-body text-[var(--color-figma-text)]">
                       {lifecycleLabel}
                     </span>
-                  </div>
-                ) : (
-                  <div className="tm-token-details__lifecycle-row">
-                    <span
-                      className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
-                      aria-hidden
-                    />
+                  ) : (
                     <select
                       value={lifecycle}
                       onChange={(e) => setLifecycle(e.target.value as typeof lifecycle)}
@@ -2094,19 +2079,16 @@ export function TokenDetails({
                       <option value="published">Published</option>
                       <option value="deprecated">Deprecated</option>
                     </select>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </TokenDetailsSection>
+                  )}
+                </Stack>
+              </Field>
+            </Stack>
+          </Stack>
+        </Section>
 
         {!isCreateMode ? (
-          <TokenDetailsSection
-            title="Related"
-            variant="support"
-            contentClassName="tm-token-details__support-stack"
-          >
+          <Section title="Related" emphasis="support">
+            <Stack gap={5}>
             {tokenType === "color" ? (
               <ContrastChecker
                 tokenPath={tokenPath}
@@ -2153,120 +2135,106 @@ export function TokenDetails({
             ) : null}
 
             {!ancestors.isEmpty ? (
-              <div className="tm-token-details__field">
-                <span className="tm-token-details__field-label">Resolves to</span>
-                <div className="tm-token-details__list-box">
-                  {ancestors.chains.map((chain) => (
-                    <div key={chain.modeName}>
-                      {ancestors.chains.length > 1 ? (
-                        <div className="tm-token-details__list-note">{chain.modeName}</div>
-                      ) : null}
-                      {chain.rows.map((row, rowIdx) => {
-                        const key = `${chain.modeName}::${rowIdx}::${row.path}`;
-                        const crossCollection =
-                          row.collectionId && row.collectionId !== ownerCollectionId;
-                        const statusLabel = getAncestorRowStatusLabel(row.status);
-                        const tags = (
-                          <>
-                            {crossCollection ? (
-                              <span className="tm-token-details__mini-tag">{row.collectionId}</span>
-                            ) : null}
-                            {row.formulaSource ? (
-                              <span
-                                className="tm-token-details__mini-tag"
-                                title={row.formulaSource}
-                              >
-                                formula
-                              </span>
-                            ) : null}
-                            {statusLabel ? (
-                              <span className="tm-token-details__mini-tag">{statusLabel}</span>
-                            ) : null}
-                          </>
-                        );
-                        if (
-                          onNavigateToToken &&
-                          row.collectionId &&
-                          row.status !== "missing" &&
-                          row.status !== "ambiguous"
-                        ) {
+              <Field label="Resolves to">
+                <div className="max-h-36 overflow-y-auto">
+                  <Stack gap={1} className="p-1.5">
+                    {ancestors.chains.map((chain) => (
+                      <Stack key={chain.modeName} gap={1}>
+                        {ancestors.chains.length > 1 ? (
+                          <div className="tm-token-details__list-note">{chain.modeName}</div>
+                        ) : null}
+                        {chain.rows.map((row, rowIdx) => {
+                          const key = `${chain.modeName}::${rowIdx}::${row.path}`;
+                          const crossCollection =
+                            row.collectionId && row.collectionId !== ownerCollectionId;
+                          const statusLabel = getAncestorRowStatusLabel(row.status);
+                          const tags = (
+                            <>
+                              {crossCollection ? (
+                                <span className="tm-token-details__mini-tag">{row.collectionId}</span>
+                              ) : null}
+                              {row.formulaSource ? (
+                                <span
+                                  className="tm-token-details__mini-tag"
+                                  title={row.formulaSource}
+                                >
+                                  formula
+                                </span>
+                              ) : null}
+                              {statusLabel ? (
+                                <span className="tm-token-details__mini-tag">{statusLabel}</span>
+                              ) : null}
+                            </>
+                          );
+                          const handleNavigate =
+                            onNavigateToToken &&
+                            row.collectionId &&
+                            row.status !== "missing" &&
+                            row.status !== "ambiguous"
+                              ? () => onNavigateToToken(row.path, row.collectionId)
+                              : undefined;
                           return (
-                            <button
+                            <ListItem
                               key={key}
-                              type="button"
-                              onClick={() => onNavigateToToken(row.path, row.collectionId)}
-                              className="tm-token-details__list-row"
-                              title={`Open ${row.path}`}
+                              onClick={handleNavigate}
+                              title={handleNavigate ? `Open ${row.path}` : undefined}
+                              trailing={tags}
                             >
                               <span className={LONG_TEXT_CLASSES.monoPrimary}>{row.path}</span>
-                              {tags}
-                            </button>
+                            </ListItem>
                           );
-                        }
-                        return (
-                          <div key={key} className="tm-token-details__list-row">
-                            <span className={LONG_TEXT_CLASSES.monoPrimary}>{row.path}</span>
-                            {tags}
-                          </div>
-                        );
-                      })}
-                      {chain.terminalKind === "literal" && chain.terminalValue !== undefined ? (
-                        <div className="tm-token-details__list-row">
-                          <span className={LONG_TEXT_CLASSES.monoPrimary}>
-                            {formatTokenValueForDisplay(chain.terminalType, chain.terminalValue)}
-                          </span>
-                        </div>
-                      ) : null}
-                      {(() => {
-                        const terminalNote = getAncestorTerminalNote(chain.terminalKind);
-                        return terminalNote ? (
-                          <div className="tm-token-details__list-note">{terminalNote}</div>
-                        ) : null;
-                      })()}
-                    </div>
-                  ))}
+                        })}
+                        {chain.terminalKind === "literal" && chain.terminalValue !== undefined ? (
+                          <ListItem>
+                            <span className={LONG_TEXT_CLASSES.monoPrimary}>
+                              {formatTokenValueForDisplay(chain.terminalType, chain.terminalValue)}
+                            </span>
+                          </ListItem>
+                        ) : null}
+                        {(() => {
+                          const terminalNote = getAncestorTerminalNote(chain.terminalKind);
+                          return terminalNote ? (
+                            <div className="tm-token-details__list-note">{terminalNote}</div>
+                          ) : null;
+                        })()}
+                      </Stack>
+                    ))}
+                  </Stack>
                 </div>
-              </div>
+              </Field>
             ) : null}
 
             {dependents.length > 0 ? (
-              <div className="tm-token-details__field">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="tm-token-details__field-label">Dependent tokens</span>
-                </div>
-                <div className="tm-token-details__list-box">
-                  {dependents.slice(0, 20).map((dep) =>
-                    onNavigateToToken ? (
-                      <button
-                        key={dep.path}
-                        type="button"
-                        onClick={() => onNavigateToToken(dep.path, dep.collectionId)}
-                        className="tm-token-details__list-row"
-                        title={`Open ${dep.path}`}
-                      >
-                        <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                        {dep.collectionId !== ownerCollectionId ? (
+              <Field label="Dependent tokens">
+                <div className="max-h-36 overflow-y-auto">
+                  <Stack gap={1} className="p-1.5">
+                    {dependents.slice(0, 20).map((dep) => {
+                      const tag =
+                        dep.collectionId !== ownerCollectionId ? (
                           <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
-                        ) : null}
-                      </button>
-                    ) : (
-                      <div key={dep.path} className="tm-token-details__list-row">
-                        <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                        {dep.collectionId !== ownerCollectionId ? (
-                          <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
-                        ) : null}
+                        ) : null;
+                      return (
+                        <ListItem
+                          key={dep.path}
+                          onClick={onNavigateToToken ? () => onNavigateToToken(dep.path, dep.collectionId) : undefined}
+                          title={onNavigateToToken ? `Open ${dep.path}` : undefined}
+                          trailing={tag}
+                        >
+                          <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
+                        </ListItem>
+                      );
+                    })}
+                    {dependents.length > 20 ? (
+                      <div className="tm-token-details__list-note">
+                        and {dependents.length - 20} more…
                       </div>
-                    ),
-                  )}
-                  {dependents.length > 20 ? (
-                    <div className="tm-token-details__list-note">
-                      and {dependents.length - 20} more…
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </Stack>
                 </div>
-              </div>
+              </Field>
             ) : null}
-          </TokenDetailsSection>
+            </Stack>
+          </Section>
         ) : null}
 
         <TokenDetailsAdvancedSection

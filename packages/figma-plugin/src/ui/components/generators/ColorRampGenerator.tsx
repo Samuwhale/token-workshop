@@ -275,7 +275,7 @@ function SwatchCell({
       {isOverridden && (
         <button
           onClick={e => { e.stopPropagation(); onOverrideClear(token.stepName); }}
-          className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity bg-[var(--color-figma-overlay)] text-white hover:bg-[var(--color-figma-error)]/80"
+          className="absolute top-0.5 right-0.5 p-0.5 rounded opacity-0 group-hover/swatch:opacity-100 group-focus-within/swatch:opacity-100 focus-visible:opacity-100 transition-opacity bg-[var(--color-figma-overlay)] text-white hover:bg-[var(--color-figma-error)]/80"
           title="Clear manual exception"
           aria-label="Clear manual exception"
         >

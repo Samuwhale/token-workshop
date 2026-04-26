@@ -1,0 +1,175 @@
+import { useMemo } from "react";
+import { AlertTriangle, Diff, ExternalLink, RotateCw } from "lucide-react";
+import {
+  readTokenModeValuesForCollection,
+  type GraphModel,
+  type GraphNodeId,
+  type TokenCollection,
+  type TokenGraphNode,
+} from "@tokenmanager/core";
+import { Button, Section, Stack } from "../../../primitives";
+import type { TokenMapEntry } from "../../../../shared/types";
+import {
+  collectIncidentTokens,
+  ModeValueMatrix,
+  RelatedList,
+  tokenTypeGlyph,
+} from "./shared";
+
+interface TokenInspectorProps {
+  graph: GraphModel;
+  token: TokenGraphNode;
+  collections: TokenCollection[];
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  onNavigateToToken: (path: string, collectionId: string) => void;
+  onCompareTokens?: (
+    a: { path: string; collectionId: string },
+    b: { path: string; collectionId: string },
+  ) => void;
+  onSelectNode: (nodeId: GraphNodeId | null) => void;
+}
+
+export function TokenInspector({
+  graph,
+  token,
+  collections,
+  perCollectionFlat,
+  onNavigateToToken,
+  onCompareTokens,
+  onSelectNode,
+}: TokenInspectorProps) {
+  const collection = collections.find((c) => c.id === token.collectionId);
+  const entry = perCollectionFlat[token.collectionId]?.[token.path];
+  const modeValues = useMemo(() => {
+    if (!collection || !entry) return null;
+    return readTokenModeValuesForCollection(entry, collection);
+  }, [collection, entry]);
+
+  const upstream = useMemo(
+    () => collectIncidentTokens(graph, token.id, "incoming"),
+    [graph, token.id],
+  );
+  const downstream = useMemo(
+    () => collectIncidentTokens(graph, token.id, "outgoing"),
+    [graph, token.id],
+  );
+
+  return (
+    <Stack gap={5}>
+      <div className="flex items-start gap-3">
+        {token.swatchColor ? (
+          <span
+            className="mt-0.5 h-10 w-10 shrink-0 rounded-md border border-[var(--color-figma-border)]"
+            style={{ background: token.swatchColor }}
+            aria-hidden
+          />
+        ) : (
+          <span
+            className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--color-figma-border)] bg-[var(--surface-muted)] font-mono text-[12px] text-[var(--color-figma-text-secondary)]"
+            aria-hidden
+          >
+            {tokenTypeGlyph(token.$type)}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium text-[var(--color-figma-text)]">
+            {token.displayName}
+          </div>
+          <div
+            className="truncate font-mono text-secondary text-[var(--color-figma-text-tertiary)]"
+            title={token.path}
+          >
+            {token.path}
+          </div>
+        </div>
+      </div>
+
+      <HealthCallout token={token} />
+
+      {collection && modeValues ? (
+        <ModeValueMatrix
+          modes={collection.modes.map((m) => m.name)}
+          tokenType={token.$type}
+          modeValues={modeValues}
+        />
+      ) : null}
+
+      {upstream.length > 0 ? (
+        <Section title={`Uses · ${upstream.length}`} emphasis="secondary">
+          <RelatedList
+            items={upstream}
+            onClick={(t) => onSelectNode(t.id)}
+            onDoubleClick={(t) => onNavigateToToken(t.path, t.collectionId)}
+          />
+        </Section>
+      ) : null}
+
+      {downstream.length > 0 ? (
+        <Section title={`Used by · ${downstream.length}`} emphasis="secondary">
+          <RelatedList
+            items={downstream}
+            onClick={(t) => onSelectNode(t.id)}
+            onDoubleClick={(t) => onNavigateToToken(t.path, t.collectionId)}
+          />
+        </Section>
+      ) : null}
+
+      <Stack gap={2}>
+        <Button
+          variant="primary"
+          onClick={() => onNavigateToToken(token.path, token.collectionId)}
+        >
+          <ExternalLink size={11} strokeWidth={2} aria-hidden />
+          Open token
+        </Button>
+        {onCompareTokens && upstream[0] ? (
+          <Button
+            variant="secondary"
+            onClick={() =>
+              onCompareTokens(
+                { path: token.path, collectionId: token.collectionId },
+                {
+                  path: upstream[0].path,
+                  collectionId: upstream[0].collectionId,
+                },
+              )
+            }
+          >
+            <Diff size={11} strokeWidth={2} aria-hidden />
+            Compare with {upstream[0].displayName}
+          </Button>
+        ) : null}
+      </Stack>
+    </Stack>
+  );
+}
+
+function HealthCallout({ token }: { token: TokenGraphNode }) {
+  if (token.health === "broken") {
+    return (
+      <div className="flex items-start gap-2 rounded-md bg-[color-mix(in_srgb,var(--color-figma-error)_10%,transparent)] px-2.5 py-2 text-secondary text-[var(--color-figma-error)]">
+        <AlertTriangle
+          size={11}
+          strokeWidth={2}
+          aria-hidden
+          className="mt-0.5 shrink-0"
+        />
+        <span>Alias target is missing or invalid.</span>
+      </div>
+    );
+  }
+  if (token.health === "cycle") {
+    return (
+      <div className="flex items-start gap-2 rounded-md bg-[color-mix(in_srgb,var(--color-figma-warning)_12%,transparent)] px-2.5 py-2 text-secondary text-[var(--color-figma-warning)]">
+        <RotateCw
+          size={11}
+          strokeWidth={2}
+          aria-hidden
+          className="mt-0.5 shrink-0"
+        />
+        <span>This token is part of a circular reference and cannot resolve.</span>
+      </div>
+    );
+  }
+  return null;
+}

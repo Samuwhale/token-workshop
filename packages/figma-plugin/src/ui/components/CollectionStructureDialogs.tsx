@@ -534,8 +534,8 @@ export function CollectionMergeInline({
               {targetName}
             </span>
             . The source collection stays in place. Conflicts where the target
-            already has a different base value or different mode-authored values
-            for the same token path will be shown for resolution.
+            already has different authored values for the same token path will
+            be shown for resolution.
           </p>
         ) : null}
         {mergeChecked && mergeConflicts.length === 0 ? (

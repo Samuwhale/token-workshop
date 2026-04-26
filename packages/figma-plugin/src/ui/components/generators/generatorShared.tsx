@@ -222,7 +222,7 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
               onClick={e => { e.stopPropagation(); onOverrideClear(token.stepName); }}
               title="Clear manual exception"
               aria-label="Clear manual exception"
-              className="p-0.5 rounded transition-colors text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+              className="p-0.5 rounded transition-colors text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
             >
               <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <line x1="2" y1="2" x2="10" y2="10" />

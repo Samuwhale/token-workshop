@@ -5,6 +5,7 @@ import type { GeneratorGraphNode } from "@tokenmanager/core";
 export interface GeneratorNodeData extends Record<string, unknown> {
   generator: GeneratorGraphNode;
   isFocused?: boolean;
+  dimmed?: boolean;
 }
 
 function isGeneratorNodeData(data: unknown): data is GeneratorNodeData {
@@ -20,7 +21,7 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
   if (!isGeneratorNodeData(data)) {
     return null;
   }
-  const { generator, isFocused } = data;
+  const { generator, isFocused, dimmed } = data;
   const errored = generator.health === "generator-error";
   const missingSource = generator.health === "broken";
   const isAccented = selected || isFocused;
@@ -37,7 +38,7 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
   const statusLabel = errored
     ? "failed"
     : generator.sourceIssue === "ambiguous"
-      ? "ambiguous source"
+      ? "multiple matches"
       : missingSource
         ? "missing source"
         : null;
@@ -45,7 +46,11 @@ function GeneratorNodeImpl({ data, selected }: NodeProps) {
   return (
     <div
       className={`tm-graph-node flex h-14 items-center gap-2 rounded-full border bg-[var(--color-figma-generator)]/10 px-3 text-secondary text-[var(--color-figma-text)] ${borderClass} ${ringClass}`}
-      style={{ width: 200 }}
+      style={{
+        width: 200,
+        opacity: dimmed ? 0.25 : 1,
+        transition: "opacity 120ms",
+      }}
       title={generator.errorMessage ?? generator.name}
     >
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-generator)]" />

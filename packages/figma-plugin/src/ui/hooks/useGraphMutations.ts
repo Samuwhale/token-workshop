@@ -10,6 +10,7 @@ export function useGraphMutations() {
   const {
     applyAliasRewire,
     applyAliasDetach,
+    createAliasToken,
     handlePaletteDeleteToken,
   } = useTokensWorkspaceController();
 
@@ -33,11 +34,22 @@ export function useGraphMutations() {
     [applyAliasDetach],
   );
 
+  const createAlias = useCallback(
+    (params: {
+      newPath: string;
+      collectionId: string;
+      type: string | undefined;
+      targetPath: string;
+      targetCollectionId: string;
+    }) => createAliasToken(params),
+    [createAliasToken],
+  );
+
   const deleteToken = useCallback(
     (path: string, collectionId: string) =>
       handlePaletteDeleteToken(path, collectionId),
     [handlePaletteDeleteToken],
   );
 
-  return { rewire, detach, deleteToken };
+  return { rewire, detach, createAlias, deleteToken };
 }

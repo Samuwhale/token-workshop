@@ -1,70 +1,78 @@
 import { useEffect, useRef, useState } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type {
   GraphModel,
   GraphNodeId,
   TokenCollection,
 } from "@tokenmanager/core";
-import type { GraphHopDepthSetting } from "../../hooks/useFocusedSubgraph";
+import type { GraphIssueGroup } from "../../hooks/useIssuesGroups";
 import { GraphFocusPicker } from "./GraphFocusPicker";
-import { LegendContent } from "./GraphLegend";
+import { GraphIssuesMenu } from "./GraphIssuesMenu";
+import { collectionAccentHue } from "./collectionAccent";
 
 interface GraphToolbarProps {
-  focusId: GraphNodeId | null;
-  hopDepth: GraphHopDepthSetting;
-  scopeCollectionIds: string[];
-  collections: TokenCollection[];
   fullGraph: GraphModel;
+  collections: TokenCollection[];
+  scopeCollectionIds: string[];
+  issueGroups: GraphIssueGroup[];
   onFocusChange: (next: GraphNodeId) => void;
-  onHopDepthChange: (next: GraphHopDepthSetting) => void;
   onScopeChange: (next: string[]) => void;
+  onSelectIssue: (nodeId: GraphNodeId) => void;
+  onRequestDetach?: (params: {
+    edgeId: string;
+    screenX: number;
+    screenY: number;
+  }) => void;
 }
 
 export function GraphToolbar({
-  hopDepth,
-  scopeCollectionIds,
-  collections,
   fullGraph,
+  collections,
+  scopeCollectionIds,
+  issueGroups,
   onFocusChange,
-  onHopDepthChange,
   onScopeChange,
+  onSelectIssue,
+  onRequestDetach,
 }: GraphToolbarProps) {
   return (
-    <div className="flex items-center gap-3 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-      <div className="mx-auto w-full max-w-[480px]">
+    <div className="flex items-center gap-2 bg-[var(--color-figma-bg)] px-3 py-2">
+      <div className="min-w-0 flex-1">
         <GraphFocusPicker
           fullGraph={fullGraph}
           scopeCollectionIds={scopeCollectionIds}
-          placeholder="Inspect a token's dependencies…"
+          placeholder="Find a token to explore…"
           onSelect={onFocusChange}
         />
       </div>
-      <OverflowMenu
-        collections={collections}
-        scopeCollectionIds={scopeCollectionIds}
-        onScopeChange={onScopeChange}
-        hopDepth={hopDepth}
-        onHopDepthChange={onHopDepthChange}
+      {collections.length > 1 ? (
+        <ScopeMenu
+          collections={collections}
+          scopeCollectionIds={scopeCollectionIds}
+          onScopeChange={onScopeChange}
+        />
+      ) : null}
+      <GraphIssuesMenu
+        fullGraph={fullGraph}
+        groups={issueGroups}
+        onOpenInFocus={onSelectIssue}
+        onRequestDetach={onRequestDetach}
       />
     </div>
   );
 }
 
-interface OverflowMenuProps {
+interface ScopeMenuProps {
   collections: TokenCollection[];
   scopeCollectionIds: string[];
   onScopeChange: (next: string[]) => void;
-  hopDepth: GraphHopDepthSetting;
-  onHopDepthChange: (next: GraphHopDepthSetting) => void;
 }
 
-function OverflowMenu({
+function ScopeMenu({
   collections,
   scopeCollectionIds,
   onScopeChange,
-  hopDepth,
-  onHopDepthChange,
-}: OverflowMenuProps) {
+}: ScopeMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -73,12 +81,19 @@ function OverflowMenu({
     const onClickOutside = (event: MouseEvent) => {
       if (!ref.current?.contains(event.target as Node)) setOpen(false);
     };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   const selected = new Set(scopeCollectionIds);
-  const toggleCollection = (id: string) => {
+  const toggle = (id: string) => {
     const next = new Set(selected);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -86,67 +101,81 @@ function OverflowMenu({
     onScopeChange([...next]);
   };
 
+  const isAll = selected.size === collections.length;
+  const summary = isAll
+    ? "All collections"
+    : selected.size === 1
+      ? collections.find((c) => selected.has(c.id))?.id ?? "1 collection"
+      : `${selected.size} collections`;
+  const singleAccent =
+    selected.size === 1
+      ? collectionAccentHue([...selected][0])
+      : null;
+
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Graph options"
         aria-expanded={open}
-        className="flex h-7 w-7 items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        aria-haspopup="menu"
+        className="flex h-[26px] items-center gap-1.5 rounded px-2 text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
       >
-        <MoreHorizontal size={14} strokeWidth={2} aria-hidden />
+        {singleAccent ? (
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ background: singleAccent }}
+          />
+        ) : null}
+        <span className="max-w-[140px] truncate" title={summary}>
+          {summary}
+        </span>
+        <ChevronDown size={10} strokeWidth={2} aria-hidden />
       </button>
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+4px)] z-30 flex w-60 flex-col gap-4 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
-          {collections.length > 1 ? (
-            <div className="flex flex-col">
-              {collections.map((collection) => {
-                const isSelected = selected.has(collection.id);
-                return (
-                  <button
-                    key={collection.id}
-                    type="button"
-                    onClick={() => toggleCollection(collection.id)}
-                    className="flex items-center gap-2 rounded px-1 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <Checkbox checked={isSelected} />
+        <div
+          role="menu"
+          className="absolute right-0 top-[calc(100%+4px)] z-30 flex w-56 flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
+        >
+          {!isAll ? (
+            <button
+              type="button"
+              onClick={() =>
+                onScopeChange(collections.map((collection) => collection.id))
+              }
+              className="flex h-7 items-center px-2 text-left text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              Select all
+            </button>
+          ) : null}
+          <ul className="flex flex-col">
+            {collections.map((collection) => {
+              const isSelected = selected.has(collection.id);
+              return (
+                <li key={collection.id}>
+                  <label className="flex h-7 cursor-pointer items-center gap-2 rounded px-2 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggle(collection.id)}
+                      aria-label={collection.id}
+                    />
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: collectionAccentHue(collection.id) }}
+                    />
                     <span className="min-w-0 flex-1 truncate">
                       {collection.id}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => onHopDepthChange(hopDepth === 1 ? "auto" : 1)}
-            className="flex items-center gap-2 rounded px-1 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            <Checkbox checked={hopDepth === 1} />
-            <span className="min-w-0 flex-1">Show 1-hop only</span>
-          </button>
-
-          <LegendContent />
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       ) : null}
     </div>
-  );
-}
-
-function Checkbox({ checked }: { checked: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border text-[9px] ${
-        checked
-          ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white"
-          : "border-[var(--color-figma-border)]"
-      }`}
-    >
-      {checked ? "✓" : ""}
-    </span>
   );
 }

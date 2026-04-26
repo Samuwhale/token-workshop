@@ -442,7 +442,7 @@ function IssueRow({
             event.stopPropagation();
             overflowMenu.toggle();
           }}
-          className="text-secondary px-1 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors opacity-0 group-hover:opacity-100"
+          className="text-secondary px-1 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
           aria-haspopup="true"
           aria-expanded={overflowMenu.open}
           aria-label="More actions"

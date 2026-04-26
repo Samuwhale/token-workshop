@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import { Field, Stack } from '../../primitives';
 
 const BEZIER_PRESETS: { label: string; value: [number, number, number, number] }[] = [
   { label: 'linear', value: [0, 0, 1, 1] },
@@ -28,8 +29,8 @@ export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChan
   const sy = (y: number) => h - pad - y * (h - 2 * pad);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2 items-end">
+    <Stack gap={2}>
+      <Stack direction="row" gap={2} align="end">
         <svg width={w} height={h} className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
           <line x1={sx(0)} y1={sy(0)} x2={sx(pts[0])} y2={sy(pts[1])} stroke="var(--color-figma-text-tertiary)" strokeWidth="1" strokeDasharray="2,2" />
           <line x1={sx(1)} y1={sy(1)} x2={sx(pts[2])} y2={sy(pts[3])} stroke="var(--color-figma-text-tertiary)" strokeWidth="1" strokeDasharray="2,2" />
@@ -44,8 +45,7 @@ export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChan
         </svg>
         <div className="flex-1 grid grid-cols-2 gap-1">
           {labels.map((label, i) => (
-            <div key={label} className="flex flex-col">
-              <span className={AUTHORING.label}>{label}</span>
+            <Field key={label} label={label}>
               <input
                 type="number"
                 step={0.01}
@@ -55,10 +55,10 @@ export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChan
                 onChange={e => update(i, parseFloat(e.target.value) || 0)}
                 className={AUTHORING.input}
               />
-            </div>
+            </Field>
           ))}
         </div>
-      </div>
+      </Stack>
       <div className="flex flex-wrap gap-1">
         {BEZIER_PRESETS.map(p => {
           const active = p.value.every((v, i) => v === pts[i]);
@@ -73,6 +73,6 @@ export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChan
           );
         })}
       </div>
-    </div>
+    </Stack>
   );
 });

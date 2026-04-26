@@ -26,7 +26,7 @@ export interface TokenDetailsModeRowProps {
   pathToCollectionId?: Record<string, string>;
   showModeLabel?: boolean;
   autoFocus?: boolean;
-  baseValue?: unknown;
+  inheritedValue?: unknown;
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
   fontFamilyRef?: React.RefObject<HTMLInputElement>;
@@ -78,7 +78,7 @@ export function TokenDetailsModeRow({
   pathToCollectionId = {},
   showModeLabel = true,
   autoFocus,
-  baseValue,
+  inheritedValue,
   availableFonts,
   fontWeightsByFamily,
   fontFamilyRef,
@@ -162,9 +162,7 @@ export function TokenDetailsModeRow({
         onClick={handleAliasToggle}
         className={joinClasses(
           "tm-token-mode-row__icon-button",
-          aliasMode
-            ? "tm-token-mode-row__icon-button--active"
-            : "opacity-30 group-hover/mode:opacity-100",
+          aliasMode && "tm-token-mode-row__icon-button--active",
         )}
         title={aliasMode ? "Switch to direct value" : "Switch to reference"}
         aria-label={
@@ -177,7 +175,7 @@ export function TokenDetailsModeRow({
         <button
           type="button"
           onClick={onCopyFromPrevious}
-          className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
+          className="tm-token-mode-row__icon-button"
           title="Copy from previous mode"
           aria-label="Copy from previous mode"
         >
@@ -188,7 +186,7 @@ export function TokenDetailsModeRow({
         <button
           type="button"
           onClick={onCopyToAll}
-          className="tm-token-mode-row__icon-button opacity-30 group-hover/mode:opacity-100"
+          className="tm-token-mode-row__icon-button"
           title="Copy to all other modes"
           aria-label="Copy to all other modes"
         >
@@ -270,7 +268,7 @@ export function TokenDetailsModeRow({
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
               autoFocus={autoFocus}
-              baseValue={baseValue}
+              inheritedValue={inheritedValue}
               availableFonts={availableFonts}
               fontWeightsByFamily={fontWeightsByFamily}
               fontFamilyRef={fontFamilyRef}

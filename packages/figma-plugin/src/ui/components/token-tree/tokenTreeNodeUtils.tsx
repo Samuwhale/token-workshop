@@ -53,7 +53,7 @@ export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
     const isStatus = segment === statusSegment;
     const hoverClass = isResting
       ? ""
-      : "opacity-0 group-hover:opacity-100 transition-opacity";
+      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity";
 
     return (
       <span

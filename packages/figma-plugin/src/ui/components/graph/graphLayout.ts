@@ -1,10 +1,5 @@
-import dagre from "@dagrejs/dagre";
 import type { GraphNodeId } from "@tokenmanager/core";
-import {
-  getGraphNodeClusterInfo,
-  type GraphRenderModel,
-  type GraphRenderNode,
-} from "./graphClusters";
+import type { GraphRenderModel, GraphRenderNode } from "./graphClusters";
 
 export interface NodePosition {
   x: number;
@@ -24,7 +19,6 @@ export interface LaneBand {
 
 export interface LayoutResult {
   positions: Map<GraphNodeId, NodePosition>;
-  clusters: Map<GraphNodeId, { label: string; x: number; y: number; width: number; height: number }>;
   /** Per-column collection bands. Empty when there's only one collection in scope. */
   lanes: LaneBand[];
   /** Collection of the focused node, when known — used by renderers to tint cross-collection nodes. */
@@ -42,92 +36,10 @@ export function nodeDimensions(
   return { width: 200, height: 44 };
 }
 
-export function runDagreLayout(
-  graph: GraphRenderModel,
-  options: { rankdir?: "LR" | "TB"; selectedCollectionIds?: string[] } = {},
-): LayoutResult {
-  const g = new dagre.graphlib.Graph({ compound: true });
-  g.setGraph({
-    rankdir: options.rankdir ?? "LR",
-    nodesep: 28,
-    ranksep: 80,
-    marginx: 24,
-    marginy: 24,
-  });
-  g.setDefaultEdgeLabel(() => ({}));
-  const selectedCollectionIds = options.selectedCollectionIds ?? [];
-  const clusterLabels = new Map<GraphNodeId, string>();
-
-  for (const node of graph.nodes.values()) {
-    if (node.kind === "cluster") continue;
-    const cluster = getGraphNodeClusterInfo(node, selectedCollectionIds);
-    if (!cluster) continue;
-    if (!g.hasNode(cluster.id)) {
-      g.setNode(cluster.id, { label: cluster.label });
-    }
-    clusterLabels.set(cluster.id, cluster.label);
-  }
-
-  for (const node of graph.nodes.values()) {
-    const dims = nodeDimensions(node);
-    g.setNode(node.id, { width: dims.width, height: dims.height });
-    const cluster =
-      node.kind === "cluster"
-        ? null
-        : getGraphNodeClusterInfo(node, selectedCollectionIds);
-    if (cluster) {
-      g.setParent(node.id, cluster.id);
-    }
-  }
-
-  for (const edge of graph.edges.values()) {
-    if (g.hasNode(edge.from) && g.hasNode(edge.to)) {
-      g.setEdge(edge.from, edge.to);
-    }
-  }
-
-  dagre.layout(g);
-
-  const positions = new Map<GraphNodeId, NodePosition>();
-  const clusters = new Map<GraphNodeId, { label: string; x: number; y: number; width: number; height: number }>();
-  let maxX = 0;
-  let maxY = 0;
-  for (const id of graph.nodes.keys()) {
-    const laidOut = g.node(id);
-    if (!laidOut) continue;
-    const x = laidOut.x - laidOut.width / 2;
-    const y = laidOut.y - laidOut.height / 2;
-    positions.set(id, { x, y, width: laidOut.width, height: laidOut.height });
-    maxX = Math.max(maxX, x + laidOut.width);
-    maxY = Math.max(maxY, y + laidOut.height);
-  }
-
-  for (const [clusterId, label] of clusterLabels) {
-    const laidOut = g.node(clusterId);
-    if (!laidOut?.width || !laidOut?.height) continue;
-    clusters.set(clusterId, {
-      label,
-      x: laidOut.x - laidOut.width / 2,
-      y: laidOut.y - laidOut.height / 2,
-      width: laidOut.width,
-      height: laidOut.height,
-    });
-  }
-
-  return {
-    positions,
-    clusters,
-    lanes: [],
-    focusCollectionId: null,
-    width: maxX,
-    height: maxY,
-  };
-}
-
-const FOCUS_COLUMN_WIDTH = 260;
-const FOCUS_VERTICAL_GAP = 12;
-const FOCUS_LANE_GAP = 14;
-const FOCUS_LANE_LABEL_HEIGHT = 16;
+const FOCUS_COLUMN_WIDTH = 300;
+const FOCUS_VERTICAL_GAP = 16;
+const FOCUS_LANE_GAP = 24;
+const FOCUS_LANE_LABEL_HEIGHT = 20;
 
 /**
  * Deterministic columnar layout for focus mode: pin the focused node at
@@ -144,7 +56,6 @@ export function layoutFocused(
   if (!subgraph.nodes.has(focusId)) {
     return {
       positions,
-      clusters: new Map(),
       lanes,
       focusCollectionId: null,
       width: 0,
@@ -263,7 +174,6 @@ export function layoutFocused(
 
   return {
     positions,
-    clusters: new Map(),
     lanes,
     focusCollectionId,
     width: maxX - minX,

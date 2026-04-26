@@ -137,7 +137,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
   {
     id: "corner-radius",
     label: "Corner radius scale",
-    description: "Build a small-to-full radius system from one base value.",
+    description: "Build a small-to-full radius system from one starting value.",
     whenToUse:
       "Use when cards, inputs, buttons, and containers should share a consistent rounding language.",
     stages: ["Goal", "Base radius", "none to full scale"],

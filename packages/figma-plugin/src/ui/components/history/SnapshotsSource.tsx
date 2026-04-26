@@ -696,7 +696,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                         </button>
                       </>
                     ) : (
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center gap-1">
                         <button
                           className="px-2 py-1 rounded text-secondary font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors"
                           onClick={() => handleCompare(s.id)}

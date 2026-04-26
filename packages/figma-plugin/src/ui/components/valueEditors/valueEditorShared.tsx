@@ -134,7 +134,7 @@ export const SubPropInput = memo(function SubPropInput({
   return (
     <div className="relative flex items-center gap-1">
       <input
-        ref={effectiveRef as any}
+        ref={effectiveRef}
         type="text"
         autoFocus={autoFocus}
         value={displayValue}
@@ -229,7 +229,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
   return (
     <div className="flex gap-1 items-center">
       <input
-        ref={inputRef as any}
+        ref={inputRef}
         type="number"
         value={dim.value ?? 0}
         onChange={e => onChange({ ...dim, value: parseFloat(e.target.value) || 0 })}

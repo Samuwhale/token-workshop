@@ -721,7 +721,10 @@ export function ContrastMatrixPanel({
                                   className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
                                   style={{ background: fg.hex }}
                                 />
-                                <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">
+                                <span
+                                  className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]"
+                                  title={getTokenTitle(fg)}
+                                >
                                   {getTokenLabel(fg)}
                                 </span>
                               </div>
@@ -742,7 +745,10 @@ export function ContrastMatrixPanel({
                                 className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
                                 style={{ background: bg.hex }}
                               />
-                              <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">
+                              <span
+                                className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]"
+                                title={getTokenTitle(bg)}
+                              >
                                 {getTokenLabel(bg)}
                               </span>
                             </div>
@@ -767,7 +773,10 @@ export function ContrastMatrixPanel({
                                   className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
                                   style={{ background: suggestedFix.hex }}
                                 />
-                                <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]">
+                                <span
+                                  className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]"
+                                  title={getTokenTitle(suggestedFix)}
+                                >
                                   {getTokenLabel(suggestedFix)}
                                 </span>
                                 {fixRatio !== null && (
@@ -883,7 +892,10 @@ export function ContrastMatrixPanel({
                             style={{ background: fg.hex }}
                             aria-hidden="true"
                           />
-                          <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]">
+                          <span
+                            className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]"
+                            title={getTokenTitle(fg)}
+                          >
                             {getTokenLabel(fg)}
                           </span>
                         </div>

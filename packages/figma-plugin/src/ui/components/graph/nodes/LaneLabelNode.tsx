@@ -26,13 +26,14 @@ function LaneLabelNodeImpl({ data }: NodeProps) {
       style={{
         width: data.width,
         height: data.height,
-        background: `${data.accentColor}14`,
+        background: `${data.accentColor}0D`,
       }}
-      className="pointer-events-none rounded-md"
+      className="pointer-events-none flex flex-col rounded-md"
     >
       <span
-        style={{ color: data.accentColor }}
-        className="ml-1.5 inline-block translate-y-[-50%] rounded bg-[var(--color-figma-bg)] px-1 text-[10px] leading-[14px]"
+        style={{ color: data.accentColor, maxWidth: data.width - 16 }}
+        className="ml-2 mt-1.5 block self-start truncate text-[10px] font-medium leading-none"
+        title={data.label}
       >
         {data.label}
       </span>

@@ -5,6 +5,7 @@ import {
   writeTokenModeValuesForCollection,
 } from "@tokenmanager/core";
 import {
+  createToken,
   fetchToken,
   updateToken,
   type TokenMutationBody,
@@ -89,6 +90,53 @@ export async function rewireAliasModes(params: {
   }
   const body = buildModePatchBody(token, collection, updates);
   await updateToken(serverUrl, collection.id, tokenPath, body);
+}
+
+export async function createAliasToken(params: {
+  serverUrl: string;
+  collection: TokenCollection;
+  newPath: string;
+  type: string | undefined;
+  targetPath: string;
+  targetCollectionId: string;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
+}): Promise<void> {
+  const {
+    serverUrl,
+    collection,
+    newPath,
+    type,
+    targetPath,
+    targetCollectionId,
+    pathToCollectionId,
+    collectionIdsByPath,
+  } = params;
+  const targetResolution = resolveCollectionIdForPath({
+    path: targetPath,
+    pathToCollectionId,
+    collectionIdsByPath,
+    preferredCollectionId: collection.id,
+  });
+  if (targetResolution.collectionId !== targetCollectionId) {
+    throw new Error(
+      targetResolution.reason === "ambiguous"
+        ? `Cannot store an unambiguous alias to "${targetPath}" because that path exists in multiple collections.`
+        : `Cannot store an alias to "${targetPath}" in collection "${targetCollectionId}" from "${collection.id}".`,
+    );
+  }
+  const aliasRef = `{${targetPath}}`;
+  const draft = { $value: aliasRef } as Token;
+  if (type) (draft as { $type?: string }).$type = type;
+  const modeValues: Record<string, unknown> = {};
+  for (const mode of collection.modes) modeValues[mode.name] = aliasRef;
+  writeTokenModeValuesForCollection(draft, collection, modeValues);
+  const body: TokenMutationBody = {
+    $value: draft.$value,
+    $extensions: draft.$extensions ?? null,
+  };
+  if (type) body.$type = type;
+  await createToken(serverUrl, collection.id, newPath, body);
 }
 
 export async function detachAliasModes(params: {

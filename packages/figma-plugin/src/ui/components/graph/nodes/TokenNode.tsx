@@ -1,10 +1,12 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { AlertTriangle, RotateCw } from "lucide-react";
 import type { TokenGraphNode } from "@tokenmanager/core";
 
 export interface TokenNodeData extends Record<string, unknown> {
   token: TokenGraphNode;
   isFocused?: boolean;
+  dimmed?: boolean;
 }
 
 function isTokenNodeData(data: unknown): data is TokenNodeData {
@@ -20,57 +22,103 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
   if (!isTokenNodeData(data)) {
     return null;
   }
-  const { token, isFocused } = data;
+  const { token, isFocused, dimmed } = data;
   const label = isFocused ? token.path : pathTail(token.path);
   const isAccented = selected || isFocused;
+  const isBroken = token.health === "broken";
+  const isCycle = token.health === "cycle";
   const showValuePreview = Boolean(isFocused) && Boolean(token.valuePreview);
-  const borderClass =
-    token.health === "cycle"
+
+  const borderClass = isBroken
+    ? "border-[var(--color-figma-error)]"
+    : isCycle
       ? "border-[var(--color-figma-warning)]"
-      : token.health === "broken"
-        ? "border-[var(--color-figma-error)]"
-        : isAccented
-          ? "border-[var(--color-figma-accent)]"
-          : "border-transparent group-hover:border-[var(--color-figma-border)]";
-  const ringClass = isAccented
-    ? "ring-2 ring-[var(--color-figma-accent)]/40 ring-offset-0"
-    : "";
+      : isAccented
+        ? "border-[var(--color-figma-accent)]"
+        : "border-[var(--color-figma-border)]/50 group-hover:border-[var(--color-figma-border)]";
   const labelToneClass = isAccented
     ? "font-medium text-[var(--color-figma-text)]"
     : "text-[var(--color-figma-text-secondary)] group-hover:text-[var(--color-figma-text)]";
-  const swatchBorderClass = isAccented
-    ? "border border-[var(--color-figma-border)]"
-    : "border border-transparent group-hover:border-[var(--color-figma-border)]";
 
   return (
     <div
-      className={`tm-graph-node group flex h-11 items-center gap-2 rounded-md border bg-[var(--color-figma-bg-secondary)] px-1.5 text-secondary shadow-[0_1px_0_rgba(0,0,0,0.15)] ${borderClass} ${ringClass}`}
-      style={{ width: 200 }}
+      className={`tm-graph-node group flex h-11 items-center gap-2 rounded-md border bg-[var(--color-figma-bg-secondary)] px-2 text-secondary shadow-[0_1px_0_rgba(0,0,0,0.12)] ${borderClass}`}
+      style={{
+        width: 200,
+        opacity: dimmed ? 0.25 : 1,
+        transition: "opacity 120ms",
+      }}
       title={token.path}
     >
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]" />
-      {token.swatchColor ? (
-        <span
-          className={`h-4 w-4 shrink-0 rounded ${swatchBorderClass}`}
-          style={{ background: token.swatchColor }}
-          aria-hidden
-        />
-      ) : isFocused && token.$type ? (
-        <span className="font-mono text-[10px] leading-none text-[var(--color-figma-text-tertiary)]">
-          {tokenTypeGlyph(token.$type)}
-        </span>
-      ) : null}
-      <span className={`min-w-0 flex-1 truncate leading-tight ${labelToneClass}`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]"
+      />
+      <Leading token={token} isFocused={Boolean(isFocused)} />
+      <span
+        className={`min-w-0 flex-1 truncate leading-tight ${labelToneClass}`}
+      >
         {label}
       </span>
-      {showValuePreview ? (
-        <span className="ml-1 max-w-[68px] shrink-0 truncate text-right font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
+      {isBroken ? (
+        <AlertTriangle
+          size={11}
+          strokeWidth={2}
+          aria-label="Broken alias"
+          className="shrink-0 text-[var(--color-figma-error)]"
+        />
+      ) : isCycle ? (
+        <RotateCw
+          size={11}
+          strokeWidth={2}
+          aria-label="In a circular reference"
+          className="shrink-0 text-[var(--color-figma-warning)]"
+        />
+      ) : showValuePreview ? (
+        <span
+          className="ml-1 max-w-[68px] shrink-0 truncate text-right font-mono text-[10px] text-[var(--color-figma-text-tertiary)]"
+          title={token.valuePreview}
+        >
           {token.valuePreview}
         </span>
       ) : null}
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]" />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]"
+      />
     </div>
   );
+}
+
+function Leading({
+  token,
+  isFocused,
+}: {
+  token: TokenGraphNode;
+  isFocused: boolean;
+}) {
+  if (token.swatchColor) {
+    return (
+      <span
+        className="h-4 w-4 shrink-0 rounded border border-[var(--color-figma-border)]"
+        style={{ background: token.swatchColor }}
+        aria-hidden
+      />
+    );
+  }
+  if (isFocused && token.$type) {
+    return (
+      <span
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-[var(--color-figma-bg)] font-mono text-[10px] leading-none text-[var(--color-figma-text-tertiary)]"
+        aria-hidden
+      >
+        {tokenTypeGlyph(token.$type)}
+      </span>
+    );
+  }
+  return null;
 }
 
 export const TokenNode = memo(TokenNodeImpl);

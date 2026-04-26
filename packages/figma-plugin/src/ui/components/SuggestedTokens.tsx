@@ -187,7 +187,10 @@ export function SuggestedTokens({
                         {valueStr && (
                           <>
                             <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
-                            <span className="text-[8px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[60px]">
+                            <span
+                              className="text-[8px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[60px]"
+                              title={valueStr}
+                            >
                               {valueStr}
                             </span>
                           </>

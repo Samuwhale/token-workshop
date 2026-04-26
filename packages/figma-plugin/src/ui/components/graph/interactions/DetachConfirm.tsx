@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   AncestorChainByMode,
   TokenCollection,
@@ -7,6 +7,7 @@ import { resolveTokenAncestors } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../../shared/types";
 import { formatTokenValueForDisplay } from "../../../shared/tokenFormatting";
 import { projectTokenEntriesToGraphTokens } from "../../../shared/graphTokens";
+import { ContextDialog, DialogActions, DialogError } from "./ContextDialog";
 
 interface DetachConfirmProps {
   x: number;
@@ -39,7 +40,6 @@ export function DetachConfirm({
   onConfirm,
   onCancel,
 }: DetachConfirmProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const [selectedModes, setSelectedModes] = useState<Set<string>>(
     () => new Set(edgeModeNames),
   );
@@ -47,24 +47,6 @@ export function DetachConfirm({
   useEffect(() => {
     setSelectedModes(new Set(edgeModeNames));
   }, [edgeModeNames]);
-
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onCancel]);
-
-  useEffect(() => {
-    const handlePointer = (event: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (containerRef.current.contains(event.target as Node)) return;
-      onCancel();
-    };
-    document.addEventListener("mousedown", handlePointer);
-    return () => document.removeEventListener("mousedown", handlePointer);
-  }, [onCancel]);
 
   const tokensByCollection = useMemo(
     () => projectTokenEntriesToGraphTokens(perCollectionFlat),
@@ -121,88 +103,104 @@ export function DetachConfirm({
     return chain && chain.terminalKind === "literal";
   });
 
+  const isMultiMode = edgeModeNames.length > 1;
+
   return (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-label="Detach alias"
-      style={{ left: x, top: y }}
-      className="fixed z-50 w-[320px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg"
+    <ContextDialog
+      x={x}
+      y={y}
+      ariaLabel="Detach alias"
+      width={320}
+      onCancel={onCancel}
     >
-      <div className="text-secondary text-[var(--color-figma-text)]">
-        Detach <span className="font-mono">{tokenPath}</span>?
-      </div>
-      {formula ? (
-        <div className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
-          Replaces formula{" "}
-          <span className="font-mono text-[var(--color-figma-text)]">{formula}</span>{" "}
-          with the resolved literal value.
+      <div className="flex flex-col gap-1">
+        <div className="font-medium text-[var(--color-figma-text)]">
+          Detach alias
         </div>
-      ) : null}
-      <div className="mt-2 flex flex-col gap-1">
-        {edgeModeNames.map((mode) => {
-          const chain = chainsByMode.get(mode);
-          const literal =
-            chain && chain.terminalKind === "literal"
-              ? formatTokenValueForDisplay(chain.terminalType, chain.terminalValue)
-              : chain
-                ? `Cannot detach (${chain.terminalKind})`
-                : "—";
-          const disabled = !chain || chain.terminalKind !== "literal";
-          return (
-            <label
-              key={mode}
-              className={`flex items-center gap-2 text-secondary ${
-                disabled
-                  ? "text-[var(--color-figma-text-tertiary)]"
-                  : "cursor-pointer text-[var(--color-figma-text)]"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={selectedModes.has(mode)}
-                disabled={disabled}
-                onChange={() => {
-                  setSelectedModes((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(mode)) next.delete(mode);
-                    else next.add(mode);
-                    return next;
-                  });
-                }}
-              />
-              {edgeModeNames.length > 1 ? (
-                <span className="shrink-0 font-mono text-[10px] text-[var(--color-figma-text-tertiary)]">
-                  {mode}
-                </span>
-              ) : null}
-              <span className="truncate font-mono">{literal}</span>
-            </label>
-          );
-        })}
-      </div>
-      {errorMessage ? (
-        <div className="mt-2 text-secondary text-[var(--color-figma-error)]">
-          {errorMessage}
+        <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          Replace alias with the resolved literal on{" "}
+          <span className="font-mono text-[var(--color-figma-text)]">
+            {tokenPath}
+          </span>
+          .
         </div>
-      ) : null}
-      <div className="mt-3 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-[var(--color-figma-border)] bg-transparent px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={busy || noneSelected || !everyModeResolves}
-          onClick={handleConfirm}
-          className="rounded-md bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-        >
-          {busy ? "Detaching…" : "Detach"}
-        </button>
+        {formula ? (
+          <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            Formula{" "}
+            <span className="font-mono text-[var(--color-figma-text-secondary)]">
+              {formula}
+            </span>{" "}
+            will be replaced.
+          </div>
+        ) : null}
       </div>
-    </div>
+      <div className="mt-3 flex flex-col gap-1.5">
+        {isMultiMode ? (
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            Modes
+          </span>
+        ) : null}
+        <ul className="flex flex-col">
+          {edgeModeNames.map((mode) => {
+            const chain = chainsByMode.get(mode);
+            const literal =
+              chain && chain.terminalKind === "literal"
+                ? formatTokenValueForDisplay(
+                    chain.terminalType,
+                    chain.terminalValue,
+                  )
+                : chain
+                  ? `Cannot resolve (${chain.terminalKind})`
+                  : "—";
+            const disabled = !chain || chain.terminalKind !== "literal";
+            return (
+              <li key={mode}>
+                <label
+                  className={`flex h-7 items-center gap-2 rounded px-1 text-secondary ${
+                    disabled
+                      ? "text-[var(--color-figma-text-tertiary)]"
+                      : "cursor-pointer text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedModes.has(mode)}
+                    disabled={disabled}
+                    onChange={() => {
+                      setSelectedModes((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(mode)) next.delete(mode);
+                        else next.add(mode);
+                        return next;
+                      });
+                    }}
+                  />
+                  {isMultiMode ? (
+                    <span
+                      className="min-w-0 max-w-[40%] shrink-0 truncate text-[var(--color-figma-text-secondary)]"
+                      title={mode}
+                    >
+                      {mode}
+                    </span>
+                  ) : null}
+                  <span className="min-w-0 flex-1 truncate font-mono">
+                    {literal}
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      {errorMessage ? <DialogError message={errorMessage} /> : null}
+      <DialogActions
+        busy={busy}
+        disabled={noneSelected || !everyModeResolves}
+        confirmLabel="Detach"
+        busyLabel="Detaching…"
+        onCancel={onCancel}
+        onConfirm={handleConfirm}
+      />
+    </ContextDialog>
   );
 }
