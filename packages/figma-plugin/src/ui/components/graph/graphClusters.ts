@@ -1,5 +1,7 @@
 import type {
   AliasEdge,
+  DerivationProducesEdge,
+  DerivationSourceEdge,
   GeneratorProducesEdge,
   GeneratorSourceEdge,
   GraphEdge,
@@ -18,19 +20,17 @@ export interface GraphClusterNode {
 
 export type GraphRenderNode = GraphNode | GraphClusterNode;
 
+type WithAggregate<E> = E & {
+  aggregateCount?: number;
+  sourceEdgeIds?: GraphEdgeId[];
+};
+
 export type GraphRenderEdge =
-  | (AliasEdge & {
-      aggregateCount?: number;
-      sourceEdgeIds?: GraphEdgeId[];
-    })
-  | (GeneratorSourceEdge & {
-      aggregateCount?: number;
-      sourceEdgeIds?: GraphEdgeId[];
-    })
-  | (GeneratorProducesEdge & {
-      aggregateCount?: number;
-      sourceEdgeIds?: GraphEdgeId[];
-    });
+  | WithAggregate<AliasEdge>
+  | WithAggregate<GeneratorSourceEdge>
+  | WithAggregate<GeneratorProducesEdge>
+  | WithAggregate<DerivationSourceEdge>
+  | WithAggregate<DerivationProducesEdge>;
 
 export interface GraphRenderModel {
   nodes: Map<GraphNodeId, GraphRenderNode>;
@@ -208,6 +208,7 @@ function bfsSide(
 function pluraliseKind(kind: GraphNode["kind"], count: number): string {
   if (kind === "generator") return `${count} generators`;
   if (kind === "ghost") return `${count} broken refs`;
+  if (kind === "derivation") return `${count} modifiers`;
   return `${count} tokens`;
 }
 

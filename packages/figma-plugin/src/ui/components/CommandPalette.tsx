@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { Braces, Code2, Copy, FolderInput, Pencil, Plus, Trash2, Variable } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
 import { swatchBgColor } from '../shared/colorUtils';
@@ -476,7 +477,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
               : 'Search expert actions… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
-            className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-subheading text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+            className="min-w-0 flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-subheading text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {isTokenMode && (
             <span className="text-secondary font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
@@ -485,7 +486,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
           )}
           {isTokenMode && (
             <button
-              className={`text-secondary w-4 h-4 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
+              className={`text-secondary w-5 h-5 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
               onClick={() => setShowHelp(v => !v)}
               title="Filter syntax help (press ? when input is empty)"
               aria-label="Toggle filter syntax help"
@@ -551,7 +552,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
 
         {/* Filter syntax cheatsheet — toggled by ? button or ? key */}
         {isTokenMode && showHelp && (
-          <div className="bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2 overflow-y-auto" style={{ maxHeight: '220px' }}>
+          <div className="bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2 overflow-y-auto" style={{ maxHeight: 'min(220px, 40vh)' }}>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-secondary font-semibold text-[var(--color-figma-text-secondary)]">Filter syntax</span>
               <button
@@ -657,12 +658,14 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
           {isTokenMode && (
             <>
               {(hasQualifiers || parsedTokenQuery.text || isGroupQuery) && (filteredTokens.length > 0 || filteredGroups.length > 0) && (
-                <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] flex items-center gap-1.5">
-                  {isGroupQuery
-                    ? <>{totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''} matched</>
-                    : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
-                  }
-                  {searchAllSets && <span className="text-[var(--color-figma-accent)] opacity-70">across all collections</span>}
+                <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  <span className="whitespace-nowrap">
+                    {isGroupQuery
+                      ? <>{totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''} matched</>
+                      : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
+                    }
+                  </span>
+                  {searchAllSets && <span className="whitespace-nowrap text-[var(--color-figma-accent)] opacity-70">across all collections</span>}
                 </div>
               )}
               {filteredTokens.length === 0 && filteredGroups.length === 0 && (
@@ -729,7 +732,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
                     </svg>
                     <span className="text-body font-mono truncate min-w-0 flex-1">{group.path}</span>
-                    <span className={`text-secondary shrink-0 ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-secondary shrink-0 whitespace-nowrap ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
                       {group.childCount} token{group.childCount !== 1 ? 's' : ''}
                     </span>
                   </button>
@@ -743,16 +746,23 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
               )}
               {filteredTokens.map((token, idx) => {
                 const flatIdx = filteredGroups.length + idx; // tokens come after groups
+                const isActive = flatIdx === activeIdx;
+                const actionBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`;
+                const deleteBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] focus:text-[var(--color-figma-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]'}`;
                 return (
-                <div key={tokenEntryKey(token)} className="flex items-center gap-0" data-palette-item>
+                <div
+                  key={tokenEntryKey(token)}
+                  className={`group flex items-center gap-0 transition-colors ${isActive ? 'bg-[var(--color-figma-accent)]' : ''}`}
+                  data-palette-item
+                >
                   <button
                     role="option"
-                    aria-selected={flatIdx === activeIdx}
-                    className={`flex-1 text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    aria-selected={isActive}
+                    className={`min-w-0 flex-1 text-left pl-3 pr-2 py-1.5 flex items-center gap-2 ${isActive ? 'text-white' : 'text-[var(--color-figma-text)]'}`}
                     onMouseEnter={() => setActiveIdx(flatIdx)}
                     onClick={() => executeToken(token)}
                   >
-                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                       {token.type}
                     </span>
                     {token.type === 'color' && typeof token.value === 'string' && token.value ? (
@@ -762,113 +772,125 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                         title={token.value}
                       />
                     ) : token.value != null && token.value !== '' && token.type !== 'color' ? (
-                      <span className={`text-secondary shrink-0 font-mono ${flatIdx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`} title={token.value}>
+                      <span className={`text-secondary shrink-0 font-mono ${isActive ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`} title={token.value}>
                         {token.value.length > 20 ? token.value.slice(0, 20) + '…' : token.value}
                       </span>
                     ) : null}
                     <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
                     {token.set && (
-                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium max-w-[40%] truncate ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium max-w-[40%] truncate ${isActive ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                         {token.set}
                       </span>
                     )}
                   </button>
-                  {onCopyTokenPath && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Copy path: ${token.path}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('Path', () => onCopyTokenPath(token.path)); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      Path
-                    </button>
-                  )}
-                  {onCopyTokenRef && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Copy DTCG alias: {${token.path}}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('{ref}', () => onCopyTokenRef(token.path)); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      {'{ref}'}
-                    </button>
-                  )}
-                  {onCopyTokenValue && token.value != null && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Copy raw value: ${token.value}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('Val', () => onCopyTokenValue(token.value!)); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      Val
-                    </button>
-                  )}
-                  {onCopyTokenCssVar && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Copy CSS var: ${tokenCssVar(token.path)}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); copyWithFeedback('CSS', () => onCopyTokenCssVar(token.path)); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      CSS
-                    </button>
-                  )}
-                  {onDuplicateToken && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Create from this token: ${token.path}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onDuplicateToken(token); onClose(); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      New
-                    </button>
-                  )}
-                  {onRenameToken && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Rename token: ${token.path}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onRenameToken(token); onClose(); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      Ren
-                    </button>
-                  )}
-                  {onMoveToken && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Move to collection: ${token.path}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onMoveToken(token); onClose(); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      Mov
-                    </button>
-                  )}
-                  {onDeleteToken && (
-                    <button
-                      tabIndex={flatIdx === activeIdx ? 0 : -1}
-                      title={`Delete token: ${token.path}`}
-                      className={`px-2 py-1.5 text-secondary shrink-0 transition-colors ${flatIdx === activeIdx ? 'text-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] focus:text-[var(--color-figma-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]'}`}
-                      onClick={(e) => { e.stopPropagation(); onDeleteToken(token); onClose(); }}
-                      onFocus={() => setActiveIdx(flatIdx)}
-                      onKeyDown={handleActionButtonKeyDown}
-                    >
-                      Del
-                    </button>
-                  )}
+                  <div
+                    className={`flex shrink-0 items-center pr-1 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}
+                  >
+                    {onCopyTokenPath && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Copy path: ${token.path}`}
+                        title={`Copy path: ${token.path}`}
+                        className={actionBtnClass}
+                        onClick={(e) => { e.stopPropagation(); copyWithFeedback('Path', () => onCopyTokenPath(token.path)); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <Copy size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                    {onCopyTokenRef && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Copy DTCG alias: {${token.path}}`}
+                        title={`Copy DTCG alias: {${token.path}}`}
+                        className={actionBtnClass}
+                        onClick={(e) => { e.stopPropagation(); copyWithFeedback('{ref}', () => onCopyTokenRef(token.path)); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <Braces size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                    {onCopyTokenValue && token.value != null && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Copy raw value: ${token.value}`}
+                        title={`Copy raw value: ${token.value}`}
+                        className={actionBtnClass}
+                        onClick={(e) => { e.stopPropagation(); copyWithFeedback('Val', () => onCopyTokenValue(token.value!)); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <Code2 size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                    {onCopyTokenCssVar && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Copy CSS var: ${tokenCssVar(token.path)}`}
+                        title={`Copy CSS var: ${tokenCssVar(token.path)}`}
+                        className={actionBtnClass}
+                        onClick={(e) => { e.stopPropagation(); copyWithFeedback('CSS', () => onCopyTokenCssVar(token.path)); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <Variable size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                    {onDuplicateToken && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Create from this token: ${token.path}`}
+                        title={`Create from this token: ${token.path}`}
+                        className={actionBtnClass}
+                        onClick={(e) => { e.stopPropagation(); onDuplicateToken(token); onClose(); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <Plus size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                    {onRenameToken && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Rename token: ${token.path}`}
+                        title={`Rename token: ${token.path}`}
+                        className={actionBtnClass}
+                        onClick={(e) => { e.stopPropagation(); onRenameToken(token); onClose(); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <Pencil size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                    {onMoveToken && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Move to collection: ${token.path}`}
+                        title={`Move to collection: ${token.path}`}
+                        className={actionBtnClass}
+                        onClick={(e) => { e.stopPropagation(); onMoveToken(token); onClose(); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <FolderInput size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                    {onDeleteToken && (
+                      <button
+                        tabIndex={isActive ? 0 : -1}
+                        aria-label={`Delete token: ${token.path}`}
+                        title={`Delete token: ${token.path}`}
+                        className={deleteBtnClass}
+                        onClick={(e) => { e.stopPropagation(); onDeleteToken(token); onClose(); }}
+                        onFocus={() => setActiveIdx(flatIdx)}
+                        onKeyDown={handleActionButtonKeyDown}
+                      >
+                        <Trash2 size={11} strokeWidth={2} aria-hidden />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 );
               })}
@@ -918,7 +940,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                     {token.type === 'color' && token.value ? (
                       <span className="w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ backgroundColor: swatchBgColor(token.value) }} />
                     ) : null}
-                    <span className="text-body font-mono truncate flex-1">{token.path}</span>
+                    <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
                     {token.set && (
                       <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                         {token.set}
@@ -955,7 +977,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                     {token.type === 'color' && token.value ? (
                       <span className="w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ backgroundColor: swatchBgColor(token.value) }} />
                     ) : null}
-                    <span className="text-body font-mono truncate flex-1">{token.path}</span>
+                    <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
                     {token.set && (
                       <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                         {token.set}
@@ -1060,23 +1082,23 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
         </div>
 
         {/* Footer hints */}
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex flex-wrap gap-x-3 gap-y-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
           {isTokenMode ? (
             <>
-              <span>↑↓ navigate</span>
-              <span>↵ go to token/group</span>
+              <span className="whitespace-nowrap">↑↓ navigate</span>
+              <span className="whitespace-nowrap">↵ go to token/group</span>
               {searchAllSets
-                ? <span className="text-[var(--color-figma-accent)] opacity-80">searching all collections</span>
-                : <button className="opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
+                ? <span className="whitespace-nowrap text-[var(--color-figma-accent)] opacity-80">searching all collections</span>
+                : <button className="min-w-0 truncate opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
               }
-              <span>ESC close</span>
+              <span className="whitespace-nowrap">ESC close</span>
             </>
           ) : (
             <>
-              <span>↑↓ navigate</span>
-              <span>↵ select</span>
-              <span>type &gt; for token search</span>
-              <span>ESC close</span>
+              <span className="whitespace-nowrap">↑↓ navigate</span>
+              <span className="whitespace-nowrap">↵ select</span>
+              <span className="whitespace-nowrap">type &gt; for token search</span>
+              <span className="whitespace-nowrap">ESC close</span>
             </>
           )}
         </div>

@@ -469,6 +469,7 @@ function FocusCanvasInner({
             if (!node) return "?";
             if (node.kind === "token") return node.path;
             if (node.kind === "generator") return node.name;
+            if (node.kind === "derivation") return `${node.derivedPath} (modifier)`;
             return node.path;
           })
           .join(" → ");

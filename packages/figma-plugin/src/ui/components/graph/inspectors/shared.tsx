@@ -30,6 +30,13 @@ export function NodeLabel({ node }: { node: GraphNode }) {
       </span>
     );
   }
+  if (node.kind === "derivation") {
+    return (
+      <span className="truncate text-[var(--color-figma-text)]">
+        {node.derivedPath}
+      </span>
+    );
+  }
   return (
     <span className="truncate text-[var(--color-figma-text)]">{node.name}</span>
   );
@@ -195,6 +202,13 @@ export function collectIncidentTokens(
         collectionId: other.collectionId ?? "?",
         displayName: other.path.split(".").pop() ?? other.path,
         isGhost: true,
+      });
+    } else if (other.kind === "derivation") {
+      out.push({
+        id: other.id,
+        path: other.derivedPath,
+        collectionId: other.collectionId,
+        displayName: other.derivedPath.split(".").pop() ?? other.derivedPath,
       });
     } else {
       out.push({

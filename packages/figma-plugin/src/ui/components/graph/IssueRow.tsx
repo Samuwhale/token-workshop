@@ -120,5 +120,6 @@ function nodeLabel(graph: GraphModel, id: GraphNodeId): string {
   if (!node) return id;
   if (node.kind === "token") return node.path;
   if (node.kind === "generator") return node.name;
+  if (node.kind === "derivation") return node.derivedPath;
   return node.path;
 }

@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import type { ColorModifierOp } from '@tokenmanager/core';
+import type { DerivationOp } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { getInitialCreateValue } from '../components/token-editor/tokenEditorHelpers';
 import { normalizeTokenType } from '../shared/tokenTypeCategories';
@@ -33,7 +33,7 @@ export function useTokenEditorFields(params: {
   });
   const [description, setDescription] = useState('');
   const [scopes, setScopes] = useState<string[]>([]);
-  const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
+  const [derivationOps, setDerivationOps] = useState<DerivationOp[]>([]);
   const [modeValues, setModeValues] = useState<TokenEditorModeValues>({});
   const [extensionsJsonText, setExtensionsJsonText] = useState('');
   const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
@@ -48,14 +48,14 @@ export function useTokenEditorFields(params: {
       stableStringify(value) !== stableStringify(init.value) ||
       description !== init.description ||
       stableStringify(scopes) !== stableStringify(init.scopes) ||
-      stableStringify(colorModifiers) !== stableStringify(init.colorModifiers) ||
+      stableStringify(derivationOps) !== stableStringify(init.derivationOps) ||
       stableStringify(modeValues) !== stableStringify(init.modeValues) ||
       extensionsJsonText !== init.extensionsJsonText ||
       lifecycle !== init.lifecycle ||
       extendsPath !== init.extendsPath ||
       (isCreateMode && editPath.trim() !== tokenPath.trim())
     );
-  }, [tokenType, value, description, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath, isCreateMode, editPath, tokenPath]);
+  }, [tokenType, value, description, scopes, derivationOps, modeValues, extensionsJsonText, lifecycle, extendsPath, isCreateMode, editPath, tokenPath]);
 
   const colorFlatMap = useMemo(() => {
     const map: Record<string, unknown> = {};
@@ -74,7 +74,7 @@ export function useTokenEditorFields(params: {
     value, setValue,
     description, setDescription,
     scopes, setScopes,
-    colorModifiers, setColorModifiers,
+    derivationOps, setDerivationOps,
     modeValues, setModeValues,
     extensionsJsonText, setExtensionsJsonText,
     extensionsJsonError, setExtensionsJsonError,

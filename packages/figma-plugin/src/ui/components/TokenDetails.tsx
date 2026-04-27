@@ -1,5 +1,5 @@
 import { adaptShortcut, getErrorMessage, stableStringify } from "../shared/utils";
-import { Copy, Check, Clock, Trash2, Link2, X, Plus } from "lucide-react";
+import { Copy, Check, Clock, Files, Trash2, Link2, X, Plus } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -24,7 +24,7 @@ import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
-import { ColorModifiersEditor } from "./ColorModifiersEditor";
+import { DerivationEditor, summarizeDerivationOp } from "./DerivationEditor";
 import { ScopeEditor } from "./ScopeEditor";
 import {
   FIGMA_SCOPE_OPTIONS,
@@ -250,8 +250,8 @@ export function TokenDetails({
     setDescription,
     scopes,
     setScopes,
-    colorModifiers,
-    setColorModifiers,
+    derivationOps,
+    setDerivationOps,
     modeValues,
     setModeValues,
     extensionsJsonText,
@@ -312,7 +312,7 @@ export function TokenDetails({
     setValue,
     setDescription,
     setScopes,
-    setColorModifiers,
+    setDerivationOps,
     setModeValues,
     setExtensionsJsonText,
     setExtensionsJsonError,
@@ -463,8 +463,8 @@ export function TokenDetails({
       tokenType !== initialFieldsSnapshot.type ||
       description !== initialFieldsSnapshot.description ||
       stableStringify(scopes) !== stableStringify(initialFieldsSnapshot.scopes) ||
-      stableStringify(colorModifiers) !==
-        stableStringify(initialFieldsSnapshot.colorModifiers) ||
+      stableStringify(derivationOps) !==
+        stableStringify(initialFieldsSnapshot.derivationOps) ||
       stableStringify(modeValues) !==
         stableStringify(initialFieldsSnapshot.modeValues) ||
       extensionsJsonText !== initialFieldsSnapshot.extensionsJsonText ||
@@ -472,7 +472,7 @@ export function TokenDetails({
       extendsPath !== initialFieldsSnapshot.extendsPath
     );
   }, [
-    colorModifiers,
+    derivationOps,
     description,
     extendsPath,
     extensionsJsonText,
@@ -518,7 +518,7 @@ export function TokenDetails({
     value,
     description,
     scopes,
-    colorModifiers,
+    derivationOps,
     modeValues,
     extensionsJsonText,
     lifecycle,
@@ -570,7 +570,7 @@ export function TokenDetails({
       description: '',
       scopes: [],
       type: resolvedType,
-      colorModifiers: [],
+      derivationOps: [],
       modeValues: initModeValues,
       extensionsJsonText: '',
       lifecycle: 'published',
@@ -580,7 +580,7 @@ export function TokenDetails({
     setValue(initialCreateValue);
     setDescription('');
     setScopes([]);
-    setColorModifiers([]);
+    setDerivationOps([]);
     setModeValues(initModeValues);
     setExtensionsJsonText('');
     setExtensionsJsonError(null);
@@ -596,7 +596,7 @@ export function TokenDetails({
     initialValue,
     isCreateMode,
     ownerCollectionId,
-    setColorModifiers,
+    setDerivationOps,
     setDescription,
     setEditPath,
     setExtensionsJsonError,
@@ -878,7 +878,7 @@ export function TokenDetails({
       value,
       description,
       scopes,
-      colorModifiers,
+      derivationOps,
       modeValues,
       extensionsJsonText,
       lifecycle,
@@ -894,7 +894,7 @@ export function TokenDetails({
     value,
     description,
     scopes,
-    colorModifiers,
+    derivationOps,
     modeValues,
     extensionsJsonText,
     lifecycle,
@@ -909,7 +909,7 @@ export function TokenDetails({
     setValue(init.value);
     setDescription(init.description);
     setScopes(init.scopes);
-    setColorModifiers(init.colorModifiers);
+    setDerivationOps(init.derivationOps);
     setModeValues(init.modeValues);
     setExtensionsJsonText(init.extensionsJsonText);
     setExtensionsJsonError(null);
@@ -927,7 +927,7 @@ export function TokenDetails({
     setValue(draft.value);
     setDescription(draft.description);
     setScopes(draft.scopes);
-    setColorModifiers(draft.colorModifiers);
+    setDerivationOps(draft.derivationOps);
     setModeValues(draft.modeValues);
     setExtensionsJsonText(draft.extensionsJsonText);
     setLifecycle(draft.lifecycle);
@@ -975,7 +975,7 @@ export function TokenDetails({
         value,
         description,
         scopes,
-        colorModifiers,
+        derivationOps,
         modeValues,
         collection: editorCollection,
         passthroughTokenManager: passthroughTokenManagerRef.current,
@@ -990,7 +990,7 @@ export function TokenDetails({
       2,
     );
   }, [
-    colorModifiers,
+    derivationOps,
     description,
     extensionsJsonText,
     extendsPath,
@@ -1352,9 +1352,11 @@ export function TokenDetails({
         <button
           type="button"
           onClick={onDuplicate}
-          className="px-2 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          title="Duplicate token"
+          aria-label="Duplicate token"
+          className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
         >
-          Duplicate
+          <Files size={12} strokeWidth={1.5} aria-hidden />
         </button>
       )}
       {!isCreateMode && isInspectMode && onEnterEditMode && canEditInPlace && (
@@ -1497,7 +1499,7 @@ export function TokenDetails({
           )}
         </div>
         <div
-          className="ml-auto min-w-[140px] flex-1"
+          className="ml-auto min-w-0 flex-1"
           onClick={() => {
             if (!canSave && saveBlockReason && tokenType === "typography")
               focusBlockedField();
@@ -1976,34 +1978,26 @@ export function TokenDetails({
               </Stack>
             </Surface>
 
-            {isEditMode &&
-            tokenType === "color" &&
-            (valueIsAlias || (typeof value === "string" && value.length > 0)) ? (
-              <ColorModifiersEditor
-                reference={valueIsAlias ? (value as string) : undefined}
-                colorFlatMap={valueIsAlias ? colorFlatMap : undefined}
-                directColor={
-                  !valueIsAlias && typeof value === "string" ? value : undefined
-                }
-                colorModifiers={colorModifiers}
-                onColorModifiersChange={setColorModifiers}
+            {isEditMode && valueIsAlias ? (
+              <DerivationEditor
+                sourceType={tokenType as never}
+                reference={value as string}
+                colorFlatMap={colorFlatMap}
+                derivationOps={derivationOps}
+                onDerivationOpsChange={setDerivationOps}
               />
             ) : null}
 
-            {isInspectMode && colorModifiers.length > 0 ? (
-              <Field label="Color modifiers">
+            {isInspectMode && derivationOps.length > 0 ? (
+              <Field label="Modifier">
                 <Stack gap={1}>
-                  {colorModifiers.map((mod, idx) => {
-                    const summary =
-                      mod.type === "mix"
-                        ? `Mix with ${mod.color} at ${Math.round((mod.ratio ?? 0) * 100)}%`
-                        : `${mod.type.charAt(0).toUpperCase()}${mod.type.slice(1)} ${Math.round((mod.amount ?? 0) * 100)}%`;
-                    return (
-                      <ListItem key={idx}>
-                        <span className={LONG_TEXT_CLASSES.textPrimary}>{summary}</span>
-                      </ListItem>
-                    );
-                  })}
+                  {derivationOps.map((op, idx) => (
+                    <ListItem key={idx}>
+                      <span className={LONG_TEXT_CLASSES.textPrimary}>
+                        {summarizeDerivationOp(op)}
+                      </span>
+                    </ListItem>
+                  ))}
                 </Stack>
               </Field>
             ) : null}

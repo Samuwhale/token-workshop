@@ -107,6 +107,8 @@ function describeNode(node: GraphNode): string {
   if (node.kind === "token") return `Token ${node.path}`;
   if (node.kind === "generator")
     return `Generator ${node.name} (${node.outputCount} outputs)`;
+  if (node.kind === "derivation")
+    return `Modifier on ${node.derivedPath} (from ${node.sourceTokenPath})`;
   return node.reason === "ambiguous"
     ? `Ambiguous token reference ${node.path}`
     : `Missing token ${node.path}`;

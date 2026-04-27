@@ -259,7 +259,7 @@ export function TokenPickerDropdown({
       </div>
 
       {/* Results */}
-      <div ref={listRef} className="overflow-y-auto max-h-52">
+      <div ref={listRef} className="overflow-y-auto min-h-0 max-h-[min(208px,50vh)]">
         {entries.length === 0 && (
           <div className="py-3 px-3 text-body text-[var(--color-figma-text-secondary)] text-center">
             No matching tokens
@@ -308,7 +308,7 @@ export function TokenPickerDropdown({
               {/* Resolved value preview */}
               {previewValue && (
                 <span
-                  className="text-secondary text-[var(--color-figma-text-secondary)] truncate max-w-[100px] shrink-0"
+                  className="min-w-0 max-w-[40%] truncate text-secondary text-[var(--color-figma-text-secondary)]"
                   title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
                 >
                   {previewValue}
@@ -336,7 +336,10 @@ export function TokenPickerDropdown({
 
               {/* Set name */}
               {candidate.isAmbiguousPath && candidate.collectionId && (
-                <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                <span
+                  className="min-w-0 max-w-[30%] truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                  title={candidate.collectionId}
+                >
                   {candidate.collectionId}
                 </span>
               )}
@@ -464,7 +467,7 @@ export function TokenPickerField({
             {value}
           </span>
           {linkedValueStr && (
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 font-mono truncate max-w-[80px]">
+            <span className="min-w-0 max-w-[40%] truncate text-secondary text-[var(--color-figma-text-secondary)] font-mono">
               {linkedValueStr}
             </span>
           )}

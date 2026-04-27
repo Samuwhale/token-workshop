@@ -31,9 +31,11 @@ The two share **op math** via `core/src/derivation-ops.ts`. Type/spacing/border-
 
 **`darkModeInversion` is removed as a generator and reframed as a modifier preset.** It is already 1→1 (single source → single mirrored token), so it fits the modifier shape exactly. New op:
 
-- `invertLightness` — `{ chromaBoost?: number }` — color → color (mirrors L* around 50%, optional chroma scaling).
+- `invertLightness` — `{ chromaBoost?: number }` — color → color (mirrors L* around 50%, optional chroma scaling). `chromaBoost` defaults to `1.0` (no chroma scaling) when omitted.
 
 The "Modify…" dialog surfaces it as a one-click preset alongside `alpha 0.5`, `lighten 20`, etc. for color sources. This trims the generator surface to the genuine 1→N cases.
+
+This trades the generator's batch workflow (mirror an entire color ramp at once) for per-token application. Designers who need a full-ramp mirror author it per token or directly in a dark-mode collection mode — consistent with Figma's per-collection-modes mental model. Re-enabling batch application across a token group is tracked in *Out of scope*.
 
 ## Modifier kinds (MVP)
 
@@ -45,9 +47,13 @@ The "Modify…" dialog surfaces it as a one-click preset alongside `alpha 0.5`, 
 | `mix` | `with: TokenRef \| ColorLiteral, ratio: 0..1` | color | color |
 | `invertLightness` | `chromaBoost?: number` | color | color |
 | `scaleBy` | `factor: number` | dimension / number / duration | same kind |
-| `add` | `delta: DimensionValue \| number` (same kind) | dimension / number / duration | same kind |
+| `add` | `delta: DimensionValue \| number` (same kind, same unit) | dimension / number / duration | same kind |
 
 All ops are pure and deterministic: each applies identically to every mode value of the source.
+
+**`mix.with` as TokenRef.** When `mix.with` is a token reference, the param participates in the dependency graph and renders as a secondary input edge on the DerivationNode. For multi-mode params, resolution looks up the same mode name on the param token; if absent, falls back to the param's primary mode value. Cross-token math beyond `mix.with` (e.g. `scaleBy.factor` as a token ref) is deferred.
+
+**`add` unit handling.** `delta` must match the source's unit; mismatches surface as a typed validation error using the existing pattern at `dtcg-resolver.ts:269–360`. Cross-unit conversion (e.g. `1rem + 8px`) is deferred.
 
 **Deferred:** `hueShift`, `saturate`, `contrastAgainst` (want OKLCh polish first); formula/expression ops; composite-kind derivations (typography, shadow, border, transition, composition — designer mental model unclear); per-mode op parameters; expressing scale generators as derivation-shaped outputs (revisit once modifiers are battle-tested).
 
@@ -70,7 +76,6 @@ DTCG-conformant **alias-plus-transform**. The derived token is a normal alias to
   "$extensions": {
     "tokenmanager": {
       "derivation": {
-        "source": "brand.blue",
         "ops": [
           { "kind": "alpha", "amount": 0.5 }
         ]
@@ -80,21 +85,25 @@ DTCG-conformant **alias-plus-transform**. The derived token is a normal alias to
 }
 ```
 
-- `$value` is the alias to the source. Standard DTCG resolution finds the source value; ops apply on top. Tools that ignore `$extensions` get a graceful unmodified fallback.
-- `source` is a dot-path (mirrors `$value` reference); kept explicit so tooling doesn't need to re-parse the alias.
+- `$value` is the alias to the source and the **single source of truth** for that path. Standard DTCG resolution finds the source value; ops apply on top. Tools that ignore `$extensions` get a graceful unmodified fallback. Consumers that need the source dot-path call `parseReference($value)` (`dtcg-types.ts:87`) — no separate `source` field.
+- A derivation **requires `$value` to be an alias** (`{path}`). Tokens with literal values cannot carry a derivation; this is validated at write time.
 - `ops` is an ordered array; this shape **replaces** the existing `colorModifier` field entirely.
 - Multi-mode entries under `$extensions.tokenmanager.modes` may themselves be aliases or literals; ops apply uniformly. Modes do not override `derivation`.
 
 ## Resolver behavior
 
-Extend `TokenResolver` (`core/src/resolver.ts`), reusing the slot where `colorModifier` is applied today (~line 365). Pipeline at a single token:
+Extend `TokenResolver` (`core/src/resolver.ts`), reusing the slot where `colorModifier` is applied today (~line 365). Actual pipeline order at `resolver.ts:299–371`:
 
-1. Resolve `$value` (alias chain → concrete value), existing logic.
-2. Apply `$extends` composite inheritance (existing).
-3. **Apply `derivation.ops` in order**, dispatched by `(op.kind, current $type)`.
-4. Return the resolved token.
+1. Resolve `$value` (alias chain → concrete value).
+2. Resolve `$type`.
+3. Normalize bare-number dimension/duration values into the `{value, unit}` shape (so dimension/number ops operate on the wrapped object, not a bare number).
+4. Composite-type validation (shadow/typography/etc.).
+5. Apply `$extends` composite inheritance.
+6. **Apply `derivation.ops` in order**, dispatched by `(op.kind, current $type)` — replacing the current `colorModifier` slot.
 
-**Cycle detection** comes free: `$value: "{source}"` participates in the existing dependency graph via `extractReferencePaths` (`core/src/dtcg-types.ts:78`). Self-referential derivations raise the standard cycle error.
+Derivation ops run on the post-`$extends`, normalized value.
+
+**Cycle detection.** The primary source (`$value: "{source}"`) participates in the existing dep graph via `extractReferencePaths` (`core/src/dtcg-types.ts:99`). With `mix.with: TokenRef` in scope, dep-graph extraction must additionally walk `$extensions.tokenmanager.derivation.ops[*]` for any token-ref-typed op param (today: `mix.with`, more in future). Once extraction covers param refs, the existing cycle detector picks them up automatically — `a = mix({b}, …)`, `b = mix({a}, …)` reports as a standard cycle.
 
 **Unresolvable source:** alias resolution already produces a ghost; ops are skipped and the token surfaces as broken in the graph (existing handling).
 
@@ -112,27 +121,32 @@ Extend `TokenResolver` (`core/src/resolver.ts`), reusing the slot where `colorMo
 **Secondary — token editor** (`TokenDetails.tsx`):
 
 - A "Modifier" section replacing today's `ColorModifiersEditor`. Generalized: op rows with kind dropdown (filtered by source kind), params, drag-to-reorder, live preview. Same visual treatment as today's color section — pattern is already familiar.
+- The `mix.with` param accepts both a color literal and a token reference: a single input field detects `{path}` vs `#hex/rgb()` (matches alias-detection used elsewhere in the editor).
 
 **Tertiary — token list:**
 
-- A small derivation glyph (no text badge — CLAUDE.md prohibits informational pills) on rows where `derivation` is present. Tooltip: "modified from `<source>`."
+- A small derivation glyph (no text badge — CLAUDE.md prohibits informational pills) on rows where `derivation` is present, parallel to `GeneratedGlyph` at `tokenTreeNodeShared.tsx:84–111`. Tooltip: "modified from `<source>`." A derivation row reads as a derivation, **not** as an alias — the alias `$value` is an implementation detail and is not separately surfaced on derivation rows.
 
 ## Graph visualization
 
-A new **DerivationNode** sits between source and derived: single-input edge in, single-output edge out. Renders the op chain as a compact stack of operation summaries (`α 0.5`, `×0.5`, `+8px`) plus a swatch/value preview of the resolved output. **One node per derivation regardless of op count** — keeps the graph readable.
+A new **DerivationNode** sits between source and derived: one **primary** input edge from the `$value` source, plus one **secondary** input edge per token-ref op param (today: `mix.with`), and a single output edge to the derived token. Renders the op chain as a compact stack of operation summaries (`α 0.5`, `×0.5`, `+8px`) plus a swatch/value preview of the resolved output. **One node per derivation regardless of op count** — keeps the graph readable.
 
 Two new edge types parallel the generator edges (`graph/edges/`):
 
-- `DerivationSourceEdge` (source → derivation), dashed.
-- `DerivationProducesEdge` (derivation → derived), solid.
+- `DerivationSourceEdge` (source → derivation), dashed. Reused for secondary token-ref param inputs (e.g. `mix.with`); the param-input variant carries a small label near the handle (e.g. "with") to disambiguate. Final visual treatment for the param-input label is decided during implementation.
+- `DerivationProducesEdge` (derivation → derived), **solid**. The solid/dashed contrast vs. `GeneratorProducesEdge` (which is dashed) is intentional: generators are batch/computed outputs, derivations are live transforms whose output reads "as if directly aliased."
 
-Hover impact preview (`FocusCanvas.tsx:193`) already BFS-traverses any edge — no change needed. `graphLayout.ts` already places upstream/downstream by hop distance; a derivation node naturally sits one hop downstream of its source and one upstream of its derived token. No new layout rules.
+Hover impact preview (`FocusCanvas.tsx:193`) already BFS-traverses any edge — no change needed. `graphLayout.ts` already places upstream/downstream by hop distance; a derivation node sits one hop downstream of its primary source and one upstream of its derived token. Secondary token-ref param sources sit one hop upstream of the derivation node, in the same column class as the primary source. No new layout rules.
 
 ## Out of scope this session
 
-- Ops: `hueShift`, `saturate`, `contrastAgainst`, formula/expression, cross-token math (beyond `mix.with`).
+- Ops: `hueShift`, `saturate`, `contrastAgainst`, formula/expression.
+- Cross-token math beyond `mix.with` (e.g. `scaleBy.factor` as a token ref).
+- Cross-unit `add` (e.g. `1rem + 8px`).
 - Composite-kind derivations (typography, shadow, border, transition, composition).
 - Per-mode op parameters.
+- Applying a derivation across a token group as a single batch operation (replaces today's batch `darkModeInversion` workflow at the cost of per-token application).
+- Performance / resolution caching for deep derivation chains — single-resolve per read is acceptable for MVP.
 - Generator-output → derivation as a special graph affordance — works transparently via aliasing.
 - Migration: existing `colorModifier` is deleted, not migrated (CLAUDE.md, no shipped users).
 
@@ -141,7 +155,8 @@ Hover impact preview (`FocusCanvas.tsx:193`) already BFS-traverses any edge — 
 - `packages/core/src/types.ts` — add `Derivation`, `DerivationOp` types under `TokenManagerExtensions`; remove `colorModifier`; remove `darkModeInversion` from `GeneratorType`.
 - `packages/core/src/resolver.ts` — replace color-modifier application (~line 365) with the derivation pipeline.
 - `packages/core/src/derivation-ops.ts` *(new)* — op registry and pure implementations. Type/spacing scale generators import `scaleBy`/`add` from here.
-- `packages/core/src/color-modifier.ts` — delete; logic absorbed into derivation-ops.
+- `packages/core/src/color-modifier.ts` — delete; logic absorbed into derivation-ops. Five existing consumers must be updated: `resolver.ts`, `ColorModifiersEditor.tsx`, `useTokenEditorLoad.ts`, `core/index.ts` re-exports, and `__tests__/color-modifier.test.ts`.
+- The dependency-graph build site that consumes `extractReferencePaths` (locate via `grep -r extractReferencePaths packages/core/src`) — extend extraction to also walk `$extensions.tokenmanager.derivation.ops[*]` for token-ref params, so cycle detection and rename refactors cover them.
 - `packages/core/src/generator-types.ts` — remove `DarkModeInversionConfig` and `"darkModeInversion"` from `GeneratorType`.
 - `packages/core/src/generator-engine.ts` — remove `runDarkModeInversionGenerator` (line ~457); the L*-mirror logic moves to `derivation-ops.ts` as `invertLightness`.
 - `packages/server/src/services/generator-service.ts` — remove `"darkModeInversion"` from `VALID_GENERATOR_TYPES` and its dispatch case.
@@ -155,10 +170,14 @@ Hover impact preview (`FocusCanvas.tsx:193`) already BFS-traverses any edge — 
 
 ## Verification
 
-1. Author `brand.blue.alpha-50` via graph context menu → confirm on-disk shape matches spec.
+Manual verification — no new test suite per CLAUDE.md guidance.
+
+1. Author `brand.blue.alpha-50` via graph context menu → confirm on-disk shape matches spec (no `source` field; `ops` only).
 2. `TokenResolver.resolveAll()` → derived token resolves to source color with α=0.5.
 3. Multi-mode source (light/dark) → derived token resolves per-mode through the same op chain.
 4. Rename source → derived surfaces as ghost in graph; resolver reports broken without crashing.
 5. Cycle (`a` derives from `b`, `b` derives from `a`) → existing cycle detector reports the cycle.
-6. Graph: derivation node renders with op summary + preview; source/produces edges connect; hover impact preview dims correctly.
-7. Token list: glyph appears on rows with `derivation`; tooltip shows source path.
+6. Cross-token `mix`: `brand.tint = mix({neutral.white}, 0.4)` on top of `brand.blue` → both source and `mix.with` participate in the dep graph; renaming either updates the derivation; cycle (`a = mix({b}, …)`, `b = mix({a}, …)`) is reported by the existing detector.
+7. Graph: derivation node renders with op summary + preview; primary source edge plus secondary param edge for `mix.with` connect; hover impact preview dims correctly.
+8. Token list: glyph appears on rows with `derivation`; tooltip shows source path; the row does not also display the alias indicator.
+9. Validation: attempting to set a `derivation` on a literal-valued token (no alias `$value`) is rejected at write time. `add` with mismatched units surfaces as a typed validation error.

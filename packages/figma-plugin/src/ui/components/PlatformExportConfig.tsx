@@ -173,11 +173,11 @@ export function PlatformExportConfig({
         {presets.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {presets.map(preset => (
-              <div key={preset.id} className="flex items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden">
+              <div key={preset.id} className="flex items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden max-w-full">
                 <button
                   onClick={() => onLoadPreset(preset)}
-                  title="Load full preset — replaces current platform selection and all filters"
-                  className="px-2 py-1 text-secondary text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  title={`Load full preset "${preset.name}" — replaces current platform selection and all filters`}
+                  className="min-w-0 max-w-[160px] truncate px-2 py-1 text-secondary text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   {preset.name}
                 </button>
@@ -767,16 +767,17 @@ export function PlatformExportConfig({
                 >
                   <button
                     onClick={() => setPreviewFileIndex(i)}
-                    className={`flex items-center gap-1.5 px-2 py-1.5 text-secondary font-mono whitespace-nowrap transition-colors ${
+                    title={file.path}
+                    className={`flex items-center gap-1.5 px-2 py-1.5 text-secondary font-mono min-w-0 transition-colors ${
                       i === previewFileIndex
                         ? 'text-[var(--color-figma-text)]'
                         : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
                     }`}
                   >
-                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium font-sans">
+                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium font-sans shrink-0">
                       {file.platform}
                     </span>
-                    {file.path}
+                    <span className="truncate max-w-[140px]">{file.path}</span>
                   </button>
                   <button
                     onClick={() => handleCopyFile(file)}

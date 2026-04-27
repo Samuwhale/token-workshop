@@ -1,4 +1,5 @@
-import type { TokenCollection } from "./types.js";
+import type { TokenCollection, DerivationOp } from "./types.js";
+import { getTokenManagerExt } from "./types.js";
 import type {
   TokenGenerator,
   GeneratorType,
@@ -10,6 +11,10 @@ import {
 import { readTokenModeValuesForCollection } from "./collections.js";
 import { resolveCollectionIdForPath } from "./collection-paths.js";
 import { extractReferencePaths } from "./dtcg-types.js";
+import {
+  validateDerivationOps,
+  extractDerivationRefPaths,
+} from "./derivation-ops.js";
 
 // Pure dependency-graph construction. Reusable server-side (future lint rules,
 // health scans) and client-side (graph view, detach popover).
@@ -68,7 +73,31 @@ export interface GhostGraphNode {
   reason: GhostReason;
 }
 
-export type GraphNode = TokenGraphNode | GeneratorGraphNode | GhostGraphNode;
+/**
+ * Visual mediator between a derivation source and its derived token.
+ * Carries the op chain so the renderer can show the operation summary.
+ * One node per derivation, regardless of how many ops are in the chain.
+ */
+export interface DerivationGraphNode {
+  kind: "derivation";
+  id: GraphNodeId;
+  /** Path of the derived token (the token whose `derivation` extension we read). */
+  derivedPath: string;
+  collectionId: string;
+  /** Path of the primary `$value` alias source. */
+  sourceTokenPath: string;
+  /** Validated op chain — used by the UI to render the operation summary. */
+  ops: DerivationOp[];
+  /** Resolved $type of the derived token (matches the source's $type). */
+  $type?: string;
+  health: GraphHealthStatus;
+}
+
+export type GraphNode =
+  | TokenGraphNode
+  | GeneratorGraphNode
+  | GhostGraphNode
+  | DerivationGraphNode;
 
 export interface AliasEdge {
   kind: "alias";
@@ -97,7 +126,38 @@ export interface GeneratorProducesEdge {
   semantic?: string;
 }
 
-export type GraphEdge = AliasEdge | GeneratorSourceEdge | GeneratorProducesEdge;
+/**
+ * Edge from a source token (or token-ref op param) to a derivation node.
+ * `paramLabel` distinguishes secondary param-input edges (e.g. `mix.with`)
+ * from the primary `$value` source edge (which has no label).
+ */
+export interface DerivationSourceEdge {
+  kind: "derivation-source";
+  id: GraphEdgeId;
+  from: GraphNodeId;
+  to: GraphNodeId;
+  /** Param name for secondary edges (e.g. "with"). Absent on the primary edge. */
+  paramLabel?: string;
+  /** True when the upstream token does not exist (resolves to a ghost). */
+  isMissingTarget?: boolean;
+  inCycle?: boolean;
+}
+
+/** Edge from a derivation node to its derived token (solid in the UI). */
+export interface DerivationProducesEdge {
+  kind: "derivation-produces";
+  id: GraphEdgeId;
+  from: GraphNodeId;
+  to: GraphNodeId;
+  inCycle?: boolean;
+}
+
+export type GraphEdge =
+  | AliasEdge
+  | GeneratorSourceEdge
+  | GeneratorProducesEdge
+  | DerivationSourceEdge
+  | DerivationProducesEdge;
 
 export interface GraphModel {
   nodes: Map<GraphNodeId, GraphNode>;
@@ -130,6 +190,7 @@ export interface GraphValidationIssue {
 const TOKEN_PREFIX = "token";
 const GENERATOR_PREFIX = "gen";
 const GHOST_PREFIX = "ghost";
+const DERIVATION_PREFIX = "deriv";
 
 export function tokenNodeId(collectionId: string, path: string): GraphNodeId {
   return `${TOKEN_PREFIX}:${collectionId}::${path}`;
@@ -137,6 +198,10 @@ export function tokenNodeId(collectionId: string, path: string): GraphNodeId {
 
 export function generatorNodeId(generatorId: string): GraphNodeId {
   return `${GENERATOR_PREFIX}:${generatorId}`;
+}
+
+export function derivationNodeId(collectionId: string, derivedPath: string): GraphNodeId {
+  return `${DERIVATION_PREFIX}:${collectionId}::${derivedPath}`;
 }
 
 function ghostNodeId(path: string, collectionId?: string): GraphNodeId {
@@ -202,12 +267,27 @@ function fingerprintNode(node: GraphNode): string {
     ].join("\u0001");
   }
 
+  if (node.kind === "ghost") {
+    return [
+      node.kind,
+      node.id,
+      node.path,
+      node.collectionId ?? "",
+      node.reason,
+    ].join("\u0001");
+  }
+
+  // derivation
   return [
     node.kind,
     node.id,
-    node.path,
-    node.collectionId ?? "",
-    node.reason,
+    node.derivedPath,
+    node.collectionId,
+    node.sourceTokenPath,
+    node.$type ?? "",
+    node.health,
+    node.ops.map((op) => op.kind).join(","),
+    String(node.ops.length),
   ].join("\u0001");
 }
 
@@ -233,6 +313,28 @@ function fingerprintEdge(edge: GraphEdge): string {
       edge.to,
       edge.stepName,
       edge.semantic ?? "",
+    ].join("\u0001");
+  }
+
+  if (edge.kind === "derivation-source") {
+    return [
+      edge.kind,
+      edge.id,
+      edge.from,
+      edge.to,
+      edge.paramLabel ?? "",
+      edge.isMissingTarget ? "1" : "0",
+      edge.inCycle ? "1" : "0",
+    ].join("\u0001");
+  }
+
+  if (edge.kind === "derivation-produces") {
+    return [
+      edge.kind,
+      edge.id,
+      edge.from,
+      edge.to,
+      edge.inCycle ? "1" : "0",
     ].join("\u0001");
   }
 
@@ -393,15 +495,21 @@ function resolveGraphTarget(params: {
   };
 }
 
-// Tarjan's SCC over the alias-edge subgraph. Returns the set of edge ids whose
-// endpoints are in a non-trivial SCC (size > 1, or a single-node SCC with a
-// self-loop). Those edges are the ones that belong to cycles.
+// Tarjan's SCC over the dep-edge subgraph (alias + derivation edges). Returns
+// the set of edge ids whose endpoints are in a non-trivial SCC (size > 1, or a
+// single-node SCC with a self-loop). Those edges are the ones that belong to
+// cycles.
+type CycleEligibleEdge =
+  | AliasEdge
+  | DerivationSourceEdge
+  | DerivationProducesEdge;
+
 function computeAliasCycleEdges(
   nodes: Map<GraphNodeId, GraphNode>,
-  aliasEdges: AliasEdge[],
+  depEdges: CycleEligibleEdge[],
 ): { cycleEdgeIds: Set<GraphEdgeId>; cycleNodeIds: Set<GraphNodeId> } {
   const outgoingAlias = new Map<GraphNodeId, Array<{ to: GraphNodeId; edgeId: GraphEdgeId }>>();
-  for (const edge of aliasEdges) {
+  for (const edge of depEdges) {
     const list = outgoingAlias.get(edge.from);
     if (list) list.push({ to: edge.to, edgeId: edge.id });
     else outgoingAlias.set(edge.from, [{ to: edge.to, edgeId: edge.id }]);
@@ -462,7 +570,7 @@ function computeAliasCycleEdges(
   }
 
   const cycleEdgeIds = new Set<GraphEdgeId>();
-  for (const edge of aliasEdges) {
+  for (const edge of depEdges) {
     if (cycleNodeIds.has(edge.from) && cycleNodeIds.has(edge.to)) {
       cycleEdgeIds.add(edge.id);
     }
@@ -669,7 +777,57 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     });
   }
 
-  // 3. Alias edges — mode-aware, deduped per (upstream, downstream) pair
+  // 2.5 Derivation nodes — one per token whose $extensions.tokenmanager.derivation
+  // carries at least one valid op. The derivation node mediates the alias from
+  // source to derived token in the graph (the direct alias edge is suppressed).
+  interface DerivationInfo {
+    node: DerivationGraphNode;
+    derivedTokenId: GraphNodeId;
+    /** Validated op chain. */
+    ops: DerivationOp[];
+    /** Token-ref paths from op params (e.g. mix.with). */
+    paramRefPaths: string[];
+  }
+  const derivationByTokenId = new Map<GraphNodeId, DerivationInfo>();
+
+  for (const collection of collections) {
+    const entries = tokensByCollection[collection.id];
+    if (!entries) continue;
+    for (const [path, entry] of Object.entries(entries)) {
+      const ops = validateDerivationOps(
+        getTokenManagerExt({ $extensions: entry.$extensions as never })?.derivation?.ops,
+      );
+      if (ops.length === 0) continue;
+
+      // Source path comes from the primary $value alias.
+      const sourcePaths = extractReferencePaths(entry.$value);
+      const sourceTokenPath = sourcePaths[0];
+      if (!sourceTokenPath) continue; // brief: derivation requires alias $value
+
+      const derivedTokenId = tokenNodeId(collection.id, path);
+      const id = derivationNodeId(collection.id, path);
+      const node: DerivationGraphNode = {
+        kind: "derivation",
+        id,
+        derivedPath: path,
+        collectionId: collection.id,
+        sourceTokenPath,
+        ops,
+        $type: entry.$type,
+        health: "ok",
+      };
+      nodes.set(id, node);
+      derivationByTokenId.set(derivedTokenId, {
+        node,
+        derivedTokenId,
+        ops,
+        paramRefPaths: extractDerivationRefPaths(ops),
+      });
+    }
+  }
+
+  // 3. Alias edges — mode-aware, deduped per (upstream, downstream) pair.
+  // Tokens with a derivation node are mediated separately (skipped here).
   interface AliasAcc {
     from: GraphNodeId;
     to: GraphNodeId;
@@ -683,6 +841,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     if (!entries) continue;
     for (const [path, entry] of Object.entries(entries)) {
       const downstreamId = tokenNodeId(collection.id, path);
+      if (derivationByTokenId.has(downstreamId)) continue;
       const modeValues =
         modeValuesByTokenId.get(downstreamId) ??
         readGraphModeValues(entry, collection);
@@ -734,6 +893,74 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     pushAdjacency(incoming, acc.to, edgeId);
   }
 
+  // 3.5 Derivation source + produces edges
+  const derivationSourceEdges: DerivationSourceEdge[] = [];
+  const derivationProducesEdges: DerivationProducesEdge[] = [];
+  for (const info of derivationByTokenId.values()) {
+    const { node, derivedTokenId } = info;
+    const collectionId = node.collectionId;
+
+    // Primary source edge (from $value alias).
+    const primaryTarget = resolveGraphTarget({
+      path: node.sourceTokenPath,
+      preferredCollectionId: collectionId,
+      nodes,
+      ghostIntents,
+      pathToCollectionId,
+      collectionIdsByPath,
+    });
+    const primaryEdgeId = `deriv-src:${primaryTarget.nodeId}->${node.id}`;
+    const primaryEdge: DerivationSourceEdge = {
+      kind: "derivation-source",
+      id: primaryEdgeId,
+      from: primaryTarget.nodeId,
+      to: node.id,
+      ...(primaryTarget.reason !== "resolved" ? { isMissingTarget: true } : {}),
+    };
+    edges.set(primaryEdgeId, primaryEdge);
+    derivationSourceEdges.push(primaryEdge);
+    pushAdjacency(outgoing, primaryTarget.nodeId, primaryEdgeId);
+    pushAdjacency(incoming, node.id, primaryEdgeId);
+
+    // Secondary param edges (today: mix.with).
+    for (const paramRefPath of info.paramRefPaths) {
+      const paramTarget = resolveGraphTarget({
+        path: paramRefPath,
+        preferredCollectionId: collectionId,
+        nodes,
+        ghostIntents,
+        pathToCollectionId,
+        collectionIdsByPath,
+      });
+      const paramEdgeId = `deriv-src:${paramTarget.nodeId}->${node.id}:with`;
+      const paramEdge: DerivationSourceEdge = {
+        kind: "derivation-source",
+        id: paramEdgeId,
+        from: paramTarget.nodeId,
+        to: node.id,
+        paramLabel: "with",
+        ...(paramTarget.reason !== "resolved" ? { isMissingTarget: true } : {}),
+      };
+      edges.set(paramEdgeId, paramEdge);
+      derivationSourceEdges.push(paramEdge);
+      pushAdjacency(outgoing, paramTarget.nodeId, paramEdgeId);
+      pushAdjacency(incoming, node.id, paramEdgeId);
+    }
+
+    // Produces edge (derivation node → derived token).
+    const producesEdgeId = `deriv-prod:${node.id}->${derivedTokenId}`;
+    const producesEdge: DerivationProducesEdge = {
+      kind: "derivation-produces",
+      id: producesEdgeId,
+      from: node.id,
+      to: derivedTokenId,
+    };
+    edges.set(producesEdgeId, producesEdge);
+    derivationProducesEdges.push(producesEdge);
+    pushAdjacency(outgoing, node.id, producesEdgeId);
+    pushAdjacency(incoming, derivedTokenId, producesEdgeId);
+  }
+
   // 4. Generator source + produces edges
   for (const generator of generators) {
     const generatorId = generatorNodeId(generator.id);
@@ -772,15 +999,32 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     }
   }
 
-  // 5. Cycle detection over alias subgraph
-  const { cycleEdgeIds, cycleNodeIds } = computeAliasCycleEdges(nodes, aliasEdges);
+  // 5. Cycle detection over alias + derivation subgraph
+  const cycleEligibleEdges: CycleEligibleEdge[] = [
+    ...aliasEdges,
+    ...derivationSourceEdges,
+    ...derivationProducesEdges,
+  ];
+  const { cycleEdgeIds, cycleNodeIds } = computeAliasCycleEdges(
+    nodes,
+    cycleEligibleEdges,
+  );
   for (const edgeId of cycleEdgeIds) {
     const edge = edges.get(edgeId);
-    if (edge && edge.kind === "alias") edge.inCycle = true;
+    if (!edge) continue;
+    if (
+      edge.kind === "alias" ||
+      edge.kind === "derivation-source" ||
+      edge.kind === "derivation-produces"
+    ) {
+      edge.inCycle = true;
+    }
   }
   for (const nodeId of cycleNodeIds) {
     const node = nodes.get(nodeId);
-    if (node && node.kind === "token") node.health = "cycle";
+    if (node && (node.kind === "token" || node.kind === "derivation")) {
+      node.health = "cycle";
+    }
   }
 
   if (validationIssues && validationIssues.length > 0) {
@@ -793,13 +1037,31 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     });
   }
 
-  // 6. Broken ref marking — any alias edge with a ghost upstream marks the
-  // downstream token's health as 'broken' (unless already in a cycle)
+  // 6. Broken ref marking — any alias or derivation-source edge with a ghost
+  // upstream marks the downstream node's health as 'broken' (unless already in
+  // a cycle). For derivation-source edges, the downstream is a derivation node;
+  // we propagate the broken state to the produced token as well.
   for (const edge of aliasEdges) {
     if (!edge.isMissingTarget) continue;
     const downstream = nodes.get(edge.to);
     if (downstream && downstream.kind === "token" && downstream.health === "ok") {
       downstream.health = "broken";
+    }
+  }
+  for (const edge of derivationSourceEdges) {
+    if (!edge.isMissingTarget) continue;
+    const derivationNode = nodes.get(edge.to);
+    if (
+      derivationNode &&
+      derivationNode.kind === "derivation" &&
+      derivationNode.health === "ok"
+    ) {
+      derivationNode.health = "broken";
+      const producedTokenId = tokenNodeId(derivationNode.collectionId, derivationNode.derivedPath);
+      const producedNode = nodes.get(producedTokenId);
+      if (producedNode && producedNode.kind === "token" && producedNode.health === "ok") {
+        producedNode.health = "broken";
+      }
     }
   }
 
@@ -812,14 +1074,15 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     node.hasDependents = Boolean(
       out?.some((id) => {
         const e = edges.get(id);
-        return e?.kind === "alias";
+        return e?.kind === "alias" || e?.kind === "derivation-source";
       }),
     );
-    // Alias edges where this node is `to` = this node references others
+    // Alias / derivation-produces edges where this node is `to` = this node
+    // depends on something upstream.
     node.hasDependencies = Boolean(
       inc?.some((id) => {
         const e = edges.get(id);
-        return e?.kind === "alias";
+        return e?.kind === "alias" || e?.kind === "derivation-produces";
       }),
     );
   }

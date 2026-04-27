@@ -17,6 +17,7 @@ import {
 import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
+import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
 import type { TokenGroupBy } from "./tokenListTypes";
 import {
   Chip,
@@ -144,6 +145,27 @@ export function TokenListToolbar({
   const actionsMenu = useDropdownMenu();
   const sortMenu = useDropdownMenu();
   const createMenu = useDropdownMenu();
+  const sortMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: sortMenu.triggerRef,
+    open: sortMenu.open,
+    preferredWidth: 240,
+    preferredHeight: 360,
+    align: "end",
+  });
+  const createMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: createMenu.triggerRef,
+    open: createMenu.open,
+    preferredWidth: 240,
+    preferredHeight: 360,
+    align: "end",
+  });
+  const actionsMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: actionsMenu.triggerRef,
+    open: actionsMenu.open,
+    preferredWidth: 240,
+    preferredHeight: 360,
+    align: "end",
+  });
   const runMenuAction = useCallback(
     (action: () => void) => {
       action();
@@ -240,7 +262,7 @@ export function TokenListToolbar({
   return (
     <div className="bg-[var(--color-figma-bg-secondary)]">
       <div className="flex flex-col gap-1.5 px-3 pt-2 pb-2">
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
             <button
               type="button"
@@ -264,7 +286,7 @@ export function TokenListToolbar({
           ) : null}
 
           {hasTokens && viewMode === "tree" ? (
-            <div className="relative min-w-0 flex-1">
+            <div className="relative flex-1 min-w-[160px] basis-[200px]">
               <div className="flex h-[26px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
                 <Search
                   size={12}
@@ -400,11 +422,13 @@ export function TokenListToolbar({
           )}
 
           {hasTokens ? (
-            <SegmentedControl
-              value={viewMode}
-              options={TREE_VIEW_OPTIONS}
-              onChange={setViewMode}
-            />
+            <div className="shrink-0">
+              <SegmentedControl
+                value={viewMode}
+                options={TREE_VIEW_OPTIONS}
+                onChange={setViewMode}
+              />
+            </div>
           ) : null}
 
           {overflowMenuProps && viewMode === "tree" ? (
@@ -438,7 +462,8 @@ export function TokenListToolbar({
               {sortMenu.open ? (
                 <div
                   ref={sortMenu.menuRef}
-                  className="absolute right-0 top-full z-50 mt-1 w-60 rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                  style={sortMenuStyle ?? { visibility: "hidden" }}
+                  className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
                   role="menu"
                 >
                   {viewRadioGroups.map((group, idx) => (
@@ -482,7 +507,8 @@ export function TokenListToolbar({
               {createMenu.open ? (
                 <div
                   ref={createMenu.menuRef}
-                  className="absolute right-0 top-full z-50 mt-1 w-60 rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                  style={createMenuStyle ?? { visibility: "hidden" }}
+                  className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
                   role="menu"
                 >
                   <button
@@ -553,7 +579,8 @@ export function TokenListToolbar({
               {actionsMenu.open ? (
                 <div
                   ref={actionsMenu.menuRef}
-                  className="absolute right-0 top-full z-50 mt-1 w-60 rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                  style={actionsMenuStyle ?? { visibility: "hidden" }}
+                  className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
                   role="menu"
                 >
                   {hasGroupOps ? (

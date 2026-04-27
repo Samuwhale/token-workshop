@@ -1,4 +1,4 @@
-import type { ColorModifierOp, TokenLifecycle, TokenValue } from '@tokenmanager/core';
+import type { Derivation, DerivationOp, TokenLifecycle, TokenValue } from '@tokenmanager/core';
 
 export type TokenEditorValue = unknown;
 
@@ -13,7 +13,7 @@ export const TOKEN_EDITOR_RESERVED_EXTENSION_KEYS = new Set([
 ]);
 
 export interface TokenEditorTokenManagerExtension {
-  colorModifier?: ColorModifierOp[];
+  derivation?: Derivation;
   modes?: TokenEditorModeValues;
   lifecycle?: TokenEditorLifecycle;
   extends?: string;
@@ -48,7 +48,7 @@ export function splitTokenManagerExtension(
   const passthrough: Record<string, unknown> = {};
   for (const [key, entryValue] of Object.entries(source)) {
     if (
-      key !== 'colorModifier' &&
+      key !== 'derivation' &&
       key !== 'modes' &&
       key !== 'lifecycle' &&
       key !== 'extends'
@@ -68,7 +68,7 @@ export interface TokenEditorSnapshot {
   description: string;
   scopes: string[];
   type: string;
-  colorModifiers: ColorModifierOp[];
+  derivationOps: DerivationOp[];
   modeValues: TokenEditorModeValues;
   extensionsJsonText: string;
   lifecycle: TokenEditorLifecycle;
@@ -80,7 +80,7 @@ export interface TokenEditorDraftData {
   value: TokenEditorValue;
   description: string;
   scopes: string[];
-  colorModifiers: ColorModifierOp[];
+  derivationOps: DerivationOp[];
   modeValues: TokenEditorModeValues;
   extensionsJsonText: string;
   lifecycle: TokenEditorLifecycle;

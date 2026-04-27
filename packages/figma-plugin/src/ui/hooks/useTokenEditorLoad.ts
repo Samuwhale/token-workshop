@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import type { ColorModifierOp, TokenCollection } from '@tokenmanager/core';
-import { readTokenScopes, validateColorModifiers } from '@tokenmanager/core';
+import type { DerivationOp, TokenCollection } from '@tokenmanager/core';
+import { readTokenScopes, validateDerivationOps } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { readEditorCollectionModeValues } from '../shared/collectionModeUtils';
 import { getErrorMessage, tokenPathToUrlSegment, isAbortError, stableStringify } from '../shared/utils';
@@ -35,7 +35,7 @@ interface UseTokenEditorLoadParams {
   setValue: (v: TokenEditorValue) => void;
   setDescription: (v: string) => void;
   setScopes: (v: string[]) => void;
-  setColorModifiers: (v: ColorModifierOp[]) => void;
+  setDerivationOps: (v: DerivationOp[]) => void;
   setModeValues: (v: TokenEditorModeValues) => void;
   setExtensionsJsonText: (v: string) => void;
   setExtensionsJsonError: (v: string | null) => void;
@@ -57,7 +57,7 @@ export function useTokenEditorLoad({
   setValue,
   setDescription,
   setScopes,
-  setColorModifiers,
+  setDerivationOps,
   setModeValues,
   setExtensionsJsonText,
   setExtensionsJsonError,
@@ -112,9 +112,11 @@ export function useTokenEditorLoad({
         setDescription(token?.$description || '');
         const savedScopes = readTokenScopes({ $extensions: extensions });
         setScopes(savedScopes);
-        const savedModifiers = tokenManager.colorModifier;
-        const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
-        setColorModifiers(loadedModifiers);
+        const savedDerivation = tokenManager.derivation;
+        const loadedDerivationOps: DerivationOp[] = savedDerivation && Array.isArray(savedDerivation.ops)
+          ? validateDerivationOps(savedDerivation.ops)
+          : [];
+        setDerivationOps(loadedDerivationOps);
         const savedModes = tokenManager.modes;
         const loadedModes = readEditorCollectionModeValues(savedModes, collection);
         setModeValues(loadedModes);
@@ -133,7 +135,7 @@ export function useTokenEditorLoad({
           description: token?.$description || '',
           scopes: savedScopes,
           type: token?.$type || 'string',
-          colorModifiers: loadedModifiers,
+          derivationOps: loadedDerivationOps,
           modeValues: loadedModes,
           extensionsJsonText: otherExtText,
           lifecycle: loadedLifecycle,
@@ -147,7 +149,7 @@ export function useTokenEditorLoad({
             stableStringify(draft.value) !== stableStringify(init.value) ||
             draft.description !== init.description ||
             stableStringify(draft.scopes) !== stableStringify(init.scopes) ||
-            stableStringify(draft.colorModifiers) !== stableStringify(init.colorModifiers) ||
+            stableStringify(draft.derivationOps) !== stableStringify(init.derivationOps) ||
             stableStringify(draft.modeValues) !== stableStringify(init.modeValues) ||
             draft.extensionsJsonText !== init.extensionsJsonText ||
             draft.lifecycle !== init.lifecycle ||
@@ -173,7 +175,7 @@ export function useTokenEditorLoad({
     initialRef,
     isCreateMode,
     serverUrl,
-    setColorModifiers,
+    setDerivationOps,
     setDescription,
     setError,
     setExtensionsJsonText,

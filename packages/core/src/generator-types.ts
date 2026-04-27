@@ -19,8 +19,7 @@ export type GeneratorType =
   | 'borderRadiusScale'
   | 'zIndexScale'
   | 'shadowScale'
-  | 'customScale'
-  | 'darkModeInversion';
+  | 'customScale';
 
 // ---------------------------------------------------------------------------
 // Color Ramp
@@ -212,26 +211,6 @@ export interface CustomScaleConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Dark Mode Inversion
-// ---------------------------------------------------------------------------
-
-export interface DarkModeInversionConfig {
-  /** Step name for the inverted output token. Default: 'dark' */
-  stepName: string;
-  /**
-   * Chroma multiplier applied to the inverted color (0.1–2.0).
-   * 1.0 = preserve chroma exactly. Values > 1 boost saturation. Default: 1.0
-   */
-  chromaBoost: number;
-  /**
-   * Maps config field names to token paths for runtime resolution.
-   */
-  $tokenRefs?: {
-    chromaBoost?: string;
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Union
 // ---------------------------------------------------------------------------
 
@@ -243,8 +222,7 @@ export type GeneratorConfig =
   | BorderRadiusScaleConfig
   | ZIndexScaleConfig
   | ShadowScaleConfig
-  | CustomScaleConfig
-  | DarkModeInversionConfig;
+  | CustomScaleConfig;
 
 export interface SemanticTokenMapping {
   semantic: string;
@@ -714,11 +692,6 @@ export const DEFAULT_CUSTOM_SCALE_CONFIG: CustomScaleConfig = {
 // ---------------------------------------------------------------------------
 // Quick-start templates (replace ScaffoldingWizard presets)
 // ---------------------------------------------------------------------------
-
-export const DEFAULT_DARK_MODE_INVERSION_CONFIG: DarkModeInversionConfig = {
-  stepName: 'dark',
-  chromaBoost: 1.0,
-};
 
 export const DEFAULT_SHADOW_SCALE_CONFIG: ShadowScaleConfig = {
   color: '#000000',

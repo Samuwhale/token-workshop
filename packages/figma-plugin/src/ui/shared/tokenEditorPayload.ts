@@ -1,4 +1,4 @@
-import { type ColorModifierOp, type TokenCollection } from "@tokenmanager/core";
+import { type DerivationOp, type TokenCollection } from "@tokenmanager/core";
 import {
   createTokenValueBody,
   type TokenMutationBody,
@@ -20,7 +20,7 @@ interface BuildTokenEditorValueBodyParams {
   value: TokenEditorValue;
   description: string;
   scopes: string[];
-  colorModifiers: ColorModifierOp[];
+  derivationOps: DerivationOp[];
   modeValues: TokenEditorModeValues;
   collection: TokenCollection | null | undefined;
   passthroughTokenManager: Record<string, unknown> | null | undefined;
@@ -33,7 +33,7 @@ interface BuildTokenEditorValueBodyParams {
 }
 
 function buildTokenEditorExtensions({
-  colorModifiers,
+  derivationOps,
   value,
   modeValues,
   collection,
@@ -49,10 +49,15 @@ function buildTokenEditorExtensions({
   let extensions: Record<string, unknown> | undefined;
   const tokenManagerExtensions: TokenEditorTokenManagerExtension =
     passthroughTokenManager ? { ...passthroughTokenManager } : {};
-  if (colorModifiers.length > 0) {
-    tokenManagerExtensions.colorModifier = colorModifiers;
+  // Per the design brief: a derivation requires `$value` to be an alias `{path}`.
+  // Strip the derivation field on save when the value is no longer an alias so
+  // changing `$value` from `{x}` to `#hex` cleanly drops orphaned ops.
+  const valueIsAlias =
+    typeof value === 'string' && value.startsWith('{') && value.endsWith('}');
+  if (derivationOps.length > 0 && valueIsAlias) {
+    tokenManagerExtensions.derivation = { ops: derivationOps };
   } else {
-    delete tokenManagerExtensions.colorModifier;
+    delete tokenManagerExtensions.derivation;
   }
 
   const cleanModes = sanitizeEditorCollectionModeValues(

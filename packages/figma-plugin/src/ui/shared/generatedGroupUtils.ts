@@ -324,8 +324,6 @@ export function getGeneratedGroupTypeLabel(type: GeneratorType): string {
       return "Shadow scale";
     case "customScale":
       return "Custom scale";
-    case "darkModeInversion":
-      return "Dark mode variant";
     default:
       return type;
   }

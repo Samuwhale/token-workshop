@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { tokenTypeBadgeClass } from '../../shared/types';
 import { TokenDetailsModeRow } from './token-details/TokenDetailsModeRow';
+import { clampPopoverToViewport } from '../shared/floatingPosition';
 
 export interface InlineValuePopoverProps {
   tokenPath: string;
@@ -93,19 +94,12 @@ export function InlineValuePopover({
     return () => document.removeEventListener('keydown', handleKey, true);
   }, [handleSave, onClose, onTab]);
 
-  // Compute popover position: prefer below the cell, flip above if needed.
-  const POPOVER_MAX_HEIGHT = 480;
-  const MARGIN = 8;
-  const popoverWidth = Math.min(320, window.innerWidth - MARGIN * 2);
-
-  const left = Math.max(MARGIN, Math.min(anchorRect.left, window.innerWidth - popoverWidth - MARGIN));
-  const spaceBelow = window.innerHeight - anchorRect.bottom - MARGIN;
-  const spaceAbove = anchorRect.top - MARGIN;
-  const top = spaceBelow >= Math.min(POPOVER_MAX_HEIGHT, 200)
-    ? anchorRect.bottom + 2
-    : spaceAbove >= Math.min(POPOVER_MAX_HEIGHT, 200)
-      ? anchorRect.top - Math.min(POPOVER_MAX_HEIGHT, spaceAbove) - 2
-      : anchorRect.bottom + 2;
+  const { top, left, width: popoverWidth, maxHeight } = clampPopoverToViewport({
+    anchorRect,
+    preferredWidth: 320,
+    preferredHeight: 480,
+    minVerticalSpace: 200,
+  });
 
   const typeBadgeClass = tokenTypeBadgeClass(tokenType);
 
@@ -117,7 +111,7 @@ export function InlineValuePopover({
         top,
         left,
         width: popoverWidth,
-        maxHeight: POPOVER_MAX_HEIGHT,
+        maxHeight,
       }}
       onClick={e => e.stopPropagation()}
       onMouseDown={e => e.stopPropagation()}

@@ -9,7 +9,11 @@
 import { isReference, isFormula, parseReference } from './dtcg-types.js';
 import { TOKEN_TYPES, COMPOSITE_TOKEN_TYPES, makeReferenceGlobalRegex } from './constants.js';
 import { evalExpr } from './eval-expr.js';
-import { applyColorModifiers, validateColorModifiers } from './color-modifier.js';
+import {
+  applyDerivation,
+  validateDerivationOps,
+  extractDerivationRefPaths,
+} from './derivation-ops.js';
 import type {
   Token,
   TokenType,
@@ -198,13 +202,18 @@ export class TokenResolver {
   }
 
   /**
-   * Collect all dependency paths for a token: value references + $extends target.
+   * Collect all dependency paths for a token: value references + $extends target
+   * + any token-ref params on derivation ops (today: `mix.with`).
    */
   private collectAllDependencies(token: Token): Set<string> {
     const refs = this.collectReferences(token.$value);
     const extendsPath = TokenResolver.getExtendsPath(token);
     if (extendsPath) {
       refs.add(extendsPath);
+    }
+    const rawDerivationOps = token.$extensions?.tokenmanager?.derivation?.ops;
+    for (const refPath of extractDerivationRefPaths(validateDerivationOps(rawDerivationOps))) {
+      refs.add(refPath);
     }
     return refs;
   }
@@ -361,13 +370,28 @@ export class TokenResolver {
         resolvedValue = { ...(baseResolved.$value as Record<string, unknown>), ...(resolvedValue as Record<string, unknown>) };
       }
 
-      // Apply color modifiers if present
-      const rawModifiers = token.$extensions?.tokenmanager?.colorModifier;
-      if (Array.isArray(rawModifiers) && $type === 'color' && typeof resolvedValue === 'string') {
-        const modifiers = validateColorModifiers(rawModifiers);
-        if (modifiers.length > 0) {
-          resolvedValue = applyColorModifiers(resolvedValue, modifiers);
-        }
+      // Apply derivation ops if present. The derivation requires `$value` to be
+      // an alias; ops transform the resolved source value into the derived value.
+      //
+      // Multi-mode caveat: this only transforms the primary `$value` chain. Mode
+      // overrides stored in `$extensions.tokenmanager.modes` are read directly by
+      // downstream consumers (token list, exporters) and currently bypass the op
+      // pipeline. Per the design brief, the op list is shared across modes — that
+      // requires teaching the per-mode read path (`readTokenModeValuesForCollection`
+      // and friends) to apply ops too. Tracked as a follow-up.
+      const ops = validateDerivationOps(
+        token.$extensions?.tokenmanager?.derivation?.ops,
+      );
+      if (ops.length > 0) {
+        resolvedValue = applyDerivation(resolvedValue, $type, ops, (refPath) => {
+          const ref = this.resolved.get(refPath);
+          if (!ref) {
+            throw new Error(
+              `Derivation on "${path}" references token "${refPath}" which could not be resolved.`,
+            );
+          }
+          return ref.$value;
+        });
       }
 
       // Store formula metadata in $extensions so export can output calc() expressions

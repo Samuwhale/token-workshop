@@ -11,7 +11,6 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  DarkModeInversionConfig,
 } from "../../hooks/useGenerators";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { OverwrittenEntry } from "../../hooks/useGeneratedGroupPreview";
@@ -24,7 +23,6 @@ import { ShadowScaleConfigEditor, ShadowPreview } from "../generators/ShadowScal
 import { BorderRadiusConfigEditor, BorderRadiusPreview } from "../generators/BorderRadiusGenerator";
 import { ZIndexConfigEditor } from "../generators/ZIndexGenerator";
 import { CustomScaleConfigEditor } from "../generators/CustomScaleGenerator";
-import { DarkModeInversionConfigEditor } from "../generators/DarkModeInversionGenerator";
 import { GenericPreview } from "../generators/generatorShared";
 import { TYPE_LABELS } from "../generators/generatorUtils";
 import { UnifiedSourceInput } from "../UnifiedSourceInput";
@@ -139,9 +137,7 @@ export function StepSource({
     return undefined;
   })();
 
-  const typeExpectsColor =
-    selectedType === "colorRamp" ||
-    selectedType === "darkModeInversion";
+  const typeExpectsColor = selectedType === "colorRamp";
   const typeExpectsDimension =
     selectedType === "typeScale" ||
     selectedType === "spacingScale" ||
@@ -362,14 +358,6 @@ export function StepSource({
           <CustomScaleConfigEditor
             config={currentConfig as CustomScaleConfig}
             onChange={(config) => onConfigChange("customScale", config)}
-          />
-        )}
-        {selectedType === "darkModeInversion" && (
-          <DarkModeInversionConfigEditor
-            config={currentConfig as DarkModeInversionConfig}
-            onChange={(config) => onConfigChange("darkModeInversion", config)}
-            allTokensFlat={allTokensFlat}
-            pathToCollectionId={pathToCollectionId}
           />
         )}
       </div>

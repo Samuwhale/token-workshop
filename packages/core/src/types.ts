@@ -174,18 +174,26 @@ export interface CollectionsFile {
 }
 
 // ---------------------------------------------------------------------------
-// Color Modifiers
+// Derivations
 // ---------------------------------------------------------------------------
 
 /**
- * A single color modifier operation stored in `$extensions.tokenmanager.colorModifier`.
- * Operations are applied in order using CIELAB math.
+ * A single derivation operation, stored under
+ * `$extensions.tokenmanager.derivation.ops` and applied in order during
+ * resolution. See `derivation-ops.ts` for the math and registry.
  */
-export type ColorModifierOp =
-  | { type: 'lighten'; amount: number }       // L* += amount (0-100 scale)
-  | { type: 'darken'; amount: number }        // L* -= amount
-  | { type: 'alpha'; amount: number }         // set alpha channel (0-1)
-  | { type: 'mix'; color: string; ratio: number }; // Lab interpolate at ratio
+export type DerivationOp =
+  | { kind: 'alpha'; amount: number }                                        // 0..1
+  | { kind: 'lighten'; amount: number }                                      // L* delta 0..100
+  | { kind: 'darken'; amount: number }                                       // L* delta 0..100
+  | { kind: 'mix'; with: string; ratio: number }                             // ratio 0..1; with = hex literal or "{path}"
+  | { kind: 'invertLightness'; chromaBoost?: number }                        // mirror L* around 50%; chroma scale (default 1)
+  | { kind: 'scaleBy'; factor: number }                                      // value *= factor
+  | { kind: 'add'; delta: DimensionValue | DurationValue | number };         // value += delta (units must match)
+
+export interface Derivation {
+  ops: DerivationOp[];
+}
 
 // ---------------------------------------------------------------------------
 // TokenManager Extensions
@@ -197,8 +205,13 @@ export type TokenModeValues = Record<string, Record<string, unknown>>;
 export interface TokenManagerExtensions {
   /** Formula expression string, e.g. "{spacing.base} * 2". Set by resolver/store for formula tokens. */
   formula?: string;
-  /** Ordered color modifier operations applied during resolution. */
-  colorModifier?: ColorModifierOp[];
+  /**
+   * Per-token 1→1 derivation: an ordered list of ops applied to the resolved
+   * `$value` during resolution. The token's `$value` must be an alias
+   * (`{path}`); the derivation transforms the source value into the derived
+   * value. See `derivation-ops.ts` for the op registry.
+   */
+  derivation?: Derivation;
   /** Token lifecycle state for multi-team workflows. */
   lifecycle?: TokenLifecycle;
   /** Provenance: how the token was imported. */

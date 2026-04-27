@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { TokenValidator, type ColorModifierOp, type Token } from '@tokenmanager/core';
+import { TokenValidator, type DerivationOp, type Token } from '@tokenmanager/core';
 import { ApiError } from '../shared/apiFetch';
 import { getErrorMessage, stableStringify } from '../shared/utils';
 import {
@@ -66,7 +66,7 @@ interface UseTokenEditorSaveParams {
   value: TokenEditorValue;
   description: string;
   scopes: string[];
-  colorModifiers: ColorModifierOp[];
+  derivationOps: DerivationOp[];
   modeValues: TokenEditorModeValues;
   extensionsJsonText: string;
   lifecycle: TokenEditorLifecycle;
@@ -95,7 +95,7 @@ export function useTokenEditorSave({
   value,
   description,
   scopes,
-  colorModifiers,
+  derivationOps,
   modeValues,
   extensionsJsonText,
   lifecycle,
@@ -181,7 +181,7 @@ export function useTokenEditorSave({
           value,
           description,
           scopes,
-          colorModifiers,
+          derivationOps,
           modeValues,
           collection,
           passthroughTokenManager: passthroughTokenManagerRef.current,

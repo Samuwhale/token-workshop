@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { BindableProperty, NodeCapabilities } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 
@@ -93,11 +93,30 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
     }
   };
 
-  const clampedAnchor = anchorRect
-    ? {
-        top: Math.max(8, Math.min(anchorRect.top, window.innerHeight - 80)),
-        left: Math.max(8, Math.min(anchorRect.left, window.innerWidth - 156)),
-      }
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!anchorRect) {
+      setPosition(null);
+      return;
+    }
+    const compute = () => {
+      const el = ref.current;
+      const w = el?.offsetWidth ?? 200;
+      const h = el?.offsetHeight ?? 80;
+      const margin = 8;
+      setPosition({
+        top: Math.max(margin, Math.min(anchorRect.top, window.innerHeight - h - margin)),
+        left: Math.max(margin, Math.min(anchorRect.left, window.innerWidth - w - margin)),
+      });
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, [anchorRect, filtered.length, showSearch, query]);
+
+  const positionStyle = anchorRect
+    ? position ?? { visibility: 'hidden' as const }
     : undefined;
 
   if (capFiltered.length === 0) {
@@ -105,7 +124,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
       <div
         ref={ref}
         className="fixed z-50 max-w-[calc(100vw-16px)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 text-secondary text-[var(--color-figma-text-secondary)]"
-        style={clampedAnchor}
+        style={positionStyle}
       >
         No applicable properties for this layer
       </div>
@@ -116,7 +135,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
     <div
       ref={ref}
       className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[140px] max-w-[calc(100vw-16px)]"
-      style={clampedAnchor}
+      style={positionStyle}
       onKeyDown={handleKeyDown}
     >
       <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] font-medium">
@@ -144,7 +163,8 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
           <button
             key={prop}
             onClick={() => onSelect(prop)}
-            className={`w-full text-left px-2 py-1.5 text-body text-[var(--color-figma-text)] transition-colors ${
+            title={PROPERTY_LABELS[prop]}
+            className={`block w-full truncate text-left px-2 py-1.5 text-body text-[var(--color-figma-text)] transition-colors ${
               idx === highlightIdx
                 ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text-onselected)]'
                 : 'hover:bg-[var(--color-figma-bg-hover)]'

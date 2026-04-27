@@ -19,8 +19,7 @@ export type GeneratorType =
   | 'borderRadiusScale'
   | 'zIndexScale'
   | 'shadowScale'
-  | 'customScale'
-  | 'darkModeInversion';
+  | 'customScale';
 
 export type GeneratorDashboardStatus =
   | 'upToDate'
@@ -136,14 +135,6 @@ export interface CustomScaleConfig {
   roundTo: number;
 }
 
-export interface DarkModeInversionConfig {
-  stepName: string;
-  chromaBoost: number;
-  $tokenRefs?: {
-    chromaBoost?: string;
-  };
-}
-
 export type GeneratorConfig =
   | ColorRampConfig
   | TypeScaleConfig
@@ -152,8 +143,7 @@ export type GeneratorConfig =
   | BorderRadiusScaleConfig
   | ZIndexScaleConfig
   | ShadowScaleConfig
-  | CustomScaleConfig
-  | DarkModeInversionConfig;
+  | CustomScaleConfig;
 
 export interface StepOverride {
   value: unknown;

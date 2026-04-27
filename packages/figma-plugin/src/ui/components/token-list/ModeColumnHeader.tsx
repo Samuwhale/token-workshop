@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../../shared/apiFetch";
+import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
@@ -26,13 +27,20 @@ export function ModeColumnHeader({
   onResize,
 }: ModeColumnHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(modeName);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuStyle = useAnchoredFloatingStyle({
+    triggerRef,
+    open: menuOpen,
+    preferredWidth: 180,
+    preferredHeight: 220,
+    align: "start",
+  });
 
   useEffect(() => setRenameValue(modeName), [modeName]);
   useEffect(() => {
@@ -55,10 +63,6 @@ export function ModeColumnHeader({
     (e: React.MouseEvent) => {
       if (!connected) return;
       e.preventDefault();
-      // Anchor the menu to the bottom-left of the header button so clicks on
-      // the mode name don't surprise users with a pointer-anchored popover.
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setMenuPos({ x: rect.left, y: rect.bottom + 2 });
       setMenuOpen(true);
     },
     [connected],
@@ -214,6 +218,7 @@ export function ModeColumnHeader({
         />
       ) : (
         <button
+          ref={triggerRef}
           type="button"
           onClick={openMenu}
           disabled={!connected}
@@ -225,8 +230,8 @@ export function ModeColumnHeader({
       )}
       {menuOpen && (
         <div
-          className="fixed z-50 min-w-[160px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 text-body"
-          style={{ top: menuPos.y, left: menuPos.x }}
+          className="z-50 overflow-y-auto rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 text-body"
+          style={menuStyle ?? { visibility: "hidden" }}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <button

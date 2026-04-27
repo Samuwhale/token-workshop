@@ -89,8 +89,6 @@ function generatorTypeGlyph(type: string): string {
       return "◐";
     case "shadowScale":
       return "◑";
-    case "darkModeInversion":
-      return "◑";
     case "customScale":
       return "∑";
     default:

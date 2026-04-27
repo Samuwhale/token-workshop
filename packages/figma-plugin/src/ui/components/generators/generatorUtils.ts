@@ -108,14 +108,12 @@ export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
     case 'zIndexScale': return { steps: DEFAULT_Z_INDEX_CONFIG.steps.map(s => ({ ...s })) };
     case 'shadowScale': return { ...DEFAULT_SHADOW_SCALE_CONFIG, steps: DEFAULT_SHADOW_SCALE_CONFIG.steps.map(s => ({ ...s })) };
     case 'customScale': return { ...DEFAULT_CUSTOM_CONFIG, steps: DEFAULT_CUSTOM_CONFIG.steps.map(s => ({ ...s })) };
-    case 'darkModeInversion': return { stepName: 'inverted', chromaBoost: 0 };
   }
 }
 
 export function defaultInlineValueForType(type: GeneratorType): unknown {
   switch (type) {
     case 'colorRamp':
-    case 'darkModeInversion':
       return '#ffffff';
     case 'typeScale':
     case 'spacingScale':
@@ -129,7 +127,6 @@ export function defaultInlineValueForType(type: GeneratorType): unknown {
 export function isInlineValueCompatibleWithType(type: GeneratorType, value: unknown): boolean {
   switch (type) {
     case 'colorRamp':
-    case 'darkModeInversion':
       return typeof value === 'string' && value.trim().length > 0;
     case 'typeScale':
     case 'spacingScale':
@@ -147,7 +144,7 @@ export function isInlineValueCompatibleWithType(type: GeneratorType, value: unkn
 
 // Types that require a source token
 /** Types that need a value (from source token OR inline input) */
-export const VALUE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'darkModeInversion'];
+export const VALUE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale'];
 // Types that work standalone (no value at all)
 export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'shadowScale'];
 // Types that work either way
@@ -163,7 +160,6 @@ export const TYPE_LABELS: Record<GeneratorType, string> = {
   zIndexScale: 'Layer Order Scale',
   shadowScale: 'Shadow Scale',
   customScale: 'Custom Scale',
-  darkModeInversion: 'Dark Mode Variant',
 };
 
 /** Primary generator types shown by default */
@@ -172,9 +168,7 @@ export const PRIMARY_TYPES: GeneratorType[] = [
   'opacityScale', 'zIndexScale', 'shadowScale', 'customScale',
 ];
 /** Advanced/niche generator types shown in a collapsible section */
-export const ADVANCED_TYPES: GeneratorType[] = [
-  'darkModeInversion',
-];
+export const ADVANCED_TYPES: GeneratorType[] = [];
 
 export const ALL_TYPES: GeneratorType[] = [...PRIMARY_TYPES, ...ADVANCED_TYPES];
 
@@ -192,5 +186,4 @@ export const TYPE_DESCRIPTIONS: Record<GeneratorType, string> = {
   zIndexScale: 'Set up stacking order values for layered components',
   shadowScale: 'Create elevation levels with progressive shadow depth',
   customScale: 'Write a custom formula to create any numeric scale',
-  darkModeInversion: 'Create a dark mode version of a color with perceptual accuracy',
 };

@@ -35,7 +35,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { NotificationsPanel } from "../components/NotificationsPanel";
 import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import { LibraryCollectionsRail } from "../components/library/LibraryCollectionsRail";
+import { CollectionTabs } from "../components/library/CollectionTabs";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import {
   useCollectionStateContext,
@@ -1199,6 +1199,14 @@ export function PanelRouter({
         };
       }
 
+      if (activeEditorSurface === "collection-details" && inspectingCollection) {
+        return {
+          surface: "collection-details",
+          content: renderCollectionDetailsInInspector(inspectingCollection.collectionId),
+          onDismiss: () => switchContextualSurface({ surface: null }),
+        };
+      }
+
       return null;
     };
 
@@ -1493,12 +1501,11 @@ export function PanelRouter({
     }
   }
 
-  function renderLibraryCollectionsRail(
-    section: "tokens" | "graph" | "health" | "history",
-    bottomPanel?: ReactNode,
+  function renderCollectionTabs(
+    section: "tokens" | "health" | "history",
   ): ReactNode {
     const allCollectionsScope =
-      section === "tokens" || section === "graph"
+      section === "tokens"
         ? undefined
         : {
             selected:
@@ -1528,20 +1535,21 @@ export function PanelRouter({
             },
           };
 
+    const tabsCurrentId =
+      section === "tokens"
+        ? currentCollectionId
+        : section === "health"
+          ? healthScope.mode === "current"
+            ? healthScope.collectionId ?? currentCollectionId
+            : null
+          : historyScope.mode === "current"
+            ? historyScope.collectionId ?? currentCollectionId
+            : null;
+
     return (
-      <LibraryCollectionsRail
+      <CollectionTabs
         collections={collections}
-        currentCollectionId={
-          section === "tokens" || section === "graph"
-            ? currentCollectionId
-            : section === "health"
-              ? healthScope.mode === "current"
-                ? healthScope.collectionId ?? currentCollectionId
-                : null
-              : historyScope.mode === "current"
-                ? historyScope.collectionId ?? currentCollectionId
-                : null
-        }
+        currentCollectionId={tabsCurrentId}
         collectionDisplayNames={collectionMap}
         collectionTokenCounts={collectionTokenCounts}
         collectionHealth={libraryReview.byCollection}
@@ -1550,19 +1558,21 @@ export function PanelRouter({
         onSelectCollection={handleLibraryCollectionSelect}
         onOpenCreateCollection={controller.onOpenCollectionCreateDialog}
         onOpenImport={controller.onShowImportPanel}
-        bottomPanel={bottomPanel}
-        detailsToggle={
-          section === "tokens" && currentCollectionId
+        activeCollectionSettings={
+          section === "tokens"
             ? {
                 open: activeEditorSurface === "collection-details",
-                onToggle: () => {
-                  if (activeEditorSurface === "collection-details") {
+                onToggle: (collectionId: string) => {
+                  if (
+                    activeEditorSurface === "collection-details" &&
+                    inspectingCollection?.collectionId === collectionId
+                  ) {
                     switchContextualSurface({ surface: null });
                     return;
                   }
                   switchContextualSurface({
                     surface: "collection-details",
-                    collection: { collectionId: currentCollectionId },
+                    collection: { collectionId },
                   });
                 },
               }
@@ -1572,76 +1582,114 @@ export function PanelRouter({
     );
   }
 
-  /**
-   * Shared scaffold for Library sections. The library remains one stable
-   * three-column workspace: collection rail, authoring canvas, and contextual
-   * inspector.
-   */
   function renderLibraryScaffold({
     body,
-    section,
+    tabs,
     header,
     contextualPanel,
-    railBottomPanel,
-    hideCollectionsRail,
   }: {
     body: ReactNode;
-    section: "tokens" | "graph" | "health" | "history";
+    tabs?: ReactNode;
     header?: ReactNode;
     contextualPanel?: ReactNode;
-    railBottomPanel?: ReactNode;
-    hideCollectionsRail?: boolean;
   }): ReactNode {
     return (
-      <div className="flex h-full min-h-0 overflow-hidden">
-        {hideCollectionsRail
-          ? null
-          : renderLibraryCollectionsRail(section, railBottomPanel)}
-        <div className="flex min-h-0 min-w-0 flex-1 bg-[var(--color-figma-bg)]">
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            {(fetchError || tokensError) && (
-              <div className="flex shrink-0 items-center gap-2 border-b border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-3 py-1.5">
-                <AlertCircle
-                  size={10}
-                  strokeWidth={2}
-                  className="shrink-0 text-[var(--color-figma-error)]"
-                  aria-hidden
-                />
-                <span className="flex-1 truncate text-secondary text-[var(--color-figma-text-secondary)]">
-                  Failed to load tokens: {fetchError || tokensError}
-                </span>
-                <button
-                  onClick={refreshTokens}
-                  className="shrink-0 rounded border border-[var(--color-figma-error)]/40 px-2 py-0.5 text-secondary text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-
-            {header}
-            <div className="min-h-0 flex-1 overflow-hidden">{body}</div>
-          </div>
-
-          {contextualPanel ? (
-            <>
-              <ResizeDivider
-                axis="x"
-                ariaLabel="Resize contextual panel"
-                ariaValueNow={sideEditorBoundary.ariaValueNow}
-                onMouseDown={sideEditorBoundary.onMouseDown}
-                onKeyDown={sideEditorBoundary.onKeyDown}
+      <div className="flex h-full min-h-0 overflow-hidden bg-[var(--color-figma-bg)]">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {tabs}
+          {(fetchError || tokensError) && (
+            <div className="flex shrink-0 items-center gap-2 border-b border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-3 py-1.5">
+              <AlertCircle
+                size={10}
+                strokeWidth={2}
+                className="shrink-0 text-[var(--color-figma-error)]"
+                aria-hidden
               />
-              <div
-                className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-                style={{ width: sideEditorBoundary.size }}
+              <span className="flex-1 truncate text-secondary text-[var(--color-figma-text-secondary)]">
+                Failed to load tokens: {fetchError || tokensError}
+              </span>
+              <button
+                onClick={refreshTokens}
+                className="shrink-0 rounded border border-[var(--color-figma-error)]/40 px-2 py-0.5 text-secondary text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
               >
-                {contextualPanel}
-              </div>
-            </>
-          ) : null}
+                Retry
+              </button>
+            </div>
+          )}
+
+          {header}
+          <div className="min-h-0 flex-1 overflow-hidden">{body}</div>
         </div>
+
+        {contextualPanel ? (
+          <>
+            <ResizeDivider
+              axis="x"
+              ariaLabel="Resize contextual panel"
+              ariaValueNow={sideEditorBoundary.ariaValueNow}
+              onMouseDown={sideEditorBoundary.onMouseDown}
+              onKeyDown={sideEditorBoundary.onKeyDown}
+            />
+            <div
+              className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
+              style={{ width: sideEditorBoundary.size }}
+            >
+              {contextualPanel}
+            </div>
+          </>
+        ) : null}
       </div>
+    );
+  }
+
+  function renderCollectionDetailsInInspector(collectionId: string): ReactNode {
+    return (
+      <CollectionDetailsPanel
+        collection={
+          collections.find((collection) => collection.id === collectionId) ?? null
+        }
+        collectionIds={collectionIds}
+        collectionTokenCounts={collectionTokenCounts}
+        collectionDescriptions={collectionDescriptions}
+        collectionDisplayNames={collectionMap}
+        serverUrl={serverUrl}
+        connected={connected}
+        presentation="bottom"
+        showCloseButton={false}
+        onModeMutated={refreshTokens}
+        onClose={() => switchContextualSurface({ surface: null })}
+        onRename={collectionStructureController.onRename}
+        onDuplicate={collectionStructureController.onDuplicate}
+        onDelete={collectionStructureController.onDelete}
+        onEditInfo={collectionStructureController.onEditInfo}
+        onMerge={collectionStructureController.onMerge}
+        onSplit={collectionStructureController.onSplit}
+        editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
+        metadataDescription={collectionStructureController.metadataDescription}
+        setMetadataDescription={collectionStructureController.setMetadataDescription}
+        onMetadataSave={collectionStructureController.onMetadataSave}
+        deletingCollectionId={collectionStructureController.deletingCollectionId}
+        onDeleteConfirm={collectionStructureController.onDeleteConfirm}
+        onDeleteCancel={collectionStructureController.onDeleteCancel}
+        mergingCollectionId={collectionStructureController.mergingCollectionId}
+        mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
+        mergeConflicts={collectionStructureController.mergeConflicts}
+        mergeResolutions={collectionStructureController.mergeResolutions}
+        mergeChecked={collectionStructureController.mergeChecked}
+        mergeLoading={collectionStructureController.mergeLoading}
+        onMergeTargetChange={collectionStructureController.onMergeTargetChange}
+        setMergeResolutions={collectionStructureController.setMergeResolutions}
+        onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
+        onMergeConfirm={collectionStructureController.onMergeConfirm}
+        onMergeClose={collectionStructureController.onMergeClose}
+        splittingCollectionId={collectionStructureController.splittingCollectionId}
+        splitPreview={collectionStructureController.splitPreview}
+        splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
+        splitLoading={collectionStructureController.splitLoading}
+        setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
+        onSplitConfirm={collectionStructureController.onSplitConfirm}
+        onSplitClose={collectionStructureController.onSplitClose}
+      />
     );
   }
 
@@ -1667,63 +1715,10 @@ export function PanelRouter({
       renderTokensLibraryBody()
     ) : null;
 
-    const railBottomPanel =
-      inspectingCollection && activeEditorSurface === "collection-details" ? (
-        <CollectionDetailsPanel
-          collection={
-            collections.find(
-              (collection) => collection.id === inspectingCollection.collectionId,
-            ) ?? null
-          }
-          collectionIds={collectionIds}
-          collectionTokenCounts={collectionTokenCounts}
-          collectionDescriptions={collectionDescriptions}
-          collectionDisplayNames={collectionMap}
-          serverUrl={serverUrl}
-          connected={connected}
-          presentation="bottom"
-          showCloseButton={false}
-          onModeMutated={refreshTokens}
-          onClose={() => switchContextualSurface({ surface: null })}
-          onRename={collectionStructureController.onRename}
-          onDuplicate={collectionStructureController.onDuplicate}
-          onDelete={collectionStructureController.onDelete}
-          onEditInfo={collectionStructureController.onEditInfo}
-          onMerge={collectionStructureController.onMerge}
-          onSplit={collectionStructureController.onSplit}
-          editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
-          metadataDescription={collectionStructureController.metadataDescription}
-          setMetadataDescription={collectionStructureController.setMetadataDescription}
-          onMetadataSave={collectionStructureController.onMetadataSave}
-          deletingCollectionId={collectionStructureController.deletingCollectionId}
-          onDeleteConfirm={collectionStructureController.onDeleteConfirm}
-          onDeleteCancel={collectionStructureController.onDeleteCancel}
-          mergingCollectionId={collectionStructureController.mergingCollectionId}
-          mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
-          mergeConflicts={collectionStructureController.mergeConflicts}
-          mergeResolutions={collectionStructureController.mergeResolutions}
-          mergeChecked={collectionStructureController.mergeChecked}
-          mergeLoading={collectionStructureController.mergeLoading}
-          onMergeTargetChange={collectionStructureController.onMergeTargetChange}
-          setMergeResolutions={collectionStructureController.setMergeResolutions}
-          onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
-          onMergeConfirm={collectionStructureController.onMergeConfirm}
-          onMergeClose={collectionStructureController.onMergeClose}
-          splittingCollectionId={collectionStructureController.splittingCollectionId}
-          splitPreview={collectionStructureController.splitPreview}
-          splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
-          splitLoading={collectionStructureController.splitLoading}
-          setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
-          onSplitConfirm={collectionStructureController.onSplitConfirm}
-          onSplitClose={collectionStructureController.onSplitClose}
-        />
-      ) : null;
-
     return renderLibraryScaffold({
       body,
-      section: "tokens",
+      tabs: tokensEmpty ? undefined : renderCollectionTabs("tokens"),
       contextualPanel: renderTokensContextualPanel(),
-      railBottomPanel,
     });
   }
 
@@ -1824,7 +1819,7 @@ export function PanelRouter({
         </ErrorBoundary>
       </div>
     );
-    return renderLibraryScaffold({ body, section: "graph", hideCollectionsRail: true });
+    return renderLibraryScaffold({ body });
   }
 
   function renderLibraryHealth(): ReactNode {
@@ -1903,7 +1898,7 @@ export function PanelRouter({
 
     return renderLibraryScaffold({
       body,
-      section: "health",
+      tabs: renderCollectionTabs("health"),
       contextualPanel: renderReviewContextPanel(),
     });
   }
@@ -1940,7 +1935,7 @@ export function PanelRouter({
 
     return renderLibraryScaffold({
       body,
-      section: "history",
+      tabs: renderCollectionTabs("history"),
     });
   }
 }

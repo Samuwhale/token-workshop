@@ -245,5 +245,6 @@ function labelForOrdering(node: GraphRenderNode | undefined): string {
   if (!node) return "";
   if (node.kind === "token" || node.kind === "ghost") return node.path;
   if (node.kind === "generator") return node.name;
+  if (node.kind === "derivation") return node.derivedPath;
   return node.label;
 }

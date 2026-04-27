@@ -2,7 +2,6 @@ import type {
   BorderRadiusScaleConfig,
   ColorRampConfig,
   CustomScaleConfig,
-  DarkModeInversionConfig,
   GeneratorConfig,
   GeneratorTemplate,
   GeneratorType,
@@ -273,29 +272,6 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
       formula: "base * multiplier",
       roundTo: 2,
     } satisfies CustomScaleConfig,
-  },
-  {
-    id: "dark-mode-palette",
-    label: "Dark mode counterpart",
-    description: "Create a dark-mode version of an existing light color.",
-    whenToUse:
-      "Use when you already trust a light token and want a perceptually related dark-mode counterpart instead of picking a separate swatch.",
-    stages: ["Goal", "Light color", "OKLab inversion", "Dark alias"],
-    starterPresetName: "Single dark counterpart",
-    starterPreset: "Single inverted step with a theme.dark surface starter.",
-    sourceRequirement: "Best with a light-mode color token or hex value.",
-    sourceTokenTypes: ["color"],
-    defaultPrefix: "dark",
-    generatorType: "darkModeInversion",
-    requiresSource: true,
-    config: {
-      stepName: "inverted",
-      chromaBoost: 0.15,
-    } satisfies DarkModeInversionConfig,
-    semanticStarter: {
-      prefix: "theme.dark",
-      mappings: [{ semantic: "surface.page", step: "inverted" }],
-    },
   },
 ];
 

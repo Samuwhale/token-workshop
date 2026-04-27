@@ -398,7 +398,7 @@ export function FormulaInput({
 
               {/* Value preview */}
               {formatValueShort(entry.$value) && (
-                <span className="text-secondary text-[var(--color-figma-text-secondary)] truncate max-w-[80px] shrink-0">
+                <span className="min-w-0 max-w-[40%] truncate text-secondary text-[var(--color-figma-text-secondary)]">
                   {formatValueShort(entry.$value)}
                 </span>
               )}
@@ -410,7 +410,10 @@ export function FormulaInput({
 
               {/* Set name */}
               {candidate.isAmbiguousPath && candidate.collectionId && (
-                <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                <span
+                  className="min-w-0 max-w-[30%] truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                  title={candidate.collectionId}
+                >
                   {candidate.collectionId}
                 </span>
               )}

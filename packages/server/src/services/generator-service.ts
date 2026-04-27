@@ -18,7 +18,6 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  DarkModeInversionConfig,
   DimensionUnit,
 } from "@tokenmanager/core";
 import {
@@ -32,7 +31,6 @@ import {
   runZIndexScaleGenerator,
   runShadowScaleGenerator,
   runCustomScaleGenerator,
-  runDarkModeInversionGenerator,
   applyOverrides,
   getGeneratorManagedOutputPaths,
   stableStringify,
@@ -60,7 +58,6 @@ const VALID_GENERATOR_TYPES = [
   "zIndexScale",
   "shadowScale",
   "customScale",
-  "darkModeInversion",
 ] as const satisfies readonly GeneratorType[];
 
 const VALID_GENERATOR_TYPE_SET = new Set<GeneratorType>(VALID_GENERATOR_TYPES);
@@ -867,26 +864,6 @@ function normalizeGeneratorConfig(
           ? { unit: c.unit as DimensionUnit }
           : {}),
       } satisfies CustomScaleConfig;
-    }
-    case "darkModeInversion": {
-      if (typeof c.stepName !== "string")
-        throw new BadRequestError(
-          'darkModeInversion config requires "stepName" as string',
-        );
-      if (!isFiniteNum(c.chromaBoost))
-        throw new BadRequestError(
-          'darkModeInversion config requires "chromaBoost" as finite number',
-        );
-      if (c.chromaBoost < 0)
-        throw new BadRequestError(
-          'darkModeInversion config "chromaBoost" must be >= 0',
-        );
-      const tokenRefs = validateTokenRefs(c.$tokenRefs, ["chromaBoost"]);
-      return {
-        stepName: c.stepName as string,
-        chromaBoost: c.chromaBoost as number,
-        ...(tokenRefs && { $tokenRefs: tokenRefs }),
-      } satisfies DarkModeInversionConfig;
     }
   }
 }
@@ -3078,19 +3055,6 @@ export class GeneratorService {
         );
         break;
       }
-      case "darkModeInversion": {
-        const hex = typeof resolvedValue === "string" ? resolvedValue : null;
-        if (!hex)
-          throw new BadRequestError(
-            `Source value for darkModeInversion must be a color string`,
-          );
-        results = runDarkModeInversionGenerator(
-          hex,
-          config as DarkModeInversionConfig,
-          targetGroup,
-        );
-        break;
-      }
       default:
         throw new BadRequestError(`Unknown generator type: ${type}`);
     }
@@ -3142,7 +3106,6 @@ export class GeneratorService {
       type === "typeScale" ||
       type === "spacingScale" ||
       type === "borderRadiusScale" ||
-      type === "darkModeInversion" ||
       (type === "customScale" && (!!sourceToken || inlineValue !== undefined));
 
     let resolvedValue: unknown;

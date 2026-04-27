@@ -110,6 +110,37 @@ export function GeneratedGlyph({
   );
 }
 
+/** Glyph for tokens that carry a `derivation` extension. Visual: a small filled
+ *  diamond with a chevron tail, distinct from the alias-link icon and the
+ *  generator triangle. */
+export function DerivationGlyph({
+  size = 8,
+  strokeWidth = 1.5,
+  className,
+}: {
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 10 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M5 1.5L8.5 5L5 8.5L1.5 5Z" />
+      <path d="M3 5h4" />
+    </svg>
+  );
+}
+
 export function formatGeneratedGroupSummaryTitle(generator: TokenGenerator): string {
   return [
     `Generated group: ${generator.name}`,
@@ -529,6 +560,15 @@ export type TokenRowBrowseMeta =
       toneClass: string;
       interactive?: boolean;
       onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+    }
+  | {
+      kind: "derivation";
+      compactLabel: string;
+      expandedLabel: string;
+      title: string;
+      toneClass: string;
+      interactive?: boolean;
+      onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
     };
 
 function getCompactPathLabel(path: string): string {
@@ -545,27 +585,31 @@ export function TokenRowBrowseMetaBadge({
   expanded: boolean;
 }) {
   const label = expanded ? meta.expandedLabel : meta.compactLabel;
+  const glyph =
+    meta.kind === "alias" ? (
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="shrink-0"
+      >
+        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+      </svg>
+    ) : meta.kind === "derivation" ? (
+      <DerivationGlyph size={10} className="shrink-0" />
+    ) : (
+      <GeneratedGlyph size={10} className="shrink-0" />
+    );
   const content = (
     <>
-      {meta.kind === "alias" ? (
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="shrink-0"
-        >
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-        </svg>
-      ) : (
-        <GeneratedGlyph size={10} className="shrink-0" />
-      )}
+      {glyph}
       <span
         className={`truncate ${expanded ? "max-w-[140px]" : "max-w-[88px]"}`}
       >
@@ -598,7 +642,7 @@ export function TokenRowBrowseMetaBadge({
     );
   }
 
-  if (meta.kind === "generator" && meta.interactive && meta.onClick) {
+  if ((meta.kind === "generator" || meta.kind === "derivation") && meta.interactive && meta.onClick) {
     return (
       <button
         type="button"
@@ -714,6 +758,32 @@ export function getBrowseMetaForGeneratedGroup(sourceToken: string, expanded: bo
     toneClass: expanded
       ? "text-[var(--color-figma-accent)]"
       : "text-[var(--color-figma-text-secondary)]",
+  };
+}
+
+/**
+ * Browse-meta factory for tokens that carry a `derivation` extension.
+ * Per the design brief: a derivation row reads as a derivation, NOT as an alias —
+ * callers should prefer this over `getBrowseMetaForReference` whenever the token
+ * has a `$extensions.tokenmanager.derivation` field, even though the underlying
+ * `$value` is also an alias.
+ */
+export function getBrowseMetaForDerivation(
+  sourceToken: string,
+  expanded: boolean,
+  interactive: boolean = false,
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void,
+) {
+  return {
+    kind: "derivation" as const,
+    compactLabel: getCompactPathLabel(sourceToken),
+    expandedLabel: sourceToken,
+    title: `Modified from ${sourceToken}`,
+    toneClass: expanded
+      ? "text-[var(--color-figma-accent)]"
+      : "text-[var(--color-figma-text-secondary)]",
+    interactive,
+    onClick,
   };
 }
 

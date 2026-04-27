@@ -38,7 +38,8 @@ export type {
   TokenManagerExtensions,
   TokenManagerGeneratorExtension,
   TokenExtensions,
-  ColorModifierOp,
+  Derivation,
+  DerivationOp,
   ColorValue,
   DimensionValue,
   FontFamilyValue,
@@ -132,7 +133,7 @@ export {
 // Expression evaluator
 export { evalExpr, substituteVars } from './eval-expr.js';
 
-// Color math & modifiers
+// Color math
 export {
   srgbToLinear,
   srgbFromLinear,
@@ -146,7 +147,26 @@ export {
   colorDeltaE,
   setHexAlpha,
 } from './color-math.js';
-export { applyColorModifiers, validateColorModifiers } from './color-modifier.js';
+
+// Derivation ops (per-token 1→1 transforms applied during resolution)
+export {
+  applyDerivation,
+  applyDerivationOp,
+  validateDerivationOps,
+  extractDerivationRefPaths,
+  isParamReference,
+  paramReferencePath,
+  isColorOpKind,
+  isNumericOpKind,
+  opSupportedTypes,
+  opLighten,
+  opDarken,
+  opAlpha,
+  opMix,
+  opInvertLightness,
+  opScaleBy,
+  opAdd,
+} from './derivation-ops.js';
 
 // CSS Color Module 4 parser
 export type { ColorSpace, ParsedColor } from './color-parse.js';
@@ -204,7 +224,6 @@ export type {
   ShadowScaleConfig,
   CustomScaleStep,
   CustomScaleConfig,
-  DarkModeInversionConfig,
   GeneratorConfig,
   GeneratorSemanticLayer,
   SemanticTokenMapping,
@@ -235,7 +254,6 @@ export {
   DEFAULT_Z_INDEX_SCALE_CONFIG,
   DEFAULT_SHADOW_SCALE_CONFIG,
   DEFAULT_CUSTOM_SCALE_CONFIG,
-  DEFAULT_DARK_MODE_INVERSION_CONFIG,
 } from './generator-types.js';
 
 // Token resolution (mode-aware ancestor walker)
@@ -248,7 +266,7 @@ export type {
 } from './token-resolve.js';
 
 // Graph
-export { buildGraph, tokenNodeId, generatorNodeId } from './graph.js';
+export { buildGraph, tokenNodeId, generatorNodeId, derivationNodeId } from './graph.js';
 export type {
   GraphNodeId,
   GraphEdgeId,
@@ -258,10 +276,13 @@ export type {
   TokenGraphNode,
   GeneratorGraphNode,
   GhostGraphNode,
+  DerivationGraphNode,
   GraphNode,
   AliasEdge,
   GeneratorSourceEdge,
   GeneratorProducesEdge,
+  DerivationSourceEdge,
+  DerivationProducesEdge,
   GraphEdge,
   GraphModel,
   BuildGraphInput,
@@ -278,6 +299,5 @@ export {
   runZIndexScaleGenerator,
   runShadowScaleGenerator,
   runCustomScaleGenerator,
-  runDarkModeInversionGenerator,
   applyOverrides,
 } from './generator-engine.js';

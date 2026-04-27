@@ -11,7 +11,6 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  DarkModeInversionConfig,
   GeneratedTokenResult,
 } from './generator-types.js';
 import { validateStepName } from './generator-types.js';
@@ -440,41 +439,6 @@ export function runCustomScaleGenerator(
   }
 
   return results;
-}
-
-// ---------------------------------------------------------------------------
-// Dark Mode Inversion
-// ---------------------------------------------------------------------------
-
-/**
- * Generate a perceptual dark-mode equivalent of a source color by inverting
- * its CIELAB L* value (100 - L*) while preserving hue and chroma.
- *
- * This produces a dark-mode color that is perceptually symmetric to the
- * source: a light background becomes a dark background, a vibrant accent
- * remains vibrant, etc.
- */
-export function runDarkModeInversionGenerator(
-  sourceHex: string,
-  config: DarkModeInversionConfig,
-  targetGroup: string,
-): GeneratedTokenResult[] {
-  // Validate step name before generating
-  validateStepName(config.stepName);
-
-  const lab = hexToLab(sourceHex);
-  if (!lab) throw new Error(`Invalid hex color for darkModeInversion generator: "${sourceHex}"`);
-  const [L, a, b] = lab;
-
-  const invertedL = 100 - L;
-  const invertedHex = labToHex(invertedL, a * config.chromaBoost, b * config.chromaBoost);
-
-  return [{
-    stepName: config.stepName,
-    path: `${targetGroup}.${config.stepName}`,
-    type: 'color',
-    value: invertedHex,
-  }];
 }
 
 // ---------------------------------------------------------------------------

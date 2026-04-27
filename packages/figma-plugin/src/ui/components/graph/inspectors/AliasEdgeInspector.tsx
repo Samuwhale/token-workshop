@@ -209,7 +209,9 @@ function ChainRow({
       ? node.path
       : node.kind === "generator"
         ? node.name
-        : node.path;
+        : node.kind === "derivation"
+          ? node.derivedPath
+          : node.path;
   return (
     <div className="flex flex-col">
       <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
