@@ -337,50 +337,47 @@ function CompactTemplatePicker({ templates, connected, onSelect }: {
 }
 
 // ---------------------------------------------------------------------------
-// Task Checklist
+// Setup action list
 // ---------------------------------------------------------------------------
 
-function TaskChecklist({ completedTasks, connected, onSelect }: {
-  completedTasks: Set<TaskId>;
+function SetupActionList({ connected, onSelect }: {
   connected: boolean;
-  onSelect: (taskId: TaskId) => void;
+  onSelect: (taskId: SetupActionId) => void;
 }) {
   return (
     <div className="flex flex-col">
-      {TASKS.map(task => {
-        const isCompleted = completedTasks.has(task.id);
-        const isDisabled = !connected;
-
+      {SETUP_ACTIONS.map((action) => (
         return (
           <button
-            key={task.id}
-            onClick={() => onSelect(task.id)}
-            disabled={isDisabled && !isCompleted}
+            key={action.id}
+            type="button"
+            onClick={() => onSelect(action.id)}
+            disabled={!connected}
             className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 group"
           >
-            <div className="flex items-center gap-3">
-              <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0 ${
-                isCompleted
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : 'border-[1.5px] border-[var(--color-figma-border)]'
-              }`}>
-                {isCompleted && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                )}
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-body font-medium text-[var(--color-figma-text)]">{action.label}</span>
+                  {action.helper ? (
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                      {action.helper}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
+                  {action.description}
+                </p>
               </div>
-              <div className="flex-1 min-w-0">
-                <span className={`text-body font-medium ${isCompleted ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-text)]'}`}>{task.label}</span>
-                <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">{task.description}</p>
-              </div>
-              {!isCompleted && !(isDisabled) && (
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
+              {connected ? (
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="mt-1 shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
                   <path d="M4.5 2.5L8 6l-3.5 3.5" />
                 </svg>
-              )}
+              ) : null}
             </div>
           </button>
         );
-      })}
+      ))}
     </div>
   );
 }
