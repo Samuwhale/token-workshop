@@ -115,7 +115,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
           inputRef={fontFamilyRef}
         />
       </Field>
-      <Stack direction="row" gap={3}>
+      <Stack direction="row" gap={3} wrap>
         <Field label={labelWithBadge('Font Size', 'fontSize')} className="flex-1">
           <DimensionSubProp
             value={val.fontSize ?? { value: 16, unit: 'px' }}
@@ -126,7 +126,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
             inputRef={fontSizeRef}
           />
         </Field>
-        <Field label={labelWithBadge('Weight', 'fontWeight')} className="w-20 shrink-0">
+        <Field label={labelWithBadge('Weight', 'fontWeight')} className="min-w-[120px] flex-1">
           {isFontWeightAlias ? (
             <SubPropInput
               value={val.fontWeight}
@@ -166,7 +166,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
           )}
         </Field>
       </Stack>
-      <Stack direction="row" gap={3}>
+      <Stack direction="row" gap={3} wrap>
         <Field label={labelWithBadge('Line Height', 'lineHeight')} className="flex-1">
           <SubPropInput
             value={typeof val.lineHeight === 'object' ? val.lineHeight.value : (val.lineHeight ?? 1.5)}

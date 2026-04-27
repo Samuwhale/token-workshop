@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const SET_LEAF_RE = /^[a-zA-Z0-9_-]+$/;
-const FOLDER_PATH_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+const COLLECTION_PATH_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
 interface CollectionCreateDialogProps {
   isOpen: boolean;
@@ -14,16 +13,14 @@ export function CollectionCreateDialog({
   onClose,
   onCreate,
 }: CollectionCreateDialogProps) {
-  const [name, setName] = useState("");
-  const [folderPath, setFolderPath] = useState("");
+  const [collectionName, setCollectionName] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    setName("");
-    setFolderPath("");
+    setCollectionName("");
     setError("");
     setPending(false);
     window.requestAnimationFrame(() => {
@@ -31,38 +28,24 @@ export function CollectionCreateDialog({
     });
   }, [isOpen]);
 
-  const fullSetName = useMemo(() => {
-    const trimmedName = name.trim();
-    const trimmedFolderPath = folderPath.trim();
-    if (!trimmedName) return "";
-    return trimmedFolderPath ? `${trimmedFolderPath}/${trimmedName}` : trimmedName;
-  }, [folderPath, name]);
-
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
-    const trimmedName = name.trim();
-    const trimmedFolderPath = folderPath.trim();
+    const trimmedCollectionName = collectionName.trim();
 
-    if (!trimmedName) {
-      setError("Name is required");
+    if (!trimmedCollectionName) {
+      setError("Collection name is required");
       return;
     }
-    if (!SET_LEAF_RE.test(trimmedName)) {
-      setError("Use letters, numbers, - and _");
-      return;
-    }
-    if (trimmedFolderPath && !FOLDER_PATH_RE.test(trimmedFolderPath)) {
-      setError("Folder path uses / between names");
+    if (!COLLECTION_PATH_RE.test(trimmedCollectionName)) {
+      setError("Use letters, numbers, - and _. Use / to group related collections.");
       return;
     }
 
     setPending(true);
     setError("");
     try {
-      await onCreate(
-        trimmedFolderPath ? `${trimmedFolderPath}/${trimmedName}` : trimmedName,
-      );
+      await onCreate(trimmedCollectionName);
       onClose();
     } catch (submitError) {
       setError(
@@ -111,44 +94,24 @@ export function CollectionCreateDialog({
         <div className="flex flex-col gap-3 px-4 py-3">
           <label className="flex flex-col gap-1">
             <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Name
+              Collection name
             </span>
             <input
               ref={nameInputRef}
               type="text"
-              value={name}
+              value={collectionName}
               onChange={(event) => {
-                setName(event.target.value);
+                setCollectionName(event.target.value);
                 setError("");
               }}
-              placeholder="primitives"
+              placeholder="primitives or brand/primitives"
               disabled={pending}
               className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
             />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Folder path
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+              Use `/` only if you want to group related collections together.
             </span>
-            <input
-              type="text"
-              value={folderPath}
-              onChange={(event) => {
-                setFolderPath(event.target.value);
-                setError("");
-              }}
-              placeholder="brand or brand/colors"
-              disabled={pending}
-              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
-            />
           </label>
-
-          {fullSetName && (
-            <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Creates <span className="font-mono text-[var(--color-figma-text)]">{fullSetName}</span>
-            </div>
-          )}
 
           {error && <div className="text-secondary text-[var(--color-figma-error)]">{error}</div>}
         </div>
@@ -164,10 +127,10 @@ export function CollectionCreateDialog({
           <button
             type="button"
             onClick={() => void handleSubmit()}
-            disabled={pending || !name.trim()}
+            disabled={pending || !collectionName.trim()}
             className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
-            {pending ? "Creating…" : "Done"}
+            {pending ? "Creating…" : "Create collection"}
           </button>
         </div>
       </div>

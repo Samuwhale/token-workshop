@@ -7,8 +7,8 @@ import { apiFetch } from '../shared/apiFetch';
 // Types
 // ---------------------------------------------------------------------------
 
-type TaskId = 'author-tokens' | 'modes' | 'foundations';
-type ChecklistView = 'list' | 'template-picker' | 'modes-inline';
+type SetupActionId = 'author-tokens' | 'modes' | 'foundations';
+type WizardView = 'overview' | 'template-picker' | 'modes-inline';
 type PrereqPhase = 'connect' | 'create-collection' | null;
 type GraphApiTemplate = 'colorRamp' | 'spacing' | 'type' | 'radius' | 'opacity' | 'shadow' | 'zIndex' | 'formula' | 'blank';
 
@@ -32,16 +32,32 @@ interface QuickStartWizardProps {
 // Task definitions
 // ---------------------------------------------------------------------------
 
-interface TaskDef {
-  id: TaskId;
+interface SetupActionDef {
+  id: SetupActionId;
   label: string;
   description: string;
+  helper?: string;
 }
 
-const TASKS: TaskDef[] = [
-  { id: 'author-tokens', label: 'Add your first tokens', description: 'Create tokens by hand in the token editor' },
-  { id: 'modes', label: 'Add modes (optional)', description: 'Create variations like Light / Dark. Skip if you only need one mode' },
-  { id: 'foundations', label: 'Start from a graph template (optional)', description: 'Create a color ramp, type scale, spacing scale, or other foundation workflow' },
+const SETUP_ACTIONS: SetupActionDef[] = [
+  {
+    id: 'author-tokens',
+    label: 'Add your first token',
+    description: 'Open the token editor and start authoring in this collection.',
+    helper: 'Best next step',
+  },
+  {
+    id: 'modes',
+    label: 'Add collection modes',
+    description: 'Create contexts like Light and Dark when this collection needs variants.',
+    helper: 'Optional',
+  },
+  {
+    id: 'foundations',
+    label: 'Start from a template',
+    description: 'Create a color ramp, type scale, spacing scale, or another generated foundation.',
+    helper: 'Optional',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -57,9 +73,9 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-body font-medium text-[var(--color-figma-text)]">Connect your token project</p>
+        <p className="text-body font-medium text-[var(--color-figma-text)]">Connect your token library</p>
         <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
-          Run this in your token project folder, then come back here:
+          Start TokenManager in the folder that contains your tokens, then come back here:
         </p>
       </div>
 
@@ -68,6 +84,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
       </div>
 
       <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
+        <span className="shrink-0">Looking for:</span>
         <code className="font-mono px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)]">{serverUrl}</code>
       </div>
 
@@ -106,7 +123,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
     const trimmed = name.trim();
     if (!trimmed) { setError('Collection name is required'); return; }
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(trimmed)) {
-      setError('Use letters, numbers, hyphens, or underscores (slashes for folders)');
+      setError('Use letters, numbers, hyphens, or underscores. Use / only to group related collections.');
       return;
     }
     setSaving(true);
@@ -129,7 +146,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       <div>
         <p className="text-body font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
         <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
-          This is the container where you will author tokens and modes.
+          Collections are the main place where you author tokens and modes.
         </p>
       </div>
 
@@ -143,15 +160,14 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
           onKeyDown={e => e.key === 'Enter' && handleCreate()}
-          placeholder="primitives"
+          placeholder="primitives or brand/primitives"
           autoFocus
           className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
         />
         {error && <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{error}</p>}
-      </div>
-
-      <div className="rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] px-2.5 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
-        Creates <code className="font-mono text-[var(--color-figma-accent)]">{name.trim() || 'primitives'}.tokens.json</code>
+        <p className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+          Use <code className="font-mono">/</code> only if you want to group related collections together.
+        </p>
       </div>
 
       <button

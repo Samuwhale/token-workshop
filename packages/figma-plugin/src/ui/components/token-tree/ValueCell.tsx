@@ -94,7 +94,7 @@ export function ValueCell({
   if (derivationSourcePath) {
     titleLines.push(`Modified from: ${derivationSourcePath}`);
   }
-  if (targetCollectionId) titleLines.push(`Set: ${targetCollectionId}`);
+  if (targetCollectionId) titleLines.push(`Collection: ${targetCollectionId}`);
 
   const openQuickEdit = () => {
     if (!onRequestQuickEdit) return;
@@ -115,7 +115,7 @@ export function ValueCell({
   const emptyUneditableTint = !value && !canCreate
     ? "bg-[var(--color-figma-warning)]/5"
     : "";
-  const wrapperClass = `min-w-0 shrink-0 px-1.5 flex items-center gap-1.5 h-full ${brokenAliasTint} ${emptyUneditableTint}`;
+  const wrapperClass = `flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5 ${brokenAliasTint} ${emptyUneditableTint}`;
 
   const derivationMarker = isDerivation ? (
     <span
@@ -143,7 +143,7 @@ export function ValueCell({
     },
   ) => (
     <div
-      className={`min-w-0 flex-1 ${interactiveTextClass}`}
+      className={`min-w-0 flex-1 overflow-hidden ${interactiveTextClass}`}
       onClick={
         canQuickEdit
           ? (e) => {

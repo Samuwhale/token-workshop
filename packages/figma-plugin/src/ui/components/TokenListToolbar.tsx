@@ -264,402 +264,406 @@ export function TokenListToolbar({
   return (
     <div className="bg-[var(--color-figma-bg-secondary)]">
       <div className="flex flex-col gap-1.5 px-3 pt-2 pb-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
-            <button
-              type="button"
-              onClick={onNavigateBack}
-              className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-              title="Back (Alt+←)"
-              aria-label="Back"
-            >
-              <ArrowLeft size={12} strokeWidth={1.5} aria-hidden />
-            </button>
-          ) : null}
+        <div className="flex min-w-0 flex-wrap items-start gap-1.5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
+              <button
+                type="button"
+                onClick={onNavigateBack}
+                className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                title="Back (Alt+←)"
+                aria-label="Back"
+              >
+                <ArrowLeft size={12} strokeWidth={1.5} aria-hidden />
+              </button>
+            ) : null}
 
-          {zoomRootPath ? (
-            <span
-              className="inline-flex min-w-0 shrink items-center gap-1 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
-              title={`Scoped to ${zoomRootPath}`}
-            >
-              <ChevronRight size={10} strokeWidth={1.5} aria-hidden />
-              <span className="truncate">{zoomRootPath}</span>
-            </span>
-          ) : null}
+            {zoomRootPath ? (
+              <span
+                className="inline-flex min-w-0 shrink items-center gap-1 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
+                title={`Scoped to ${zoomRootPath}`}
+              >
+                <ChevronRight size={10} strokeWidth={1.5} aria-hidden />
+                <span className="truncate">{zoomRootPath}</span>
+              </span>
+            ) : null}
 
-          {hasTokens && viewMode === "tree" ? (
-            <div className="relative flex-1 min-w-[160px] basis-[200px]">
-              <div className="flex h-[26px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
-                <Search
-                  size={12}
-                  strokeWidth={1.5}
-                  className="pointer-events-none shrink-0 text-[var(--color-figma-text-tertiary)]"
-                  aria-hidden
-                />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  role="combobox"
-                  aria-autocomplete="list"
-                  aria-expanded={showQualifierHints && qualifierHints.length > 0}
-                  aria-controls="qualifier-hints-listbox"
-                  aria-activedescendant={
-                    showQualifierHints && qualifierHints.length > 0
-                      ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
-                      : undefined
-                  }
-                  value={searchQuery}
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value);
-                    setHintIndex(0);
-                  }}
-                  onFocus={() => setShowQualifierHints(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => setShowQualifierHints(false), 150);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      if (searchQuery) {
-                        setSearchQuery("");
-                        setHintIndex(0);
-                      }
-                      searchRef.current?.blur();
-                      return;
+            {hasTokens && viewMode === "tree" ? (
+              <div className="relative min-w-[180px] max-w-full flex-1 basis-[220px]">
+                <div className="flex h-[26px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
+                  <Search
+                    size={12}
+                    strokeWidth={1.5}
+                    className="pointer-events-none shrink-0 text-[var(--color-figma-text-tertiary)]"
+                    aria-hidden
+                  />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={showQualifierHints && qualifierHints.length > 0}
+                    aria-controls="qualifier-hints-listbox"
+                    aria-activedescendant={
+                      showQualifierHints && qualifierHints.length > 0
+                        ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
+                        : undefined
                     }
-                    if (!showQualifierHints || qualifierHints.length === 0) {
-                      return;
-                    }
-                    if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      setHintIndex((index: number) =>
-                        Math.min(index + 1, qualifierHints.length - 1),
-                      );
-                    } else if (event.key === "ArrowUp") {
-                      event.preventDefault();
-                      setHintIndex((index: number) => Math.max(index - 1, 0));
-                    } else if (
-                      event.key === "Tab" ||
-                      (event.key === "Enter" && qualifierHints.length > 0)
-                    ) {
-                      const hint = qualifierHints[hintIndex];
-                      if (!hint || hint.kind !== "replacement" || !hint.replacement) {
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                      setHintIndex(0);
+                    }}
+                    onFocus={() => setShowQualifierHints(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => setShowQualifierHints(false), 150);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        if (searchQuery) {
+                          setSearchQuery("");
+                          setHintIndex(0);
+                        }
+                        searchRef.current?.blur();
                         return;
                       }
-                      event.preventDefault();
-                      setSearchQuery(
-                        replaceQueryToken(searchQuery, activeQueryToken, hint.replacement),
-                      );
-                      setHintIndex(0);
-                    }
-                  }}
-                  placeholder={searchPlaceholder}
-                  title={searchTooltip}
-                  className="min-w-[40px] flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
-                />
-                {searchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setHintIndex(0);
-                      searchRef.current?.focus();
-                    }}
-                    className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                    title="Clear search"
-                    aria-label="Clear search"
-                  >
-                    <X size={10} strokeWidth={1.5} aria-hidden />
-                  </button>
-                ) : null}
-              </div>
-
-              {showQualifierHints &&
-              activeQueryToken.token.includes(":") &&
-              qualifierHints.length > 0 ? (
-                <div
-                  ref={qualifierHintsRef}
-                  id="qualifier-hints-listbox"
-                  role="listbox"
-                  className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-                >
-                  {qualifierHints.map((hint, index) => (
-                    <button
-                      key={hint.id}
-                      id={`qualifier-hint-${hint.id}`}
-                      role="option"
-                      aria-selected={index === hintIndex}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        if (hint.kind !== "replacement" || !hint.replacement) {
+                      if (!showQualifierHints || qualifierHints.length === 0) {
+                        return;
+                      }
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setHintIndex((index: number) =>
+                          Math.min(index + 1, qualifierHints.length - 1),
+                        );
+                      } else if (event.key === "ArrowUp") {
+                        event.preventDefault();
+                        setHintIndex((index: number) => Math.max(index - 1, 0));
+                      } else if (
+                        event.key === "Tab" ||
+                        (event.key === "Enter" && qualifierHints.length > 0)
+                      ) {
+                        const hint = qualifierHints[hintIndex];
+                        if (!hint || hint.kind !== "replacement" || !hint.replacement) {
                           return;
                         }
+                        event.preventDefault();
                         setSearchQuery(
-                          replaceQueryToken(
-                            searchQuery,
-                            activeQueryToken,
-                            hint.replacement,
-                          ),
+                          replaceQueryToken(searchQuery, activeQueryToken, hint.replacement),
                         );
+                        setHintIndex(0);
+                      }
+                    }}
+                    placeholder={searchPlaceholder}
+                    title={searchTooltip}
+                    className="min-w-[40px] flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                  />
+                  {searchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
                         setHintIndex(0);
                         searchRef.current?.focus();
                       }}
-                      className={`flex w-full items-center gap-2 px-2 py-1 text-left text-secondary ${
-                        index === hintIndex
-                          ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                          : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                      } ${hint.kind === "replacement" ? "" : "cursor-default"}`}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                      title="Clear search"
+                      aria-label="Clear search"
                     >
-                      <span className="font-mono font-semibold text-[var(--color-figma-accent)]">
-                        {hint.label}
-                      </span>
-                      <span className="truncate">{hint.desc}</span>
+                      <X size={10} strokeWidth={1.5} aria-hidden />
                     </button>
-                  ))}
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
 
-          {hasTokens ? (
-            <div className="shrink-0">
-              <SegmentedControl
-                value={viewMode}
-                options={TREE_VIEW_OPTIONS}
-                onChange={setViewMode}
+                {showQualifierHints &&
+                activeQueryToken.token.includes(":") &&
+                qualifierHints.length > 0 ? (
+                  <div
+                    ref={qualifierHintsRef}
+                    id="qualifier-hints-listbox"
+                    role="listbox"
+                    className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                  >
+                    {qualifierHints.map((hint, index) => (
+                      <button
+                        key={hint.id}
+                        id={`qualifier-hint-${hint.id}`}
+                        role="option"
+                        aria-selected={index === hintIndex}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          if (hint.kind !== "replacement" || !hint.replacement) {
+                            return;
+                          }
+                          setSearchQuery(
+                            replaceQueryToken(
+                              searchQuery,
+                              activeQueryToken,
+                              hint.replacement,
+                            ),
+                          );
+                          setHintIndex(0);
+                          searchRef.current?.focus();
+                        }}
+                        className={`flex w-full items-center gap-2 px-2 py-1 text-left text-secondary ${
+                          index === hintIndex
+                            ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                        } ${hint.kind === "replacement" ? "" : "cursor-default"}`}
+                      >
+                        <span className="font-mono font-semibold text-[var(--color-figma-accent)]">
+                          {hint.label}
+                        </span>
+                        <span className="truncate">{hint.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="min-w-[80px] flex-1" />
+            )}
+          </div>
+
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+            {hasTokens ? (
+              <div className="shrink-0">
+                <SegmentedControl
+                  value={viewMode}
+                  options={TREE_VIEW_OPTIONS}
+                  onChange={setViewMode}
+                />
+              </div>
+            ) : null}
+
+            {overflowMenuProps && viewMode === "tree" ? (
+              <FilterMenu
+                {...overflowMenuProps}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
               />
-            </div>
-          ) : null}
+            ) : null}
 
-          {overflowMenuProps && viewMode === "tree" ? (
-            <FilterMenu
-              {...overflowMenuProps}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          ) : null}
-
-          {overflowMenuProps && viewMode === "tree" && viewRadioGroups.length > 0 ? (
-            <div className="relative shrink-0">
-              <button
-                ref={sortMenu.triggerRef}
-                type="button"
-                onClick={sortMenu.toggle}
-                aria-expanded={sortMenu.open}
-                aria-haspopup="menu"
-                aria-label="Sort and group"
-                title="Sort and group"
-                className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
-                  sortMenu.open || sortActive
-                    ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
-                <span>{sortStateLabel ?? "Sort"}</span>
-              </button>
-
-              {sortMenu.open ? (
-                <div
-                  ref={sortMenu.menuRef}
-                  style={sortMenuStyle ?? { visibility: "hidden" }}
-                  className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-                  role="menu"
+            {overflowMenuProps && viewMode === "tree" && viewRadioGroups.length > 0 ? (
+              <div className="relative shrink-0">
+                <button
+                  ref={sortMenu.triggerRef}
+                  type="button"
+                  onClick={sortMenu.toggle}
+                  aria-expanded={sortMenu.open}
+                  aria-haspopup="menu"
+                  aria-label="Sort and group"
+                  title="Sort and group"
+                  className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                    sortMenu.open || sortActive
+                      ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  }`}
                 >
-                  {viewRadioGroups.map((group, idx) => (
-                    <div key={group.key}>
-                      {idx > 0 ? <div className="h-2" aria-hidden /> : null}
-                      <MenuRadioGroup
-                        label={group.label}
-                        value={group.value}
-                        options={group.options}
-                        onChange={group.onChange}
-                        onSelect={closeSortMenu}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                  <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
+                  <span className="whitespace-nowrap">{sortStateLabel ?? "Sort"}</span>
+                </button>
 
-          {showCreate ? (
-            <div className="relative shrink-0">
-              <button
-                ref={createMenu.triggerRef}
-                type="button"
-                onClick={createMenu.toggle}
-                disabled={!connected}
-                aria-expanded={createMenu.open}
-                aria-haspopup="menu"
-                aria-label="Create"
-                title="Create"
-                className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
-                  createMenu.open
-                    ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
-                    : "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)]"
-                } disabled:opacity-40`}
-              >
-                <Plus size={12} strokeWidth={2} aria-hidden />
-                <span>Create</span>
-              </button>
-
-              {createMenu.open ? (
-                <div
-                  ref={createMenu.menuRef}
-                  style={createMenuStyle ?? { visibility: "hidden" }}
-                  className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-                  role="menu"
-                >
-                  {onCreateToken ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => runCreateAction(onCreateToken)}
-                      disabled={!connected}
-                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                    >
-                      New token
-                    </button>
-                  ) : null}
-                  {onGenerateTokens ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => runCreateAction(onGenerateTokens)}
-                      disabled={!connected}
-                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                    >
-                      Generate tokens…
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => runCreateAction(handleOpenNewGroupDialog)}
-                    disabled={!connected}
-                    className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                {sortMenu.open ? (
+                  <div
+                    ref={sortMenu.menuRef}
+                    style={sortMenuStyle ?? { visibility: "hidden" }}
+                    className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    role="menu"
                   >
-                    New group
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => runCreateAction(openTableCreate)}
-                    disabled={!connected}
-                    className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                  >
-                    Token table
-                  </button>
-                  {onShowPasteModal ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => runCreateAction(onShowPasteModal)}
-                      disabled={!connected}
-                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                    >
-                      Paste JSON
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                    {viewRadioGroups.map((group, idx) => (
+                      <div key={group.key}>
+                        {idx > 0 ? <div className="h-2" aria-hidden /> : null}
+                        <MenuRadioGroup
+                          label={group.label}
+                          value={group.value}
+                          options={group.options}
+                          onChange={group.onChange}
+                          onSelect={closeSortMenu}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
-          {showOverflow ? (
-            <div className="relative shrink-0">
-              <button
-                ref={actionsMenu.triggerRef}
-                type="button"
-                onClick={actionsMenu.toggle}
-                disabled={!connected}
-                aria-expanded={actionsMenu.open}
-                aria-haspopup="menu"
-                aria-label="More actions"
-                className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded transition-colors ${
-                  actionsMenu.open
-                    ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                } disabled:opacity-40`}
-              >
-                <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
-              </button>
-
-              {actionsMenu.open ? (
-                <div
-                  ref={actionsMenu.menuRef}
-                  style={actionsMenuStyle ?? { visibility: "hidden" }}
-                  className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-                  role="menu"
+            {showCreate ? (
+              <div className="relative shrink-0">
+                <button
+                  ref={createMenu.triggerRef}
+                  type="button"
+                  onClick={createMenu.toggle}
+                  disabled={!connected}
+                  aria-expanded={createMenu.open}
+                  aria-haspopup="menu"
+                  aria-label="Create"
+                  title="Create"
+                  className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                    createMenu.open
+                      ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
+                      : "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)]"
+                  } disabled:opacity-40`}
                 >
-                  {hasGroupOps ? (
-                    <>
-                      <MenuSectionLabel>View</MenuSectionLabel>
+                  <Plus size={12} strokeWidth={2} aria-hidden />
+                  <span className="whitespace-nowrap">Create</span>
+                </button>
+
+                {createMenu.open ? (
+                  <div
+                    ref={createMenu.menuRef}
+                    style={createMenuStyle ?? { visibility: "hidden" }}
+                    className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    role="menu"
+                  >
+                    {onCreateToken ? (
                       <button
                         type="button"
                         role="menuitem"
-                        onClick={() =>
-                          runMenuAction(
-                            overflowMenuProps!.allGroupsExpanded
-                              ? overflowMenuProps!.onCollapseAll
-                              : overflowMenuProps!.onExpandAll,
-                          )
-                        }
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        onClick={() => runCreateAction(onCreateToken)}
+                        disabled={!connected}
+                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                       >
-                        {overflowMenuProps!.allGroupsExpanded
-                          ? "Collapse all groups"
-                          : "Expand all groups"}
+                        New token
                       </button>
-                    </>
-                  ) : null}
+                    ) : null}
+                    {onGenerateTokens ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => runCreateAction(onGenerateTokens)}
+                        disabled={!connected}
+                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                      >
+                        Generate tokens…
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(handleOpenNewGroupDialog)}
+                      disabled={!connected}
+                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    >
+                      New group
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(openTableCreate)}
+                      disabled={!connected}
+                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    >
+                      Token table
+                    </button>
+                    {onShowPasteModal ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => runCreateAction(onShowPasteModal)}
+                        disabled={!connected}
+                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                      >
+                        Paste JSON
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
-                  {hasEditActions ? (
-                    <>
-                      {hasGroupOps ? (
-                        <div className="h-1.5" aria-hidden />
-                      ) : null}
-                      <MenuSectionLabel>Edit</MenuSectionLabel>
-                      {onSelectTokens ? (
+            {showOverflow ? (
+              <div className="relative shrink-0">
+                <button
+                  ref={actionsMenu.triggerRef}
+                  type="button"
+                  onClick={actionsMenu.toggle}
+                  disabled={!connected}
+                  aria-expanded={actionsMenu.open}
+                  aria-haspopup="menu"
+                  aria-label="More actions"
+                  className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded transition-colors ${
+                    actionsMenu.open
+                      ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  } disabled:opacity-40`}
+                >
+                  <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
+                </button>
+
+                {actionsMenu.open ? (
+                  <div
+                    ref={actionsMenu.menuRef}
+                    style={actionsMenuStyle ?? { visibility: "hidden" }}
+                    className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    role="menu"
+                  >
+                    {hasGroupOps ? (
+                      <>
+                        <MenuSectionLabel>View</MenuSectionLabel>
                         <button
                           type="button"
                           role="menuitem"
-                          onClick={() => runMenuAction(onSelectTokens)}
+                          onClick={() =>
+                            runMenuAction(
+                              overflowMenuProps!.allGroupsExpanded
+                                ? overflowMenuProps!.onCollapseAll
+                                : overflowMenuProps!.onExpandAll,
+                            )
+                          }
                           className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                         >
-                          Select tokens
+                          {overflowMenuProps!.allGroupsExpanded
+                            ? "Collapse all groups"
+                            : "Expand all groups"}
                         </button>
-                      ) : null}
-                      {onBulkEdit ? (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => runMenuAction(onBulkEdit)}
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                        >
-                          Bulk edit
-                        </button>
-                      ) : null}
-                      {onFindReplace ? (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => runMenuAction(onFindReplace)}
-                          disabled={!connected}
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                        >
-                          Find and replace
-                        </button>
-                      ) : null}
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                      </>
+                    ) : null}
+
+                    {hasEditActions ? (
+                      <>
+                        {hasGroupOps ? (
+                          <div className="h-1.5" aria-hidden />
+                        ) : null}
+                        <MenuSectionLabel>Edit</MenuSectionLabel>
+                        {onSelectTokens ? (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => runMenuAction(onSelectTokens)}
+                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                          >
+                            Select tokens
+                          </button>
+                        ) : null}
+                        {onBulkEdit ? (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => runMenuAction(onBulkEdit)}
+                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                          >
+                            Bulk edit
+                          </button>
+                        ) : null}
+                        {onFindReplace ? (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => runMenuAction(onFindReplace)}
+                            disabled={!connected}
+                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                          >
+                            Find and replace
+                          </button>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {hasChipRow ? (

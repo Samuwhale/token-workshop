@@ -41,7 +41,7 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
           />
         </Stack>
       </Field>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-2">
         <Field label="Offset X">
           <SubPropInput value={getDim(val.offsetX)} onChange={v => setDim('offsetX', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
         </Field>

@@ -295,14 +295,14 @@ export function TokenDetailsModeRow({
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
                       <Link2 size={10} strokeWidth={1.5} aria-hidden />
-                      <span className="truncate">{readOnly.aliasTargetPath}</span>
+                      <span className="min-w-0 break-all">{readOnly.aliasTargetPath}</span>
                     </button>
                   ) : (
-                    <span className="font-mono text-body text-[var(--color-figma-accent)]">
+                    <span className="break-all font-mono text-body text-[var(--color-figma-accent)]">
                       {readOnly.aliasTargetPath}
                     </span>
                   )}
-                  <div className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
+                  <div className="whitespace-pre-wrap break-words text-secondary text-[var(--color-figma-text-secondary)]">
                     {readOnly.isUnresolvedAlias
                       ? "Reference not found"
                       : readOnly.displayValue}
@@ -310,7 +310,7 @@ export function TokenDetailsModeRow({
                 </div>
               ) : (
                 <span
-                  className="truncate font-mono text-body text-[var(--color-figma-text)]"
+                  className="whitespace-pre-wrap break-words font-mono text-body text-[var(--color-figma-text)]"
                   title={readOnly.displayValue}
                 >
                   {readOnly.displayValue}

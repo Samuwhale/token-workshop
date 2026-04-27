@@ -15,7 +15,7 @@ export interface MultiModeValue {
   optionName: string;
   collectionId: string;
   resolved: TokenMapEntry | undefined;
-  /** The set name to target when inline-editing this option's value */
+  /** The collection to target when inline-editing this mode's value. */
   targetCollectionId: string | null;
 }
 
@@ -40,15 +40,17 @@ export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 export const ADD_MODE_SLOT_PX = 28;
 
 /** Default / min / max widths for individual mode columns (px). */
-export const DEFAULT_MODE_COL_PX = 160;
-export const MIN_MODE_COL_PX = 96;
-export const MAX_MODE_COL_PX = 640;
+export const DEFAULT_MODE_COL_PX = 144;
+export const MIN_MODE_COL_PX = 88;
+export const MAX_MODE_COL_PX = 480;
 
 /** Shared by the table header and every row so columns always align. */
 export function getGridTemplate(modeWidths: number[]): string {
   const widths = modeWidths.length > 0 ? modeWidths : [DEFAULT_MODE_COL_PX];
-  const modeCols = widths.map((w) => `${w}px`).join(" ");
-  return `minmax(200px, 2fr) ${modeCols} ${ADD_MODE_SLOT_PX}px`;
+  const modeCols = widths
+    .map((width) => `minmax(${MIN_MODE_COL_PX}px, ${width}px)`)
+    .join(" ");
+  return `minmax(160px, 2.1fr) ${modeCols} minmax(${ADD_MODE_SLOT_PX}px, ${ADD_MODE_SLOT_PX}px)`;
 }
 
 // ---------------------------------------------------------------------------

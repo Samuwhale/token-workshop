@@ -312,9 +312,16 @@ export const TokenLeafNode = memo(
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected
         ? "bg-[var(--color-figma-accent)]/12"
+      : isPreviewed
+        ? "bg-[var(--color-figma-accent)]/8"
+        : "";
+    const stickyCellStateClass = isHighlighted
+      ? "bg-[var(--color-figma-accent)]/15"
+      : isSelected
+        ? "bg-[var(--color-figma-accent)]/12"
         : isPreviewed
           ? "bg-[var(--color-figma-accent)]/8"
-          : "";
+          : "bg-[var(--color-figma-bg)] group-hover:bg-[var(--color-figma-bg-hover)]";
     // Suppressed on accent-colored row states so the edge doesn't compete with the ring/background.
     const isBoundToSelection =
       !!boundTokenPaths?.has(node.path) &&
@@ -838,7 +845,7 @@ export const TokenLeafNode = memo(
             <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--color-figma-accent)] pointer-events-none z-10" />
           )}
           <div
-            className="sticky left-0 z-[1] flex items-center gap-1.5 min-w-0 pr-1 bg-[var(--color-figma-bg)] group-hover:bg-[var(--color-figma-bg-hover)]"
+            className={`sticky left-0 z-[1] flex min-w-0 items-center gap-1.5 pr-1 ${stickyCellStateClass}`}
             style={{ paddingLeft: `${computePaddingLeft(depth, 14)}px` }}
           >
           <DepthBar depth={depth} />
