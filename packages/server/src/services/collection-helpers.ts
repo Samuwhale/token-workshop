@@ -17,6 +17,8 @@ import { setTokenAtPath } from "./token-tree-utils.js";
 
 const FOLDER_ITEM_SUFFIX = "/";
 const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
+const TOKENMANAGER_EXTENSION_KEY = "tokenmanager";
+const GRAPH_EXTENSION_KEY = "graph";
 
 export interface FolderCollectionRename {
   from: string;
@@ -202,10 +204,27 @@ export function stripGeneratedOwnershipFromTokenGroup(
       if (
         extensions &&
         typeof extensions === "object" &&
-        GENERATOR_EXTENSION_KEY in extensions
+        (GENERATOR_EXTENSION_KEY in extensions ||
+          TOKENMANAGER_EXTENSION_KEY in extensions)
       ) {
         const nextExtensions = { ...extensions };
         delete nextExtensions[GENERATOR_EXTENSION_KEY];
+        const tokenmanager =
+          nextExtensions[TOKENMANAGER_EXTENSION_KEY];
+        if (
+          tokenmanager &&
+          typeof tokenmanager === "object" &&
+          !Array.isArray(tokenmanager) &&
+          GRAPH_EXTENSION_KEY in tokenmanager
+        ) {
+          const nextTokenmanager = { ...(tokenmanager as Record<string, unknown>) };
+          delete nextTokenmanager[GRAPH_EXTENSION_KEY];
+          if (Object.keys(nextTokenmanager).length > 0) {
+            nextExtensions[TOKENMANAGER_EXTENSION_KEY] = nextTokenmanager;
+          } else {
+            delete nextExtensions[TOKENMANAGER_EXTENSION_KEY];
+          }
+        }
         if (Object.keys(nextExtensions).length > 0) {
           node.$extensions = nextExtensions;
         } else {

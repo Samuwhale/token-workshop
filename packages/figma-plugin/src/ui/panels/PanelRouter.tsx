@@ -39,7 +39,6 @@ import { useConnectionContext } from "../contexts/ConnectionContext";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
 } from "../contexts/TokenDataContext";
 import {
   useSelectionContext,
@@ -241,10 +240,6 @@ export function PanelRouter({
     setFilteredCollectionCount,
     modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
-  const {
-    generators,
-    derivedTokenPaths,
-  } = useGeneratorContext();
   const { selectedNodes } = useSelectionContext();
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const healthRouteIntentRef = useRef<"deep-link" | null>(null);
@@ -369,7 +364,6 @@ export function PanelRouter({
   const healthSignals = useHealthSignals({
     validationIssues,
     lintViolations,
-    generators,
     currentCollectionId,
   });
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
@@ -1023,8 +1017,6 @@ export function PanelRouter({
           lintViolations: healthSignals.lintViolationsForCurrent,
           syncSnapshot:
             Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
-          generators,
-          derivedTokenPaths,
           tokenUsageCounts,
           tokenUsageReady: hasTokenUsageScanResult,
           perCollectionFlat,
@@ -1592,7 +1584,7 @@ export function PanelRouter({
             onRefreshReview={refreshReviewData}
             onPushUndo={controller.pushUndo}
             onError={controller.setErrorToast}
-            onNavigateToGenerators={() => navigateTo("library", "tokens")}
+            onNavigateToGraphs={() => navigateTo("library", "graph")}
             onViewIssueInGraph={(issue) => {
               if (!issue.graphId) return;
               setPendingGraphDocumentId(issue.graphId);

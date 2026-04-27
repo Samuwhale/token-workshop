@@ -1,20 +1,16 @@
 import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
-import type { TokenGenerator } from './useGenerators';
 import type { TokenCollection } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import { computeGeneratorImpacts, computeModeImpacts } from '../shared/tokenImpact';
+import { computeModeImpacts } from '../shared/tokenImpact';
 import type { RenameTokenConfirmState } from '../shared/tokenListModalTypes';
 
 export interface UseTokenRenameParams {
   connected: boolean;
   serverUrl: string;
   collectionId: string;
-  generators?: TokenGenerator[];
   collections?: TokenCollection[];
-  pathToCollectionId?: Record<string, string>;
-  collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   allTokensFlat?: Record<string, TokenMapEntry>;
   onRefresh: () => void;
@@ -28,10 +24,7 @@ export function useTokenRename({
   connected,
   serverUrl,
   collectionId,
-  generators,
   collections,
-  pathToCollectionId,
-  collectionIdsByPath,
   perCollectionFlat,
   allTokensFlat,
   onRefresh,
@@ -124,32 +117,24 @@ export function useTokenRename({
     const targetPaths = new Set([oldPath]);
     const source =
       perCollectionFlat ?? (allTokensFlat ? { [collectionId]: allTokensFlat } : {});
-    const generatorImpacts = computeGeneratorImpacts(
-      targetPaths,
-      collectionId,
-      generators ?? [],
-      pathToCollectionId,
-      collectionIdsByPath,
-    );
     const modeImpacts = computeModeImpacts(
       targetPaths,
       collectionId,
       collections ?? [],
       source,
     );
-    if (data.count > 0 || generatorImpacts.length > 0 || modeImpacts.length > 0) {
+    if (data.count > 0 || modeImpacts.length > 0) {
       setRenameTokenConfirm({
         oldPath,
         newPath,
         depCount: data.count,
         deps: data.changes.map(c => ({ path: c.tokenPath, collectionId: c.collectionId, tokenPath: c.tokenPath, oldValue: c.oldValue, newValue: c.newValue })),
-        generatorImpacts,
         modeImpacts,
       });
     } else {
       await executeTokenRename(oldPath, newPath);
     }
-  }, [collectionId, collectionIdsByPath, collections, connected, executeTokenRename, generators, pathToCollectionId, perCollectionFlat, allTokensFlat, onError, serverUrl]);
+  }, [collectionId, collections, connected, executeTokenRename, perCollectionFlat, allTokensFlat, onError, serverUrl]);
 
   return {
     renameTokenConfirm,

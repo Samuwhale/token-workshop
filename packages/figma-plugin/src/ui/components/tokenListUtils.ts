@@ -1,6 +1,6 @@
 import type { TokenNode } from '../hooks/useTokens';
 import {
-  createGeneratorOwnershipKey,
+  readGraphProvenance,
   SEARCH_HAS_CANONICAL_MAP,
   SEARCH_HAS_CANONICAL_VALUES,
   SEARCH_HAS_VALUES as HAS_VALUES,
@@ -10,7 +10,6 @@ import {
 } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { DEFAULT_DURATION_TOKEN_VALUE } from '../shared/tokenValueParsing';
-import type { TokenGenerator } from '../hooks/useGenerators';
 import type { SortOrder } from './tokenListTypes';
 import { isAlias } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
@@ -26,7 +25,7 @@ export interface ParsedQuery {
   text: string;
   /** type:color, type:dimension, etc. */
   types: string[];
-  /** has:alias, has:direct, has:duplicate, has:description */
+  /** has:alias, has:direct, has:duplicate, has:description, has:managed */
   has: string[];
   /** value:<substring> — search within serialized token values */
   values: string[];
@@ -36,8 +35,6 @@ export interface ParsedQuery {
   paths: string[];
   /** name:<substring> — search only the leaf name */
   names: string[];
-  /** generated:<name> — filter by generated group that produced the token */
-  generators: string[];
   /** scope:<category> — tokens that can be applied to this Figma field category */
   scopes: ScopeCategory[];
 }
@@ -51,7 +48,7 @@ export { SCOPE_CATEGORIES, SCOPE_CATEGORY_KEYS };
 
 export type ScopeCategory = keyof typeof SCOPE_CATEGORIES;
 
-const QUALIFIER_RE = /\b(type|has|value|desc|path|name|generated|gen|scope):(\S+)/gi;
+const QUALIFIER_RE = /\b(type|has|value|desc|path|name|scope):(\S+)/gi;
 const QUERY_TOKEN_RE = /\b([a-z]+):(\S+)/gi;
 
 /** Recognized values for has: qualifier */
@@ -107,7 +104,6 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
   const descs: string[] = [];
   const paths: string[] = [];
   const names: string[] = [];
-  const generators: string[] = [];
   const scopes: ScopeCategory[] = [];
 
   const text = raw.replace(QUALIFIER_RE, (_, key: string, val: string) => {
@@ -120,10 +116,6 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
       case 'desc': descs.push(v); break;
       case 'path': paths.push(v); break;
       case 'name': names.push(v); break;
-      case 'generated':
-      case 'gen':
-        generators.push(v);
-        break;
       case 'scope':
         if (isScopeCategory(v)) scopes.push(v);
         break;
@@ -131,7 +123,7 @@ export function parseStructuredQuery(raw: string): ParsedQuery {
     return ''; // remove qualifier from text portion
   }).trim();
 
-  return { text, types, has, values, descs, paths, names, generators, scopes };
+  return { text, types, has, values, descs, paths, names, scopes };
 }
 
 /** Returns true when the raw query contains at least one recognized qualifier. */
@@ -145,7 +137,7 @@ export const HAS_CANONICAL = SEARCH_HAS_CANONICAL_VALUES;
 export type HasQualifierValue = SearchHasQualifierValue;
 
 export interface QueryQualifierDefinition {
-  key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope';
+  key: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'group' | 'scope';
   qualifier: string;
   desc: string;
   example: string;
@@ -191,7 +183,7 @@ export function tokenMatchesScopeCategories(
 export function getQualifierCompletions(
   qualifier: string,
   partial: string,
-  tokens: Array<{ path: string; type: string; isAlias?: boolean; description?: string; generatorName?: string; value?: string }>,
+  tokens: Array<{ path: string; type: string; isAlias?: boolean; description?: string; value?: string }>,
   groups?: Array<{ path: string }>,
 ): string[] {
   const p = partial.toLowerCase();
@@ -207,14 +199,6 @@ export function getQualifierCompletions(
     case 'has':
       candidates = [...HAS_CANONICAL];
       break;
-    case 'generator':
-    case 'generated':
-    case 'gen': {
-      const gens = new Set<string>();
-      for (const t of tokens) if (t.generatorName) gens.add(t.generatorName.toLowerCase());
-      candidates = Array.from(gens).sort();
-      break;
-    }
     case 'path': {
       const segs = new Set<string>();
       for (const t of tokens) {
@@ -271,7 +255,7 @@ export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'has', qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: 'has:duplicate', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
   { key: 'has', qualifier: 'has:description', desc: 'Only tokens with a description', example: 'has:description', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
   { key: 'has', qualifier: 'has:extension', desc: 'Only tokens with extensions', example: 'has:extension', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
-  { key: 'has', qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: 'has:unused', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: 'has:unused', valueHint: 'Choose a token property like alias, duplicate, managed, or unused.' },
   { key: 'value', qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000', valueHint: 'Enter a value fragment, for example #ff0000 or 16px.' },
   { key: 'desc', qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary', valueHint: 'Enter words from the token description.' },
   { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
@@ -300,8 +284,7 @@ export function replaceQueryToken(raw: string, activeToken: ActiveQueryToken, re
 }
 
 export function removeQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string {
-  const keys = qualifier === 'generator' ? ['generated', 'gen'] : [qualifier];
-  const pattern = new RegExp(`\\b(?:${keys.join('|')}):\\S+`, 'gi');
+  const pattern = new RegExp(`\\b${qualifier}:\\S+`, 'gi');
   return raw.replace(pattern, ' ').replace(/\s+/g, ' ').trim();
 }
 
@@ -311,19 +294,17 @@ export function setQueryQualifierValues(
   values: string[],
 ): string {
   const base = removeQueryQualifierValues(raw, qualifier);
-  const prefix = qualifier === 'generator' ? 'generated' : qualifier;
-  const additions = values.map(value => `${prefix}:${value}`);
+  const additions = values.map(value => `${qualifier}:${value}`);
   return [base, ...additions].filter(Boolean).join(' ').trim();
 }
 
 export function getQueryQualifierValues(raw: string, qualifier: QueryQualifierDefinition['key']): string[] {
-  const keys =
-    qualifier === 'generator'
-      ? new Set(['generated', 'gen'])
-      : new Set([qualifier]);
+  const keys = new Set([qualifier]);
   const values: string[] = [];
   raw.replace(QUERY_TOKEN_RE, (_, key: string, value: string) => {
-    if (keys.has(key.toLowerCase())) values.push(value.toLowerCase());
+    if (keys.has(key.toLowerCase() as QueryQualifierDefinition['key'])) {
+      values.push(value.toLowerCase());
+    }
     return '';
   });
   return values;
@@ -333,9 +314,6 @@ export function getQualifierDefinitionForToken(token: string): QueryQualifierDef
   const match = token.match(/^([a-z]+):/i);
   if (!match) return null;
   const key = match[1].toLowerCase();
-  if (key === 'generated' || key === 'gen') {
-    return QUERY_QUALIFIERS.find(def => def.key === 'generator') ?? null;
-  }
   return QUERY_QUALIFIERS.find(def => def.key === key) ?? null;
 }
 
@@ -434,7 +412,6 @@ export function filterTokenNodes(
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
-  derivedTokenPaths?: Map<string, TokenGenerator>,
   unusedTokenPaths?: Set<string>,
 ): TokenNode[] {
   if (findUnsupportedStructuredTokens(searchQuery).length > 0) {
@@ -443,10 +420,10 @@ export function filterTokenNodes(
   const parsed = parseStructuredQuery(searchQuery);
   const hasQualifiers = parsed.types.length > 0 || parsed.has.length > 0 || parsed.values.length > 0
     || parsed.descs.length > 0 || parsed.paths.length > 0 || parsed.names.length > 0
-    || parsed.generators.length > 0 || parsed.scopes.length > 0;
+    || parsed.scopes.length > 0;
 
   if (hasQualifiers) {
-    return filterTokenNodesStructured(nodes, collectionId, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+    return filterTokenNodesStructured(nodes, collectionId, parsed, typeFilter, refFilter, duplicateValuePaths, unusedTokenPaths);
   }
 
   // Fast path: plain text search (no qualifiers)
@@ -454,7 +431,7 @@ export function filterTokenNodes(
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filteredChildren = filterTokenNodes(node.children ?? [], collectionId, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+      const filteredChildren = filterTokenNodes(node.children ?? [], collectionId, searchQuery, typeFilter, refFilter, duplicateValuePaths, unusedTokenPaths);
       if (filteredChildren.length > 0) {
         result.push({ ...node, children: filteredChildren });
       }
@@ -481,17 +458,15 @@ function filterTokenNodesStructured(
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
   duplicateValuePaths?: Set<string>,
-  derivedTokenPaths?: Map<string, TokenGenerator>,
   unusedTokenPaths?: Set<string>,
 ): TokenNode[] {
   const q = parsed.text.toLowerCase();
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filtered = filterTokenNodesStructured(node.children ?? [], collectionId, parsed, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths);
+      const filtered = filterTokenNodesStructured(node.children ?? [], collectionId, parsed, typeFilter, refFilter, duplicateValuePaths, unusedTokenPaths);
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
-      const generatorKey = createGeneratorOwnershipKey(collectionId, node.path);
       // Free-text match (on path, name, or description)
       if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q) && !(node.$description || '').toLowerCase().includes(q)) continue;
 
@@ -511,7 +486,7 @@ function filterTokenNodesStructured(
         if ((h === 'duplicate' || h === 'dup') && (!duplicateValuePaths || !duplicateValuePaths.has(node.path))) { hasMatch = false; break; }
         if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
         if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
-        if ((h === 'generated' || h === 'gen') && !derivedTokenPaths?.has(generatorKey)) { hasMatch = false; break; }
+        if ((h === 'managed' || h === 'graph') && !readGraphProvenance(node)) { hasMatch = false; break; }
         if (h === 'unused' && (!unusedTokenPaths || !unusedTokenPaths.has(node.path))) { hasMatch = false; break; }
       }
       if (!hasMatch) continue;
@@ -544,14 +519,6 @@ function filterTokenNodesStructured(
       if (parsed.names.length > 0) {
         const ln = node.name.toLowerCase();
         if (!parsed.names.some(n => ln.includes(n))) continue;
-      }
-
-      // generated: qualifier — match by generated group name
-      if (parsed.generators.length > 0) {
-        const gen = derivedTokenPaths?.get(generatorKey);
-        if (!gen) continue;
-        const gn = gen.name.toLowerCase();
-        if (!parsed.generators.some(g => gn === g || gn.includes(g))) continue;
       }
 
       // scope: qualifier — token permits application to the category's Figma field(s)

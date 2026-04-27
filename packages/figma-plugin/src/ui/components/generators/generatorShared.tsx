@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import type { DimensionValue } from '@tokenmanager/core';
-import type { GeneratedTokenResult } from '../../hooks/useGenerators';
+import type { GeneratedTokenResult } from '../../shared/graphTemplateTypes';
 import { formatTokenValueForDisplay } from '../../shared/tokenFormatting';
 
 // ---------------------------------------------------------------------------
-// Shared input primitives for generator config editors
+// Shared input primitives for graph template controls
 // ---------------------------------------------------------------------------
 
 /**
  * A compact hex color input: a native color swatch + a hex text field.
- * Used in generator config editors that don't need the full ColorEditor
+ * Used in graph template controls that don't need the full ColorEditor
  * (format cycling, wide-gamut detection, etc.).
  */
 export function CompactColorInput({

@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET } from '@tokenmanager/core';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenGenerator } from './useGenerators';
 import { STORAGE_KEY_BUILDERS, lsGet, lsSet, ssGet, ssSet } from '../shared/storage';
 import { ALL_TOKEN_TYPES } from '../shared/tokenTypeCategories';
 import {
@@ -72,7 +71,6 @@ export interface UseTokenSearchParams {
   lintPaths?: Set<string>;
   boundTokenPaths?: Set<string>;
   unusedTokenPaths?: Set<string> | undefined;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
 }
 
 export function useTokenSearch({
@@ -95,7 +93,6 @@ export function useTokenSearch({
   lintPaths = new Set(),
   boundTokenPaths = new Set(),
   unusedTokenPaths,
-  derivedTokenPaths,
 }: UseTokenSearchParams) {
   const searchRef = useRef<HTMLInputElement>(null);
   const qualifierHintsRef = useRef<HTMLDivElement>(null);
@@ -307,7 +304,6 @@ export function useTokenSearch({
     if (parsed.descs.length) params.set('desc', parsed.descs.join(','));
     if (parsed.paths.length) params.set('path', parsed.paths.join(','));
     if (parsed.names.length) params.set('name', parsed.names.join(','));
-    if (parsed.generators.length) params.set('generated', parsed.generators.join(','));
     if (parsed.scopes.length) params.set('scope', parsed.scopes.join(','));
     params.set('limit', String(CROSS_COLLECTION_PAGE_SIZE));
     if (crossCollectionOffset > 0) params.set('offset', String(crossCollectionOffset));
@@ -429,12 +425,6 @@ export function useTokenSearch({
     return [...merged].sort();
   }, [availableTypes]);
 
-  const generatorNames = useMemo(() => {
-    const names = new Set<string>();
-    for (const generator of derivedTokenPaths?.values() ?? []) names.add(generator.name);
-    return [...names].sort((a, b) => a.localeCompare(b));
-  }, [derivedTokenPaths]);
-
   const parsedSearchQuery = useMemo(() => parseStructuredQuery(searchQuery), [searchQuery]);
   const selectedHasQualifiers = useMemo(
     () => Array.from(new Set(parsedSearchQuery.has.map(value => normalizeHasQualifier(value)).filter((value): value is NonNullable<typeof value> => value !== null))),
@@ -485,28 +475,13 @@ export function useTokenSearch({
       }));
     }
 
-    if (qualifierDef.key === 'generator') {
-      const matches = partialValue
-        ? generatorNames.filter(name => name.toLowerCase().startsWith(partialValue))
-        : generatorNames;
-      if (matches.length > 0) {
-        return matches.map(name => ({
-          id: `generated:${name}`,
-          label: `generated:${name}`,
-          desc: 'Filter by generated group name',
-          replacement: `generated:${name}`,
-          kind: 'replacement' as const,
-        }));
-      }
-    }
-
     return [{
       id: `${qualifierDef.key}-hint`,
       label: activeToken,
       desc: qualifierDef.valueHint ?? qualifierDef.desc,
       kind: 'hint' as const,
     }];
-  }, [activeQueryToken.token, crossCollectionSearch, generatorNames, qualifierTypeOptions]);
+  }, [activeQueryToken.token, crossCollectionSearch, qualifierTypeOptions]);
 
   // Compute highlight terms from the parsed search query for substring highlighting
   const searchHighlight = useMemo(() => {
@@ -524,7 +499,7 @@ export function useTokenSearch({
   }, [parsedSearchQuery, searchQuery]);
 
   const addQueryQualifierValue = useCallback((
-    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'generator' | 'group' | 'scope',
+    qualifier: 'type' | 'has' | 'value' | 'desc' | 'path' | 'name' | 'group' | 'scope',
     value: string,
   ) => {
     const normalizedValue = value.trim().toLowerCase();
@@ -551,12 +526,6 @@ export function useTokenSearch({
     for (const value of parsedSearchQuery.descs) chips.push({ token: `desc:${value}`, label: `desc:${value}` });
     for (const value of parsedSearchQuery.paths) chips.push({ token: `path:${value}`, label: `path:${value}` });
     for (const value of parsedSearchQuery.names) chips.push({ token: `name:${value}`, label: `name:${value}` });
-    for (const value of parsedSearchQuery.generators) {
-      chips.push({
-        token: `generated:${value}`,
-        label: `generated:${value}`,
-      });
-    }
     for (const value of parsedSearchQuery.scopes) {
       chips.push({
         token: `scope:${value}`,
@@ -576,7 +545,7 @@ export function useTokenSearch({
       const zoomNode = findGroupByPath(sortedTokens, zoomRootPath);
       baseTokens = zoomNode?.children ?? [];
     }
-    let result = filtersActive ? filterTokenNodes(baseTokens, collectionId, searchQuery, typeFilter, refFilter, duplicateValuePaths, derivedTokenPaths, unusedTokenPaths) : baseTokens;
+    let result = filtersActive ? filterTokenNodes(baseTokens, collectionId, searchQuery, typeFilter, refFilter, duplicateValuePaths, unusedTokenPaths) : baseTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && boundTokenPaths.size > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
@@ -589,7 +558,7 @@ export function useTokenSearch({
       else result = [];
     }
     return result;
-  }, [sortedTokens, zoomRootPath, collectionId, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouchedPaths, showStarredOnly, starredPaths, derivedTokenPaths, unusedTokenPaths]);
+  }, [sortedTokens, zoomRootPath, collectionId, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, boundTokenPaths, showRecentlyTouched, recentlyTouchedPaths, showStarredOnly, starredPaths, unusedTokenPaths]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);

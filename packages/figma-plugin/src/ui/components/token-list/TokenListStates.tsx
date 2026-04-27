@@ -262,7 +262,6 @@ export function TokenListFilteredEmptyState({
               name: "Leaf name",
               value: "Value",
               desc: "Description",
-              generator: "Generated",
               scope: "Can apply to",
             };
             const matchingSections = new Map<FilterBuilderSection, string>();

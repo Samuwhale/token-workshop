@@ -2,7 +2,6 @@ import type { TokenReference, TokenValue } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import type {
   DeleteConfirm,
-  GeneratorImpact,
   ModeImpact,
   PromoteRow,
 } from "../components/tokenListTypes";
@@ -46,7 +45,6 @@ export interface RenameTokenConfirmState {
   newPath: string;
   depCount: number;
   deps: RenameDependencyChange[];
-  generatorImpacts: GeneratorImpact[];
   modeImpacts: ModeImpact[];
 }
 

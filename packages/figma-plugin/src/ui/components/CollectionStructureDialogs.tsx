@@ -134,7 +134,7 @@ function CollectionPreflightCard({
       ) : null}
       {!hasDependencies ? (
         <div className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
-          No linked resolver or generated group dependencies detected.
+          No linked resolver or automation dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
@@ -193,7 +193,7 @@ function CollectionPreflightCard({
           {impact.generatorTargets.length > 0 ? (
             <div className="flex flex-col gap-1">
               <div className="text-secondary font-medium text-[var(--color-figma-text)]">
-                Generated group targets ({impact.generatorTargets.length})
+                Automation targets ({impact.generatorTargets.length})
               </div>
               <div className="flex flex-col gap-1">
                 {impact.generatorTargets.map((generator) => (

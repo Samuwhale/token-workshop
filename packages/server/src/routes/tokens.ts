@@ -578,7 +578,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   }
 
   // GET /api/tokens/search — search tokens across all collections
-  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; generated?: string; scope?: string; limit?: string; offset?: string } }>(
+  fastify.get<{ Querystring: { q?: string; type?: string; has?: string; value?: string; desc?: string; path?: string; name?: string; scope?: string; limit?: string; offset?: string } }>(
     '/tokens/search',
     async (request, reply) => {
       try {
@@ -591,7 +591,6 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           desc,
           path: pathQ,
           name: nameQ,
-          generated,
           scope,
           limit,
           offset,
@@ -607,7 +606,6 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           validateSearchList(desc, 'desc') ??
           validateSearchList(pathQ, 'path') ??
           validateSearchList(nameQ, 'name') ??
-          validateSearchList(generated, 'generated') ??
           validateSearchList(scope, 'scope');
         if (listError) return reply.status(400).send({ error: listError });
 
@@ -622,7 +620,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         ) {
           return reply.status(400).send({
             error:
-              'Cross-collection search supports has:alias, has:direct, has:duplicate, has:description, has:extension, and has:generated.',
+              'Cross-collection search supports has:alias, has:direct, has:duplicate, has:description, has:extension, and has:managed.',
           });
         }
         const requestedScopeValues = scope
@@ -648,34 +646,6 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const parsedOffset = parseInt(offset ?? '0', 10);
         const resolvedOffset = Math.max(isNaN(parsedOffset) ? 0 : parsedOffset, 0);
 
-        const requestedGenerators = generated
-          ? generated
-              .split(",")
-              .map((item) => item.trim().toLowerCase())
-              .filter(Boolean)
-          : undefined;
-        let generatorIds: string[] | undefined;
-        if (requestedGenerators && requestedGenerators.length > 0) {
-          const generatorsById = await fastify.generatorService.getAllById();
-          generatorIds = Object.values(generatorsById)
-            .filter((generator) => {
-              const generatorName = generator.name.toLowerCase();
-              return requestedGenerators.some(
-                (query) =>
-                  generatorName === query || generatorName.includes(query),
-              );
-            })
-            .map((generator) => generator.id);
-          if (generatorIds.length === 0) {
-            return {
-              data: [],
-              total: 0,
-              hasMore: false,
-              limit: resolvedLimit,
-              offset: resolvedOffset,
-            };
-          }
-        }
         const { results, total } = fastify.tokenStore.searchTokens({
           q: q || undefined,
           types: type ? type.split(',') : undefined,
@@ -684,7 +654,6 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           descs: desc ? desc.split(',') : undefined,
           paths: pathQ ? pathQ.split(',') : undefined,
           names: nameQ ? nameQ.split(',') : undefined,
-          generatorIds,
           scopes: requestedScopeValues?.filter(Boolean),
           limit: resolvedLimit,
           offset: resolvedOffset,

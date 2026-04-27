@@ -122,8 +122,6 @@ export function TokenList({
     allTokensFlat,
     lintViolations = [],
     syncSnapshot,
-    generators,
-    derivedTokenPaths,
     tokenUsageCounts,
     tokenUsageReady = false,
     perCollectionFlat,
@@ -770,7 +768,6 @@ export function TokenList({
     lintPaths,
     boundTokenPaths,
     unusedTokenPaths,
-    derivedTokenPaths,
   });
   const {
     searchQuery,
@@ -1148,7 +1145,6 @@ export function TokenList({
     pathToCollectionId,
     collectionIdsByPath,
     perCollectionFlat,
-    generators,
     collections,
     onRefresh,
     onPushUndo,
@@ -1833,7 +1829,7 @@ export function TokenList({
 
   const tokenTreeLeafState = useTokenTreeLeafState({
     serverUrl, collectionId, collectionIds, groupBy, selectionCapabilities, duplicateCounts,
-    selectMode, highlightedToken, inspectMode, syncSnapshot, derivedTokenPaths,
+    selectMode, highlightedToken, inspectMode, syncSnapshot,
     searchHighlight, selectedNodes, boundTokenPaths, dragOverReorder, selectedLeafNodes,
     showResolvedValues,
     starredPaths,

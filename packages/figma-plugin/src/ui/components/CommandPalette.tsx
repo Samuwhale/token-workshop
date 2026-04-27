@@ -101,7 +101,7 @@ function tokenEntryKey(token: TokenEntry): string {
 }
 
 // Matches the last qualifier:partial at the end of the query (no trailing space)
-const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|generated|gen|group|scope):(\S*)$/i;
+const ACTIVE_QUALIFIER_RE = /(type|has|value|desc|path|name|group|scope):(\S*)$/i;
 
 /** If the query ends with a qualifier:partial pattern, return it for autocomplete. */
 function detectActiveQualifier(q: string): { qualifier: string; partial: string } | null {
@@ -125,7 +125,6 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
       if ((h === 'duplicate' || h === 'dup') && !t.isDuplicate) return false;
       if ((h === 'description' || h === 'desc') && !t.description) return false;
       if ((h === 'extension' || h === 'ext') && !t.hasExtensions) return false;
-      if ((h === 'generated' || h === 'gen') && !t.generatorName) return false;
       if (h === 'unused' && !t.isUnused) return false;
     }
     // value: qualifier
@@ -142,12 +141,6 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
     if (parsed.names.length > 0) {
       const ln = leafName(t.path).toLowerCase();
       if (!parsed.names.some(n => ln.includes(n))) return false;
-    }
-    // generated: qualifier
-    if (parsed.generators.length > 0) {
-      if (!t.generatorName) return false;
-      const gn = t.generatorName.toLowerCase();
-      if (!parsed.generators.some(g => gn === g || gn.includes(g))) return false;
     }
     // scope: qualifier — token permits application to the category's Figma field
     if (parsed.scopes.length > 0) {
@@ -232,7 +225,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
   const hasQualifiers = parsedTokenQuery.types.length > 0 || parsedTokenQuery.has.length > 0
     || parsedTokenQuery.values.length > 0 || parsedTokenQuery.paths.length > 0
     || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0
-    || parsedTokenQuery.generators.length > 0 || parsedTokenQuery.scopes.length > 0;
+    || parsedTokenQuery.scopes.length > 0;
 
   // Qualifier value autocomplete — detect qualifier:partial at end of query
   const activeQualifier = useMemo(() => (isTokenMode ? detectActiveQualifier(query) : null), [isTokenMode, query]);
@@ -610,7 +603,6 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                   { val: 'duplicate', desc: 'Tokens sharing a value' },
                   { val: 'description', desc: 'Tokens with a description' },
                   { val: 'extension', desc: 'Tokens with extensions' },
-                  { val: 'generated', desc: 'Generator-managed tokens' },
                   { val: 'unused', desc: 'No Figma usage or dependents' },
                 ].map(({ val, desc }) => (
                   <button

@@ -24,7 +24,7 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
     parts.push(`${resolverCount} resolver ${resolverCount === 1 ? 'change' : 'changes'}`);
   }
   if (generatorCount > 0) {
-    parts.push(`${generatorCount} generated group ${generatorCount === 1 ? 'change' : 'changes'}`);
+    parts.push(`${generatorCount} automation ${generatorCount === 1 ? 'change' : 'changes'}`);
   }
 
   return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
@@ -630,7 +630,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               <polyline points="7 3 7 8 15 8" />
             </svg>
             <p className="text-body text-[var(--color-figma-text-secondary)]">
-              Save your current workspace before making changes. Come back to compare or restore collections, modes, resolvers, and generated groups anytime.
+              Save your current workspace before making changes. Come back to compare or restore collections, modes, resolvers, and automation anytime.
             </p>
           </div>
         )}
@@ -651,7 +651,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                       {(s.collectionCount + s.resolverCount + s.generatorCount) > 0 ? ` · ${[
                         s.collectionCount > 0 ? `${s.collectionCount} ${s.collectionCount === 1 ? 'collection' : 'collections'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
-                        s.generatorCount > 0 ? `${s.generatorCount} ${s.generatorCount === 1 ? 'generated group' : 'generated groups'}` : '',
+                        s.generatorCount > 0 ? `${s.generatorCount} automation ${s.generatorCount === 1 ? 'item' : 'items'}` : '',
                       ].filter(Boolean).join(' · ')}` : ''}
                     </p>
                   </div>

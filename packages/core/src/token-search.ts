@@ -41,7 +41,7 @@ export const SEARCH_HAS_CANONICAL_VALUES = [
   "duplicate",
   "description",
   "extension",
-  "generated",
+  "managed",
   "unused",
 ] as const;
 
@@ -74,8 +74,8 @@ export const SEARCH_HAS_VALUES = new Set<string>([
   "desc",
   "extension",
   "ext",
-  "generated",
-  "gen",
+  "managed",
+  "graph",
   "unused",
 ]);
 
@@ -89,8 +89,8 @@ export const CROSS_COLLECTION_SEARCH_HAS_VALUES = new Set<string>([
   "desc",
   "extension",
   "ext",
-  "generated",
-  "gen",
+  "managed",
+  "graph",
 ]);
 
 export const SEARCH_HAS_CANONICAL_MAP: Record<
@@ -106,7 +106,7 @@ export const SEARCH_HAS_CANONICAL_MAP: Record<
   desc: "description",
   extension: "extension",
   ext: "extension",
-  generated: "generated",
-  gen: "generated",
+  managed: "managed",
+  graph: "managed",
   unused: "unused",
 };

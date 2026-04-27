@@ -1,6 +1,4 @@
-import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
-import type { TokenGenerator } from "../hooks/useGenerators";
 import { isAlias } from "../../shared/resolveAlias";
 import {
   buildReferencedTokenPathSetFromEntries,
@@ -16,7 +14,6 @@ export interface CommandPaletteToken {
   set?: string;
   isAlias?: boolean;
   description?: string;
-  generatorName?: string;
   scopes?: string[];
   hasExtensions?: boolean;
   isDuplicate?: boolean;
@@ -30,7 +27,6 @@ export interface CommandPaletteTokenSource {
 }
 
 interface BuildCommandPaletteTokensOptions {
-  derivedTokenPaths?: Map<string, TokenGenerator>;
   tokenUsageCounts?: Record<string, number>;
   tokenUsageReady?: boolean;
   duplicateTokenSources?: CommandPaletteTokenSource[];
@@ -79,9 +75,6 @@ export function buildCommandPaletteTokens(
       : null;
 
   return tokenSources.map(({ path, collectionId, entry }) => {
-    const generatorName = options.derivedTokenPaths?.get(
-      createGeneratorOwnershipKey(collectionId, path),
-    )?.name;
     const hasExtensions =
       !!entry.$extensions && Object.keys(entry.$extensions).length > 0;
     const serializedValue = stableStringify(entry.$value);
@@ -97,7 +90,6 @@ export function buildCommandPaletteTokens(
       set: collectionId,
       isAlias: isAlias(entry.$value),
       description: entry.$description,
-      generatorName,
       scopes: entry.$scopes,
       hasExtensions,
       isDuplicate: duplicateValueKeys.has(serializedValue),

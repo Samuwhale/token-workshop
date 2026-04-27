@@ -1617,9 +1617,10 @@ export class CollectionService {
         }
       }
 
-      const tokensCopy = rewriteTokenGroupCollectionModes(source.tokens, (modes) =>
+      const tokensCopyWithModes = rewriteTokenGroupCollectionModes(source.tokens, (modes) =>
         copyCollectionModeKey(modes, sourceCollectionId, nextName!),
       ).tokens;
+      const tokensCopy = stripGeneratedOwnershipFromTokenGroup(tokensCopyWithModes);
       await this.createCollectionFromSourceDefinition(
         sourceCollectionId,
         nextName,

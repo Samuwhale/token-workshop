@@ -3,7 +3,7 @@ import type {
   GeneratedTokenResult,
   GeneratorSemanticLayer,
   SemanticTokenMapping,
-} from "../hooks/useGenerators";
+} from "../shared/graphTemplateTypes";
 import { getErrorMessage } from "../shared/utils";
 import { ApiError } from "../shared/apiFetch";
 import { SEMANTIC_PATTERNS } from "../shared/semanticPatterns";

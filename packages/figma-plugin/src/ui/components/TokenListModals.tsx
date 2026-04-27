@@ -3,19 +3,18 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import { ValuePreview } from './ValuePreview';
 import { extractAliasPath, isAlias } from '../../shared/resolveAlias';
-import type { AffectedRef, GeneratorImpact, ModeImpact } from './tokenListTypes';
+import type { AffectedRef, ModeImpact } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
 import { NoticePill } from '../shared/noticeSystem';
 import { fieldBorderClass } from '../shared/editorClasses';
 
-function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorImpacts, modeImpacts, onConfirm, onCancel }: {
+function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpacts, onConfirm, onCancel }: {
   kind: 'token' | 'group';
   oldPath: string;
   newPath: string;
   depCount: number;
   deps: Array<{ path: string; collectionId: string; tokenPath: string; oldValue: string; newValue: string }>;
-  generatorImpacts?: GeneratorImpact[];
   modeImpacts?: ModeImpact[];
   onConfirm: (updateAliases: boolean) => void;
   onCancel: () => void;
@@ -31,9 +30,8 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorI
     return () => document.removeEventListener('keydown', handler);
   }, [onCancel]);
 
-  const generatorCount = generatorImpacts?.length ?? 0;
   const modeCount = modeImpacts?.length ?? 0;
-  const hasImpacts = depCount > 0 || generatorCount > 0 || modeCount > 0;
+  const hasImpacts = depCount > 0 || modeCount > 0;
 
   const summary = (() => {
     if (!hasImpacts) return `No references found. The ${kind} will be renamed.`;
@@ -43,10 +41,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorI
     const main = parts.length > 0
       ? `Updates ${parts.join(' and ')}.`
       : `Renames this ${kind}.`;
-    const trailing = generatorCount > 0
-      ? ` ${generatorCount} generated ${generatorCount === 1 ? 'group' : 'groups'} reference this ${kind} and won't auto-update.`
-      : '';
-    return main + trailing;
+    return main;
   })();
 
   return (
@@ -99,21 +94,6 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, generatorI
                           <li key={i} className="truncate" title={`${impact.collectionName} / ${impact.optionName}`}>
                             <span className="text-[var(--color-figma-text-tertiary)]">{impact.collectionName} / </span>
                             <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {generatorCount > 0 && (
-                    <div>
-                      <div className="mb-1 text-[var(--color-figma-text-secondary)]">Generated groups (won&rsquo;t auto-update)</div>
-                      <ul className="max-h-[80px] overflow-y-auto flex flex-col gap-0.5">
-                        {generatorImpacts!.map((impact, i) => (
-                          <li key={i} className="truncate" title={`${impact.generatorName} (${impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})`}>
-                            <span className="text-[var(--color-figma-text)]">{impact.generatorName}</span>
-                            <span className="text-[var(--color-figma-text-tertiary)] ml-1">
-                              ({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})
-                            </span>
                           </li>
                         ))}
                       </ul>
@@ -305,25 +285,21 @@ function ExtractToAliasModal() {
 function DeleteImpactDetails({
   pathList,
   affectedRefs,
-  generatorImpacts,
   modeImpacts,
 }: {
   pathList?: string[];
   affectedRefs?: AffectedRef[];
-  generatorImpacts?: GeneratorImpact[];
   modeImpacts?: ModeImpact[];
 }) {
   const [tokensOpen, setTokensOpen] = useState(false);
   const [refsOpen, setRefsOpen] = useState(false);
-  const [gensOpen, setGensOpen] = useState(false);
   const [modesOpen, setModesOpen] = useState(false);
 
   const tokenCount = pathList?.length ?? 0;
   const refCount = affectedRefs?.length ?? 0;
-  const genCount = generatorImpacts?.length ?? 0;
   const modeImpactCount = modeImpacts?.length ?? 0;
 
-  const hasSideEffects = refCount > 0 || genCount > 0 || modeImpactCount > 0;
+  const hasSideEffects = refCount > 0 || modeImpactCount > 0;
 
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -338,11 +314,6 @@ function DeleteImpactDetails({
         {refCount > 0 && (
           <NoticePill severity="error">
             {refCount} broken reference{refCount !== 1 ? 's' : ''}
-          </NoticePill>
-        )}
-        {genCount > 0 && (
-          <NoticePill severity="warning">
-            {genCount} generated group{genCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
         {modeImpactCount > 0 && (
@@ -386,24 +357,6 @@ function DeleteImpactDetails({
             {refCount > 20 && (
               <div className="px-2 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] italic">and {refCount - 20} more…</div>
             )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* Collapsible: generator impacts */}
-      {genCount > 0 && (
-        <CollapsibleSection
-          open={gensOpen}
-          onToggle={() => setGensOpen(v => !v)}
-          label={`Affected generated groups (${genCount})`}
-        >
-          <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {generatorImpacts!.map((impact, i) => (
-              <div key={i} className="px-2 py-0.5 text-secondary border-b border-[var(--color-figma-border)] last:border-b-0 truncate">
-                <span className="font-medium text-[var(--color-figma-text)]">{impact.generatorName}</span>
-                <span className="text-[var(--color-figma-text-tertiary)] ml-1">({impact.role === 'source' ? 'source token' : `config: ${impact.configField}`})</span>
-              </div>
-            ))}
           </div>
         </CollapsibleSection>
       )}
@@ -641,14 +594,13 @@ export function TokenListModals() {
           description={modalProps.description}
           confirmLabel={modalProps.confirmLabel}
           danger
-          wide={!!(modalProps.pathList || modalProps.affectedRefs || modalProps.generatorImpacts?.length || modalProps.modeImpacts?.length)}
+          wide={!!(modalProps.pathList || modalProps.affectedRefs || modalProps.modeImpacts?.length)}
           onConfirm={executeDelete}
           onCancel={() => onSetDeleteConfirm(null)}
         >
           <DeleteImpactDetails
             pathList={modalProps.pathList}
             affectedRefs={modalProps.affectedRefs}
-            generatorImpacts={modalProps.generatorImpacts}
             modeImpacts={modalProps.modeImpacts}
           />
         </ConfirmModal>
@@ -710,7 +662,6 @@ export function TokenListModals() {
           newPath={renameTokenConfirm.newPath}
           depCount={renameTokenConfirm.depCount}
           deps={renameTokenConfirm.deps}
-          generatorImpacts={renameTokenConfirm.generatorImpacts}
           modeImpacts={renameTokenConfirm.modeImpacts}
           onConfirm={(updateAliases) => executeTokenRename(renameTokenConfirm.oldPath, renameTokenConfirm.newPath, updateAliases)}
           onCancel={() => onSetRenameTokenConfirm(null)}

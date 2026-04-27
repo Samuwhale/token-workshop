@@ -1,7 +1,6 @@
 import { useCallback, useRef } from 'react';
 import {
-  createGeneratorOwnershipKey,
-  getGeneratorManagedOutputs,
+  readGraphProvenance,
   readTokenModeValuesForCollection,
   writeTokenModeValuesForCollection,
   type Token,
@@ -17,7 +16,6 @@ import {
   createTokenValueBody,
   updateToken,
 } from '../shared/tokenMutations';
-import type { TokenGenerator } from './useGenerators';
 import { cloneValue } from '../../shared/clone';
 
 export interface UseTokenSaveParams {
@@ -26,7 +24,6 @@ export interface UseTokenSaveParams {
   collectionId: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
-  generators?: TokenGenerator[];
   collections?: TokenCollection[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -40,7 +37,6 @@ export function useTokenSave({
   collectionId,
   allTokensFlat,
   perCollectionFlat,
-  generators,
   collections,
   onRefresh,
   onPushUndo,
@@ -52,14 +48,15 @@ export function useTokenSave({
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
-  const findProducingGenerator = useCallback((path: string) => {
-    return generators?.find((generator) =>
-      getGeneratorManagedOutputs(generator).some(
-        (output) =>
-          output.key === createGeneratorOwnershipKey(collectionId, path),
-      ),
+  const rejectGraphManagedSave = useCallback((path: string, entry: TokenMapEntry | undefined) => {
+    if (!entry || !readGraphProvenance(entry)) {
+      return false;
+    }
+    onError?.(
+      `Token "${path}" is managed by a graph. Open the graph workspace to change generated outputs, or detach it first.`,
     );
-  }, [collectionId, generators]);
+    return true;
+  }, [onError]);
 
   const handleInlineSave = useCallback(async (
     path: string,
@@ -75,6 +72,9 @@ export function useTokenSave({
     // alias references. Using the per-collection entry also ensures undo is captured
     // when the token lives in a collection outside the current working collection.
     const oldEntry = perCollectionFlat?.[collectionId]?.[path] ?? allTokensFlat[path];
+    if (rejectGraphManagedSave(path, oldEntry)) {
+      return;
+    }
     const previousSnapshot = previousState
       ? {
           type: previousState.type ?? oldEntry?.$type ?? type,
@@ -127,7 +127,7 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, rejectGraphManagedSave, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDescriptionSave = useCallback(async (path: string, description: string) => {
     if (!connected) return;
@@ -208,13 +208,6 @@ export function useTokenSave({
     if (!connected) {
       return false;
     }
-    if (findProducingGenerator(path)) {
-      onError?.(
-        "Managed automation outputs are read-only in the token list. Open the graph workspace to change generated tokens.",
-      );
-      return false;
-    }
-
     const targetCollection = collections?.find(
       (collection) => collection.id === targetCollectionId,
     );
@@ -227,6 +220,9 @@ export function useTokenSave({
       perCollectionFlat?.[targetCollectionId]?.[path] ?? allTokensFlat[path];
     if (!currentEntry) {
       onError?.(`Save failed: token "${path}" is unavailable in "${targetCollectionId}"`);
+      return false;
+    }
+    if (rejectGraphManagedSave(path, currentEntry)) {
       return false;
     }
 
@@ -298,12 +294,12 @@ export function useTokenSave({
     allTokensFlat,
     collections,
     connected,
-    findProducingGenerator,
     onError,
     onPushUndo,
     onRecordTouch,
     onRefresh,
     perCollectionFlat,
+    rejectGraphManagedSave,
     serverUrl,
   ]);
 

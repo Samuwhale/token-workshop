@@ -41,7 +41,7 @@ interface TaskDef {
 const TASKS: TaskDef[] = [
   { id: 'author-tokens', label: 'Add your first tokens', description: 'Create tokens by hand in the token editor' },
   { id: 'modes', label: 'Add modes (optional)', description: 'Create variations like Light / Dark. Skip if you only need one mode' },
-  { id: 'foundations', label: 'Accelerate with a generator (optional)', description: 'Generate a color ramp, type scale, spacing scale, or other foundation' },
+  { id: 'foundations', label: 'Start from a graph template (optional)', description: 'Create a color ramp, type scale, spacing scale, or other foundation workflow' },
 ];
 
 // ---------------------------------------------------------------------------

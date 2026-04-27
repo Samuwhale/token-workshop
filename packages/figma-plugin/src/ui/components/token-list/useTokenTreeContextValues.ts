@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { TokenNode } from "../../hooks/useTokens";
-import type { TokenGenerator } from "../../hooks/useGenerators";
 import type {
   NodeCapabilities,
   TokenMapEntry,
@@ -159,7 +158,6 @@ interface LeafStateDeps {
   highlightedToken: string | null | undefined;
   inspectMode: boolean;
   syncSnapshot?: Record<string, string>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   selectedNodes: SelectionNodeInfo[];
   boundTokenPaths?: Set<string>;
@@ -189,7 +187,6 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       previewedPath: deps.highlightedToken ?? null,
       inspectMode: deps.inspectMode,
       syncSnapshot: deps.syncSnapshot,
-      derivedTokenPaths: deps.derivedTokenPaths,
       searchHighlight: deps.searchHighlight,
       selectedNodes: deps.selectedNodes,
       boundTokenPaths: deps.boundTokenPaths,
@@ -215,7 +212,6 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       deps.highlightedToken,
       deps.inspectMode,
       deps.syncSnapshot,
-      deps.derivedTokenPaths,
       deps.searchHighlight,
       deps.selectedNodes,
       deps.boundTokenPaths,

@@ -3,12 +3,11 @@ import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import type { DeleteConfirm, AffectedRef } from '../components/tokenListTypes';
-import type { TokenGenerator } from './useGenerators';
 import type { TokenCollection } from '@tokenmanager/core';
 import { apiFetch } from '../shared/apiFetch';
 import { getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { findLeafByPath, collectGroupLeaves } from '../components/tokenListUtils';
-import { computeGeneratorImpacts, computeModeImpacts } from '../shared/tokenImpact';
+import { computeModeImpacts } from '../shared/tokenImpact';
 import { entryReferencesAnyTokenPath } from '../shared/tokenUsage';
 
 export interface UseTokenDeleteParams {
@@ -17,10 +16,7 @@ export interface UseTokenDeleteParams {
   collectionId: string;
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
-  pathToCollectionId?: Record<string, string>;
-  collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
-  generators?: TokenGenerator[];
   collections?: TokenCollection[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -37,10 +33,7 @@ export function useTokenDelete({
   collectionId,
   tokens,
   allTokensFlat,
-  pathToCollectionId,
-  collectionIdsByPath,
   perCollectionFlat,
-  generators,
   collections,
   onRefresh,
   onPushUndo,
@@ -106,13 +99,6 @@ export function useTokenDelete({
       const source = getImpactCollections();
       return {
         affectedRefs: collectAffectedRefs(targetPaths, excludedPaths),
-        generatorImpacts: computeGeneratorImpacts(
-          new Set(targetPaths),
-          collectionId,
-          generators ?? [],
-          pathToCollectionId,
-          collectionIdsByPath,
-        ),
         modeImpacts: computeModeImpacts(
           new Set(targetPaths),
           collectionId,
@@ -124,11 +110,8 @@ export function useTokenDelete({
     [
       collectAffectedRefs,
       collectionId,
-      collectionIdsByPath,
       collections,
-      generators,
       getImpactCollections,
-      pathToCollectionId,
     ],
   );
 
@@ -151,28 +134,28 @@ export function useTokenDelete({
   const requestDeleteToken = useCallback((path: string) => {
     if (!connected) return;
     const targetPaths = new Set([path]);
-    const { affectedRefs, generatorImpacts, modeImpacts } =
+    const { affectedRefs, modeImpacts } =
       buildDeleteImpacts(targetPaths, targetPaths);
     setDeleteError(null);
-    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, modeImpacts });
+    setDeleteConfirm({ type: 'token', path, orphanCount: affectedRefs.length, affectedRefs, modeImpacts });
   }, [buildDeleteImpacts, connected]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
     if (!connected) return;
     const groupPaths = collectGroupPathsFromCurrentCollection(path);
-    const { affectedRefs, generatorImpacts, modeImpacts } =
+    const { affectedRefs, modeImpacts } =
       buildDeleteImpacts(groupPaths, groupPaths);
     setDeleteError(null);
-    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, modeImpacts });
+    setDeleteConfirm({ type: 'group', path, name, tokenCount, orphanCount: affectedRefs.length, affectedRefs, modeImpacts });
   }, [buildDeleteImpacts, collectGroupPathsFromCurrentCollection, connected]);
 
   const requestBulkDelete = useCallback((selectedPaths: Set<string>) => {
     if (!connected || selectedPaths.size === 0) return;
     const paths = [...selectedPaths];
-    const { affectedRefs, generatorImpacts, modeImpacts } =
+    const { affectedRefs, modeImpacts } =
       buildDeleteImpacts(selectedPaths, selectedPaths);
     setDeleteError(null);
-    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, generatorImpacts, modeImpacts });
+    setDeleteConfirm({ type: 'bulk', paths, orphanCount: affectedRefs.length, affectedRefs, modeImpacts });
   }, [buildDeleteImpacts, connected]);
 
   const executeDelete = useCallback(async () => {

@@ -399,13 +399,10 @@ function readModeScopedTokenValue(
   }
 
   const collectionModes = readTokenCollectionModeValues(token)[collectionId];
-  if (!collectionModes) {
-    return token.$value;
-  }
-
-  return Object.prototype.hasOwnProperty.call(collectionModes, modeName)
+  return collectionModes &&
+    Object.prototype.hasOwnProperty.call(collectionModes, modeName)
     ? collectionModes[modeName]
-    : token.$value;
+    : undefined;
 }
 
 function readDirectAliasTargets(

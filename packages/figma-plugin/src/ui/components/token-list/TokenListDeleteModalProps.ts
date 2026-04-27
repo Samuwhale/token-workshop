@@ -1,6 +1,5 @@
 import type {
   AffectedRef,
-  GeneratorImpact,
   ModeImpact,
   DeleteConfirm,
 } from "../tokenListTypes";
@@ -11,7 +10,6 @@ export interface DeleteModalProps {
   confirmLabel: string;
   pathList?: string[];
   affectedRefs?: AffectedRef[];
-  generatorImpacts?: GeneratorImpact[];
   modeImpacts?: ModeImpact[];
 }
 
@@ -19,10 +17,6 @@ export function getDeleteModalProps(
   deleteConfirm: DeleteConfirm | null,
 ): DeleteModalProps | null {
   if (!deleteConfirm) return null;
-  const genImpacts =
-    deleteConfirm.generatorImpacts.length > 0
-      ? deleteConfirm.generatorImpacts
-      : undefined;
   const thmImpacts =
     deleteConfirm.modeImpacts.length > 0
       ? deleteConfirm.modeImpacts
@@ -37,10 +31,6 @@ export function getDeleteModalProps(
       parts.push(
         `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
       );
-    if (genImpacts)
-      parts.push(
-        `affect ${genImpacts.length} generated group${genImpacts.length !== 1 ? "s" : ""}`,
-      );
     if (thmImpacts)
       parts.push(
         `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
@@ -53,7 +43,6 @@ export function getDeleteModalProps(
           : `Token path: ${deleteConfirm.path}`,
       confirmLabel: "Delete",
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-      generatorImpacts: genImpacts,
       modeImpacts: thmImpacts,
     };
   }
@@ -68,10 +57,6 @@ export function getDeleteModalProps(
       parts.push(
         `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
       );
-    if (genImpacts)
-      parts.push(
-        `affect ${genImpacts.length} generated group${genImpacts.length !== 1 ? "s" : ""}`,
-      );
     if (thmImpacts)
       parts.push(
         `affect ${thmImpacts.length} mode option${thmImpacts.length !== 1 ? "s" : ""}`,
@@ -81,7 +66,6 @@ export function getDeleteModalProps(
       description: `This will ${parts.join(", ")}.`,
       confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? "s" : ""})`,
       affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-      generatorImpacts: genImpacts,
       modeImpacts: thmImpacts,
     };
   }
@@ -92,10 +76,6 @@ export function getDeleteModalProps(
   if (orphanCount > 0)
     parts.push(
       `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
-    );
-  if (genImpacts)
-    parts.push(
-      `affect ${genImpacts.length} generated group${genImpacts.length !== 1 ? "s" : ""}`,
     );
   if (thmImpacts)
     parts.push(
@@ -108,7 +88,6 @@ export function getDeleteModalProps(
     confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? "s" : ""}`,
     pathList: paths,
     affectedRefs: orphanCount > 0 ? affectedRefs : undefined,
-    generatorImpacts: genImpacts,
     modeImpacts: thmImpacts,
   };
 }

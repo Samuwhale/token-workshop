@@ -12,6 +12,7 @@ import {
   isFormula,
   isReference,
   flattenTokenGroup,
+  readGraphProvenance,
   readTokenScopes,
   stableStringify,
   TokenResolver,
@@ -90,15 +91,6 @@ function normalizeSearchTerms(values?: string[]): string[] | undefined {
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
   return normalized.length > 0 ? [...new Set(normalized)] : undefined;
-}
-
-function getTokenGeneratorId(token: Pick<Token, "$extensions">): string | null {
-  const ext = token.$extensions?.["com.tokenmanager.generator"];
-  if (!ext || typeof ext !== "object") {
-    return null;
-  }
-  const generatorId = (ext as { generatorId?: unknown }).generatorId;
-  return typeof generatorId === "string" ? generatorId : null;
 }
 
 export class TokenStore {
@@ -1334,7 +1326,6 @@ export class TokenStore {
     descs?: string[];
     paths?: string[];
     names?: string[];
-    generatorIds?: string[];
     scopes?: string[];
     limit?: number;
     offset?: number;
@@ -1357,7 +1348,6 @@ export class TokenStore {
       descs,
       paths,
       names,
-      generatorIds,
       scopes,
       limit = 200,
       offset = 0,
@@ -1383,8 +1373,6 @@ export class TokenStore {
     if (normalizedScopes && normalizedScopes.length > 0 && allowedScopeValues && allowedScopeValues.size === 0) {
       return { results: [], total: 0 };
     }
-    const generatorIdSet =
-      generatorIds && generatorIds.length > 0 ? new Set(generatorIds) : null;
     const duplicateEntryKeys =
       normalizedHas &&
       normalizedHas.some((value) => value === "duplicate" || value === "dup")
@@ -1472,7 +1460,6 @@ export class TokenStore {
         // has: qualifiers
         let skip = false;
         if (normalizedHas && normalizedHas.length > 0) {
-          const generatorId = getTokenGeneratorId(entry.token);
           for (const h of normalizedHas) {
             if (
               (h === "alias" || h === "ref") &&
@@ -1507,7 +1494,7 @@ export class TokenStore {
               skip = true;
               break;
             }
-            if ((h === "generated" || h === "gen") && !generatorId) {
+            if ((h === "managed" || h === "graph") && !readGraphProvenance(entry.token)) {
               skip = true;
               break;
             }
@@ -1533,11 +1520,6 @@ export class TokenStore {
           ) {
             continue;
           }
-        }
-
-        if (generatorIdSet) {
-          const generatorId = getTokenGeneratorId(entry.token);
-          if (!generatorId || !generatorIdSet.has(generatorId)) continue;
         }
 
         if (normalizedScopes && normalizedScopes.length > 0) {

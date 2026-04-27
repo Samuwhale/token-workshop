@@ -4,7 +4,6 @@ import { useCommandPaletteCommands } from "../hooks/useCommandPaletteCommands";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
 } from "../contexts/TokenDataContext";
 import { useUsageContext } from "../contexts/InspectContext";
 import { useNavigationContext } from "../contexts/NavigationContext";
@@ -26,7 +25,6 @@ export function AppCommandPalette({
     setWorkingCollectionId: setCurrentCollectionId,
   } = useCollectionStateContext();
   const { perCollectionFlat } = useTokenFlatMapContext();
-  const { derivedTokenPaths } = useGeneratorContext();
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const { navigateTo } = useNavigationContext();
   const {
@@ -60,7 +58,6 @@ export function AppCommandPalette({
     return buildCommandPaletteTokens(
       allPaletteTokenSources,
       {
-        derivedTokenPaths,
         tokenUsageCounts,
         tokenUsageReady: hasTokenUsageScanResult,
         duplicateTokenSources: allPaletteTokenSources,
@@ -69,7 +66,6 @@ export function AppCommandPalette({
     );
   }, [
     allPaletteTokenSources,
-    derivedTokenPaths,
     hasTokenUsageScanResult,
     tokenUsageCounts,
   ]);
@@ -86,7 +82,6 @@ export function AppCommandPalette({
           entry: perCollectionFlat[collectionId][path],
         })),
       {
-        derivedTokenPaths,
         tokenUsageCounts,
         tokenUsageReady: hasTokenUsageScanResult,
         duplicateTokenSources: allPaletteTokenSources,
@@ -95,7 +90,6 @@ export function AppCommandPalette({
     );
   }, [
     allPaletteTokenSources,
-    derivedTokenPaths,
     hasTokenUsageScanResult,
     perCollectionFlat,
     starredTokens.tokens,
@@ -118,7 +112,6 @@ export function AppCommandPalette({
           entry: perCollectionFlat[collectionId][path],
         })),
       {
-        derivedTokenPaths,
         tokenUsageCounts,
         tokenUsageReady: hasTokenUsageScanResult,
         duplicateTokenSources: allPaletteTokenSources,
@@ -127,7 +120,6 @@ export function AppCommandPalette({
     );
   }, [
     allPaletteTokenSources,
-    derivedTokenPaths,
     hasTokenUsageScanResult,
     perCollectionFlat,
     tokenUsageCounts,

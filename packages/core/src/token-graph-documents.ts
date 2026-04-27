@@ -861,9 +861,8 @@ function materializeOutputs({
   }
 
   if (firstModeValue.kind === 'list' || node.kind === 'groupOutput') {
-    const listValuesByMode = Object.fromEntries(
-      modeNames.map((modeName) => [modeName, valuesByMode[modeName]]),
-    );
+    const firstListValue = firstModeValue.kind === 'list' ? firstModeValue : null;
+    if (!firstListValue) return [];
     if (!pathPrefix) {
       diagnostics.push({
         id: `${node.id}-missing-prefix`,
@@ -873,15 +872,44 @@ function materializeOutputs({
       });
       return [];
     }
-    return firstModeValue.kind === 'list'
-      ? firstModeValue.values.map((item, itemIndex) => {
+    const listValuesByMode = new Map<string, Extract<GraphRuntimeValue, { kind: 'list' }>>();
+    for (const modeName of modeNames) {
+      const modeValue = valuesByMode[modeName];
+      if (!modeValue) {
+        diagnostics.push({
+          id: `${node.id}-missing-${modeName}`,
+          severity: 'error',
+          nodeId: node.id,
+          message: `${node.label}: ${modeName} has no output value. Connect inputs that evaluate for every target mode.`,
+        });
+        continue;
+      }
+      if (modeValue.kind !== 'list') {
+        diagnostics.push({
+          id: `${node.id}-non-list-${modeName}`,
+          severity: 'error',
+          nodeId: node.id,
+          message: `${node.label}: ${modeName} evaluates to one value, but this output needs a list.`,
+        });
+        continue;
+      }
+      if (modeValue.values.length !== firstListValue.values.length) {
+        diagnostics.push({
+          id: `${node.id}-list-length-${modeName}`,
+          severity: 'error',
+          nodeId: node.id,
+          message: `${node.label}: ${modeName} produces ${modeValue.values.length} items; expected ${firstListValue.values.length}.`,
+        });
+        continue;
+      }
+      listValuesByMode.set(modeName, modeValue);
+    }
+    if (listValuesByMode.size !== modeNames.length) return [];
+    return firstListValue.values.map((item, itemIndex) => {
           const modeValues = Object.fromEntries(
             modeNames.map((modeName) => {
-              const modeValue = listValuesByMode[modeName];
-              const value = modeValue?.kind === 'list'
-                ? (modeValue.values[itemIndex]?.value ?? item.value)
-                : modeValue?.value ?? item.value;
-              return [modeName, value];
+              const modeValue = listValuesByMode.get(modeName)!;
+              return [modeName, modeValue.values[itemIndex].value];
             }),
           ) as Record<string, TokenValue | TokenReference>;
           const outputPath = `${pathPrefix}.${item.key}`;
@@ -895,8 +923,7 @@ function materializeOutputs({
             type: item.type ?? inferTokenType(item.value),
             existingTokens,
           });
-        })
-      : [];
+        });
   }
 
   if (!path) {
@@ -909,14 +936,33 @@ function materializeOutputs({
     return [];
   }
 
+  const scalarModeValues = new Map<string, TokenValue | TokenReference>();
+  for (const modeName of modeNames) {
+    const value = valuesByMode[modeName];
+    if (!value) {
+      diagnostics.push({
+        id: `${node.id}-missing-${modeName}`,
+        severity: 'error',
+        nodeId: node.id,
+        message: `${node.label}: ${modeName} has no output value. Connect inputs that evaluate for every target mode.`,
+      });
+      continue;
+    }
+    if (value.kind !== 'scalar') {
+      diagnostics.push({
+        id: `${node.id}-non-scalar-${modeName}`,
+        severity: 'error',
+        nodeId: node.id,
+        message: `${node.label}: ${modeName} produces a list. Use Group output or pick one item first.`,
+      });
+      continue;
+    }
+    scalarModeValues.set(modeName, value.value);
+  }
+  if (scalarModeValues.size !== modeNames.length) return [];
+
   const modeValues = Object.fromEntries(
-    modeNames.map((modeName) => {
-      const value = valuesByMode[modeName];
-      if (!value || value.kind !== 'scalar') {
-        return [modeName, firstModeValue.value];
-      }
-      return [modeName, value.value];
-    }),
+    modeNames.map((modeName) => [modeName, scalarModeValues.get(modeName)!]),
   ) as Record<string, TokenValue | TokenReference>;
 
   return [

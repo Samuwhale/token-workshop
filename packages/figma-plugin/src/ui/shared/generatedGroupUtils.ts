@@ -5,11 +5,16 @@ import {
   type TokenCollection,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
-import type { GeneratorType } from "../hooks/useGenerators";
-import { getGeneratorDashboardStatus } from "../hooks/useGenerators";
+import type { GeneratorType } from "./graphTemplateTypes";
 import { isAlias, resolveTokenValue } from "../../shared/resolveAlias";
 
-export type DashboardStatus = ReturnType<typeof getGeneratorDashboardStatus>;
+export type DashboardStatus =
+  | "upToDate"
+  | "stale"
+  | "failed"
+  | "blocked"
+  | "neverRun"
+  | "paused";
 
 export interface GeneratedGroupKeepUpdatedAvailability {
   supported: boolean;
@@ -234,7 +239,7 @@ export function getGeneratedGroupKeepUpdatedAvailability(params: {
     return {
       supported: false,
       reason:
-        "Keep updated is unavailable because this generated group has no source token.",
+        "Keep updated is unavailable because this graph template has no source token.",
     };
   }
   const sourceCollectionExplicit = hasExplicitSourceCollectionId(

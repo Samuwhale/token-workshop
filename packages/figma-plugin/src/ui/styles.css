@@ -61,8 +61,8 @@
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
 
-  /* Derived/auto-generated token indicator — warm amber, distinct from warning. */
-  --color-figma-generator: #d8a472;
+  /* Managed token indicator — warm amber, distinct from warning. */
+  --color-figma-managed: #d8a472;
 
   /* Compare/diff accent colors — two hues for side-by-side comparisons. */
   --color-figma-diff-a: #5ba9e8;
@@ -124,7 +124,7 @@ html.figma-light {
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
 
-  --color-figma-generator: #a86b1f;
+  --color-figma-managed: #a86b1f;
 
   --color-figma-diff-a: #1e7ac0;
   --color-figma-diff-b: #6a4ba3;
@@ -700,7 +700,7 @@ select:focus-visible,
   gap: 6px 12px;
 }
 
-.tm-token-details__generator-banner {
+.tm-token-details__graph-banner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -712,7 +712,7 @@ select:focus-visible,
   line-height: var(--leading-body);
 }
 
-.tm-token-details__generator-banner-summary {
+.tm-token-details__graph-banner-summary {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -722,12 +722,12 @@ select:focus-visible,
   color: var(--color-figma-text-secondary);
 }
 
-.tm-token-details__generator-banner-name {
+.tm-token-details__graph-banner-name {
   font-weight: 500;
   color: var(--color-figma-text);
 }
 
-.tm-token-details__generator-banner-actions {
+.tm-token-details__graph-banner-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -994,186 +994,6 @@ button.tm-token-details__text-button:disabled:hover {
   gap: 16px;
 }
 
-.tm-generator-authoring {
-  container-type: inline-size;
-  container-name: generator-authoring;
-  display: flex;
-  min-inline-size: 0;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.tm-generator-authoring__section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-inline-size: 0;
-}
-
-.tm-generator-authoring__section-card {
-  display: flex;
-  min-inline-size: 0;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 0 0;
-}
-
-.tm-generator-authoring__title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tm-generator-authoring__title {
-  font-size: var(--font-size-md);
-  line-height: var(--leading-tight);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--color-figma-text);
-}
-
-.tm-generator-authoring__description {
-  font-size: var(--font-size-sm);
-  line-height: var(--leading-body);
-  color: var(--color-figma-text-secondary);
-}
-
-.tm-generator-authoring__field-stack {
-  display: flex;
-  min-inline-size: 0;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tm-generator-authoring__field-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.tm-generator-authoring__button-grid {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.tm-generator-authoring__control {
-  min-block-size: 32px;
-  inline-size: 100%;
-  min-inline-size: 0;
-  border: 0;
-  border-radius: 4px;
-  background: var(--color-figma-bg);
-  padding: 6px 10px;
-  font-size: var(--font-size-base);
-  line-height: 1.4;
-  color: var(--color-figma-text);
-}
-
-.tm-generator-authoring__control--mono {
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, Liberation Mono, monospace);
-}
-
-.tm-generator-authoring__summary-card {
-  display: flex;
-  min-inline-size: 0;
-  flex-direction: column;
-  gap: 6px;
-  padding: 2px 0 2px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 4px;
-}
-
-.tm-generator-authoring__summary-row {
-  display: flex;
-  min-inline-size: 0;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 4px 8px;
-  font-size: var(--font-size-sm);
-  line-height: 1.45;
-  color: var(--color-figma-text-secondary);
-}
-
-.tm-generator-authoring__summary-label {
-  flex: 0 0 auto;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-figma-text-secondary);
-}
-
-.tm-generator-authoring__summary-value {
-  min-inline-size: 0;
-  color: var(--color-figma-text);
-  overflow-wrap: anywhere;
-}
-
-.tm-generator-authoring__summary-mono {
-  min-inline-size: 0;
-  color: var(--color-figma-text);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, Liberation Mono, monospace);
-  overflow-wrap: anywhere;
-}
-
-.tm-generator-authoring__metric-grid {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.tm-generator-authoring__overview {
-  display: grid;
-  gap: 12px 24px;
-  grid-template-columns: minmax(0, 1fr);
-  padding: 12px 14px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--color-figma-bg-secondary) 60%, transparent);
-}
-
-.tm-generator-authoring__overview-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-inline-size: 0;
-}
-
-.tm-generator-authoring__overview-label {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-figma-text-secondary);
-}
-
-.tm-generator-authoring__overview-value {
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
-  color: var(--color-figma-text);
-  overflow-wrap: anywhere;
-}
-
-.tm-generator-authoring__metric-card {
-  display: flex;
-  min-inline-size: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 0 0;
-}
-
-.tm-generator-authoring__metric-value {
-  font-size: var(--font-size-lg);
-  line-height: var(--leading-heading);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-
-.tm-generator-authoring__card-list {
-  display: flex;
-  min-inline-size: 0;
-  flex-direction: column;
-  gap: 0;
-}
-
 @container authoring-surface (min-width: 480px) {
   .tm-authoring-surface__header {
     min-block-size: 44px;
@@ -1187,24 +1007,6 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-authoring-footer {
     padding: 12px 20px;
-  }
-}
-
-@container generator-authoring (min-width: 600px) {
-  .tm-generator-authoring__field-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .tm-generator-authoring__button-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .tm-generator-authoring__metric-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .tm-generator-authoring__overview {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -1277,4 +1079,3 @@ button.tm-token-details__text-button:disabled:hover {
   height: 11px;
   fill: currentColor;
 }
-

@@ -1,10 +1,9 @@
 import { useMemo } from "react";
 import type { ValidationIssue } from "./useValidationCache";
 import type { LintViolation } from "./useLint";
-import type { TokenGenerator } from "./useGenerators";
 
 export type HealthSeverity = "error" | "warning" | "info";
-export type HealthSource = "validation" | "lint" | "generator";
+export type HealthSource = "validation" | "lint";
 export type HealthStatus = "healthy" | "warning" | "critical";
 
 export interface HealthSignal {
@@ -74,10 +73,9 @@ export interface HealthSignalsResult {
 export function useHealthSignals(params: {
   validationIssues: ValidationIssue[] | null;
   lintViolations: LintViolation[];
-  generators: TokenGenerator[];
   currentCollectionId: string;
 }): HealthSignalsResult {
-  const { validationIssues, lintViolations, generators, currentCollectionId } = params;
+  const { validationIssues, lintViolations, currentCollectionId } = params;
 
   return useMemo(() => {
     const severityRank = (s: HealthSeverity) =>
@@ -117,31 +115,6 @@ export function useHealthSignals(params: {
         suggestion: v.suggestion,
         group: v.group,
       });
-    }
-
-    for (const g of generators) {
-      const cid = g.targetCollection;
-      if (!cid) continue;
-      const targetPath = g.targetGroup ?? "";
-      if (g.lastRunError && !g.lastRunError.blockedBy) {
-        consider({
-          rule: "generator-error",
-          path: targetPath,
-          collectionId: cid,
-          severity: "error",
-          message: g.lastRunError.message || `Generator "${g.name}" failed to run.`,
-          source: "generator",
-        });
-      } else if (g.isStale) {
-        consider({
-          rule: "generator-stale",
-          path: targetPath,
-          collectionId: cid,
-          severity: "warning",
-          message: g.staleReason || `Generator "${g.name}" is out of date.`,
-          source: "generator",
-        });
-      }
     }
 
     const signals = [...dedup.values()];
@@ -224,5 +197,5 @@ export function useHealthSignals(params: {
       totals,
       overall,
     };
-  }, [validationIssues, lintViolations, generators, currentCollectionId]);
+  }, [validationIssues, lintViolations, currentCollectionId]);
 }

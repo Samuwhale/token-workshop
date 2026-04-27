@@ -10,7 +10,7 @@ import type {
   SpacingScaleConfig,
   TypeScaleConfig,
   ZIndexScaleConfig,
-} from "../hooks/useGenerators";
+} from "../shared/graphTemplateTypes";
 import { cloneValue } from "../../shared/clone";
 
 export interface SemanticStarter {

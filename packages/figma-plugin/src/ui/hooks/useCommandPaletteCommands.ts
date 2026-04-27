@@ -15,7 +15,6 @@ import { dispatchToast } from "../shared/toastBus";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
 } from "../contexts/TokenDataContext";
 import {
   useSelectionContext,
@@ -54,7 +53,6 @@ export function useCommandPaletteCommands(): {
   } = useCollectionStateContext();
   const collectionIds = collections.map((collection) => collection.id);
   const { allTokensFlat, perCollectionFlat } = useTokenFlatMapContext();
-  const { derivedTokenPaths } = useGeneratorContext();
   const { navigateTo, setPendingRepairPrefill } = useNavigationContext();
   const { selectedNodes } = useSelectionContext();
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
@@ -664,7 +662,6 @@ export function useCommandPaletteCommands(): {
         entry,
       })),
       {
-        derivedTokenPaths,
         tokenUsageCounts,
         tokenUsageReady: hasTokenUsageScanResult,
         referenceTokenSources: allPaletteTokenSources,
@@ -673,7 +670,6 @@ export function useCommandPaletteCommands(): {
   }, [
     allPaletteTokenSources,
     currentCollectionId,
-    derivedTokenPaths,
     hasTokenUsageScanResult,
     perCollectionFlat,
     tokenUsageCounts,

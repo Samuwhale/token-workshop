@@ -69,7 +69,7 @@ export interface HealthPanelProps {
   onRefreshReview: () => Promise<unknown> | void;
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
-  onNavigateToGenerators?: () => void;
+  onNavigateToGraphs?: () => void;
   scope: HealthScope;
   onScopeChange: (scope: HealthScope) => void;
   issueActions: UseIssueActionsResult;
@@ -102,7 +102,7 @@ export function HealthPanel({
   onRefreshReview,
   onPushUndo,
   onError,
-  onNavigateToGenerators,
+  onNavigateToGraphs,
   scope,
   onScopeChange,
   issueActions,
@@ -192,12 +192,8 @@ export function HealthPanel({
     (s) =>
       scopedCollectionKey.length > 0 &&
       s.collectionId === scopedCollectionKey &&
-      s.source !== "generator" &&
       s.rule !== "no-duplicate-values" &&
       s.rule !== "alias-opportunity",
-  );
-  const generatorSignals = healthSignals.signals.filter(
-    (s) => s.collectionId === scopedCollectionKey && s.source === "generator",
   );
   const graphIssues: ValidationIssue[] = graphStatuses
     .filter((item) => item.graph.targetCollectionId === scopedCollectionKey)
@@ -255,9 +251,9 @@ export function HealthPanel({
   const issueStatus = statusFromIssueSeverities(
     tokenLevelSignals.map((signal) => signal.severity),
   );
-  const generatorIssueCount = generatorSignals.length + graphIssues.length;
-  const generatorStatus = statusFromIssueSeverities(
-    [...generatorSignals.map((signal) => signal.severity), ...graphIssues.map((issue) => issue.severity)],
+  const graphIssueCount = graphIssues.length;
+  const graphStatus = statusFromIssueSeverities(
+    graphIssues.map((issue) => issue.severity),
   );
   const unusedCount = unusedTokens.length;
   const deprecatedCount = deprecatedUsageEntriesForCurrent.length;
@@ -286,7 +282,7 @@ export function HealthPanel({
 
   const totalIssueCount =
     issueCount +
-    generatorIssueCount +
+    graphIssueCount +
     (unusedDataReady ? unusedCount : 0) +
     deprecatedCount +
     aliasOpportunitiesCount +
@@ -649,8 +645,8 @@ export function HealthPanel({
             validationError={validationError}
             issueCount={issueCount}
             issueStatus={issueStatus}
-            generatorIssueCount={generatorIssueCount}
-            generatorStatus={generatorStatus}
+            graphIssueCount={graphIssueCount}
+            graphStatus={graphStatus}
             unusedReady={unusedDataReady}
             unusedCount={unusedCount}
             deprecatedCount={deprecatedCount}
@@ -666,7 +662,7 @@ export function HealthPanel({
                 nonce: Date.now(),
               })
             }
-            onNavigateToGenerators={onNavigateToGenerators}
+            onNavigateToGraphs={onNavigateToGraphs}
           />
         );
         break;

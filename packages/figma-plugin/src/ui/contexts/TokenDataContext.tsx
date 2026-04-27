@@ -6,9 +6,8 @@
  *                            and collection metadata
  *   TokenFlatMapContext    — flat token maps derived from the fetch cycle
  *                            plus mode-resolved token views
- *   GeneratorContext          — generator list and ownership indexes
  *
- * `TokenDataProvider` stacks the three providers. Consumers should read the
+ * `TokenDataProvider` stacks the focused providers. Consumers should read the
  * narrowest hook they need.
  */
 
@@ -20,8 +19,6 @@ import { useCollectionState } from '../hooks/useTokens';
 import type { TokenNode } from '../hooks/useTokens';
 import type { CollectionSummary } from '../hooks/useTokens';
 import { useTokenDataLoading } from '../hooks/useTokenDataLoading';
-import { useGenerators } from '../hooks/useGenerators';
-import type { TokenGenerator } from '../hooks/useGenerators';
 import type { TokenMapEntry } from '../../shared/types';
 
 export interface CollectionStateContextValue {
@@ -56,18 +53,8 @@ export interface TokenFlatMapContextValue {
   modeResolvedTokensFlat: Record<string, TokenMapEntry>;
 }
 
-export interface GeneratorContextValue {
-  generators: TokenGenerator[];
-  generatorsLoading: boolean;
-  refreshGenerators: () => void;
-  generatorsBySource: Map<string, TokenGenerator[]>;
-  generatorsByTargetGroup: Map<string, TokenGenerator>;
-  derivedTokenPaths: Map<string, TokenGenerator>;
-}
-
 const CollectionStateContext = createContext<CollectionStateContextValue | null>(null);
 const TokenFlatMapContext = createContext<TokenFlatMapContextValue | null>(null);
-const GeneratorContext = createContext<GeneratorContextValue | null>(null);
 
 export function useCollectionStateContext(): CollectionStateContextValue {
   const context = useContext(CollectionStateContext);
@@ -78,12 +65,6 @@ export function useCollectionStateContext(): CollectionStateContextValue {
 export function useTokenFlatMapContext(): TokenFlatMapContextValue {
   const context = useContext(TokenFlatMapContext);
   if (!context) throw new Error('useTokenFlatMapContext must be used inside TokenDataProvider');
-  return context;
-}
-
-export function useGeneratorContext(): GeneratorContextValue {
-  const context = useContext(GeneratorContext);
-  if (!context) throw new Error('useGeneratorContext must be used inside TokenDataProvider');
   return context;
 }
 
@@ -211,35 +192,6 @@ function TokenFlatMapProvider({
   );
 }
 
-function GeneratorProvider({
-  children,
-  serverUrl,
-  connected,
-}: {
-  children: ReactNode;
-  serverUrl: string;
-  connected: boolean;
-}) {
-  const { pathToCollectionId, collectionIdsByPath } = useTokenFlatMapContext();
-  const { generators, loading: generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths } = useGenerators(
-    serverUrl,
-    connected,
-    pathToCollectionId,
-    collectionIdsByPath,
-  );
-
-  const value = useMemo<GeneratorContextValue>(
-    () => ({ generators, generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths }),
-    [generators, generatorsLoading, refreshGenerators, generatorsBySource, generatorsByTargetGroup, derivedTokenPaths],
-  );
-
-  return (
-    <GeneratorContext.Provider value={value}>
-      {children}
-    </GeneratorContext.Provider>
-  );
-}
-
 export function TokenDataProvider({ children }: { children: ReactNode }) {
   const { serverUrl, connected, markDisconnected, getDisconnectSignal } = useConnectionContext();
 
@@ -255,9 +207,7 @@ export function TokenDataProvider({ children }: { children: ReactNode }) {
         connected={connected}
         markDisconnected={markDisconnected}
       >
-        <GeneratorProvider serverUrl={serverUrl} connected={connected}>
-          {children}
-        </GeneratorProvider>
+        {children}
       </TokenFlatMapProvider>
     </CollectionStateProvider>
   );

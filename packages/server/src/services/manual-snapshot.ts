@@ -492,6 +492,32 @@ function compareSnapshotStates(
   };
 }
 
+function stripAutomationProvenanceFromExtensions(
+  extensions: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!extensions) return undefined;
+  const nextExtensions = { ...extensions };
+  delete nextExtensions["com.tokenmanager.generator"];
+
+  const tokenmanager = nextExtensions.tokenmanager;
+  if (
+    tokenmanager &&
+    typeof tokenmanager === "object" &&
+    !Array.isArray(tokenmanager) &&
+    "graph" in tokenmanager
+  ) {
+    const nextTokenmanager = { ...(tokenmanager as Record<string, unknown>) };
+    delete nextTokenmanager.graph;
+    if (Object.keys(nextTokenmanager).length > 0) {
+      nextExtensions.tokenmanager = nextTokenmanager;
+    } else {
+      delete nextExtensions.tokenmanager;
+    }
+  }
+
+  return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;
+}
+
 function buildSnapshotRestoreRollbackSteps({
   currentCollections,
   currentViews,
@@ -636,7 +662,7 @@ export class ManualSnapshotStore {
           $value: token.$value,
           $type: token.$type,
           $description: token.$description,
-          $extensions: token.$extensions,
+          $extensions: stripAutomationProvenanceFromExtensions(token.$extensions),
         };
       }
       data[collectionId] = flat;

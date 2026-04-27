@@ -6,7 +6,6 @@ import type {
   TokenMapEntry,
 } from "../../shared/types";
 import type { UndoSlot } from "../hooks/useUndo";
-import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
 import type { TokenCollection } from "@tokenmanager/core";
@@ -79,8 +78,6 @@ export interface TokenListData {
   allTokensFlat: Record<string, TokenMapEntry>;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
-  generators?: TokenGenerator[];
-  derivedTokenPaths?: Map<string, TokenGenerator>;
   tokenUsageCounts?: Record<string, number>;
   tokenUsageReady?: boolean;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
@@ -195,16 +192,6 @@ export interface AffectedRef {
   collectionId: string;
 }
 
-export interface GeneratorImpact {
-  generatorId: string;
-  generatorName: string;
-  generatorType: string;
-  /** 'source' = sourceToken match; 'config-ref' = $tokenRefs match */
-  role: "source" | "config-ref";
-  /** The config field key that references the token (only when role === 'config-ref') */
-  configField?: string;
-}
-
 export interface ModeImpact {
   collectionName: string;
   optionName: string;
@@ -216,7 +203,6 @@ export type DeleteConfirm =
       path: string;
       orphanCount: number;
       affectedRefs: AffectedRef[];
-      generatorImpacts: GeneratorImpact[];
       modeImpacts: ModeImpact[];
     }
   | {
@@ -226,7 +212,6 @@ export type DeleteConfirm =
       tokenCount: number;
       orphanCount: number;
       affectedRefs: AffectedRef[];
-      generatorImpacts: GeneratorImpact[];
       modeImpacts: ModeImpact[];
     }
   | {
@@ -234,7 +219,6 @@ export type DeleteConfirm =
       paths: string[];
       orphanCount: number;
       affectedRefs: AffectedRef[];
-      generatorImpacts: GeneratorImpact[];
       modeImpacts: ModeImpact[];
     };
 
@@ -364,7 +348,6 @@ export interface TokenTreeLeafStateContextType {
   previewedPath: string | null;
   inspectMode?: boolean;
   syncSnapshot?: Record<string, string>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
   /** Parsed highlight terms from search query */
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   /** Selected Figma nodes — used for quick-bind scope narrowing */
