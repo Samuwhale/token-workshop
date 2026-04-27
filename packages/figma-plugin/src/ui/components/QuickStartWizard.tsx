@@ -347,36 +347,34 @@ function SetupActionList({ connected, onSelect }: {
   return (
     <div className="flex flex-col">
       {SETUP_ACTIONS.map((action) => (
-        return (
-          <button
-            key={action.id}
-            type="button"
-            onClick={() => onSelect(action.id)}
-            disabled={!connected}
-            className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 group"
-          >
-            <div className="flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-body font-medium text-[var(--color-figma-text)]">{action.label}</span>
-                  {action.helper ? (
-                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                      {action.helper}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
-                  {action.description}
-                </p>
+        <button
+          key={action.id}
+          type="button"
+          onClick={() => onSelect(action.id)}
+          disabled={!connected}
+          className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-body font-medium text-[var(--color-figma-text)]">{action.label}</span>
+                {action.helper ? (
+                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                    {action.helper}
+                  </span>
+                ) : null}
               </div>
-              {connected ? (
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="mt-1 shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
-                  <path d="M4.5 2.5L8 6l-3.5 3.5" />
-                </svg>
-              ) : null}
+              <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
+                {action.description}
+              </p>
             </div>
-          </button>
-        );
+            {connected ? (
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="mt-1 shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                <path d="M4.5 2.5L8 6l-3.5 3.5" />
+              </svg>
+            ) : null}
+          </div>
+        </button>
       ))}
     </div>
   );
