@@ -1,14 +1,14 @@
 import fs from "node:fs/promises";
 import type { FastifyPluginAsync } from "fastify";
 import type { CollectionPublishRouting, Token } from "@tokenmanager/core";
-import { flattenTokenGroup } from "@tokenmanager/core";
+import { flattenTokenGroup, readGraphProvenance } from "@tokenmanager/core";
 import type {
   FieldChange,
   FieldChangeOperationMetadata,
   SnapshotEntry,
 } from "../services/operation-log.js";
-import { snapshotPaths } from "../services/operation-log.js";
-import { handleRouteError } from "../errors.js";
+import { qualifySnapshotEntries, snapshotPaths } from "../services/operation-log.js";
+import { ConflictError, handleRouteError } from "../errors.js";
 import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
 
 function readGitLogField(entry: unknown, field: string): string {
@@ -473,6 +473,25 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Acquire token lock for the entire snapshot-restore-snapshot cycle
       return await withLock(async () => {
+        const graphManagedRestores: string[] = [];
+        for (const item of toRestore) {
+          const currentToken = await fastify.tokenStore.getToken(
+            item.collectionId,
+            item.path,
+          );
+          if (
+            readGraphProvenance(currentToken) ||
+            readGraphProvenance(item.token ?? undefined)
+          ) {
+            graphManagedRestores.push(`${item.collectionId}/${item.path}`);
+          }
+        }
+        if (graphManagedRestores.length > 0) {
+          throw new ConflictError(
+            `Version restore includes graph-managed tokens: ${graphManagedRestores.join(", ")}. Restore the graph document and its outputs together, or detach the outputs first.`,
+          );
+        }
+
         // Snapshot current state for undo (operation-log)
         const allPaths = toRestore.map((r) => r.path);
         const allCollections = [
@@ -488,7 +507,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
             collectionId,
             pathsInCollection,
           );
-          Object.assign(beforeSnapshot, snap);
+          Object.assign(beforeSnapshot, qualifySnapshotEntries(collectionId, snap));
         }
 
         // Group by collection and restore
@@ -519,7 +538,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
             collectionId,
             pathsInSet,
           );
-          Object.assign(afterSnapshot, snap);
+          Object.assign(afterSnapshot, qualifySnapshotEntries(collectionId, snap));
         }
 
         // Record in operation log

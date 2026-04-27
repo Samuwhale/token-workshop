@@ -163,6 +163,7 @@ export function GraphPanel({
   const [lastApply, setLastApply] = useState<GraphApplyResponse | null>(null);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [inspectorErrors, setInspectorErrors] = useState<Record<string, string>>({});
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<GraphFlowNode, GraphFlowEdge> | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphFlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<GraphFlowEdge>([]);
@@ -180,6 +181,8 @@ export function GraphPanel({
     [activeGraph, selectedNodeId],
   );
   const previewHasCollisions = preview?.outputs.some((output) => output.collision) ?? false;
+  const previewHasNoOutputs = preview ? preview.outputs.length === 0 : false;
+  const inspectorHasErrors = Object.keys(inspectorErrors).length > 0;
 
   const loadGraphs = useCallback(async () => {
     const data = await apiFetch<GraphListResponse>(`${serverUrl}/api/graphs`);
@@ -202,6 +205,7 @@ export function GraphPanel({
     setLastApply(null);
     setDirty(false);
     setExternalPreviewInvalidated(false);
+    setInspectorErrors({});
     onInitialGraphHandled?.();
   }, [graphs, initialGraphId, onInitialGraphHandled]);
 
@@ -262,6 +266,10 @@ export function GraphPanel({
   }, [activeGraph, edges, nodes, setGraphs]);
 
   const saveGraph = useCallback(async () => {
+    if (inspectorHasErrors) {
+      setError("Fix inspector input before saving.");
+      return null;
+    }
     const graph = syncFlowToGraph();
     if (!graph) return null;
     setBusy("save");
@@ -293,9 +301,13 @@ export function GraphPanel({
     } finally {
       setBusy(null);
     }
-  }, [serverUrl, syncFlowToGraph]);
+  }, [inspectorHasErrors, serverUrl, syncFlowToGraph]);
 
   const previewGraph = useCallback(async () => {
+    if (inspectorHasErrors) {
+      setError("Fix inspector input before previewing.");
+      return;
+    }
     const saved = dirty ? await saveGraph() : activeGraph;
     if (!saved) return;
     setBusy("preview");
@@ -312,10 +324,17 @@ export function GraphPanel({
     } finally {
       setBusy(null);
     }
-  }, [activeGraph, dirty, saveGraph, serverUrl]);
+  }, [activeGraph, dirty, inspectorHasErrors, saveGraph, serverUrl]);
 
   const applyGraph = useCallback(async () => {
-    if (!preview || dirty || preview.blocking || preview.outputs.some((output) => output.collision)) {
+    if (
+      inspectorHasErrors ||
+      !preview ||
+      dirty ||
+      preview.blocking ||
+      preview.outputs.length === 0 ||
+      preview.outputs.some((output) => output.collision)
+    ) {
       setError("Preview the latest graph changes before applying.");
       return;
     }
@@ -336,7 +355,7 @@ export function GraphPanel({
     } finally {
       setBusy(null);
     }
-  }, [activeGraph, dirty, loadGraphs, preview, serverUrl]);
+  }, [activeGraph, dirty, inspectorHasErrors, loadGraphs, preview, serverUrl]);
 
   const createGraph = useCallback(
     async (template: (typeof TEMPLATE_OPTIONS)[number]["id"]) => {
@@ -391,6 +410,7 @@ export function GraphPanel({
     setLastApply(null);
     setExternalPreviewInvalidated(false);
     setDirty(false);
+    setInspectorErrors({});
   }, []);
 
   const updateNodeData = useCallback(
@@ -421,6 +441,27 @@ export function GraphPanel({
       );
     },
     [activeGraph, edges, nodes, patchActiveGraph, setNodes],
+  );
+
+  const handleInspectorValidationChange = useCallback(
+    (nodeId: string, dataKey: string, message: string | null) => {
+      const key = `${nodeId}:${dataKey}`;
+      setInspectorErrors((current) => {
+        if (!message) {
+          if (!(key in current)) return current;
+          const next = { ...current };
+          delete next[key];
+          return next;
+        }
+        return { ...current, [key]: message };
+      });
+      if (message) {
+        setPreview(null);
+        setLastApply(null);
+        setExternalPreviewInvalidated(false);
+      }
+    },
+    [],
   );
 
   const addPaletteNode = useCallback(
@@ -503,6 +544,11 @@ export function GraphPanel({
     setEdges((current) =>
       current.filter(
         (edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id,
+      ),
+    );
+    setInspectorErrors((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([key]) => !key.startsWith(`${selectedNode.id}:`)),
       ),
     );
   }, [activeGraph, edges, nodes, patchActiveGraph, selectedNode, setEdges, setNodes]);
@@ -652,11 +698,13 @@ export function GraphPanel({
                 ))}
               </select>
               <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                {dirty
+                {inspectorHasErrors
+                  ? "Fix inspector input"
+                  : dirty
                   ? "Unsaved changes"
                   : externalPreviewInvalidated
                     ? "Recheck preview"
-                    : preview?.blocking || previewHasCollisions
+                    : preview?.blocking || previewHasCollisions || previewHasNoOutputs
                       ? "Preview has issues"
                       : preview
                         ? "Preview ready"
@@ -674,7 +722,7 @@ export function GraphPanel({
                 <button
                   type="button"
                   onClick={saveGraph}
-                  disabled={!dirty || busy !== null}
+                  disabled={!dirty || busy !== null || inspectorHasErrors}
                   className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-secondary font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                 >
                   <Save size={14} />
@@ -683,7 +731,7 @@ export function GraphPanel({
                 <button
                   type="button"
                   onClick={previewGraph}
-                  disabled={busy !== null}
+                  disabled={busy !== null || inspectorHasErrors}
                   className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-secondary font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                 >
                   <Play size={14} />
@@ -692,7 +740,7 @@ export function GraphPanel({
                 <button
                   type="button"
                   onClick={applyGraph}
-                  disabled={busy !== null || dirty || !preview || Boolean(preview.blocking) || previewHasCollisions}
+                  disabled={busy !== null || dirty || inspectorHasErrors || !preview || Boolean(preview.blocking) || previewHasCollisions || previewHasNoOutputs}
                   className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-secondary font-semibold text-white disabled:opacity-40"
                 >
                   <Sparkles size={14} />
@@ -817,6 +865,9 @@ export function GraphPanel({
               perCollectionFlat={perCollectionFlat}
               defaultCollectionId={activeGraph?.targetCollectionId ?? workingCollectionId}
               onChange={(data) => updateNodeData(selectedNode.id, data)}
+              onValidationChange={(dataKey, message) =>
+                handleInspectorValidationChange(selectedNode.id, dataKey, message)
+              }
               onDelete={deleteSelectedNode}
             />
           ) : (
@@ -914,6 +965,7 @@ function NodeInspector({
   perCollectionFlat,
   defaultCollectionId,
   onChange,
+  onValidationChange,
   onDelete,
 }: {
   node: TokenGraphDocumentNode;
@@ -921,6 +973,7 @@ function NodeInspector({
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   defaultCollectionId: string;
   onChange: (data: Record<string, unknown>) => void;
+  onValidationChange: (dataKey: string, message: string | null) => void;
   onDelete: () => void;
 }) {
   const selectedCollectionId = String(node.data.collectionId ?? defaultCollectionId);
@@ -932,6 +985,7 @@ function NodeInspector({
       label={label}
       value={node.data[key]}
       onChange={(value) => onChange({ [key]: value })}
+      onValidationChange={(message) => onValidationChange(key, message)}
     />
   );
   const field = (key: string, label: string, type = "text") => (
@@ -1171,12 +1225,14 @@ function JsonDataField({
   label,
   value,
   onChange,
+  onValidationChange,
 }: {
   nodeId: string;
   dataKey: string;
   label: string;
   value: unknown;
   onChange: (value: unknown) => void;
+  onValidationChange: (message: string | null) => void;
 }) {
   const [draft, setDraft] = useState(() => formatJsonDraft(value));
   const [error, setError] = useState<string | null>(null);
@@ -1184,6 +1240,7 @@ function JsonDataField({
   useEffect(() => {
     setDraft(formatJsonDraft(value));
     setError(null);
+    onValidationChange(null);
   }, [dataKey, nodeId, value]);
 
   return (
@@ -1194,15 +1251,16 @@ function JsonDataField({
       <textarea
         value={draft}
         onChange={(event) => {
-          setDraft(event.target.value);
-          setError(null);
-        }}
-        onBlur={() => {
+          const nextDraft = event.target.value;
+          setDraft(nextDraft);
           try {
-            onChange(JSON.parse(draft));
+            onChange(JSON.parse(nextDraft));
             setError(null);
+            onValidationChange(null);
           } catch {
-            setError("Enter valid JSON.");
+            const message = "Enter valid JSON.";
+            setError(message);
+            onValidationChange(message);
           }
         }}
         rows={6}
@@ -1293,17 +1351,28 @@ function PreviewPanel({
         </div>
       )}
       <div className="space-y-2">
+        {preview.outputs.length === 0 ? (
+          <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary text-[var(--color-figma-error)]">
+            No tokens will be created. Adjust the graph inputs and preview again.
+          </div>
+        ) : null}
         {preview.outputs.map((output) => (
           <div key={output.path} className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2">
             <div className="mb-2 flex items-center gap-2">
               <Database size={14} className="text-[var(--color-figma-text-secondary)]" />
-              <button
-                type="button"
-                onClick={() => onNavigateToToken(output.path)}
-                className="min-w-0 flex-1 truncate text-left text-secondary font-semibold hover:underline"
-              >
-                {output.path}
-              </button>
+              {output.change === "created" ? (
+                <span className="min-w-0 flex-1 truncate text-secondary font-semibold">
+                  {output.path}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onNavigateToToken(output.path)}
+                  className="min-w-0 flex-1 truncate text-left text-secondary font-semibold hover:underline"
+                >
+                  {output.path}
+                </button>
+              )}
               <span className="text-tertiary text-[var(--color-figma-text-secondary)]">
                 {output.change}
               </span>

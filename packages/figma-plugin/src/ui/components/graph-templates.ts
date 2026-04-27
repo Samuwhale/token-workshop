@@ -36,7 +36,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     description: "Turn one brand color into a usable 11-step palette.",
     whenToUse:
       "Use when you need a core brand scale for UI states, fills, and accents without hand-tuning every shade.",
-    stages: ["Goal", "Base color", "11-step palette", "Action aliases"],
+    stages: ["Goal", "Base color", "11-step palette", "Action tokens"],
     starterPresetName: "Balanced brand ramp",
     starterPreset: "11-step ramp with action.default, hover, active, and disabled starters.",
     sourceRequirement: "Best with a color token or hex value.",
@@ -222,7 +222,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     description: "Generate consistent depth tokens for surfaces and overlays.",
     whenToUse:
       "Use when cards, modals, and menus need a repeatable shadow scale instead of one-off effects.",
-    stages: ["Goal", "Shadow scale", "Depth scale", "Surface aliases"],
+    stages: ["Goal", "Shadow scale", "Depth scale", "Surface tokens"],
     starterPresetName: "Elevation starter",
     starterPreset: "Five shadow levels plus component.card, modal, and dropdown starters.",
     sourceRequirement: "No source token required.",

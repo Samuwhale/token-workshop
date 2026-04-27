@@ -120,6 +120,13 @@ function defaultConfig(kind: GenerateKind): Record<string, unknown> {
   return { ...DEFAULT_CUSTOM_SCALE_CONFIG };
 }
 
+function parseNumberList(value: string): number[] {
+  return value
+    .split(",")
+    .map((step) => Number(step.trim()))
+    .filter(Number.isFinite);
+}
+
 function outputType(kind: GenerateKind): TokenType {
   if (kind === "palette") return "color";
   if (kind === "shadow") return "shadow";
@@ -127,7 +134,7 @@ function outputType(kind: GenerateKind): TokenType {
   return "number";
 }
 
-function semanticStarterItems(kind: GenerateKind, outputPrefix: string): Array<{ key: string; step: string; type: TokenType }> {
+function semanticStarterItems(kind: GenerateKind): Array<{ key: string; step: string; type: TokenType }> {
   const type = outputType(kind);
   const starters: Record<GenerateKind, Array<{ key: string; step: string }>> = {
     palette: [
@@ -253,11 +260,11 @@ function buildGraphNodes(options: {
     nodes.push({
       id: aliasListId,
       kind: "list",
-      label: "Starter aliases",
+      label: "Starter semantic tokens",
       position: { x: 340, y: 320 },
       data: {
         type: "token",
-        items: semanticStarterItems(options.kind, options.outputPrefix).map((item) => ({
+        items: semanticStarterItems(options.kind).map((item) => ({
           key: item.key,
           label: item.key,
           value: `{${options.outputPrefix}.${item.step}}`,
@@ -268,7 +275,7 @@ function buildGraphNodes(options: {
     nodes.push({
       id: semanticOutputId,
       kind: "groupOutput",
-      label: "Alias tokens",
+      label: "Semantic tokens",
       position: { x: 630, y: 320 },
       data: { pathPrefix: options.semanticPrefix.trim() },
     });
@@ -348,16 +355,17 @@ export function GenerateTokensWizard({
       .sort((a, b) => a.localeCompare(b));
   }, [kind, perCollectionFlat, sourceCollectionId]);
 
-  const previewBlocking = Boolean(preview?.blocking || preview?.outputs.some((output) => output.collision));
+  const previewBlocking = Boolean(
+    preview?.blocking ||
+      preview?.outputs.length === 0 ||
+      preview?.outputs.some((output) => output.collision),
+  );
   const modes = targetCollection?.modes.map((mode) => mode.name) ?? preview?.targetModes ?? [];
   const generationConfig = useMemo(() => {
     if (kind === "palette") {
       return {
         ...DEFAULT_COLOR_RAMP_CONFIG,
-        steps: paletteSteps
-          .split(",")
-          .map((step) => Number(step.trim()))
-          .filter(Number.isFinite),
+        steps: parseNumberList(paletteSteps),
         lightEnd: paletteLightEnd,
         darkEnd: paletteDarkEnd,
       };
@@ -486,6 +494,10 @@ export function GenerateTokensWizard({
       setError("Choose a source token.");
       return;
     }
+    if (kind === "palette" && parseNumberList(paletteSteps).length === 0) {
+      setError("Add at least one numeric palette step.");
+      return;
+    }
     setBusy("preview");
     setError(null);
     try {
@@ -521,6 +533,7 @@ export function GenerateTokensWizard({
     graphPayload,
     kind,
     outputPrefix,
+    paletteSteps,
     serverUrl,
     sourceMode,
     sourceTokenPath,
@@ -900,10 +913,10 @@ export function GenerateTokensWizard({
             />
             <span className="min-w-0 flex-1">
               <span className="block text-secondary font-medium text-[var(--color-figma-text)]">
-                Starter aliases
+                Starter semantic tokens
               </span>
               <span className="block text-tertiary text-[var(--color-figma-text-secondary)]">
-                Create semantic aliases that point at the generated tokens.
+                Add common names that stay linked to the generated tokens.
               </span>
             </span>
           </label>
@@ -911,7 +924,7 @@ export function GenerateTokensWizard({
           {includeSemanticAliases ? (
             <label className="block">
               <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                Alias group
+                Semantic group
               </span>
               <input
                 value={semanticPrefix}
@@ -957,6 +970,11 @@ export function GenerateTokensWizard({
                   <span className="text-[var(--color-figma-text-secondary)]">: {diagnostic.message}</span>
                 </div>
               ))}
+              {preview.outputs.length === 0 ? (
+                <div className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-error)]">
+                  No tokens will be created. Adjust the source or steps and preview again.
+                </div>
+              ) : null}
               {preview.outputs.map((output) => (
                 <div
                   key={`${output.nodeId}-${output.path}`}

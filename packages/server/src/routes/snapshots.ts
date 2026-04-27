@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
-import { snapshotCollection, type SnapshotEntry } from '../services/operation-log.js';
+import { snapshotCollections } from '../services/operation-log.js';
 import type { ResolverFile } from '@tokenmanager/core';
 
 type SnapshotRouteContext = {
@@ -113,20 +113,14 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Snapshot current state of all affected collections for undo
         const snapshotCollectionIds = Object.keys(snapshot.data);
-        const beforeSnapshot: Record<string, SnapshotEntry> = {};
         const beforeCollectionState = await fastify.collectionService.loadState();
-        for (const collectionId of snapshotCollectionIds) {
-          Object.assign(beforeSnapshot, await snapshotCollection(fastify.tokenStore, collectionId));
-        }
-        // Also snapshot collections that exist currently but aren't in the snapshot (they'll lose tokens)
         const currentCollections = beforeCollectionState.collections.map(
           (collection) => collection.id,
         );
-        for (const collectionId of currentCollections) {
-          if (!snapshotCollectionIds.includes(collectionId)) {
-            Object.assign(beforeSnapshot, await snapshotCollection(fastify.tokenStore, collectionId));
-          }
-        }
+        const beforeSnapshot = await snapshotCollections(
+          fastify.tokenStore,
+          [...new Set([...snapshotCollectionIds, ...currentCollections])],
+        );
 
         const beforeResolvers = await captureCurrentResolvers(fastify);
         const beforeGraphs = await fastify.graphService.list();
@@ -150,7 +144,6 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
         );
 
         // Snapshot after state
-        const afterSnapshot: Record<string, SnapshotEntry> = {};
         const afterCollectionIds = (
           await fastify.collectionService.loadState()
         ).collections.map((collection) => collection.id);
@@ -159,9 +152,10 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
           ...currentCollections,
           ...afterCollectionIds,
         ]);
-        for (const collectionId of allCollectionIds) {
-          Object.assign(afterSnapshot, await snapshotCollection(fastify.tokenStore, collectionId));
-        }
+        const afterSnapshot = await snapshotCollections(
+          fastify.tokenStore,
+          [...allCollectionIds],
+        );
 
         // Record in operation log for undo support
         const allPaths = [...new Set([...Object.keys(beforeSnapshot), ...Object.keys(afterSnapshot)])];

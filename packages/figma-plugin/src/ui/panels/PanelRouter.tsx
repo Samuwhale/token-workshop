@@ -1423,7 +1423,6 @@ export function PanelRouter({
         serverUrl={serverUrl}
         connected={connected}
         presentation="bottom"
-        showCloseButton={false}
         onModeMutated={refreshTokens}
         onClose={() => switchContextualSurface({ surface: null })}
         onRename={collectionStructureController.onRename}

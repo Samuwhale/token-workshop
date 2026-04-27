@@ -1016,6 +1016,8 @@ export function TokenList({
     if (!findGroupByPath(sortedTokens, focusGroupPath)) return;
     setZoomRootPath(focusGroupPath);
     setExpandedPaths((current) => new Set([...current, focusGroupPath]));
+    if (virtualListRef.current) virtualListRef.current.scrollTop = 0;
+    virtualScrollTopRef.current = 0;
     setVirtualScrollTop(0);
     onFocusGroupHandled?.();
   }, [

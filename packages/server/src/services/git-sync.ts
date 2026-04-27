@@ -294,6 +294,34 @@ export class GitSync {
     }
   }
 
+  private validateGraphTokenChoices(
+    choices: Record<string, "push" | "pull" | "skip">,
+  ): void {
+    const graphChoice = Object.entries(choices).find(
+      ([file]) => path.basename(file) === "$graphs.json",
+    )?.[1];
+    if (!graphChoice) {
+      return;
+    }
+
+    const tokenChoices = Object.entries(choices).filter(([file]) =>
+      file.endsWith(".tokens.json"),
+    );
+    if (tokenChoices.length === 0) {
+      return;
+    }
+
+    const splitTokenFiles = tokenChoices.filter(
+      ([, direction]) => direction !== graphChoice,
+    );
+    if (splitTokenFiles.length > 0) {
+      throw new BadRequestError(
+        `$graphs.json and token files must use the same sync direction. ` +
+          `Graph-managed outputs cannot be pulled or pushed separately from graph metadata.`,
+      );
+    }
+  }
+
   async isRepo(): Promise<boolean> {
     try {
       await this.git.revparse(["--git-dir"]);
@@ -959,6 +987,7 @@ export class GitSync {
         .filter(([, d]) => d === "push")
         .map(([f]) => f);
       this.validatePaths([...toPull, ...toPush]);
+      this.validateGraphTokenChoices(choices);
 
       const result: ApplyDiffResult = {
         pullFailedFiles: [],

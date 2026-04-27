@@ -192,8 +192,6 @@ type GraphRuntimeValue =
 
 type ModeRuntimeValues = Record<string, GraphRuntimeValue | undefined>;
 
-const DEFAULT_COLOR_RAMP_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
-
 export function createDefaultTokenGraphDocument(
   targetCollectionId: string,
   name = 'New token graph',
@@ -217,14 +215,7 @@ export function createDefaultTokenGraphDocument(
         kind: 'colorRamp',
         label: 'Color ramp',
         position: { x: 360, y: 120 },
-        data: {
-          steps: DEFAULT_COLOR_RAMP_STEPS,
-          lightEnd: 96,
-          darkEnd: 24,
-          chromaBoost: 1,
-          includeSource: true,
-          sourceStep: 500,
-        },
+        data: { ...DEFAULT_COLOR_RAMP_CONFIG },
       },
       {
         id: 'output',
