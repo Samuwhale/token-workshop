@@ -365,6 +365,8 @@ export function GraphPanel({
               selectedTokenIds={selectedTokenIds}
               collections={collections}
               perCollectionFlat={perCollectionFlat}
+              pathToCollectionId={pathToCollectionId}
+              collectionIdsByPath={collectionIdsByPath}
               onNavigateToToken={onNavigateToToken}
               onEditGenerator={(generatorId) =>
                 onOpenGeneratedGroupEditor({
@@ -374,6 +376,13 @@ export function GraphPanel({
                 })
               }
               onCompareTokens={onCompareTokens}
+              onCreateFromToken={(nodeId, screenX, screenY) => {
+                setCreateFromSourceRequest({
+                  sourceNodeId: nodeId,
+                  screenX,
+                  screenY,
+                });
+              }}
               onSelectNode={(nodeId) => {
                 setFocusId(nodeId);
                 setSelectedEdgeId(null);
@@ -399,14 +408,25 @@ export function GraphPanel({
             const ownerCollection = collections.find(
               (c) => c.id === sourceNode.collectionId,
             );
+            const sourceEntry =
+              perCollectionFlat[sourceNode.collectionId]?.[sourceNode.path];
             const modeNames = ownerCollection?.modes.map((m) => m.name) ?? [];
+            if (!ownerCollection || !sourceEntry) return null;
             return (
               <RewireConfirm
                 x={rewireRequest.screenX}
                 y={rewireRequest.screenY}
                 sourcePath={sourceNode.path}
+                sourceCollectionId={sourceNode.collectionId}
+                sourceCollection={ownerCollection}
+                sourceEntry={sourceEntry}
                 targetPath={targetNode.path}
+                targetCollectionId={targetNode.collectionId}
                 modeNames={modeNames}
+                collections={collections}
+                perCollectionFlat={perCollectionFlat}
+                pathToCollectionId={pathToCollectionId}
+                collectionIdsByPath={collectionIdsByPath}
                 busy={rewireRequest.busy}
                 errorMessage={rewireRequest.error}
                 onCancel={() => setRewireRequest(null)}

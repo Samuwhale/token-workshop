@@ -177,21 +177,25 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
     const afterLabel = formatMeasure(after, 'dimension');
     const beforeMeasure = readDimensionTokenValue(before);
     const afterMeasure = readDimensionTokenValue(after);
-    const deltaStr =
+    const deltaValue =
       beforeMeasure &&
       afterMeasure &&
       beforeMeasure.unit === afterMeasure.unit &&
       beforeMeasure.value !== afterMeasure.value
-      ? formatDelta(afterMeasure.value - beforeMeasure.value, afterMeasure.unit)
-      : null;
+        ? afterMeasure.value - beforeMeasure.value
+        : null;
+    const deltaStr =
+      deltaValue !== null && afterMeasure
+        ? formatDelta(deltaValue, afterMeasure.unit)
+        : null;
     return (
       <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
         <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
         <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">{beforeLabel}</span>
         <ArrowRight />
         <span className="text-secondary font-mono text-[var(--color-figma-text)]">{afterLabel}</span>
-        {deltaStr && (
-          <span className={`ml-auto text-secondary font-mono shrink-0 ${afterMeasure.value > beforeMeasure.value ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
+        {deltaStr && deltaValue !== null && (
+          <span className={`ml-auto text-secondary font-mono shrink-0 ${deltaValue > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
             {deltaStr}
           </span>
         )}
@@ -211,7 +215,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
       afterDuration && deltaMs !== null
         ? (afterDuration.unit === 's' ? deltaMs / 1000 : deltaMs)
         : null;
-    const deltaStr = deltaValue !== null && deltaMs !== 0
+    const deltaStr = deltaValue !== null && deltaMs !== null && deltaMs !== 0 && afterDuration
       ? formatDelta(deltaValue, afterDuration.unit)
       : null;
     return (
@@ -220,7 +224,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
         <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">{beforeLabel}</span>
         <ArrowRight />
         <span className="text-secondary font-mono text-[var(--color-figma-text)]">{afterLabel}</span>
-        {deltaStr && (
+        {deltaStr && deltaMs !== null && (
           <span className={`ml-auto text-secondary font-mono shrink-0 ${deltaMs > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
             {deltaStr}
           </span>

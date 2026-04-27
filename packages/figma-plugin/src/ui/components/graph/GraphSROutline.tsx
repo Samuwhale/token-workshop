@@ -36,12 +36,24 @@ export function GraphSROutline({ graph, focusNodeId }: GraphSROutlineProps) {
         ]
       : [
           {
-            title: "Resolves to",
+            title: "Depends on",
             nodes: collectNodes(graph, incoming, "alias", "from"),
           },
           {
-            title: "Referenced by",
+            title: "Used by",
             nodes: collectNodes(graph, outgoing, "alias", "to"),
+          },
+          {
+            title: "Modified from",
+            nodes: collectNodes(graph, incoming, "derivation-source", "from"),
+          },
+          {
+            title: "Modified values",
+            nodes: collectNodes(graph, outgoing, "derivation-source", "to"),
+          },
+          {
+            title: "Creates",
+            nodes: collectNodes(graph, outgoing, "derivation-produces", "to"),
           },
           {
             title: "Produced by",
@@ -108,7 +120,7 @@ function describeNode(node: GraphNode): string {
   if (node.kind === "generator")
     return `Generator ${node.name} (${node.outputCount} outputs)`;
   if (node.kind === "derivation")
-    return `Modifier on ${node.derivedPath} (from ${node.sourceTokenPath})`;
+    return `Modified value ${node.derivedPath} (from ${node.sourceTokenPath})`;
   return node.reason === "ambiguous"
     ? `Ambiguous token reference ${node.path}`
     : `Missing token ${node.path}`;

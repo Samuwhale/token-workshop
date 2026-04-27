@@ -1,9 +1,5 @@
 import {
-  collectReferencePaths,
-  extractDerivationRefPaths,
-  getTokenManagerExt,
-  readTokenCollectionModeValues,
-  validateDerivationOps,
+  collectTokenReferencePaths,
   type TokenLifecycle,
 } from "@tokenmanager/core";
 
@@ -18,7 +14,7 @@ interface ComputeUnusedTokenPathOptions {
 }
 
 export function collectReferencedTokenPaths(value: unknown, referencedPaths: Set<string>): void {
-  for (const path of collectReferencePaths(value)) {
+  for (const path of collectTokenReferencePaths({ $value: value })) {
     referencedPaths.add(path);
   }
 }
@@ -27,29 +23,11 @@ function collectReferencedPathsFromEntry<T extends TokenUsageEntry>(
   entry: T,
   referencedPaths: Set<string>,
 ): void {
-  collectReferencedTokenPaths(entry.$value, referencedPaths);
-
-  const modeValues = readTokenCollectionModeValues(entry);
-  for (const collectionModes of Object.values(modeValues)) {
-    for (const modeValue of Object.values(collectionModes)) {
-      collectReferencedTokenPaths(modeValue, referencedPaths);
-    }
-  }
-
-  const derivation = getTokenManagerExt({
-    $extensions: entry.$extensions as Record<string, unknown> | undefined,
-  })?.derivation;
-  if (!derivation) {
-    return;
-  }
-
-  try {
-    const ops = validateDerivationOps(derivation.ops);
-    for (const path of extractDerivationRefPaths(ops)) {
-      referencedPaths.add(path);
-    }
-  } catch {
-    // Ignore malformed derivations here so usage scanning stays resilient.
+  for (const path of collectTokenReferencePaths({
+    $value: entry.$value,
+    $extensions: entry.$extensions,
+  })) {
+    referencedPaths.add(path);
   }
 }
 

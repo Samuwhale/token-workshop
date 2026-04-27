@@ -1,12 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
+  collectTokenReferencePaths,
   colorDeltaE,
-  extractDerivationRefPaths,
   getTokenLifecycle,
   isReference,
   parseReference,
-  validateDerivationOps,
+  readTokenCollectionModeValues,
+  resolveCollectionIdForPath,
   type Token,
 } from '@tokenmanager/core';
 import { expectJsonObject, parseJsonFile } from '../utils/json-file.js';
@@ -298,16 +299,239 @@ export class LintConfigStore {
   }
 }
 
+interface WorkspaceTokenEntry {
+  path: string;
+  collectionId: string;
+  token: Token;
+}
+
+interface WorkspaceTokenIndex {
+  flatTokensByCollection: Record<string, Record<string, Token>>;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
+}
+
+interface ResolvedWorkspaceToken {
+  path: string;
+  collectionId: string;
+  token: Token;
+}
+
+interface DirectAliasTarget {
+  modeName: string | null;
+  refPath: string;
+}
+
+interface AliasDepthViolationDetail {
+  modeName: string | null;
+  depth: number;
+  resolvedTarget: string | null;
+}
+
+interface DeprecatedAliasViolationDetail {
+  modeName: string | null;
+  deprecatedPath: string;
+}
+
+function buildWorkspaceTokenIndex(entries: WorkspaceTokenEntry[]): WorkspaceTokenIndex {
+  const flatTokensByCollection: Record<string, Record<string, Token>> = {};
+  const pathToCollectionId: Record<string, string> = {};
+  const collectionIdsByPath: Record<string, string[]> = {};
+
+  for (const entry of entries) {
+    const collectionTokens = flatTokensByCollection[entry.collectionId] ?? {};
+    collectionTokens[entry.path] = entry.token;
+    flatTokensByCollection[entry.collectionId] = collectionTokens;
+
+    if (!pathToCollectionId[entry.path]) {
+      pathToCollectionId[entry.path] = entry.collectionId;
+    }
+
+    const collectionIds = collectionIdsByPath[entry.path] ?? [];
+    if (!collectionIds.includes(entry.collectionId)) {
+      collectionIds.push(entry.collectionId);
+      collectionIdsByPath[entry.path] = collectionIds;
+    }
+  }
+
+  return {
+    flatTokensByCollection,
+    pathToCollectionId,
+    collectionIdsByPath,
+  };
+}
+
+function resolveWorkspaceToken(
+  tokenPath: string,
+  preferredCollectionId: string,
+  workspace: WorkspaceTokenIndex,
+): ResolvedWorkspaceToken | null {
+  const resolution = resolveCollectionIdForPath({
+    path: tokenPath,
+    preferredCollectionId,
+    pathToCollectionId: workspace.pathToCollectionId,
+    collectionIdsByPath: workspace.collectionIdsByPath,
+  });
+  if (!resolution.collectionId) {
+    return null;
+  }
+
+  const token =
+    workspace.flatTokensByCollection[resolution.collectionId]?.[tokenPath];
+  if (!token) {
+    return null;
+  }
+
+  return {
+    path: tokenPath,
+    collectionId: resolution.collectionId,
+    token,
+  };
+}
+
+function readModeScopedTokenValue(
+  token: Token,
+  collectionId: string,
+  modeName: string | null,
+): unknown {
+  if (!modeName) {
+    return token.$value;
+  }
+
+  const collectionModes = readTokenCollectionModeValues(token)[collectionId];
+  if (!collectionModes) {
+    return token.$value;
+  }
+
+  return Object.prototype.hasOwnProperty.call(collectionModes, modeName)
+    ? collectionModes[modeName]
+    : token.$value;
+}
+
+function readDirectAliasTargets(
+  token: Token,
+  collectionId: string,
+): DirectAliasTarget[] {
+  const targets: DirectAliasTarget[] = [];
+
+  const pushTarget = (modeName: string | null, value: unknown) => {
+    if (!isReference(value)) {
+      return;
+    }
+    targets.push({
+      modeName,
+      refPath: parseReference(value),
+    });
+  };
+
+  pushTarget(null, token.$value);
+  for (const [modeName, value] of Object.entries(
+    readTokenCollectionModeValues(token)[collectionId] ?? {},
+  )) {
+    pushTarget(modeName, value);
+  }
+
+  return targets;
+}
+
+function readAliasTargetForMode(
+  token: Token,
+  collectionId: string,
+  modeName: string | null,
+): string | null {
+  const value = readModeScopedTokenValue(token, collectionId, modeName);
+  return isReference(value) ? parseReference(value) : null;
+}
+
+function resolveAliasTarget(
+  tokenPath: string,
+  collectionId: string,
+  workspace: WorkspaceTokenIndex,
+  modeName: string | null,
+  visited = new Set<string>(),
+): string | null {
+  const token = workspace.flatTokensByCollection[collectionId]?.[tokenPath];
+  if (!token) {
+    return null;
+  }
+
+  const visitKey = `${collectionId}::${tokenPath}::${modeName ?? '__default__'}`;
+  if (visited.has(visitKey)) {
+    return null;
+  }
+
+  const nextPath = readAliasTargetForMode(token, collectionId, modeName);
+  if (!nextPath) {
+    return tokenPath;
+  }
+
+  visited.add(visitKey);
+  const target = resolveWorkspaceToken(nextPath, collectionId, workspace);
+  if (!target) {
+    return null;
+  }
+
+  return resolveAliasTarget(
+    nextPath,
+    target.collectionId,
+    workspace,
+    modeName,
+    visited,
+  );
+}
+
+function findDeprecatedAliasTarget(
+  tokenPath: string,
+  collectionId: string,
+  workspace: WorkspaceTokenIndex,
+  modeName: string | null,
+  visited = new Set<string>(),
+): string | null {
+  const token = workspace.flatTokensByCollection[collectionId]?.[tokenPath];
+  if (!token) {
+    return null;
+  }
+
+  const visitKey = `${collectionId}::${tokenPath}::${modeName ?? '__default__'}`;
+  if (visited.has(visitKey)) {
+    return null;
+  }
+
+  const nextPath = readAliasTargetForMode(token, collectionId, modeName);
+  if (!nextPath) {
+    return null;
+  }
+
+  visited.add(visitKey);
+  const target = resolveWorkspaceToken(nextPath, collectionId, workspace);
+  if (!target) {
+    return null;
+  }
+  if (getTokenLifecycle(target.token) === 'deprecated') {
+    return nextPath;
+  }
+
+  return findDeprecatedAliasTarget(
+    nextPath,
+    target.collectionId,
+    workspace,
+    modeName,
+    visited,
+  );
+}
 
 /** Find the closest alias color token to the given raw hex value. */
 function findNearestColorAlias(
   rawHex: string,
   tokenPath: string,
-  allFlatTokens: Record<string, Token>,
+  collectionId: string,
+  allEntries: WorkspaceTokenEntry[],
 ): { path: string; deltaE: number } | null {
   let best: { path: string; deltaE: number } | null = null;
-  for (const [candidatePath, candidateToken] of Object.entries(allFlatTokens)) {
-    if (candidatePath === tokenPath) continue;
+  for (const entry of allEntries) {
+    if (entry.path === tokenPath && entry.collectionId === collectionId) continue;
+    const candidatePath = entry.path;
+    const candidateToken = entry.token;
     if (candidateToken.$type !== 'color') continue;
     // Only suggest tokens that are themselves raw values (primitives to alias to)
     if (isReference(candidateToken.$value)) continue;
@@ -320,35 +544,6 @@ function findNearestColorAlias(
     }
   }
   return best;
-}
-
-/** Resolve an alias chain to the final non-alias value, returning that token's path. */
-function resolveAliasTarget(path: string, flatTokens: Record<string, Token>, visited = new Set<string>()): string | null {
-  if (visited.has(path)) return null; // cycle
-  const token = flatTokens[path];
-  if (!token) return null;
-  if (!isReference(token.$value)) return path;
-  visited.add(path);
-  return resolveAliasTarget(parseReference(token.$value as string), flatTokens, visited);
-}
-
-function findDeprecatedAliasTarget(
-  path: string,
-  flatTokens: Record<string, Token>,
-  visited = new Set<string>(),
-): string | null {
-  if (visited.has(path)) return null;
-  const token = flatTokens[path];
-  if (!token || !isReference(token.$value)) return null;
-
-  visited.add(path);
-  const referencedPath = parseReference(token.$value as string);
-  const referencedToken = flatTokens[referencedPath];
-  if (!referencedToken) return null;
-  if (getTokenLifecycle(referencedToken) === 'deprecated') {
-    return referencedPath;
-  }
-  return findDeprecatedAliasTarget(referencedPath, flatTokens, visited);
 }
 
 // ---------------------------------------------------------------------------
@@ -383,13 +578,180 @@ function isPathExcluded(tokenPath: string, excludePaths: string[] | undefined): 
 // Rules engine
 // ---------------------------------------------------------------------------
 
-function getAliasDepth(path: string, flatTokens: Record<string, Token>, visited = new Set<string>()): number {
-  if (visited.has(path)) return 0; // cycle — do not recurse
-  const token = flatTokens[path];
-  if (!token || !isReference(token.$value)) return 0;
-  const refPath = parseReference(token.$value as string);
-  visited.add(path);
-  return 1 + getAliasDepth(refPath, flatTokens, visited);
+function getAliasDepth(
+  tokenPath: string,
+  collectionId: string,
+  workspace: WorkspaceTokenIndex,
+  modeName: string | null,
+  visited = new Set<string>(),
+): number {
+  const token = workspace.flatTokensByCollection[collectionId]?.[tokenPath];
+  if (!token) {
+    return 0;
+  }
+
+  const visitKey = `${collectionId}::${tokenPath}::${modeName ?? '__default__'}`;
+  if (visited.has(visitKey)) {
+    return 0;
+  }
+
+  const refPath = readAliasTargetForMode(token, collectionId, modeName);
+  if (!refPath) {
+    return 0;
+  }
+
+  visited.add(visitKey);
+  const target = resolveWorkspaceToken(refPath, collectionId, workspace);
+  if (!target) {
+    return 1;
+  }
+
+  return (
+    1 + getAliasDepth(refPath, target.collectionId, workspace, modeName, visited)
+  );
+}
+
+function formatAliasMode(modeName: string | null): string {
+  return modeName ? `mode "${modeName}"` : "default value";
+}
+
+function joinList(items: string[]): string {
+  if (items.length <= 1) {
+    return items[0] ?? "";
+  }
+  if (items.length === 2) {
+    return `${items[0]} and ${items[1]}`;
+  }
+  return `${items.slice(0, -1).join(', ')}, and ${items.at(-1)}`;
+}
+
+function collectAliasDepthViolationDetails(
+  tokenPath: string,
+  collectionId: string,
+  workspace: WorkspaceTokenIndex,
+  maxDepth: number,
+): AliasDepthViolationDetail[] {
+  const token = workspace.flatTokensByCollection[collectionId]?.[tokenPath];
+  if (!token) {
+    return [];
+  }
+
+  const details: AliasDepthViolationDetail[] = [];
+  for (const { modeName } of readDirectAliasTargets(token, collectionId)) {
+    const depth = getAliasDepth(tokenPath, collectionId, workspace, modeName);
+    if (depth <= maxDepth) {
+      continue;
+    }
+    details.push({
+      modeName,
+      depth,
+      resolvedTarget: resolveAliasTarget(
+        tokenPath,
+        collectionId,
+        workspace,
+        modeName,
+      ),
+    });
+  }
+
+  return details;
+}
+
+function describeAliasDepthViolation(
+  tokenPath: string,
+  maxDepth: number,
+  details: AliasDepthViolationDetail[],
+): { message: string; suggestion?: string } {
+  const uniqueSuggestions = [
+    ...new Set(
+      details
+        .map((detail) => detail.resolvedTarget)
+        .filter(
+          (target): target is string =>
+            typeof target === 'string' && target.length > 0 && target !== tokenPath,
+        ),
+    ),
+  ];
+  const suggestion =
+    uniqueSuggestions.length === 1 ? `{${uniqueSuggestions[0]}}` : undefined;
+
+  if (details.length === 1) {
+    const [detail] = details;
+    const modeText = detail.modeName ? ` in mode "${detail.modeName}"` : '';
+    return {
+      message: `Token "${tokenPath}" has alias depth ${detail.depth}${modeText} (max ${maxDepth}).${suggestion ? ` Point directly to ${suggestion} to flatten.` : ''}`,
+      suggestion,
+    };
+  }
+
+  const summary = joinList(
+    details.map(
+      (detail) => `${formatAliasMode(detail.modeName)} (${detail.depth})`,
+    ),
+  );
+  return {
+    message: `Token "${tokenPath}" exceeds alias depth ${maxDepth} in ${summary}.${suggestion ? ` Point directly to ${suggestion} where possible.` : ''}`,
+    suggestion,
+  };
+}
+
+function collectDeprecatedAliasViolationDetails(
+  tokenPath: string,
+  collectionId: string,
+  workspace: WorkspaceTokenIndex,
+): DeprecatedAliasViolationDetail[] {
+  const token = workspace.flatTokensByCollection[collectionId]?.[tokenPath];
+  if (!token) {
+    return [];
+  }
+
+  const details: DeprecatedAliasViolationDetail[] = [];
+  for (const { modeName } of readDirectAliasTargets(token, collectionId)) {
+    const deprecatedPath = findDeprecatedAliasTarget(
+      tokenPath,
+      collectionId,
+      workspace,
+      modeName,
+    );
+    if (!deprecatedPath) {
+      continue;
+    }
+    details.push({ modeName, deprecatedPath });
+  }
+
+  return details;
+}
+
+function describeDeprecatedAliasViolation(
+  tokenPath: string,
+  details: DeprecatedAliasViolationDetail[],
+): { message: string; suggestion?: string } {
+  const uniqueTargets = [...new Set(details.map((detail) => detail.deprecatedPath))];
+  const suggestion = uniqueTargets.length === 1 ? uniqueTargets[0] : undefined;
+
+  if (details.length === 1) {
+    const [detail] = details;
+    return {
+      message: `Token "${tokenPath}" references deprecated token "{${detail.deprecatedPath}}" in ${formatAliasMode(detail.modeName)}.`,
+      suggestion,
+    };
+  }
+
+  const groupedModes = new Map<string, string[]>();
+  for (const detail of details) {
+    const modes = groupedModes.get(detail.deprecatedPath) ?? [];
+    modes.push(formatAliasMode(detail.modeName));
+    groupedModes.set(detail.deprecatedPath, modes);
+  }
+
+  const segments = [...groupedModes.entries()].map(([deprecatedPath, modes]) => {
+    return `{${deprecatedPath}} in ${joinList(modes)}`;
+  });
+
+  return {
+    message: `Token "${tokenPath}" references deprecated tokens ${joinList(segments)}.`,
+    suggestion,
+  };
 }
 
 function serializeValue(value: unknown): string {
@@ -477,16 +839,8 @@ async function lintTokens(
   lintConfig: LintConfig,
 ): Promise<LintViolation[]> {
   const allEntries = tokenStore.getAllFlatTokens();
-  // Tokens for the target collection only
-  const flatTokens: Record<string, Token> = {};
-  // All tokens for cross-collection alias resolution
-  const allFlatTokens: Record<string, Token> = {};
-  for (const entry of allEntries) {
-    allFlatTokens[entry.path] = entry.token;
-    if (entry.collectionId === collectionId) {
-      flatTokens[entry.path] = entry.token;
-    }
-  }
+  const workspace = buildWorkspaceTokenIndex(allEntries);
+  const flatTokens = workspace.flatTokensByCollection[collectionId] ?? {};
 
   const violations: Omit<LintViolation, 'collectionId'>[] = [];
   const rules = lintConfig.lintRules;
@@ -499,7 +853,12 @@ async function lintTokens(
       if (isPathExcluded(tokenPath, noRawColor.excludePaths)) continue;
       if (token.$type === 'color' && !isReference(token.$value)) {
         const rawHex = String(token.$value);
-        const nearest = findNearestColorAlias(rawHex, tokenPath, allFlatTokens);
+        const nearest = findNearestColorAlias(
+          rawHex,
+          tokenPath,
+          collectionId,
+          allEntries,
+        );
         let suggestion: string | undefined;
         let hint = '';
         if (nearest && nearest.deltaE < 1) {
@@ -600,16 +959,23 @@ async function lintTokens(
     const severity = maxAliasDepth.severity ?? 'warning';
     for (const [tokenPath] of Object.entries(flatTokens)) {
       if (isPathExcluded(tokenPath, maxAliasDepth.excludePaths)) continue;
-      const depth = getAliasDepth(tokenPath, allFlatTokens);
-      if (depth > maxDepth) {
-        const resolvedTarget = resolveAliasTarget(tokenPath, allFlatTokens);
-        const suggestion = resolvedTarget && resolvedTarget !== tokenPath ? `{${resolvedTarget}}` : undefined;
-        const hint = suggestion ? ` Point directly to ${suggestion} to flatten.` : '';
+      const details = collectAliasDepthViolationDetails(
+        tokenPath,
+        collectionId,
+        workspace,
+        maxDepth,
+      );
+      if (details.length > 0) {
+        const { message, suggestion } = describeAliasDepthViolation(
+          tokenPath,
+          maxDepth,
+          details,
+        );
         violations.push({
           rule: 'max-alias-depth',
           path: tokenPath,
           severity,
-          message: `Token "${tokenPath}" has alias depth ${depth} (max ${maxDepth}).${hint}`,
+          message,
           suggestedFix: 'flatten-alias-chain',
           suggestion,
         });
@@ -626,15 +992,23 @@ async function lintTokens(
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
       if (isPathExcluded(tokenPath, referencesDeprecatedToken.excludePaths)) continue;
       if (getTokenLifecycle(token) === 'deprecated') continue;
-      const deprecatedPath = findDeprecatedAliasTarget(tokenPath, allFlatTokens);
-      if (!deprecatedPath) continue;
+      const details = collectDeprecatedAliasViolationDetails(
+        tokenPath,
+        collectionId,
+        workspace,
+      );
+      if (details.length === 0) continue;
+      const { message, suggestion } = describeDeprecatedAliasViolation(
+        tokenPath,
+        details,
+      );
       violations.push({
         rule: 'references-deprecated-token',
         path: tokenPath,
         severity,
-        message: `Token "${tokenPath}" references deprecated token "{${deprecatedPath}}" in its alias chain.`,
+        message,
         suggestedFix: 'replace-deprecated-reference',
-        suggestion: deprecatedPath,
+        suggestion,
       });
     }
   }
@@ -713,8 +1087,10 @@ async function lintTokens(
       // Look for an existing raw token with the same value to suggest as alias target
       const rawVal = token.$value;
       let suggestion: string | undefined;
-      for (const [candidatePath, candidateToken] of Object.entries(allFlatTokens)) {
-        if (candidatePath === tokenPath) continue;
+      for (const entry of allEntries) {
+        const candidatePath = entry.path;
+        const candidateToken = entry.token;
+        if (candidatePath === tokenPath && entry.collectionId === collectionId) continue;
         if (candidateToken.$type !== token.$type) continue;
         if (isReference(candidateToken.$value)) continue;
         if (serializeValue(candidateToken.$value) === serializeValue(rawVal)) {
@@ -852,58 +1228,82 @@ export interface ValidationIssue {
 
 function detectCycles(
   startPath: string,
-  allTokens: Record<string, { token: Token; collectionId: string }>,
+  startCollectionId: string,
+  workspace: WorkspaceTokenIndex,
+  modeName: string | null,
 ): string[] | null {
-  const chain: string[] = [];
-  const indexMap = new Map<string, number>(); // path → index in chain
+  const chain: Array<{ path: string; collectionId: string }> = [];
+  const indexMap = new Map<string, number>();
 
-  function visit(current: string): string[] | null {
-    if (indexMap.has(current)) {
-      const cycleStart = indexMap.get(current)!;
-      const cycle = chain.slice(cycleStart);
-      cycle.push(current); // close the loop: e.g. [a, b, c, a]
+  function visit(currentPath: string, currentCollectionId: string): string[] | null {
+    const visitKey = `${currentCollectionId}::${currentPath}`;
+    if (indexMap.has(visitKey)) {
+      const cycleStart = indexMap.get(visitKey)!;
+      const cycle = chain.slice(cycleStart).map((entry) => entry.path);
+      cycle.push(currentPath);
       return cycle;
     }
 
-    const entry = allTokens[current];
-    if (!entry) return null;
+    const token = workspace.flatTokensByCollection[currentCollectionId]?.[currentPath];
+    if (!token) return null;
 
-    const refs = getStructuralReferencePaths(entry.token);
+    const refs = getCycleReferencePaths(token, currentCollectionId, modeName);
     if (refs.length === 0) return null;
 
-    indexMap.set(current, chain.length);
-    chain.push(current);
+    indexMap.set(visitKey, chain.length);
+    chain.push({ path: currentPath, collectionId: currentCollectionId });
     for (const refPath of refs) {
-      const cycle = visit(refPath);
+      const target = resolveWorkspaceToken(refPath, currentCollectionId, workspace);
+      if (!target) {
+        continue;
+      }
+      const cycle = visit(refPath, target.collectionId);
       if (cycle) return cycle;
     }
     chain.pop();
-    indexMap.delete(current);
+    indexMap.delete(visitKey);
 
     return null;
   }
 
-  return visit(startPath);
+  return visit(startPath, startCollectionId);
 }
 
-function getStructuralReferencePaths(token: Token): string[] {
-  const refs: string[] = [];
-  if (isReference(token.$value)) {
-    refs.push(parseReference(token.$value as string));
+function getStructuralReferencePaths(token: Token, collectionId: string): string[] {
+  return collectTokenReferencePaths(token, {
+    collectionId,
+    includeExtends: true,
+  });
+}
+
+function getCycleReferencePaths(
+  token: Token,
+  collectionId: string,
+  modeName: string | null,
+): string[] {
+  if (!modeName) {
+    return collectTokenReferencePaths(token, {
+      collectionId,
+      includeModeOverrides: false,
+      includeExtends: true,
+    });
   }
 
-  const derivation = token.$extensions?.tokenmanager?.derivation;
-  if (derivation === undefined) return refs;
+  const modeValue = readTokenCollectionModeValues(token)[collectionId]?.[modeName];
+  return collectTokenReferencePaths(
+    { $value: modeValue, $extensions: token.$extensions },
+    {
+      includeModeOverrides: false,
+      includeExtends: true,
+    },
+  );
+}
 
-  try {
-    const ops = validateDerivationOps(derivation.ops);
-    refs.push(...extractDerivationRefPaths(ops));
-  } catch {
-    // Invalid derivation metadata is ignored here so structural linting stays
-    // resilient; valid derivation refs use the same graph inputs as core.
-  }
-
-  return [...new Set(refs)];
+function readCycleModeNames(token: Token, collectionId: string): Array<string | null> {
+  const modeNames = Object.keys(
+    readTokenCollectionModeValues(token)[collectionId] ?? {},
+  );
+  return [null, ...modeNames];
 }
 
 const TYPE_VALUE_CHECKS: Record<string, (v: unknown) => boolean> = {
@@ -914,6 +1314,32 @@ const TYPE_VALUE_CHECKS: Record<string, (v: unknown) => boolean> = {
   string: v => typeof v === 'string',
   boolean: v => typeof v === 'boolean',
 };
+
+function valueHasReferences(value: unknown): boolean {
+  return collectTokenReferencePaths(
+    { $value: value },
+    {
+      includeModeOverrides: false,
+      includeDerivationRefs: false,
+      includeExtends: false,
+    },
+  ).length > 0;
+}
+
+function readLiteralValuesForTypeCheck(
+  token: Token,
+  collectionId: string,
+): Array<{ modeName: string | null; value: unknown }> {
+  const values: Array<{ modeName: string | null; value: unknown }> = [
+    { modeName: null, value: token.$value },
+  ];
+  const modeValues = readTokenCollectionModeValues(token)[collectionId];
+  if (!modeValues) return values;
+  for (const [modeName, value] of Object.entries(modeValues)) {
+    values.push({ modeName, value });
+  }
+  return values;
+}
 
 /** Guess the most appropriate DTCG type from a raw value. Returns undefined if ambiguous. */
 function inferTypeFromValue(v: unknown): string | undefined {
@@ -930,117 +1356,142 @@ function inferTypeFromValue(v: unknown): string | undefined {
 export async function validateAllTokens(tokenStore: TokenStore, config?: LintConfig): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];
 
-  // Use the already-merged flat token map instead of rebuilding per-collection
   const allTokensList = tokenStore.getAllFlatTokens();
-  // Build keyed lookup for alias resolution and cycle detection
-  const allTokensMap: Record<string, { token: Token; collectionId: string }> = {};
-  for (const entry of allTokensList) {
-    // Keep first entry per path for lookup (all collections have the path)
-    if (!allTokensMap[entry.path]) {
-      allTokensMap[entry.path] = { token: entry.token, collectionId: entry.collectionId };
-    }
-  }
-  // Flat token map for alias resolution helpers
-  const allFlatTokens: Record<string, Token> = Object.fromEntries(
-    Object.entries(allTokensMap).map(([k, v]) => [k, v.token])
-  );
+  const workspace = buildWorkspaceTokenIndex(allTokensList);
 
   const cfg = config ?? DEFAULT_LINT_CONFIG;
 
   for (const { path: tokenPath, token, collectionId } of allTokensList) {
     // Missing $type
     if (!token.$type) {
-        issues.push({
-          severity: 'warning',
-          collectionId,
-          path: tokenPath,
+      issues.push({
+        severity: 'warning',
+        collectionId,
+        path: tokenPath,
         rule: 'missing-type',
         message: `Token is missing a $type declaration.`,
       });
     }
 
-    // Alias checks
-    if (isReference(token.$value)) {
-      const refPath = parseReference(token.$value as string);
+    const structuralRefs = getStructuralReferencePaths(token, collectionId);
 
-      // Broken alias
-      if (!allTokensMap[refPath]) {
+    // Broken references
+    for (const refPath of structuralRefs) {
+      const target = resolveWorkspaceToken(refPath, collectionId, workspace);
+      if (!target) {
+        const resolution = resolveCollectionIdForPath({
+          path: refPath,
+          preferredCollectionId: collectionId,
+          pathToCollectionId: workspace.pathToCollectionId,
+          collectionIdsByPath: workspace.collectionIdsByPath,
+        });
+        const isAmbiguous = resolution.reason === 'ambiguous';
         issues.push({
           severity: 'error',
           collectionId,
           path: tokenPath,
           rule: 'broken-alias',
-          message: `Alias "${token.$value}" references non-existent token "${refPath}".`,
+          message: isAmbiguous
+            ? `Reference "{${refPath}}" is ambiguous across collections.`
+            : `Reference "{${refPath}}" points to a token that does not exist.`,
           targetPath: refPath,
-          suggestedFix: 'delete-token',
+          suggestedFix: isAmbiguous ? undefined : 'delete-token',
         });
       }
+    }
 
-      // Circular reference
-      const cycle = detectCycles(tokenPath, allTokensMap);
-      if (cycle) {
+    // Direct alias checks
+    const maxAliasDepthRule = cfg.lintRules['max-alias-depth'];
+    if (maxAliasDepthRule?.enabled !== false) {
+      const maxDepth = (maxAliasDepthRule?.options?.maxDepth as number | undefined) ?? 3;
+      const details = collectAliasDepthViolationDetails(
+        tokenPath,
+        collectionId,
+        workspace,
+        maxDepth,
+      );
+      if (details.length > 0) {
+        const { message, suggestion } = describeAliasDepthViolation(
+          tokenPath,
+          maxDepth,
+          details,
+        );
         issues.push({
-          severity: 'error',
+          severity: maxAliasDepthRule?.severity ?? 'warning',
           collectionId,
           path: tokenPath,
-          rule: 'circular-reference',
-          message: `Circular reference: ${cycle.join(' → ')}`,
-          cyclePath: cycle,
+          rule: 'max-alias-depth',
+          message,
+          suggestedFix: 'flatten-alias-chain',
+          suggestion,
         });
       }
+    }
 
-      // Alias depth
-      const maxAliasDepthRule = cfg.lintRules['max-alias-depth'];
-      if (maxAliasDepthRule?.enabled !== false) {
-        const maxDepth = (maxAliasDepthRule?.options?.maxDepth as number | undefined) ?? 3;
-        const depth = getAliasDepth(tokenPath, allFlatTokens);
-        if (depth > maxDepth) {
-          const resolvedTarget = resolveAliasTarget(tokenPath, allFlatTokens);
-          const suggestion = resolvedTarget && resolvedTarget !== tokenPath ? `{${resolvedTarget}}` : undefined;
+    const referencesDeprecatedRule = cfg.lintRules['references-deprecated-token']
+      ? resolveRuleForCollection(cfg.lintRules['references-deprecated-token'], collectionId)
+      : undefined;
+    if (
+      referencesDeprecatedRule?.enabled &&
+      !isPathExcluded(tokenPath, referencesDeprecatedRule.excludePaths) &&
+      getTokenLifecycle(token) !== 'deprecated'
+    ) {
+      const details = collectDeprecatedAliasViolationDetails(
+        tokenPath,
+        collectionId,
+        workspace,
+      );
+      if (details.length > 0) {
+        const { message, suggestion } = describeDeprecatedAliasViolation(
+          tokenPath,
+          details,
+        );
+        issues.push({
+          severity: referencesDeprecatedRule.severity ?? 'warning',
+          collectionId,
+          path: tokenPath,
+          rule: 'references-deprecated-token',
+          message,
+          suggestedFix: 'replace-deprecated-reference',
+          suggestion,
+        });
+      }
+    }
+
+    if (structuralRefs.length > 0) {
+      for (const modeName of readCycleModeNames(token, collectionId)) {
+        const cycle = detectCycles(tokenPath, collectionId, workspace, modeName);
+        if (cycle) {
           issues.push({
-            severity: maxAliasDepthRule?.severity ?? 'warning',
+            severity: 'error',
             collectionId,
             path: tokenPath,
-            rule: 'max-alias-depth',
-            message: `Alias chain depth is ${depth} (recommended max: ${maxDepth}).${suggestion ? ` Point directly to ${suggestion} to flatten.` : ''}`,
-            suggestedFix: 'flatten-alias-chain',
-            suggestion,
+            rule: 'circular-reference',
+            message: `Circular reference${modeName ? ` in mode "${modeName}"` : ''}: ${cycle.join(' → ')}`,
+            cyclePath: cycle,
           });
+          break;
         }
       }
+    }
 
-      const referencesDeprecatedRule = cfg.lintRules['references-deprecated-token']
-        ? resolveRuleForCollection(cfg.lintRules['references-deprecated-token'], collectionId)
-        : undefined;
-      if (
-        referencesDeprecatedRule?.enabled &&
-        !isPathExcluded(tokenPath, referencesDeprecatedRule.excludePaths) &&
-        getTokenLifecycle(token) !== 'deprecated'
-      ) {
-        const deprecatedPath = findDeprecatedAliasTarget(tokenPath, allFlatTokens);
-        if (deprecatedPath) {
-          issues.push({
-            severity: referencesDeprecatedRule.severity ?? 'warning',
-            collectionId,
-            path: tokenPath,
-            rule: 'references-deprecated-token',
-            message: `Token "${tokenPath}" references deprecated token "{${deprecatedPath}}" in its alias chain.`,
-            suggestedFix: 'replace-deprecated-reference',
-            suggestion: deprecatedPath,
-          });
-        }
-      }
-    } else if (token.$type && TYPE_VALUE_CHECKS[token.$type]) {
-      // Value/type mismatch
+    if (token.$type && TYPE_VALUE_CHECKS[token.$type]) {
       const check = TYPE_VALUE_CHECKS[token.$type];
-      if (!check(token.$value)) {
-        const inferredType = inferTypeFromValue(token.$value);
+      for (const { modeName, value } of readLiteralValuesForTypeCheck(
+        token,
+        collectionId,
+      )) {
+        if (valueHasReferences(value) || check(value)) {
+          continue;
+        }
+        const inferredType = inferTypeFromValue(value);
+        const modeText = modeName ? ` in mode "${modeName}"` : '';
         issues.push({
           severity: 'error',
           collectionId,
           path: tokenPath,
           rule: 'type-mismatch',
-          message: `Value does not match declared type "${token.$type}".`,
+          message: `Value${modeText} does not match declared type "${token.$type}".`,
           suggestedFix: 'fix-type',
           suggestion: inferredType,
         });

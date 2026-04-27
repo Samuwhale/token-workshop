@@ -1,7 +1,12 @@
 import { useMemo } from "react";
-import { AlertTriangle, Diff, ExternalLink, RotateCw } from "lucide-react";
 import {
-  readTokenModeValuesForCollection,
+  AlertTriangle,
+  Diff,
+  ExternalLink,
+  GitBranch,
+  RotateCw,
+} from "lucide-react";
+import {
   type GraphModel,
   type GraphNodeId,
   type TokenCollection,
@@ -10,8 +15,11 @@ import {
 import { Button, Section, Stack } from "../../../primitives";
 import type { TokenMapEntry } from "../../../../shared/types";
 import {
+  buildTokenModeRows,
+  ModeDependencyRows,
+} from "../modeRows";
+import {
   collectIncidentTokens,
-  ModeValueMatrix,
   RelatedList,
   tokenTypeGlyph,
 } from "./shared";
@@ -21,12 +29,20 @@ interface TokenInspectorProps {
   token: TokenGraphNode;
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
   onNavigateToToken: (path: string, collectionId: string) => void;
   onCompareTokens?: (
     a: { path: string; collectionId: string },
     b: { path: string; collectionId: string },
   ) => void;
+  onCreateFromToken?: (
+    nodeId: GraphNodeId,
+    screenX: number,
+    screenY: number,
+  ) => void;
   onSelectNode: (nodeId: GraphNodeId | null) => void;
+  onSelectEdge: (edgeId: string | null) => void;
 }
 
 export function TokenInspector({
@@ -34,16 +50,38 @@ export function TokenInspector({
   token,
   collections,
   perCollectionFlat,
+  pathToCollectionId,
+  collectionIdsByPath,
   onNavigateToToken,
   onCompareTokens,
+  onCreateFromToken,
   onSelectNode,
+  onSelectEdge,
 }: TokenInspectorProps) {
   const collection = collections.find((c) => c.id === token.collectionId);
   const entry = perCollectionFlat[token.collectionId]?.[token.path];
-  const modeValues = useMemo(() => {
-    if (!collection || !entry) return null;
-    return readTokenModeValuesForCollection(entry, collection);
-  }, [collection, entry]);
+  const modeRows = useMemo(() => {
+    if (!collection || !entry) return [];
+    return buildTokenModeRows({
+      graph,
+      token,
+      collection,
+      entry,
+      collections,
+      perCollectionFlat,
+      pathToCollectionId,
+      collectionIdsByPath,
+    });
+  }, [
+    collection,
+    collectionIdsByPath,
+    collections,
+    entry,
+    graph,
+    pathToCollectionId,
+    perCollectionFlat,
+    token,
+  ]);
 
   const upstream = useMemo(
     () => collectIncidentTokens(graph, token.id, "incoming"),
@@ -86,16 +124,14 @@ export function TokenInspector({
 
       <HealthCallout token={token} />
 
-      {collection && modeValues ? (
-        <ModeValueMatrix
-          modes={collection.modes.map((m) => m.name)}
-          tokenType={token.$type}
-          modeValues={modeValues}
-        />
+      {collection && entry ? (
+        <Section title="Modes" emphasis="secondary">
+          <ModeDependencyRows rows={modeRows} onSelectEdge={onSelectEdge} />
+        </Section>
       ) : null}
 
       {upstream.length > 0 ? (
-        <Section title={`Uses · ${upstream.length}`} emphasis="secondary">
+        <Section title={`Depends on · ${upstream.length}`} emphasis="secondary">
           <RelatedList
             items={upstream}
             onClick={(t) => onSelectNode(t.id)}
@@ -122,6 +158,18 @@ export function TokenInspector({
           <ExternalLink size={11} strokeWidth={2} aria-hidden />
           Open token
         </Button>
+        {onCreateFromToken ? (
+          <Button
+            variant="secondary"
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              onCreateFromToken(token.id, rect.left, rect.bottom + 4);
+            }}
+          >
+            <GitBranch size={11} strokeWidth={2} aria-hidden />
+            Create from this
+          </Button>
+        ) : null}
         {onCompareTokens && upstream[0] ? (
           <Button
             variant="secondary"

@@ -3,6 +3,9 @@ import {
   applyDerivation,
   DIMENSION_UNITS,
   type DerivationOp,
+  type DimensionUnit,
+  type DimensionValue,
+  type DurationValue,
   type TokenType,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../../shared/types";
@@ -81,7 +84,7 @@ export function CreateDerivationConfirm({
   const unsupported = kinds.length === 0;
   const invalid = trimmed.length === 0 || taken || unsupported;
   const validationMessage = unsupported
-    ? "Modifiers are available for color, dimension, number, and duration tokens."
+    ? "Modified tokens are available for color, dimension, number, and duration tokens."
     : taken
       ? `A token at "${trimmed}" already exists in ${collectionLabel}.`
       : null;
@@ -95,19 +98,19 @@ export function CreateDerivationConfirm({
     <ContextDialog
       x={x}
       y={y}
-      ariaLabel="Create token modifier"
+      ariaLabel="Create modified token"
       onCancel={onCancel}
     >
       <div className="flex flex-col gap-1">
         <div className="font-medium text-[var(--color-figma-text)]">
-          New modifier
+          New modified token
         </div>
         <div className="text-secondary text-[var(--color-figma-text-secondary)]">
           In{" "}
           <span className="font-medium text-[var(--color-figma-text)]">
             {collectionLabel}
           </span>
-          , from{" "}
+          , linked to{" "}
           <span className="font-mono text-[var(--color-figma-text)]">
             {sourcePath}
           </span>
@@ -115,6 +118,18 @@ export function CreateDerivationConfirm({
         </div>
       </div>
 
+      <div className="mt-3 grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-secondary">
+        <span className="text-[var(--color-figma-text-tertiary)]">Source</span>
+        <span className="truncate font-mono text-[var(--color-figma-text)]" title={sourcePath}>
+          {sourcePath}
+        </span>
+        <span className="text-[var(--color-figma-text-tertiary)]">Creates</span>
+        <span className="truncate font-mono text-[var(--color-figma-text)]" title={trimmed}>
+          {trimmed || "token.path"}
+        </span>
+      </div>
+      <label className="mt-3 flex flex-col gap-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+        New token path
       <input
         ref={inputRef}
         type="text"
@@ -128,8 +143,9 @@ export function CreateDerivationConfirm({
         }}
         placeholder="token.path"
         spellCheck={false}
-        className="mt-3 h-7 w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-input-bg)] px-2 font-mono text-secondary text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+          className="h-7 w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-input-bg)] px-2 font-mono text-secondary text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
       />
+      </label>
 
       <div className="mt-2 flex flex-col gap-2">
         <select
@@ -168,7 +184,7 @@ export function CreateDerivationConfirm({
       <DialogActions
         busy={busy}
         disabled={invalid}
-        confirmLabel="Create"
+        confirmLabel="Create modified token"
         busyLabel="Creating..."
         onCancel={onCancel}
         onConfirm={() => onConfirm(trimmed, [op])}
@@ -195,7 +211,10 @@ function defaultOpFor(kind: OpKind, sourceType: TokenType | undefined, sourceVal
     case "scaleBy": return { kind: "scaleBy", factor: 2 };
     case "add": {
       if (sourceType === "dimension") {
-        const unit = isUnitValue(sourceValue) ? sourceValue.unit : "px";
+        const unit =
+          isUnitValue(sourceValue) && isDimensionUnit(sourceValue.unit)
+            ? sourceValue.unit
+            : "px";
         return { kind: "add", delta: { value: 0, unit } };
       }
       if (sourceType === "duration") {
@@ -284,25 +303,37 @@ function OpParams({
       />
     );
   }
-  const isObject = typeof op.delta === "object";
+  const unitDelta = isAddUnitDelta(op.delta) ? op.delta : null;
+  const deltaValue = unitDelta
+    ? unitDelta.value
+    : typeof op.delta === "number"
+      ? op.delta
+      : 0;
   return (
     <div className="flex items-center gap-1.5">
       <NumberInput
-        value={isObject ? op.delta.value : op.delta}
+        value={deltaValue}
         label="Delta"
         onChange={(value) =>
           onChange({
             kind: "add",
-            delta: isObject ? { ...op.delta, value } : value,
+            delta: unitDelta ? { ...unitDelta, value } : value,
           })
         }
       />
-      {isObject ? (
+      {unitDelta ? (
         <select
-          value={op.delta.unit}
-          onChange={(event) =>
-            onChange({ kind: "add", delta: { ...op.delta, unit: event.target.value } })
-          }
+          value={unitDelta.unit}
+          onChange={(event) => {
+            const unit = event.target.value;
+            onChange({
+              kind: "add",
+              delta:
+                sourceType === "duration"
+                  ? { ...unitDelta, unit: unit as DurationValue["unit"] }
+                  : { ...unitDelta, unit: unit as DimensionUnit },
+            });
+          }}
           className="h-7 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-input-bg)] px-1.5 text-secondary text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
         >
           {(sourceType === "duration" ? ["ms", "s"] : [...DIMENSION_UNITS]).map((unit) => (
@@ -406,6 +437,14 @@ function isUnitValue(value: unknown): value is { value: number; unit: string } {
     typeof (value as { value?: unknown }).value === "number" &&
     typeof (value as { unit?: unknown }).unit === "string",
   );
+}
+
+function isAddUnitDelta(delta: Extract<DerivationOp, { kind: "add" }>["delta"]): delta is DimensionValue | DurationValue {
+  return isUnitValue(delta);
+}
+
+function isDimensionUnit(unit: string): unit is DimensionUnit {
+  return (DIMENSION_UNITS as readonly string[]).includes(unit);
 }
 
 function isColorPreview(value: string): boolean {

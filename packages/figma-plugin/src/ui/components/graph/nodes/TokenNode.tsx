@@ -135,7 +135,7 @@ function pathTail(path: string): string {
 }
 
 function collectionTail(collectionId: string): string {
-  const normalized = collectionId.replace(/^-\d+--/, "");
+  const normalized = collectionId.replace(/^-?\d+-+/u, "");
   return normalized.length > 22 ? `${normalized.slice(0, 19)}...` : normalized;
 }
 

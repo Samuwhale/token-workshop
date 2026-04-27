@@ -14,7 +14,7 @@ import { PLATFORMS } from "../shared/platforms";
 import { formatHexAs } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { buildPluginDocumentationUrl, downloadBlob } from "../shared/utils";
-import { SegmentedControl } from "./SegmentedControl";
+import { SegmentedControl } from "../primitives/SegmentedControl";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,6 +113,7 @@ function Toggle({
   return (
     <label className="flex items-center gap-2 cursor-pointer group">
       <button
+        type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
@@ -596,7 +597,7 @@ export function SettingsPanel({
                 ]}
                 value={colorFormat}
                 onChange={handleColorFormatChange}
-                label="Color format"
+                ariaLabel="Color format"
               />
             </div>
             <div className="flex items-center gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-tertiary,var(--color-figma-bg-secondary))] px-2 py-1.5">
@@ -623,7 +624,7 @@ export function SettingsPanel({
                 ]}
                 value={preferredCopyFormat}
                 onChange={handlePreferredCopyFormatChange}
-                label="Copy format"
+                ariaLabel="Copy format"
               />
             </div>
 

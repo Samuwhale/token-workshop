@@ -32,7 +32,7 @@ export function nodeDimensions(
 ): { width: number; height: number } {
   if (node.kind === "cluster") return { width: 180, height: 40 };
   if (node.kind === "generator") return { width: 200, height: 56 };
-  if (node.kind === "derivation") return { width: 200, height: 64 };
+  if (node.kind === "derivation") return { width: 200, height: 68 };
   if (node.kind === "ghost") return { width: 180, height: 40 };
   return { width: 200, height: 44 };
 }

@@ -10,7 +10,12 @@ import {
 } from "./generator-types.js";
 import { readTokenModeValuesForCollection } from "./collections.js";
 import { resolveCollectionIdForPath } from "./collection-paths.js";
-import { extractReferencePaths, isReference, parseReference } from "./dtcg-types.js";
+import {
+  collectReferencePaths,
+  extractReferencePaths,
+  isReference,
+  parseReference,
+} from "./dtcg-types.js";
 import {
   applyDerivation,
   validateDerivationOps,
@@ -362,6 +367,22 @@ function readGraphModeValues(
   );
 }
 
+function readGraphModeValue(
+  entry: GraphTokenLike,
+  collection: TokenCollection,
+  requestedModeName: string,
+): unknown {
+  const modeValues = readGraphModeValues(entry, collection);
+  if (Object.prototype.hasOwnProperty.call(modeValues, requestedModeName)) {
+    return modeValues[requestedModeName];
+  }
+
+  const fallbackModeName = collection.modes[0]?.name;
+  return fallbackModeName
+    ? modeValues[fallbackModeName]
+    : entry.$value;
+}
+
 function getTokenSwatchColor(
   entry: GraphTokenLike,
   collection: TokenCollection,
@@ -563,6 +584,45 @@ function computeAliasCycleEdges(
   nodes: Map<GraphNodeId, GraphNode>,
   depEdges: CycleEligibleEdge[],
 ): { cycleEdgeIds: Set<GraphEdgeId>; cycleNodeIds: Set<GraphNodeId> } {
+  const explicitModeNames = new Set<string>();
+  for (const edge of depEdges) {
+    for (const modeName of edgeCycleModeNames(edge)) {
+      explicitModeNames.add(modeName);
+    }
+  }
+  const modeNames =
+    explicitModeNames.size > 0 ? [...explicitModeNames] : ["__all__"];
+  const cycleEdgeIds = new Set<GraphEdgeId>();
+  const cycleNodeIds = new Set<GraphNodeId>();
+
+  for (const modeName of modeNames) {
+    const modeResult = computeAliasCycleEdgesForMode(
+      nodes,
+      depEdges.filter((edge) => edgeActiveInMode(edge, modeName)),
+    );
+    for (const edgeId of modeResult.cycleEdgeIds) cycleEdgeIds.add(edgeId);
+    for (const nodeId of modeResult.cycleNodeIds) cycleNodeIds.add(nodeId);
+  }
+
+  return { cycleEdgeIds, cycleNodeIds };
+}
+
+function edgeCycleModeNames(edge: CycleEligibleEdge): string[] {
+  if (edge.kind === "alias" || edge.kind === "derivation-source") {
+    return edge.modeNames ?? [];
+  }
+  return [];
+}
+
+function edgeActiveInMode(edge: CycleEligibleEdge, modeName: string): boolean {
+  const edgeModeNames = edgeCycleModeNames(edge);
+  return edgeModeNames.length === 0 || edgeModeNames.includes(modeName);
+}
+
+function computeAliasCycleEdgesForMode(
+  nodes: Map<GraphNodeId, GraphNode>,
+  depEdges: CycleEligibleEdge[],
+): { cycleEdgeIds: Set<GraphEdgeId>; cycleNodeIds: Set<GraphNodeId> } {
   const outgoingAlias = new Map<GraphNodeId, Array<{ to: GraphNodeId; edgeId: GraphEdgeId }>>();
   for (const edge of depEdges) {
     const list = outgoingAlias.get(edge.from);
@@ -748,6 +808,9 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
   const outgoing = new Map<GraphNodeId, GraphEdgeId[]>();
   const incoming = new Map<GraphNodeId, GraphEdgeId[]>();
   const ghostIntents = new Map<GraphNodeId, GhostGraphNode>();
+  const collectionsById = new Map(
+    collections.map((collection) => [collection.id, collection] as const),
+  );
   const generatorOutputsById = new Map<
     string,
     ReturnType<typeof getGeneratorOutputsForGraph>
@@ -757,14 +820,14 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
 
   const resolvePreviewValue = (
     value: unknown,
-    collection: TokenCollection,
+    preferredCollectionId: string,
     modeName: string,
     visited: Set<string>,
   ): unknown => {
     if (isReference(value)) {
       return resolvePreviewTokenValue(
         parseReference(value),
-        collection,
+        preferredCollectionId,
         modeName,
         visited,
       );
@@ -774,7 +837,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
       return value.map((item) =>
         item == null
           ? item
-          : resolvePreviewValue(item, collection, modeName, new Set(visited)),
+          : resolvePreviewValue(item, preferredCollectionId, modeName, new Set(visited)),
       );
     }
 
@@ -784,7 +847,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
           key,
           nestedValue == null
             ? nestedValue
-            : resolvePreviewValue(nestedValue, collection, modeName, new Set(visited)),
+            : resolvePreviewValue(nestedValue, preferredCollectionId, modeName, new Set(visited)),
         ]),
       );
     }
@@ -794,7 +857,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
 
   const resolvePreviewTokenValue = (
     path: string,
-    collection: TokenCollection,
+    preferredCollectionId: string,
     modeName: string,
     visited: Set<string>,
   ): unknown => {
@@ -802,13 +865,17 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
       path,
       pathToCollectionId,
       collectionIdsByPath,
-      preferredCollectionId: collection.id,
+      preferredCollectionId,
     });
     if (!target.collectionId) {
       return undefined;
     }
+    const targetCollection = collectionsById.get(target.collectionId);
+    if (!targetCollection) {
+      return undefined;
+    }
 
-    const visitKey = `${target.collectionId}::${path}::${collection.id}::${modeName}`;
+    const visitKey = `${target.collectionId}::${path}::${modeName}`;
     if (visited.has(visitKey)) {
       return undefined;
     }
@@ -819,9 +886,8 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
       return undefined;
     }
 
-    const modeValues = readGraphModeValues(entry, collection);
-    const rawValue = modeValues[modeName] ?? entry.$value;
-    let resolved = resolvePreviewValue(rawValue, collection, modeName, visited);
+    const rawValue = readGraphModeValue(entry, targetCollection, modeName);
+    let resolved = resolvePreviewValue(rawValue, target.collectionId, modeName, visited);
     const ops = readGraphDerivationOps(entry);
     if (ops.length > 0 && entry.$type) {
       resolved = applyDerivation(
@@ -829,7 +895,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
         entry.$type as TokenType,
         ops,
         (refPath) =>
-          resolvePreviewTokenValue(refPath, collection, modeName, new Set(visited)),
+          resolvePreviewTokenValue(refPath, targetCollection.id, modeName, new Set(visited)),
       );
     }
 
@@ -944,7 +1010,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
         readGraphModeValues(entry, collection);
       const sourceRefModes = new Map<string, Set<string>>();
       for (const [modeName, value] of Object.entries(modeValues)) {
-        for (const refPath of extractReferencePaths(value)) {
+        for (const refPath of collectReferencePaths(value)) {
           const modeNames = sourceRefModes.get(refPath) ?? new Set<string>();
           modeNames.add(modeName);
           sourceRefModes.set(refPath, modeNames);
@@ -959,7 +1025,12 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
       let previewValue: unknown;
       if (primaryModeName) {
         try {
-          previewValue = resolvePreviewTokenValue(path, collection, primaryModeName, new Set());
+          previewValue = resolvePreviewTokenValue(
+            path,
+            collection.id,
+            primaryModeName,
+            new Set(),
+          );
         } catch {
           previewValue = undefined;
         }
@@ -1010,7 +1081,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
         modeValuesByTokenId.get(downstreamId) ??
         readGraphModeValues(entry, collection);
       for (const [modeName, value] of Object.entries(modeValues)) {
-        for (const refPath of extractReferencePaths(value)) {
+        for (const refPath of collectReferencePaths(value)) {
           const upstreamTarget = resolveGraphTarget({
             path: refPath,
             preferredCollectionId: collection.id,

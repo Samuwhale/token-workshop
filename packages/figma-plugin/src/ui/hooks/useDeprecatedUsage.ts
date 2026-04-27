@@ -33,6 +33,7 @@ export function useDeprecatedUsage({
     }
 
     const controller = new AbortController();
+    setEntries([]);
     setLoading(true);
     setError(null);
 

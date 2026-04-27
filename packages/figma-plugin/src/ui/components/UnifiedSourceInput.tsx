@@ -2,11 +2,11 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TokenPickerField } from './TokenPicker';
 import type { ScopedTokenCandidate } from '../shared/scopedTokenCandidates';
+import { SegmentedControl } from '../primitives/SegmentedControl';
 import { buildScopedTokenCandidates } from '../shared/scopedTokenCandidates';
 import { ColorEditor } from './ValueEditors';
 import { CompactDimensionInput } from './generators/generatorShared';
 import { swatchBgColor } from '../shared/colorUtils';
-import { SegmentedControl } from './SegmentedControl';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import { resolveGeneratedGroupSourceContext } from '../shared/generatedGroupUtils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
@@ -190,7 +190,7 @@ export function UnifiedSourceInput({
           { value: 'value' as SourceMode, label: 'Enter value' },
         ]}
         value={mode}
-        label="Source input mode"
+        ariaLabel="Source input mode"
         onChange={(newMode) => {
           if (newMode === 'token' && mode !== 'token') {
             if (stashedSelectionRef.current) {

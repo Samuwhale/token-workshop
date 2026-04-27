@@ -130,6 +130,8 @@ export {
   flattenTokenGroup,
   resolveRefValue,
 } from './dtcg-types.js';
+export type { CollectTokenReferencePathsOptions } from './token-references.js';
+export { collectTokenReferencePaths } from './token-references.js';
 
 // Expression evaluator
 export { evalExpr, substituteVars } from './eval-expr.js';

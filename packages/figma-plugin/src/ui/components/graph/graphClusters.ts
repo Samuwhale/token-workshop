@@ -208,7 +208,7 @@ function bfsSide(
 function pluraliseKind(kind: GraphNode["kind"], count: number): string {
   if (kind === "generator") return `${count} generators`;
   if (kind === "ghost") return `${count} broken refs`;
-  if (kind === "derivation") return `${count} modifiers`;
+  if (kind === "derivation") return `${count} modified values`;
   return `${count} tokens`;
 }
 

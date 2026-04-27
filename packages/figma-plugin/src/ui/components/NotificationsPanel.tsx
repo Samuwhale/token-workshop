@@ -4,8 +4,8 @@ import type { NotificationDestination } from "../shared/toastBus";
 import { dispatchToast } from "../shared/toastBus";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
+import { SegmentedControl } from "../primitives/SegmentedControl";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
-import { SegmentedControl } from "./SegmentedControl";
 
 type InboxFilter = "all" | "blocker" | "attention" | "success";
 type InboxSeverity = "blocker" | "attention" | "success";
@@ -245,7 +245,7 @@ export function NotificationsPanel({
               options={INBOX_FILTER_OPTIONS}
               value={filter}
               onChange={setFilter}
-              label="Filter notifications"
+              ariaLabel="Filter notifications"
             />
           </div>
         )}

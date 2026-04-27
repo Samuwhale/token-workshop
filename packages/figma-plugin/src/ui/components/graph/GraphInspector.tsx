@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
 import { AliasEdgeInspector } from "./inspectors/AliasEdgeInspector";
 import { CompareTokensInspector } from "./inspectors/CompareTokensInspector";
+import { DerivationInspector } from "./inspectors/DerivationInspector";
 import { GeneratorInspector } from "./inspectors/GeneratorInspector";
 import { TokenInspector } from "./inspectors/TokenInspector";
 import { UnresolvedInspector } from "./inspectors/UnresolvedInspector";
@@ -20,11 +21,18 @@ interface GraphInspectorProps {
   selectedTokenIds: GraphNodeId[];
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
   onNavigateToToken: (path: string, collectionId: string) => void;
   onEditGenerator: (generatorId: string) => void;
   onCompareTokens?: (
     a: { path: string; collectionId: string },
     b: { path: string; collectionId: string },
+  ) => void;
+  onCreateFromToken?: (
+    nodeId: GraphNodeId,
+    screenX: number,
+    screenY: number,
   ) => void;
   onSelectNode: (nodeId: GraphNodeId | null) => void;
   onSelectEdge: (edgeId: string | null) => void;
@@ -38,9 +46,12 @@ export function GraphInspector({
   selectedTokenIds,
   collections,
   perCollectionFlat,
+  pathToCollectionId,
+  collectionIdsByPath,
   onNavigateToToken,
   onEditGenerator,
   onCompareTokens,
+  onCreateFromToken,
   onSelectNode,
   onSelectEdge,
   onDismiss,
@@ -93,9 +104,13 @@ export function GraphInspector({
           token={node}
           collections={collections}
           perCollectionFlat={perCollectionFlat}
+          pathToCollectionId={pathToCollectionId}
+          collectionIdsByPath={collectionIdsByPath}
           onNavigateToToken={onNavigateToToken}
           onCompareTokens={onCompareTokens}
+          onCreateFromToken={onCreateFromToken}
           onSelectNode={onSelectNode}
+          onSelectEdge={onSelectEdge}
         />
       </Shell>
     );
@@ -109,6 +124,19 @@ export function GraphInspector({
           graph={graph}
           onNavigateToToken={onNavigateToToken}
           onEditGenerator={onEditGenerator}
+          onSelectNode={onSelectNode}
+        />
+      </Shell>
+    );
+  }
+
+  if (node?.kind === "derivation") {
+    return (
+      <Shell onDismiss={onDismiss}>
+        <DerivationInspector
+          derivation={node}
+          graph={graph}
+          onNavigateToToken={onNavigateToToken}
           onSelectNode={onSelectNode}
         />
       </Shell>

@@ -3,14 +3,14 @@ import path from "node:path";
 import { watch } from "chokidar";
 import {
   SEARCH_SCOPE_CATEGORIES,
+  collectTokenReferencePaths,
+  resolveCollectionIdForPath,
   type Token,
   type TokenGroup,
   type TokenType,
   type ResolvedToken,
   isFormula,
   isReference,
-  parseReference,
-  makeReferenceGlobalRegex,
   flattenTokenGroup,
   readTokenScopes,
   stableStringify,
@@ -495,96 +495,122 @@ export class TokenStore {
   // Circular reference detection
   // -----------------------------------------------------------------------
 
-  /**
-   * Collect all reference paths from a token value (mirrors TokenResolver.collectReferences).
-   */
-  private collectRefsFromValue(value: unknown): Set<string> {
-    const refs = new Set<string>();
-    if (isReference(value)) {
-      refs.add(parseReference(value));
-      return refs;
-    }
-    if (typeof value === "string" && isFormula(value)) {
-      for (const m of value.matchAll(makeReferenceGlobalRegex())) {
-        refs.add(m[1]);
-      }
-      return refs;
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        if (item != null)
-          for (const r of this.collectRefsFromValue(item)) refs.add(r);
-      }
-      return refs;
-    }
-    if (typeof value === "object" && value !== null) {
-      for (const v of Object.values(value)) {
-        if (v != null)
-          for (const r of this.collectRefsFromValue(v)) refs.add(r);
-      }
-    }
-    return refs;
-  }
-
-  /**
-   * Collect all references from a token: value references + $extends target.
-   */
   private collectAllRefsFromToken(token: Token): Set<string> {
-    const refs = this.collectRefsFromValue(token.$value);
-    const extendsPath = TokenResolver.getExtendsPath(token);
-    if (extendsPath) refs.add(extendsPath);
-    return refs;
+    return new Set(
+      collectTokenReferencePaths(token, {
+        includeExtends: true,
+      }),
+    );
   }
 
-  /**
-   * Build a dependency adjacency map from the current flatTokens,
-   * optionally overriding specific token values (for proposed changes).
-   * Pass liveFlatTokens to use a freshly-computed flat view instead of
-   * this.flatTokens (needed when called inside a batch where flatTokens is stale).
-   */
+  private dependencyNodeId(collectionId: string, tokenPath: string): string {
+    return `${collectionId}\u0000${tokenPath}`;
+  }
+
+  private formatDependencyNodeId(nodeId: string): string {
+    const separatorIndex = nodeId.indexOf("\u0000");
+    if (separatorIndex === -1) return nodeId;
+    const collectionId = nodeId.slice(0, separatorIndex);
+    const tokenPath = nodeId.slice(separatorIndex + 1);
+    return `${collectionId}:${tokenPath}`;
+  }
+
   private buildDependencyMap(
-    overrides?: Map<string, unknown>,
+    overrides?: Map<string, { path: string; collectionId: string; token: Token }>,
     liveFlatTokens?: Map<string, Array<{ token: Token; collectionId: string }>>,
   ): Map<string, Set<string>> {
+    const sourceTokens = liveFlatTokens ?? this.flatTokens;
+    const pathToCollectionId: Record<string, string> = {};
+    const collectionIdsByPath: Record<string, string[]> = {};
+    const registerPath = (tokenPath: string, collectionId: string) => {
+      pathToCollectionId[tokenPath] ??= collectionId;
+      const collectionIds = collectionIdsByPath[tokenPath] ?? [];
+      if (!collectionIds.includes(collectionId)) {
+        collectionIds.push(collectionId);
+        collectionIdsByPath[tokenPath] = collectionIds;
+      }
+    };
+
+    for (const [tokenPath, entries] of sourceTokens) {
+      for (const { collectionId } of entries) {
+        registerPath(tokenPath, collectionId);
+      }
+    }
+    for (const override of overrides?.values() ?? []) {
+      registerPath(override.path, override.collectionId);
+    }
+
     const deps = new Map<string, Set<string>>();
-    for (const [tokenPath, entries] of liveFlatTokens ?? this.flatTokens) {
-      // Merge references from ALL collections' versions of this token
-      const merged = new Set<string>();
-      for (const { token } of entries) {
-        const value = overrides?.has(tokenPath)
-          ? overrides.get(tokenPath)
-          : token.$value;
-        for (const ref of this.collectRefsFromValue(value)) merged.add(ref);
-        // Include $extends target in dependency graph
-        const extendsPath = TokenResolver.getExtendsPath(token);
-        if (extendsPath) merged.add(extendsPath);
-      }
-      deps.set(tokenPath, merged);
-    }
-    // Add entries for override paths not yet in flatTokens (new tokens)
-    if (overrides) {
-      for (const [tokenPath, value] of overrides) {
-        if (!deps.has(tokenPath)) {
-          deps.set(tokenPath, this.collectRefsFromValue(value));
-        }
+    for (const [tokenPath, entries] of sourceTokens) {
+      for (const { token, collectionId } of entries) {
+        const nodeId = this.dependencyNodeId(collectionId, tokenPath);
+        const nextToken = overrides?.get(nodeId)?.token ?? token;
+        deps.set(
+          nodeId,
+          this.collectDependencyTargets(nextToken, collectionId, {
+            pathToCollectionId,
+            collectionIdsByPath,
+          }),
+        );
       }
     }
+
+    for (const override of overrides?.values() ?? []) {
+      const nodeId = this.dependencyNodeId(override.collectionId, override.path);
+      if (!deps.has(nodeId)) {
+        deps.set(
+          nodeId,
+          this.collectDependencyTargets(override.token, override.collectionId, {
+            pathToCollectionId,
+            collectionIdsByPath,
+          }),
+        );
+      }
+    }
+
     return deps;
   }
 
-  /**
-   * Detect if a circular reference would be created by setting the given
-   * token path(s) to the given value(s). Throws with a descriptive cycle
-   * path if a cycle is detected.
-   */
+  private collectDependencyTargets(
+    token: Token,
+    sourceCollectionId: string,
+    index: {
+      pathToCollectionId: Record<string, string>;
+      collectionIdsByPath: Record<string, string[]>;
+    },
+  ): Set<string> {
+    const targets = new Set<string>();
+    for (const refPath of collectTokenReferencePaths(token, {
+      collectionId: sourceCollectionId,
+      includeExtends: true,
+    })) {
+      const resolution = resolveCollectionIdForPath({
+        path: refPath,
+        preferredCollectionId: sourceCollectionId,
+        pathToCollectionId: index.pathToCollectionId,
+        collectionIdsByPath: index.collectionIdsByPath,
+      });
+      if (resolution.collectionId) {
+        targets.add(this.dependencyNodeId(resolution.collectionId, refPath));
+      }
+    }
+    return targets;
+  }
+
+  private buildProspectiveToken(existing: Token, patch: Partial<Token>): Token {
+    const next = structuredClone(existing);
+    this.applyTokenPatch(next, patch);
+    return next;
+  }
+
   /**
    * Run a DFS cycle-detection pass on the given dependency map, starting from
-   * the specified paths. Throws ConflictError with a descriptive cycle path if
-   * a cycle is reachable from any start path.
+   * the specified nodes. Throws ConflictError with a descriptive cycle path if
+   * a cycle is reachable from any start node.
    */
   private runCycleDFS(
     deps: Map<string, Set<string>>,
-    startPaths: Iterable<string>,
+    startNodes: Iterable<string>,
   ): void {
     const WHITE = 0,
       GRAY = 1,
@@ -599,7 +625,6 @@ export class TokenStore {
         for (const dep of nodeDeps) {
           const depColor = color.get(dep) ?? WHITE;
           if (depColor === GRAY) {
-            // Reconstruct cycle path
             const cycle = [dep];
             let cur = node;
             while (cur !== dep) {
@@ -609,7 +634,9 @@ export class TokenStore {
             cycle.push(dep);
             cycle.reverse();
             throw new ConflictError(
-              `Circular reference detected: ${cycle.join(" → ")}`,
+              `Circular reference detected: ${cycle
+                .map((id) => this.formatDependencyNodeId(id))
+                .join(" → ")}`,
             );
           }
           if (depColor === WHITE) {
@@ -621,24 +648,35 @@ export class TokenStore {
       color.set(node, BLACK);
     };
 
-    for (const path of startPaths) {
-      if ((color.get(path) ?? WHITE) === WHITE) {
-        dfs(path);
+    for (const nodeId of startNodes) {
+      if ((color.get(nodeId) ?? WHITE) === WHITE) {
+        dfs(nodeId);
       }
     }
   }
 
+  /**
+   * Detect if circular references would be created by writing the given full
+   * tokens into one collection.
+   */
   checkCircularReferences(
-    changes: Array<{ path: string; value: unknown }>,
+    collectionId: string,
+    changes: Array<{ path: string; token: Token }>,
   ): void {
-    const overrides = new Map<string, unknown>();
-    for (const { path, value } of changes) {
-      overrides.set(path, value);
+    const overrides = new Map<
+      string,
+      { path: string; collectionId: string; token: Token }
+    >();
+    for (const change of changes) {
+      overrides.set(this.dependencyNodeId(collectionId, change.path), {
+        ...change,
+        collectionId,
+      });
     }
     const deps = this.buildDependencyMap(overrides);
     this.runCycleDFS(
       deps,
-      changes.map((c) => c.path),
+      changes.map((change) => this.dependencyNodeId(collectionId, change.path)),
     );
   }
 
@@ -739,12 +777,12 @@ export class TokenStore {
       throw new NotFoundError(`Collection "${collectionId}" not found`);
     }
     // Check for circular references in the new token collection
-    const changes: Array<{ path: string; value: unknown }> = [];
+    const changes: Array<{ path: string; token: Token }> = [];
     for (const [tokenPath, token] of flattenTokenGroup(tokens)) {
-      changes.push({ path: tokenPath, value: token.$value });
+      changes.push({ path: tokenPath, token: token as Token });
     }
     if (changes.length > 0) {
-      this.checkCircularReferences(changes);
+      this.checkCircularReferences(collectionId, changes);
     }
     collection.tokens = tokens;
     await this.saveCollection(collectionId);
@@ -884,12 +922,12 @@ export class TokenStore {
     }
     validateTokenPath(tokenPath);
     token = this.normalizeStoredToken(token);
-    // Check for circular references before persisting
-    this.checkCircularReferences([{ path: tokenPath, value: token.$value }]);
     const collection = this.collections.get(collectionId);
     if (!collection) {
       throw new NotFoundError(`Collection "${collectionId}" not found`);
     }
+    // Check for circular references before persisting
+    this.checkCircularReferences(collectionId, [{ path: tokenPath, token }]);
     const snapshot = this.snapshotCollectionTokens(collectionId);
     setTokenAtPath(collection.tokens, tokenPath, structuredClone(token));
     try {
@@ -923,9 +961,12 @@ export class TokenStore {
       token,
     );
     // Check for circular references before persisting
-    if ("$value" in token && token.$value !== undefined) {
-      this.checkCircularReferences([{ path: tokenPath, value: token.$value }]);
-    }
+    this.checkCircularReferences(collectionId, [
+      {
+        path: tokenPath,
+        token: this.buildProspectiveToken(existingWithInheritedType ?? existing, token),
+      },
+    ]);
     // Replace known token fields explicitly so stale properties don't persist.
     // A partial update only touches keys that are present in the incoming object.
     const snapshot = this.snapshotCollectionTokens(collectionId);
@@ -959,14 +1000,14 @@ export class TokenStore {
       validateTokenPath(tokenPath);
     }
     // Check for circular references among all proposed changes
-    const changes: Array<{ path: string; value: unknown }> = [];
+    const changes: Array<{ path: string; token: Token }> = [];
     for (const { path: tokenPath, token } of tokens) {
       const existing = getTokenAtPath(collection.tokens, tokenPath);
       if (existing && strategy === "skip") continue; // won't be changed
-      changes.push({ path: tokenPath, value: token.$value });
+      changes.push({ path: tokenPath, token: this.normalizeStoredToken(token) });
     }
     if (changes.length > 0) {
-      this.checkCircularReferences(changes);
+      this.checkCircularReferences(collectionId, changes);
     }
     const snapshot = this.snapshotCollectionTokens(collectionId);
     let imported = 0;
@@ -2043,7 +2084,7 @@ export class TokenStore {
     if (!collection) throw new NotFoundError(`Collection "${collectionId}" not found`);
     // Validate all patches upfront before mutating anything
     const enrichedPatches: Array<{ path: string; patch: Partial<Token> }> = [];
-    const circularChecks: Array<{ path: string; value: unknown }> = [];
+    const circularChecks: Array<{ path: string; token: Token }> = [];
     for (const { path: tokenPath, patch } of patches) {
       const existing = getTokenAtPath(collection.tokens, tokenPath);
       const existingWithInheritedType = getTokenAtPathWithInheritedType(
@@ -2058,13 +2099,14 @@ export class TokenStore {
         existingWithInheritedType ?? existing,
         patch,
       );
-      if ("$value" in enrichedPatch && enrichedPatch.$value !== undefined) {
-        circularChecks.push({ path: tokenPath, value: enrichedPatch.$value });
-      }
+      circularChecks.push({
+        path: tokenPath,
+        token: this.buildProspectiveToken(existingWithInheritedType ?? existing, enrichedPatch),
+      });
       enrichedPatches.push({ path: tokenPath, patch: enrichedPatch });
     }
     if (circularChecks.length > 0) {
-      this.checkCircularReferences(circularChecks);
+      this.checkCircularReferences(collectionId, circularChecks);
     }
     // All validation passed — apply changes atomically
     const snapshot = this.snapshotCollectionTokens(collectionId);
@@ -2333,10 +2375,7 @@ export class TokenStore {
           undefined,
           this.buildLiveFlatTokens(),
         );
-        this.runCycleDFS(
-          liveDeps,
-          filteredRenames.map((r) => r.newPath),
-        );
+        this.runCycleDFS(liveDeps, liveDeps.keys());
 
         // All checks passed — persist to disk
         await this.saveCollection(collectionId);

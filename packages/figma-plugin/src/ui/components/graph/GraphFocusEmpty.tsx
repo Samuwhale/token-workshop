@@ -22,11 +22,11 @@ export function GraphFocusEmpty({
       <div className="flex w-full max-w-[440px] flex-col gap-6">
         <div className="flex flex-col gap-1.5">
           <h2 className="m-0 text-[var(--font-size-md)] font-semibold leading-[var(--leading-tight)] text-[var(--color-figma-text)]">
-            Trace how a token connects
+            Explore token dependencies
           </h2>
           <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
-            Pick a token or generator to see what it depends on, what depends
-            on it, and where things break.
+            Pick a token or generator to see what it depends on and what uses
+            it.
           </p>
         </div>
 

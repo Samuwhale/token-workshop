@@ -1,12 +1,8 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { SlidersHorizontal } from "lucide-react";
-import type {
-  DerivationGraphNode,
-  DerivationOp,
-  DimensionValue,
-  DurationValue,
-} from "@tokenmanager/core";
+import type { DerivationGraphNode } from "@tokenmanager/core";
+import { summarizeVisibleDerivationOps } from "../derivationSummary";
 
 export interface DerivationNodeData extends Record<string, unknown> {
   derivation: DerivationGraphNode;
@@ -43,15 +39,17 @@ function DerivationNodeImpl({ data, selected }: NodeProps) {
     ? "ring-2 ring-[var(--color-figma-accent)]/35 ring-offset-0"
     : "";
 
+  const derivedLabel = pathTail(derivation.derivedPath);
+
   return (
     <div
-      className={`tm-graph-node flex h-16 items-center gap-2 rounded-md border bg-[var(--color-figma-accent)]/8 px-2 text-secondary text-[var(--color-figma-text)] shadow-[0_1px_0_rgba(0,0,0,0.12)] ${borderClass} ${ringClass}`}
+      className={`tm-graph-node flex h-[68px] items-center gap-2 rounded-md border bg-[var(--color-figma-accent)]/8 px-2 text-secondary text-[var(--color-figma-text)] shadow-[0_1px_0_rgba(0,0,0,0.12)] ${borderClass} ${ringClass}`}
       style={{
         width: 200,
         opacity: dimmed && !selected ? 0.25 : 1,
         transition: "opacity 120ms",
       }}
-      title={`Modifier for ${derivation.derivedPath}`}
+      title={`${derivation.derivedPath} is a modified token`}
     >
       <Handle
         type="target"
@@ -63,7 +61,7 @@ function DerivationNodeImpl({ data, selected }: NodeProps) {
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-tight">
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate font-medium">Modifier</span>
+          <span className="truncate font-medium">Modified value</span>
           {derivation.swatchColor ? (
             <span
               className="h-3 w-3 shrink-0 rounded-sm ring-1 ring-[var(--color-figma-border)]"
@@ -72,8 +70,14 @@ function DerivationNodeImpl({ data, selected }: NodeProps) {
             />
           ) : null}
         </div>
+        <div
+          className="truncate font-mono text-[10px] text-[var(--color-figma-text-secondary)]"
+          title={derivation.derivedPath}
+        >
+          {derivedLabel}
+        </div>
         <div className="flex min-w-0 flex-col gap-0.5">
-          {summarizeVisibleOps(derivation.ops).map((summary, index) => (
+          {summarizeVisibleDerivationOps(derivation.ops).map((summary, index) => (
             <span
               key={`${summary}:${index}`}
               className="truncate font-mono text-[10px] text-[var(--color-figma-text-tertiary)]"
@@ -100,42 +104,8 @@ function DerivationNodeImpl({ data, selected }: NodeProps) {
 
 export const DerivationNode = memo(DerivationNodeImpl);
 
-function summarizeVisibleOps(ops: readonly DerivationOp[]): string[] {
-  if (ops.length === 0) return ["No ops"];
-  const visible = ops.slice(0, 2).map(summarizeOp);
-  const overflow = ops.length - visible.length;
-  return overflow > 0 ? [...visible, `+${overflow} more`] : visible;
-}
-
-function summarizeOp(op: DerivationOp): string {
-  switch (op.kind) {
-    case "alpha":
-      return `alpha ${Math.round(op.amount * 100)}%`;
-    case "lighten":
-      return `lighten ${formatNumber(op.amount)}`;
-    case "darken":
-      return `darken ${formatNumber(op.amount)}`;
-    case "mix":
-      return `mix ${formatRefOrValue(op.with)} ${Math.round(op.ratio * 100)}%`;
-    case "invertLightness":
-      return `invert L ${formatNumber(op.chromaBoost ?? 1)}x`;
-    case "scaleBy":
-      return `x${formatNumber(op.factor)}`;
-    case "add":
-      return `+${formatDelta(op.delta)}`;
-  }
-}
-
-function formatDelta(delta: number | DimensionValue | DurationValue): string {
-  if (typeof delta === "number") return formatNumber(delta);
-  return `${formatNumber(delta.value)}${delta.unit}`;
-}
-
-function formatRefOrValue(value: string): string {
-  return value.length > 18 ? `${value.slice(0, 15)}...` : value;
-}
-
-function formatNumber(value: number): string {
-  if (Number.isInteger(value)) return String(value);
-  return value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+function pathTail(path: string): string {
+  const parts = path.split(".").filter(Boolean);
+  if (parts.length <= 2) return path;
+  return parts.slice(-2).join(".");
 }

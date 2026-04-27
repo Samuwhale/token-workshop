@@ -332,10 +332,10 @@ function FocusCanvasInner({
       if (node.kind === "token") onSelectToken(node.path, node.collectionId);
       else if (node.kind === "generator") onSelectGenerator(node.generatorId);
       else if (node.kind === "derivation") {
-        onSelectToken(node.derivedPath, node.collectionId);
+        onFocusNode(node.id);
       }
     },
-    [subgraph, onSelectGenerator, onSelectToken],
+    [subgraph, onFocusNode, onSelectGenerator, onSelectToken],
   );
 
   const handleNodeClick: NodeMouseHandler = (event, rfNode) => {
@@ -412,7 +412,7 @@ function FocusCanvasInner({
       ) {
         return false;
       }
-      if (wouldCreateAliasCycle(fullGraph, target, source)) {
+      if (wouldCreateAliasCycle(fullGraph, source, target)) {
         return false;
       }
       return true;
@@ -482,12 +482,12 @@ function FocusCanvasInner({
         sourceNode.$type !== targetNode.$type
       ) {
         dispatchToast(
-          `${capitalize(sourceNode.$type)} token can't alias a ${targetNode.$type} token.`,
+          `${capitalize(targetNode.$type)} token can't use a ${sourceNode.$type} token.`,
           "error",
         );
         return;
       }
-      const cycle = wouldCreateAliasCycle(fullGraph, target, source);
+      const cycle = wouldCreateAliasCycle(fullGraph, source, target);
       if (cycle) {
         const formatted = cycle
           .map((id) => fullGraph.nodes.get(id))
@@ -495,7 +495,7 @@ function FocusCanvasInner({
             if (!node) return "?";
             if (node.kind === "token") return node.path;
             if (node.kind === "generator") return node.name;
-            if (node.kind === "derivation") return `${node.derivedPath} (modifier)`;
+            if (node.kind === "derivation") return `${node.derivedPath} (modified value)`;
             return node.path;
           })
           .join(" → ");
@@ -503,8 +503,8 @@ function FocusCanvasInner({
         return;
       }
       onRequestRewire?.({
-        sourceNodeId: source,
-        targetNodeId: target,
+        sourceNodeId: target,
+        targetNodeId: source,
         screenX: lastPointerRef.current.x,
         screenY: lastPointerRef.current.y,
       });
@@ -610,7 +610,7 @@ function FocusCanvasInner({
           canCreateDerivationFromType(node.$type)
         ) {
           items.push({
-            label: "Modify...",
+            label: "Create modified token...",
             onClick: () =>
               onRequestCreateDerivationToken({
                 sourceNodeId: node.id,
@@ -636,14 +636,27 @@ function FocusCanvasInner({
           onClick: () => onFocusNode(node.id),
         });
       } else if (node.kind === "derivation") {
+        const sourceEdgeId = (subgraph.incoming.get(node.id) ?? []).find(
+          (edgeId) => {
+            const edge = subgraph.edges.get(edgeId);
+            return edge?.kind === "derivation-source" && !edge.paramLabel;
+          },
+        );
+        const sourceEdge = sourceEdgeId ? subgraph.edges.get(sourceEdgeId) : null;
         items.push({
           label: "Open derived token",
           onClick: () => onActivateToken(node.derivedPath, node.collectionId),
         });
         items.push({
-          label: "Focus on this",
+          label: "Inspect relationship",
           onClick: () => onFocusNode(node.id),
         });
+        if (sourceEdge) {
+          items.push({
+            label: "Inspect source token",
+            onClick: () => onFocusNode(sourceEdge.from),
+          });
+        }
         items.push({
           label: "Copy derived path",
           onClick: () => copyToClipboard(node.derivedPath),
@@ -760,7 +773,6 @@ function FocusCanvasInner({
           focusId={focusId}
           scopeCollectionIds={scopeCollectionIds}
           collectionModeCountById={collectionModeCountById}
-          hasCrossCollectionBands={layout.lanes.length > 0}
         />
       ) : null}
       {selectedTokenNodes.length >= 2 ? (

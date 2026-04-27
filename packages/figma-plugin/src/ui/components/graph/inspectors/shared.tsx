@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 import type { GraphModel, GraphNode, GraphNodeId } from "@tokenmanager/core";
 import { ListItem } from "../../../primitives";
-import { isAlias } from "../../../../shared/resolveAlias";
-import { formatTokenValueForDisplay } from "../../../shared/tokenFormatting";
 
 export interface RelatedItem {
   id: GraphNodeId;
@@ -65,49 +63,6 @@ export function MetaRow({
       <span className={`min-w-0 flex-1 truncate text-secondary ${valueClass}`}>
         {value}
       </span>
-    </div>
-  );
-}
-
-export function ModeValueMatrix({
-  modes,
-  tokenType,
-  modeValues,
-}: {
-  modes: string[];
-  tokenType: string | undefined;
-  modeValues: Record<string, unknown>;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {modes.map((mode) => {
-        const value = modeValues[mode];
-        const aliasRef = isAlias(value as never) ? String(value) : null;
-        return (
-          <div key={mode} className="flex items-baseline gap-2">
-            <span className="w-14 shrink-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]">
-              {mode}
-            </span>
-            {aliasRef ? (
-              <span
-                className="min-w-0 flex-1 truncate font-mono text-secondary text-[var(--color-figma-accent)]"
-                title={aliasRef}
-              >
-                {aliasRef}
-              </span>
-            ) : (
-              <span
-                className="min-w-0 flex-1 truncate font-mono text-secondary text-[var(--color-figma-text)]"
-                title={String(value ?? "")}
-              >
-                {formatTokenValueForDisplay(tokenType, value, {
-                  emptyPlaceholder: "—",
-                })}
-              </span>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -208,7 +163,7 @@ export function collectIncidentTokens(
         id: other.id,
         path: other.derivedPath,
         collectionId: other.collectionId,
-        displayName: other.derivedPath.split(".").pop() ?? other.derivedPath,
+        displayName: `Modified ${pathTail(other.derivedPath)}`,
       });
     } else {
       out.push({
@@ -221,6 +176,11 @@ export function collectIncidentTokens(
     }
   }
   return out;
+}
+
+function pathTail(path: string): string {
+  const parts = path.split(".").filter(Boolean);
+  return parts.at(-1) ?? path;
 }
 
 export function healthLabel(health: string): string | null {

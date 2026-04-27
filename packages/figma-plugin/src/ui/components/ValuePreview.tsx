@@ -386,7 +386,10 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   if (type === 'border' && typeof value === 'object' && value !== null) {
     const { color: borderColor, width: borderWidth, style: borderStyle } = value as Record<string, any>;
     const colorStr = typeof borderColor === 'string' ? swatchBgColor(borderColor) : 'var(--color-figma-text)';
-    const { num: bwNum } = parseDimension(borderWidth);
+    const parsedWidth = readDimensionTokenValue(borderWidth);
+    const bwNum =
+      parsedWidth?.value ??
+      (typeof borderWidth === 'number' ? borderWidth : Number.parseFloat(String(borderWidth)));
     const widthStr = dimensionLabel(borderWidth) || '1px';
     const styleStr = typeof borderStyle === 'string' ? borderStyle : 'solid';
     const previewWidth = Math.max(1, Math.min(bwNum || 1, 4));
