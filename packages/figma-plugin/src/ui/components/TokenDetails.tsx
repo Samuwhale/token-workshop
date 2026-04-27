@@ -65,7 +65,6 @@ import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBan
 import { Field, ListItem, Section, Stack, Surface } from "../primitives";
 interface TokenDetailsProps {
   tokenPath: string;
-  tokenName?: string;
   currentCollectionId: string;
   collectionId?: string;
   serverUrl: string;
@@ -145,7 +144,6 @@ function formatCollectionIdList(collectionIds: string[]): string {
 
 export function TokenDetails({
   tokenPath,
-  tokenName,
   currentCollectionId,
   collectionId: explicitCollectionId,
   serverUrl,

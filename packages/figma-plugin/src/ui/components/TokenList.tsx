@@ -129,7 +129,6 @@ export function TokenList({
     collectionTokenCounts: _collectionTokenCounts = {},
     modeMap = {},
     collections = [],
-    unresolvedAllTokensFlat,
     pathToCollectionId = {},
     collectionIdsByPath,
   },

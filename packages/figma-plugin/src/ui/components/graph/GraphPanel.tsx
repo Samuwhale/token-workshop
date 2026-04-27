@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   Background,
   Controls,
@@ -167,6 +167,7 @@ export function GraphPanel({
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<GraphFlowNode, GraphFlowEdge> | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphFlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<GraphFlowEdge>([]);
+  const previewRef = useRef<TokenGraphPreviewResult | null>(null);
 
   const activeGraph = useMemo(
     () => graphs.find((graph) => graph.id === activeGraphId) ?? null,
@@ -197,6 +198,10 @@ export function GraphPanel({
   }, [loadGraphs]);
 
   useEffect(() => {
+    previewRef.current = preview;
+  }, [preview]);
+
+  useEffect(() => {
     if (!initialGraphId) return;
     if (!graphs.some((graph) => graph.id === initialGraphId)) return;
     setActiveGraphId(initialGraphId);
@@ -210,7 +215,7 @@ export function GraphPanel({
   }, [graphs, initialGraphId, onInitialGraphHandled]);
 
   useEffect(() => {
-    if (!preview) return;
+    if (!previewRef.current) return;
     setPreview(null);
     setLastApply(null);
     setExternalPreviewInvalidated(true);
@@ -235,7 +240,7 @@ export function GraphPanel({
         ? current
         : null,
     );
-  }, [activeGraph?.id, preview, setEdges, setNodes]);
+  }, [activeGraph, preview, setEdges, setNodes]);
 
   const patchActiveGraph = useCallback(
     (patch: Partial<TokenGraphDocument>) => {
@@ -467,15 +472,19 @@ export function GraphPanel({
   const addPaletteNode = useCallback(
     (
       item: (typeof PALETTE)[number],
-      position = { x: 220 + nodes.length * 28, y: 120 + nodes.length * 18 },
+      position?: TokenGraphDocumentNode["position"],
     ) => {
       if (!activeGraph) return;
+      const resolvedPosition = position ?? {
+        x: 220 + nodes.length * 28,
+        y: 120 + nodes.length * 18,
+      };
       const id = `${item.kind}_${Math.random().toString(36).slice(2, 8)}`;
       const graphNode: TokenGraphDocumentNode = {
         id,
         kind: item.kind,
         label: item.label,
-        position,
+        position: resolvedPosition,
         data: { ...item.defaults },
       };
       const currentGraph = graphWithFlowState(activeGraph, nodes, edges);
@@ -487,13 +496,13 @@ export function GraphPanel({
         {
           id,
           type: "graphNode",
-          position,
+          position: resolvedPosition,
           data: { graphNode, preview: preview ?? undefined },
         },
       ]);
       setSelectedNodeId(id);
     },
-    [activeGraph, edges, nodes, nodes.length, patchActiveGraph, preview, setNodes],
+    [activeGraph, edges, nodes, patchActiveGraph, preview, setNodes],
   );
 
   const onConnect = useCallback(
@@ -1241,7 +1250,7 @@ function JsonDataField({
     setDraft(formatJsonDraft(value));
     setError(null);
     onValidationChange(null);
-  }, [dataKey, nodeId, value]);
+  }, [dataKey, nodeId, onValidationChange, value]);
 
   return (
     <label className="block">

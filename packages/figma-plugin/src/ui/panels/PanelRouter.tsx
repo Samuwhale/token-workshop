@@ -806,7 +806,6 @@ export function PanelRouter({
   const tokenDetailsProps = tokenDetails
     ? {
         tokenPath: tokenDetails.path,
-        tokenName: tokenDetails.name,
         currentCollectionId: currentCollectionId,
         collectionId: tokenDetails.collectionId,
         serverUrl,
@@ -1061,7 +1060,6 @@ export function PanelRouter({
           collectionTokenCounts,
           modeMap,
           collections,
-          unresolvedAllTokensFlat: allTokensFlat,
           pathToCollectionId,
           collectionIdsByPath,
         }}

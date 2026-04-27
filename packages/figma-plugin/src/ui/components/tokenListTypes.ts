@@ -86,8 +86,6 @@ export interface TokenListData {
   modeMap?: Record<string, string>;
   /** Collections available for multi-mode column view */
   collections?: TokenCollection[];
-  /** Raw allTokensFlat before applying collection mode selections */
-  unresolvedAllTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token paths to their collection id */
   pathToCollectionId?: Record<string, string>;
   /** Maps token paths to every collection that currently defines them */
