@@ -208,57 +208,91 @@ function readDerivationOps(entry: TokenMapEntry): ReturnType<typeof validateDeri
   return validateDerivationOps(derivation.ops);
 }
 
+interface AliasResolutionState {
+  resolved: Record<string, TokenMapEntry>;
+  resolving: Set<string>;
+}
+
+function resolveEntryWithDerivations(
+  path: string,
+  tokenMap: Record<string, TokenMapEntry>,
+  state: AliasResolutionState,
+): TokenMapEntry | undefined {
+  const cached = state.resolved[path];
+  if (cached) return cached;
+
+  const entry = tokenMap[path];
+  if (!entry) return undefined;
+  if (state.resolving.has(path)) return entry;
+  state.resolving.add(path);
+
+  let resolvedValue: TokenValue | TokenReference = entry.$value;
+  let resolvedType = entry.$type;
+
+  const refPath = extractAliasPath(entry.$value);
+  if (refPath) {
+    const resolvedReference = resolveEntryWithDerivations(refPath, tokenMap, state);
+    if (resolvedReference) {
+      resolvedValue = resolvedReference.$value;
+      resolvedType = resolvedReference.$type;
+    } else {
+      const result = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+      resolvedValue = result.value ?? entry.$value;
+      resolvedType = result.$type;
+    }
+  }
+
+  // Resolve alias references embedded anywhere inside composite token values
+  // (nested objects, nested arrays, gradient stop lists, composition payloads).
+  if (resolvedValue !== null && typeof resolvedValue === 'object') {
+    resolvedValue = resolveCompositeAliases(
+      resolvedValue,
+      tokenMap,
+      (refPath) => resolveEntryWithDerivations(refPath, tokenMap, state)?.$value,
+    ) as TokenValue;
+  }
+
+  const ops = readDerivationOps(entry);
+  if (ops.length > 0) {
+    resolvedValue = applyDerivation(
+      resolvedValue,
+      resolvedType as TokenType,
+      ops,
+      (refPath) => resolveEntryWithDerivations(refPath, tokenMap, state)?.$value,
+    ) as TokenValue | TokenReference;
+  }
+
+  const next = {
+    ...entry,
+    $value: resolvedValue,
+    $type: resolvedType,
+    ...(isAlias(entry.$value) ? { reference: entry.$value } : {}),
+  };
+  state.resolved[path] = next;
+  state.resolving.delete(path);
+  return next;
+}
+
+export function resolveAliasEntry(
+  path: string,
+  tokenMap: Record<string, TokenMapEntry>,
+): TokenMapEntry | undefined {
+  return resolveEntryWithDerivations(path, tokenMap, {
+    resolved: {},
+    resolving: new Set<string>(),
+  });
+}
+
 export function resolveAllAliases(
   tokenMap: Record<string, TokenMapEntry>,
 ): Record<string, TokenMapEntry> {
-  const resolved: Record<string, TokenMapEntry> = {};
-  const resolving = new Set<string>();
-
-  const resolveEntry = (path: string): TokenMapEntry | undefined => {
-    const cached = resolved[path];
-    if (cached) return cached;
-
-    const entry = tokenMap[path];
-    if (!entry) return undefined;
-    if (resolving.has(path)) return entry;
-    resolving.add(path);
-
-    const result = resolveTokenValue(entry.$value, entry.$type, tokenMap);
-    let resolvedValue: TokenValue | TokenReference = result.value ?? entry.$value;
-
-    // Resolve alias references embedded anywhere inside composite token values
-    // (nested objects, nested arrays, gradient stop lists, composition payloads).
-    if (resolvedValue !== null && typeof resolvedValue === 'object') {
-      resolvedValue = resolveCompositeAliases(
-        resolvedValue,
-        tokenMap,
-        (refPath) => resolveEntry(refPath)?.$value,
-      ) as TokenValue;
-    }
-
-    const ops = readDerivationOps(entry);
-    if (ops.length > 0) {
-      resolvedValue = applyDerivation(
-        resolvedValue,
-        result.$type as TokenType,
-        ops,
-        (refPath) => resolveEntry(refPath)?.$value,
-      ) as TokenValue | TokenReference;
-    }
-
-    const next = {
-      ...entry,
-      $value: resolvedValue,
-      $type: result.$type,
-      ...(isAlias(entry.$value) ? { reference: entry.$value } : {}),
-    };
-    resolved[path] = next;
-    resolving.delete(path);
-    return next;
+  const state: AliasResolutionState = {
+    resolved: {},
+    resolving: new Set<string>(),
   };
 
   for (const path of Object.keys(tokenMap)) {
-    resolveEntry(path);
+    resolveEntryWithDerivations(path, tokenMap, state);
   }
-  return resolved;
+  return state.resolved;
 }

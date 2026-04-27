@@ -28,6 +28,7 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
   const isBroken = token.health === "broken";
   const isCycle = token.health === "cycle";
   const showValuePreview = Boolean(isFocused) && Boolean(token.valuePreview);
+  const collectionLabel = isFocused ? token.collectionId : collectionTail(token.collectionId);
 
   const borderClass = isBroken
     ? "border-[var(--color-figma-error)]"
@@ -56,10 +57,14 @@ function TokenNodeImpl({ data, selected }: NodeProps) {
         className="!h-2 !w-2 !border-0 !bg-[var(--color-figma-text-tertiary)]"
       />
       <Leading token={token} isFocused={Boolean(isFocused)} />
-      <span
-        className={`min-w-0 flex-1 truncate leading-tight ${labelToneClass}`}
-      >
-        {label}
+      <span className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className={`truncate ${labelToneClass}`}>{label}</span>
+        <span
+          className="truncate font-mono text-[10px] leading-tight text-[var(--color-figma-text-tertiary)]"
+          title={token.collectionId}
+        >
+          {collectionLabel}
+        </span>
       </span>
       {isBroken ? (
         <AlertTriangle
@@ -127,6 +132,11 @@ function pathTail(path: string): string {
   const parts = path.split(".").filter(Boolean);
   if (parts.length <= 2) return path;
   return parts.slice(-2).join(".");
+}
+
+function collectionTail(collectionId: string): string {
+  const normalized = collectionId.replace(/^-\d+--/, "");
+  return normalized.length > 22 ? `${normalized.slice(0, 19)}...` : normalized;
 }
 
 function tokenTypeGlyph(type: string): string {

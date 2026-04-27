@@ -1,8 +1,11 @@
 import {
+  collectReferencePaths,
+  extractDerivationRefPaths,
+  getTokenManagerExt,
   readTokenCollectionModeValues,
+  validateDerivationOps,
   type TokenLifecycle,
 } from "@tokenmanager/core";
-import { extractAliasPath } from "../../shared/resolveAlias";
 
 interface TokenUsageEntry {
   $value: unknown;
@@ -15,25 +18,8 @@ interface ComputeUnusedTokenPathOptions {
 }
 
 export function collectReferencedTokenPaths(value: unknown, referencedPaths: Set<string>): void {
-  if (typeof value === "string") {
-    const aliasPath = extractAliasPath(value);
-    if (aliasPath) {
-      referencedPaths.add(aliasPath);
-    }
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectReferencedTokenPaths(item, referencedPaths);
-    }
-    return;
-  }
-
-  if (value && typeof value === "object") {
-    for (const nestedValue of Object.values(value as Record<string, unknown>)) {
-      collectReferencedTokenPaths(nestedValue, referencedPaths);
-    }
+  for (const path of collectReferencePaths(value)) {
+    referencedPaths.add(path);
   }
 }
 
@@ -48,6 +34,22 @@ function collectReferencedPathsFromEntry<T extends TokenUsageEntry>(
     for (const modeValue of Object.values(collectionModes)) {
       collectReferencedTokenPaths(modeValue, referencedPaths);
     }
+  }
+
+  const derivation = getTokenManagerExt({
+    $extensions: entry.$extensions as Record<string, unknown> | undefined,
+  })?.derivation;
+  if (!derivation) {
+    return;
+  }
+
+  try {
+    const ops = validateDerivationOps(derivation.ops);
+    for (const path of extractDerivationRefPaths(ops)) {
+      referencedPaths.add(path);
+    }
+  } catch {
+    // Ignore malformed derivations here so usage scanning stays resilient.
   }
 }
 

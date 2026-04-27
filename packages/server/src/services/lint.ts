@@ -1,6 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { colorDeltaE, getTokenLifecycle, isReference, parseReference, type Token } from '@tokenmanager/core';
+import {
+  colorDeltaE,
+  extractDerivationRefPaths,
+  getTokenLifecycle,
+  isReference,
+  parseReference,
+  validateDerivationOps,
+  type Token,
+} from '@tokenmanager/core';
 import { expectJsonObject, parseJsonFile } from '../utils/json-file.js';
 import { isSafeRegex } from './token-tree-utils.js';
 import { TokenStore } from './token-store.js';
@@ -848,20 +856,54 @@ function detectCycles(
 ): string[] | null {
   const chain: string[] = [];
   const indexMap = new Map<string, number>(); // path → index in chain
-  let current = startPath;
-  while (true) {
+
+  function visit(current: string): string[] | null {
     if (indexMap.has(current)) {
       const cycleStart = indexMap.get(current)!;
       const cycle = chain.slice(cycleStart);
       cycle.push(current); // close the loop: e.g. [a, b, c, a]
       return cycle;
     }
+
     const entry = allTokens[current];
-    if (!entry || !isReference(entry.token.$value)) return null;
+    if (!entry) return null;
+
+    const refs = getStructuralReferencePaths(entry.token);
+    if (refs.length === 0) return null;
+
     indexMap.set(current, chain.length);
     chain.push(current);
-    current = parseReference(entry.token.$value as string);
+    for (const refPath of refs) {
+      const cycle = visit(refPath);
+      if (cycle) return cycle;
+    }
+    chain.pop();
+    indexMap.delete(current);
+
+    return null;
   }
+
+  return visit(startPath);
+}
+
+function getStructuralReferencePaths(token: Token): string[] {
+  const refs: string[] = [];
+  if (isReference(token.$value)) {
+    refs.push(parseReference(token.$value as string));
+  }
+
+  const derivation = token.$extensions?.tokenmanager?.derivation;
+  if (derivation === undefined) return refs;
+
+  try {
+    const ops = validateDerivationOps(derivation.ops);
+    refs.push(...extractDerivationRefPaths(ops));
+  } catch {
+    // Invalid derivation metadata is ignored here so structural linting stays
+    // resilient; valid derivation refs use the same graph inputs as core.
+  }
+
+  return [...new Set(refs)];
 }
 
 const TYPE_VALUE_CHECKS: Record<string, (v: unknown) => boolean> = {

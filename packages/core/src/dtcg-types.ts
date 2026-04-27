@@ -109,6 +109,42 @@ export function extractReferencePaths(value: unknown): string[] {
   return paths;
 }
 
+/**
+ * Recursively collect all referenced token paths from a value.
+ *
+ * Handles pure aliases, formulas, arrays, and nested object payloads such as
+ * gradients, shadows, typography, and composition values.
+ */
+export function collectReferencePaths(value: unknown): string[] {
+  const refs = new Set<string>();
+
+  const collect = (current: unknown): void => {
+    for (const path of extractReferencePaths(current)) {
+      refs.add(path);
+    }
+
+    if (Array.isArray(current)) {
+      for (const item of current) {
+        if (item != null) {
+          collect(item);
+        }
+      }
+      return;
+    }
+
+    if (typeof current === "object" && current !== null) {
+      for (const nestedValue of Object.values(current)) {
+        if (nestedValue != null) {
+          collect(nestedValue);
+        }
+      }
+    }
+  };
+
+  collect(value);
+  return [...refs];
+}
+
 // ---------------------------------------------------------------------------
 // Reference resolution
 // ---------------------------------------------------------------------------

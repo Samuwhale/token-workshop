@@ -47,6 +47,7 @@ import { DerivationProducesEdge } from "./edges/DerivationProducesEdge";
 import { layoutFocused, nodeDimensions, type LayoutResult } from "./graphLayout";
 import { canCreateDerivationFromType } from "./graphCreationUtils";
 import { collectionAccentHue } from "./collectionAccent";
+import { GraphReadingGuide } from "./GraphReadingGuide";
 import "@xyflow/react/dist/style.css";
 
 interface FocusCanvasProps {
@@ -752,6 +753,16 @@ function FocusCanvasInner({
           className="tm-graph-controls"
         />
       </ReactFlow>
+      {focusId ? (
+        <GraphReadingGuide
+          fullGraph={fullGraph}
+          subgraph={subgraph}
+          focusId={focusId}
+          scopeCollectionIds={scopeCollectionIds}
+          collectionModeCountById={collectionModeCountById}
+          hasCrossCollectionBands={layout.lanes.length > 0}
+        />
+      ) : null}
       {selectedTokenNodes.length >= 2 ? (
         <SelectionActionBar
           tokens={selectedTokenNodes}

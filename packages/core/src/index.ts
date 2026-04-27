@@ -126,6 +126,7 @@ export {
   isFormula,
   parseReference,
   extractReferencePaths,
+  collectReferencePaths,
   flattenTokenGroup,
   resolveRefValue,
 } from './dtcg-types.js';

@@ -643,52 +643,50 @@ export function CollectionDetailsPanel({
     <>
       <div className={shellClass}>
         <div className={contentClass}>
-          {/* Top bar: close only — title lives in body */}
-          {showCloseButton ? (
-            <div className="flex justify-end px-2 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                aria-label="Close"
-              >
-                <X size={12} strokeWidth={2} aria-hidden />
-              </button>
-            </div>
-          ) : null}
-
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="px-5 pt-1 pb-4">
-              {renaming ? (
-                <div>
-                  <input
-                    ref={renameInputRef}
-                    type="text"
-                    value={renameValue}
-                    onChange={(e) => {
-                      setRenameValue(e.target.value);
-                      setRenameError("");
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void confirmRename();
-                      if (e.key === "Escape") cancelRename();
-                    }}
-                    onBlur={() => void confirmRename()}
-                    className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
-                  />
-                  {renameError ? (
-                    <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{renameError}</p>
-                  ) : null}
-                </div>
-              ) : (
-                <h2
-                  className="truncate text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)]"
-                  onDoubleClick={onRename ? startRename : undefined}
-                  title={onRename ? "Double-click to rename" : undefined}
-                >
-                  {getCollectionDisplayName(collection.id, collectionDisplayNames)}
-                </h2>
-              )}
+            <div className="px-5 pb-4 pt-4">
+              <div className="flex min-w-0 items-start gap-2">
+                {renaming ? (
+                  <div className="min-w-0 flex-1">
+                    <input
+                      ref={renameInputRef}
+                      type="text"
+                      value={renameValue}
+                      onChange={(e) => {
+                        setRenameValue(e.target.value);
+                        setRenameError("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void confirmRename();
+                        if (e.key === "Escape") cancelRename();
+                      }}
+                      onBlur={() => void confirmRename()}
+                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                    />
+                    {renameError ? (
+                      <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{renameError}</p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <h2
+                    className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)]"
+                    onDoubleClick={onRename ? startRename : undefined}
+                    title={onRename ? "Double-click to rename" : undefined}
+                  >
+                    {getCollectionDisplayName(collection.id, collectionDisplayNames)}
+                  </h2>
+                )}
+                {showCloseButton ? (
+                  <IconButton
+                    size="md"
+                    onClick={onClose}
+                    aria-label="Close collection details"
+                    title="Close"
+                  >
+                    <X size={12} strokeWidth={2} aria-hidden />
+                  </IconButton>
+                ) : null}
+              </div>
 
               {/* Inline description — auto-save on blur, no separate button */}
               <textarea

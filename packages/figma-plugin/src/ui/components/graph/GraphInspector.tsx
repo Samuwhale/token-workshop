@@ -76,6 +76,7 @@ export function GraphInspector({
         <AliasEdgeInspector
           graph={graph}
           edge={edge}
+          collections={collections}
           onNavigateToToken={onNavigateToToken}
           onSelectNode={onSelectNode}
           onSelectEdge={onSelectEdge}

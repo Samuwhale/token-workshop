@@ -15,7 +15,7 @@ import type {
 } from '@tokenmanager/core';
 import { Collapsible } from './Collapsible';
 import type { TokenMapEntry } from '../../shared/types';
-import { extractAliasPath, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import { extractAliasPath, isAlias, resolveAliasEntry } from '../../shared/resolveAlias';
 
 interface DerivationEditorProps {
   /** Fallback type when the referenced source token cannot be resolved from the flat map. */
@@ -129,10 +129,10 @@ function resolveReferenceSource(
     return { sourceValue: undefined, sourceType: undefined };
   }
 
-  const resolved = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
+  const resolved = resolveAliasEntry(refPath, allTokensFlat);
   return {
-    sourceValue: resolved.value ?? entry.$value,
-    sourceType: resolved.$type as TokenType | undefined,
+    sourceValue: resolved?.$value ?? entry.$value,
+    sourceType: (resolved?.$type ?? entry.$type) as TokenType | undefined,
   };
 }
 
@@ -141,9 +141,7 @@ function resolveFlatTokenValue(
   allTokensFlat?: Record<string, TokenMapEntry>,
 ): unknown {
   if (!allTokensFlat) return undefined;
-  const entry = allTokensFlat[path];
-  if (!entry) return undefined;
-  return resolveTokenValue(entry.$value, entry.$type, allTokensFlat).value ?? entry.$value;
+  return resolveAliasEntry(path, allTokensFlat)?.$value;
 }
 
 export function DerivationEditor({

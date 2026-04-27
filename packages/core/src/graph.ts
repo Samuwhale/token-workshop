@@ -1,4 +1,4 @@
-import type { TokenCollection, DerivationOp } from "./types.js";
+import type { TokenCollection, DerivationOp, TokenType } from "./types.js";
 import { getTokenManagerExt } from "./types.js";
 import type {
   TokenGenerator,
@@ -10,8 +10,9 @@ import {
 } from "./generator-types.js";
 import { readTokenModeValuesForCollection } from "./collections.js";
 import { resolveCollectionIdForPath } from "./collection-paths.js";
-import { extractReferencePaths } from "./dtcg-types.js";
+import { extractReferencePaths, isReference, parseReference } from "./dtcg-types.js";
 import {
+  applyDerivation,
   validateDerivationOps,
   extractDerivationRefPaths,
 } from "./derivation-ops.js";
@@ -401,6 +402,53 @@ function getTokenValuePreview(
   return entry.$type ? `{${entry.$type}}` : undefined;
 }
 
+function getResolvedSwatchColor(
+  $type: string | undefined,
+  value: unknown,
+): string | undefined {
+  if ($type !== "color" || typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || extractReferencePaths(trimmed).length > 0) {
+    return undefined;
+  }
+  return trimmed;
+}
+
+function getResolvedValuePreview(
+  $type: string | undefined,
+  value: unknown,
+): string | undefined {
+  if ($type === "color") return undefined;
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return undefined;
+    return trimmed.length > 18 ? `${trimmed.slice(0, 17)}…` : trimmed;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "value" in value &&
+    "unit" in value &&
+    typeof (value as { value: unknown }).value === "number" &&
+    typeof (value as { unit: unknown }).unit === "string"
+  ) {
+    const numericValue = (value as { value: number }).value;
+    const unit = (value as { unit: string }).unit;
+    return `${Number.isInteger(numericValue) ? numericValue : Number(numericValue.toFixed(4))}${unit}`;
+  }
+  return $type ? `{${$type}}` : undefined;
+}
+
+function readGraphDerivationOps(entry: GraphTokenLike): DerivationOp[] {
+  return validateDerivationOps(
+    getTokenManagerExt({ $extensions: entry.$extensions as never })?.derivation?.ops,
+  );
+}
+
 interface ResolvedGraphTarget {
   nodeId: GraphNodeId;
   collectionId?: string;
@@ -707,6 +755,87 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
   const generatorSourceTargets = new Map<string, ResolvedGraphTarget | null>();
   const modeValuesByTokenId = new Map<GraphNodeId, Record<string, unknown>>();
 
+  const resolvePreviewValue = (
+    value: unknown,
+    collection: TokenCollection,
+    modeName: string,
+    visited: Set<string>,
+  ): unknown => {
+    if (isReference(value)) {
+      return resolvePreviewTokenValue(
+        parseReference(value),
+        collection,
+        modeName,
+        visited,
+      );
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        item == null
+          ? item
+          : resolvePreviewValue(item, collection, modeName, new Set(visited)),
+      );
+    }
+
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
+          key,
+          nestedValue == null
+            ? nestedValue
+            : resolvePreviewValue(nestedValue, collection, modeName, new Set(visited)),
+        ]),
+      );
+    }
+
+    return value;
+  };
+
+  const resolvePreviewTokenValue = (
+    path: string,
+    collection: TokenCollection,
+    modeName: string,
+    visited: Set<string>,
+  ): unknown => {
+    const target = resolveCollectionIdForPath({
+      path,
+      pathToCollectionId,
+      collectionIdsByPath,
+      preferredCollectionId: collection.id,
+    });
+    if (!target.collectionId) {
+      return undefined;
+    }
+
+    const visitKey = `${target.collectionId}::${path}::${collection.id}::${modeName}`;
+    if (visited.has(visitKey)) {
+      return undefined;
+    }
+    visited.add(visitKey);
+
+    const entry = tokensByCollection[target.collectionId]?.[path];
+    if (!entry) {
+      return undefined;
+    }
+
+    const modeValues = readGraphModeValues(entry, collection);
+    const rawValue = modeValues[modeName] ?? entry.$value;
+    let resolved = resolvePreviewValue(rawValue, collection, modeName, visited);
+    const ops = readGraphDerivationOps(entry);
+    if (ops.length > 0 && entry.$type) {
+      resolved = applyDerivation(
+        resolved,
+        entry.$type as TokenType,
+        ops,
+        (refPath) =>
+          resolvePreviewTokenValue(refPath, collection, modeName, new Set(visited)),
+      );
+    }
+
+    return resolved;
+  };
+
   // 1. Token nodes
   for (const collection of collections) {
     const entries = tokensByCollection[collection.id];
@@ -803,9 +932,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     const entries = tokensByCollection[collection.id];
     if (!entries) continue;
     for (const [path, entry] of Object.entries(entries)) {
-      const ops = validateDerivationOps(
-        getTokenManagerExt({ $extensions: entry.$extensions as never })?.derivation?.ops,
-      );
+      const ops = readGraphDerivationOps(entry);
       if (ops.length === 0) continue;
 
       // Source path comes from the primary $value alias.
@@ -828,7 +955,17 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
       }
 
       const derivedTokenId = tokenNodeId(collection.id, path);
-      const derivedToken = nodes.get(derivedTokenId);
+      const primaryModeName = collection.modes[0]?.name;
+      let previewValue: unknown;
+      if (primaryModeName) {
+        try {
+          previewValue = resolvePreviewTokenValue(path, collection, primaryModeName, new Set());
+        } catch {
+          previewValue = undefined;
+        }
+      }
+      const swatchColor = getResolvedSwatchColor(entry.$type, previewValue);
+      const valuePreview = getResolvedValuePreview(entry.$type, previewValue);
       const id = derivationNodeId(collection.id, path);
       const node: DerivationGraphNode = {
         kind: "derivation",
@@ -838,12 +975,8 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
         sourceTokenPath,
         ops,
         $type: entry.$type,
-        ...(derivedToken?.kind === "token" && derivedToken.swatchColor
-          ? { swatchColor: derivedToken.swatchColor }
-          : {}),
-        ...(derivedToken?.kind === "token" && derivedToken.valuePreview
-          ? { valuePreview: derivedToken.valuePreview }
-          : {}),
+        ...(swatchColor ? { swatchColor } : {}),
+        ...(valuePreview ? { valuePreview } : {}),
         health: "ok",
       };
       nodes.set(id, node);

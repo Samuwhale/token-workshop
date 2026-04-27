@@ -10,12 +10,14 @@ import type {
   AliasEdge as AliasEdgeModel,
   GraphModel,
   GraphNodeId,
+  TokenCollection,
 } from "@tokenmanager/core";
 import { Button, Section, Stack } from "../../../primitives";
 
 interface AliasEdgeInspectorProps {
   graph: GraphModel;
   edge: AliasEdgeModel;
+  collections: TokenCollection[];
   onNavigateToToken: (path: string, collectionId: string) => void;
   onSelectNode: (nodeId: GraphNodeId | null) => void;
   onSelectEdge: (edgeId: string | null) => void;
@@ -24,6 +26,7 @@ interface AliasEdgeInspectorProps {
 export function AliasEdgeInspector({
   graph,
   edge,
+  collections,
   onNavigateToToken,
   onSelectNode,
   onSelectEdge,
@@ -33,6 +36,12 @@ export function AliasEdgeInspector({
   const isCycle = Boolean(edge.inCycle);
   const isMissing = Boolean(edge.isMissingTarget);
   const isIssue = isCycle || isMissing || Boolean(edge.issueRules?.length);
+  const downstreamCollection =
+    downstream?.kind === "token"
+      ? collections.find((collection) => collection.id === downstream.collectionId)
+      : null;
+  const allModeNames = downstreamCollection?.modes.map((mode) => mode.name) ?? [];
+  const modeScope = describeModeScope(edge.modeNames, allModeNames);
 
   const issueQueue = useMemo(() => {
     if (!isIssue) return null;
@@ -105,13 +114,16 @@ export function AliasEdgeInspector({
         </Section>
       ) : null}
 
-      {edge.modeNames.length > 0 ? (
+      {modeScope.names.length > 0 ? (
         <Section
-          title={`Modes · ${edge.modeNames.length}`}
+          title={modeScope.title}
           emphasis="secondary"
         >
+          <div className="mb-2 text-secondary text-[var(--color-figma-text-secondary)]">
+            {modeScope.description}
+          </div>
           <div className="flex flex-wrap gap-1">
-            {edge.modeNames.map((m) => (
+            {modeScope.names.map((m) => (
               <span
                 key={m}
                 className="max-w-full truncate rounded-full bg-[var(--color-figma-bg-hover)] px-2 py-0.5 text-secondary text-[var(--color-figma-text)]"
@@ -184,14 +196,14 @@ function AliasChain({
   if (!downstream || !upstream) return null;
   return (
     <div className="flex flex-col gap-1">
-      <ChainRow node={downstream} caption="Source token" />
+      <ChainRow node={downstream} caption="Token with the alias" />
       <div className="ml-1 flex h-3 items-center gap-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
         <span aria-hidden className="font-mono">
           ↓
         </span>
-        <span>aliases</span>
+        <span>reads from</span>
       </div>
-      <ChainRow node={upstream} caption="References" />
+      <ChainRow node={upstream} caption="Referenced token" />
     </div>
   );
 }
@@ -227,4 +239,29 @@ function ChainRow({
       </div>
     </div>
   );
+}
+
+function describeModeScope(
+  edgeModeNames: string[],
+  allModeNames: string[],
+): { title: string; description: string; names: string[] } {
+  if (allModeNames.length === 0) {
+    return {
+      title: `Modes · ${edgeModeNames.length}`,
+      description: "These token modes use this alias.",
+      names: edgeModeNames,
+    };
+  }
+  if (edgeModeNames.length >= allModeNames.length) {
+    return {
+      title: `Modes · all ${allModeNames.length}`,
+      description: "Every mode in this token's collection uses this alias.",
+      names: allModeNames,
+    };
+  }
+  return {
+    title: `Modes · ${edgeModeNames.length} of ${allModeNames.length}`,
+    description: "Only these modes use this alias; other modes use another value.",
+    names: edgeModeNames,
+  };
 }
