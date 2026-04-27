@@ -42,6 +42,7 @@ export type EditorContextualSurfaceTarget =
   | { surface: null }
   | { surface: "collection-details"; collection: InspectingCollection }
   | { surface: "token-details"; token: TokenDetailsTarget }
+  | { surface: "generate-tokens" }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
   | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean }
   | { surface: 'color-analysis' }
@@ -49,7 +50,8 @@ export type EditorContextualSurfaceTarget =
 
 export type TokensLibraryEditorSurface =
   | "collection-details"
-  | "token-details";
+  | "token-details"
+  | "generate-tokens";
 
 export type TokensLibraryMaintenanceSurface =
   | "compare"
@@ -141,6 +143,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [showTokensCompare, setShowTokensCompare] = useState(false);
   const [showColorAnalysis, setShowColorAnalysis] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showGenerateTokens, setShowGenerateTokens] = useState(false);
   const {
     compareMode: tokensCompareMode,
     setCompareMode: setTokensCompareMode,
@@ -196,6 +199,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const clearEditorFamily = useCallback(() => {
     setTokenDetails(null);
     setInspectingCollection(null);
+    setShowGenerateTokens(false);
   }, []);
 
   const clearMaintenanceFamily = useCallback(() => {
@@ -223,7 +227,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     if (target.surface === "token-details") {
       clearMaintenanceFamily();
       setInspectingCollection(null);
+      setShowGenerateTokens(false);
       setTokenDetails(target.token);
+      return;
+    }
+
+    if (target.surface === "generate-tokens") {
+      clearMaintenanceFamily();
+      setInspectingCollection(null);
+      setTokenDetails(null);
+      setShowGenerateTokens(true);
       return;
     }
 
@@ -276,8 +289,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const editorSurface = useMemo<TokensLibraryEditorSurface | null>(() => {
     if (inspectingCollection) return "collection-details";
     if (tokenDetails) return "token-details";
+    if (showGenerateTokens) return "generate-tokens";
     return null;
-  }, [inspectingCollection, tokenDetails]);
+  }, [inspectingCollection, showGenerateTokens, tokenDetails]);
 
   const maintenanceSurface = useMemo<TokensLibraryMaintenanceSurface | null>(() => {
     if (showTokensCompare) return "compare";

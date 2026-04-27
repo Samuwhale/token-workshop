@@ -5,8 +5,8 @@ import { flattenTokenGroup, stableStringify, type Token } from "@tokenmanager/co
 import { BadRequestError, GitTimeoutError } from "../errors.js";
 import type { CollectionStore } from "./collection-store.js";
 import type { TokenStore } from "./token-store.js";
-import type { GeneratorService } from "./generator-service.js";
 import type { ResolverStore } from "./resolver-store.js";
+import type { TokenGraphService } from "./token-graph-service.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 /**
@@ -947,8 +947,8 @@ export class GitSync {
       tokenStore?: TokenStore;
       collectionsStore?: CollectionStore;
       reloadCollectionsWorkspace?: () => Promise<void>;
-      generatorService?: GeneratorService;
       resolverStore?: ResolverStore;
+      graphService?: TokenGraphService;
     },
   ): Promise<ApplyDiffResult> {
     return this.lock.withLock(async () => {
@@ -981,12 +981,6 @@ export class GitSync {
           ) {
             stores.collectionsStore.startWriteGuard(absolutePath);
           }
-          if (
-            stores?.generatorService &&
-            path.basename(file) === "$generators.json"
-          ) {
-            stores.generatorService.startWriteGuard(absolutePath);
-          }
           if (stores?.resolverStore && file.endsWith(".resolver.json")) {
             stores.resolverStore.startWriteGuard(absolutePath);
           }
@@ -1015,12 +1009,6 @@ export class GitSync {
               path.basename(file) === "$collections.json"
             ) {
               stores.collectionsStore.endWriteGuard(absolutePath);
-            }
-            if (
-              stores?.generatorService &&
-              path.basename(file) === "$generators.json"
-            ) {
-              stores.generatorService.endWriteGuard(absolutePath);
             }
             if (stores?.resolverStore && file.endsWith(".resolver.json")) {
               stores.resolverStore.endWriteGuard(absolutePath);
@@ -1059,15 +1047,15 @@ export class GitSync {
                 await stores.collectionsStore.reloadFromDisk();
                 await stores.reloadCollectionsWorkspace?.();
               } else if (
-                stores?.generatorService &&
-                path.basename(file) === "$generators.json"
-              ) {
-                await stores.generatorService.reloadFromDisk();
-              } else if (
                 stores?.resolverStore &&
                 file.endsWith(".resolver.json")
               ) {
                 await stores.resolverStore.reloadFile(file);
+              } else if (
+                stores?.graphService &&
+                path.basename(file) === "$graphs.json"
+              ) {
+                await stores.graphService.reloadFromDisk();
               }
             } catch (err) {
               console.warn(

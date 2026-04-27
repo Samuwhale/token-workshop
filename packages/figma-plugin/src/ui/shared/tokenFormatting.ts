@@ -5,7 +5,7 @@ import { formatUnitTokenValue } from './tokenValueParsing';
  *
  * Single source of truth that replaces the six independent implementations that
  * previously existed in ComparePanel, CrossThemeComparePanel, tokenListUtils,
- * generatorShared, changeHelpers, and selectionInspectorUtils.
+ * changeHelpers, and selectionInspectorUtils.
  */
 
 // ---------------------------------------------------------------------------

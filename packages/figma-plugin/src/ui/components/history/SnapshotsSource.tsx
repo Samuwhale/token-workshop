@@ -14,7 +14,7 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
 
   const collectionCount = workspaceDiffs.filter(diff => diff.kind === 'collections').length;
   const resolverCount = workspaceDiffs.filter(diff => diff.kind === 'resolver').length;
-  const generatorCount = workspaceDiffs.filter(diff => diff.kind === 'generator').length;
+  const graphCount = workspaceDiffs.filter(diff => diff.kind === 'graph').length;
   const parts: string[] = [];
 
   if (collectionCount > 0) {
@@ -23,8 +23,8 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   if (resolverCount > 0) {
     parts.push(`${resolverCount} resolver ${resolverCount === 1 ? 'change' : 'changes'}`);
   }
-  if (generatorCount > 0) {
-    parts.push(`${generatorCount} automation ${generatorCount === 1 ? 'change' : 'changes'}`);
+  if (graphCount > 0) {
+    parts.push(`${graphCount} graph ${graphCount === 1 ? 'change' : 'changes'}`);
   }
 
   return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
@@ -648,10 +648,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                     </p>
                     <p className="text-secondary text-[var(--color-figma-text-tertiary)] mt-0.5">
                       {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.collectionStorageCount} {s.collectionStorageCount === 1 ? 'collection file' : 'collection files'}
-                      {(s.collectionCount + s.resolverCount + s.generatorCount) > 0 ? ` · ${[
+                      {(s.collectionCount + s.resolverCount + s.graphCount) > 0 ? ` · ${[
                         s.collectionCount > 0 ? `${s.collectionCount} ${s.collectionCount === 1 ? 'collection' : 'collections'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
-                        s.generatorCount > 0 ? `${s.generatorCount} automation ${s.generatorCount === 1 ? 'item' : 'items'}` : '',
+                        s.graphCount > 0 ? `${s.graphCount} ${s.graphCount === 1 ? 'graph' : 'graphs'}` : '',
                       ].filter(Boolean).join(' · ')}` : ''}
                     </p>
                   </div>

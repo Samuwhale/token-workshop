@@ -101,6 +101,7 @@ export interface TokenListActions {
     initialType?: string,
     initialValue?: string,
   ) => void;
+  onGenerateTokens?: () => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;
@@ -180,6 +181,8 @@ export interface TokenListProps {
   actions: TokenListActions;
   recentlyTouched: RecentlyTouchedState;
   highlightedToken?: string | null;
+  focusGroupPath?: string | null;
+  onFocusGroupHandled?: () => void;
   showIssuesOnly?: boolean;
   /** Path of the token currently open in the editor — enables Cmd+]/[ navigation shortcuts */
   editingTokenPath?: string | null;

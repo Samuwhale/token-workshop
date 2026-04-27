@@ -80,6 +80,7 @@ import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
 import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
 import { GraphPanel } from "../components/graph/GraphPanel";
+import { GenerateTokensWizard } from "../components/GenerateTokensWizard";
 
 const DEFAULT_CREATE_TYPE = "color";
 
@@ -245,6 +246,7 @@ export function PanelRouter({
   const healthRouteIntentRef = useRef<"deep-link" | null>(null);
   const historyRouteIntentRef = useRef<"deep-link" | null>(null);
   const [pendingGraphDocumentId, setPendingGraphDocumentId] = useState<string | null>(null);
+  const [pendingGeneratedOutputGroup, setPendingGeneratedOutputGroup] = useState<string | null>(null);
   const createLibraryHealthScope = useCallback(
     (overrides?: Partial<HealthScope>): HealthScope => ({
       mode: "current",
@@ -711,6 +713,11 @@ export function PanelRouter({
     ) => {
       openCreateLauncher({ initialPath, initialType, initialValue });
     },
+    onGenerateTokens: () => {
+      controller.guardEditorAction(() => {
+        switchContextualSurface({ surface: "generate-tokens" });
+      });
+    },
     onRefresh: controller.refreshAll,
     onPushUndo: controller.pushUndo,
     onTokenCreated: (path: string) => setHighlightedToken(path),
@@ -939,6 +946,36 @@ export function PanelRouter({
         };
       }
 
+      if (activeEditorSurface === "generate-tokens") {
+        return {
+          surface: "generate-tokens",
+          content: (
+            <GenerateTokensWizard
+              serverUrl={serverUrl}
+              collections={collections}
+              workingCollectionId={currentCollectionId}
+              perCollectionFlat={perCollectionFlat}
+              onClose={() => switchContextualSurface({ surface: null })}
+              onApplied={({ collectionId, firstPath, outputPrefix }) => {
+                setCurrentCollectionId(collectionId);
+                if (firstPath) {
+                  setHighlightedToken(firstPath);
+                }
+                setPendingGeneratedOutputGroup(outputPrefix);
+                switchContextualSurface({ surface: null });
+                refreshAll();
+              }}
+              onOpenGraph={(graphId) => {
+                setPendingGraphDocumentId(graphId);
+                switchContextualSurface({ surface: null });
+                navigateTo("library", "graph");
+              }}
+            />
+          ),
+          onDismiss: () => switchContextualSurface({ surface: null }),
+        };
+      }
+
       return null;
     };
 
@@ -1031,6 +1068,8 @@ export function PanelRouter({
         actions={tokenListActions}
         recentlyTouched={controller.recentlyTouched}
         highlightedToken={tokenListHighlightedPath}
+        focusGroupPath={pendingGeneratedOutputGroup}
+        onFocusGroupHandled={() => setPendingGeneratedOutputGroup(null)}
         showIssuesOnly={controller.showIssuesOnly}
         editingTokenPath={tokenDetails?.mode === "edit" ? tokenDetails.path : null}
         compareHandle={controller.tokenListCompareRef}

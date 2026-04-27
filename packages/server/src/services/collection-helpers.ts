@@ -16,7 +16,6 @@ import {
 import { setTokenAtPath } from "./token-tree-utils.js";
 
 const FOLDER_ITEM_SUFFIX = "/";
-const GENERATOR_EXTENSION_KEY = "com.tokenmanager.generator";
 const TOKENMANAGER_EXTENSION_KEY = "tokenmanager";
 const GRAPH_EXTENSION_KEY = "graph";
 
@@ -193,7 +192,7 @@ export function rewriteTokenGroupCollectionModes(
   return { tokens: nextTokens, changed };
 }
 
-export function stripGeneratedOwnershipFromTokenGroup(
+export function stripAutomationOwnershipFromTokenGroup(
   tokens: TokenGroup,
 ): TokenGroup {
   const cloned = structuredClone(tokens);
@@ -204,11 +203,9 @@ export function stripGeneratedOwnershipFromTokenGroup(
       if (
         extensions &&
         typeof extensions === "object" &&
-        (GENERATOR_EXTENSION_KEY in extensions ||
-          TOKENMANAGER_EXTENSION_KEY in extensions)
+        TOKENMANAGER_EXTENSION_KEY in extensions
       ) {
         const nextExtensions = { ...extensions };
-        delete nextExtensions[GENERATOR_EXTENSION_KEY];
         const tokenmanager =
           nextExtensions[TOKENMANAGER_EXTENSION_KEY];
         if (
@@ -245,8 +242,8 @@ export function stripGeneratedOwnershipFromTokenGroup(
   return cloned;
 }
 
-export function stripGeneratedOwnershipFromToken(token: DTCGToken): Token {
-  return stripGeneratedOwnershipFromTokenGroup({
+export function stripAutomationOwnershipFromToken(token: DTCGToken): Token {
+  return stripAutomationOwnershipFromTokenGroup({
     value: token as unknown as TokenGroup,
   }).value as Token;
 }

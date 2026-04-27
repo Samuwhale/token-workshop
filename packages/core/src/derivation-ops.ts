@@ -110,7 +110,7 @@ export function opMix(hex: string, mixWith: string, ratio: number): string {
 
 /**
  * Mirror the source's L* around 50 (`100 - L*`) and optionally scale chroma.
- * Replaces the legacy `darkModeInversion` generator as a per-token op.
+ * Per-token dark-mode lightness inversion.
  */
 export function opInvertLightness(hex: string, chromaBoost = 1): string {
   const alpha = extractAlpha(hex);

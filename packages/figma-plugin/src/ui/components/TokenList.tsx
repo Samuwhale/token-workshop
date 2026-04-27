@@ -136,6 +136,7 @@ export function TokenList({
   actions: {
     onEdit,
     onCreateNew,
+    onGenerateTokens,
     onRefresh,
     onPushUndo,
     onTokenCreated,
@@ -166,6 +167,8 @@ export function TokenList({
   },
   recentlyTouched,
   highlightedToken,
+  focusGroupPath,
+  onFocusGroupHandled,
   showIssuesOnly,
   editingTokenPath,
   compareHandle,
@@ -233,6 +236,13 @@ export function TokenList({
     multiModeDimId,
     setMultiModeDimId,
   } = viewState;
+
+  useEffect(() => {
+    if (tokens.length === 0 && viewMode !== "tree") {
+      setViewMode("tree");
+    }
+  }, [setViewMode, tokens.length, viewMode]);
+
   const [pendingBatchEditorFocus, setPendingBatchEditorFocus] =
     useState<BatchEditorFocusTarget | null>(null);
   const recentlyTouchedPaths = useMemo(
@@ -1001,6 +1011,22 @@ export function TokenList({
   flatItemsRef.current = flatItems;
   // itemOffsetsRef is set by useTokenVirtualScroll internally
 
+  useEffect(() => {
+    if (!focusGroupPath || viewMode !== "tree") return;
+    if (!findGroupByPath(sortedTokens, focusGroupPath)) return;
+    setZoomRootPath(focusGroupPath);
+    setExpandedPaths((current) => new Set([...current, focusGroupPath]));
+    setVirtualScrollTop(0);
+    onFocusGroupHandled?.();
+  }, [
+    focusGroupPath,
+    onFocusGroupHandled,
+    setExpandedPaths,
+    setVirtualScrollTop,
+    sortedTokens,
+    viewMode,
+  ]);
+
   // Report filtered leaf count to parent so collection tabs can show "X / Y"
   useEffect(() => {
     if (!onFilteredCountChange) return;
@@ -1365,51 +1391,6 @@ export function TokenList({
     onNavigateBack,
     onEdit,
   });
-
-  // Scroll virtual list to bring the highlighted token into view
-  useLayoutEffect(() => {
-    if (!highlightedToken || viewMode !== "tree" || !virtualListRef.current)
-      return;
-    const idx = flatItems.findIndex(
-      (item) => item.node.path === highlightedToken,
-    );
-    if (idx < 0) return;
-    const containerH = virtualListRef.current.clientHeight;
-    const targetScrollTop = Math.max(
-      0,
-      itemOffsets[idx] - containerH / 2 + rowHeight / 2,
-    );
-    virtualListRef.current.scrollTop = targetScrollTop;
-    setVirtualScrollTop(targetScrollTop);
-  }, [
-    highlightedToken,
-    flatItems,
-    itemOffsets,
-    viewMode,
-    rowHeight,
-    setVirtualScrollTop,
-  ]);
-
-  // Restore scroll anchor after filter changes so the first visible item stays visible
-  useLayoutEffect(() => {
-    if (!isFilterChangeRef.current) return;
-    isFilterChangeRef.current = false;
-    const anchorPath = scrollAnchorPathRef.current;
-    scrollAnchorPathRef.current = null;
-    if (!virtualListRef.current) return;
-    if (anchorPath) {
-      const idx = flatItems.findIndex((item) => item.node.path === anchorPath);
-      if (idx >= 0) {
-        const targetScrollTop = itemOffsets[idx];
-        virtualListRef.current.scrollTop = targetScrollTop;
-        setVirtualScrollTop(targetScrollTop);
-        return;
-      }
-    }
-    // Anchor not in filtered list — scroll to top of results
-    virtualListRef.current.scrollTop = 0;
-    setVirtualScrollTop(0);
-  }, [flatItems, itemOffsets, setVirtualScrollTop]);
 
   const clearFilters = useCallback(() => {
     setSearchQuery("");
@@ -2026,6 +2007,8 @@ export function TokenList({
             inspectMode={inspectMode}
             onToggleInspectMode={() => setInspectMode((v) => !v)}
             openTableCreate={openTableCreate}
+            onCreateToken={() => onCreateNew?.()}
+            onGenerateTokens={onGenerateTokens}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}

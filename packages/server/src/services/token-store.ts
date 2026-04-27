@@ -1136,59 +1136,6 @@ export class TokenStore {
     this.emit({ type: "token-updated", collectionId: collectionId });
   }
 
-  /**
-   * Find tokens tagged with a generatorId.
-   * Pass '*' to find ALL tokens that have any generatorId.
-   */
-  findTokensByGeneratorId(
-    generatorId: string,
-  ): Array<{ collectionId: string; path: string; generatorId: string }> {
-    const matchAll = generatorId === "*";
-    const results: Array<{
-      collectionId: string;
-      path: string;
-      generatorId: string;
-    }> = [];
-    for (const [tokenPath, entries] of this.flatTokens) {
-      for (const { token, collectionId } of entries) {
-        const ext = token.$extensions?.["com.tokenmanager.generator"];
-        const gid = ext?.generatorId;
-        if (typeof gid === "string" && (matchAll || gid === generatorId)) {
-          results.push({ collectionId: collectionId, path: tokenPath, generatorId: gid });
-        }
-      }
-    }
-    return results;
-  }
-
-  /** Delete all tokens tagged with a given generatorId. Returns count of deleted tokens. */
-  async deleteTokensByGeneratorId(generatorId: string): Promise<number> {
-    const tokens = this.findTokensByGeneratorId(generatorId);
-    if (tokens.length === 0) return 0;
-
-    const collectionsToSave = new Set<string>();
-    let deleted = 0;
-    await this.withBatch(async () => {
-      for (const { collectionId, path: tokenPath } of tokens) {
-        const collection = this.collections.get(collectionId);
-        if (!collection) continue;
-        if (deleteTokenAtPath(collection.tokens, tokenPath)) {
-          collectionsToSave.add(collectionId);
-          deleted++;
-        }
-      }
-      for (const collectionId of collectionsToSave) {
-        await this.saveCollection(collectionId);
-      }
-    });
-    if (deleted > 0) {
-      for (const collectionId of collectionsToSave) {
-        this.emit({ type: "token-updated", collectionId: collectionId });
-      }
-    }
-    return deleted;
-  }
-
   async resolveTokens(): Promise<ResolvedToken[]> {
     if (!this.resolver) {
       return [];
@@ -2644,7 +2591,7 @@ export class TokenStore {
     }
   }
 
-  /** Emit an arbitrary event to all SSE listeners (e.g. generator-error). */
+  /** Emit an arbitrary event to all SSE listeners. */
   emitEvent(event: ChangeEvent): void {
     this.emit(event);
   }
@@ -2665,13 +2612,11 @@ export interface ChangeEvent {
     | "collection-updated"
     | "collection-removed"
     | "token-updated"
-    | "generator-error"
     | "file-load-error"
     | "workspace-file-changed"
     | "workspace-file-removed";
   collectionId: string;
   tokenPath?: string;
-  generatorId?: string;
   message?: string;
-  resourceType?: "collections" | "generators" | "graphs" | "resolver";
+  resourceType?: "collections" | "graphs" | "resolver";
 }

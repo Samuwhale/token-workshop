@@ -736,8 +736,8 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           collectionsStore: fastify.collectionsStore,
           reloadCollectionsWorkspace: () =>
             fastify.collectionService.reloadTokenStorageFromState(),
-          generatorService: fastify.generatorService,
           resolverStore: fastify.resolverStore,
+          graphService: fastify.graphService,
         });
         const hasFailures =
           result.pullFailedFiles.length > 0 ||

@@ -36,7 +36,6 @@ export type {
 // Types
 export type {
   TokenManagerExtensions,
-  TokenManagerGeneratorExtension,
   TokenExtensions,
   Derivation,
   DerivationOp,
@@ -210,10 +209,9 @@ export type { ExternalFileLoader, ResolverDiagnostic, ResolverResult } from './d
 export { TokenValidator } from './validator.js';
 export type { ValidationResult } from './validator.js';
 
-// Generator types & engine
+// Graph generation types and computations
 export type {
-  GeneratorType,
-  GeneratorManagedOutput,
+  GraphGenerationType,
   ColorRampConfig,
   TypeScaleStep,
   TypeScaleConfig,
@@ -227,27 +225,12 @@ export type {
   ShadowScaleConfig,
   CustomScaleStep,
   CustomScaleConfig,
-  GeneratorConfig,
-  GeneratorSemanticLayer,
-  SemanticTokenMapping,
-  TokenGenerator,
-  GeneratedTokenResult,
-} from './generator-types.js';
+  GraphGenerationConfig,
+  GraphGeneratedTokenResult,
+} from './graph-generation-types.js';
 export {
-  createGeneratorOwnershipKey,
-  getGeneratorConfigTokenRefs,
-  createGeneratorSourceKey,
-  createGeneratorSourceKeys,
-  getGeneratorSourceCollectionId,
-  getGeneratorSourceCollectionIds,
-  getGeneratorManagedOutputPaths,
-  getGeneratorManagedOutputs,
-  getGeneratorOutputsForGraph,
-  getGeneratorStepNames,
-  hasGeneratorSourceKeyMatch,
   validateStepName,
-} from './generator-types.js';
-export type { GeneratorGraphOutput } from './generator-types.js';
+} from './graph-generation-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
@@ -257,7 +240,7 @@ export {
   DEFAULT_Z_INDEX_SCALE_CONFIG,
   DEFAULT_SHADOW_SCALE_CONFIG,
   DEFAULT_CUSTOM_SCALE_CONFIG,
-} from './generator-types.js';
+} from './graph-generation-types.js';
 
 // Token resolution (mode-aware ancestor walker)
 export { resolveTokenAncestors } from './token-resolve.js';
@@ -268,18 +251,17 @@ export type {
   ResolveTokenAncestorsParams,
 } from './token-resolve.js';
 
-// Generator engine
+// Graph generation engine
 export {
-  runColorRampGenerator,
-  runTypeScaleGenerator,
-  runSpacingScaleGenerator,
-  runOpacityScaleGenerator,
-  runBorderRadiusScaleGenerator,
-  runZIndexScaleGenerator,
-  runShadowScaleGenerator,
-  runCustomScaleGenerator,
-  applyOverrides,
-} from './generator-engine.js';
+  computeColorRampTokens,
+  computeTypeScaleTokens,
+  computeSpacingScaleTokens,
+  computeOpacityScaleTokens,
+  computeBorderRadiusScaleTokens,
+  computeZIndexScaleTokens,
+  computeShadowScaleTokens,
+  computeCustomScaleTokens,
+} from './graph-generation-engine.js';
 
 // Token graph documents (advanced automation layer)
 export {

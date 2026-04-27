@@ -280,14 +280,14 @@ function ModeStep({ serverUrl, currentCollectionId, onDone, onSkip }: {
 // Compact template picker for foundations task
 // ---------------------------------------------------------------------------
 
-function graphTemplateForGeneratorType(generatorType: GraphTemplate['generatorType']): GraphApiTemplate {
-  if (generatorType === 'spacingScale') return 'spacing';
-  if (generatorType === 'typeScale') return 'type';
-  if (generatorType === 'borderRadiusScale') return 'radius';
-  if (generatorType === 'opacityScale') return 'opacity';
-  if (generatorType === 'shadowScale') return 'shadow';
-  if (generatorType === 'zIndexScale') return 'zIndex';
-  if (generatorType === 'customScale') return 'formula';
+function graphTemplateForGraphKind(graphKind: GraphTemplate['graphKind']): GraphApiTemplate {
+  if (graphKind === 'spacingScale') return 'spacing';
+  if (graphKind === 'typeScale') return 'type';
+  if (graphKind === 'borderRadiusScale') return 'radius';
+  if (graphKind === 'opacityScale') return 'opacity';
+  if (graphKind === 'shadowScale') return 'shadow';
+  if (graphKind === 'zIndexScale') return 'zIndex';
+  if (graphKind === 'customScale') return 'formula';
   return 'colorRamp';
 }
 
@@ -434,7 +434,7 @@ export function QuickStartWizard({
         body: JSON.stringify({
           targetCollectionId: effectiveCollectionId,
           name: template.label,
-          template: graphTemplateForGeneratorType(template.generatorType),
+          template: graphTemplateForGraphKind(template.graphKind),
         }),
       });
       markCompleted('foundations');

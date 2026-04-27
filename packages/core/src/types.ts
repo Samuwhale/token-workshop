@@ -231,14 +231,6 @@ export interface TokenManagerExtensions {
   resolverPublish?: ResolverFigmaPublishConfig;
 }
 
-/** Generator provenance stored under `$extensions['com.tokenmanager.generator']`. */
-export interface TokenManagerGeneratorExtension {
-  generatorId: string;
-  sourceToken: string;
-  brand?: string;
-  outputKind?: "scale" | "semantic";
-}
-
 export interface ResolverFigmaModeMapping {
   contexts: ResolverInput;
   collectionName?: string;
@@ -253,7 +245,6 @@ export interface ResolverFigmaPublishConfig {
 export interface TokenExtensions {
   tokenmanager?: TokenManagerExtensions;
   'com.figma.scopes'?: string[];
-  'com.tokenmanager.generator'?: TokenManagerGeneratorExtension;
   [key: string]: unknown;
 }
 

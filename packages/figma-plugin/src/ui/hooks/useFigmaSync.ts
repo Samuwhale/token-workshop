@@ -6,13 +6,14 @@ import { getPluginMessageFromEvent } from '../../shared/utils';
 import type {
   StylesAppliedMessage,
   TokenMapEntry,
+  VariableSyncToken,
   VariablesAppliedMessage,
 } from '../../shared/types';
 import { useFigmaMessage } from './useFigmaMessage';
 import { extractSyncApplyResult } from './useTokenSyncBase';
 import { usePersistedJsonState } from './usePersistedState';
 import { STORAGE_KEYS } from '../shared/storage';
-import type { TokenCollection } from '@tokenmanager/core';
+import { isReference, parseReference, type TokenCollection } from '@tokenmanager/core';
 import { buildStylePublishTokens } from '../shared/stylePublish';
 
 // Publish-time target. Variables carry every token type; Styles carry only the
@@ -50,6 +51,32 @@ function preserveTypographyReferences(
       ...(rawEntry.$value as Record<string, unknown>),
     } as TokenMapEntry['$value'],
   };
+}
+
+function hasDerivation(entry: TokenMapEntry): boolean {
+  const tokenManager = entry.$extensions?.tokenmanager;
+  return Boolean(
+    tokenManager &&
+    typeof tokenManager === 'object' &&
+    !Array.isArray(tokenManager) &&
+    'derivation' in tokenManager,
+  );
+}
+
+function getVariablePublishEntry(
+  rawEntry: TokenMapEntry,
+  resolvedEntry: TokenMapEntry,
+): TokenMapEntry {
+  return hasDerivation(rawEntry) ? resolvedEntry : rawEntry;
+}
+
+function getAliasTargetCollectionId(
+  value: unknown,
+  pathToCollectionId: Record<string, string>,
+): string | undefined {
+  return typeof value === 'string' && isReference(value)
+    ? pathToCollectionId[parseReference(value)]
+    : undefined;
 }
 
 export type PublishPending =
@@ -131,11 +158,13 @@ export function useFigmaSync(
     if (!pending || !connected) return;
     const targetCollectionId = pending.collectionId;
     const scopedRawMap = perCollectionFlat[targetCollectionId] ?? {};
-    const rawMap = Object.values(perCollectionFlat).reduce<Record<string, TokenMapEntry>>(
-      (accumulator, collectionFlat) => {
+    const pathToCollectionId: Record<string, string> = {};
+    const rawMap = Object.entries(perCollectionFlat).reduce<Record<string, TokenMapEntry>>(
+      (accumulator, [sourceCollectionId, collectionFlat]) => {
         for (const [path, entry] of Object.entries(collectionFlat)) {
           if (!(path in accumulator)) {
             accumulator[path] = entry;
+            pathToCollectionId[path] = sourceCollectionId;
           }
         }
         return accumulator;
@@ -143,6 +172,9 @@ export function useFigmaSync(
       {},
     );
     Object.assign(rawMap, scopedRawMap);
+    for (const path of Object.keys(scopedRawMap)) {
+      pathToCollectionId[path] = targetCollectionId;
+    }
 
     setPublishPending(null);
     setPublishApplying(true);
@@ -151,7 +183,7 @@ export function useFigmaSync(
 
     try {
       const resolved = resolveAllAliases(rawMap);
-      const tokens: { path: string; $type: string; $value: any; collectionId?: string }[] = [];
+      const tokens: VariableSyncToken[] = [];
       const stylePaths: string[] = [];
       const scopedPaths = Object.keys(scopedRawMap).filter((path) =>
         pending.scope === 'group'
@@ -165,11 +197,13 @@ export function useFigmaSync(
           continue;
         }
         const styleAwareEntry = preserveTypographyReferences(rawEntry, resolvedEntry);
+        const variableEntry = getVariablePublishEntry(rawEntry, resolvedEntry);
         tokens.push({
           path,
-          $type: styleAwareEntry.$type,
-          $value: styleAwareEntry.$value,
+          $type: variableEntry.$type,
+          $value: variableEntry.$value,
           collectionId: targetCollectionId,
+          aliasTargetCollectionId: getAliasTargetCollectionId(variableEntry.$value, pathToCollectionId),
         });
         if (
           styleAwareEntry.$type === 'color' ||

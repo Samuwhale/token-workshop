@@ -1,8 +1,3 @@
-import type {
-  GeneratorCollectionMoveUpdate,
-  GeneratorPathRenameUpdate,
-  GeneratorService,
-} from "./generator-service.js";
 import { readGraphProvenance } from "@tokenmanager/core";
 import { ConflictError } from "../errors.js";
 import type {
@@ -24,7 +19,6 @@ type SnapshotMap = Record<string, SnapshotEntry>;
 interface MutationCommandServices {
   tokenStore: TokenStore;
   operationLog: OperationLog;
-  generatorService: GeneratorService;
 }
 
 interface LoggedMutationConfig<TResult> {
@@ -41,8 +35,6 @@ interface LoggedMutationConfig<TResult> {
     result: TResult,
   ) => string[];
   pathRenames?: (result: TResult) => Array<{ oldPath: string; newPath: string }>;
-  generatorUpdates?: (result: TResult) => GeneratorPathRenameUpdate[];
-  generatorCollectionMoves?: (result: TResult) => GeneratorCollectionMoveUpdate[];
 }
 
 function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
@@ -149,17 +141,6 @@ async function executeLoggedMutation<TResult>(
     });
     operationId = entry.id;
 
-    const generatorUpdates = config.generatorUpdates?.(result) ?? [];
-    if (generatorUpdates.length > 0) {
-      await services.generatorService.applyPathRenames(generatorUpdates);
-    }
-    const generatorCollectionMoves =
-      config.generatorCollectionMoves?.(result) ?? [];
-    if (generatorCollectionMoves.length > 0) {
-      await services.generatorService.applyCollectionMoves(
-        generatorCollectionMoves,
-      );
-    }
   } catch (error) {
     return rollbackFailedMutation(
       services,
@@ -199,9 +180,6 @@ export async function renameGroupCommand(
     captureAfter: () =>
       snapshotGroup(services.tokenStore, collectionId, newGroupPath),
     pathRenames: (result) => result.pathRenames,
-    generatorUpdates: () => [
-      { scope: "group", oldPath: oldGroupPath, newPath: newGroupPath },
-    ],
   });
 }
 
@@ -242,15 +220,6 @@ export async function moveGroupCommand(
           groupPath,
         ),
       ),
-    generatorCollectionMoves: () => [
-      {
-        scope: "group",
-        oldCollectionId: sourceCollectionId,
-        newCollectionId: targetCollectionId,
-        oldPath: groupPath,
-        newPath: groupPath,
-      },
-    ],
   });
 }
 
@@ -320,12 +289,6 @@ export async function renameTokenCommand(
     captureAfter: () =>
       snapshotPaths(services.tokenStore, collectionId, [newPath]),
     pathRenames: (result) => result.pathRenames,
-    generatorUpdates: (result) =>
-      result.pathRenames.map(({ oldPath: sourcePath, newPath: targetPath }) => ({
-        scope: "token" as const,
-        oldPath: sourcePath,
-        newPath: targetPath,
-      })),
   });
 }
 
@@ -378,15 +341,6 @@ export async function moveTokenCommand(
           [targetPath],
         ),
       ),
-    generatorCollectionMoves: () => [
-      {
-        scope: "token",
-        oldCollectionId: sourceCollectionId,
-        newCollectionId: targetCollectionId,
-        oldPath: tokenPath,
-        newPath: targetPath,
-      },
-    ],
   });
 }
 
@@ -469,12 +423,6 @@ export async function batchRenameTokensCommand(
     captureAfter: () =>
       snapshotPaths(services.tokenStore, collectionId, newPaths),
     pathRenames: (result) => result.pathRenames,
-    generatorUpdates: (result) =>
-      result.pathRenames.map(({ oldPath, newPath }) => ({
-        scope: "token" as const,
-        oldPath,
-        newPath,
-      })),
   });
 }
 
@@ -516,14 +464,6 @@ export async function batchMoveTokensCommand(
           paths,
         ),
       ),
-    generatorCollectionMoves: () =>
-      paths.map((path) => ({
-        scope: "token" as const,
-        oldCollectionId: sourceCollectionId,
-        newCollectionId: targetCollectionId,
-        oldPath: path,
-        newPath: path,
-      })),
   });
 }
 

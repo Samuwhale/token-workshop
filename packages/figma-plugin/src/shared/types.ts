@@ -285,6 +285,7 @@ export interface VariableSyncToken {
   $type: string;
   $value: TokenValue | TokenReference | null;
   collectionId?: string;
+  aliasTargetCollectionId?: string;
   figmaCollection?: string;
   figmaMode?: string;
   $extensions?: {

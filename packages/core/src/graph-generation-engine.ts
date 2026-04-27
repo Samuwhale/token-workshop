@@ -1,5 +1,5 @@
 /**
- * Generator engine — pure computation functions for each generator type.
+ * Graph generation engine: pure computation functions for graph-managed token output nodes.
  */
 
 import type {
@@ -11,9 +11,9 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  GeneratedTokenResult,
-} from './generator-types.js';
-import { validateStepName } from './generator-types.js';
+  GraphGeneratedTokenResult,
+} from './graph-generation-types.js';
+import { validateStepName } from './graph-generation-types.js';
 import { hexToLab, labToHex } from './color-math.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
 
@@ -74,10 +74,10 @@ function sanitizeNumber(
   fallback: number,
 ): { value: number; warning?: string } {
   if (Number.isNaN(value)) {
-    return { value: fallback, warning: `Formula produced NaN — fell back to ${fallback}` };
+    return { value: fallback, warning: `Formula produced NaN; fell back to ${fallback}` };
   }
   if (!Number.isFinite(value)) {
-    return { value: fallback, warning: `Formula produced ${value > 0 ? 'Infinity' : '-Infinity'} — fell back to ${fallback}` };
+    return { value: fallback, warning: `Formula produced ${value > 0 ? 'Infinity' : '-Infinity'}; fell back to ${fallback}` };
   }
   return { value };
 }
@@ -93,18 +93,18 @@ function sanitizeNumber(
  * lightness (L*) sweeps from `lightEnd` to `darkEnd`. A bell-shaped chroma
  * factor keeps colors vivid in the mid-tones and desaturated at the extremes.
  */
-export function runColorRampGenerator(
+export function computeColorRampTokens(
   sourceHex: string,
   config: ColorRampConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   // Validate step names before generating
   for (const step of config.steps) {
     validateStepName(String(step));
   }
 
   const lab = hexToLab(sourceHex);
-  if (!lab) throw new Error(`Invalid hex color for colorRamp generator: "${sourceHex}"`);
+  if (!lab) throw new Error(`Invalid hex color for color ramp graph generation: "${sourceHex}"`);
   const [, bA, bB] = lab;
 
   const { steps, lightEnd, darkEnd, chromaBoost, includeSource, sourceStep } = config;
@@ -125,7 +125,7 @@ export function runColorRampGenerator(
       ? evaluateCubicBezier(t, config.lightnessCurve[0], config.lightnessCurve[1], config.lightnessCurve[2], config.lightnessCurve[3])
       : Math.pow(t, 0.85);
     const L = lightEnd - eased * (lightEnd - darkEnd);
-    // Bell-shaped chroma factor: peaks around t≈0.4, tapers to near-zero at both ends
+    // Bell-shaped chroma factor: peaks around t=0.4, tapers to near-zero at both ends.
     const chromaFactor = Math.min(1, 4.5 * t * (1 - t) * 1.5) * chromaBoost;
     const a = bA * chromaFactor;
     const b = bB * chromaFactor;
@@ -141,13 +141,13 @@ export function runColorRampGenerator(
 /**
  * Generate a typographic scale from a source font-size token.
  *
- * Each step is computed as: `sourceValue × ratio^(step.exponent - baseExponent)`
+ * Each step is computed as: `sourceValue * ratio^(step.exponent - baseExponent)`
  */
-export function runTypeScaleGenerator(
+export function computeTypeScaleTokens(
   sourceValue: { value: number; unit: string },
   config: TypeScaleConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   const { steps, ratio, unit, baseStep, roundTo } = config;
 
   // Validate step names before generating
@@ -158,7 +158,7 @@ export function runTypeScaleGenerator(
   const baseStepDef = steps.find(s => s.name === baseStep);
   if (!baseStepDef) {
     throw new Error(
-      `Type scale generator: baseStep "${baseStep}" does not match any step name. ` +
+      `Type scale graph generation: baseStep "${baseStep}" does not match any step name. ` +
         `Available steps: ${steps.map(s => s.name).join(', ')}.`,
     );
   }
@@ -187,13 +187,13 @@ export function runTypeScaleGenerator(
 /**
  * Generate a spacing scale from a source dimension token.
  *
- * Each step value = `sourceValue × step.multiplier`.
+ * Each step value = `sourceValue * step.multiplier`.
  */
-export function runSpacingScaleGenerator(
+export function computeSpacingScaleTokens(
   sourceValue: { value: number; unit: string },
   config: SpacingScaleConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   const { steps, unit } = config;
 
   // Validate step names before generating
@@ -222,12 +222,12 @@ export function runSpacingScaleGenerator(
 
 /**
  * Generate an opacity scale (independent of source token value).
- * Values are stored as fractions (0–1) per the DTCG `number` type.
+ * Values are stored as fractions (0-1) per the DTCG `number` type.
  */
-export function runOpacityScaleGenerator(
+export function computeOpacityScaleTokens(
   config: OpacityScaleConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   // Validate step names before generating
   for (const step of config.steps) {
     validateStepName(step.name);
@@ -252,13 +252,13 @@ export function runOpacityScaleGenerator(
  * Generate a border radius scale from a source dimension token.
  *
  * Steps with `exactValue` use that fixed pixel value directly.
- * Other steps compute `sourceValue × step.multiplier`.
+ * Other steps compute `sourceValue * step.multiplier`.
  */
-export function runBorderRadiusScaleGenerator(
+export function computeBorderRadiusScaleTokens(
   sourceValue: { value: number; unit: string },
   config: BorderRadiusScaleConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   const { steps, unit } = config;
 
   // Validate step names before generating
@@ -292,10 +292,10 @@ export function runBorderRadiusScaleGenerator(
  * Generate a z-index scale (standalone, no source token).
  * Values are stored as DTCG `number` type.
  */
-export function runZIndexScaleGenerator(
+export function computeZIndexScaleTokens(
   config: ZIndexScaleConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   // Validate step names before generating
   for (const step of config.steps) {
     validateStepName(step.name);
@@ -319,10 +319,10 @@ export function runZIndexScaleGenerator(
  * Each step produces a DTCG `shadow` token. The shadow color is the
  * configured base color with the step's opacity applied as alpha.
  */
-export function runShadowScaleGenerator(
+export function computeShadowScaleTokens(
   config: ShadowScaleConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   const { steps, color } = config;
 
   // Validate step names before generating
@@ -376,16 +376,16 @@ export function runShadowScaleGenerator(
  * Generate a custom scale using a user-defined formula.
  *
  * Variables available in the formula:
- * - `base`       — resolved source value (0 if no source token)
- * - `index`      — signed step index relative to base (0 = base step)
- * - `multiplier` — per-step multiplier (defaults to 1 if not set)
- * - `prev`       — value computed for the previous step (same as base for first step)
+ * - `base`: resolved source value (0 if no source token)
+ * - `index`: signed step index relative to base (0 = base step)
+ * - `multiplier`: per-step multiplier (defaults to 1 if not set)
+ * - `prev`: value computed for the previous step (same as base for first step)
  */
-export function runCustomScaleGenerator(
+export function computeCustomScaleTokens(
   sourceValue: number | undefined,
   config: CustomScaleConfig,
   targetGroup: string,
-): GeneratedTokenResult[] {
+): GraphGeneratedTokenResult[] {
   const { steps, formula, roundTo, outputType, unit } = config;
   const base = sourceValue ?? 0;
 
@@ -398,7 +398,7 @@ export function runCustomScaleGenerator(
   const sorted = [...steps].sort((a, b) => a.index - b.index);
 
   let prev = base;
-  const results: GeneratedTokenResult[] = [];
+  const results: GraphGeneratedTokenResult[] = [];
 
   for (const step of sorted) {
     const vars: Record<string, number> = {
@@ -418,7 +418,7 @@ export function runCustomScaleGenerator(
       if (sanitized.warning) warning = sanitized.warning;
     } catch (err) {
       computed = base;
-      warning = `Formula error: ${err instanceof Error ? err.message : String(err)} — fell back to base (${base})`;
+      warning = `Formula error: ${err instanceof Error ? err.message : String(err)}; fell back to base (${base})`;
     }
 
     const rounded = parseFloat(computed.toFixed(roundTo));
@@ -439,26 +439,4 @@ export function runCustomScaleGenerator(
   }
 
   return results;
-}
-
-// ---------------------------------------------------------------------------
-// Override application
-// ---------------------------------------------------------------------------
-
-/**
- * Apply generator-level overrides to computed results.
- * Steps with `locked: true` have their value replaced with the override.
- * Steps with `locked: false` have the override applied once, then cleared
- * (caller is responsible for removing the override after use).
- */
-export function applyOverrides(
-  results: GeneratedTokenResult[],
-  overrides?: Record<string, { value: unknown; locked: boolean }>,
-): GeneratedTokenResult[] {
-  if (!overrides) return results;
-  return results.map(result => {
-    const override = overrides[result.stepName];
-    if (!override) return result;
-    return { ...result, value: override.value, isOverridden: true };
-  });
 }

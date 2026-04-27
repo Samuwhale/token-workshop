@@ -1,5 +1,10 @@
 import { useCallback, type MutableRefObject } from "react";
-import type { TokenReference, TokenValue } from "@tokenmanager/core";
+import {
+  isReference,
+  parseReference,
+  type TokenReference,
+  type TokenValue,
+} from "@tokenmanager/core";
 import type { TokenNode } from "../../hooks/useTokens";
 import type {
   ApplyVariablesErrorMessage,
@@ -27,12 +32,49 @@ import {
 
 type VariablePreviewToken = Pick<
   VariableDiffPendingState["flat"][number],
-  "path" | "$type" | "$value" | "collectionId" | "$extensions" | "$scopes"
+  "path" | "$type" | "$value" | "collectionId" | "aliasTargetCollectionId" | "$extensions" | "$scopes"
 >;
 
 type RawVariablePreviewToken = Omit<VariablePreviewToken, "$value"> & {
   $value: TokenValue | TokenReference;
 };
+
+function hasDerivation(entry: Pick<RawVariablePreviewToken, "$extensions">): boolean {
+  const tokenManager = entry.$extensions?.tokenmanager;
+  return Boolean(
+    tokenManager &&
+    typeof tokenManager === "object" &&
+    !Array.isArray(tokenManager) &&
+    "derivation" in tokenManager,
+  );
+}
+
+function buildPathCollectionIndex(
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
+  activeCollectionId: string,
+): Record<string, string> {
+  const index: Record<string, string> = {};
+  for (const [collectionId, collectionFlat] of Object.entries(perCollectionFlat)) {
+    for (const path of Object.keys(collectionFlat)) {
+      if (!(path in index)) {
+        index[path] = collectionId;
+      }
+    }
+  }
+  for (const path of Object.keys(perCollectionFlat[activeCollectionId] ?? {})) {
+    index[path] = activeCollectionId;
+  }
+  return index;
+}
+
+function getAliasTargetCollectionId(
+  value: unknown,
+  pathToCollectionId: Record<string, string>,
+): string | undefined {
+  return typeof value === "string" && isReference(value)
+    ? pathToCollectionId[parseReference(value)]
+    : undefined;
+}
 
 type PendingVariableRead = {
   resolve: (collections: VariablesReadMessage["collections"]) => void;
@@ -66,6 +108,7 @@ function flattenTokens(
 function resolveFlat(
   flat: RawVariablePreviewToken[],
   allTokensFlat: Record<string, TokenMapEntry>,
+  pathToCollectionId: Record<string, string>,
 ): VariablePreviewToken[] {
   return flat.map((t) => {
     if (t.$type === "gradient" && Array.isArray(t.$value)) {
@@ -95,6 +138,12 @@ function resolveFlat(
           return stop;
         });
       return { ...t, $value: resolvedStops };
+    }
+    if (isAlias(t.$value) && !hasDerivation(t)) {
+      return {
+        ...t,
+        aliasTargetCollectionId: getAliasTargetCollectionId(t.$value, pathToCollectionId),
+      };
     }
     const resolved = resolveTokenValue(t.$value, t.$type, allTokensFlat);
     return {
@@ -245,9 +294,11 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
 
   const handleApplyVariables = useCallback(async () => {
     closeLongLivedReviewSurfaces();
+    const pathToCollectionId = buildPathCollectionIndex(perCollectionFlat, collectionId);
     const flat = resolveFlat(
       flattenTokens(tokens, collectionId),
       allTokensFlat,
+      pathToCollectionId,
     ).map((token) => ({ ...token, collectionId }));
     setVarDiffLoading(true);
     try {
@@ -302,6 +353,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     tokens,
     allTokensFlat,
     collectionId,
+    perCollectionFlat,
     collectionMap,
     modeMap,
     setVarDiffLoading,
@@ -312,7 +364,11 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
 
   const handleApplyStyles = useCallback(async () => {
     setApplying(true);
-    const flat = resolveFlat(flattenTokens(tokens, collectionId), allTokensFlat);
+    const flat = resolveFlat(
+      flattenTokens(tokens, collectionId),
+      allTokensFlat,
+      buildPathCollectionIndex(perCollectionFlat, collectionId),
+    );
     try {
       const result = await sendStyleApply("apply-styles", {
         tokens: buildStylePublishTokens({

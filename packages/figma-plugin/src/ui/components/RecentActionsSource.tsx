@@ -61,7 +61,7 @@ export function OpIcon({ type }: { type: string }) {
   if (type.includes('error')) {
     return <AlertTriangle size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />;
   }
-  if (type.includes('generator') || type.includes('run')) {
+  if (type.includes('run')) {
     return <Play size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   return <X size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={`${OP_ICON_CLASS} opacity-30`} aria-hidden />;

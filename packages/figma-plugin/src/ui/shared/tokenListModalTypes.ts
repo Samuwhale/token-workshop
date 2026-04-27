@@ -13,6 +13,7 @@ export interface VariableDiffFlatEntry {
   $type: string;
   $value: TokenValue | TokenReference;
   collectionId?: string;
+  aliasTargetCollectionId?: string;
   $extensions?: Record<string, unknown>;
   $scopes?: string[];
 }

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
-import { isDimensionLike } from './generators/generatorShared';
 import {
   getMergedCapabilities,
   shouldShowGroup,
@@ -24,6 +23,17 @@ import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 // ---------------------------------------------------------------------------
 // Fuzzy match (same algorithm as CommandPalette)
 // ---------------------------------------------------------------------------
+
+function isDimensionLike(value: unknown): value is { value: number; unit: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "value" in value &&
+    "unit" in value &&
+    typeof (value as { value?: unknown }).value === "number" &&
+    typeof (value as { unit?: unknown }).unit === "string"
+  );
+}
 
 function fuzzyScore(query: string, target: string): number {
   if (!query) return 1;

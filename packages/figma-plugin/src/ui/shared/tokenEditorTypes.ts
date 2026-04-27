@@ -9,7 +9,6 @@ export type TokenEditorModeValues = Record<string, Record<string, unknown>>;
 export const TOKEN_EDITOR_RESERVED_EXTENSION_KEYS = new Set([
   'com.figma.scopes',
   'tokenmanager',
-  'com.tokenmanager.generator',
 ]);
 
 export interface TokenEditorTokenManagerExtension {

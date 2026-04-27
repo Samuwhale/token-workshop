@@ -1,17 +1,11 @@
 /**
- * Token Generator types — definitions for live token group generators.
- *
- * A TokenGenerator describes a relationship between an optional source token
- * and a group of derived tokens that are automatically regenerated whenever
- * the source token changes. Standalone generators (zIndexScale, opacityScale,
- * customScale without a base) have no source token.
+ * Graph generation types: pure configuration for graph-managed token outputs.
  */
 
 import type { TokenType } from './types.js';
 import type { DimensionUnit } from './constants.js';
-import { getCollectionIdsForPath } from './collection-paths.js';
 
-export type GeneratorType =
+export type GraphGenerationType =
   | 'colorRamp'
   | 'typeScale'
   | 'spacingScale'
@@ -28,12 +22,12 @@ export type GeneratorType =
 export interface ColorRampConfig {
   /** Step numbers to generate, e.g. [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] */
   steps: number[];
-  /** L* (CIELAB) value for the lightest generated step (1–100). Default: 97 */
+  /** L* (CIELAB) value for the lightest generated step (1-100). Default: 97 */
   lightEnd: number;
-  /** L* (CIELAB) value for the darkest generated step (1–100). Default: 8 */
+  /** L* (CIELAB) value for the darkest generated step (1-100). Default: 8 */
   darkEnd: number;
   /**
-   * Chroma multiplier (0.1–3.0). Values > 1 make colours more vivid;
+   * Chroma multiplier (0.1-3.0). Values > 1 make colors more vivid;
    * values < 1 desaturate. Default: 1.0
    */
   chromaBoost: number;
@@ -53,7 +47,7 @@ export interface ColorRampConfig {
   /**
    * Maps config field names to token paths for runtime resolution.
    * When a field has a tokenRef, the server resolves the token value and uses it
-   * instead of the stored literal value when the generator runs.
+   * instead of the stored literal value when the graph generation runs.
    */
   $tokenRefs?: {
     lightEnd?: string;
@@ -117,7 +111,7 @@ export interface SpacingScaleConfig {
 // ---------------------------------------------------------------------------
 
 export interface OpacityScaleConfig {
-  /** Each step maps a name to an opacity percentage (0–100) */
+  /** Each step maps a name to an opacity percentage (0-100) */
   steps: Array<{ name: string; value: number }>;
 }
 
@@ -162,7 +156,7 @@ export interface ShadowScaleStep {
   blur: number;
   /** Spread radius in px (can be negative) */
   spread: number;
-  /** Alpha opacity of the shadow color (0–1) */
+  /** Alpha opacity of the shadow color (0-1) */
   opacity: number;
 }
 
@@ -195,8 +189,8 @@ export interface CustomScaleStep {
 }
 
 export interface CustomScaleConfig {
-  /** DTCG $type for generated tokens, e.g. "dimension", "number", "color" */
-  outputType: TokenType;
+  /** DTCG $type for generated tokens. Formula scales compute numeric values. */
+  outputType: Extract<TokenType, 'dimension' | 'number'>;
   /** Unit appended for dimension outputs */
   unit?: DimensionUnit;
   steps: CustomScaleStep[];
@@ -214,7 +208,7 @@ export interface CustomScaleConfig {
 // Union
 // ---------------------------------------------------------------------------
 
-export type GeneratorConfig =
+export type GraphGenerationConfig =
   | ColorRampConfig
   | TypeScaleConfig
   | SpacingScaleConfig
@@ -223,101 +217,6 @@ export type GeneratorConfig =
   | ZIndexScaleConfig
   | ShadowScaleConfig
   | CustomScaleConfig;
-
-export interface SemanticTokenMapping {
-  semantic: string;
-  step: string;
-}
-
-export interface GeneratorSemanticLayer {
-  prefix: string;
-  mappings: SemanticTokenMapping[];
-  patternId?: string | null;
-}
-
-// ---------------------------------------------------------------------------
-// Generator definition
-// ---------------------------------------------------------------------------
-
-export interface TokenGenerator {
-  id: string;
-  type: GeneratorType;
-  /** Human-readable label, e.g. "Brand Color Ramp" */
-  name: string;
-  /**
-   * Dot-delimited path of the source token, e.g. "colors.brand.primary".
-   * Optional for standalone generators (zIndexScale, opacityScale, customScale).
-   */
-  sourceToken?: string;
-  /**
-   * Collection that owns `sourceToken` when the same path exists in multiple collections.
-   * When absent, source resolution falls back to the first matching collection.
-   */
-  sourceCollectionId?: string;
-  /**
-   * Inline base value used when no sourceToken is bound.
-   * For color generators: a hex string (e.g. "#6366F1").
-   * For dimension generators: a { value, unit } object (e.g. { value: 16, unit: "px" }).
-   */
-  inlineValue?: unknown;
-  /** Name of the collection where derived tokens will be written */
-  targetCollection: string;
-  /**
-   * Dot-delimited group prefix for all derived tokens,
-   * e.g. "colors.brand" → tokens become "colors.brand.50", "colors.brand.100", …
-   */
-  targetGroup: string;
-  config: GeneratorConfig;
-  semanticLayer?: GeneratorSemanticLayer;
-  /**
-   * Absolute token paths that were explicitly detached from this generator.
-   * Detached outputs stay manual and are skipped on future runs.
-   */
-  detachedPaths?: string[];
-  /**
-   * Per-step value overrides. Key = step name.
-   * locked: true  → value survives regeneration
-   * locked: false → one-time edit, cleared on next regeneration
-   */
-  overrides?: Record<string, { value: unknown; locked: boolean }>;
-  /**
-   * When false, the generator is disabled and will be skipped during auto-run cascades
-   * triggered by source token changes. Manual re-runs still work.
-   * Defaults to true (enabled) when absent.
-   */
-  enabled?: boolean;
-  createdAt: string;
-  updatedAt: string;
-  /** ISO timestamp of the last successful run. Absent if the generator has never been run. */
-  lastRunAt?: string;
-  /**
-   * Value of the source token at the time of the last successful run.
-   * Compared against the current source token value to detect staleness.
-   * Absent if the generator has never been run or has no source token.
-   */
-  lastRunSourceValue?: unknown;
-  /**
-   * Error from the most recent auto-run attempt.
-   * Set when the generator failed or was blocked by an upstream failure.
-   * Cleared on the next successful run. Persisted to disk so a server restart
-   * does not reset error state and show stale "healthy" status in the UI.
-   */
-  lastRunError?: {
-    message: string;
-    /** ISO timestamp of when the error occurred. */
-    at: string;
-    /** Present when the generator was blocked by an upstream failure, not a direct failure.
-     *  Contains the name of the upstream generator whose failure caused this skip. */
-    blockedBy?: string;
-  };
-}
-
-export interface GeneratorManagedOutput {
-  collectionId: string;
-  path: string;
-  stepName: string;
-  key: string;
-}
 
 // ---------------------------------------------------------------------------
 // Step name validation
@@ -356,222 +255,11 @@ export function validateStepName(stepName: string): void {
   }
 }
 
-export function createGeneratorOwnershipKey(
-  collectionId: string,
-  path: string,
-): string {
-  return `${collectionId}\u0000${path}`;
-}
-
-export function getGeneratorSourceCollectionIds(params: {
-  sourceTokenPath?: string;
-  sourceCollectionId?: string;
-  pathToCollectionId?: Record<string, string>;
-  collectionIdsByPath?: Record<string, string[]>;
-}): string[] {
-  const sourceTokenPath = params.sourceTokenPath?.trim();
-  if (!sourceTokenPath) {
-    return [];
-  }
-
-  const explicitCollectionId = params.sourceCollectionId?.trim();
-  if (explicitCollectionId) {
-    return [explicitCollectionId];
-  }
-
-  return getCollectionIdsForPath({
-    path: sourceTokenPath,
-    pathToCollectionId: params.pathToCollectionId,
-    collectionIdsByPath: params.collectionIdsByPath,
-  });
-}
-
-export function getGeneratorSourceCollectionId(params: {
-  sourceTokenPath?: string;
-  sourceCollectionId?: string;
-  pathToCollectionId?: Record<string, string>;
-  collectionIdsByPath?: Record<string, string[]>;
-}): string | undefined {
-  return getGeneratorSourceCollectionIds(params)[0];
-}
-
-export function createGeneratorSourceKeys(params: {
-  sourceTokenPath?: string;
-  sourceCollectionId?: string;
-  pathToCollectionId?: Record<string, string>;
-  collectionIdsByPath?: Record<string, string[]>;
-}): string[] {
-  const sourceTokenPath = params.sourceTokenPath?.trim();
-  if (!sourceTokenPath) {
-    return [];
-  }
-
-  const sourceCollectionIds = getGeneratorSourceCollectionIds(params);
-  if (sourceCollectionIds.length === 0) {
-    return [createGeneratorOwnershipKey("", sourceTokenPath)];
-  }
-
-  return sourceCollectionIds.map((collectionId) =>
-    createGeneratorOwnershipKey(collectionId, sourceTokenPath),
-  );
-}
-
-export function createGeneratorSourceKey(params: {
-  sourceTokenPath?: string;
-  sourceCollectionId?: string;
-  pathToCollectionId?: Record<string, string>;
-  collectionIdsByPath?: Record<string, string[]>;
-}): string | undefined {
-  return createGeneratorSourceKeys(params)[0];
-}
-
-export function hasGeneratorSourceKeyMatch(params: {
-  sourceTokenPath?: string;
-  sourceCollectionId?: string;
-  targetSourceKeys: ReadonlySet<string>;
-  pathToCollectionId?: Record<string, string>;
-  collectionIdsByPath?: Record<string, string[]>;
-}): boolean {
-  if (params.targetSourceKeys.size === 0) {
-    return false;
-  }
-
-  return createGeneratorSourceKeys(params).some((key) =>
-    params.targetSourceKeys.has(key),
-  );
-}
-
-export function getGeneratorConfigTokenRefs(
-  config: GeneratorConfig | Record<string, unknown>,
-): Record<string, string> {
-  const configRecord = config as Record<string, unknown>;
-  const refs = configRecord.$tokenRefs;
-  if (!refs || typeof refs !== "object" || Array.isArray(refs)) {
-    return {};
-  }
-
-  const normalizedRefs: Record<string, string> = {};
-  for (const [field, value] of Object.entries(refs)) {
-    if (typeof value !== "string") {
-      continue;
-    }
-    const tokenPath = value.trim();
-    if (!tokenPath) {
-      continue;
-    }
-    normalizedRefs[field] = tokenPath;
-  }
-  return normalizedRefs;
-}
-
-export function getGeneratorStepNames(
-  config: GeneratorConfig | Record<string, unknown>,
-): string[] {
-  const configRecord = config as Record<string, unknown>;
-  if (Array.isArray(configRecord.steps)) {
-    return configRecord.steps.map((step) =>
-      typeof step === "object" && step !== null && "name" in step
-        ? String((step as { name: unknown }).name)
-        : String(step),
-    );
-  }
-  if (
-    typeof configRecord.backgroundStep === "string" &&
-    typeof configRecord.foregroundStep === "string"
-  ) {
-    return [configRecord.backgroundStep, configRecord.foregroundStep];
-  }
-  if (typeof configRecord.stepName === "string") {
-    return [configRecord.stepName];
-  }
-  return [];
-}
-
-export function getGeneratorManagedOutputs(
-  generator: Pick<
-    TokenGenerator,
-    | "config"
-    | "detachedPaths"
-    | "targetGroup"
-    | "targetCollection"
-  >,
-): GeneratorManagedOutput[] {
-  const detachedPathSet = new Set(generator.detachedPaths ?? []);
-  const stepNames = getGeneratorStepNames(generator.config);
-  return stepNames.flatMap((stepName) => {
-    const path = `${generator.targetGroup}.${stepName}`;
-    if (detachedPathSet.has(path)) {
-      return [];
-    }
-    return [
-      {
-        collectionId: generator.targetCollection,
-        path,
-        stepName,
-        key: createGeneratorOwnershipKey(generator.targetCollection, path),
-      },
-    ];
-  });
-}
-
-export function getGeneratorManagedOutputPaths(
-  generator: Pick<
-    TokenGenerator,
-    | "config"
-    | "detachedPaths"
-    | "targetGroup"
-    | "targetCollection"
-  >,
-): string[] {
-  return [...new Set(getGeneratorManagedOutputs(generator).map((output) => output.path))];
-}
-
-export interface GeneratorGraphOutput extends GeneratorManagedOutput {
-  kind: "step" | "semantic";
-  /** Semantic name (without the layer prefix) when kind === "semantic". */
-  semantic?: string;
-}
-
-export function getGeneratorOutputsForGraph(
-  generator: Pick<
-    TokenGenerator,
-    | "config"
-    | "detachedPaths"
-    | "targetGroup"
-    | "targetCollection"
-    | "semanticLayer"
-  >,
-): GeneratorGraphOutput[] {
-  const outputs = new Map<string, GeneratorGraphOutput>();
-  for (const output of getGeneratorManagedOutputs(generator)) {
-    outputs.set(output.key, { ...output, kind: "step" });
-  }
-  const layer = generator.semanticLayer;
-  if (!layer || layer.mappings.length === 0) {
-    return [...outputs.values()];
-  }
-  const detached = new Set(generator.detachedPaths ?? []);
-  for (const mapping of layer.mappings) {
-    const path = `${layer.prefix}.${mapping.semantic}`;
-    if (detached.has(path)) continue;
-    const output: GeneratorGraphOutput = {
-      collectionId: generator.targetCollection,
-      path,
-      stepName: mapping.step,
-      semantic: mapping.semantic,
-      key: createGeneratorOwnershipKey(generator.targetCollection, path),
-      kind: "semantic",
-    };
-    outputs.set(output.key, output);
-  }
-  return [...outputs.values()];
-}
-
 // ---------------------------------------------------------------------------
 // Generated token output
 // ---------------------------------------------------------------------------
 
-export interface GeneratedTokenResult {
+export interface GraphGeneratedTokenResult {
   /** Step name, e.g. "100", "sm", "2" */
   stepName: string;
   /** Full token path: `${targetGroup}.${stepName}` */
@@ -616,9 +304,9 @@ export const DEFAULT_TYPE_SCALE_CONFIG: TypeScaleConfig = {
 
 export const DEFAULT_SPACING_SCALE_CONFIG: SpacingScaleConfig = {
   steps: [
-    { name: '0.5',  multiplier: 0.5  },
+    { name: '0-5',  multiplier: 0.5  },
     { name: '1',    multiplier: 1    },
-    { name: '1.5',  multiplier: 1.5  },
+    { name: '1-5',  multiplier: 1.5  },
     { name: '2',    multiplier: 2    },
     { name: '3',    multiplier: 3    },
     { name: '4',    multiplier: 4    },
@@ -690,7 +378,7 @@ export const DEFAULT_CUSTOM_SCALE_CONFIG: CustomScaleConfig = {
 };
 
 // ---------------------------------------------------------------------------
-// Quick-start templates (replace ScaffoldingWizard presets)
+// Default shadow scale
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_SHADOW_SCALE_CONFIG: ShadowScaleConfig = {

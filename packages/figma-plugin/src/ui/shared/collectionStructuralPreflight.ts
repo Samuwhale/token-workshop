@@ -4,18 +4,9 @@ export interface CollectionResolverImpact {
   name: string;
 }
 
-export interface CollectionGeneratorOwnershipImpact {
-  generatorId: string;
-  generatorName: string;
-  targetGroup: string;
-  tokenCount: number;
-  samplePaths: string[];
-}
-
-export interface CollectionGeneratorTargetImpact {
-  generatorId: string;
-  generatorName: string;
-  targetGroup: string;
+export interface CollectionGraphImpact {
+  graphId: string;
+  graphName: string;
 }
 
 export interface CollectionPreflightImpact {
@@ -25,17 +16,14 @@ export interface CollectionPreflightImpact {
     description?: string;
   };
   resolverRefs: CollectionResolverImpact[];
-  generatedOwnership: CollectionGeneratorOwnershipImpact[];
-  generatorTargets: CollectionGeneratorTargetImpact[];
+  graphRefs: CollectionGraphImpact[];
 }
 
 export interface CollectionPreflightBlocker {
   id: string;
-  code: "generated-token-ownership" | "generator-target-collection" | "resolver-collection-ref";
+  code: "resolver-collection-ref" | "graph-collection-ref";
   collectionId: string;
   message: string;
-  generatorId?: string;
-  generatorName?: string;
 }
 
 export interface CollectionMergeConflict {

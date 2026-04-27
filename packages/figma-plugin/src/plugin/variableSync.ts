@@ -1,6 +1,7 @@
 import { VARIABLE_COLLECTION_NAME } from './constants.js';
 import { mapTokenTypeToVariableType, inferVariableTokenType, convertToFigmaValue, convertFromFigmaValueForTokenType, findVariableInList } from './variableUtils.js';
 import { getErrorMessage } from '../shared/utils.js';
+import { isReference, parseReference } from '@tokenmanager/core';
 import type {
   OrphanVariableDeleteTarget,
   VariableSyncToken,
@@ -18,6 +19,64 @@ function isGeneratedStyleBackingVariable(variable: Variable): boolean {
   return variable.getPluginData('tm.styleBacking') === '1';
 }
 
+function toFigmaVariableName(path: string): string {
+  return path.replace(/\./g, '/');
+}
+
+function tokenHasDerivation(token: VariableSyncToken): boolean {
+  const tokenManager = token.$extensions?.tokenmanager;
+  return Boolean(
+    tokenManager &&
+    typeof tokenManager === 'object' &&
+    !Array.isArray(tokenManager) &&
+    'derivation' in tokenManager,
+  );
+}
+
+function getReferencePath(token: VariableSyncToken): string | null {
+  const value = token.$value;
+  if (tokenHasDerivation(token)) {
+    return null;
+  }
+  return typeof value === 'string' && isReference(value) ? parseReference(value) : null;
+}
+
+function addIndexedVariable(index: Map<string, Variable[]>, path: string, variable: Variable): void {
+  const variables = index.get(path);
+  if (variables) {
+    if (!variables.some((candidate) => candidate.id === variable.id)) {
+      variables.push(variable);
+    }
+    return;
+  }
+  index.set(path, [variable]);
+}
+
+function getTokenCollectionName(
+  token: VariableSyncToken,
+  collectionMap: Record<string, string>,
+): string {
+  const explicitCollectionName = token.figmaCollection?.trim();
+  if (explicitCollectionName) {
+    return explicitCollectionName;
+  }
+  if (token.collectionId && collectionMap[token.collectionId]) {
+    return collectionMap[token.collectionId];
+  }
+  return VARIABLE_COLLECTION_NAME;
+}
+
+function getTokenModeName(
+  token: VariableSyncToken,
+  modeMap: Record<string, string>,
+): string | undefined {
+  const explicitModeName = token.figmaMode?.trim();
+  if (explicitModeName) {
+    return explicitModeName;
+  }
+  return token.collectionId ? modeMap[token.collectionId] : undefined;
+}
+
 export async function applyVariables(tokens: VariableSyncToken[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, renames?: Array<{ oldPath: string; newPath: string }>, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
   interface VariableSnapshot {
@@ -27,6 +86,16 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     hiddenFromPublishing: boolean;
     scopes: string[];
     pluginData: { tokenPath: string; tokenCollection: string };
+  }
+  interface VariableApplyPlan {
+    token: VariableSyncToken;
+    variable: Variable;
+    variableType: VariableResolvedDataType;
+    collection: VariableCollection;
+    aliasTargetPath: string | null;
+    literalValue: VariableValue | null;
+    valueSkipped: boolean;
+    created: boolean;
   }
   const variableSnapshots = new Map<string, VariableSnapshot>();
   const createdVariableIds: string[] = [];
@@ -63,6 +132,23 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     // Load all local variables once to avoid redundant async calls per token
     const localVariables = await figma.variables.getLocalVariablesAsync();
 
+    const snapshotVariable = (variable: Variable): void => {
+      if (createdVariableIds.includes(variable.id) || variableSnapshots.has(variable.id)) {
+        return;
+      }
+      variableSnapshots.set(variable.id, {
+        valuesByMode: structuredClone(variable.valuesByMode),
+        name: variable.name,
+        description: variable.description,
+        hiddenFromPublishing: variable.hiddenFromPublishing,
+        scopes: [...variable.scopes],
+        pluginData: {
+          tokenPath: variable.getPluginData('tokenPath'),
+          tokenCollection: variable.getPluginData('tokenCollection'),
+        },
+      });
+    };
+
     // Pre-process renames: find variables with old names and rename them to their new names
     // before the main token loop. This preserves variable IDs (and all Figma node bindings
     // that reference them) when tokens are renamed on the server between syncs.
@@ -85,19 +171,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         if (targetExists) continue;
 
         // Snapshot before modifying so rollback can restore the original name
-        if (!variableSnapshots.has(oldVar.id)) {
-          variableSnapshots.set(oldVar.id, {
-            valuesByMode: structuredClone(oldVar.valuesByMode),
-            name: oldVar.name,
-            description: oldVar.description,
-            hiddenFromPublishing: oldVar.hiddenFromPublishing,
-            scopes: [...oldVar.scopes],
-            pluginData: {
-              tokenPath: oldVar.getPluginData('tokenPath'),
-              tokenCollection: oldVar.getPluginData('tokenCollection'),
-            },
-          });
-        }
+        snapshotVariable(oldVar);
 
         try {
           oldVar.name = newFigmaName;
@@ -108,12 +182,67 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       }
     }
 
-    for (let i = 0; i < tokens.length; i++) {
-      const token = tokens[i];
-      // Emit incremental progress so the UI can show "Syncing N / M variables…"
-      if (i % 5 === 0 || i === tokens.length - 1) {
-        figma.ui.postMessage({ type: 'variable-sync-progress', current: i + 1, total: tokens.length, correlationId });
+    const variablesByTokenPath = new Map<string, Variable[]>();
+    const variablesByFigmaName = new Map<string, Variable[]>();
+
+    const indexVariable = (variable: Variable, tokenPath?: string): void => {
+      const figmaNameVariables = variablesByFigmaName.get(variable.name);
+      if (figmaNameVariables) {
+        if (!figmaNameVariables.some((candidate) => candidate.id === variable.id)) {
+          figmaNameVariables.push(variable);
+        }
+      } else {
+        variablesByFigmaName.set(variable.name, [variable]);
       }
+
+      const managedPath = tokenPath ?? variable.getPluginData('tokenPath').trim();
+      if (managedPath) {
+        addIndexedVariable(variablesByTokenPath, managedPath, variable);
+      }
+    };
+
+    for (const variable of localVariables) {
+      indexVariable(variable);
+    }
+
+    const findAliasTargetVariable = (
+      path: string,
+      source: VariableApplyPlan,
+    ): Variable | null => {
+      const candidatesById = new Map<string, Variable>();
+      for (const candidate of variablesByTokenPath.get(path) ?? []) {
+        candidatesById.set(candidate.id, candidate);
+      }
+      for (const candidate of variablesByFigmaName.get(toFigmaVariableName(path)) ?? []) {
+        candidatesById.set(candidate.id, candidate);
+      }
+
+      const candidates = [...candidatesById.values()].filter(
+        (candidate) =>
+          candidate.id !== source.variable.id &&
+          candidate.resolvedType === source.variableType,
+      );
+      if (candidates.length === 0) {
+        return null;
+      }
+
+      return (
+        candidates.find(
+          (candidate) =>
+            source.token.aliasTargetCollectionId &&
+            candidate.getPluginData('tokenCollection') === source.token.aliasTargetCollectionId,
+        ) ??
+        candidates.find(
+          (candidate) =>
+            source.token.collectionId &&
+            candidate.getPluginData('tokenCollection') === source.token.collectionId,
+        ) ?? candidates[0]
+      );
+    };
+
+    const plans: VariableApplyPlan[] = [];
+
+    for (const token of tokens) {
       const variableType = mapTokenTypeToVariableType(token.$type);
       if (!variableType) {
         // Type has no Figma variable equivalent (e.g. shadow, gradient, typography)
@@ -122,66 +251,142 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       }
 
       // Resolve which collection this token belongs to
-      const explicitCollectionName = token.figmaCollection?.trim();
-      const colName = explicitCollectionName
-        ? explicitCollectionName
-        : (token.collectionId && collectionMap[token.collectionId])
-          ? collectionMap[token.collectionId]
-          : VARIABLE_COLLECTION_NAME;
+      const colName = getTokenCollectionName(token, collectionMap);
       const collection = getOrCreateCollection(colName);
 
-      // Pre-compute the Figma value before deciding whether to create a new variable.
-      // If the value cannot be converted, we should not create a valueless variable.
-      const figmaValue = convertToFigmaValue(token.$value, token.$type);
+      const aliasTargetPath = getReferencePath(token);
+      const figmaValue = aliasTargetPath
+        ? null
+        : convertToFigmaValue(token.$value, token.$type);
 
       // Find existing or create new
-      const figmaName = token.path.replace(/\./g, '/');
+      const figmaName = toFigmaVariableName(token.path);
       const existing = findVariableInList(localVariables, collection.id, figmaName);
       let variable: Variable;
-      let tokenSkipped = false;
+      let valueSkipped = false;
+      let created = false;
 
       if (existing) {
         // Snapshot all mutable state before modifying so we can roll back on error
-        if (!variableSnapshots.has(existing.id)) {
-          variableSnapshots.set(existing.id, {
-            valuesByMode: structuredClone(existing.valuesByMode),
-            name: existing.name,
-            description: existing.description,
-            hiddenFromPublishing: existing.hiddenFromPublishing,
-            scopes: [...existing.scopes],
-            pluginData: {
-              tokenPath: existing.getPluginData('tokenPath'),
-              tokenCollection: existing.getPluginData('tokenCollection'),
-            },
-          });
-        }
+        snapshotVariable(existing);
         variable = existing;
-        if (figmaValue === null) {
+        if (!aliasTargetPath && figmaValue === null) {
           // Value not convertible — skip setting it but still update scopes and pluginData
           skipped.push({ path: token.path, $type: token.$type });
-          tokenSkipped = true;
+          valueSkipped = true;
         }
       } else {
-        if (figmaValue === null) {
+        if (!aliasTargetPath && figmaValue === null) {
           // Cannot create a meaningful new variable without a value — skip entirely
           skipped.push({ path: token.path, $type: token.$type });
           continue;
         }
         variable = figma.variables.createVariable(figmaName, collection, variableType);
         createdVariableIds.push(variable.id);
+        created = true;
         // Keep the local cache fresh so subsequent findVariableInList calls see just-created variables
         localVariables.push(variable);
       }
 
+      variable.setPluginData('tokenPath', token.path);
+      variable.setPluginData('tokenCollection', token.collectionId || '');
+      indexVariable(variable, token.path);
+      plans.push({
+        token,
+        variable,
+        variableType,
+        collection,
+        aliasTargetPath,
+        literalValue: figmaValue,
+        valueSkipped,
+        created,
+      });
+    }
+
+    const aliasTargetsByVariableId = new Map<string, Variable>();
+    const invalidAliasReasonByVariableId = new Map<string, string>();
+    for (const plan of plans) {
+      if (!plan.aliasTargetPath) {
+        continue;
+      }
+      const targetVariable = findAliasTargetVariable(plan.aliasTargetPath, plan);
+      if (!targetVariable) {
+        invalidAliasReasonByVariableId.set(
+          plan.variable.id,
+          `Alias target not found in Figma variables: {${plan.aliasTargetPath}}`,
+        );
+        continue;
+      }
+      aliasTargetsByVariableId.set(plan.variable.id, targetVariable);
+    }
+
+    let invalidAliasChanged = true;
+    while (invalidAliasChanged) {
+      invalidAliasChanged = false;
+      for (const plan of plans) {
+        if (!plan.aliasTargetPath || invalidAliasReasonByVariableId.has(plan.variable.id)) {
+          continue;
+        }
+        const targetVariable = aliasTargetsByVariableId.get(plan.variable.id);
+        if (targetVariable && invalidAliasReasonByVariableId.has(targetVariable.id)) {
+          invalidAliasReasonByVariableId.set(
+            plan.variable.id,
+            `Alias target could not be published: {${plan.aliasTargetPath}}`,
+          );
+          invalidAliasChanged = true;
+        }
+      }
+    }
+
+    for (const plan of plans) {
+      const invalidReason = invalidAliasReasonByVariableId.get(plan.variable.id);
+      if (!invalidReason) {
+        continue;
+      }
+      failures.push({ path: plan.token.path, error: invalidReason });
+      if (plan.created) {
+        try {
+          plan.variable.remove();
+          const createdIndex = createdVariableIds.indexOf(plan.variable.id);
+          if (createdIndex >= 0) {
+            createdVariableIds.splice(createdIndex, 1);
+          }
+        } catch (cleanupError) {
+          failures.push({
+            path: plan.token.path,
+            error: `Failed to remove variable after alias error: ${getErrorMessage(cleanupError)}`,
+          });
+        }
+      }
+    }
+
+    for (let i = 0; i < plans.length; i++) {
+      const plan = plans[i];
+      const { token, variable, collection, aliasTargetPath, literalValue, valueSkipped } = plan;
+      // Emit incremental progress so the UI can show "Syncing N / M variables…"
+      if (i % 5 === 0 || i === plans.length - 1) {
+        figma.ui.postMessage({ type: 'variable-sync-progress', current: i + 1, total: plans.length, correlationId });
+      }
+
       try {
         // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
-        const explicitModeName = token.figmaMode?.trim();
-        const desiredModeName = explicitModeName || (token.collectionId ? modeMap[token.collectionId] : undefined);
+        const desiredModeName = getTokenModeName(token, modeMap);
         const modeId = desiredModeName
           ? getOrCreateMode(collection, desiredModeName)
           : collection.modes[0].modeId;
-        if (figmaValue !== null) {
-          variable.setValueForMode(modeId, figmaValue);
+
+        let valueToSet: VariableValue | null = literalValue;
+        if (aliasTargetPath) {
+          if (invalidAliasReasonByVariableId.has(variable.id)) {
+            continue;
+          }
+          const targetVariable = aliasTargetsByVariableId.get(variable.id);
+          if (!targetVariable) continue;
+          valueToSet = figma.variables.createVariableAlias(targetVariable);
+        }
+
+        if (valueToSet !== null) {
+          variable.setValueForMode(modeId, valueToSet);
         }
 
         const scopeOverrides = Array.isArray(token.$extensions?.['com.figma.scopes'])
@@ -192,7 +397,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         // Store mapping in shared plugin data
         variable.setPluginData('tokenPath', token.path);
         variable.setPluginData('tokenCollection', token.collectionId || '');
-        if (!tokenSkipped) {
+        if (!valueSkipped) {
           successCount++;
         }
       } catch (tokenError) {

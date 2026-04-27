@@ -13,8 +13,35 @@ import {
   opScaleBy,
 } from './derivation-ops.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
-import { runColorRampGenerator } from './generator-engine.js';
-import type { ColorRampConfig } from './generator-types.js';
+import {
+  computeBorderRadiusScaleTokens,
+  computeColorRampTokens,
+  computeCustomScaleTokens,
+  computeOpacityScaleTokens,
+  computeShadowScaleTokens,
+  computeSpacingScaleTokens,
+  computeTypeScaleTokens,
+  computeZIndexScaleTokens,
+} from './graph-generation-engine.js';
+import {
+  DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
+  DEFAULT_COLOR_RAMP_CONFIG,
+  DEFAULT_CUSTOM_SCALE_CONFIG,
+  DEFAULT_OPACITY_SCALE_CONFIG,
+  DEFAULT_SHADOW_SCALE_CONFIG,
+  DEFAULT_SPACING_SCALE_CONFIG,
+  DEFAULT_TYPE_SCALE_CONFIG,
+  DEFAULT_Z_INDEX_SCALE_CONFIG,
+  type BorderRadiusScaleConfig,
+  type ColorRampConfig,
+  type CustomScaleConfig,
+  type GraphGeneratedTokenResult,
+  type OpacityScaleConfig,
+  type ShadowScaleConfig,
+  type SpacingScaleConfig,
+  type TypeScaleConfig,
+  type ZIndexScaleConfig,
+} from './graph-generation-types.js';
 import { stableStringify } from './stable-stringify.js';
 import { isReference, parseReference } from './dtcg-types.js';
 import type {
@@ -42,6 +69,13 @@ export type TokenGraphNodeKind =
   | 'color'
   | 'formula'
   | 'colorRamp'
+  | 'spacingScale'
+  | 'typeScale'
+  | 'borderRadiusScale'
+  | 'opacityScale'
+  | 'shadowScale'
+  | 'zIndexScale'
+  | 'customScale'
   | 'list'
   | 'alias'
   | 'output'
@@ -521,6 +555,20 @@ function evaluateNodeForMode({
       return colorValue(node, source);
     case 'colorRamp':
       return colorRampValue(node, source);
+    case 'spacingScale':
+      return spacingScaleValue(node, source);
+    case 'typeScale':
+      return typeScaleValue(node, source);
+    case 'borderRadiusScale':
+      return borderRadiusScaleValue(node, source);
+    case 'opacityScale':
+      return opacityScaleValue(node);
+    case 'shadowScale':
+      return shadowScaleValue(node);
+    case 'zIndexScale':
+      return zIndexScaleValue(node);
+    case 'customScale':
+      return customScaleValue(node, source);
     case 'list':
       return listValue(node);
     case 'output':
@@ -755,26 +803,127 @@ function colorRampValue(
   source: GraphRuntimeValue | undefined,
 ): GraphRuntimeValue {
   const sourceColor = String(requireScalar(source, 'Color ramps need a source color.'));
-  const steps = Array.isArray(node.data.steps) ? node.data.steps : DEFAULT_COLOR_RAMP_STEPS;
-  const config: ColorRampConfig = {
-    steps: steps.map((step) => (typeof step === 'number' ? step : Number(step))).filter(Number.isFinite),
-    lightEnd: Number(node.data.lightEnd ?? 96),
-    darkEnd: Number(node.data.darkEnd ?? 24),
-    chromaBoost: Number(node.data.chromaBoost ?? 1),
-    includeSource: Boolean(node.data.includeSource ?? true),
-    sourceStep: Number(node.data.sourceStep ?? 500),
-  };
-  const generated = runColorRampGenerator(sourceColor, config, 'output');
+  const config = readNodeConfig<ColorRampConfig>(node, DEFAULT_COLOR_RAMP_CONFIG);
+  const generated = computeColorRampTokens(sourceColor, config, 'output');
+  return generatedResultsToList('color', generated);
+}
+
+function spacingScaleValue(
+  node: TokenGraphNode,
+  source: GraphRuntimeValue | undefined,
+): GraphRuntimeValue {
+  const config = readNodeConfig<SpacingScaleConfig>(node, DEFAULT_SPACING_SCALE_CONFIG);
+  return generatedResultsToList(
+    'dimension',
+    computeSpacingScaleTokens(requireDimensionSource(source, 'Spacing scales need a base size.'), config, 'output'),
+  );
+}
+
+function typeScaleValue(
+  node: TokenGraphNode,
+  source: GraphRuntimeValue | undefined,
+): GraphRuntimeValue {
+  const config = readNodeConfig<TypeScaleConfig>(node, DEFAULT_TYPE_SCALE_CONFIG);
+  return generatedResultsToList(
+    'dimension',
+    computeTypeScaleTokens(requireDimensionSource(source, 'Type scales need a base font size.'), config, 'output'),
+  );
+}
+
+function borderRadiusScaleValue(
+  node: TokenGraphNode,
+  source: GraphRuntimeValue | undefined,
+): GraphRuntimeValue {
+  const config = readNodeConfig<BorderRadiusScaleConfig>(node, DEFAULT_BORDER_RADIUS_SCALE_CONFIG);
+  return generatedResultsToList(
+    'dimension',
+    computeBorderRadiusScaleTokens(requireDimensionSource(source, 'Radius scales need a base radius.'), config, 'output'),
+  );
+}
+
+function opacityScaleValue(node: TokenGraphNode): GraphRuntimeValue {
+  const config = readNodeConfig<OpacityScaleConfig>(node, DEFAULT_OPACITY_SCALE_CONFIG);
+  return generatedResultsToList('number', computeOpacityScaleTokens(config, 'output'));
+}
+
+function shadowScaleValue(node: TokenGraphNode): GraphRuntimeValue {
+  const config = readNodeConfig<ShadowScaleConfig>(node, DEFAULT_SHADOW_SCALE_CONFIG);
+  return generatedResultsToList('token', computeShadowScaleTokens(config, 'output'));
+}
+
+function zIndexScaleValue(node: TokenGraphNode): GraphRuntimeValue {
+  const config = readNodeConfig<ZIndexScaleConfig>(node, DEFAULT_Z_INDEX_SCALE_CONFIG);
+  return generatedResultsToList('number', computeZIndexScaleTokens(config, 'output'));
+}
+
+function customScaleValue(
+  node: TokenGraphNode,
+  source: GraphRuntimeValue | undefined,
+): GraphRuntimeValue {
+  const config = readNodeConfig<CustomScaleConfig>(node, DEFAULT_CUSTOM_SCALE_CONFIG);
+  const outputPortType: TokenGraphPortType =
+    config.outputType === 'dimension' ||
+    config.outputType === 'number'
+      ? config.outputType
+      : 'any';
+  return generatedResultsToList(
+    outputPortType,
+    computeCustomScaleTokens(source ? requireNumericSource(source) : undefined, config, 'output'),
+  );
+}
+
+function readNodeConfig<T extends object>(
+  node: TokenGraphNode,
+  defaults: T,
+): T {
+  const rawConfig = node.data.config;
+  const explicitConfig =
+    rawConfig && typeof rawConfig === 'object' && !Array.isArray(rawConfig)
+      ? rawConfig as Partial<T>
+      : {};
+  return JSON.parse(JSON.stringify({ ...defaults, ...node.data, ...explicitConfig })) as T;
+}
+
+function generatedResultsToList(
+  type: TokenGraphPortType,
+  generated: GraphGeneratedTokenResult[],
+): GraphRuntimeValue {
   return {
     kind: 'list',
-    type: 'color',
+    type,
     values: generated.map((item) => ({
       key: item.stepName,
       label: item.stepName,
       value: item.value as TokenValue,
-      type: 'color',
+      type: item.type,
     })),
   };
+}
+
+function requireDimensionSource(
+  source: GraphRuntimeValue | undefined,
+  message: string,
+): { value: number; unit: string } {
+  const value = requireScalar(source, message);
+  if (isDimensionLike(value)) {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return { value, unit: 'px' };
+  }
+  throw new Error(message);
+}
+
+function requireNumericSource(source: GraphRuntimeValue): number {
+  const value = requireScalar(source, 'Formula scales need a numeric base value.');
+  if (isDimensionLike(value)) {
+    return value.value;
+  }
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) {
+    throw new Error('Formula scales need a numeric base value.');
+  }
+  return numberValue;
 }
 
 function listValue(node: TokenGraphNode): GraphRuntimeValue {

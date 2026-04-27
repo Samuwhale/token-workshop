@@ -470,12 +470,19 @@ export function useReadinessChecks({
         const tokens: VariableSyncToken[] = getSyncRowsByCategory(snapshot.rows).localOnly.map((row) => {
           const local = snapshot.localMap.get(getDiffRowId(row));
           const scopes = local?.scopes;
+          const resolverMappingKey =
+            resolverName && row.id ? row.id.split('::')[0] : null;
+          const resolverMapping = resolverMappingKey
+            ? resolverPublishMappings?.find((mapping) => mapping.key === resolverMappingKey)
+            : undefined;
           return {
             path: row.path,
             $type: row.localType ?? local?.type ?? 'string',
             $value: (row.localRaw ?? local?.raw ?? '') as VariableSyncToken['$value'],
             $extensions: scopes?.length ? { 'com.figma.scopes': scopes } : undefined,
-            collectionId: currentCollectionId,
+            collectionId: resolverName ?? currentCollectionId,
+            figmaCollection: resolverMapping?.collectionName,
+            figmaMode: resolverMapping?.modeName,
           };
         });
 

@@ -109,37 +109,12 @@ export type GraphTemplateConfig =
   | ShadowScaleConfig
   | CustomScaleConfig;
 
-export interface SemanticTokenMapping {
-  semantic: string;
-  step: string;
-}
-
-export interface GraphSemanticLayer {
-  prefix: string;
-  mappings: SemanticTokenMapping[];
-  patternId?: string | null;
-}
-
-export interface GeneratedTokenResult {
-  stepName: string;
-  path: string;
-  type: CustomScaleConfig['outputType'];
-  value: unknown;
-  isOverridden?: boolean;
-  warning?: string;
-}
-
 export interface GraphTemplateDefinition {
   id: string;
   label: string;
   description: string;
   defaultPrefix: string;
-  generatorType: GraphTemplateType;
+  graphKind: GraphTemplateType;
   config: GraphTemplateConfig;
   requiresSource: boolean;
 }
-
-export type GeneratorType = GraphTemplateType;
-export type GeneratorConfig = GraphTemplateConfig;
-export type GeneratorTemplate = GraphTemplateDefinition;
-export type GeneratorSemanticLayer = GraphSemanticLayer;

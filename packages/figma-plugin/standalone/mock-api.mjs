@@ -24,7 +24,6 @@ function createHelpHtml(snapshot) {
     ? snapshot.collectionsResponse.collections
     : [];
   const issueSummary = snapshot.validationResponse?.summary ?? {};
-  const generatorCount = Array.isArray(snapshot.generators) ? snapshot.generators.length : 0;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -131,10 +130,6 @@ function createHelpHtml(snapshot) {
         <div class="metric">
           <strong>${issueSummary.total ?? (snapshot.validationResponse?.issues?.length ?? 0)}</strong>
           <span>review items captured</span>
-        </div>
-        <div class="metric">
-          <strong>${generatorCount}</strong>
-          <span>generators captured</span>
         </div>
       </div>
     </section>
@@ -277,15 +272,6 @@ export async function handleMockApiRequest(req, res, url) {
       return true;
     }
     sendJson(res, 200, { tokens: clone(tokens) }, method);
-    return true;
-  }
-
-  if (pathname === '/api/generators') {
-    if (method !== 'GET' && method !== 'HEAD') {
-      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
-      return true;
-    }
-    sendJson(res, 200, clone(snapshot.generators), method);
     return true;
   }
 

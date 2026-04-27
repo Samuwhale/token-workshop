@@ -3,6 +3,14 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
   createDefaultTokenGraphDocument,
+  DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
+  DEFAULT_COLOR_RAMP_CONFIG,
+  DEFAULT_CUSTOM_SCALE_CONFIG,
+  DEFAULT_OPACITY_SCALE_CONFIG,
+  DEFAULT_SHADOW_SCALE_CONFIG,
+  DEFAULT_SPACING_SCALE_CONFIG,
+  DEFAULT_TYPE_SCALE_CONFIG,
+  DEFAULT_Z_INDEX_SCALE_CONFIG,
   evaluateTokenGraphDocument,
   readTokenModeValuesForCollection,
   readGraphProvenance,
@@ -11,6 +19,7 @@ import {
   type Token,
   type TokenCollection,
   type TokenGraphDocument,
+  type TokenGraphDocumentNode,
   type TokenGraphPreviewResult,
 } from "@tokenmanager/core";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
@@ -61,6 +70,12 @@ export interface GraphOwnedTokenRef {
   collectionId: string;
   path: string;
   token: Token;
+}
+
+export interface GraphCollectionDependencyMeta {
+  id: string;
+  name: string;
+  referencedCollections: string[];
 }
 
 export class TokenGraphService {
@@ -276,6 +291,7 @@ export class TokenGraphService {
       const touchedPaths = [...new Set([...preview.outputs.map((output) => output.path), ...deleted])];
       const beforeSnapshot = await snapshotPaths(tokenStore, graph.targetCollectionId, touchedPaths);
       const graphBefore = cloneGraph(graph);
+      const graphStateBefore = Array.from(this.graphs.values()).map(cloneGraph);
 
       const tokens = preview.outputs.map((output) => ({
         path: output.path,
@@ -339,6 +355,12 @@ export class TokenGraphService {
               graphName: graph.name,
               targetCollectionId: graph.targetCollectionId,
             },
+            rollbackSteps: [
+              {
+                action: "restore-graphs",
+                graphs: graphStateBefore,
+              },
+            ],
           });
           operationId = operation.id;
         }
@@ -503,6 +525,23 @@ export class TokenGraphService {
       }
     }
     return count;
+  }
+
+  listCollectionDependencyMeta(): GraphCollectionDependencyMeta[] {
+    return Array.from(this.graphs.values())
+      .map((graph) => ({
+        id: graph.id,
+        name: graph.name,
+        referencedCollections: [
+          ...new Set([
+            graph.targetCollectionId,
+            ...graph.nodes
+              .map((node) => node.data.collectionId)
+              .filter((collectionId): collectionId is string => typeof collectionId === "string"),
+          ]),
+        ].filter(Boolean),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   assertNoCollectionReferences(collectionIds: Iterable<string>): void {
@@ -683,148 +722,141 @@ function buildTemplateGraph(input: GraphCreateInput): TokenGraphDocument {
   if (template === "blank") {
     base.nodes = [];
     base.edges = [];
-  } else if (template === "spacing") {
-    base.nodes = scaleTemplateNodes("dimension", "Spacing steps", "spacing.scale", [
-      scaleItem("0", { value: 0, unit: "px" }, "dimension"),
-      scaleItem("2", { value: 2, unit: "px" }, "dimension"),
-      scaleItem("4", { value: 4, unit: "px" }, "dimension"),
-      scaleItem("8", { value: 8, unit: "px" }, "dimension"),
-      scaleItem("12", { value: 12, unit: "px" }, "dimension"),
-      scaleItem("16", { value: 16, unit: "px" }, "dimension"),
-      scaleItem("24", { value: 24, unit: "px" }, "dimension"),
-      scaleItem("32", { value: 32, unit: "px" }, "dimension"),
-    ]);
-    base.edges = scaleTemplateEdges();
-  } else if (template === "type") {
-    base.nodes = scaleTemplateNodes("dimension", "Type scale", "font.size", [
-      scaleItem("xs", { value: 12, unit: "px" }, "dimension"),
-      scaleItem("sm", { value: 14, unit: "px" }, "dimension"),
-      scaleItem("md", { value: 16, unit: "px" }, "dimension"),
-      scaleItem("lg", { value: 20, unit: "px" }, "dimension"),
-      scaleItem("xl", { value: 24, unit: "px" }, "dimension"),
-      scaleItem("2xl", { value: 32, unit: "px" }, "dimension"),
-      scaleItem("3xl", { value: 40, unit: "px" }, "dimension"),
-      scaleItem("4xl", { value: 48, unit: "px" }, "dimension"),
-    ]);
-    base.edges = scaleTemplateEdges();
-  } else if (template === "radius") {
-    base.nodes = scaleTemplateNodes("dimension", "Radius scale", "radius", [
-      scaleItem("none", { value: 0, unit: "px" }, "dimension"),
-      scaleItem("xs", { value: 2, unit: "px" }, "dimension"),
-      scaleItem("sm", { value: 4, unit: "px" }, "dimension"),
-      scaleItem("md", { value: 8, unit: "px" }, "dimension"),
-      scaleItem("lg", { value: 12, unit: "px" }, "dimension"),
-      scaleItem("full", { value: 999, unit: "px" }, "dimension"),
-    ]);
-    base.edges = scaleTemplateEdges();
-  } else if (template === "opacity") {
-    base.nodes = scaleTemplateNodes("number", "Opacity scale", "opacity", [
-      scaleItem("0", 0, "number"),
-      scaleItem("8", 0.08, "number"),
-      scaleItem("16", 0.16, "number"),
-      scaleItem("32", 0.32, "number"),
-      scaleItem("64", 0.64, "number"),
-      scaleItem("100", 1, "number"),
-    ]);
-    base.edges = scaleTemplateEdges();
-  } else if (template === "zIndex") {
-    base.nodes = scaleTemplateNodes("number", "Z-index scale", "z", [
-      scaleItem("base", 0, "number"),
-      scaleItem("raised", 10, "number"),
-      scaleItem("sticky", 100, "number"),
-      scaleItem("overlay", 1000, "number"),
-      scaleItem("modal", 1100, "number"),
-      scaleItem("toast", 1200, "number"),
-    ]);
-    base.edges = scaleTemplateEdges();
-  } else if (template === "formula") {
-    base.nodes = [
-      {
-        id: "source",
-        kind: "literal",
-        label: "Input value",
-        position: { x: 90, y: 140 },
-        data: { type: "number", value: 8 },
-      },
-      {
-        id: "scale",
-        kind: "formula",
-        label: "Formula",
-        position: { x: 360, y: 140 },
-        data: { expression: "value * 2" },
-      },
-      {
-        id: "output",
-        kind: "output",
-        label: "Output token",
-        position: { x: 640, y: 140 },
-        data: { path: "formula.output", tokenType: "number" },
-      },
-    ];
-    base.edges = [
-      { id: "source-scale", from: { nodeId: "source", port: "value" }, to: { nodeId: "scale", port: "value" } },
-      { id: "scale-output", from: { nodeId: "scale", port: "value" }, to: { nodeId: "output", port: "value" } },
-    ];
-  } else if (template === "shadow") {
-    base.nodes = scaleTemplateNodes("string", "Shadow aliases", "shadow", [
-      scaleItem("sm", shadowValue(0, 1, 2, 0), "shadow"),
-      scaleItem("md", shadowValue(0, 4, 12, 0), "shadow"),
-      scaleItem("lg", shadowValue(0, 12, 32, 0), "shadow"),
-    ]);
-    base.edges = scaleTemplateEdges();
+  } else {
+    const generated = generatedTemplate(template);
+    base.nodes = generated.nodes;
+    base.edges = generated.edges;
   }
   base.createdAt = base.createdAt || now;
   base.updatedAt = now;
   return normalizeGraphDocument(base);
 }
 
-function scaleTemplateNodes(
-  type: string,
-  label: string,
-  pathPrefix: string,
-  items: unknown[],
-): TokenGraphDocument["nodes"] {
-  return [
-    {
-      id: "steps",
-      kind: "list",
-      label,
-      position: { x: 120, y: 150 },
-      data: { type, items },
-    },
-    {
-      id: "output",
-      kind: "groupOutput",
-      label: "Output tokens",
-      position: { x: 430, y: 150 },
-      data: { pathPrefix },
-    },
-  ];
-}
-
-function scaleItem(key: string, value: unknown, type: string) {
-  return { key, label: key, value, type };
-}
-
-function shadowValue(x: number, y: number, blur: number, spread: number) {
+function generatedTemplate(
+  template: NonNullable<GraphCreateInput["template"]>,
+): Pick<TokenGraphDocument, "nodes" | "edges"> {
+  const descriptor = graphTemplateDescriptor(template);
+  const nodes: TokenGraphDocumentNode[] = [];
+  if (descriptor.source) {
+    nodes.push({
+      id: "source",
+      kind: "literal",
+      label: descriptor.source.label,
+      position: { x: 90, y: 150 },
+      data: descriptor.source.data,
+    });
+  }
+  nodes.push({
+    id: "generation",
+    kind: descriptor.kind,
+    label: descriptor.label,
+    position: { x: descriptor.source ? 360 : 130, y: 140 },
+    data: { ...(descriptor.config as Record<string, unknown>) },
+  });
+  nodes.push({
+    id: "output",
+    kind: "groupOutput",
+    label: "Output tokens",
+    position: { x: descriptor.source ? 650 : 430, y: 150 },
+    data: { pathPrefix: descriptor.pathPrefix },
+  });
   return {
-    color: "#00000024",
-    offsetX: { value: x, unit: "px" },
-    offsetY: { value: y, unit: "px" },
-    blur: { value: blur, unit: "px" },
-    spread: { value: spread, unit: "px" },
-    type: "dropShadow",
+    nodes,
+    edges: [
+      ...(descriptor.source
+        ? [
+            {
+              id: "source-generation",
+              from: { nodeId: "source", port: "value" },
+              to: { nodeId: "generation", port: "value" },
+            },
+          ]
+        : []),
+      {
+        id: "generation-output",
+        from: { nodeId: "generation", port: "value" },
+        to: { nodeId: "output", port: "value" },
+      },
+    ],
   };
 }
 
-function scaleTemplateEdges(): TokenGraphDocument["edges"] {
-  return [
-    {
-      id: "steps-output",
-      from: { nodeId: "steps", port: "value" },
-      to: { nodeId: "output", port: "value" },
-    },
-  ];
+function graphTemplateDescriptor(
+  template: NonNullable<GraphCreateInput["template"]>,
+): {
+  kind: TokenGraphDocumentNode["kind"];
+  label: string;
+  pathPrefix: string;
+  config: unknown;
+  source?: { label: string; data: Record<string, unknown> };
+} {
+  if (template === "spacing") {
+    return {
+      kind: "spacingScale",
+      label: "Spacing scale",
+      pathPrefix: "spacing",
+      config: DEFAULT_SPACING_SCALE_CONFIG,
+      source: { label: "Base size", data: { type: "dimension", value: 4, unit: "px" } },
+    };
+  }
+  if (template === "type") {
+    return {
+      kind: "typeScale",
+      label: "Type scale",
+      pathPrefix: "fontSize",
+      config: DEFAULT_TYPE_SCALE_CONFIG,
+      source: { label: "Base font size", data: { type: "dimension", value: 16, unit: "px" } },
+    };
+  }
+  if (template === "radius") {
+    return {
+      kind: "borderRadiusScale",
+      label: "Radius scale",
+      pathPrefix: "radius",
+      config: DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
+      source: { label: "Base radius", data: { type: "dimension", value: 4, unit: "px" } },
+    };
+  }
+  if (template === "opacity") {
+    return {
+      kind: "opacityScale",
+      label: "Opacity scale",
+      pathPrefix: "opacity",
+      config: DEFAULT_OPACITY_SCALE_CONFIG,
+    };
+  }
+  if (template === "shadow") {
+    return {
+      kind: "shadowScale",
+      label: "Shadow scale",
+      pathPrefix: "shadow",
+      config: DEFAULT_SHADOW_SCALE_CONFIG,
+    };
+  }
+  if (template === "zIndex") {
+    return {
+      kind: "zIndexScale",
+      label: "Z-index scale",
+      pathPrefix: "zIndex",
+      config: DEFAULT_Z_INDEX_SCALE_CONFIG,
+    };
+  }
+  if (template === "formula") {
+    return {
+      kind: "customScale",
+      label: "Formula scale",
+      pathPrefix: "scale",
+      config: DEFAULT_CUSTOM_SCALE_CONFIG,
+      source: { label: "Base number", data: { type: "number", value: 8 } },
+    };
+  }
+  return {
+    kind: "colorRamp",
+    label: "Palette",
+    pathPrefix: "color.brand",
+    config: DEFAULT_COLOR_RAMP_CONFIG,
+    source: { label: "Base color", data: { type: "color", value: "#6366f1" } },
+  };
 }
 
 function templateName(template: GraphCreateInput["template"]): string {

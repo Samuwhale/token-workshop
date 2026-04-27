@@ -202,7 +202,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
               collectionService: fastify.collectionService,
               resolverLock: fastify.resolverLock,
               resolverStore: fastify.resolverStore,
-              generatorService: fastify.generatorService,
+              graphService: fastify.graphService,
               lintConfigStore: fastify.lintConfigStore,
             },
           );

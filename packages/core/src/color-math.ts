@@ -1,7 +1,7 @@
 /**
  * CIELAB color math (sRGB ↔ XYZ D65 ↔ CIELAB).
  *
- * Shared module used by the generator engine and the derivation op registry.
+ * Shared module used by the graph generation engine and the derivation op registry.
  */
 
 /** sRGB → linear (IEC 61966-2-1). */

@@ -2,9 +2,9 @@ import type {
   BorderRadiusScaleConfig,
   ColorRampConfig,
   CustomScaleConfig,
-  GeneratorConfig,
-  GeneratorTemplate,
-  GeneratorType,
+  GraphTemplateConfig,
+  GraphTemplateDefinition,
+  GraphTemplateType,
   OpacityScaleConfig,
   ShadowScaleConfig,
   SpacingScaleConfig,
@@ -19,7 +19,7 @@ export interface SemanticStarter {
   patternId?: string | null;
 }
 
-export interface GraphTemplate extends GeneratorTemplate {
+export interface GraphTemplate extends GraphTemplateDefinition {
   whenToUse: string;
   stages: string[];
   starterPresetName: string;
@@ -42,7 +42,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a color token or hex value.",
     sourceTokenTypes: ["color"],
     defaultPrefix: "brand",
-    generatorType: "colorRamp",
+    graphKind: "colorRamp",
     requiresSource: true,
     config: {
       steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
@@ -73,7 +73,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a dimension token such as 4px or 8px.",
     sourceTokenTypes: ["dimension"],
     defaultPrefix: "spacing",
-    generatorType: "spacingScale",
+    graphKind: "spacingScale",
     requiresSource: true,
     config: {
       steps: [
@@ -115,7 +115,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a font-size or dimension token such as 16px or 1rem.",
     sourceTokenTypes: ["fontSize", "dimension"],
     defaultPrefix: "fontSize",
-    generatorType: "typeScale",
+    graphKind: "typeScale",
     requiresSource: true,
     config: {
       steps: [
@@ -145,7 +145,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Best with a dimension token such as 4px or 8px.",
     sourceTokenTypes: ["dimension"],
     defaultPrefix: "borderRadius",
-    generatorType: "borderRadiusScale",
+    graphKind: "borderRadiusScale",
     requiresSource: true,
     config: {
       steps: [
@@ -171,7 +171,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     starterPreset: "0 to 100 opacity levels with common intermediate stops.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "opacity",
-    generatorType: "opacityScale",
+    graphKind: "opacityScale",
     requiresSource: false,
     config: {
       steps: [
@@ -201,7 +201,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     starterPreset: "below, base, raised, dropdown, sticky, overlay, modal, and toast layers.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "zIndex",
-    generatorType: "zIndexScale",
+    graphKind: "zIndexScale",
     requiresSource: false,
     config: {
       steps: [
@@ -227,7 +227,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     starterPreset: "Five shadow levels plus component.card, modal, and dropdown starters.",
     sourceRequirement: "No source token required.",
     defaultPrefix: "shadow",
-    generatorType: "shadowScale",
+    graphKind: "shadowScale",
     requiresSource: false,
     config: {
       color: "#000000",
@@ -260,7 +260,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
     sourceRequirement: "Works standalone, or you can point it at any compatible base token later.",
     sourceTokenTypes: ["number", "dimension"],
     defaultPrefix: "scale",
-    generatorType: "customScale",
+    graphKind: "customScale",
     requiresSource: false,
     config: {
       outputType: "number",
@@ -275,16 +275,16 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
   },
 ];
 
-export function getStarterTemplateForGeneratorType(
-  generatorType: GeneratorType,
+export function getStarterTemplateForGraphKind(
+  graphKind: GraphTemplateType,
 ): GraphTemplate | undefined {
-  return GRAPH_TEMPLATES.find((template) => template.generatorType === generatorType);
+  return GRAPH_TEMPLATES.find((template) => template.graphKind === graphKind);
 }
 
-export function cloneStarterConfigForGeneratorType(
-  generatorType: GeneratorType,
-): GeneratorConfig | undefined {
-  const template = getStarterTemplateForGeneratorType(generatorType);
+export function cloneStarterConfigForGraphKind(
+  graphKind: GraphTemplateType,
+): GraphTemplateConfig | undefined {
+  const template = getStarterTemplateForGraphKind(graphKind);
   if (!template) return undefined;
   return cloneValue(template.config);
 }

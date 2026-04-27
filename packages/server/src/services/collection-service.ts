@@ -6,7 +6,6 @@ import type {
   SelectedModes,
   TokenCollection,
   TokenGroup,
-  TokenGenerator,
   ViewPreset,
 } from "@tokenmanager/core";
 import {
@@ -29,8 +28,7 @@ import type {
 } from "./collection-store.js";
 import { requireCollection } from "./collection-store.js";
 import type { LintConfig, LintConfigStore } from "./lint.js";
-import type { GeneratorService } from "./generator-service.js";
-import type { TokenGraphService } from "./token-graph-service.js";
+import type { GraphCollectionDependencyMeta, TokenGraphService } from "./token-graph-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { TokenStore } from "./token-store.js";
 import type { SnapshotEntry } from "./operation-log.js";
@@ -51,8 +49,8 @@ import {
   rewriteTokenGroupCollectionModes,
   sortFolderRenamePairsForApply,
   sortFolderRenamePairsForRollback,
-  stripGeneratedOwnershipFromToken,
-  stripGeneratedOwnershipFromTokenGroup,
+  stripAutomationOwnershipFromToken,
+  stripAutomationOwnershipFromTokenGroup,
   type FolderCollectionRename,
 } from "./collection-helpers.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
@@ -82,18 +80,9 @@ export interface CollectionResolverImpact {
   name: string;
 }
 
-export interface CollectionGeneratorOwnershipImpact {
-  generatorId: string;
-  generatorName: string;
-  targetGroup: string;
-  tokenCount: number;
-  samplePaths: string[];
-}
-
-export interface CollectionGeneratorTargetImpact {
-  generatorId: string;
-  generatorName: string;
-  targetGroup: string;
+export interface CollectionGraphImpact {
+  graphId: string;
+  graphName: string;
 }
 
 export interface CollectionPreflightImpact {
@@ -103,8 +92,7 @@ export interface CollectionPreflightImpact {
     description?: string;
   };
   resolverRefs: CollectionResolverImpact[];
-  generatedOwnership: CollectionGeneratorOwnershipImpact[];
-  generatorTargets: CollectionGeneratorTargetImpact[];
+  graphRefs: CollectionGraphImpact[];
 }
 
 export interface CollectionSummary extends TokenCollection {
@@ -116,18 +104,13 @@ export interface CollectionsOverview {
   views: ViewPreset[];
 }
 
-export type CollectionPreflightBlockerCode =
-  | "generated-token-ownership"
-  | "generator-target-collection"
-  | "resolver-collection-ref";
+export type CollectionPreflightBlockerCode = "resolver-collection-ref" | "graph-collection-ref";
 
 export interface CollectionPreflightBlocker {
   id: string;
   code: CollectionPreflightBlockerCode;
   collectionId: string;
   message: string;
-  generatorId?: string;
-  generatorName?: string;
 }
 
 export interface CollectionMergeConflict {
@@ -159,13 +142,6 @@ interface CollectionResolverMeta {
   referencedCollections: string[];
 }
 
-interface CollectionGeneratorMeta {
-  id: string;
-  name: string;
-  targetCollection: string;
-  targetGroup: string;
-}
-
 interface LoadedCollectionDependencyData {
   collectionId: string;
   tokens: TokenGroup;
@@ -174,12 +150,6 @@ interface LoadedCollectionDependencyData {
 
 export interface CollectionDependencySnapshot {
   resolvers: CollectionResolverMeta[];
-  generators: CollectionGeneratorMeta[];
-  allOwnedTokens: Array<{
-    collectionId: string;
-    path: string;
-    generatorId: string;
-  }>;
   collectionsById: Map<string, LoadedCollectionDependencyData>;
   impactsByCollection: Map<string, CollectionPreflightImpact>;
 }
@@ -266,7 +236,6 @@ export interface CollectionRenameMutationResult {
 
 interface CollectionDependencyStateSnapshot {
   resolvers: Record<string, ResolverFile>;
-  generators: Record<string, TokenGenerator>;
   lintConfig: LintConfig;
 }
 
@@ -472,7 +441,7 @@ function prepareTokenForCollectionMerge(
   sourceCollectionId: string,
   targetCollectionId: string,
 ): Token {
-  const sanitized = stripGeneratedOwnershipFromToken(
+  const sanitized = stripAutomationOwnershipFromToken(
     structuredClone(token as DTCGToken),
   );
   const nextModes = copyCollectionModeKey(
@@ -631,63 +600,14 @@ function buildCollectionSplitPreview(
     .sort((a, b) => a.newCollectionId.localeCompare(b.newCollectionId));
 }
 
-function buildGeneratedOwnershipImpacts(
-  collectionId: string,
-  allOwnedTokens: Array<{ collectionId: string; path: string; generatorId: string }>,
-  generatorById: Map<string, CollectionGeneratorMeta>,
-): CollectionGeneratorOwnershipImpact[] {
-  const grouped = new Map<string, { tokenCount: number; samplePaths: string[] }>();
-  for (const token of allOwnedTokens) {
-    if (token.collectionId !== collectionId) continue;
-    const entry = grouped.get(token.generatorId) ?? {
-      tokenCount: 0,
-      samplePaths: [],
-    };
-    entry.tokenCount += 1;
-    if (entry.samplePaths.length < 5) {
-      entry.samplePaths.push(token.path);
-    }
-    grouped.set(token.generatorId, entry);
-  }
-  return [...grouped.entries()]
-    .map(([generatorId, ownership]) => {
-      const generator = generatorById.get(generatorId);
-      return {
-        generatorId,
-        generatorName: generator?.name ?? "Unknown generated group",
-        targetGroup: generator?.targetGroup ?? "",
-        tokenCount: ownership.tokenCount,
-        samplePaths: ownership.samplePaths.sort((a, b) => a.localeCompare(b)),
-      };
-    })
-    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
-}
-
-function buildGeneratorTargets(
-  collectionId: string,
-  generators: CollectionGeneratorMeta[],
-): CollectionGeneratorTargetImpact[] {
-  return generators
-    .filter((generator) => generator.targetCollection === collectionId)
-    .map((generator) => ({
-      generatorId: generator.id,
-      generatorName: generator.name,
-      targetGroup: generator.targetGroup,
-    }))
-    .sort((a, b) => a.generatorName.localeCompare(b.generatorName));
-}
-
 function buildCollectionImpact(params: {
   collectionId: string;
   tokens: TokenGroup;
   metadata: CollectionMetadataState;
   resolvers: CollectionResolverMeta[];
-  generators: CollectionGeneratorMeta[];
-  allOwnedTokens: Array<{ collectionId: string; path: string; generatorId: string }>;
+  graphs: GraphCollectionDependencyMeta[];
 }): CollectionPreflightImpact {
-  const { collectionId, tokens, metadata, resolvers, generators, allOwnedTokens } =
-    params;
-  const generatorById = new Map(generators.map((generator) => [generator.id, generator]));
+  const { collectionId, tokens, metadata, resolvers, graphs } = params;
   return {
     collectionId,
     tokenCount: flattenTokenGroup(tokens).size,
@@ -698,26 +618,11 @@ function buildCollectionImpact(params: {
       .filter((resolver) => resolver.referencedCollections.includes(collectionId))
       .map((resolver) => ({ name: resolver.name }))
       .sort((a, b) => a.name.localeCompare(b.name)),
-    generatedOwnership: buildGeneratedOwnershipImpacts(
-      collectionId,
-      allOwnedTokens,
-      generatorById,
-    ),
-    generatorTargets: buildGeneratorTargets(collectionId, generators),
+    graphRefs: graphs
+      .filter((graph) => graph.referencedCollections.includes(collectionId))
+      .map((graph) => ({ graphId: graph.id, graphName: graph.name }))
+      .sort((a, b) => a.graphName.localeCompare(b.graphName)),
   };
-}
-
-function buildGeneratorTargetBlockers(
-  collectionImpact: CollectionPreflightImpact,
-): CollectionPreflightBlocker[] {
-  return collectionImpact.generatorTargets.map((generator) => ({
-    id: `generator-target:${generator.generatorId}:${collectionImpact.collectionId}`,
-    code: "generator-target-collection",
-    collectionId: collectionImpact.collectionId,
-    generatorId: generator.generatorId,
-    generatorName: generator.generatorName,
-    message: `Generated group "${generator.generatorName}" still targets "${collectionImpact.collectionId}"${generator.targetGroup ? ` at ${generator.targetGroup}` : ""}.`,
-  }));
 }
 
 function buildResolverReferenceBlockers(
@@ -731,30 +636,24 @@ function buildResolverReferenceBlockers(
   }));
 }
 
-function buildGeneratedOwnershipBlockers(
+function buildGraphReferenceBlockers(
   collectionImpact: CollectionPreflightImpact,
 ): CollectionPreflightBlocker[] {
-  return collectionImpact.generatedOwnership.map((ownership) => ({
-    id: `generated-ownership:${ownership.generatorId}:${collectionImpact.collectionId}`,
-    code: "generated-token-ownership",
+  return collectionImpact.graphRefs.map((graph) => ({
+    id: `graph-ref:${graph.graphId}:${collectionImpact.collectionId}`,
+    code: "graph-collection-ref",
     collectionId: collectionImpact.collectionId,
-    generatorId: ownership.generatorId,
-    generatorName: ownership.generatorName,
-    message: `Generated tokens in "${collectionImpact.collectionId}" are still tagged as output from "${ownership.generatorName}"${ownership.targetGroup ? ` at ${ownership.targetGroup}` : ""}.`,
+    message: `Graph "${graph.graphName}" still references "${collectionImpact.collectionId}".`,
   }));
 }
 
 function buildRenameBlockers(
   collectionImpact: CollectionPreflightImpact,
 ): CollectionPreflightBlocker[] {
-  return collectionImpact.generatorTargets.map((generator) => ({
-    id: `generator-target:${generator.generatorId}:${collectionImpact.collectionId}`,
-    code: "generator-target-collection",
-    collectionId: collectionImpact.collectionId,
-    generatorId: generator.generatorId,
-    generatorName: generator.generatorName,
-    message: `Generated group "${generator.generatorName}" still targets "${collectionImpact.collectionId}" and must be updated before this collection is renamed.`,
-  }));
+  return [
+    ...buildResolverReferenceBlockers(collectionImpact),
+    ...buildGraphReferenceBlockers(collectionImpact),
+  ];
 }
 
 function buildRemovalBlockers(
@@ -762,8 +661,7 @@ function buildRemovalBlockers(
 ): CollectionPreflightBlocker[] {
   return [
     ...buildResolverReferenceBlockers(collectionImpact),
-    ...buildGeneratedOwnershipBlockers(collectionImpact),
-    ...buildGeneratorTargetBlockers(collectionImpact),
+    ...buildGraphReferenceBlockers(collectionImpact),
   ];
 }
 
@@ -783,13 +681,6 @@ function buildPreflightWarnings(params: {
         `${existingDestinations.length} split destination${existingDestinations.length === 1 ? "" : "s"} already exist and will be skipped. Their current dependencies are listed below so you can decide whether to rename or merge instead.`,
       );
     }
-    if (!deleteOriginal) {
-      if (source.generatedOwnership.length > 0) {
-        warnings.push(
-          `Generated tokens copied into the new split collections become regular tokens there so the original generated group keeps owning only "${source.collectionId}".`,
-        );
-      }
-    }
   }
 
   return warnings;
@@ -803,7 +694,6 @@ export class CollectionService {
     private readonly collectionStore: CollectionStore,
     private readonly resolverStore: ResolverStore,
     private readonly resolverLock: PromiseChainLock,
-    private readonly generatorService: GeneratorService,
     private readonly lintConfigStore: LintConfigStore,
     private readonly graphService?: TokenGraphService,
   ) {}
@@ -850,15 +740,13 @@ export class CollectionService {
   }
 
   private async captureDependencyState(): Promise<CollectionDependencyStateSnapshot> {
-    const [lintConfig, generators, resolvers] = await Promise.all([
+    const [lintConfig, resolvers] = await Promise.all([
       this.loadLintConfig(),
-      this.generatorService.getAllById(),
       this.resolverLock.withLock(async () => this.resolverStore.getAllFiles()),
     ]);
 
     return {
       lintConfig,
-      generators,
       resolvers,
     };
   }
@@ -886,17 +774,6 @@ export class CollectionService {
         }
       }
     });
-
-    const currentGenerators = await this.generatorService.getAllById();
-    const desiredGeneratorIds = new Set(Object.keys(snapshot.generators));
-    for (const generatorId of Object.keys(currentGenerators)) {
-      if (!desiredGeneratorIds.has(generatorId)) {
-        await this.generatorService.delete(generatorId);
-      }
-    }
-    for (const generator of Object.values(snapshot.generators)) {
-      await this.generatorService.restore(generator);
-    }
 
     await this.restoreLintConfig(snapshot.lintConfig);
   }
@@ -1132,6 +1009,7 @@ export class CollectionService {
       }),
     );
 
+    const graphDependencyMeta = this.graphService?.listCollectionDependencyMeta() ?? [];
     const snapshot: CollectionDependencySnapshot = {
       resolvers: this.resolverStore
         .listCollectionDependencyMeta()
@@ -1139,15 +1017,6 @@ export class CollectionService {
           name: resolver.name,
           referencedCollections: resolver.referencedCollections,
         })),
-      generators: this.generatorService
-        .listCollectionDependencyMeta()
-        .map((generator) => ({
-          id: generator.id,
-          name: generator.name,
-          targetCollection: generator.targetCollection,
-          targetGroup: generator.targetGroup,
-        })),
-      allOwnedTokens: this.tokenStore.findTokensByGeneratorId("*"),
       collectionsById: new Map(),
       impactsByCollection: new Map(),
     };
@@ -1164,8 +1033,7 @@ export class CollectionService {
           tokens: loadedCollection.tokens,
           metadata: loadedCollection.metadata,
           resolvers: snapshot.resolvers,
-          generators: snapshot.generators,
-          allOwnedTokens: snapshot.allOwnedTokens,
+          graphs: graphDependencyMeta,
         }),
       );
     }
@@ -1354,10 +1222,6 @@ export class CollectionService {
           oldCollectionId,
           newCollectionId,
         ),
-      );
-      await this.generatorService.renameCollectionId(
-        oldCollectionId,
-        newCollectionId,
       );
       await this.lintConfigStore.renameCollectionId(
         oldCollectionId,
@@ -1620,7 +1484,7 @@ export class CollectionService {
       const tokensCopyWithModes = rewriteTokenGroupCollectionModes(source.tokens, (modes) =>
         copyCollectionModeKey(modes, sourceCollectionId, nextName!),
       ).tokens;
-      const tokensCopy = stripGeneratedOwnershipFromTokenGroup(tokensCopyWithModes);
+      const tokensCopy = stripAutomationOwnershipFromTokenGroup(tokensCopyWithModes);
       await this.createCollectionFromSourceDefinition(
         sourceCollectionId,
         nextName,
@@ -1695,7 +1559,7 @@ export class CollectionService {
         throw Object.assign(
           new ConflictError(
             blockers[0]?.message ??
-              `Cannot rename collection "${collectionId}" because generator targets still derive this collection identity.`,
+              `Cannot rename collection "${collectionId}" because dependent state still references it.`,
           ),
           { blockers },
         );
@@ -1944,7 +1808,7 @@ export class CollectionService {
           ) {
             continue;
           }
-          const cleanedTokens = stripGeneratedOwnershipFromTokenGroup(
+          const cleanedTokens = stripAutomationOwnershipFromTokenGroup(
             groupTokens as TokenGroup,
           );
           const renamedTokens = rewriteTokenGroupCollectionModes(
@@ -2037,7 +1901,7 @@ export class CollectionService {
         throw Object.assign(
           new ConflictError(
             blockers[0]?.message ??
-              `Cannot rename folder "${fromFolder}" because generator targets still derive one or more collection ids in it.`,
+              `Cannot rename folder "${fromFolder}" because dependent state still references one or more collection ids in it.`,
           ),
           { blockers },
         );
@@ -2129,7 +1993,7 @@ export class CollectionService {
         throw Object.assign(
           new ConflictError(
             blockers[0]?.message ??
-              `Cannot merge folder "${sourceFolder}" because generator targets still derive one or more collection ids in it.`,
+              `Cannot merge folder "${sourceFolder}" because dependent state still references one or more collection ids in it.`,
           ),
           { blockers },
         );

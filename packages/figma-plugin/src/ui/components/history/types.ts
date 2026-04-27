@@ -23,7 +23,7 @@ export interface SnapshotSummary {
   collectionStorageCount: number;
   collectionCount: number;
   resolverCount: number;
-  generatorCount: number;
+  graphCount: number;
 }
 
 export interface SnapshotDiff {
@@ -36,7 +36,7 @@ export interface SnapshotDiff {
 }
 
 export interface WorkspaceDiff {
-  kind: 'collections' | 'resolver' | 'generator';
+  kind: 'collections' | 'resolver' | 'graph';
   id: string;
   label: string;
   status: ChangeStatus;

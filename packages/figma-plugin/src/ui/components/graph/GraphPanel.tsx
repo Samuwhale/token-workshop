@@ -39,6 +39,16 @@ import type {
   TokenGraphNodeKind,
   TokenGraphPreviewResult,
 } from "@tokenmanager/core";
+import {
+  DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
+  DEFAULT_COLOR_RAMP_CONFIG,
+  DEFAULT_CUSTOM_SCALE_CONFIG,
+  DEFAULT_OPACITY_SCALE_CONFIG,
+  DEFAULT_SHADOW_SCALE_CONFIG,
+  DEFAULT_SPACING_SCALE_CONFIG,
+  DEFAULT_TYPE_SCALE_CONFIG,
+  DEFAULT_Z_INDEX_SCALE_CONFIG,
+} from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { apiFetch } from "../../shared/apiFetch";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
@@ -112,7 +122,14 @@ const PALETTE: Array<{
   { category: "Color", kind: "color", label: "Darken", defaults: { operation: "darken", amount: 8 } },
   { category: "Color", kind: "color", label: "Alpha", defaults: { operation: "alpha", amount: 0.6 } },
   { category: "Color", kind: "color", label: "Mix", defaults: { operation: "mix", mixWith: "#ffffff", ratio: 0.5 } },
-  { category: "Color", kind: "colorRamp", label: "Ramp", defaults: { steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] } },
+  { category: "Color", kind: "colorRamp", label: "Ramp", defaults: { ...DEFAULT_COLOR_RAMP_CONFIG } },
+  { category: "Scales", kind: "spacingScale", label: "Spacing scale", defaults: { ...DEFAULT_SPACING_SCALE_CONFIG } },
+  { category: "Scales", kind: "typeScale", label: "Type scale", defaults: { ...DEFAULT_TYPE_SCALE_CONFIG } },
+  { category: "Scales", kind: "borderRadiusScale", label: "Radius scale", defaults: { ...DEFAULT_BORDER_RADIUS_SCALE_CONFIG } },
+  { category: "Scales", kind: "opacityScale", label: "Opacity scale", defaults: { ...DEFAULT_OPACITY_SCALE_CONFIG } },
+  { category: "Scales", kind: "shadowScale", label: "Shadow scale", defaults: { ...DEFAULT_SHADOW_SCALE_CONFIG } },
+  { category: "Scales", kind: "zIndexScale", label: "Z-index scale", defaults: { ...DEFAULT_Z_INDEX_SCALE_CONFIG } },
+  { category: "Scales", kind: "customScale", label: "Formula scale", defaults: { ...DEFAULT_CUSTOM_SCALE_CONFIG } },
   { category: "Lists", kind: "list", label: "Step list", defaults: { type: "number", items: [1, 2, 3, 4, 5] } },
   { category: "Authoring", kind: "alias", label: "Alias", defaults: { path: "" } },
   { category: "Authoring", kind: "output", label: "Token output", defaults: { path: "semantic.token" } },
@@ -162,6 +179,7 @@ export function GraphPanel({
     () => activeGraph?.nodes.find((node) => node.id === selectedNodeId) ?? null,
     [activeGraph, selectedNodeId],
   );
+  const previewHasCollisions = preview?.outputs.some((output) => output.collision) ?? false;
 
   const loadGraphs = useCallback(async () => {
     const data = await apiFetch<GraphListResponse>(`${serverUrl}/api/graphs`);
@@ -297,7 +315,7 @@ export function GraphPanel({
   }, [activeGraph, dirty, saveGraph, serverUrl]);
 
   const applyGraph = useCallback(async () => {
-    if (!preview || dirty || preview.blocking) {
+    if (!preview || dirty || preview.blocking || preview.outputs.some((output) => output.collision)) {
       setError("Preview the latest graph changes before applying.");
       return;
     }
@@ -638,7 +656,7 @@ export function GraphPanel({
                   ? "Unsaved changes"
                   : externalPreviewInvalidated
                     ? "Recheck preview"
-                    : preview?.blocking
+                    : preview?.blocking || previewHasCollisions
                       ? "Preview has issues"
                       : preview
                         ? "Preview ready"
@@ -674,7 +692,7 @@ export function GraphPanel({
                 <button
                   type="button"
                   onClick={applyGraph}
-                  disabled={busy !== null || dirty || !preview || Boolean(preview.blocking)}
+                  disabled={busy !== null || dirty || !preview || Boolean(preview.blocking) || previewHasCollisions}
                   className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-secondary font-semibold text-white disabled:opacity-40"
                 >
                   <Sparkles size={14} />
@@ -907,6 +925,15 @@ function NodeInspector({
 }) {
   const selectedCollectionId = String(node.data.collectionId ?? defaultCollectionId);
   const tokenOptions = Object.keys(perCollectionFlat[selectedCollectionId] ?? {}).sort();
+  const jsonField = (key: string, label: string) => (
+    <JsonDataField
+      nodeId={node.id}
+      dataKey={key}
+      label={label}
+      value={node.data[key]}
+      onChange={(value) => onChange({ [key]: value })}
+    />
+  );
   const field = (key: string, label: string, type = "text") => (
     <label className="block">
       <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
@@ -1074,12 +1101,62 @@ function NodeInspector({
           </label>
         </>
       )}
+      {node.kind === "spacingScale" && (
+        <>
+          {field("unit", "Unit")}
+          {jsonField("steps", "Steps")}
+        </>
+      )}
+      {node.kind === "typeScale" && (
+        <>
+          {field("ratio", "Ratio", "number")}
+          {field("unit", "Unit")}
+          {field("baseStep", "Base step")}
+          {field("roundTo", "Round to", "number")}
+          {jsonField("steps", "Steps")}
+        </>
+      )}
+      {node.kind === "borderRadiusScale" && (
+        <>
+          {field("unit", "Unit")}
+          {jsonField("steps", "Steps")}
+        </>
+      )}
+      {node.kind === "opacityScale" && jsonField("steps", "Steps")}
+      {node.kind === "shadowScale" && (
+        <>
+          {field("color", "Color")}
+          {jsonField("steps", "Steps")}
+        </>
+      )}
+      {node.kind === "zIndexScale" && jsonField("steps", "Steps")}
+      {node.kind === "customScale" && (
+        <>
+          <label className="block">
+            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+              Output type
+            </span>
+            <select
+              value={String(node.data.outputType ?? "number")}
+              onChange={(event) => onChange({ outputType: event.target.value })}
+              className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary"
+            >
+              <option value="number">Number</option>
+              <option value="dimension">Dimension</option>
+            </select>
+          </label>
+          {field("unit", "Unit")}
+          {field("formula", "Formula")}
+          {field("roundTo", "Round to", "number")}
+          {jsonField("steps", "Steps")}
+        </>
+      )}
       {(node.kind === "output" || node.kind === "groupOutput") &&
         field(node.kind === "output" ? "path" : "pathPrefix", node.kind === "output" ? "Token path" : "Group path")}
       <button
         type="button"
         onClick={onDelete}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
       >
         <Trash2 size={14} />
         Delete node
@@ -1088,8 +1165,68 @@ function NodeInspector({
   );
 }
 
+function JsonDataField({
+  nodeId,
+  dataKey,
+  label,
+  value,
+  onChange,
+}: {
+  nodeId: string;
+  dataKey: string;
+  label: string;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const [draft, setDraft] = useState(() => formatJsonDraft(value));
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(formatJsonDraft(value));
+    setError(null);
+  }, [dataKey, nodeId, value]);
+
+  return (
+    <label className="block">
+      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        {label}
+      </span>
+      <textarea
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          setError(null);
+        }}
+        onBlur={() => {
+          try {
+            onChange(JSON.parse(draft));
+            setError(null);
+          } catch {
+            setError("Enter valid JSON.");
+          }
+        }}
+        rows={6}
+        spellCheck={false}
+        className="min-h-[120px] w-full resize-y rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] outline-none"
+      />
+      {error ? (
+        <span className="mt-1 block text-tertiary text-[var(--color-figma-error)]">
+          {error}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+function formatJsonDraft(value: unknown): string {
+  return JSON.stringify(value ?? [], null, 2);
+}
+
 function getNodeInputPorts(node: TokenGraphDocumentNode): string[] {
   if (["tokenInput", "literal", "alias", "list"].includes(node.kind)) {
+    return [];
+  }
+  if (["opacityScale", "shadowScale", "zIndexScale"].includes(node.kind)) {
     return [];
   }
   if (node.kind === "formula") {
@@ -1102,7 +1239,17 @@ function getNodeOutputPorts(node: TokenGraphDocumentNode): string[] {
   if (["output", "groupOutput"].includes(node.kind)) {
     return [];
   }
-  if (node.kind === "colorRamp" || node.kind === "list") {
+  if (
+    node.kind === "colorRamp" ||
+    node.kind === "spacingScale" ||
+    node.kind === "typeScale" ||
+    node.kind === "borderRadiusScale" ||
+    node.kind === "opacityScale" ||
+    node.kind === "shadowScale" ||
+    node.kind === "zIndexScale" ||
+    node.kind === "customScale" ||
+    node.kind === "list"
+  ) {
     return ["value", "steps"];
   }
   return ["value"];
@@ -1273,6 +1420,13 @@ function nodeSummary(node: TokenGraphDocumentNode): string {
   if (node.kind === "color") return String(node.data.operation ?? "lighten");
   if (node.kind === "formula") return String(node.data.expression ?? "Formula");
   if (node.kind === "colorRamp") return "Mode-aware steps";
+  if (node.kind === "spacingScale") return "Spacing steps";
+  if (node.kind === "typeScale") return "Type steps";
+  if (node.kind === "borderRadiusScale") return "Radius steps";
+  if (node.kind === "opacityScale") return "Opacity steps";
+  if (node.kind === "shadowScale") return "Shadow steps";
+  if (node.kind === "zIndexScale") return "Z-index steps";
+  if (node.kind === "customScale") return "Formula steps";
   if (node.kind === "output") return String(node.data.path || "Output path");
   if (node.kind === "groupOutput") return String(node.data.pathPrefix || "Output group");
   return node.kind;

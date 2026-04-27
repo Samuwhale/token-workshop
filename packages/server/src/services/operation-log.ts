@@ -6,7 +6,7 @@ import type {
   TokenCollection,
   ViewPreset,
   Token,
-  TokenGenerator,
+  TokenGraphDocument,
 } from "@tokenmanager/core";
 import type {
   CollectionMetadataState,
@@ -17,6 +17,7 @@ import type { LintConfig } from "./lint.js";
 import type {
   TokenStore,
 } from "./token-store.js";
+import type { TokenGraphService } from "./token-graph-service.js";
 import { stableStringify } from "@tokenmanager/core";
 import { NotFoundError, ConflictError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -224,11 +225,10 @@ export type RollbackStep =
       collections: TokenCollection[];
       views?: ViewPreset[];
     }
+  | { action: "restore-graphs"; graphs: TokenGraphDocument[] }
   | { action: "restore-lint-config"; config: LintConfig }
   | { action: "write-resolver"; name: string; file: ResolverFile }
-  | { action: "delete-resolver"; name: string }
-  | { action: "create-generator"; generator: TokenGenerator }
-  | { action: "delete-generator"; id: string };
+  | { action: "delete-resolver"; name: string };
 
 /**
 /** Context required for rollback — provides access to all services that may need restoration. */
@@ -248,15 +248,7 @@ export interface RollbackContext {
       newName: string,
     ): Promise<string[]>;
   };
-  generatorService?: {
-    renameCollectionId(
-      oldName: string,
-      newName: string,
-    ): Promise<number | void>;
-    getById(id: string): Promise<TokenGenerator | undefined>;
-    restore(generator: TokenGenerator): Promise<void>;
-    delete(id: string): Promise<boolean>;
-  };
+  graphService?: TokenGraphService;
   lintConfigStore?: {
     get(): Promise<LintConfig>;
     save(config: LintConfig): Promise<void>;
@@ -632,6 +624,18 @@ export class OperationLog {
           });
           break;
         }
+        case "restore-graphs": {
+          if (!ctx.graphService) {
+            throw new Error(
+              'Cannot compute inverse rollback step "restore-graphs": graphService not available in RollbackContext',
+            );
+          }
+          inverse.push({
+            action: "restore-graphs",
+            graphs: await ctx.graphService.list(),
+          });
+          break;
+        }
         case "restore-lint-config": {
           if (!ctx.lintConfigStore) {
             throw new Error(
@@ -667,26 +671,6 @@ export class OperationLog {
                 action: "write-resolver",
                 name: step.name,
                 file: structuredClone(current),
-              });
-            }
-          }
-          break;
-        }
-        case "create-generator":
-          // inverse: delete the generator that was just created
-          inverse.push({
-            action: "delete-generator",
-            id: step.generator.id,
-          });
-          break;
-        case "delete-generator": {
-          // inverse: re-create the generator — look up current state before it's deleted
-          if (ctx.generatorService) {
-            const current = await ctx.generatorService.getById(step.id);
-            if (current) {
-              inverse.push({
-                action: "create-generator",
-                generator: structuredClone(current),
               });
             }
           }
@@ -768,6 +752,14 @@ export class OperationLog {
             views: step.views ?? [],
           });
           break;
+        case "restore-graphs":
+          if (!ctx.graphService) {
+            throw new Error(
+              'Cannot execute rollback step "restore-graphs": graphService not available in RollbackContext',
+            );
+          }
+          await ctx.graphService.restore(step.graphs);
+          break;
         case "restore-lint-config":
           if (!ctx.lintConfigStore) {
             throw new Error(
@@ -803,22 +795,6 @@ export class OperationLog {
               await deleteResolver();
             }
           }
-          break;
-        case "create-generator":
-          if (!ctx.generatorService) {
-            throw new Error(
-              `Cannot execute rollback step "create-generator": generatorService not available in RollbackContext`,
-            );
-          }
-          await ctx.generatorService.restore(step.generator);
-          break;
-        case "delete-generator":
-          if (!ctx.generatorService) {
-            throw new Error(
-              `Cannot execute rollback step "delete-generator": generatorService not available in RollbackContext`,
-            );
-          }
-          await ctx.generatorService.delete(step.id);
           break;
       }
     }

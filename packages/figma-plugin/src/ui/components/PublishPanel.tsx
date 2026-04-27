@@ -5,6 +5,7 @@ import type {
   ResolverInput,
   TokenCollection,
 } from '@tokenmanager/core';
+import { isReference, parseReference } from '@tokenmanager/core';
 import { dispatchToast } from '../shared/toastBus';
 import { describeError } from '../shared/utils';
 import { Spinner } from './Spinner';
@@ -53,6 +54,7 @@ import {
   type SyncWorkflowStage,
 } from '../shared/syncWorkflow';
 import { buildStylePublishTokens } from '../shared/stylePublish';
+import { resolveAllAliases } from '../../shared/resolveAlias';
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
 
@@ -208,6 +210,33 @@ function buildResolverPublishSyncMappings(rows: ResolverPublishMappingRow[]): Re
       collectionName: row.sourceCollectionName.trim() || undefined,
       modeName: row.sourceModeName.trim(),
     }));
+}
+
+function buildPathCollectionIndex(
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
+  activeCollectionId: string,
+): Record<string, string> {
+  const index: Record<string, string> = {};
+  for (const [collectionId, collectionFlat] of Object.entries(perCollectionFlat)) {
+    for (const path of Object.keys(collectionFlat)) {
+      if (!(path in index)) {
+        index[path] = collectionId;
+      }
+    }
+  }
+  for (const path of Object.keys(perCollectionFlat[activeCollectionId] ?? {})) {
+    index[path] = activeCollectionId;
+  }
+  return index;
+}
+
+function getAliasTargetCollectionId(
+  value: unknown,
+  pathToCollectionId: Record<string, string>,
+): string | undefined {
+  return typeof value === 'string' && isReference(value)
+    ? pathToCollectionId[parseReference(value)]
+    : undefined;
 }
 
 
@@ -550,6 +579,7 @@ export function PublishPanel({
           $value: r.localRaw ?? '',
           $extensions: extensions,
           collectionId: currentCollectionId,
+          aliasTargetCollectionId: getAliasTargetCollectionId(r.localRaw, pathToCollectionId),
         };
       }),
       collectionMap, modeMap,
@@ -661,6 +691,10 @@ export function PublishPanel({
       : readinessBlockingFails > 0
         ? 'Resolve the blocking issues before comparing or applying Figma changes.'
         : 'Readiness checks must finish before compare is available.';
+  const pathToCollectionId = useMemo(
+    () => buildPathCollectionIndex(perCollectionFlat, currentCollectionId),
+    [currentCollectionId, perCollectionFlat],
+  );
 
   const syncResolverPublishModes = useCallback(async () => {
     if (!activeResolver || !resolverPublishFile) return;
@@ -694,7 +728,10 @@ export function PublishPanel({
 
       const tokens: VariableSyncToken[] = [];
       for (const { mapping, result } of resolvedTargets) {
-        for (const [path, token] of Object.entries(result.tokens ?? {})) {
+        const resolvedTokens = resolveAllAliases(
+          (result.tokens ?? {}) as Record<string, TokenMapEntry>,
+        );
+        for (const [path, token] of Object.entries(resolvedTokens)) {
           tokens.push({
             path,
             $type: token.$type ?? 'string',

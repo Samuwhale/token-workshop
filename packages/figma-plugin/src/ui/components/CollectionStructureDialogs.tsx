@@ -104,10 +104,8 @@ function CollectionPreflightCard({
   label?: string;
   collectionDisplayNames?: Record<string, string>;
 }) {
-  const hasDependencies =
-    impact.resolverRefs.length > 0 ||
-    impact.generatedOwnership.length > 0 ||
-    impact.generatorTargets.length > 0;
+  const graphRefs = impact.graphRefs ?? [];
+  const hasDependencies = impact.resolverRefs.length > 0 || graphRefs.length > 0;
   const displayName = getCollectionDisplayName(impact.collectionId, collectionDisplayNames);
 
   return (
@@ -134,7 +132,7 @@ function CollectionPreflightCard({
       ) : null}
       {!hasDependencies ? (
         <div className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
-          No linked resolver or automation dependencies detected.
+          No linked resolver or graph dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
@@ -155,57 +153,19 @@ function CollectionPreflightCard({
               </div>
             </div>
           ) : null}
-          {impact.generatedOwnership.length > 0 ? (
+          {graphRefs.length > 0 ? (
             <div className="flex flex-col gap-1">
               <div className="text-secondary font-medium text-[var(--color-figma-text)]">
-                Managed token ownership ({impact.generatedOwnership.length})
+                Graph refs ({graphRefs.length})
               </div>
-              <div className="flex flex-col gap-1.5">
-                {impact.generatedOwnership.map((ownership) => (
-                  <div
-                    key={ownership.generatorId}
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[var(--color-figma-text-secondary)]"
+              <div className="flex flex-wrap gap-1">
+                {graphRefs.map((graph) => (
+                  <span
+                    key={graph.graphId}
+                    className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)]"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-[var(--color-figma-text)]">
-                        {ownership.generatorName}
-                      </span>
-                      <span>
-                        {ownership.tokenCount} token
-                        {ownership.tokenCount === 1 ? "" : "s"}
-                      </span>
-                    </div>
-                    {ownership.targetGroup ? (
-                      <div className="mt-0.5 truncate font-mono text-secondary">
-                        {ownership.targetGroup}
-                      </div>
-                    ) : null}
-                    {ownership.samplePaths.length > 0 ? (
-                      <div className="mt-1 truncate text-secondary opacity-80">
-                        {ownership.samplePaths.join(", ")}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          {impact.generatorTargets.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              <div className="text-secondary font-medium text-[var(--color-figma-text)]">
-                Automation targets ({impact.generatorTargets.length})
-              </div>
-              <div className="flex flex-col gap-1">
-                {impact.generatorTargets.map((generator) => (
-                  <div
-                    key={generator.generatorId}
-                    className="flex items-center justify-between gap-2 text-secondary text-[var(--color-figma-text-secondary)]"
-                  >
-                    <span className="min-w-0 flex-1 truncate">{generator.generatorName}</span>
-                    <span className="min-w-0 max-w-[55%] truncate font-mono text-secondary">
-                      {generator.targetGroup}
-                    </span>
-                  </div>
+                    {graph.graphName}
+                  </span>
                 ))}
               </div>
             </div>

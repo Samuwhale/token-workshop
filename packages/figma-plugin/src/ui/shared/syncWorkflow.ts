@@ -8,9 +8,11 @@ import type {
   ReadVariableCollection,
   ReadVariableToken,
   VariableSyncToken,
+  TokenMapEntry,
 } from '../../shared/types';
 import { apiFetch, createFetchSignal } from './apiFetch';
 import { coerceBooleanValue, stableStringify } from './utils';
+import { resolveAllAliases } from '../../shared/resolveAlias';
 import type {
   WorkflowStageIndicatorItem,
   WorkflowStageTone,
@@ -357,8 +359,9 @@ function createResolverRowKey(mappingKey: string, path: string): string {
 }
 
 function createResolvedTokenMap(tokens: ResolverResolveResponse['tokens']): Map<string, DTCGToken> {
+  const resolvedTokens = resolveAllAliases(tokens as Record<string, TokenMapEntry>);
   return new Map(
-    Object.entries(tokens).map(([path, token]) => [
+    Object.entries(resolvedTokens).map(([path, token]) => [
       path,
       {
         $value: token.$value,

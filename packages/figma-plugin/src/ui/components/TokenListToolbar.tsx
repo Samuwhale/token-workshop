@@ -97,6 +97,8 @@ export interface TokenListToolbarProps {
   inspectMode: boolean;
   onToggleInspectMode: () => void;
   openTableCreate: () => void;
+  onCreateToken?: () => void;
+  onGenerateTokens?: () => void;
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
   onSelectTokens?: () => void;
@@ -132,6 +134,8 @@ export function TokenListToolbar({
   inspectMode,
   onToggleInspectMode,
   openTableCreate,
+  onCreateToken,
+  onGenerateTokens,
   handleOpenNewGroupDialog,
   onShowPasteModal,
   onSelectTokens,
@@ -193,6 +197,8 @@ export function TokenListToolbar({
     viewMode === "tree" && hasTokens && (showSelectionChip || toolbarStateChips.length > 0);
 
   const hasCreateActions =
+    Boolean(onCreateToken) ||
+    Boolean(onGenerateTokens) ||
     Boolean(handleOpenNewGroupDialog) ||
     Boolean(onShowPasteModal) ||
     Boolean(openTableCreate);
@@ -202,7 +208,7 @@ export function TokenListToolbar({
   const hasOverflowActions = hasEditActions || hasGroupOps;
   const showOverflow =
     hasTokens && viewMode === "tree" && hasOverflowActions;
-  const showCreate = hasTokens && viewMode === "tree" && hasCreateActions;
+  const showCreate = viewMode === "tree" && hasCreateActions;
 
   const sortActive =
     Boolean(overflowMenuProps) &&
@@ -507,6 +513,28 @@ export function TokenListToolbar({
                   className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
                   role="menu"
                 >
+                  {onCreateToken ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(onCreateToken)}
+                      disabled={!connected}
+                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    >
+                      New token
+                    </button>
+                  ) : null}
+                  {onGenerateTokens ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(onGenerateTokens)}
+                      disabled={!connected}
+                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    >
+                      Generate tokens…
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     role="menuitem"
@@ -515,6 +543,15 @@ export function TokenListToolbar({
                     className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                   >
                     New group
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => runCreateAction(openTableCreate)}
+                    disabled={!connected}
+                    className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  >
+                    Token table
                   </button>
                   {onShowPasteModal ? (
                     <button
@@ -527,15 +564,6 @@ export function TokenListToolbar({
                       Paste JSON
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => runCreateAction(openTableCreate)}
-                    disabled={!connected}
-                    className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                  >
-                    Token table
-                  </button>
                 </div>
               ) : null}
             </div>

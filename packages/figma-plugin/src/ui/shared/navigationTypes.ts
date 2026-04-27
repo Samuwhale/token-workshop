@@ -25,6 +25,7 @@ export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
   | "token-details"
+  | "generate-tokens"
   | "color-analysis"
   | "import";
 
