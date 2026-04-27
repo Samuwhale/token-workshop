@@ -34,14 +34,14 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   description: string;
 }> = {
   full: {
-    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-2 py-1.5 text-center',
-    content: 'w-full max-w-[320px] flex flex-col items-center gap-1.5',
+    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-3 py-3 text-center',
+    content: 'flex w-full max-w-[360px] min-w-0 flex-col items-center gap-2',
     title: 'text-body font-medium',
     description: 'text-secondary leading-snug',
   },
   section: {
-    container: 'flex w-full flex-col items-center justify-center px-2 py-1 text-center',
-    content: 'w-full max-w-[300px] flex flex-col items-center gap-1',
+    container: 'flex w-full flex-col items-center justify-center px-3 py-2 text-center',
+    content: 'flex w-full max-w-[340px] min-w-0 flex-col items-center gap-1.5',
     title: 'text-secondary font-medium',
     description: 'text-secondary leading-snug',
   },
@@ -158,7 +158,7 @@ export function FeedbackPlaceholder({
             {iconNode}
           </div>
         ) : null}
-        <div>
+        <div className="min-w-0 break-words">
           <h3 className={joinClasses(sizeStyles.title, 'text-[var(--color-figma-text)]')}>{title}</h3>
           {description ? (
             <div className={joinClasses('mt-0.5', sizeStyles.description, 'text-[var(--color-figma-text-secondary)]')}>

@@ -33,7 +33,7 @@ export function Section({
   return (
     <section className={`flex min-w-0 flex-col gap-2.5 ${TOP_PADDING[emphasis]} ${className}`}>
       {showHeader ? (
-        <header className="flex items-start justify-between gap-3">
+        <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             {title ? (
               <h3
@@ -43,13 +43,13 @@ export function Section({
               </h3>
             ) : null}
             {description ? (
-              <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+              <p className="m-0 min-w-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
                 {description}
               </p>
             ) : null}
           </div>
           {actions ? (
-            <div className="flex shrink-0 items-center gap-2">{actions}</div>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
           ) : null}
         </header>
       ) : null}

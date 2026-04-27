@@ -65,36 +65,45 @@ export function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
+      className="tm-modal-shell"
       onMouseDown={(e) => {
         if (canCancel && e.target === e.currentTarget) onCancel();
       }}
     >
-      <div ref={dialogRef} className={`${wide ? 'w-[360px]' : 'w-[240px]'} rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl`} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-busy={busy}>
-        <div className="px-4 pt-4 pb-3">
+      <div
+        ref={dialogRef}
+        className={`tm-modal-panel ${wide ? 'tm-modal-panel--wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+        aria-busy={busy}
+      >
+        <div className="tm-modal-header">
           <h3 id="confirm-modal-title" className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h3>
           {description && (
-            <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
+            <p className="text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
               {description}
             </p>
           )}
-          {children}
         </div>
+        <div className="tm-modal-body">
+          {children}
         {error && (
-          <p role="alert" className="px-4 pb-2 text-secondary text-[var(--color-figma-error)] break-words max-h-[80px] overflow-y-auto">{error}</p>
+            <p role="alert" className="pb-3 text-secondary text-[var(--color-figma-error)] break-words">{error}</p>
         )}
-        <div className="px-4 pb-4 flex gap-2">
+        </div>
+        <div className="tm-modal-footer">
           <button
             onClick={onCancel}
             disabled={!canCancel}
-            className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             {cancelLabel}
           </button>
           <button
             onClick={handleConfirm}
             disabled={busy || confirmDisabled}
-            className={`flex-1 px-3 py-1.5 rounded text-body font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 ${
+            className={`flex items-center justify-center gap-1.5 rounded px-3 py-1.5 text-body font-medium transition-colors disabled:opacity-50 ${
               danger
                 ? 'bg-[var(--color-figma-error)] text-white hover:opacity-90'
                 : 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]'

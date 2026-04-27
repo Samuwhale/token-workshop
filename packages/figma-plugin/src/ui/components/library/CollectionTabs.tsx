@@ -156,7 +156,7 @@ export function CollectionTabs({
     <div
       role="tablist"
       aria-label="Collections"
-      className="flex shrink-0 items-center gap-0.5 border-b border-[var(--color-figma-border)] px-2"
+      className="flex min-w-0 shrink-0 items-center gap-0.5 border-b border-[var(--color-figma-border)] px-2"
     >
       <div
         className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
@@ -204,30 +204,33 @@ export function CollectionTabs({
               healthDotClass={healthTone ?? undefined}
               count={tokenCount}
               trailing={
-                isCurrent && settingsToggle ? (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      settingsToggle.onToggle(collectionId);
-                    }}
-                    aria-label={
-                      settingsActive
-                        ? "Hide collection settings"
-                        : "Open collection settings"
-                    }
-                    aria-pressed={settingsActive}
-                    title="Collection settings"
-                    className={`-mr-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors ${
-                      settingsActive
-                        ? "text-[var(--color-figma-text)]"
-                        : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                    }`}
-                  >
-                    <Settings2 size={11} strokeWidth={1.5} aria-hidden />
-                  </button>
-                ) : null
+                settingsToggle ? (
+                  isCurrent ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        settingsToggle.onToggle(collectionId);
+                      }}
+                      aria-label={
+                        settingsActive
+                          ? "Hide collection settings"
+                          : "Open collection settings"
+                      }
+                      aria-pressed={settingsActive}
+                      title="Collection settings"
+                      className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors ${
+                        settingsActive
+                          ? "text-[var(--color-figma-text)]"
+                          : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      }`}
+                    >
+                      <Settings2 size={11} strokeWidth={1.5} aria-hidden />
+                    </button>
+                  ) : null
+                ) : undefined
               }
+              reserveTrailingSpace={Boolean(settingsToggle)}
             />
           );
         })}
@@ -410,11 +413,12 @@ interface CollectionTabProps {
   healthDotClass?: string;
   count?: number;
   trailing?: ReactNode;
+  reserveTrailingSpace?: boolean;
 }
 
 const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
   function CollectionTab(
-    { label, selected, onClick, healthDotClass, count, trailing },
+    { label, selected, onClick, healthDotClass, count, trailing, reserveTrailingSpace = false },
     ref,
   ) {
     return (
@@ -425,7 +429,7 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
         aria-selected={selected}
         onClick={onClick}
         title={label}
-        className={`group relative flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
+        className={`group relative flex min-w-0 max-w-[260px] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
           selected
             ? "text-[var(--color-figma-text)]"
             : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -449,7 +453,11 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
             {count}
           </span>
         ) : null}
-        {trailing}
+        {reserveTrailingSpace ? (
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+            {trailing}
+          </span>
+        ) : trailing}
         {selected ? (
           <span
             aria-hidden
