@@ -1,4 +1,9 @@
 import { isWideGamutColor, swatchBgColor, getSrgbFallback } from '../shared/colorUtils';
+import {
+  formatUnitTokenValue,
+  readDimensionTokenValue,
+  readDurationTokenValue,
+} from '../shared/tokenValueParsing';
 
 /**
  * Inline type-aware preview glyph for a single token value.
@@ -53,21 +58,18 @@ export function previewIsValueBearing(type?: string): boolean {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function parseDimension(val: any): { num: number; unit: string } {
-  if (typeof val === 'object' && val !== null && 'value' in val) {
-    return { num: Number(val.value) || 0, unit: val.unit || 'px' };
+function dimensionLabel(val: any): string {
+  if (val === null || val === undefined) {
+    return '';
   }
-  if (typeof val === 'string') {
-    const m = val.match(/^(-?[\d.]+)\s*(.*)$/);
-    if (m) return { num: parseFloat(m[1]) || 0, unit: m[2] || 'px' };
-  }
-  if (typeof val === 'number') return { num: val, unit: 'px' };
-  return { num: 0, unit: 'px' };
+  return formatUnitTokenValue(val, { type: 'dimension' });
 }
 
-function dimensionLabel(val: any): string {
-  if (typeof val === 'object' && val !== null && 'value' in val) return `${val.value}${val.unit || 'px'}`;
-  return String(val ?? '');
+function durationLabel(val: any): string {
+  if (val === null || val === undefined) {
+    return '';
+  }
+  return formatUnitTokenValue(val, { type: 'duration' });
 }
 
 /** sqrt-scale so 8/16/32/64/128/256px each produce a visibly distinct bar width. */
@@ -77,6 +79,39 @@ function dimensionBarPct(num: number, unit: string): number {
   // sqrt(px)/16: 16→0.25, 64→0.5, 144→0.75, 256→1.0
   const scaled = Math.sqrt(Math.min(px, 256)) / 16;
   return Math.max(0.08, Math.min(scaled, 1));
+}
+
+function InvalidMeasurePreview({
+  size,
+  title,
+}: {
+  size: number;
+  title: string;
+}) {
+  const glyph = Math.max(8, Math.round(size * 0.6));
+  return (
+    <div
+      className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]"
+      style={{ width: size, height: size }}
+      title={title}
+    >
+      <svg
+        width={glyph}
+        height={glyph}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M6 12h12" />
+        <path d="M9 8l-3 4 3 4" />
+        <path d="M15 8l3 4-3 4" />
+      </svg>
+    </div>
+  );
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -130,7 +165,8 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
       ? value.fontFamily.map((f: unknown) => String(f)).join(', ')
       : (value.fontFamily || 'inherit');
     const fontWeight = value.fontWeight || 400;
-    const { num: rawSize } = parseDimension(value.fontSize);
+    const fontSize = readDimensionTokenValue(value.fontSize);
+    const rawSize = fontSize?.value ?? 0;
     // log-ish scale so 8/16/24/48 render visibly different while fitting the box
     const scaledFontSize = rawSize > 0
       ? Math.min(size - 2, Math.max(8, Math.round(7 + Math.log2(Math.max(rawSize, 1)) * 1.3)))
@@ -169,17 +205,17 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
       const magnitudes: number[] = [];
       for (const s of objs) {
         for (const key of ['offsetX', 'offsetY', 'blur', 'spread']) {
-          magnitudes.push(Math.abs(parseDimension(s[key]).num));
+          magnitudes.push(Math.abs(readDimensionTokenValue(s[key])?.value ?? 0));
         }
       }
       const maxMag = Math.max(1, ...magnitudes);
       const scale = (size * 0.4) / maxMag;
 
       const scaledCss = objs.map(s => {
-        const ox = parseDimension(s.offsetX).num * scale;
-        const oy = parseDimension(s.offsetY).num * scale;
-        const blur = Math.max(0, parseDimension(s.blur).num * scale);
-        const spread = parseDimension(s.spread).num * scale;
+        const ox = (readDimensionTokenValue(s.offsetX)?.value ?? 0) * scale;
+        const oy = (readDimensionTokenValue(s.offsetY)?.value ?? 0) * scale;
+        const blur = Math.max(0, (readDimensionTokenValue(s.blur)?.value ?? 0) * scale);
+        const spread = (readDimensionTokenValue(s.spread)?.value ?? 0) * scale;
         const color = typeof s.color === 'string' ? s.color : '#00000040';
         const inset = s.type === 'innerShadow' ? 'inset ' : '';
         return `${inset}${ox.toFixed(2)}px ${oy.toFixed(2)}px ${blur.toFixed(2)}px ${spread.toFixed(2)}px ${color}`;
@@ -262,7 +298,16 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
 
   // ── Dimension (indicator, unboxed bar, sqrt scale) ───────────────────────
   if (type === 'dimension') {
-    const { num, unit } = parseDimension(value);
+    const parsed = readDimensionTokenValue(value);
+    if (!parsed) {
+      return (
+        <InvalidMeasurePreview
+          size={size}
+          title={dimensionLabel(value) || String(value ?? '')}
+        />
+      );
+    }
+    const { value: num, unit } = parsed;
     const pct = dimensionBarPct(num, unit);
     return (
       <div className="shrink-0 flex items-center" style={squareStyle} title={dimensionLabel(value)}>
@@ -282,7 +327,16 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
 
   // ── Duration (indicator, unboxed ring scales with size) ──────────────────
   if (type === 'duration') {
-    const { num, unit } = parseDimension(value);
+    const parsed = readDurationTokenValue(value);
+    if (!parsed) {
+      return (
+        <InvalidMeasurePreview
+          size={size}
+          title={durationLabel(value) || String(value ?? '')}
+        />
+      );
+    }
+    const { value: num, unit } = parsed;
     const maxRef = unit === 's' ? 2 : 2000;
     const pct = Math.min(Math.max(num / maxRef, 0.05), 1);
     const r = Math.max(3, (size - 4) / 2);
@@ -297,7 +351,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
       ? `M${cx},${cy - r} A${r},${r} 0 1 1 ${cx - 0.01},${cy - r}`
       : `M${cx},${cy - r} A${r},${r} 0 ${largeArc} 1 ${x2},${y2}`;
     return (
-      <div className="shrink-0" style={squareStyle} title={dimensionLabel(value)}>
+      <div className="shrink-0" style={squareStyle} title={durationLabel(value)}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-figma-border)" strokeWidth="1.25" />
           <path d={arcPath} fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.75" strokeLinecap="round" />
@@ -387,8 +441,8 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const tf = Array.isArray(v.timingFunction) && v.timingFunction.length === 4
       ? v.timingFunction.map(Number)
       : [0.25, 0.1, 0.25, 1];
-    const durLabel = v.duration ? dimensionLabel(v.duration) : '';
-    const delayLabel = v.delay ? dimensionLabel(v.delay) : '';
+    const durLabel = v.duration ? durationLabel(v.duration) : '';
+    const delayLabel = v.delay ? durationLabel(v.delay) : '';
     const title = [
       durLabel || 'no duration',
       delayLabel && delayLabel !== '0ms' ? `delay ${delayLabel}` : '',

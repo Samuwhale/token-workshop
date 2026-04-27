@@ -263,49 +263,131 @@ function assertNumeric(t: TokenType, kind: string): void {
 // Validation
 // ---------------------------------------------------------------------------
 
+export interface DerivationOpsValidationResult {
+  ops: DerivationOp[];
+  errors: string[];
+}
+
+const HEX_LITERAL_RE = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isNumberInRange(value: unknown, min: number, max: number): value is number {
+  return isFiniteNumber(value) && value >= min && value <= max;
+}
+
+function isValidMixTarget(value: string): boolean {
+  return isParamReference(value) || HEX_LITERAL_RE.test(value);
+}
+
+function formatOpPath(index: number, field?: string): string {
+  return field ? `derivation.ops[${index}].${field}` : `derivation.ops[${index}]`;
+}
+
 /**
- * Validate raw op data, returning only well-formed ops. Silently drops
- * malformed entries — callers can re-check structure if they need stricter
- * feedback.
+ * Parse raw op data without dropping malformed entries. Callers that collect
+ * validation errors can use the result directly; resolver paths should call
+ * `validateDerivationOps` to fail fast.
  */
-export function validateDerivationOps(raw: unknown): DerivationOp[] {
-  if (!Array.isArray(raw)) return [];
-  const valid: DerivationOp[] = [];
-  for (const item of raw) {
-    if (typeof item !== 'object' || item === null) continue;
+export function parseDerivationOps(raw: unknown): DerivationOpsValidationResult {
+  if (raw === undefined) {
+    return { ops: [], errors: [] };
+  }
+  if (!Array.isArray(raw)) {
+    return { ops: [], errors: ['derivation.ops must be an array'] };
+  }
+
+  const ops: DerivationOp[] = [];
+  const errors: string[] = [];
+  raw.forEach((item, index) => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      errors.push(`${formatOpPath(index)} must be an object`);
+      return;
+    }
+
     const obj = item as Record<string, unknown>;
     const kind = obj.kind;
-    if (kind === 'alpha' || kind === 'lighten' || kind === 'darken') {
-      if (typeof obj.amount === 'number' && Number.isFinite(obj.amount)) {
-        valid.push({ kind, amount: obj.amount });
+    if (kind === 'alpha') {
+      if (!isNumberInRange(obj.amount, 0, 1)) {
+        errors.push(`${formatOpPath(index, 'amount')} must be a number from 0 to 1`);
+        return;
       }
-    } else if (kind === 'mix') {
-      if (
-        typeof obj.with === 'string' && obj.with.length > 0 &&
-        typeof obj.ratio === 'number' && Number.isFinite(obj.ratio)
-      ) {
-        valid.push({ kind: 'mix', with: obj.with, ratio: obj.ratio });
-      }
-    } else if (kind === 'invertLightness') {
-      if (typeof obj.chromaBoost === 'number' && Number.isFinite(obj.chromaBoost)) {
-        valid.push({ kind: 'invertLightness', chromaBoost: obj.chromaBoost });
-      } else {
-        valid.push({ kind: 'invertLightness' });
-      }
-    } else if (kind === 'scaleBy') {
-      if (typeof obj.factor === 'number' && Number.isFinite(obj.factor)) {
-        valid.push({ kind: 'scaleBy', factor: obj.factor });
-      }
-    } else if (kind === 'add') {
-      const delta = obj.delta;
-      if (typeof delta === 'number' && Number.isFinite(delta)) {
-        valid.push({ kind: 'add', delta });
-      } else if (isDimensionLike(delta) && Number.isFinite(delta.value)) {
-        valid.push({ kind: 'add', delta: { value: delta.value, unit: delta.unit } as DimensionValue });
-      }
+      ops.push({ kind, amount: obj.amount });
+      return;
     }
+    if (kind === 'lighten' || kind === 'darken') {
+      if (!isNumberInRange(obj.amount, 0, 100)) {
+        errors.push(`${formatOpPath(index, 'amount')} must be a number from 0 to 100`);
+        return;
+      }
+      ops.push({ kind, amount: obj.amount });
+      return;
+    }
+    if (kind === 'mix') {
+      if (typeof obj.with !== 'string' || obj.with.length === 0 || !isValidMixTarget(obj.with)) {
+        errors.push(`${formatOpPath(index, 'with')} must be a hex color or token reference`);
+      }
+      if (!isNumberInRange(obj.ratio, 0, 1)) {
+        errors.push(`${formatOpPath(index, 'ratio')} must be a number from 0 to 1`);
+      }
+      if (
+        typeof obj.with === 'string' &&
+        obj.with.length > 0 &&
+        isValidMixTarget(obj.with) &&
+        isNumberInRange(obj.ratio, 0, 1)
+      ) {
+        ops.push({ kind: 'mix', with: obj.with, ratio: obj.ratio });
+      }
+      return;
+    }
+    if (kind === 'invertLightness') {
+      if (obj.chromaBoost !== undefined && !isFiniteNumber(obj.chromaBoost)) {
+        errors.push(`${formatOpPath(index, 'chromaBoost')} must be a finite number`);
+        return;
+      }
+      ops.push(
+        obj.chromaBoost === undefined
+          ? { kind: 'invertLightness' }
+          : { kind: 'invertLightness', chromaBoost: obj.chromaBoost },
+      );
+      return;
+    }
+    if (kind === 'scaleBy') {
+      if (!isFiniteNumber(obj.factor)) {
+        errors.push(`${formatOpPath(index, 'factor')} must be a finite number`);
+        return;
+      }
+      ops.push({ kind: 'scaleBy', factor: obj.factor });
+      return;
+    }
+    if (kind === 'add') {
+      const delta = obj.delta;
+      if (isFiniteNumber(delta)) {
+        ops.push({ kind: 'add', delta });
+        return;
+      }
+      if (isDimensionLike(delta) && Number.isFinite(delta.value)) {
+        ops.push({ kind: 'add', delta: { value: delta.value, unit: delta.unit } as DimensionValue });
+        return;
+      }
+      errors.push(`${formatOpPath(index, 'delta')} must be a finite number or { value, unit } object`);
+      return;
+    }
+
+    errors.push(`${formatOpPath(index, 'kind')} must be a supported derivation op`);
+  });
+
+  return { ops, errors };
+}
+
+export function validateDerivationOps(raw: unknown): DerivationOp[] {
+  const result = parseDerivationOps(raw);
+  if (result.errors.length > 0) {
+    throw new Error(result.errors.join('; '));
   }
-  return valid;
+  return result.ops;
 }
 
 /**

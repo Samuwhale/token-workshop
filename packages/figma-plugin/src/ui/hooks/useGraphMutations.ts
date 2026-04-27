@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { DerivationOp } from "@tokenmanager/core";
 import { useTokensWorkspaceController } from "../contexts/WorkspaceControllerContext";
 
 /**
@@ -11,6 +12,7 @@ export function useGraphMutations() {
     applyAliasRewire,
     applyAliasDetach,
     createAliasToken,
+    createDerivationToken,
     handlePaletteDeleteToken,
   } = useTokensWorkspaceController();
 
@@ -51,5 +53,17 @@ export function useGraphMutations() {
     [handlePaletteDeleteToken],
   );
 
-  return { rewire, detach, createAlias, deleteToken };
+  const createDerivation = useCallback(
+    (params: {
+      newPath: string;
+      collectionId: string;
+      type: string | undefined;
+      sourcePath: string;
+      sourceCollectionId: string;
+      derivationOps: DerivationOp[];
+    }) => createDerivationToken(params),
+    [createDerivationToken],
+  );
+
+  return { rewire, detach, createAlias, createDerivation, deleteToken };
 }

@@ -1,11 +1,12 @@
 import { useState, useRef, useMemo, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias } from '../../shared/resolveAlias';
-import type { TokenEditorModeValues } from '../shared/tokenEditorTypes';
+import type { TokenEditorModeValues, TokenEditorValue } from '../shared/tokenEditorTypes';
 import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
 import { stableStringify } from '../shared/utils';
+import { DEFAULT_DURATION_TOKEN_VALUE } from '../shared/tokenValueParsing';
 
-export const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
+export const DEFAULT_VALUE_FOR_TYPE: Record<string, TokenEditorValue> = {
   color: '#000000',
   dimension: { value: 0, unit: 'px' },
   typography: {},
@@ -15,11 +16,15 @@ export const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
   string: '',
   boolean: false,
   gradient: { type: 'linear', stops: [] },
-  duration: 0,
+  duration: { ...DEFAULT_DURATION_TOKEN_VALUE },
   fontFamily: '',
   composition: {},
   cubicBezier: [0, 0, 1, 1],
-  transition: { duration: { value: 200, unit: 'ms' }, delay: { value: 0, unit: 'ms' }, timingFunction: [0.25, 0.1, 0.25, 1] },
+  transition: {
+    duration: { ...DEFAULT_DURATION_TOKEN_VALUE },
+    delay: { value: 0, unit: 'ms' },
+    timingFunction: [0.25, 0.1, 0.25, 1],
+  },
   fontStyle: 'normal',
   lineHeight: 1.5,
   letterSpacing: { value: 0, unit: 'px' },
@@ -33,11 +38,41 @@ export const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
   asset: '',
 };
 
+type TypographyEditorValue = {
+  fontFamily?: string | string[];
+  fontSize?: number | string | { value?: unknown };
+};
+
+function getTypographyEditorValue(value: TokenEditorValue): TypographyEditorValue {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as TypographyEditorValue;
+}
+
+function getTypographyFamily(value: TypographyEditorValue): string | undefined {
+  const family = Array.isArray(value.fontFamily)
+    ? value.fontFamily[0]
+    : value.fontFamily;
+
+  return typeof family === 'string' ? family : undefined;
+}
+
+function getTypographyFontSizeValue(value: TypographyEditorValue): unknown {
+  const fontSize = value.fontSize;
+  if (typeof fontSize === 'object' && fontSize !== null) {
+    return fontSize.value;
+  }
+
+  return fontSize;
+}
+
 interface UseTokenTypeParsingParams {
   tokenType: string;
   setTokenType: (v: string) => void;
-  value: any;
-  setValue: (v: any) => void;
+  value: TokenEditorValue;
+  setValue: (v: TokenEditorValue) => void;
   scopes: string[];
   modeValues: TokenEditorModeValues;
   setModeValues: (v: TokenEditorModeValues) => void;
@@ -104,10 +139,10 @@ export function useTokenTypeParsing({
     if (extensionsJsonError) return false;
     if (duplicatePath) return false;
     if (tokenType === 'typography' && !valueIsAlias) {
-      const v = typeof value === 'object' && value !== null ? value : {};
-      const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
+      const v = getTypographyEditorValue(value);
+      const family = getTypographyFamily(v);
       if (!family || String(family).trim() === '') return false;
-      const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
+      const fsVal = getTypographyFontSizeValue(v);
       if (fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0) return false;
     }
     return true;
@@ -118,9 +153,9 @@ export function useTokenTypeParsing({
     if (duplicatePath) return 'A token with this path already exists';
     if (extensionsJsonError) return 'Fix extensions JSON';
     if (tokenType === 'typography' && !valueIsAlias) {
-      const v = typeof value === 'object' && value !== null ? value : {};
-      const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
-      const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
+      const v = getTypographyEditorValue(value);
+      const family = getTypographyFamily(v);
+      const fsVal = getTypographyFontSizeValue(v);
       const missingFamily = !family || String(family).trim() === '';
       const missingSize = fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0;
       if (missingFamily && missingSize) return 'Font family and size required';
@@ -161,14 +196,14 @@ export function useTokenTypeParsing({
 
   const focusBlockedField = useCallback(() => {
     if (tokenType !== 'typography' || valueIsAlias) return;
-    const v = typeof value === 'object' && value !== null ? value : {};
-    const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
+    const v = getTypographyEditorValue(value);
+    const family = getTypographyFamily(v);
     const missingFamily = !family || String(family).trim() === '';
     if (missingFamily) {
       fontFamilyRef.current?.focus();
       return;
     }
-    const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
+    const fsVal = getTypographyFontSizeValue(v);
     const missingSize = fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0;
     if (missingSize) {
       fontSizeRef.current?.focus();

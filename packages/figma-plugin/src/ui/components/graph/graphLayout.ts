@@ -32,6 +32,7 @@ export function nodeDimensions(
 ): { width: number; height: number } {
   if (node.kind === "cluster") return { width: 180, height: 40 };
   if (node.kind === "generator") return { width: 200, height: 56 };
+  if (node.kind === "derivation") return { width: 200, height: 64 };
   if (node.kind === "ghost") return { width: 180, height: 40 };
   return { width: 200, height: 44 };
 }
@@ -185,6 +186,7 @@ function collectionIdOf(node: GraphRenderNode | undefined): string | null {
   if (!node) return null;
   if (node.kind === "token") return node.collectionId;
   if (node.kind === "generator") return node.targetCollection;
+  if (node.kind === "derivation") return node.collectionId;
   if (node.kind === "ghost") return node.collectionId ?? null;
   return null;
 }

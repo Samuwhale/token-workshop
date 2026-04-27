@@ -1,22 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import {
-  resolveRefValue,
   applyDerivation,
+  DIMENSION_UNITS,
   isParamReference,
   paramReferencePath,
 } from '@tokenmanager/core';
-import type { DerivationOp, TokenType } from '@tokenmanager/core';
+import type {
+  DerivationOp,
+  DimensionUnit,
+  DimensionValue,
+  DurationValue,
+  TokenType,
+} from '@tokenmanager/core';
 import { Collapsible } from './Collapsible';
-import { isAlias, extractAliasPath } from '../../shared/resolveAlias';
+import type { TokenMapEntry } from '../../shared/types';
+import { extractAliasPath, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 
 interface DerivationEditorProps {
-  /** Resolved $type of the source (after following aliases). Filters available op kinds. */
+  /** Fallback type when the referenced source token cannot be resolved from the flat map. */
   sourceType: TokenType | undefined;
   /** Alias reference like `{colors.base}` — required (derivation is only valid on aliased tokens). */
   reference: string;
-  /** Map of token path → resolved $value, used to resolve aliases (color tokens) for preview. */
-  colorFlatMap?: Record<string, unknown>;
+  /** Flat token map used to resolve the aliased source value and preview op-param references. */
+  allTokensFlat?: Record<string, TokenMapEntry>;
   derivationOps: DerivationOp[];
   onDerivationOpsChange: (ops: DerivationOp[]) => void;
 }
@@ -30,19 +37,46 @@ function newRowId(): string {
   return Math.random().toString(36).slice(2);
 }
 
-/**
- * Default delta shape for `add` based on the source kind. Dimension/duration
- * sources get a `{value, unit}` delta seeded with the kind's default unit;
- * bare-number sources get a bare-number delta. Unit mismatches against the
- * actual source unit surface as a resolver-time validation error.
- */
-function defaultAddDelta(sourceType: TokenType | undefined): DerivationOp & { kind: 'add' } {
-  if (sourceType === 'dimension') return { kind: 'add', delta: { value: 0, unit: 'px' } };
-  if (sourceType === 'duration') return { kind: 'add', delta: { value: 0, unit: 'ms' } };
+function isDimensionValue(value: unknown): value is DimensionValue {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { value?: unknown }).value === 'number' &&
+    typeof (value as { unit?: unknown }).unit === 'string' &&
+    DIMENSION_UNITS.includes((value as { unit: DimensionUnit }).unit)
+  );
+}
+
+function isDurationValue(value: unknown): value is DurationValue {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { value?: unknown }).value === 'number' &&
+    ((value as { unit?: unknown }).unit === 'ms' ||
+      (value as { unit?: unknown }).unit === 's')
+  );
+}
+
+function defaultAddDelta(
+  sourceType: TokenType | undefined,
+  sourceValue: unknown,
+): DerivationOp & { kind: 'add' } {
+  if (sourceType === 'dimension') {
+    const unit: DimensionUnit = isDimensionValue(sourceValue) ? sourceValue.unit : 'px';
+    return { kind: 'add', delta: { value: 0, unit } };
+  }
+  if (sourceType === 'duration') {
+    const unit: DurationValue['unit'] = isDurationValue(sourceValue) ? sourceValue.unit : 'ms';
+    return { kind: 'add', delta: { value: 0, unit } };
+  }
   return { kind: 'add', delta: 0 };
 }
 
-function defaultOpForKind(kind: OpKind, sourceType: TokenType | undefined): DerivationOp {
+function defaultOpForKind(
+  kind: OpKind,
+  sourceType: TokenType | undefined,
+  sourceValue: unknown,
+): DerivationOp {
   switch (kind) {
     case 'alpha': return { kind: 'alpha', amount: 0.5 };
     case 'lighten': return { kind: 'lighten', amount: 20 };
@@ -50,7 +84,7 @@ function defaultOpForKind(kind: OpKind, sourceType: TokenType | undefined): Deri
     case 'mix': return { kind: 'mix', with: '#ffffff', ratio: 0.5 };
     case 'invertLightness': return { kind: 'invertLightness' };
     case 'scaleBy': return { kind: 'scaleBy', factor: 2 };
-    case 'add': return defaultAddDelta(sourceType);
+    case 'add': return defaultAddDelta(sourceType, sourceValue);
   }
 }
 
@@ -77,10 +111,45 @@ function availableKindsFor(sourceType: TokenType | undefined): OpKind[] {
   return [];
 }
 
+function resolveReferenceSource(
+  reference: string,
+  allTokensFlat?: Record<string, TokenMapEntry>,
+): { sourceValue: unknown; sourceType: TokenType | undefined } {
+  if (!allTokensFlat || !isAlias(reference)) {
+    return { sourceValue: undefined, sourceType: undefined };
+  }
+
+  const refPath = extractAliasPath(reference);
+  if (!refPath) {
+    return { sourceValue: undefined, sourceType: undefined };
+  }
+
+  const entry = allTokensFlat[refPath];
+  if (!entry) {
+    return { sourceValue: undefined, sourceType: undefined };
+  }
+
+  const resolved = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
+  return {
+    sourceValue: resolved.value ?? entry.$value,
+    sourceType: resolved.$type as TokenType | undefined,
+  };
+}
+
+function resolveFlatTokenValue(
+  path: string,
+  allTokensFlat?: Record<string, TokenMapEntry>,
+): unknown {
+  if (!allTokensFlat) return undefined;
+  const entry = allTokensFlat[path];
+  if (!entry) return undefined;
+  return resolveTokenValue(entry.$value, entry.$type, allTokensFlat).value ?? entry.$value;
+}
+
 export function DerivationEditor({
   sourceType,
   reference,
-  colorFlatMap,
+  allTokensFlat,
   derivationOps,
   onDerivationOpsChange: setOps,
 }: DerivationEditorProps) {
@@ -110,27 +179,47 @@ export function DerivationEditor({
     setRowIds((prev) => prev.filter((_, idx) => idx !== i));
   };
 
-  const kinds = availableKindsFor(sourceType);
+  const moveAt = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= derivationOps.length) return;
+
+    const nextOps = [...derivationOps];
+    const movedOps = nextOps.splice(fromIndex, 1);
+    const movedOp = movedOps[0];
+    if (!movedOp) return;
+    nextOps.splice(toIndex, 0, movedOp);
+    setOps(nextOps);
+
+    setRowIds((prev) => {
+      const nextRowIds = [...prev];
+      const movedRowIds = nextRowIds.splice(fromIndex, 1);
+      const movedRowId = movedRowIds[0];
+      if (movedRowId === undefined) return prev;
+      nextRowIds.splice(toIndex, 0, movedRowId);
+      return nextRowIds;
+    });
+  };
+
+  const resolvedSource = resolveReferenceSource(reference, allTokensFlat);
+  const effectiveSourceType = resolvedSource.sourceType ?? sourceType;
+  const kinds = availableKindsFor(effectiveSourceType);
 
   const addRow = () => {
     if (kinds.length === 0) return;
-    setOps([...derivationOps, defaultOpForKind(kinds[0], sourceType)]);
+    setOps([
+      ...derivationOps,
+      defaultOpForKind(kinds[0], effectiveSourceType, resolvedSource.sourceValue),
+    ]);
     setRowIds((prev) => [...prev, newRowId()]);
   };
 
-  // Live preview only supported for color sources today. Resolve through the
-  // alias chain so a multi-hop alias `a -> b -> #hex` previews correctly, and
-  // so `mix.with: "{some.alias}"` lands on the concrete color.
-  const refPath = isAlias(reference) ? extractAliasPath(reference) ?? '' : '';
   const baseHex =
-    sourceType === 'color' && refPath && colorFlatMap
-      ? resolveRefValue(refPath, colorFlatMap) ?? undefined
+    effectiveSourceType === 'color' && typeof resolvedSource.sourceValue === 'string'
+      ? resolvedSource.sourceValue
       : undefined;
   let previewHex: string | undefined;
-  if (baseHex && derivationOps.length > 0 && sourceType === 'color') {
+  if (baseHex && derivationOps.length > 0 && effectiveSourceType === 'color') {
     try {
-      const resolveOpRef = (path: string) =>
-        (colorFlatMap ? resolveRefValue(path, colorFlatMap) : undefined) ?? undefined;
+      const resolveOpRef = (path: string) => resolveFlatTokenValue(path, allTokensFlat);
       const result = applyDerivation(baseHex, 'color', derivationOps, resolveOpRef);
       if (typeof result === 'string') previewHex = result;
     } catch {
@@ -169,9 +258,15 @@ export function DerivationEditor({
             key={rowIds[i] ?? i}
             op={op}
             kinds={kinds}
-            sourceType={sourceType}
+            sourceType={effectiveSourceType}
+            sourceValue={resolvedSource.sourceValue}
             onChange={(updater) => updateAt(i, updater)}
             onRemove={() => removeAt(i)}
+            canMoveUp={i > 0}
+            canMoveDown={i < derivationOps.length - 1}
+            showReorderControls={derivationOps.length > 1}
+            onMoveUp={() => moveAt(i, i - 1)}
+            onMoveDown={() => moveAt(i, i + 1)}
           />
         ))}
         {kinds.length > 0 && (
@@ -200,20 +295,60 @@ interface DerivationOpRowProps {
   op: DerivationOp;
   kinds: OpKind[];
   sourceType: TokenType | undefined;
+  sourceValue: unknown;
   onChange: (updater: (op: DerivationOp) => DerivationOp) => void;
   onRemove: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  showReorderControls: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }
 
-function DerivationOpRow({ op, kinds, sourceType, onChange, onRemove }: DerivationOpRowProps) {
+function DerivationOpRow({
+  op,
+  kinds,
+  sourceType,
+  sourceValue,
+  onChange,
+  onRemove,
+  canMoveUp,
+  canMoveDown,
+  showReorderControls,
+  onMoveUp,
+  onMoveDown,
+}: DerivationOpRowProps) {
   return (
     <div className="flex items-center gap-1.5">
+      {showReorderControls && (
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:hover:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+            aria-label="Move modifier up"
+          >
+            <ArrowUp size={10} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:hover:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+            aria-label="Move modifier down"
+          >
+            <ArrowDown size={10} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      )}
       <select
         value={op.kind}
         onChange={(e) => {
           const newKind = e.target.value as OpKind;
           // Switching kinds always resets the row to that kind's defaults — every
           // op shape is incompatible with every other op shape.
-          onChange(() => defaultOpForKind(newKind, sourceType));
+          onChange(() => defaultOpForKind(newKind, sourceType, sourceValue));
         }}
         className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
       >
@@ -221,7 +356,7 @@ function DerivationOpRow({ op, kinds, sourceType, onChange, onRemove }: Derivati
           <option key={k} value={k}>{KIND_LABELS[k]}</option>
         ))}
       </select>
-      <DerivationOpParams op={op} onChange={onChange} />
+      <DerivationOpParams op={op} sourceType={sourceType} onChange={onChange} />
       <button
         type="button"
         onClick={onRemove}
@@ -234,7 +369,15 @@ function DerivationOpRow({ op, kinds, sourceType, onChange, onRemove }: Derivati
   );
 }
 
-function DerivationOpParams({ op, onChange }: { op: DerivationOp; onChange: (updater: (op: DerivationOp) => DerivationOp) => void }) {
+function DerivationOpParams({
+  op,
+  sourceType,
+  onChange,
+}: {
+  op: DerivationOp;
+  sourceType: TokenType | undefined;
+  onChange: (updater: (op: DerivationOp) => DerivationOp) => void;
+}) {
   switch (op.kind) {
     case 'lighten':
     case 'darken':
@@ -329,7 +472,9 @@ function DerivationOpParams({ op, onChange }: { op: DerivationOp; onChange: (upd
         </>
       );
     case 'add': {
-      const isObject = typeof op.delta === 'object';
+      const isObject = typeof op.delta === 'object' && op.delta !== null;
+      const unitOptions: readonly (DimensionUnit | DurationValue['unit'])[] =
+        sourceType === 'duration' ? ['ms', 's'] : DIMENSION_UNITS;
       return (
         <>
           <input
@@ -352,7 +497,35 @@ function DerivationOpParams({ op, onChange }: { op: DerivationOp; onChange: (upd
             className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
           />
           {isObject && (
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">{(op.delta as { unit: string }).unit}</span>
+            <select
+              value={(op.delta as { unit: string }).unit}
+              onChange={(e) => {
+                onChange((m) => {
+                  if (m.kind !== 'add' || typeof m.delta !== 'object') return m;
+                  if (sourceType === 'duration') {
+                    const unit = e.target.value as DurationValue['unit'];
+                    return {
+                      kind: 'add',
+                      delta: { ...m.delta, unit },
+                    };
+                  }
+
+                  const unit = e.target.value as DimensionUnit;
+                  return {
+                    kind: 'add',
+                    delta: { ...m.delta, unit },
+                  };
+                });
+              }}
+              aria-label="Add delta unit"
+              className="shrink-0 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+            >
+              {unitOptions.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
           )}
         </>
       );

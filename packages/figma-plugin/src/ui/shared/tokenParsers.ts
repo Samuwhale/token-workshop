@@ -1,4 +1,8 @@
 import { flattenTokenGroup, isReference, type DTCGGroup } from '@tokenmanager/core';
+import {
+  parseDimensionTokenValue,
+  parseDurationTokenValue,
+} from './tokenValueParsing';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,14 +44,13 @@ export function inferType(value: string): { $type: string; $value: unknown } {
   if (/^(rgb|hsl|hwb|lab|lch|oklch|oklab|color)a?\s*\(/i.test(trimmed)) {
     return { $type: 'color', $value: trimmed };
   }
-  // Duration: 200ms, 0.3s
-  const durMatch = trimmed.match(/^(-?\d+(\.\d+)?)(ms|s)$/);
-  if (durMatch) {
-    return { $type: 'duration', $value: { value: parseFloat(durMatch[1]), unit: durMatch[3] } };
+  const durationValue = parseDurationTokenValue(trimmed, { requireUnit: true });
+  if (durationValue) {
+    return { $type: 'duration', $value: durationValue };
   }
-  const dimMatch = trimmed.match(/^(-?\d+(\.\d+)?)(px|em|rem|%|vh|vw|pt)$/);
-  if (dimMatch) {
-    return { $type: 'dimension', $value: { value: parseFloat(dimMatch[1]), unit: dimMatch[3] } };
+  const dimensionValue = parseDimensionTokenValue(trimmed, { requireUnit: true });
+  if (dimensionValue) {
+    return { $type: 'dimension', $value: dimensionValue };
   }
   // Boolean
   if (/^(true|false)$/i.test(trimmed)) {

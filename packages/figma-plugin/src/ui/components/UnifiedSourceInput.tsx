@@ -9,6 +9,11 @@ import { swatchBgColor } from '../shared/colorUtils';
 import { SegmentedControl } from './SegmentedControl';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import { resolveGeneratedGroupSourceContext } from '../shared/generatedGroupUtils';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
+import {
+  normalizeDimensionTokenValue,
+  parseDimensionTokenValue,
+} from '../shared/tokenValueParsing';
 
 export type SourceMode = 'token' | 'value';
 
@@ -28,22 +33,30 @@ export interface UnifiedSourceInputProps {
   onInlineValueChange: (v: unknown) => void;
 }
 
-function formatValuePreview(value: unknown): string {
-  if (value == null) {
-    return '';
+function formatValuePreview(value: unknown, type?: string): string {
+  return formatTokenValueForDisplay(type, value, { emptyPlaceholder: '' });
+}
+
+function tryNormalizeDimensionValue(
+  value: unknown,
+): { value: number; unit: string } | null {
+  if (typeof value === 'string') {
+    return parseDimensionTokenValue(value);
   }
-  if (typeof value === 'string' || typeof value === 'number') {
-    return String(value);
+
+  if (typeof value === 'number') {
+    return { value, unit: 'px' };
   }
-  if (typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    if (typeof record.value === 'number') {
-      const unit = typeof record.unit === 'string' ? record.unit : '';
-      return `${record.value}${unit}`;
-    }
-    return JSON.stringify(value);
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'value' in (value as Record<string, unknown>)
+  ) {
+    return normalizeDimensionTokenValue(value);
   }
-  return String(value);
+
+  return null;
 }
 
 export function UnifiedSourceInput({
@@ -138,31 +151,22 @@ export function UnifiedSourceInput({
         }));
     }
 
-    if (
-      expectedType === 'dimension' &&
-      typeof inlineValue === 'object' &&
-      inlineValue !== null &&
-      'value' in (inlineValue as Record<string, unknown>)
-    ) {
-      const { value: inlineNumber, unit: inlineUnit } = inlineValue as {
-        value: number;
-        unit: string;
-      };
+    if (expectedType === 'dimension') {
+      const inlineDimension = tryNormalizeDimensionValue(inlineValue);
+      if (!inlineDimension) {
+        return [];
+      }
+
       return candidates
         .filter((candidate) => {
           if (candidate.entry.$type !== 'dimension') return false;
-          const value = candidate.resolvedEntry.$value;
-          if (
-            typeof value !== 'object' ||
-            value == null ||
-            !('value' in (value as Record<string, unknown>))
-          ) {
-            return false;
-          }
-          const dimensionValue = value as { value: number; unit?: string };
+          const dimensionValue = tryNormalizeDimensionValue(
+            candidate.resolvedEntry.$value,
+          );
+          if (!dimensionValue) return false;
           return (
-            dimensionValue.value === inlineNumber &&
-            (dimensionValue.unit ?? 'px') === inlineUnit
+            dimensionValue.value === inlineDimension.value &&
+            dimensionValue.unit === inlineDimension.unit
           );
         })
         .slice(0, 5)
@@ -170,7 +174,7 @@ export function UnifiedSourceInput({
           key: candidate.key,
           path: candidate.path,
           collectionId: candidate.collectionId,
-          value: formatValuePreview(candidate.resolvedEntry.$value),
+          value: formatValuePreview(candidate.resolvedEntry.$value, 'dimension'),
           isAmbiguousPath: candidate.isAmbiguousPath,
         }));
     }
@@ -247,7 +251,7 @@ export function UnifiedSourceInput({
                 />
               )}
               <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">
-                {formatValuePreview(resolvedDisplay)}
+                {formatValuePreview(resolvedDisplay, linkedEntry?.$type)}
               </span>
             </div>
           )}
@@ -269,12 +273,7 @@ export function UnifiedSourceInput({
           )}
 
           {expectedType === 'dimension' && (() => {
-            const dimValue =
-              typeof inlineValue === 'object' &&
-              inlineValue !== null &&
-              'value' in (inlineValue as Record<string, unknown>)
-                ? (inlineValue as { value: number; unit?: string })
-                : null;
+            const dimValue = tryNormalizeDimensionValue(inlineValue);
             const currentUnit = dimValue?.unit ?? 'px';
             return (
               <CompactDimensionInput

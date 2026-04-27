@@ -1,5 +1,11 @@
 
 import { stableStringify } from "../shared/utils";
+import { formatTokenValueForDisplay } from "../shared/tokenFormatting";
+import {
+  readDimensionTokenValue,
+  readDurationTokenValue,
+  tryConvertDurationTokenValueToMilliseconds,
+} from "../shared/tokenValueParsing";
 
 interface ValueDiffProps {
   type: string;
@@ -13,21 +19,17 @@ const ArrowRight = () => (
   </svg>
 );
 
-function formatDim(v: any): string {
-  if (typeof v === 'object' && v !== null && 'value' in v) {
-    return `${v.value}${v.unit ?? 'px'}`;
-  }
-  return String(v ?? '');
+function formatMeasure(v: any, type: 'dimension' | 'duration'): string {
+  return formatTokenValueForDisplay(type, v, { emptyPlaceholder: '' });
+}
+
+function formatDelta(value: number, unit: string): string {
+  const rounded = Math.round(value * 1000) / 1000;
+  return `${rounded > 0 ? '+' : ''}${rounded}${unit}`;
 }
 
 function formatTypo(v: any): string {
-  if (typeof v !== 'object' || v === null) return String(v ?? '—');
-  const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : (v.fontFamily ?? '');
-  const size = typeof v.fontSize === 'object'
-    ? `${v.fontSize?.value ?? ''}${v.fontSize?.unit ?? 'px'}`
-    : v.fontSize ? `${v.fontSize}px` : '';
-  const weight = v.fontWeight ?? '';
-  return [family, size, weight].filter(Boolean).join(' / ') || '—';
+  return formatTokenValueForDisplay('typography', v);
 }
 
 function shadowToCss(s: Record<string, any>): string {
@@ -171,13 +173,17 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
   }
 
   if (type === 'dimension') {
-    const beforeLabel = formatDim(before);
-    const afterLabel = formatDim(after);
-    const beforeNum = typeof before === 'object' ? (parseFloat(before?.value) || 0) : (parseFloat(before) || 0);
-    const afterNum = typeof after === 'object' ? (parseFloat(after?.value) || 0) : (parseFloat(after) || 0);
-    const unit = (typeof after === 'object' && after?.unit) || 'px';
-    const delta = Math.round((afterNum - beforeNum) * 1000) / 1000;
-    const deltaStr = delta !== 0 ? `${delta > 0 ? '+' : ''}${delta}${unit}` : null;
+    const beforeLabel = formatMeasure(before, 'dimension');
+    const afterLabel = formatMeasure(after, 'dimension');
+    const beforeMeasure = readDimensionTokenValue(before);
+    const afterMeasure = readDimensionTokenValue(after);
+    const deltaStr =
+      beforeMeasure &&
+      afterMeasure &&
+      beforeMeasure.unit === afterMeasure.unit &&
+      beforeMeasure.value !== afterMeasure.value
+      ? formatDelta(afterMeasure.value - beforeMeasure.value, afterMeasure.unit)
+      : null;
     return (
       <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
         <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
@@ -185,7 +191,37 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
         <ArrowRight />
         <span className="text-secondary font-mono text-[var(--color-figma-text)]">{afterLabel}</span>
         {deltaStr && (
-          <span className={`ml-auto text-secondary font-mono shrink-0 ${delta > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
+          <span className={`ml-auto text-secondary font-mono shrink-0 ${afterMeasure.value > beforeMeasure.value ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
+            {deltaStr}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (type === 'duration') {
+    const beforeLabel = formatMeasure(before, 'duration');
+    const afterLabel = formatMeasure(after, 'duration');
+    const afterDuration = readDurationTokenValue(after);
+    const beforeMs = tryConvertDurationTokenValueToMilliseconds(before);
+    const afterMs = tryConvertDurationTokenValueToMilliseconds(after);
+    const deltaMs =
+      beforeMs !== null && afterMs !== null ? afterMs - beforeMs : null;
+    const deltaValue =
+      afterDuration && deltaMs !== null
+        ? (afterDuration.unit === 's' ? deltaMs / 1000 : deltaMs)
+        : null;
+    const deltaStr = deltaValue !== null && deltaMs !== 0
+      ? formatDelta(deltaValue, afterDuration.unit)
+      : null;
+    return (
+      <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+        <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Before</span>
+        <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">{beforeLabel}</span>
+        <ArrowRight />
+        <span className="text-secondary font-mono text-[var(--color-figma-text)]">{afterLabel}</span>
+        {deltaStr && (
+          <span className={`ml-auto text-secondary font-mono shrink-0 ${deltaMs > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
             {deltaStr}
           </span>
         )}

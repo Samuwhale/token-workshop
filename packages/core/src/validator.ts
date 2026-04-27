@@ -8,6 +8,7 @@
 
 import { TOKEN_TYPES, FONT_WEIGHT_NAMES, STROKE_STYLE_KEYWORDS } from './constants.js';
 import { isReference, isFormula, isDTCGToken, isDTCGGroup } from './dtcg-types.js';
+import { opSupportedTypes, parseDerivationOps } from './derivation-ops.js';
 import type {
   Token,
   TokenGroup,
@@ -105,16 +106,40 @@ export class TokenValidator {
   validate(token: Token, path: string): ValidationResult {
     const errors: string[] = [];
     const value = token.$value;
-
-    // Skip references and formulas — they are validated during resolution
-    if (isReference(value) || isFormula(value)) {
-      return { path, valid: true, errors };
+    const derivation = token.$extensions?.tokenmanager?.derivation;
+    const derivationOps = parseDerivationOps(derivation?.ops);
+    for (const error of derivationOps.errors) {
+      errors.push(`${path}: ${error}`);
+    }
+    if (derivation !== undefined) {
+      if (derivationOps.errors.length === 0 && derivationOps.ops.length === 0) {
+        errors.push(`${path}: derivation.ops must include at least one operation`);
+      }
+      if (!isReference(value)) {
+        errors.push(
+          `${path}: derivation tokens must store an alias reference in $value`,
+        );
+      }
     }
 
     const type = token.$type;
     if (!type) {
       // Without a type we cannot validate the value shape
-      return { path, valid: true, errors };
+      return { path, valid: errors.length === 0, errors };
+    }
+    if (derivation !== undefined && derivationOps.errors.length === 0) {
+      for (const op of derivationOps.ops) {
+        if (!opSupportedTypes(op.kind).includes(type)) {
+          errors.push(
+            `${path}: derivation op "${op.kind}" cannot apply to type "${type}"`,
+          );
+        }
+      }
+    }
+
+    // Skip references and formulas — they are validated during resolution
+    if (isReference(value) || isFormula(value)) {
+      return { path, valid: errors.length === 0, errors };
     }
 
     switch (type) {

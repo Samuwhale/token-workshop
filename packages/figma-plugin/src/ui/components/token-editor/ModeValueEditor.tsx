@@ -26,6 +26,7 @@ import {
   CustomEditor,
   AssetEditor,
 } from '../ValueEditors';
+import { DEFAULT_DURATION_TOKEN_VALUE } from '../../shared/tokenValueParsing';
 
 interface ModeValueEditorProps {
   tokenType: string;
@@ -87,7 +88,13 @@ export function ModeValueEditor({
     case 'boolean':
       return <BooleanEditor value={value ?? false} onChange={onChange} />;
     case 'duration':
-      return <DurationEditor value={value ?? 0} onChange={onChange} autoFocus={autoFocus} />;
+      return (
+        <DurationEditor
+          value={value ?? { ...DEFAULT_DURATION_TOKEN_VALUE }}
+          onChange={onChange}
+          autoFocus={autoFocus}
+        />
+      );
     case 'typography':
       return (
         <TypographyEditor

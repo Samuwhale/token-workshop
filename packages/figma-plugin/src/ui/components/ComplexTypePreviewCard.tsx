@@ -1,14 +1,28 @@
 import { swatchBgColor } from '../shared/colorUtils';
+import { formatUnitTokenValue } from '../shared/tokenValueParsing';
 
 const COMPLEX_PREVIEW_TYPES = new Set(['typography', 'shadow', 'gradient', 'border', 'cubicBezier', 'transition', 'composition']);
 export { COMPLEX_PREVIEW_TYPES };
 
 function dimensionToCss(val: any, fallback: string): string {
-  if (typeof val === 'object' && val !== null && 'value' in val) {
-    return `${val.value}${val.unit || 'px'}`;
-  }
   if (typeof val === 'string') return val;
-  if (typeof val === 'number') return `${val}px`;
+  if (
+    typeof val === 'number' ||
+    (typeof val === 'object' && val !== null && 'value' in val)
+  ) {
+    return formatUnitTokenValue(val, { type: 'dimension' });
+  }
+  return fallback;
+}
+
+function durationToCss(val: any, fallback: string): string {
+  if (typeof val === 'string') return val;
+  if (
+    typeof val === 'number' ||
+    (typeof val === 'object' && val !== null && 'value' in val)
+  ) {
+    return formatUnitTokenValue(val, { type: 'duration' });
+  }
   return fallback;
 }
 
@@ -151,8 +165,8 @@ function CubicBezierPreview({ value }: { value: number[] }) {
 }
 
 function TransitionPreview({ value }: { value: Record<string, any> }) {
-  const dur = value.duration ? dimensionToCss(value.duration, '300ms') : '300ms';
-  const delay = value.delay ? dimensionToCss(value.delay, '0ms') : '0ms';
+  const dur = value.duration ? durationToCss(value.duration, '300ms') : '300ms';
+  const delay = value.delay ? durationToCss(value.delay, '0ms') : '0ms';
   const easing = Array.isArray(value.timingFunction)
     ? `cubic-bezier(${value.timingFunction.join(', ')})`
     : typeof value.timingFunction === 'string' ? value.timingFunction : 'ease';

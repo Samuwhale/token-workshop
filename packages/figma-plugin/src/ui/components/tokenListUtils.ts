@@ -9,6 +9,7 @@ import {
   type SearchHasQualifierValue,
 } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
+import { DEFAULT_DURATION_TOKEN_VALUE } from '../shared/tokenValueParsing';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { SortOrder } from './tokenListTypes';
 import { isAlias } from '../../shared/resolveAlias';
@@ -807,7 +808,7 @@ export function getDefaultValue(type: string): any {
     case 'shadow': return { color: '#00000040', offsetX: { value: 0, unit: 'px' }, offsetY: { value: 4, unit: 'px' }, blur: { value: 8, unit: 'px' }, spread: { value: 0, unit: 'px' }, type: 'dropShadow' };
     case 'border': return { color: '#000000', width: { value: 1, unit: 'px' }, style: 'solid' };
     case 'gradient': return { type: 'linear', stops: [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }] };
-    case 'duration': return { value: 200, unit: 'ms' };
+    case 'duration': return { ...DEFAULT_DURATION_TOKEN_VALUE };
     case 'fontFamily': return 'Inter';
     case 'fontWeight': return 400;
     case 'strokeStyle': return 'solid';

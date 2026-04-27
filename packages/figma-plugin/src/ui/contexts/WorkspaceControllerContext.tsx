@@ -22,6 +22,7 @@ import type { NotificationEntry } from "../hooks/useToastStack";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import type { PublishPreflightState } from "../shared/syncWorkflow";
 import type { PublishPending } from "../hooks/useFigmaSync";
+import type { DerivationOp } from "@tokenmanager/core";
 
 export interface ShellWorkspaceController {
   openPasteModal: () => void;
@@ -107,6 +108,14 @@ export interface TokensWorkspaceController {
     type: string | undefined;
     targetPath: string;
     targetCollectionId: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  createDerivationToken: (params: {
+    newPath: string;
+    collectionId: string;
+    type: string | undefined;
+    sourcePath: string;
+    sourceCollectionId: string;
+    derivationOps: DerivationOp[];
   }) => Promise<{ ok: boolean; error?: string }>;
 }
 

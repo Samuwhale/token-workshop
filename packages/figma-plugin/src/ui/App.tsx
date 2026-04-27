@@ -68,7 +68,7 @@ import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
 import { useValidationCache } from "./hooks/useValidationCache";
-import { createGeneratorSourceKey } from "@tokenmanager/core";
+import { createGeneratorSourceKey, type DerivationOp } from "@tokenmanager/core";
 import { resolveGeneratedGroupSourceContext } from "./shared/generatedGroupUtils";
 import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
@@ -81,6 +81,7 @@ import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
 import { getErrorMessage, stableStringify, tokenPathToUrlSegment } from "./shared/utils";
 import {
   createAliasToken,
+  createDerivationToken,
   detachAliasModes,
   rewireAliasModes,
 } from "./shared/aliasMutations";
@@ -1594,6 +1595,47 @@ export function App() {
         } catch (err) {
           const message = getErrorMessage(err);
           setErrorToast(`Could not create token: ${message}`);
+          return { ok: false, error: message };
+        }
+      },
+      createDerivationToken: async ({
+        newPath,
+        collectionId,
+        type,
+        sourcePath,
+        sourceCollectionId,
+        derivationOps,
+      }: {
+        newPath: string;
+        collectionId: string;
+        type: string | undefined;
+        sourcePath: string;
+        sourceCollectionId: string;
+        derivationOps: DerivationOp[];
+      }) => {
+        const collection = collections.find((c) => c.id === collectionId);
+        if (!collection) {
+          const message = `Collection "${collectionId}" not found`;
+          setErrorToast(message);
+          return { ok: false, error: message };
+        }
+        try {
+          await createDerivationToken({
+            serverUrl,
+            collection,
+            newPath,
+            type,
+            sourcePath,
+            sourceCollectionId,
+            derivationOps,
+            pathToCollectionId,
+            collectionIdsByPath,
+          });
+          refreshAll();
+          return { ok: true };
+        } catch (err) {
+          const message = getErrorMessage(err);
+          setErrorToast(`Could not create modifier: ${message}`);
           return { ok: false, error: message };
         }
       },

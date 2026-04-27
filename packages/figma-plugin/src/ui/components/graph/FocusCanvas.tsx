@@ -35,13 +35,17 @@ import {
 } from "./graphClusters";
 import { TokenNode } from "./nodes/TokenNode";
 import { GeneratorNode } from "./nodes/GeneratorNode";
+import { DerivationNode } from "./nodes/DerivationNode";
 import { GhostNode } from "./nodes/GhostNode";
 import { ClusterNode } from "./nodes/ClusterNode";
 import { LaneLabelNode } from "./nodes/LaneLabelNode";
 import { AliasEdge as AliasEdgeComponent } from "./edges/AliasEdge";
 import { GeneratorSourceEdge } from "./edges/GeneratorSourceEdge";
 import { GeneratorProducesEdge } from "./edges/GeneratorProducesEdge";
+import { DerivationSourceEdge } from "./edges/DerivationSourceEdge";
+import { DerivationProducesEdge } from "./edges/DerivationProducesEdge";
 import { layoutFocused, nodeDimensions, type LayoutResult } from "./graphLayout";
+import { canCreateDerivationFromType } from "./graphCreationUtils";
 import { collectionAccentHue } from "./collectionAccent";
 import "@xyflow/react/dist/style.css";
 
@@ -78,12 +82,23 @@ interface FocusCanvasProps {
     screenX: number;
     screenY: number;
   }) => void;
+  onRequestCreateFromSource?: (params: {
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+  }) => void;
+  onRequestCreateDerivationToken?: (params: {
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+  }) => void;
   editingEnabled?: boolean;
 }
 
 const NODE_TYPES = {
   token: TokenNode,
   generator: GeneratorNode,
+  derivation: DerivationNode,
   ghost: GhostNode,
   cluster: ClusterNode,
   lane: LaneLabelNode,
@@ -93,6 +108,8 @@ const EDGE_TYPES = {
   alias: AliasEdgeComponent,
   "generator-source": GeneratorSourceEdge,
   "generator-produces": GeneratorProducesEdge,
+  "derivation-source": DerivationSourceEdge,
+  "derivation-produces": DerivationProducesEdge,
 };
 
 export function FocusCanvas(props: FocusCanvasProps) {
@@ -123,6 +140,8 @@ function FocusCanvasInner({
   onExpandMoreHops,
   onClearFocus,
   onRequestCreateAliasToken,
+  onRequestCreateFromSource,
+  onRequestCreateDerivationToken,
   editingEnabled = false,
 }: FocusCanvasProps) {
   const reactFlow = useReactFlow();
@@ -311,6 +330,9 @@ function FocusCanvasInner({
       if (!node) return;
       if (node.kind === "token") onSelectToken(node.path, node.collectionId);
       else if (node.kind === "generator") onSelectGenerator(node.generatorId);
+      else if (node.kind === "derivation") {
+        onSelectToken(node.derivedPath, node.collectionId);
+      }
     },
     [subgraph, onSelectGenerator, onSelectToken],
   );
@@ -328,6 +350,8 @@ function FocusCanvasInner({
         onActivateToken(node.path, node.collectionId);
       } else if (node.kind === "generator") {
         onActivateGenerator(node.generatorId);
+      } else if (node.kind === "derivation") {
+        onActivateToken(node.derivedPath, node.collectionId);
       }
     },
     [subgraph, onActivateToken, onActivateGenerator],
@@ -425,13 +449,14 @@ function FocusCanvasInner({
               x: (event as MouseEvent).clientX,
               y: (event as MouseEvent).clientY,
             };
-      onRequestCreateAliasToken?.({
+      const requestCreate = onRequestCreateFromSource ?? onRequestCreateAliasToken;
+      requestCreate?.({
         sourceNodeId,
         screenX: x,
         screenY: y,
       });
     },
-    [editingEnabled, fullGraph, onRequestCreateAliasToken],
+    [editingEnabled, fullGraph, onRequestCreateAliasToken, onRequestCreateFromSource],
   );
 
   const handleConnect: OnConnect = useCallback(
@@ -579,6 +604,20 @@ function FocusCanvasInner({
           label: "Copy alias reference",
           onClick: () => copyToClipboard(`{${node.path}}`),
         });
+        if (
+          onRequestCreateDerivationToken &&
+          canCreateDerivationFromType(node.$type)
+        ) {
+          items.push({
+            label: "Modify...",
+            onClick: () =>
+              onRequestCreateDerivationToken({
+                sourceNodeId: node.id,
+                screenX: event.clientX,
+                screenY: event.clientY,
+              }),
+          });
+        }
         if (onRequestDeleteToken) {
           items.push({
             label: "Delete token",
@@ -595,6 +634,19 @@ function FocusCanvasInner({
           label: "Focus on this",
           onClick: () => onFocusNode(node.id),
         });
+      } else if (node.kind === "derivation") {
+        items.push({
+          label: "Open derived token",
+          onClick: () => onActivateToken(node.derivedPath, node.collectionId),
+        });
+        items.push({
+          label: "Focus on this",
+          onClick: () => onFocusNode(node.id),
+        });
+        items.push({
+          label: "Copy derived path",
+          onClick: () => copyToClipboard(node.derivedPath),
+        });
       } else if (node.kind === "ghost") {
         items.push({
           label: "Copy path",
@@ -607,7 +659,9 @@ function FocusCanvasInner({
       subgraph,
       onSelectToken,
       onActivateGenerator,
+      onActivateToken,
       onFocusNode,
+      onRequestCreateDerivationToken,
       onRequestDeleteToken,
       copyToClipboard,
     ],
@@ -778,6 +832,20 @@ function buildRfNode(
       focusable: true,
     };
   }
+  if (node.kind === "derivation") {
+    return {
+      id: node.id,
+      type: "derivation",
+      position,
+      width: dims.width,
+      height: dims.height,
+      data: { derivation: node, isFocused, dimmed },
+      selectable: true,
+      draggable: false,
+      connectable: false,
+      focusable: true,
+    };
+  }
   if (node.kind === "cluster") {
     return {
       id: node.id,
@@ -831,6 +899,21 @@ function buildRfEdge(
       aggregateCount,
     },
   };
+  if (edge.kind === "derivation-source" || edge.kind === "derivation-produces") {
+    const toNode = graph.nodes.get(edge.to);
+    const totalCollectionModes =
+      toNode?.kind === "derivation"
+        ? collectionModeCountById.get(toNode.collectionId)
+        : undefined;
+    return {
+      ...base,
+      data: {
+        ...base.data,
+        edge,
+        totalCollectionModes,
+      },
+    };
+  }
   if (edge.kind !== "alias") {
     return base;
   }

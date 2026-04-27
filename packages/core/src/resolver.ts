@@ -21,6 +21,8 @@ import type {
   ResolvedToken,
   DimensionValue,
   DurationValue,
+  TokenExtensions,
+  DerivationOp,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -163,7 +165,7 @@ export class TokenResolver {
     this.dependents.clear();
 
     for (const [path, token] of this.tokens) {
-      const refs = this.collectAllDependencies(token);
+      const refs = this.collectAllDependencies(token, path);
       this.dependencies.set(path, refs);
 
       for (const ref of refs) {
@@ -190,7 +192,7 @@ export class TokenResolver {
       return;
     }
 
-    const refs = this.collectAllDependencies(token);
+    const refs = this.collectAllDependencies(token, path);
     this.dependencies.set(path, refs);
 
     for (const ref of refs) {
@@ -205,14 +207,14 @@ export class TokenResolver {
    * Collect all dependency paths for a token: value references + $extends target
    * + any token-ref params on derivation ops (today: `mix.with`).
    */
-  private collectAllDependencies(token: Token): Set<string> {
+  private collectAllDependencies(token: Token, path: string): Set<string> {
     const refs = this.collectReferences(token.$value);
     const extendsPath = TokenResolver.getExtendsPath(token);
     if (extendsPath) {
       refs.add(extendsPath);
     }
-    const rawDerivationOps = token.$extensions?.tokenmanager?.derivation?.ops;
-    for (const refPath of extractDerivationRefPaths(validateDerivationOps(rawDerivationOps))) {
+    const ops = TokenResolver.readDerivationOps(token, path);
+    for (const refPath of extractDerivationRefPaths(ops)) {
       refs.add(refPath);
     }
     return refs;
@@ -224,6 +226,22 @@ export class TokenResolver {
   static getExtendsPath(token: Token): string | null {
     const ext = token.$extensions?.tokenmanager?.extends;
     return typeof ext === 'string' && ext.length > 0 ? ext : null;
+  }
+
+  private static readDerivationOps(token: Token, path: string): DerivationOp[] {
+    const tokenManager = token.$extensions?.tokenmanager as { derivation?: unknown } | undefined;
+    const derivation = tokenManager?.derivation;
+    if (derivation === undefined) {
+      return [];
+    }
+    if (typeof derivation !== 'object' || derivation === null || Array.isArray(derivation)) {
+      throw new Error(`Token "${path}" has malformed derivation metadata.`);
+    }
+    const ops = validateDerivationOps((derivation as { ops?: unknown }).ops);
+    if (ops.length === 0) {
+      throw new Error(`Token "${path}" has a derivation with no operations.`);
+    }
+    return ops;
   }
 
   /**
@@ -372,17 +390,14 @@ export class TokenResolver {
 
       // Apply derivation ops if present. The derivation requires `$value` to be
       // an alias; ops transform the resolved source value into the derived value.
-      //
-      // Multi-mode caveat: this only transforms the primary `$value` chain. Mode
-      // overrides stored in `$extensions.tokenmanager.modes` are read directly by
-      // downstream consumers (token list, exporters) and currently bypass the op
-      // pipeline. Per the design brief, the op list is shared across modes — that
-      // requires teaching the per-mode read path (`readTokenModeValuesForCollection`
-      // and friends) to apply ops too. Tracked as a follow-up.
-      const ops = validateDerivationOps(
-        token.$extensions?.tokenmanager?.derivation?.ops,
-      );
+      const ops = TokenResolver.readDerivationOps(token, path);
       if (ops.length > 0) {
+        if (!isReference(token.$value)) {
+          throw new Error(
+            `Token "${path}" has a derivation but its $value is not an alias reference. ` +
+            `Derivations must be stored as alias-plus-transform tokens.`,
+          );
+        }
         resolvedValue = applyDerivation(resolvedValue, $type, ops, (refPath) => {
           const ref = this.resolved.get(refPath);
           if (!ref) {
@@ -405,13 +420,20 @@ export class TokenResolver {
             },
           }
         : token.$extensions;
+      const resolvedExtensions = this.resolveModeExtensions(
+        token,
+        path,
+        $type,
+        ops,
+        extensions,
+      );
 
       this.resolved.set(path, {
         path,
         $type,
         $value: resolvedValue as TokenValue,
         $description: token.$description,
-        $extensions: extensions,
+        $extensions: resolvedExtensions,
         rawValue: token.$value,
         collectionId: this.collectionId,
       });
@@ -487,6 +509,217 @@ export class TokenResolver {
     }
 
     return value;
+  }
+
+  private resolveModeExtensions(
+    token: Token,
+    path: string,
+    $type: TokenType,
+    ops: readonly DerivationOp[],
+    extensions: TokenExtensions | undefined,
+  ): TokenExtensions | undefined {
+    const rawModes = extensions?.tokenmanager?.modes;
+    if (!rawModes || Object.keys(rawModes).length === 0) {
+      return extensions;
+    }
+
+    const nextModes: NonNullable<NonNullable<TokenExtensions['tokenmanager']>['modes']> = {};
+    for (const [collectionId, collectionModes] of Object.entries(rawModes)) {
+      if (!collectionModes || typeof collectionModes !== 'object' || Array.isArray(collectionModes)) {
+        continue;
+      }
+
+      for (const [modeName, rawModeValue] of Object.entries(collectionModes)) {
+        let modeValue = this.resolveValueForMode(
+          rawModeValue,
+          path,
+          collectionId,
+          modeName,
+          new Set([this.modeVisitKey(path, collectionId, modeName)]),
+        );
+        modeValue = this.normalizeResolvedValue(modeValue, $type, rawModeValue);
+        if (ops.length > 0) {
+          modeValue = applyDerivation(modeValue, $type, ops, (refPath) =>
+            this.resolveValueForMode(
+              `{${refPath}}`,
+              path,
+              collectionId,
+              modeName,
+              new Set([this.modeVisitKey(path, collectionId, modeName)]),
+            ),
+          );
+        }
+
+        nextModes[collectionId] ??= {};
+        nextModes[collectionId][modeName] = modeValue;
+      }
+    }
+
+    if (Object.keys(nextModes).length === 0) {
+      return extensions;
+    }
+
+    return {
+      ...extensions,
+      tokenmanager: {
+        ...(extensions?.tokenmanager ?? {}),
+        modes: nextModes,
+      },
+    };
+  }
+
+  private resolveValueForMode(
+    value: unknown,
+    contextPath: string,
+    collectionId: string,
+    modeName: string,
+    visited: Set<string>,
+    depth = 0,
+  ): unknown {
+    if (depth > MAX_RESOLVE_DEPTH) {
+      throw new Error(
+        `Maximum nesting depth (${MAX_RESOLVE_DEPTH}) exceeded resolving mode "${modeName}" for token "${contextPath}".`,
+      );
+    }
+
+    if (isReference(value)) {
+      const refPath = parseReference(value);
+      const refToken = this.tokens.get(refPath);
+      if (!refToken) {
+        throw new Error(
+          `Unresolved reference "${value}" in mode "${modeName}" for token "${contextPath}". ` +
+          `Token "${refPath}" could not be found.`,
+        );
+      }
+
+      const resolved = this.resolved.get(refPath);
+      if (resolved) {
+        const resolvedMode = resolved.$extensions?.tokenmanager?.modes?.[collectionId]?.[modeName];
+        return resolvedMode !== undefined ? resolvedMode : resolved.$value;
+      }
+
+      const key = this.modeVisitKey(refPath, collectionId, modeName);
+      if (visited.has(key)) {
+        throw new Error(
+          `Circular reference in mode "${modeName}": ${[...visited, key]
+            .map((entry) => entry.split('::')[0])
+            .join(' → ')}`,
+        );
+      }
+      visited.add(key);
+
+      const refType = this.resolveType(refToken);
+      const refOps = TokenResolver.readDerivationOps(refToken, refPath);
+      if (refOps.length > 0 && !isReference(refToken.$value)) {
+        throw new Error(
+          `Token "${refPath}" has a derivation but its $value is not an alias reference. ` +
+          `Derivations must be stored as alias-plus-transform tokens.`,
+        );
+      }
+      const modeValue = refToken.$extensions?.tokenmanager?.modes?.[collectionId]?.[modeName];
+      const refRawValue = modeValue !== undefined ? modeValue : refToken.$value;
+      let refValue = this.resolveValueForMode(
+        refRawValue,
+        refPath,
+        collectionId,
+        modeName,
+        visited,
+        depth + 1,
+      );
+      refValue = this.normalizeResolvedValue(refValue, refType, refRawValue);
+      if (refOps.length > 0) {
+        refValue = applyDerivation(refValue, refType, refOps, (paramRefPath) =>
+          this.resolveValueForMode(
+            `{${paramRefPath}}`,
+            refPath,
+            collectionId,
+            modeName,
+            new Set(visited),
+            depth + 1,
+          ),
+        );
+      }
+      return refValue;
+    }
+
+    if (typeof value === 'string' && isFormula(value)) {
+      const substituted = value.replace(makeReferenceGlobalRegex(), (_, refPath: string) => {
+        const resolved = this.resolveValueForMode(
+          `{${refPath}}`,
+          contextPath,
+          collectionId,
+          modeName,
+          new Set(visited),
+          depth + 1,
+        );
+        const num = this.extractNumeric(resolved);
+        if (num === null) {
+          throw new Error(
+            `Reference "{${refPath}}" in formula at "${contextPath}" mode "${modeName}" does not resolve to a number. ` +
+            `Got: ${JSON.stringify(resolved)}`,
+          );
+        }
+        return String(num);
+      });
+      return evalExpr(substituted);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        item != null
+          ? this.resolveValueForMode(
+              item,
+              contextPath,
+              collectionId,
+              modeName,
+              new Set(visited),
+              depth + 1,
+            )
+          : item,
+      );
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value)) {
+        out[k] =
+          v != null
+            ? this.resolveValueForMode(
+                v,
+                contextPath,
+                collectionId,
+                modeName,
+                new Set(visited),
+                depth + 1,
+              )
+            : v;
+      }
+      return out;
+    }
+
+    return value;
+  }
+
+  private normalizeResolvedValue(
+    value: unknown,
+    $type: TokenType,
+    rawValue: unknown,
+  ): unknown {
+    if (typeof value !== 'number' || ($type !== 'dimension' && $type !== 'duration')) {
+      return value;
+    }
+
+    const isFormulaSrc = typeof rawValue === 'string' && isFormula(rawValue);
+    if ($type === 'dimension') {
+      const unit = isFormulaSrc ? (this.extractFormulaUnit(rawValue) ?? 'px') : 'px';
+      return { value, unit } as DimensionValue;
+    }
+    const unit = isFormulaSrc ? (this.extractFormulaUnit(rawValue) ?? 'ms') : 'ms';
+    return { value, unit } as DurationValue;
+  }
+
+  private modeVisitKey(path: string, collectionId: string, modeName: string): string {
+    return `${path}::${collectionId}::${modeName}`;
   }
 
   /**

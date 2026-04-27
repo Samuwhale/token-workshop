@@ -1,3 +1,5 @@
+import { formatUnitTokenValue } from './tokenValueParsing';
+
 /**
  * Unified token value formatting for display.
  *
@@ -57,6 +59,12 @@ export function formatTokenValueForDisplay(
 
   if (value === undefined || value === null) return empty;
   if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (type === 'dimension' || type === 'duration') {
+    const measureLabel = formatUnitTokenValue(value, { type, fallback: '' });
+    if (measureLabel) {
+      return measureLabel;
+    }
+  }
   if (typeof value === 'number') return String(value);
   if (typeof value === 'string') return value;
 

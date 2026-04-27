@@ -3,7 +3,6 @@ import { NoticeInlineAlert } from '../shared/noticeSystem';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
-import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
 import { getErrorMessage } from '../shared/utils';
 import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
@@ -22,6 +21,7 @@ import {
   getCompatibleTokenTypes,
   getTokenValueFromProp,
   formatTokenValuePreview,
+  resolveTokenEntryDisplay,
   resolveBindingDisplay,
   isTokenScopeCompatible,
   getDefaultScopesForProperty,
@@ -596,14 +596,10 @@ export function PropertyRow({
                       Recently used
                     </div>
                     {recentBindCandidates.map(([path, entry], idx) => {
-                      const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
-                      let resolvedColorSwatch: string | null = null;
-                      let resolvedValueDisplay: string | null = null;
-                      if (entry.$type === 'color') {
-                        if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
-                      } else if ((entry.$type === 'dimension' || entry.$type === 'number') && r.value != null) {
-                        resolvedValueDisplay = isDimensionLike(r.value) ? `${r.value.value}${r.value.unit}` : String(r.value);
-                      }
+                      const {
+                        resolvedColor: resolvedColorSwatch,
+                        resolvedDisplay: resolvedValueDisplay,
+                      } = resolveTokenEntryDisplay(entry, tokenMap);
                       const isSelected = idx === bindSelectedIndex;
                       const isCurrent = isBound && path === binding;
                       return (
@@ -640,14 +636,10 @@ export function PropertyRow({
                 {/* Main candidates */}
                 {mainBindCandidates.map(([path, entry, score], idx) => {
                   const globalIdx = recentBindCandidates.length + idx;
-                  let resolvedColorSwatch: string | null = null;
-                  let resolvedValueDisplay: string | null = null;
-                  const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
-                  if (entry.$type === 'color') {
-                    if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
-                  } else if ((entry.$type === 'dimension' || entry.$type === 'number') && r.value != null) {
-                    resolvedValueDisplay = isDimensionLike(r.value) ? `${r.value.value}${r.value.unit}` : String(r.value);
-                  }
+                  const {
+                    resolvedColor: resolvedColorSwatch,
+                    resolvedDisplay: resolvedValueDisplay,
+                  } = resolveTokenEntryDisplay(entry, tokenMap);
                   const isSelected = globalIdx === bindSelectedIndex;
                   const isCurrent = isBound && path === binding;
                   const showSuggestedHeader = showSuggestedDivider && idx === 0 && recentBindCandidates.length === 0;

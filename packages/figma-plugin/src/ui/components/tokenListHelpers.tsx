@@ -2,6 +2,11 @@ import type { TokenNode } from '../hooks/useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import { stableStringify } from '../shared/utils';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import {
+  parseDimensionTokenValue,
+  parseDurationTokenValue,
+  parseNumericTokenValue,
+} from '../shared/tokenValueParsing';
 
 // ---------------------------------------------------------------------------
 // Composition token helpers
@@ -66,20 +71,21 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 
 /** Parse an inline-edited string back to the correct token value shape.
  * Returns null if the value is invalid for the given type. */
-export function parseInlineValue(type: string, str: string): any {
+export function parseInlineValue(type: string, str: string): unknown | null {
+  const trimmed = str.trim();
   if (type === 'boolean') {
-    const lower = str.trim().toLowerCase();
+    const lower = trimmed.toLowerCase();
     if (lower !== 'true' && lower !== 'false') return null;
     return lower === 'true';
   }
-  if (type === 'number' || type === 'fontWeight' || type === 'duration') {
-    const n = parseFloat(str);
-    return isNaN(n) ? str : n;
+  if (type === 'number' || type === 'fontWeight') {
+    return parseNumericTokenValue(trimmed);
+  }
+  if (type === 'duration') {
+    return parseDurationTokenValue(trimmed);
   }
   if (type === 'dimension') {
-    const m = str.trim().match(/^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/);
-    if (m) return { value: parseFloat(m[1]), unit: m[2] || 'px' };
-    return str;
+    return parseDimensionTokenValue(trimmed);
   }
   // color, string, fontFamily: return as-is
   return str;
@@ -91,10 +97,10 @@ export function inferTypeFromValue(value: string): string | null {
   if (!v) return null;
   if (/^#([0-9a-fA-F]{3,8})$/.test(v)) return 'color';
   if (/^(rgb|hsl|hwb|lab|lch|oklch|oklab|color)a?\s*\(/i.test(v)) return 'color';
-  if (/^(-?\d+(\.\d+)?)(px|em|rem|%|vh|vw|pt|dp|sp|cm|mm|fr|ch|ex)$/.test(v)) return 'dimension';
-  if (/^(-?\d+(\.\d+)?)(ms|s)$/.test(v)) return 'duration';
+  if (parseDimensionTokenValue(v, { requireUnit: true })) return 'dimension';
+  if (parseDurationTokenValue(v, { requireUnit: true })) return 'duration';
   if (/^(true|false)$/i.test(v)) return 'boolean';
-  if (/^-?\d+(\.\d+)?$/.test(v)) return 'number';
+  if (parseNumericTokenValue(v) !== null) return 'number';
   return null;
 }
 

@@ -39,6 +39,16 @@ interface GraphCanvasProps {
     screenX: number;
     screenY: number;
   }) => void;
+  onRequestCreateFromSource?: (params: {
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+  }) => void;
+  onRequestCreateDerivationToken?: (params: {
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+  }) => void;
   editingEnabled?: boolean;
 }
 
@@ -62,6 +72,8 @@ export function GraphCanvas({
   onExpandMoreHops,
   onClearFocus,
   onRequestCreateAliasToken,
+  onRequestCreateFromSource,
+  onRequestCreateDerivationToken,
   editingEnabled,
 }: GraphCanvasProps) {
   if (focusId === null) {
@@ -94,6 +106,8 @@ export function GraphCanvas({
       onExpandMoreHops={onExpandMoreHops}
       onClearFocus={onClearFocus}
       onRequestCreateAliasToken={onRequestCreateAliasToken}
+      onRequestCreateFromSource={onRequestCreateFromSource}
+      onRequestCreateDerivationToken={onRequestCreateDerivationToken}
       editingEnabled={editingEnabled}
     />
   );

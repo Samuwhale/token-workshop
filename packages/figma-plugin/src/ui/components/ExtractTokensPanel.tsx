@@ -2,10 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type {
   ExtractedTokenEntry,
   TokenMapEntry,
-  DimensionValue,
-  BorderValue,
-  TypographyValue,
-  ShadowTokenValue,
   BindableProperty,
 } from "../../shared/types";
 import { tokenTypeBadgeClass } from "../../shared/types";
@@ -15,6 +11,7 @@ import {
   updateToken,
   upsertToken,
 } from "../shared/tokenMutations";
+import { formatTokenValueForDisplay } from "../shared/tokenFormatting";
 
 interface ExtractTokensPanelProps {
   connected: boolean;
@@ -29,60 +26,14 @@ interface ExtractTokensPanelProps {
 }
 
 function formatValuePreview(entry: ExtractedTokenEntry): string {
-  const v = entry.value;
-  if (entry.tokenType === "color" && typeof v === "string") return v;
-  if (entry.tokenType === "dimension" && typeof v === "object" && v !== null) {
-    const dim = v as DimensionValue;
-    if (dim.value != null) return `${dim.value}${dim.unit}`;
+  const preview = formatTokenValueForDisplay(entry.tokenType, entry.value, {
+    emptyPlaceholder: "",
+  });
+  if (preview) {
+    return preview;
   }
-  if (entry.tokenType === "number") return String(v);
-  if (entry.tokenType === "border" && typeof v === "object" && v !== null) {
-    const border = v as BorderValue;
-    const w =
-      typeof border.width === "object"
-        ? (border.width as DimensionValue)
-        : null;
-    return `${border.color} ${w?.value}${w?.unit} ${border.style}`;
-  }
-  if (entry.tokenType === "typography" && typeof v === "object" && v !== null) {
-    const typo = v as TypographyValue;
-    const parts: string[] = [];
-    if (typo.fontFamily)
-      parts.push(
-        Array.isArray(typo.fontFamily) ? typo.fontFamily[0] : typo.fontFamily,
-      );
-    if (typo.fontWeight) parts.push(String(typo.fontWeight));
-    if (typo.fontSize) {
-      const fs =
-        typeof typo.fontSize === "object"
-          ? (typo.fontSize as DimensionValue)
-          : null;
-      if (fs) parts.push(`${fs.value}${fs.unit}`);
-    }
-    return parts.join(" ");
-  }
-  if (entry.tokenType === "shadow" && typeof v === "object" && v !== null) {
-    const shadows = Array.isArray(v)
-      ? (v as ShadowTokenValue[])
-      : [v as ShadowTokenValue];
-    const s = shadows[0];
-    if (s) {
-      const ox =
-        typeof s.offsetX === "object"
-          ? (s.offsetX as DimensionValue).value
-          : (s.offsetX ?? 0);
-      const oy =
-        typeof s.offsetY === "object"
-          ? (s.offsetY as DimensionValue).value
-          : (s.offsetY ?? 0);
-      const bl =
-        typeof s.blur === "object"
-          ? (s.blur as DimensionValue).value
-          : (s.blur ?? 0);
-      return `${s.color} ${ox}/${oy} blur:${bl}`;
-    }
-  }
-  return JSON.stringify(v).slice(0, 40);
+
+  return JSON.stringify(entry.value)?.slice(0, 40) ?? "";
 }
 
 export function ExtractTokensPanel({

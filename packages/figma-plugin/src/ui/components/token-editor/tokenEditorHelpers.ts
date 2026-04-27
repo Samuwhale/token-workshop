@@ -1,6 +1,12 @@
 import type { TokenMapEntry } from "../../../shared/types";
 import { isAlias, extractAliasPath } from "../../../shared/resolveAlias";
 import type { TokenEditorValue } from "../../shared/tokenEditorTypes";
+import {
+  DEFAULT_DURATION_TOKEN_VALUE,
+  parseDimensionTokenValue,
+  parseDurationTokenValue,
+  parseNumericTokenValue,
+} from "../../shared/tokenValueParsing";
 
 /**
  * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
@@ -40,21 +46,15 @@ export function parseInitialValueForType(
   const v = raw.trim();
   if (type === "color") return v;
   if (type === "dimension") {
-    const m = v.match(
-      /^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/,
-    );
-    if (m) return { value: parseFloat(m[1]), unit: m[2] || "px" };
+    const parsed = parseDimensionTokenValue(v);
+    if (parsed) return parsed;
     return v;
   }
   if (type === "duration") {
-    const m = v.match(/^(-?\d*\.?\d+)\s*(ms|s)?$/);
-    if (m) return { value: parseFloat(m[1]), unit: m[2] || "ms" };
-    const n = parseFloat(v);
-    return isNaN(n) ? 0 : n;
+    return parseDurationTokenValue(v) ?? { ...DEFAULT_DURATION_TOKEN_VALUE };
   }
   if (type === "number" || type === "fontWeight") {
-    const n = parseFloat(v);
-    return isNaN(n) ? v : n;
+    return parseNumericTokenValue(v) ?? v;
   }
   if (type === "boolean") {
     return v.toLowerCase() === "true";
@@ -74,7 +74,8 @@ export function getInitialCreateValue(
   }
   if (type === "color") return "#000000";
   if (type === "dimension") return { value: 0, unit: "px" };
-  if (type === "number" || type === "duration") return 0;
+  if (type === "number") return 0;
+  if (type === "duration") return { ...DEFAULT_DURATION_TOKEN_VALUE };
   if (type === "boolean") return false;
   if (type === "shadow") {
     return {
@@ -161,23 +162,15 @@ export function parsePastedValue(
       return null;
 
     case "dimension": {
-      const m = v.match(
-        /^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/,
-      );
-      if (m) return { value: parseFloat(m[1]), unit: m[2] || "px" };
-      return null;
+      return parseDimensionTokenValue(v);
     }
 
     case "duration": {
-      const m = v.match(/^(-?\d*\.?\d+)\s*(ms|s)$/);
-      if (m) return { value: parseFloat(m[1]), unit: m[2] };
-      return null;
+      return parseDurationTokenValue(v, { requireUnit: true });
     }
 
     case "letterSpacing": {
-      const m = v.match(/^(-?\d*\.?\d+)\s*(px|em|rem|%)?$/);
-      if (m) return { value: parseFloat(m[1]), unit: m[2] || "px" };
-      return null;
+      return parseDimensionTokenValue(v);
     }
 
     case "cubicBezier": {
@@ -193,8 +186,7 @@ export function parsePastedValue(
     case "percentage": {
       const cleaned =
         type === "percentage" && v.endsWith("%") ? v.slice(0, -1) : v;
-      const n = parseFloat(cleaned);
-      return isNaN(n) ? null : n;
+      return parseNumericTokenValue(cleaned);
     }
 
     case "boolean":
@@ -228,6 +220,11 @@ export function buildTypographyPreviewStyle(value: Record<string, unknown>): Rea
     if (typeof fs === "object" && fs !== null && "value" in fs) {
       const { value: v, unit } = fs as { value: number; unit?: string };
       style.fontSize = `${Math.min(v, 48)}${unit || "px"}`;
+    } else if (typeof fs === "string") {
+      const parsed = parseDimensionTokenValue(fs);
+      if (parsed) {
+        style.fontSize = `${Math.min(parsed.value, 48)}${parsed.unit}`;
+      }
     } else if (typeof fs === "number") {
       style.fontSize = `${Math.min(fs, 48)}px`;
     }
@@ -243,6 +240,11 @@ export function buildTypographyPreviewStyle(value: Record<string, unknown>): Rea
     if (typeof ls === "object" && ls !== null && "value" in ls) {
       const { value: v, unit } = ls as { value: number; unit?: string };
       style.letterSpacing = `${v}${unit || "px"}`;
+    } else if (typeof ls === "string") {
+      const parsed = parseDimensionTokenValue(ls);
+      if (parsed) {
+        style.letterSpacing = `${parsed.value}${parsed.unit}`;
+      }
     }
   }
   return style;

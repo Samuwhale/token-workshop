@@ -19,8 +19,15 @@ import { GraphInspector } from "./GraphInspector";
 import { GraphSROutline } from "./GraphSROutline";
 import { GraphToolbar } from "./GraphToolbar";
 import { CreateAliasConfirm } from "./interactions/CreateAliasConfirm";
+import { CreateDerivationConfirm } from "./interactions/CreateDerivationConfirm";
+import { CreateFromSourcePicker } from "./interactions/CreateFromSourcePicker";
 import { RewireConfirm } from "./interactions/RewireConfirm";
 import { DetachConfirm } from "./interactions/DetachConfirm";
+import {
+  canCreateDerivationFromType,
+  pickAvailableAliasPath,
+  pickAvailableDerivationPath,
+} from "./graphCreationUtils";
 import {
   consumePendingGraphFocus,
   subscribeGraphFocusIntent,
@@ -101,7 +108,7 @@ export function GraphPanel({
     useState<LibraryGraphFocusIntent | null>(() => consumePendingGraphFocus());
   const [inspectorDismissed, setInspectorDismissed] = useState(false);
 
-  const { rewire, detach, createAlias, deleteToken } = useGraphMutations();
+  const { rewire, detach, createAlias, createDerivation, deleteToken } = useGraphMutations();
 
   const [rewireRequest, setRewireRequest] = useState<{
     sourceNodeId: GraphNodeId;
@@ -119,6 +126,18 @@ export function GraphPanel({
     busy?: boolean;
   } | null>(null);
   const [createAliasRequest, setCreateAliasRequest] = useState<{
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+    error?: string;
+    busy?: boolean;
+  } | null>(null);
+  const [createFromSourceRequest, setCreateFromSourceRequest] = useState<{
+    sourceNodeId: GraphNodeId;
+    screenX: number;
+    screenY: number;
+  } | null>(null);
+  const [createDerivationRequest, setCreateDerivationRequest] = useState<{
     sourceNodeId: GraphNodeId;
     screenX: number;
     screenY: number;
@@ -327,6 +346,12 @@ export function GraphPanel({
             onRequestCreateAliasToken={({ sourceNodeId, screenX, screenY }) => {
               setCreateAliasRequest({ sourceNodeId, screenX, screenY });
             }}
+            onRequestCreateFromSource={({ sourceNodeId, screenX, screenY }) => {
+              setCreateFromSourceRequest({ sourceNodeId, screenX, screenY });
+            }}
+            onRequestCreateDerivationToken={({ sourceNodeId, screenX, screenY }) => {
+              setCreateDerivationRequest({ sourceNodeId, screenX, screenY });
+            }}
             editingEnabled
           />
           <GraphSROutline graph={fullGraph} focusNodeId={focusId} />
@@ -421,7 +446,7 @@ export function GraphPanel({
             );
             if (!collection) return null;
             const flat = perCollectionFlat[collection.id] ?? {};
-            const initialPath = pickAvailablePath(sourceNode.path, flat);
+            const initialPath = pickAvailableAliasPath(sourceNode.path, flat);
             return (
               <CreateAliasConfirm
                 x={createAliasRequest.screenX}
@@ -451,6 +476,103 @@ export function GraphPanel({
                     setFocusId(tokenNodeId(sourceNode.collectionId, newPath));
                   } else {
                     setCreateAliasRequest((current) =>
+                      current
+                        ? { ...current, busy: false, error: result.error }
+                        : current,
+                    );
+                  }
+                }}
+              />
+            );
+          })()
+        : null}
+      {createFromSourceRequest
+        ? (() => {
+            const sourceNode = fullGraph.nodes.get(
+              createFromSourceRequest.sourceNodeId,
+            );
+            if (!sourceNode || sourceNode.kind !== "token") return null;
+            const collection = collections.find(
+              (c) => c.id === sourceNode.collectionId,
+            );
+            const flat = perCollectionFlat[sourceNode.collectionId] ?? {};
+            const sourceEntry = flat[sourceNode.path];
+            return (
+              <CreateFromSourcePicker
+                x={createFromSourceRequest.screenX}
+                y={createFromSourceRequest.screenY}
+                sourcePath={sourceNode.path}
+                canModify={canCreateDerivationFromType(sourceNode.$type)}
+                onCancel={() => setCreateFromSourceRequest(null)}
+                onCreateAlias={() => {
+                  setCreateAliasRequest(createFromSourceRequest);
+                  setCreateFromSourceRequest(null);
+                }}
+                onCreateModifier={() => {
+                  setCreateDerivationRequest(createFromSourceRequest);
+                  setCreateFromSourceRequest(null);
+                }}
+                onGenerateFrom={() => {
+                  setCreateFromSourceRequest(null);
+                  onOpenGeneratedGroupEditor({
+                    mode: "create",
+                    origin: "graph",
+                    sourceTokenPath: sourceNode.path,
+                    sourceCollectionId: sourceNode.collectionId,
+                    sourceTokenName: sourceNode.displayName,
+                    sourceTokenType: sourceNode.$type,
+                    sourceTokenValue: sourceEntry?.$value,
+                    initialDraft: {
+                      targetCollection: collection?.id ?? workingCollectionId,
+                    },
+                  });
+                }}
+              />
+            );
+          })()
+        : null}
+      {createDerivationRequest
+        ? (() => {
+            const sourceNode = fullGraph.nodes.get(
+              createDerivationRequest.sourceNodeId,
+            );
+            if (!sourceNode || sourceNode.kind !== "token") return null;
+            const collection = collections.find(
+              (c) => c.id === sourceNode.collectionId,
+            );
+            if (!collection) return null;
+            const flat = perCollectionFlat[collection.id] ?? {};
+            const initialPath = pickAvailableDerivationPath(sourceNode.path, sourceNode.$type, flat);
+            return (
+              <CreateDerivationConfirm
+                x={createDerivationRequest.screenX}
+                y={createDerivationRequest.screenY}
+                sourcePath={sourceNode.path}
+                sourceType={sourceNode.$type}
+                collectionLabel={collection.id}
+                initialPath={initialPath}
+                allTokensFlat={flat}
+                isPathTaken={(candidate) => Boolean(flat[candidate])}
+                busy={createDerivationRequest.busy}
+                errorMessage={createDerivationRequest.error}
+                onCancel={() => setCreateDerivationRequest(null)}
+                onConfirm={async (newPath, derivationOps) => {
+                  setCreateDerivationRequest((current) =>
+                    current ? { ...current, busy: true, error: undefined } : current,
+                  );
+                  const result = await createDerivation({
+                    newPath,
+                    collectionId: sourceNode.collectionId,
+                    type: sourceNode.$type,
+                    sourcePath: sourceNode.path,
+                    sourceCollectionId: sourceNode.collectionId,
+                    derivationOps,
+                  });
+                  if (result.ok) {
+                    setCreateDerivationRequest(null);
+                    setFocusId(tokenNodeId(sourceNode.collectionId, newPath));
+                  } else {
+                    setCreateDerivationRequest((current) =>
                       current
                         ? { ...current, busy: false, error: result.error }
                         : current,
@@ -506,15 +628,4 @@ export function GraphPanel({
         : null}
     </div>
   );
-}
-
-function pickAvailablePath(
-  sourcePath: string,
-  flat: Record<string, TokenMapEntry>,
-): string {
-  const base = `${sourcePath}-alias`;
-  if (!flat[base]) return base;
-  let i = 2;
-  while (flat[`${base}-${i}`]) i++;
-  return `${base}-${i}`;
 }

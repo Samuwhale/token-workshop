@@ -1,5 +1,6 @@
 // JSX helpers for ImportPanel sub-components.
 import { swatchBgColor } from '../shared/colorUtils';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { truncateValue } from './importPanelTypes';
 
 export function DiffSwatch({ hex }: { hex: string }) {
@@ -22,19 +23,7 @@ export function renderConflictValue(type: string, value: unknown): JSX.Element {
       </>
     );
   }
-  if ((type === 'dimension' || type === 'duration' || type === 'fontSize') && typeof value === 'object' && value !== null && 'value' in value) {
-    const v = value as { value: number; unit?: string };
-    return <span>{v.value}{v.unit ?? 'px'}</span>;
-  }
-  if (type === 'typography' && typeof value === 'object' && value !== null) {
-    const v = value as Record<string, any>;
-    const parts: string[] = [];
-    if (v.fontFamily) parts.push(Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily);
-    if (v.fontSize) parts.push(typeof v.fontSize === 'object' ? `${v.fontSize.value}${v.fontSize.unit ?? 'px'}` : `${v.fontSize}px`);
-    if (v.fontWeight) parts.push(String(v.fontWeight));
-    return <span>{parts.join(' ') || '—'}</span>;
-  }
-  if (typeof value === 'string') return <span>{value}</span>;
-  if (typeof value === 'number' || typeof value === 'boolean') return <span>{String(value)}</span>;
-  return <span>{JSON.stringify(value)}</span>;
+
+  const effectiveType = type === 'fontSize' ? 'dimension' : type;
+  return <span>{formatTokenValueForDisplay(effectiveType, value)}</span>;
 }

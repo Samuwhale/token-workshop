@@ -89,6 +89,52 @@ function visitTokenAuthoredValues(
   }
 }
 
+function visitMutableDerivationRefParams(
+  token: Token,
+  visitor: (params: { value: string; set: (nextValue: string) => void }) => void,
+): void {
+  const tokenManager = isPlainRecord(token.$extensions?.tokenmanager)
+    ? (token.$extensions.tokenmanager as Record<string, unknown>)
+    : null;
+  const derivation = isPlainRecord(tokenManager?.derivation)
+    ? tokenManager.derivation
+    : null;
+  const ops = Array.isArray(derivation?.ops) ? derivation.ops : null;
+  if (!ops) {
+    return;
+  }
+
+  for (const op of ops) {
+    if (!isPlainRecord(op)) {
+      continue;
+    }
+
+    switch (op.kind) {
+      case 'mix':
+        if (typeof op.with === 'string') {
+          visitor({
+            value: op.with,
+            set: (nextValue) => {
+              op.with = nextValue;
+            },
+          });
+        }
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+function visitDerivationRefParams(
+  token: Token,
+  visitor: (value: string) => void,
+): void {
+  visitMutableDerivationRefParams(token, ({ value }) => {
+    visitor(value);
+  });
+}
+
 function normalizeScopedVariableTokenValue(value: unknown, nextType: string): unknown {
   if (nextType === 'dimension') {
     if (typeof value === 'number') {
@@ -204,6 +250,12 @@ function walkAliasValues(
   walkLeafTokens(group, (_tokenPath, token) => {
     visitMutableTokenAuthoredValues(token, ({ value, set }) => {
       set(updateValue(value));
+    });
+    visitMutableDerivationRefParams(token, ({ value, set }) => {
+      const nextValue = updateValue(value);
+      if (typeof nextValue === 'string') {
+        set(nextValue);
+      }
     });
   });
 
@@ -470,6 +522,9 @@ export function previewBulkAliasChanges(
     visitTokenAuthoredValues(token, (value) => {
       scanValue(value, tokenPath);
     });
+    visitDerivationRefParams(token, (value) => {
+      scanValue(value, tokenPath);
+    });
   });
 
   return changes;
@@ -507,6 +562,9 @@ export function previewGroupAliasChanges(
 
   walkLeafTokens(group, (tokenPath, token) => {
     visitTokenAuthoredValues(token, (value) => {
+      scanValue(value, tokenPath);
+    });
+    visitDerivationRefParams(token, (value) => {
       scanValue(value, tokenPath);
     });
   });

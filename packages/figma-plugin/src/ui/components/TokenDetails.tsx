@@ -14,7 +14,7 @@ import {
   resolveCollectionIdForPath,
   resolveRefValue,
 } from "@tokenmanager/core";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection, TokenType } from "@tokenmanager/core";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
@@ -1980,9 +1980,9 @@ export function TokenDetails({
 
             {isEditMode && valueIsAlias ? (
               <DerivationEditor
-                sourceType={tokenType as never}
+                sourceType={tokenType as TokenType | undefined}
                 reference={value as string}
-                colorFlatMap={colorFlatMap}
+                allTokensFlat={allTokensFlat}
                 derivationOps={derivationOps}
                 onDerivationOpsChange={setDerivationOps}
               />

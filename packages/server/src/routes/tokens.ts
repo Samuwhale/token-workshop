@@ -101,6 +101,13 @@ function validateTokenValue(value: unknown, type: string, path: string): string 
   return result.valid ? null : result.errors.map(e => e.replace(`${path}: `, '')).join('; ');
 }
 
+function validateTokenDefinition(token: Token, path: string): string | null {
+  const result = _tokenValidator.validate(token, path);
+  return result.valid
+    ? null
+    : result.errors.map(e => e.replace(`${path}: `, '')).join('; ');
+}
+
 const PATH_MAX_LEN = 500;
 
 /** Validates a token path string: non-empty, no leading/trailing whitespace, no leading/trailing/consecutive dots. */
@@ -936,7 +943,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const validModeNames = new Set(
           collection.modes.map((mode) => mode.name),
         );
-        const normalizedPatches: Array<{ path: string; patch: Partial<Token> }> =
+        const normalizedPatches: Array<{
+          path: string;
+          existingToken: Token;
+          patch: Partial<Token>;
+        }> =
           [];
         for (const entry of patches) {
           const existingToken = await fastify.tokenStore.getToken(
@@ -952,6 +963,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
           normalizedPatches.push({
             path: entry.path,
+            existingToken,
             patch: normalizeTokenModesForCollectionWrite(
               normalizeScopedVariableToken(
                 normalizeUpdateRouteBody(
@@ -975,6 +987,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.status(400).send({ error: modeError });
           }
 
+          const candidateToken = { ...p.existingToken, ...p.patch } as Token;
+          const tokenErr = validateTokenDefinition(candidateToken, p.path);
+          if (tokenErr) {
+            return reply.status(400).send({
+              error: `Invalid token "${p.path}": ${tokenErr}`,
+            });
+          }
+
           const patchVal = p.patch.$value;
           if (patchVal !== undefined) {
             const patchType = p.patch.$type;
@@ -996,7 +1016,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         await fastify.tokenStore.batchUpdateTokens(
           collectionId,
-          normalizedPatches,
+          normalizedPatches.map(({ path, patch }) => ({ path, patch })),
         );
         const after = await snapshotPaths(fastify.tokenStore, collectionId, paths);
         const entry = await fastify.operationLog.record({
@@ -1344,6 +1364,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           token: normalizeTokenModesForCollectionWrite(token, collection),
         }));
         for (const t of normalizedTokens) {
+          const existingToken = await fastify.tokenStore.getToken(
+            collectionId,
+            t.path,
+          );
           const modeError = await validateTokenModesForCollectionWrite(
             collectionId,
             t.path,
@@ -1352,6 +1376,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
+          }
+
+          const tokenToValidate =
+            existingToken && strategy === 'skip'
+              ? null
+              : existingToken && strategy === 'merge'
+                ? ({
+                    ...existingToken,
+                    ...("$value" in t.token ? { $value: t.token.$value } : {}),
+                    ...("$type" in t.token ? { $type: t.token.$type } : {}),
+                  } as Token)
+                : t.token;
+          const tokenErr = tokenToValidate
+            ? validateTokenDefinition(tokenToValidate, t.path)
+            : null;
+          if (tokenErr) {
+            return reply.status(400).send({
+              error: `Invalid token "${t.path}": ${tokenErr}`,
+            });
           }
 
           if (isReference(t.token.$value)) {
@@ -1842,6 +1885,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           if (modeError) {
             return reply.status(400).send({ error: modeError });
           }
+          const validationErrors = _tokenValidator
+            .validateSet(normalizedBody)
+            .flatMap((result) => result.errors);
+          if (validationErrors.length > 0) {
+            return reply.status(400).send({
+              error: `Invalid collection tokens: ${validationErrors.join('; ')}`,
+            });
+          }
           const before = await snapshotCollection(fastify.tokenStore, collectionId);
           await fastify.tokenStore.replaceCollectionTokens(
             collectionId,
@@ -1929,6 +1980,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           if (modeError) {
             return reply.status(400).send({ error: modeError });
           }
+          const tokenErr = validateTokenDefinition(normalizedBody, tokenPath);
+          if (tokenErr) {
+            return reply.status(400).send({
+              error: `Invalid token "${tokenPath}": ${tokenErr}`,
+            });
+          }
           // Check if token already exists
           const existing = await fastify.tokenStore.getToken(collectionId, tokenPath);
           if (existing) {
@@ -2009,6 +2066,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
+          }
+          const candidateToken = { ...existingToken, ...normalizedBody } as Token;
+          const tokenErr = validateTokenDefinition(candidateToken, tokenPath);
+          if (tokenErr) {
+            return reply.status(400).send({
+              error: `Invalid token "${tokenPath}": ${tokenErr}`,
+            });
           }
           // Validate $value against effective type (own or inherited from existing token)
           if (normalizedBody.$value !== undefined) {

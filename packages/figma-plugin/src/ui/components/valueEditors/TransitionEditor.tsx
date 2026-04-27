@@ -3,11 +3,21 @@ import type { TokenMapEntry } from '../../../shared/types';
 import { Field, Stack } from '../../primitives';
 import { DimensionSubProp } from './valueEditorShared';
 import { CubicBezierEditor } from './CubicBezierEditor';
+import {
+  DEFAULT_DURATION_TOKEN_VALUE,
+  normalizeDurationTokenValue,
+} from '../../shared/tokenValueParsing';
 
 export const TransitionEditor = memo(function TransitionEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string> }) {
   const val = typeof value === 'object' && value !== null ? value : {};
-  const duration = val.duration ?? { value: 200, unit: 'ms' };
-  const delay = val.delay ?? { value: 0, unit: 'ms' };
+  const duration =
+    typeof val.duration === 'string'
+      ? val.duration
+      : normalizeDurationTokenValue(val.duration, DEFAULT_DURATION_TOKEN_VALUE);
+  const delay =
+    typeof val.delay === 'string'
+      ? val.delay
+      : normalizeDurationTokenValue(val.delay, { value: 0, unit: 'ms' });
   const timingFunction = Array.isArray(val.timingFunction) ? val.timingFunction : [0.25, 0.1, 0.25, 1];
 
   const update = (patch: Record<string, any>) => onChange({ duration, delay, timingFunction, ...val, ...patch });

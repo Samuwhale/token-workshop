@@ -1,5 +1,10 @@
-import type { TokenValue, TokenReference } from '@tokenmanager/core';
-import { isReference, parseReference } from '@tokenmanager/core';
+import type { TokenType, TokenValue, TokenReference } from '@tokenmanager/core';
+import {
+  applyDerivation,
+  isReference,
+  parseReference,
+  validateDerivationOps,
+} from '@tokenmanager/core';
 import type { TokenMapEntry } from './types';
 
 export function isAlias(value: TokenValue | TokenReference | undefined): value is TokenReference {
@@ -158,11 +163,18 @@ export function buildResolutionChain(
 function resolveCompositeAliases(
   value: unknown,
   tokenMap: Record<string, TokenMapEntry>,
+  resolveReferenceValue?: (path: string) => unknown,
 ): unknown {
   if (typeof value === 'string' && isAlias(value)) {
     const refPath = extractAliasPath(value);
     if (!refPath) {
       return value;
+    }
+    if (resolveReferenceValue) {
+      const resolved = resolveReferenceValue(refPath);
+      return resolved === undefined
+        ? value
+        : resolveCompositeAliases(resolved, tokenMap, resolveReferenceValue);
     }
     const refEntry = tokenMap[refPath];
     if (!refEntry) {
@@ -171,18 +183,18 @@ function resolveCompositeAliases(
     const resolved = resolveTokenValue(refEntry.$value, refEntry.$type, tokenMap);
     return resolved.value === null
       ? value
-      : resolveCompositeAliases(resolved.value, tokenMap);
+      : resolveCompositeAliases(resolved.value, tokenMap, resolveReferenceValue);
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => resolveCompositeAliases(item, tokenMap));
+    return value.map((item) => resolveCompositeAliases(item, tokenMap, resolveReferenceValue));
   }
 
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
         key,
-        resolveCompositeAliases(nestedValue, tokenMap),
+        resolveCompositeAliases(nestedValue, tokenMap, resolveReferenceValue),
       ]),
     );
   }
@@ -190,26 +202,63 @@ function resolveCompositeAliases(
   return value;
 }
 
+function readDerivationOps(entry: TokenMapEntry): ReturnType<typeof validateDerivationOps> {
+  const derivation = entry.$extensions?.tokenmanager?.derivation;
+  if (derivation === undefined) return [];
+  return validateDerivationOps(derivation.ops);
+}
+
 export function resolveAllAliases(
   tokenMap: Record<string, TokenMapEntry>,
 ): Record<string, TokenMapEntry> {
   const resolved: Record<string, TokenMapEntry> = {};
-  for (const [path, entry] of Object.entries(tokenMap)) {
+  const resolving = new Set<string>();
+
+  const resolveEntry = (path: string): TokenMapEntry | undefined => {
+    const cached = resolved[path];
+    if (cached) return cached;
+
+    const entry = tokenMap[path];
+    if (!entry) return undefined;
+    if (resolving.has(path)) return entry;
+    resolving.add(path);
+
     const result = resolveTokenValue(entry.$value, entry.$type, tokenMap);
     let resolvedValue: TokenValue | TokenReference = result.value ?? entry.$value;
 
     // Resolve alias references embedded anywhere inside composite token values
     // (nested objects, nested arrays, gradient stop lists, composition payloads).
     if (resolvedValue !== null && typeof resolvedValue === 'object') {
-      resolvedValue = resolveCompositeAliases(resolvedValue, tokenMap) as TokenValue;
+      resolvedValue = resolveCompositeAliases(
+        resolvedValue,
+        tokenMap,
+        (refPath) => resolveEntry(refPath)?.$value,
+      ) as TokenValue;
     }
 
-    resolved[path] = {
+    const ops = readDerivationOps(entry);
+    if (ops.length > 0) {
+      resolvedValue = applyDerivation(
+        resolvedValue,
+        result.$type as TokenType,
+        ops,
+        (refPath) => resolveEntry(refPath)?.$value,
+      ) as TokenValue | TokenReference;
+    }
+
+    const next = {
       ...entry,
       $value: resolvedValue,
       $type: result.$type,
       ...(isAlias(entry.$value) ? { reference: entry.$value } : {}),
     };
+    resolved[path] = next;
+    resolving.delete(path);
+    return next;
+  };
+
+  for (const path of Object.keys(tokenMap)) {
+    resolveEntry(path);
   }
   return resolved;
 }

@@ -93,21 +93,20 @@ function hasDefinedValue<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
-function formatDimension(value: unknown, defaultUnit = "px"): string {
-  if (isDimensionLike(value)) {
-    const unit = typeof value.unit === "string" && value.unit.length > 0
-      ? value.unit
-      : defaultUnit;
-    return `${String(value.value)}${unit}`;
-  }
-  if (typeof value === "number") {
-    return `${value}${defaultUnit}`;
-  }
-  return String(value ?? "");
+function formatDimension(value: unknown): string {
+  return formatTokenValueForDisplay("dimension", value, {
+    emptyPlaceholder: "",
+  });
+}
+
+function formatDuration(value: unknown): string {
+  return formatTokenValueForDisplay("duration", value, {
+    emptyPlaceholder: "",
+  });
 }
 
 function formatLineHeight(value: unknown): string {
-  if (isDimensionLike(value)) return formatDimension(value, "");
+  if (isDimensionLike(value)) return formatDimension(value);
   if (typeof value === "number") return String(value);
   return String(value ?? "");
 }
@@ -238,7 +237,7 @@ export function getValueCellPresentation(
 
     case "duration":
       return {
-        primary: formatDimension(value, "ms"),
+        primary: formatDuration(value),
         primaryMonospace: true,
       };
 
@@ -405,10 +404,10 @@ export function getValueCellPresentation(
     case "transition": {
       if (!isTransitionLike(value)) break;
       const duration = hasDefinedValue(value.duration)
-        ? formatDimension(value.duration, "ms")
+        ? formatDuration(value.duration)
         : null;
       const delay = hasDefinedValue(value.delay)
-        ? formatDimension(value.delay, "ms")
+        ? formatDuration(value.delay)
         : null;
       const timing = formatTimingFunction(value.timingFunction);
       return {

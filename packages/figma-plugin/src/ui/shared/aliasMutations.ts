@@ -1,5 +1,6 @@
 import type { Token, TokenCollection } from "@tokenmanager/core";
 import {
+  type DerivationOp,
   readTokenModeValuesForCollection,
   resolveCollectionIdForPath,
   writeTokenModeValuesForCollection,
@@ -134,6 +135,67 @@ export async function createAliasToken(params: {
   const body: TokenMutationBody = {
     $value: draft.$value,
     $extensions: draft.$extensions ?? null,
+  };
+  if (type) body.$type = type;
+  await createToken(serverUrl, collection.id, newPath, body);
+}
+
+export async function createDerivationToken(params: {
+  serverUrl: string;
+  collection: TokenCollection;
+  newPath: string;
+  type: string | undefined;
+  sourcePath: string;
+  sourceCollectionId: string;
+  derivationOps: DerivationOp[];
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
+}): Promise<void> {
+  const {
+    serverUrl,
+    collection,
+    newPath,
+    type,
+    sourcePath,
+    sourceCollectionId,
+    derivationOps,
+    pathToCollectionId,
+    collectionIdsByPath,
+  } = params;
+  if (derivationOps.length === 0) {
+    throw new Error("Choose at least one modifier operation.");
+  }
+  const sourceResolution = resolveCollectionIdForPath({
+    path: sourcePath,
+    pathToCollectionId,
+    collectionIdsByPath,
+    preferredCollectionId: collection.id,
+  });
+  if (sourceResolution.collectionId !== sourceCollectionId) {
+    throw new Error(
+      sourceResolution.reason === "ambiguous"
+        ? `Cannot store an unambiguous modifier source for "${sourcePath}" because that path exists in multiple collections.`
+        : `Cannot store a modifier source for "${sourcePath}" in collection "${sourceCollectionId}" from "${collection.id}".`,
+    );
+  }
+
+  const aliasRef = `{${sourcePath}}`;
+  const draft = { $value: aliasRef } as Token;
+  if (type) (draft as { $type?: string }).$type = type;
+  const modeValues: Record<string, unknown> = {};
+  for (const mode of collection.modes) modeValues[mode.name] = aliasRef;
+  writeTokenModeValuesForCollection(draft, collection, modeValues);
+  draft.$extensions = {
+    ...(draft.$extensions ?? {}),
+    tokenmanager: {
+      ...(draft.$extensions?.tokenmanager ?? {}),
+      derivation: { ops: derivationOps },
+    },
+  };
+
+  const body: TokenMutationBody = {
+    $value: draft.$value,
+    $extensions: draft.$extensions,
   };
   if (type) body.$type = type;
   await createToken(serverUrl, collection.id, newPath, body);

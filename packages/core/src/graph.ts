@@ -90,6 +90,8 @@ export interface DerivationGraphNode {
   ops: DerivationOp[];
   /** Resolved $type of the derived token (matches the source's $type). */
   $type?: string;
+  swatchColor?: string;
+  valuePreview?: string;
   health: GraphHealthStatus;
 }
 
@@ -136,6 +138,8 @@ export interface DerivationSourceEdge {
   id: GraphEdgeId;
   from: GraphNodeId;
   to: GraphNodeId;
+  /** Mode names carried by this primary source edge. Empty on param edges. */
+  modeNames?: string[];
   /** Param name for secondary edges (e.g. "with"). Absent on the primary edge. */
   paramLabel?: string;
   /** True when the upstream token does not exist (resolves to a ghost). */
@@ -285,6 +289,8 @@ function fingerprintNode(node: GraphNode): string {
     node.collectionId,
     node.sourceTokenPath,
     node.$type ?? "",
+    node.swatchColor ?? "",
+    node.valuePreview ?? "",
     node.health,
     node.ops.map((op) => op.kind).join(","),
     String(node.ops.length),
@@ -322,6 +328,7 @@ function fingerprintEdge(edge: GraphEdge): string {
       edge.id,
       edge.from,
       edge.to,
+      edge.modeNames?.join(",") ?? "",
       edge.paramLabel ?? "",
       edge.isMissingTarget ? "1" : "0",
       edge.inCycle ? "1" : "0",
@@ -785,6 +792,8 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     derivedTokenId: GraphNodeId;
     /** Validated op chain. */
     ops: DerivationOp[];
+    /** Primary source refs keyed by path, with the modes that read that source. */
+    sourceRefModes: Map<string, Set<string>>;
     /** Token-ref paths from op params (e.g. mix.with). */
     paramRefPaths: string[];
   }
@@ -803,8 +812,23 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
       const sourcePaths = extractReferencePaths(entry.$value);
       const sourceTokenPath = sourcePaths[0];
       if (!sourceTokenPath) continue; // brief: derivation requires alias $value
+      const modeValues =
+        modeValuesByTokenId.get(tokenNodeId(collection.id, path)) ??
+        readGraphModeValues(entry, collection);
+      const sourceRefModes = new Map<string, Set<string>>();
+      for (const [modeName, value] of Object.entries(modeValues)) {
+        for (const refPath of extractReferencePaths(value)) {
+          const modeNames = sourceRefModes.get(refPath) ?? new Set<string>();
+          modeNames.add(modeName);
+          sourceRefModes.set(refPath, modeNames);
+        }
+      }
+      if (sourceRefModes.size === 0) {
+        sourceRefModes.set(sourceTokenPath, new Set());
+      }
 
       const derivedTokenId = tokenNodeId(collection.id, path);
+      const derivedToken = nodes.get(derivedTokenId);
       const id = derivationNodeId(collection.id, path);
       const node: DerivationGraphNode = {
         kind: "derivation",
@@ -814,6 +838,12 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
         sourceTokenPath,
         ops,
         $type: entry.$type,
+        ...(derivedToken?.kind === "token" && derivedToken.swatchColor
+          ? { swatchColor: derivedToken.swatchColor }
+          : {}),
+        ...(derivedToken?.kind === "token" && derivedToken.valuePreview
+          ? { valuePreview: derivedToken.valuePreview }
+          : {}),
         health: "ok",
       };
       nodes.set(id, node);
@@ -821,6 +851,7 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
         node,
         derivedTokenId,
         ops,
+        sourceRefModes,
         paramRefPaths: extractDerivationRefPaths(ops),
       });
     }
@@ -900,27 +931,31 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     const { node, derivedTokenId } = info;
     const collectionId = node.collectionId;
 
-    // Primary source edge (from $value alias).
-    const primaryTarget = resolveGraphTarget({
-      path: node.sourceTokenPath,
-      preferredCollectionId: collectionId,
-      nodes,
-      ghostIntents,
-      pathToCollectionId,
-      collectionIdsByPath,
-    });
-    const primaryEdgeId = `deriv-src:${primaryTarget.nodeId}->${node.id}`;
-    const primaryEdge: DerivationSourceEdge = {
-      kind: "derivation-source",
-      id: primaryEdgeId,
-      from: primaryTarget.nodeId,
-      to: node.id,
-      ...(primaryTarget.reason !== "resolved" ? { isMissingTarget: true } : {}),
-    };
-    edges.set(primaryEdgeId, primaryEdge);
-    derivationSourceEdges.push(primaryEdge);
-    pushAdjacency(outgoing, primaryTarget.nodeId, primaryEdgeId);
-    pushAdjacency(incoming, node.id, primaryEdgeId);
+    // Primary source edges. `$value` supplies the canonical source path, while
+    // secondary modes may alias different source tokens or use literals.
+    for (const [sourcePath, modeNames] of info.sourceRefModes) {
+      const primaryTarget = resolveGraphTarget({
+        path: sourcePath,
+        preferredCollectionId: collectionId,
+        nodes,
+        ghostIntents,
+        pathToCollectionId,
+        collectionIdsByPath,
+      });
+      const primaryEdgeId = `deriv-src:${primaryTarget.nodeId}->${node.id}`;
+      const primaryEdge: DerivationSourceEdge = {
+        kind: "derivation-source",
+        id: primaryEdgeId,
+        from: primaryTarget.nodeId,
+        to: node.id,
+        modeNames: [...modeNames].sort(),
+        ...(primaryTarget.reason !== "resolved" ? { isMissingTarget: true } : {}),
+      };
+      edges.set(primaryEdgeId, primaryEdge);
+      derivationSourceEdges.push(primaryEdge);
+      pushAdjacency(outgoing, primaryTarget.nodeId, primaryEdgeId);
+      pushAdjacency(incoming, node.id, primaryEdgeId);
+    }
 
     // Secondary param edges (today: mix.with).
     for (const paramRefPath of info.paramRefPaths) {
@@ -959,6 +994,11 @@ export function buildGraph(input: BuildGraphInput): GraphModel {
     derivationProducesEdges.push(producesEdge);
     pushAdjacency(outgoing, node.id, producesEdgeId);
     pushAdjacency(incoming, derivedTokenId, producesEdgeId);
+  }
+
+  // Materialize ghost nodes discovered while resolving derivation source edges.
+  for (const ghost of ghostIntents.values()) {
+    nodes.set(ghost.id, ghost);
   }
 
   // 4. Generator source + produces edges

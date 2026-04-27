@@ -1,8 +1,8 @@
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, PROPERTY_LABELS, SCOPE_TO_PROPERTIES, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
-import { isDimensionLike } from './generators/generatorShared';
 import type { UndoSlot } from '../hooks/useUndo';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 
 export function shouldShowGroup(condition: string | undefined, caps: NodeCapabilities): boolean {
   if (!condition) return true;
@@ -156,6 +156,32 @@ export function suggestTokenPath(prop: BindableProperty, layerName: string): str
   return suffix ? `${namespace}.${slug}.${suffix}` : `${namespace}.${slug}`;
 }
 
+export function resolveTokenEntryDisplay(
+  entry: TokenMapEntry,
+  tokenMap: Record<string, TokenMapEntry>,
+): { resolvedDisplay: string | null; resolvedColor: string | null } {
+  const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+  const resolvedValue = resolved.value ?? entry.$value;
+  const resolvedType =
+    typeof resolved.$type === 'string' ? resolved.$type : entry.$type;
+
+  const resolvedDisplay =
+    resolvedValue == null
+      ? null
+      : formatTokenValueForDisplay(resolvedType, resolvedValue, {
+          emptyPlaceholder: '',
+        }) || null;
+
+  const resolvedColor =
+    resolvedType === 'color' &&
+    typeof resolvedValue === 'string' &&
+    resolvedValue.startsWith('#')
+      ? resolvedValue
+      : null;
+
+  return { resolvedDisplay, resolvedColor };
+}
+
 /** Resolve a binding to its display string and optional color swatch */
 export function resolveBindingDisplay(
   binding: string,
@@ -163,18 +189,7 @@ export function resolveBindingDisplay(
 ): { resolvedDisplay: string | null; resolvedColor: string | null } {
   const entry = tokenMap[binding];
   if (!entry) return { resolvedDisplay: null, resolvedColor: null };
-  const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
-  let resolvedDisplay: string | null = null;
-  let resolvedColor: string | null = null;
-  if (resolved.value != null) {
-    if (typeof resolved.value === 'string') {
-      resolvedDisplay = resolved.value;
-      if (resolved.value.startsWith('#')) resolvedColor = resolved.value;
-    } else if (isDimensionLike(resolved.value)) {
-      resolvedDisplay = `${resolved.value.value}${resolved.value.unit}`;
-    }
-  }
-  return { resolvedDisplay, resolvedColor };
+  return resolveTokenEntryDisplay(entry, tokenMap);
 }
 
 /**
