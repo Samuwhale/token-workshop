@@ -30,6 +30,7 @@ import type {
 import { requireCollection } from "./collection-store.js";
 import type { LintConfig, LintConfigStore } from "./lint.js";
 import type { GeneratorService } from "./generator-service.js";
+import type { TokenGraphService } from "./token-graph-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { TokenStore } from "./token-store.js";
 import type { SnapshotEntry } from "./operation-log.js";
@@ -804,6 +805,7 @@ export class CollectionService {
     private readonly resolverLock: PromiseChainLock,
     private readonly generatorService: GeneratorService,
     private readonly lintConfigStore: LintConfigStore,
+    private readonly graphService?: TokenGraphService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -1345,6 +1347,7 @@ export class CollectionService {
     newCollectionId: string,
   ): Promise<void> {
     const dependencyStateBefore = await this.captureDependencyState();
+    const graphStateBefore = this.graphService ? await this.graphService.snapshot() : null;
     try {
       await this.resolverLock.withLock(() =>
         this.resolverStore.renameCollectionReferences(
@@ -1360,8 +1363,12 @@ export class CollectionService {
         oldCollectionId,
         newCollectionId,
       );
+      await this.graphService?.renameCollectionId(oldCollectionId, newCollectionId);
     } catch (err) {
       await this.restoreDependencyState(dependencyStateBefore).catch(() => {});
+      if (graphStateBefore) {
+        await this.graphService?.restore(graphStateBefore).catch(() => {});
+      }
       throw err;
     }
   }
@@ -1474,6 +1481,7 @@ export class CollectionService {
     const stateBefore = await this.collectionStore.loadState();
     requireCollection(stateBefore, collectionId);
     const lintConfigBefore = await this.loadLintConfig();
+    const graphStateBefore = this.graphService ? await this.graphService.snapshot() : null;
     const tokensBefore = await this.captureWorkspaceTokensForState(stateBefore);
     const nextState = deleteCollectionIdsFromState(stateBefore, [collectionId]);
     try {
@@ -1486,12 +1494,16 @@ export class CollectionService {
         ),
       });
       await this.lintConfigStore.deleteCollectionId(collectionId);
+      await this.graphService?.deleteCollectionId(collectionId);
     } catch (err) {
       await this.restoreCollectionWorkspaceWithinLock({
         state: stateBefore,
         tokensByCollection: tokensBefore,
       }).catch(() => {});
       await this.restoreLintConfig(lintConfigBefore).catch(() => {});
+      if (graphStateBefore) {
+        await this.graphService?.restore(graphStateBefore).catch(() => {});
+      }
       throw err;
     }
   }
@@ -1505,6 +1517,7 @@ export class CollectionService {
       requireCollection(stateBefore, collectionId);
     }
     const lintConfigBefore = await this.loadLintConfig();
+    const graphStateBefore = this.graphService ? await this.graphService.snapshot() : null;
     const tokensBefore = await this.captureWorkspaceTokensForState(stateBefore);
     const nextState = deleteCollectionIdsFromState(stateBefore, collectionIds);
     try {
@@ -1518,6 +1531,7 @@ export class CollectionService {
       });
       for (const collectionId of collectionIds) {
         await this.lintConfigStore.deleteCollectionId(collectionId);
+        await this.graphService?.deleteCollectionId(collectionId);
       }
     } catch (err) {
       await this.restoreCollectionWorkspaceWithinLock({
@@ -1525,6 +1539,9 @@ export class CollectionService {
         tokensByCollection: tokensBefore,
       }).catch(() => {});
       await this.restoreLintConfig(lintConfigBefore).catch(() => {});
+      if (graphStateBefore) {
+        await this.graphService?.restore(graphStateBefore).catch(() => {});
+      }
       throw err;
     }
   }

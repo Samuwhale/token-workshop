@@ -301,7 +301,9 @@ export function HealthIssuesView({
                         onOpen={onNavigateToToken ? () => onNavigateToToken(issue.path, issue.collectionId) : undefined}
                         onViewInGraph={
                           onViewIssueInGraph &&
-                          (issue.rule === "broken-alias" || issue.rule === "circular-reference")
+                          (issue.rule === "broken-alias" ||
+                            issue.rule === "circular-reference" ||
+                            issue.rule === "graph-diagnostic")
                             ? () => onViewIssueInGraph(issue)
                             : undefined
                         }

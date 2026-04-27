@@ -1,17 +1,23 @@
-import type { GraphTokenLike } from "@tokenmanager/core";
+import type { TokenType } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
+
+interface TokenResolveEntry {
+  $value: TokenMapEntry["$value"];
+  $type?: TokenType;
+  $extensions?: TokenMapEntry["$extensions"];
+}
 
 export function projectTokenEntriesToGraphTokens(
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
-): Record<string, Record<string, GraphTokenLike>> {
-  const projectedCollections: Record<string, Record<string, GraphTokenLike>> = {};
+): Record<string, Record<string, TokenResolveEntry>> {
+  const projectedCollections: Record<string, Record<string, TokenResolveEntry>> = {};
 
   for (const [collectionId, entries] of Object.entries(perCollectionFlat)) {
-    const projectedEntries: Record<string, GraphTokenLike> = {};
+    const projectedEntries: Record<string, TokenResolveEntry> = {};
     for (const [path, entry] of Object.entries(entries)) {
       projectedEntries[path] = {
         $value: entry.$value,
-        $type: entry.$type,
+        $type: entry.$type as TokenType,
         ...(entry.$extensions ? { $extensions: entry.$extensions } : {}),
       };
     }

@@ -1,5 +1,4 @@
-import type { TokenCollection } from "./types.js";
-import type { GraphTokenLike } from "./graph.js";
+import type { Token, TokenCollection } from "./types.js";
 import { readTokenModeValuesForCollection } from "./collections.js";
 import {
   extractReferencePaths,
@@ -10,6 +9,8 @@ import {
 import { resolveCollectionIdForPath } from "./collection-paths.js";
 import { makeReferenceGlobalRegex } from "./constants.js";
 import { evalExpr } from "./eval-expr.js";
+
+type GraphTokenLike = Pick<Token, "$value" | "$type" | "$extensions">;
 
 // Pure mode-aware upstream alias walker. Used by:
 // - useTokenAncestors hook (TokenDetails "Resolves to" block)

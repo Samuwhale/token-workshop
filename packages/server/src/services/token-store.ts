@@ -2691,5 +2691,5 @@ export interface ChangeEvent {
   tokenPath?: string;
   generatorId?: string;
   message?: string;
-  resourceType?: "collections" | "generators" | "resolver";
+  resourceType?: "collections" | "generators" | "graphs" | "resolver";
 }

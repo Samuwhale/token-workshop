@@ -85,7 +85,6 @@ import type { ToastAction } from "../shared/toastBus";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
 import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
 import { GraphPanel } from "../components/graph/GraphPanel";
-import { setPendingGraphFocus } from "../shared/graphFocusIntent";
 
 const DEFAULT_CREATE_TYPE = "color";
 
@@ -258,6 +257,7 @@ export function PanelRouter({
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const healthRouteIntentRef = useRef<"deep-link" | null>(null);
   const historyRouteIntentRef = useRef<"deep-link" | null>(null);
+  const [pendingGraphDocumentId, setPendingGraphDocumentId] = useState<string | null>(null);
   const createLibraryHealthScope = useCallback(
     (overrides?: Partial<HealthScope>): HealthScope => ({
       mode: "current",
@@ -587,13 +587,11 @@ export function PanelRouter({
   );
 
   const openGeneratedGroupEditor = useCallback(
-    (target: TokensLibraryGeneratedGroupEditorTarget) => {
-      switchContextualSurface({
-        surface: "generated-group-editor",
-        generatedGroup: target,
-      });
+    (_target: TokensLibraryGeneratedGroupEditorTarget) => {
+      switchContextualSurface({ surface: null });
+      navigateTo("library", "graph");
     },
-    [switchContextualSurface],
+    [navigateTo, switchContextualSurface],
   );
 
   const openNewGeneratedGroup = useCallback(() => {
@@ -644,29 +642,14 @@ export function PanelRouter({
     [openGeneratedTokens],
   );
 
-  const buildViewInGraphAction = useCallback(
-    (info: GeneratorSaveSuccessInfo): ToastAction => ({
-      label: "See outputs in graph",
-      onClick: () => {
-        if (info.targetCollection !== currentCollectionId) {
-          setCurrentCollectionId(info.targetCollection);
-        }
-        setPendingGraphFocus({ kind: "generator", generatorId: info.generatorId });
-        navigateTo("library", "graph");
-      },
-    }),
-    [currentCollectionId, navigateTo, setCurrentCollectionId],
-  );
-
   const getGeneratorSuccessToastActions = useCallback(
     (info: GeneratorSaveSuccessInfo, originatedFromGraph: boolean) =>
       originatedFromGraph
-        ? { action: buildViewInGraphAction(info) }
+        ? { action: buildViewTokensAction(info) }
         : {
             action: buildViewTokensAction(info),
-            secondaryAction: buildViewInGraphAction(info),
           },
-    [buildViewInGraphAction, buildViewTokensAction],
+    [buildViewTokensAction],
   );
 
   const handleTokenDetailsBack = useCallback(() => {
@@ -979,11 +962,8 @@ export function PanelRouter({
           }),
         onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
         onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
-        onViewInGraph: (path: string, collectionId: string) => {
-          if (collectionId !== currentCollectionId) {
-            setCurrentCollectionId(collectionId);
-          }
-          setPendingGraphFocus({ kind: "token", path, collectionId });
+        onOpenGraphDocument: (graphId: string) => {
+          setPendingGraphDocumentId(graphId);
           navigateTo("library", "graph");
         },
         lintViolations: healthSignals.lintViolationsForCurrent,
@@ -1125,11 +1105,7 @@ export function PanelRouter({
             controller.refreshAll();
             if (!info) return;
             if (launchedFromGraph) {
-              setPendingGraphFocus({
-                kind: "generator",
-                generatorId: info.generatorId,
-              });
-              navigateTo("library", "graph");
+              openGeneratedTokens(info.targetGroup, info.targetCollection);
               return;
             }
             openGeneratedTokens(info.targetGroup, info.targetCollection);
@@ -1792,14 +1768,13 @@ export function PanelRouter({
           onReset={() => navigateTo("library", "tokens")}
         >
           <GraphPanel
+            serverUrl={serverUrl}
             collections={collections}
             workingCollectionId={currentCollectionId}
-            generators={generators}
-            derivedTokenPaths={derivedTokenPaths}
             perCollectionFlat={perCollectionFlat}
-            pathToCollectionId={pathToCollectionId}
-            collectionIdsByPath={collectionIdsByPath}
-            validationIssues={controller.validationIssues ?? undefined}
+            tokenChangeKey={controller.tokenChangeKey}
+            initialGraphId={pendingGraphDocumentId}
+            onInitialGraphHandled={() => setPendingGraphDocumentId(null)}
             onNavigateToToken={(path, collectionId) => {
               openTokenInContext({
                 path,
@@ -1809,12 +1784,6 @@ export function PanelRouter({
                 returnLabel: "Back to graph",
               });
             }}
-            onCompareTokens={(a, b) => {
-              setTokensComparePaths(new Set([a.path, b.path]));
-              setTokensCompareMode("tokens");
-              setShowTokensCompare(true);
-            }}
-            onOpenGeneratedGroupEditor={openGeneratedGroupEditor}
           />
         </ErrorBoundary>
       </div>
@@ -1850,23 +1819,6 @@ export function PanelRouter({
                 returnLabel: "Back to Review",
               });
             }}
-            onViewIssueInGraph={(issue) => {
-              if (issue.collectionId !== currentCollectionId) {
-                setCurrentCollectionId(issue.collectionId);
-              }
-              setPendingGraphFocus({
-                kind: "token",
-                path: issue.path,
-                collectionId: issue.collectionId,
-                issue: {
-                  rule: issue.rule,
-                  targetPath: issue.targetPath,
-                  targetCollectionId: issue.targetCollectionId,
-                  cyclePath: issue.cyclePath,
-                },
-              });
-              navigateTo("library", "graph");
-            }}
             validationIssues={controller.validationIssues}
             validationLoading={controller.validationLoading}
             validationError={controller.validationError}
@@ -1880,6 +1832,11 @@ export function PanelRouter({
             onPushUndo={controller.pushUndo}
             onError={controller.setErrorToast}
             onNavigateToGenerators={() => navigateTo("library", "tokens")}
+            onViewIssueInGraph={(issue) => {
+              if (!issue.graphId) return;
+              setPendingGraphDocumentId(issue.graphId);
+              navigateTo("library", "graph");
+            }}
             scope={healthScope}
             onScopeChange={setHealthScope}
             issueActions={issueActions}

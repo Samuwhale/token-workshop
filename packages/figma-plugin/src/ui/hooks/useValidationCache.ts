@@ -16,6 +16,7 @@ export interface ValidationIssue {
   suggestion?: string;
   /** For no-duplicate-values: canonical token path shared by all tokens in this duplicate group. */
   group?: string;
+  graphId?: string;
 }
 
 export interface ValidationCacheResult {

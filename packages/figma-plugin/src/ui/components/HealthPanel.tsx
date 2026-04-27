@@ -24,6 +24,25 @@ import { HealthRulesView } from "./health/HealthRulesView";
 import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
 import type { CollectionReviewSummary } from "../shared/reviewSummary";
 
+interface GraphStatusItem {
+  graph: {
+    id: string;
+    name: string;
+    targetCollectionId: string;
+  };
+  preview: {
+    diagnostics: Array<{
+      id: string;
+      severity: "error" | "warning" | "info";
+      message: string;
+    }>;
+    outputs: Array<{ collision?: boolean }>;
+  };
+  stale: boolean;
+  unapplied: boolean;
+  blocking: boolean;
+}
+
 export interface HealthPanelProps {
   serverUrl: string;
   connected: boolean;
@@ -104,6 +123,8 @@ export function HealthPanel({
   const scopedCollectionKey = scopedCollectionId ?? "";
 
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
+  const [graphStatuses, setGraphStatuses] = useState<GraphStatusItem[]>([]);
+  const [graphStatusError, setGraphStatusError] = useState<string | null>(null);
 
   useEffect(() => {
     if (scope.mode !== "current") {
@@ -118,6 +139,31 @@ export function HealthPanel({
       nonce: Date.now(),
     });
   }, [collectionIds, onScopeChange, scope, scopedCollectionId]);
+
+  useEffect(() => {
+    if (!connected) {
+      setGraphStatuses([]);
+      setGraphStatusError(null);
+      return;
+    }
+    let cancelled = false;
+    apiFetch<{ graphs: GraphStatusItem[] }>(`${serverUrl}/api/graphs/status`)
+      .then((response) => {
+        if (!cancelled) {
+          setGraphStatuses(response.graphs);
+          setGraphStatusError(null);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setGraphStatuses([]);
+          setGraphStatusError(error instanceof Error ? error.message : String(error));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [connected, serverUrl, validationLastRefreshed]);
 
   const refreshHealthState = async () => {
     await onRefreshReview();
@@ -153,6 +199,41 @@ export function HealthPanel({
   const generatorSignals = healthSignals.signals.filter(
     (s) => s.collectionId === scopedCollectionKey && s.source === "generator",
   );
+  const graphIssues: ValidationIssue[] = graphStatuses
+    .filter((item) => item.graph.targetCollectionId === scopedCollectionKey)
+    .flatMap((item) => {
+      const diagnostics = item.preview.diagnostics.map<ValidationIssue>((diagnostic) => ({
+        rule: "graph-diagnostic",
+        path: item.graph.name,
+        collectionId: item.graph.targetCollectionId,
+        severity: diagnostic.severity,
+        message: diagnostic.message,
+        graphId: item.graph.id,
+      }));
+      if (item.stale || item.unapplied) {
+        diagnostics.unshift({
+          rule: "graph-diagnostic",
+          path: item.graph.name,
+          collectionId: item.graph.targetCollectionId,
+          severity: item.blocking ? "error" : "warning",
+          message: item.stale
+            ? "Graph outputs are stale. Preview and apply the graph before publishing."
+            : "Graph outputs have not been applied yet.",
+          graphId: item.graph.id,
+        });
+      }
+      if (item.preview.outputs.some((output) => output.collision)) {
+        diagnostics.unshift({
+          rule: "graph-diagnostic",
+          path: item.graph.name,
+          collectionId: item.graph.targetCollectionId,
+          severity: "error",
+          message: "Graph output collides with a manually edited token. Open the graph to resolve or detach the token.",
+          graphId: item.graph.id,
+        });
+      }
+      return diagnostics;
+    });
 
   const deprecatedUsageEntriesForCurrent = deprecatedUsageEntries.filter(
     (e) => e.collectionId === scopedCollectionKey,
@@ -174,9 +255,9 @@ export function HealthPanel({
   const issueStatus = statusFromIssueSeverities(
     tokenLevelSignals.map((signal) => signal.severity),
   );
-  const generatorIssueCount = generatorSignals.length;
+  const generatorIssueCount = generatorSignals.length + graphIssues.length;
   const generatorStatus = statusFromIssueSeverities(
-    generatorSignals.map((signal) => signal.severity),
+    [...generatorSignals.map((signal) => signal.severity), ...graphIssues.map((issue) => issue.severity)],
   );
   const unusedCount = unusedTokens.length;
   const deprecatedCount = deprecatedUsageEntriesForCurrent.length;
@@ -189,16 +270,19 @@ export function HealthPanel({
     }),
   );
 
-  const unifiedIssuesForView: ValidationIssue[] = tokenLevelSignals.map((s) => ({
-    rule: s.rule,
-    path: s.path,
-    collectionId: s.collectionId,
-    severity: s.severity,
-    message: s.message,
-    suggestedFix: s.suggestedFix,
-    suggestion: s.suggestion,
-    group: s.group,
-  }));
+  const unifiedIssuesForView: ValidationIssue[] = [
+    ...tokenLevelSignals.map((s) => ({
+      rule: s.rule,
+      path: s.path,
+      collectionId: s.collectionId,
+      severity: s.severity,
+      message: s.message,
+      suggestedFix: s.suggestedFix,
+      suggestion: s.suggestion,
+      group: s.group,
+    })),
+    ...graphIssues,
+  ];
 
   const totalIssueCount =
     issueCount +
@@ -211,7 +295,7 @@ export function HealthPanel({
     ? collectionReviewSummaries.get(scopedCollectionKey)
     : undefined;
   const overallStatus: HealthStatus =
-    validationError
+    validationError || graphStatusError
       ? "critical"
       : currentReviewSummary?.severity === "critical"
       ? "critical"
@@ -220,6 +304,7 @@ export function HealthPanel({
           duplicateCount > 0 ||
           deprecatedCount > 0 ||
           aliasOpportunitiesCount > 0 ||
+          graphIssues.length > 0 ||
           (tokenUsageReady && unusedCount > 0)
         ? "warning"
         : "healthy";
@@ -353,7 +438,7 @@ export function HealthPanel({
   const collectionSummariesPending =
     scope.mode === "all" &&
     (validationLoading || deprecatedUsageLoading || !unusedDataReady);
-  const libraryReviewErrors = [validationError, deprecatedUsageError].filter(
+  const libraryReviewErrors = [validationError, deprecatedUsageError, graphStatusError].filter(
     (message): message is string => Boolean(message),
   );
 

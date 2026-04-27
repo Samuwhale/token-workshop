@@ -19,6 +19,7 @@ import type {
 import type { ValidationSnapshot } from './useValidationCache';
 import type { OrphanConfirmState } from './useOrphanCleanup';
 import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
+import { apiFetch } from '../shared/apiFetch';
 
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
@@ -82,6 +83,21 @@ interface ClusterDraft {
 }
 
 type VariableSyncSnapshot = Awaited<ReturnType<typeof loadVariableSyncSnapshot>>;
+
+interface GraphStatusItem {
+  graph: {
+    id: string;
+    name: string;
+    targetCollectionId: string;
+  };
+  preview: {
+    diagnostics: Array<{ severity: 'error' | 'warning' | 'info' }>;
+    outputs: Array<{ collision?: boolean }>;
+  };
+  stale: boolean;
+  unapplied: boolean;
+  blocking: boolean;
+}
 
 interface ResolverOrphanCleanupPlan {
   orphanPaths: string[];
@@ -240,8 +256,25 @@ export function useReadinessChecks({
         resolverPublishMappings,
       );
       const validationSnapshot = await refreshValidation();
+      let graphStatuses: GraphStatusItem[] = [];
+      try {
+        const graphStatusResponse = await apiFetch<{ graphs: GraphStatusItem[] }>(
+          `${serverUrl}/api/graphs/status`,
+        );
+        graphStatuses = graphStatusResponse.graphs;
+      } catch {
+        graphStatuses = [];
+      }
       const activeValidationIssues =
         validationSnapshot?.issues.filter((issue) => issue.collectionId === currentCollectionId && issue.severity === 'error') ?? [];
+      const graphIssues = graphStatuses.filter((item) =>
+        item.graph.targetCollectionId === currentCollectionId &&
+        (item.blocking ||
+          item.stale ||
+          item.unapplied ||
+          item.preview.diagnostics.length > 0 ||
+          item.preview.outputs.some((output) => output.collision))
+      );
       const { localOnly: missingInFigma, figmaOnly: rawOrphans } = getSyncRowsByCategory(snapshot.rows);
       const resolverOrphanPlan = compareMode === 'resolver-publish' && resolverPublishMappings
         ? buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings)
@@ -349,6 +382,19 @@ export function useReadinessChecks({
             : undefined,
           recommendedActionLabel: activeValidationIssues.length > 0 ? 'Open Review' : undefined,
           recommendedActionId: activeValidationIssues.length > 0 ? 'review-health-findings' : undefined,
+        },
+        {
+          id: 'graph-documents',
+          label: 'Graph outputs',
+          severity: graphIssues.some((item) => item.blocking || item.preview.diagnostics.some((diagnostic) => diagnostic.severity === 'error'))
+            ? 'blocking'
+            : 'advisory',
+          affectedCount: graphIssues.length || undefined,
+          detail: graphIssues.length > 0
+            ? `${formatCount(graphIssues.length, 'graph')} need preview, apply, or diagnostic review before publishing this collection to Figma.`
+            : undefined,
+          recommendedActionLabel: graphIssues.length > 0 ? 'Open Review' : undefined,
+          recommendedActionId: graphIssues.length > 0 ? 'review-health-findings' : undefined,
         },
         {
           id: 'draft-tokens',

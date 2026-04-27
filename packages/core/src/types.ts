@@ -220,6 +220,13 @@ export interface TokenManagerExtensions {
   extends?: string;
   /** Per-collection mode overrides keyed by collection id, then mode name. */
   modes?: TokenModeValues;
+  /** Graph provenance for tokens managed by a graph document. */
+  graph?: {
+    graphId: string;
+    outputNodeId: string;
+    outputKey: string;
+    lastAppliedHash: string;
+  };
   /** Resolver-driven Figma publish configuration for mapping contexts to modes. */
   resolverPublish?: ResolverFigmaPublishConfig;
 }

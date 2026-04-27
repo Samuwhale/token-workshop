@@ -268,30 +268,6 @@ export type {
   ResolveTokenAncestorsParams,
 } from './token-resolve.js';
 
-// Graph
-export { buildGraph, tokenNodeId, generatorNodeId, derivationNodeId } from './graph.js';
-export type {
-  GraphNodeId,
-  GraphEdgeId,
-  GraphHealthStatus,
-  GhostReason,
-  GraphTokenLike,
-  TokenGraphNode,
-  GeneratorGraphNode,
-  GhostGraphNode,
-  DerivationGraphNode,
-  GraphNode,
-  AliasEdge,
-  GeneratorSourceEdge,
-  GeneratorProducesEdge,
-  DerivationSourceEdge,
-  DerivationProducesEdge,
-  GraphEdge,
-  GraphModel,
-  BuildGraphInput,
-  GraphValidationIssue,
-} from './graph.js';
-
 // Generator engine
 export {
   runColorRampGenerator,
@@ -304,3 +280,26 @@ export {
   runCustomScaleGenerator,
   applyOverrides,
 } from './generator-engine.js';
+
+// Token graph documents (advanced automation layer)
+export {
+  createDefaultTokenGraphDocument,
+  evaluateTokenGraphDocument,
+  graphProvenanceHash,
+  readGraphProvenance,
+  tokenFromGraphOutput,
+} from './token-graph-documents.js';
+export type {
+  EvaluateTokenGraphDocumentInput,
+  GraphOutputProvenance,
+  TokenGraphDiagnostic,
+  TokenGraphDocument,
+  TokenGraphEdge,
+  TokenGraphNode as TokenGraphDocumentNode,
+  TokenGraphNodeKind,
+  TokenGraphPortType,
+  TokenGraphPosition,
+  TokenGraphPreviewOutput,
+  TokenGraphPreviewResult,
+  TokenGraphViewport,
+} from './token-graph-documents.js';
