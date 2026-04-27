@@ -275,6 +275,7 @@ export class TokenGraphService {
       }
       const touchedPaths = [...new Set([...preview.outputs.map((output) => output.path), ...deleted])];
       const beforeSnapshot = await snapshotPaths(tokenStore, graph.targetCollectionId, touchedPaths);
+      const graphBefore = cloneGraph(graph);
 
       const tokens = preview.outputs.map((output) => ({
         path: output.path,
@@ -290,66 +291,73 @@ export class TokenGraphService {
           output.existingToken,
         ),
       }));
+      let tokenWritesStarted = false;
       try {
         if (tokens.length > 0) {
+          tokenWritesStarted = true;
           await tokenStore.batchUpsertTokens(graph.targetCollectionId, tokens, "overwrite");
         }
         if (deleted.length > 0) {
+          tokenWritesStarted = true;
           await tokenStore.deleteTokens(graph.targetCollectionId, deleted);
         }
+
+        const afterSnapshot = await snapshotPaths(tokenStore, graph.targetCollectionId, touchedPaths);
+        const changedKeys = listChangedSnapshotKeys(beforeSnapshot, afterSnapshot);
+        const changedPaths = listChangedSnapshotTokenPaths(beforeSnapshot, afterSnapshot);
+        const created = preview.outputs
+          .filter((output) => output.change === "created")
+          .map((output) => output.path);
+        const updated = preview.outputs
+          .filter((output) => output.change === "updated")
+          .map((output) => output.path);
+
+        const updatedGraph = normalizeGraphDocument({
+          ...graph,
+          lastAppliedAt: new Date().toISOString(),
+          lastApplyDiagnostics: preview.diagnostics,
+          outputHashes: Object.fromEntries(
+            preview.outputs.map((output) => [output.path, output.hash]),
+          ),
+          updatedAt: new Date().toISOString(),
+        });
+        this.graphs.set(graph.id, updatedGraph);
+        await this.persist();
+
+        let operationId: string | undefined;
+        if (changedKeys.length > 0) {
+          const operation = await operationLog.record({
+            type: "graph-apply",
+            description: `Apply graph "${graph.name}"`,
+            resourceId: graph.id,
+            affectedPaths: changedPaths,
+            beforeSnapshot: pickSnapshotEntries(beforeSnapshot, changedKeys),
+            afterSnapshot: pickSnapshotEntries(afterSnapshot, changedKeys),
+            metadata: {
+              kind: "graph-apply",
+              graphId: graph.id,
+              graphName: graph.name,
+              targetCollectionId: graph.targetCollectionId,
+            },
+          });
+          operationId = operation.id;
+        }
+
+        return {
+          preview,
+          operationId,
+          created,
+          updated,
+          deleted,
+        };
       } catch (error) {
-        await restoreSnapshot(tokenStore, graph.targetCollectionId, beforeSnapshot);
+        if (tokenWritesStarted) {
+          await restoreSnapshot(tokenStore, graph.targetCollectionId, beforeSnapshot);
+        }
+        this.graphs.set(graphBefore.id, graphBefore);
+        await this.persist();
         throw error;
       }
-
-      const afterSnapshot = await snapshotPaths(tokenStore, graph.targetCollectionId, touchedPaths);
-      const changedKeys = listChangedSnapshotKeys(beforeSnapshot, afterSnapshot);
-      const changedPaths = listChangedSnapshotTokenPaths(beforeSnapshot, afterSnapshot);
-      const created = preview.outputs
-        .filter((output) => output.change === "created")
-        .map((output) => output.path);
-      const updated = preview.outputs
-        .filter((output) => output.change === "updated")
-        .map((output) => output.path);
-
-      let operationId: string | undefined;
-      if (changedKeys.length > 0) {
-        const operation = await operationLog.record({
-          type: "graph-apply",
-          description: `Apply graph "${graph.name}"`,
-          resourceId: graph.id,
-          affectedPaths: changedPaths,
-          beforeSnapshot: pickSnapshotEntries(beforeSnapshot, changedKeys),
-          afterSnapshot: pickSnapshotEntries(afterSnapshot, changedKeys),
-          metadata: {
-            kind: "graph-apply",
-            graphId: graph.id,
-            graphName: graph.name,
-            targetCollectionId: graph.targetCollectionId,
-          },
-        });
-        operationId = operation.id;
-      }
-
-      const updatedGraph = normalizeGraphDocument({
-        ...graph,
-        lastAppliedAt: new Date().toISOString(),
-        lastApplyDiagnostics: preview.diagnostics,
-        outputHashes: Object.fromEntries(
-          preview.outputs.map((output) => [output.path, output.hash]),
-        ),
-        updatedAt: new Date().toISOString(),
-      });
-      this.graphs.set(graph.id, updatedGraph);
-      await this.persist();
-
-      return {
-        preview,
-        operationId,
-        created,
-        updated,
-        deleted,
-      };
     });
   }
 
@@ -391,29 +399,38 @@ export class TokenGraphService {
       } else {
         delete nextToken.$extensions;
       }
-      await tokenStore.updateToken(collectionId, tokenPath, nextToken);
-      const afterSnapshot = await snapshotPaths(tokenStore, collectionId, [tokenPath]);
-      const changedKeys = listChangedSnapshotKeys(beforeSnapshot, afterSnapshot);
-      let operationId: string | undefined;
-      if (changedKeys.length > 0) {
-        const operation = await operationLog.record({
-          type: "graph-detach",
-          description: `Detach "${tokenPath}" from graph "${graph.name}"`,
-          resourceId: graph.id,
-          affectedPaths: [tokenPath],
-          beforeSnapshot: pickSnapshotEntries(beforeSnapshot, changedKeys),
-          afterSnapshot: pickSnapshotEntries(afterSnapshot, changedKeys),
-          metadata: {
-            kind: "graph-detach",
-            graphId: graph.id,
-            graphName: graph.name,
-            collectionId,
-            tokenPath,
-          },
-        });
-        operationId = operation.id;
+      let tokenUpdated = false;
+      try {
+        await tokenStore.updateToken(collectionId, tokenPath, nextToken);
+        tokenUpdated = true;
+        const afterSnapshot = await snapshotPaths(tokenStore, collectionId, [tokenPath]);
+        const changedKeys = listChangedSnapshotKeys(beforeSnapshot, afterSnapshot);
+        let operationId: string | undefined;
+        if (changedKeys.length > 0) {
+          const operation = await operationLog.record({
+            type: "graph-detach",
+            description: `Detach "${tokenPath}" from graph "${graph.name}"`,
+            resourceId: graph.id,
+            affectedPaths: [tokenPath],
+            beforeSnapshot: pickSnapshotEntries(beforeSnapshot, changedKeys),
+            afterSnapshot: pickSnapshotEntries(afterSnapshot, changedKeys),
+            metadata: {
+              kind: "graph-detach",
+              graphId: graph.id,
+              graphName: graph.name,
+              collectionId,
+              tokenPath,
+            },
+          });
+          operationId = operation.id;
+        }
+        return { ok: true, operationId };
+      } catch (error) {
+        if (tokenUpdated) {
+          await restoreSnapshot(tokenStore, collectionId, beforeSnapshot);
+        }
+        throw error;
       }
-      return { ok: true, operationId };
     });
   }
 
@@ -465,6 +482,36 @@ export class TokenGraphService {
       }
       return deleted;
     });
+  }
+
+  getCollectionReferenceCount(collectionIds: Iterable<string>): number {
+    const collectionIdSet = new Set(collectionIds);
+    let count = 0;
+    for (const graph of this.graphs.values()) {
+      if (collectionIdSet.has(graph.targetCollectionId)) {
+        count += 1;
+        continue;
+      }
+      if (
+        graph.nodes.some(
+          (node) =>
+            typeof node.data.collectionId === "string" &&
+            collectionIdSet.has(node.data.collectionId),
+        )
+      ) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  assertNoCollectionReferences(collectionIds: Iterable<string>): void {
+    const count = this.getCollectionReferenceCount(collectionIds);
+    if (count > 0) {
+      throw new ConflictError(
+        `Cannot delete collection while ${count} graph document${count === 1 ? "" : "s"} still reference it. Delete or retarget those graphs first.`,
+      );
+    }
   }
 
   private async buildPreview(
@@ -550,6 +597,9 @@ export class TokenGraphService {
     if (!provenance || provenance.graphId !== graph.id) {
       return false;
     }
+    if (tokenHasManualGraphOutputMetadata(token)) {
+      return false;
+    }
     const currentHash = stableStringify({
       documentId: graph.id,
       nodeId: provenance.outputNodeId,
@@ -559,6 +609,31 @@ export class TokenGraphService {
     });
     return currentHash === provenance.lastAppliedHash;
   }
+}
+
+function tokenHasManualGraphOutputMetadata(token: Token): boolean {
+  if (token.$description) {
+    return true;
+  }
+  const extensions = token.$extensions;
+  if (!extensions) {
+    return false;
+  }
+  for (const [key, value] of Object.entries(extensions)) {
+    if (key !== "tokenmanager") {
+      return true;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return true;
+    }
+    const tokenmanager = value as Record<string, unknown>;
+    for (const tokenmanagerKey of Object.keys(tokenmanager)) {
+      if (tokenmanagerKey !== "graph" && tokenmanagerKey !== "modes") {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function sameStringRecord(left: Record<string, string>, right: Record<string, string>): boolean {

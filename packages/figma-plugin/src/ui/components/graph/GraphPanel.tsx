@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   Background,
   Controls,
   Handle,
-  MiniMap,
   Position,
   ReactFlow,
   type ReactFlowInstance,
@@ -23,6 +22,8 @@ import {
   CircleDot,
   Database,
   GitBranch,
+  PanelLeft,
+  PanelRight,
   Play,
   Plus,
   Save,
@@ -143,6 +144,8 @@ export function GraphPanel({
   const [dirty, setDirty] = useState(false);
   const [externalPreviewInvalidated, setExternalPreviewInvalidated] = useState(false);
   const [lastApply, setLastApply] = useState<GraphApplyResponse | null>(null);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<GraphFlowNode, GraphFlowEdge> | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphFlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<GraphFlowEdge>([]);
@@ -155,10 +158,6 @@ export function GraphPanel({
     () => collections.find((collection) => collection.id === activeGraph?.targetCollectionId),
     [activeGraph?.targetCollectionId, collections],
   );
-  const tokenOptions = useMemo(() => {
-    const collectionId = activeGraph?.targetCollectionId ?? workingCollectionId;
-    return Object.keys(perCollectionFlat[collectionId] ?? {}).sort();
-  }, [activeGraph?.targetCollectionId, perCollectionFlat, workingCollectionId]);
   const selectedNode = useMemo(
     () => activeGraph?.nodes.find((node) => node.id === selectedNodeId) ?? null,
     [activeGraph, selectedNodeId],
@@ -196,6 +195,12 @@ export function GraphPanel({
   }, [tokenChangeKey]);
 
   useEffect(() => {
+    if (selectedNodeId) {
+      setInspectorOpen(true);
+    }
+  }, [selectedNodeId]);
+
+  useEffect(() => {
     if (!activeGraph) {
       setNodes([]);
       setEdges([]);
@@ -206,17 +211,18 @@ export function GraphPanel({
     setSelectedNodeId((current) =>
       current && activeGraph.nodes.some((node) => node.id === current)
         ? current
-        : activeGraph.nodes[0]?.id ?? null,
+        : null,
     );
   }, [activeGraph?.id, preview, setEdges, setNodes]);
 
   const patchActiveGraph = useCallback(
     (patch: Partial<TokenGraphDocument>) => {
       if (!activeGraph) return;
+      const baseGraph = graphWithFlowState(activeGraph, nodes, edges);
       setGraphs((current) =>
         current.map((graph) =>
           graph.id === activeGraph.id
-            ? { ...graph, ...patch, updatedAt: new Date().toISOString() }
+            ? { ...baseGraph, ...patch, updatedAt: new Date().toISOString() }
             : graph,
         ),
       );
@@ -225,27 +231,12 @@ export function GraphPanel({
       setLastApply(null);
       setExternalPreviewInvalidated(false);
     },
-    [activeGraph],
+    [activeGraph, edges, nodes],
   );
 
   const syncFlowToGraph = useCallback(() => {
     if (!activeGraph) return activeGraph;
-    const nextNodes = nodes.map((node) => ({
-      ...node.data.graphNode,
-      position: node.position,
-    }));
-    const nextEdges = edges.map((edge) => ({
-      id: edge.id,
-      from: {
-        nodeId: String(edge.source),
-        port: String(edge.sourceHandle ?? "value"),
-      },
-      to: {
-        nodeId: String(edge.target),
-        port: String(edge.targetHandle ?? "value"),
-      },
-    }));
-    const nextGraph = { ...activeGraph, nodes: nextNodes, edges: nextEdges };
+    const nextGraph = graphWithFlowState(activeGraph, nodes, edges);
     setGraphs((current) =>
       current.map((graph) => (graph.id === activeGraph.id ? nextGraph : graph)),
     );
@@ -395,8 +386,10 @@ export function GraphPanel({
               data: { ...node.data, ...nodeData },
             }
           : node;
+      if (!activeGraph) return;
+      const currentGraph = graphWithFlowState(activeGraph, nodes, edges);
       patchActiveGraph({
-        nodes: activeGraph?.nodes.map(updateGraphNode) ?? [],
+        nodes: currentGraph.nodes.map(updateGraphNode),
       });
       setNodes((current) =>
         current.map((node) =>
@@ -409,7 +402,7 @@ export function GraphPanel({
         ),
       );
     },
-    [activeGraph?.nodes, patchActiveGraph, setNodes],
+    [activeGraph, edges, nodes, patchActiveGraph, setNodes],
   );
 
   const addPaletteNode = useCallback(
@@ -426,8 +419,9 @@ export function GraphPanel({
         position,
         data: { ...item.defaults },
       };
+      const currentGraph = graphWithFlowState(activeGraph, nodes, edges);
       patchActiveGraph({
-        nodes: [...activeGraph.nodes, graphNode],
+        nodes: [...currentGraph.nodes, graphNode],
       });
       setNodes((current) => [
         ...current,
@@ -440,7 +434,7 @@ export function GraphPanel({
       ]);
       setSelectedNodeId(id);
     },
-    [activeGraph, nodes.length, patchActiveGraph, preview, setNodes],
+    [activeGraph, edges, nodes, nodes.length, patchActiveGraph, preview, setNodes],
   );
 
   const onConnect = useCallback(
@@ -466,22 +460,24 @@ export function GraphPanel({
         ),
       );
       if (activeGraph) {
+        const currentGraph = graphWithFlowState(activeGraph, nodes, edges);
         patchActiveGraph({
-          edges: [...activeGraph.edges.filter((edge) => edge.id !== graphEdge.id), graphEdge],
+          edges: [...currentGraph.edges.filter((edge) => edge.id !== graphEdge.id), graphEdge],
         });
       }
       setDirty(true);
       setPreview(null);
       setExternalPreviewInvalidated(false);
     },
-    [activeGraph, patchActiveGraph, setEdges],
+    [activeGraph, edges, nodes, patchActiveGraph, setEdges],
   );
 
   const deleteSelectedNode = useCallback(() => {
     if (!activeGraph || !selectedNode) return;
+    const currentGraph = graphWithFlowState(activeGraph, nodes, edges);
     patchActiveGraph({
-      nodes: activeGraph.nodes.filter((node) => node.id !== selectedNode.id),
-      edges: activeGraph.edges.filter(
+      nodes: currentGraph.nodes.filter((node) => node.id !== selectedNode.id),
+      edges: currentGraph.edges.filter(
         (edge) => edge.from.nodeId !== selectedNode.id && edge.to.nodeId !== selectedNode.id,
       ),
     });
@@ -491,7 +487,7 @@ export function GraphPanel({
         (edge) => edge.source !== selectedNode.id && edge.target !== selectedNode.id,
       ),
     );
-  }, [activeGraph, patchActiveGraph, selectedNode, setEdges, setNodes]);
+  }, [activeGraph, edges, nodes, patchActiveGraph, selectedNode, setEdges, setNodes]);
 
   const filteredPalette = useMemo(() => {
     const query = paletteQuery.trim().toLowerCase();
@@ -505,6 +501,7 @@ export function GraphPanel({
 
   return (
     <div className="flex h-full min-h-0 bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]">
+      {leftPanelOpen && (
       <aside className="flex w-[260px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-[var(--color-figma-border)] px-3 py-3">
         <section>
           <div className="mb-2 flex items-center justify-between">
@@ -606,11 +603,20 @@ export function GraphPanel({
           </div>
         </section>
       </aside>
+      )}
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] px-3">
           {activeGraph ? (
             <>
+              <button
+                type="button"
+                title={leftPanelOpen ? "Hide graph list and nodes" : "Show graph list and nodes"}
+                onClick={() => setLeftPanelOpen((open) => !open)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                <PanelLeft size={14} />
+              </button>
               <input
                 value={activeGraph.name}
                 onChange={(event) => patchActiveGraph({ name: event.target.value })}
@@ -639,6 +645,14 @@ export function GraphPanel({
                         : "Saved"}
               </span>
               <div className="ml-auto flex items-center gap-1.5">
+                <button
+                  type="button"
+                  title={inspectorOpen ? "Hide inspector" : "Show inspector"}
+                  onClick={() => setInspectorOpen((open) => !open)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <PanelRight size={14} />
+                </button>
                 <button
                   type="button"
                   onClick={saveGraph}
@@ -678,9 +692,19 @@ export function GraphPanel({
               </div>
             </>
           ) : (
-            <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Create a graph to start authoring generated tokens.
-            </span>
+            <>
+              <button
+                type="button"
+                title={leftPanelOpen ? "Hide graph list and nodes" : "Show graph list and nodes"}
+                onClick={() => setLeftPanelOpen((open) => !open)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                <PanelLeft size={14} />
+              </button>
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                Create a graph to start authoring generated tokens.
+              </span>
+            </>
           )}
         </div>
 
@@ -723,7 +747,11 @@ export function GraphPanel({
               }}
               onConnect={onConnect}
               onInit={setFlowInstance}
-              onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
+              onPaneClick={() => setSelectedNodeId(null)}
+              onNodeClick={(_event, node) => {
+                setSelectedNodeId(node.id);
+                setInspectorOpen(true);
+              }}
               onDragOver={(event) => {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = "copy";
@@ -744,7 +772,6 @@ export function GraphPanel({
             >
               <Background gap={16} size={1} color="var(--color-figma-border)" />
               <Controls showInteractive={false} />
-              <MiniMap pannable zoomable />
             </ReactFlow>
           ) : (
             <div className="flex h-full items-center justify-center">
@@ -761,13 +788,16 @@ export function GraphPanel({
         </div>
       </main>
 
+      {inspectorOpen && (
       <aside className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)]">
         <section className="p-3">
           <h2 className="mb-2 text-primary font-semibold">Inspector</h2>
           {selectedNode ? (
             <NodeInspector
               node={selectedNode}
-              tokenOptions={tokenOptions}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              defaultCollectionId={activeGraph?.targetCollectionId ?? workingCollectionId}
               onChange={(data) => updateNodeData(selectedNode.id, data)}
               onDelete={deleteSelectedNode}
             />
@@ -796,6 +826,7 @@ export function GraphPanel({
           />
         </section>
       </aside>
+      )}
     </div>
   );
 }
@@ -807,8 +838,8 @@ function GraphDocumentNode({
   const graphNode = data.graphNode;
   const relatedOutputs = data.preview?.outputs.filter((output) => output.nodeId === graphNode.id) ?? [];
   const diagnostics = data.preview?.diagnostics.filter((diagnostic) => diagnostic.nodeId === graphNode.id) ?? [];
-  const hasInput = !["tokenInput", "literal", "alias", "list"].includes(graphNode.kind);
-  const hasOutput = !["output", "groupOutput"].includes(graphNode.kind);
+  const inputPorts = getNodeInputPorts(graphNode);
+  const outputPorts = getNodeOutputPorts(graphNode);
 
   return (
     <div
@@ -816,8 +847,24 @@ function GraphDocumentNode({
         selected ? "border-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)]"
       }`}
     >
-      {hasInput && <Handle type="target" position={Position.Left} id="value" />}
-      {hasOutput && <Handle type="source" position={Position.Right} id="value" />}
+      {inputPorts.map((port, index) => (
+        <Handle
+          key={`in-${port}`}
+          type="target"
+          position={Position.Left}
+          id={port}
+          style={portHandleStyle(inputPorts.length, index)}
+        />
+      ))}
+      {outputPorts.map((port, index) => (
+        <Handle
+          key={`out-${port}`}
+          type="source"
+          position={Position.Right}
+          id={port}
+          style={portHandleStyle(outputPorts.length, index)}
+        />
+      ))}
       <div className="flex items-center justify-between gap-2">
         <div className="truncate text-secondary font-semibold">{graphNode.label}</div>
         {diagnostics.length > 0 && <AlertTriangle size={14} className="text-[var(--color-figma-warning)]" />}
@@ -845,15 +892,21 @@ function GraphDocumentNode({
 
 function NodeInspector({
   node,
-  tokenOptions,
+  collections,
+  perCollectionFlat,
+  defaultCollectionId,
   onChange,
   onDelete,
 }: {
   node: TokenGraphDocumentNode;
-  tokenOptions: string[];
+  collections: TokenCollection[];
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  defaultCollectionId: string;
   onChange: (data: Record<string, unknown>) => void;
   onDelete: () => void;
 }) {
+  const selectedCollectionId = String(node.data.collectionId ?? defaultCollectionId);
+  const tokenOptions = Object.keys(perCollectionFlat[selectedCollectionId] ?? {}).sort();
   const field = (key: string, label: string, type = "text") => (
     <label className="block">
       <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
@@ -883,22 +936,40 @@ function NodeInspector({
         />
       </label>
       {(node.kind === "tokenInput" || node.kind === "alias") && (
-        <label className="block">
-          <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-            Token
-          </span>
-          <input
-            list="graph-token-options"
-            value={String(node.data.path ?? "")}
-            onChange={(event) => onChange({ path: event.target.value })}
-            className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
-          />
-          <datalist id="graph-token-options">
-            {tokenOptions.map((path) => (
-              <option key={path} value={path} />
-            ))}
-          </datalist>
-        </label>
+        <>
+          <label className="block">
+            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+              Collection
+            </span>
+            <select
+              value={selectedCollectionId}
+              onChange={(event) => onChange({ collectionId: event.target.value, path: "" })}
+              className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary"
+            >
+              {collections.map((collection) => (
+                <option key={collection.id} value={collection.id}>
+                  {collection.id}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+              Token
+            </span>
+            <input
+              list={`graph-token-options-${node.id}`}
+              value={String(node.data.path ?? "")}
+              onChange={(event) => onChange({ path: event.target.value })}
+              className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+            />
+            <datalist id={`graph-token-options-${node.id}`}>
+              {tokenOptions.map((path) => (
+                <option key={path} value={path} />
+              ))}
+            </datalist>
+          </label>
+        </>
       )}
       {node.kind === "literal" && (
         <>
@@ -1017,6 +1088,31 @@ function NodeInspector({
   );
 }
 
+function getNodeInputPorts(node: TokenGraphDocumentNode): string[] {
+  if (["tokenInput", "literal", "alias", "list"].includes(node.kind)) {
+    return [];
+  }
+  if (node.kind === "formula") {
+    return ["value", "var2", "var3"];
+  }
+  return ["value"];
+}
+
+function getNodeOutputPorts(node: TokenGraphDocumentNode): string[] {
+  if (["output", "groupOutput"].includes(node.kind)) {
+    return [];
+  }
+  if (node.kind === "colorRamp" || node.kind === "list") {
+    return ["value", "steps"];
+  }
+  return ["value"];
+}
+
+function portHandleStyle(total: number, index: number): CSSProperties {
+  if (total <= 1) return {};
+  return { top: `${Math.round(((index + 1) / (total + 1)) * 100)}%` };
+}
+
 function PreviewPanel({
   preview,
   targetCollection,
@@ -1109,6 +1205,31 @@ function toFlowNodes(
     position: graphNode.position,
     data: { graphNode, preview: preview ?? undefined },
   }));
+}
+
+function graphWithFlowState(
+  graph: TokenGraphDocument,
+  nodes: GraphFlowNode[],
+  edges: GraphFlowEdge[],
+): TokenGraphDocument {
+  return {
+    ...graph,
+    nodes: nodes.map((node) => ({
+      ...node.data.graphNode,
+      position: node.position,
+    })),
+    edges: edges.map((edge) => ({
+      id: edge.id,
+      from: {
+        nodeId: String(edge.source),
+        port: String(edge.sourceHandle ?? "value"),
+      },
+      to: {
+        nodeId: String(edge.target),
+        port: String(edge.targetHandle ?? "value"),
+      },
+    })),
+  };
 }
 
 function toFlowEdges(edges: TokenGraphEdge[]): GraphFlowEdge[] {

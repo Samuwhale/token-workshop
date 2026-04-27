@@ -71,13 +71,6 @@ function readModeValue(
   if (Object.prototype.hasOwnProperty.call(modeValues, requestedModeName)) {
     return { found: true, value: modeValues[requestedModeName] };
   }
-  const fallbackModeName = collection.modes[0]?.name;
-  if (
-    fallbackModeName &&
-    Object.prototype.hasOwnProperty.call(modeValues, fallbackModeName)
-  ) {
-    return { found: true, value: modeValues[fallbackModeName] };
-  }
   return { found: false };
 }
 

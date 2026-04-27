@@ -46,7 +46,6 @@ import {
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
-  useGeneratorContext,
 } from "./contexts/TokenDataContext";
 import {
   useResolverContext,
@@ -68,8 +67,7 @@ import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
 import { useValidationCache } from "./hooks/useValidationCache";
-import { createGeneratorSourceKey, type DerivationOp } from "@tokenmanager/core";
-import { resolveGeneratedGroupSourceContext } from "./shared/generatedGroupUtils";
+import type { DerivationOp } from "@tokenmanager/core";
 import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
 import {
@@ -134,8 +132,6 @@ export function App() {
   const {
     tokenDetails,
     setTokenDetails,
-    editingGeneratedGroup,
-    setEditingGeneratedGroup,
     inspectingCollection,
     setHighlightedToken,
     setPendingHighlightForCollection,
@@ -178,13 +174,7 @@ export function App() {
     pathToCollectionId,
     collectionIdsByPath,
     perCollectionFlat,
-    modeResolvedTokensFlat,
   } = useTokenFlatMapContext();
-  const {
-    generators,
-    refreshGenerators,
-    generatorsBySource,
-  } = useGeneratorContext();
   const resolverState = useResolverContext();
   const { setPushUndo: setResolverPushUndo } = resolverState;
   const { selectedNodes, selectionLoading } = useSelectionContext();
@@ -442,15 +432,6 @@ export function App() {
       setResolverPushUndo(undefined);
     };
   }, [pushUndo, setResolverPushUndo]);
-  const onGeneratedGroupError = useCallback(
-    ({ generatorId, message }: { generatorId?: string; message: string }) => {
-      const label = generatorId
-        ? `Generated group "${generatorId}" failed`
-        : "Generated group failed";
-      setErrorToast(`${label}: ${message}`);
-    },
-    [setErrorToast],
-  );
   const onServiceError = useCallback(
     ({ collectionId, message }: { collectionId: string; message: string }) => {
       const label = collectionId ? `Failed to load "${collectionId}"` : "File load error";
@@ -473,9 +454,8 @@ export function App() {
   const refreshAll = useCallback(() => {
     refreshTokens();
     setLintKey((k) => k + 1);
-    refreshGenerators();
     setTokenChangeKey((k) => k + 1);
-  }, [refreshTokens, refreshGenerators]);
+  }, [refreshTokens]);
   const activeWorkspaceSummary = useMemo(
     () => resolveWorkspaceSummary(activeTopTab, activeSubTab),
     [activeTopTab, activeSubTab],
@@ -506,7 +486,6 @@ export function App() {
   useServerEvents(
     serverUrl,
     connected,
-    onGeneratedGroupError,
     refreshAllExternal,
     onServiceError,
   );
@@ -677,21 +656,6 @@ export function App() {
     if (pendingUnsavedAction !== null) return;
     setPendingNavAction(null);
   }, [pendingUnsavedAction]);
-  const editingGeneratedGroupData =
-    editingGeneratedGroup?.mode === "edit"
-      ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
-        null)
-      : null;
-  useEffect(() => {
-    if (
-      !editingGeneratedGroup ||
-      editingGeneratedGroup.mode !== "edit" ||
-      editingGeneratedGroupData
-    ) {
-      return;
-    }
-    setEditingGeneratedGroup(null);
-  }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
   // Tracks the currently visible/filtered leaf nodes from TokenList — updated by onDisplayedLeafNodesChange
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
   const tokenListCompareRef = useRef<TokenListImperativeHandle | null>(null);
@@ -699,7 +663,6 @@ export function App() {
   const handleOpenCrossCollectionCompare = useCallback(
     (path: string) => {
       setTokenDetails(null);
-      setEditingGeneratedGroup(null);
       setTokensCompareMode("cross-collection");
       setTokensComparePath(path);
       setTokensCompareModeKey((key) => key + 1);
@@ -708,7 +671,6 @@ export function App() {
     },
     [
       navigateTo,
-      setEditingGeneratedGroup,
       setTokenDetails,
       setShowTokensCompare,
       setTokensCompareMode,
@@ -737,71 +699,15 @@ export function App() {
     [tokenDetails, setHighlightedToken, setTokenDetails],
   );
   const handleEditorSave = useCallback(
-    (savedPath: string, savedCollectionId: string) => {
+    (savedPath: string, _savedCollectionId: string) => {
       setHighlightedToken(savedPath);
       setTokenDetails(null);
-      const sourceKey = createGeneratorSourceKey({
-        sourceTokenPath: savedPath,
-        sourceCollectionId: savedCollectionId,
-        pathToCollectionId,
-        collectionIdsByPath,
-      });
-      const affectedGens = sourceKey
-        ? (generatorsBySource.get(sourceKey) ?? [])
-        : [];
       refreshAll();
-      if (affectedGens.length > 0) {
-        const n = affectedGens.length;
-        pushActionToast(
-          `Source token for ${n} ${n === 1 ? "generated group" : "generated groups"} changed`,
-          {
-            label: "Re-run",
-            onClick: async () => {
-              for (const generatedGroup of affectedGens) {
-                const sourcePath = generatedGroup.sourceToken;
-                const sourceValue = resolveGeneratedGroupSourceContext({
-                  sourceTokenPath: sourcePath,
-                  sourceCollectionId: generatedGroup.sourceCollectionId,
-                  sourceValuesFlat: modeResolvedTokensFlat,
-                  allTokensFlat,
-                  pathToCollectionId,
-                  collectionIdsByPath,
-                  perCollectionFlat,
-                }).value;
-                try {
-                  await apiFetch(`${serverUrl}/api/generators/${generatedGroup.id}/run`, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body:
-                      sourceValue !== undefined
-                        ? JSON.stringify({ sourceValue })
-                        : undefined,
-                  });
-                } catch {
-                  /* ignore */
-                }
-              }
-              refreshGenerators();
-            },
-          },
-        );
-      }
     },
     [
       refreshAll,
       setHighlightedToken,
       setTokenDetails,
-      generatorsBySource,
-      pushActionToast,
-      serverUrl,
-      refreshGenerators,
-      collectionIdsByPath,
-      allTokensFlat,
-      pathToCollectionId,
-      perCollectionFlat,
-      modeResolvedTokensFlat,
     ],
   );
   const handleNavigateToCollection = useCallback(
@@ -814,16 +720,6 @@ export function App() {
       }
     },
     [currentCollectionId, setHighlightedToken, setPendingHighlightForCollection, setCurrentCollectionId],
-  );
-  const handleNavigateToGeneratedGroup = useCallback(
-    (generatorId: string) => {
-      navigateTo("library", "tokens");
-      switchContextualSurface({
-        surface: "generated-group-editor",
-        generatedGroup: { mode: "edit", id: generatorId },
-      });
-    },
-    [navigateTo, switchContextualSurface],
   );
   const [showIssuesOnly, setShowIssuesOnly] = useState(false);
   const {
@@ -1026,7 +922,7 @@ export function App() {
   ]);
 
   // Moving between Library sections dismisses contextual tools (compare,
-  // color-analysis, import, generated-group editor, collection-details) so they
+  // color-analysis, import, collection-details) so they
   // don't leak into Tokens/Review/History. Only fires when both the previous
   // and next routes are inside the Library workspace — entering Library from
   // another workspace must not clobber a tool that was just opened alongside
@@ -1443,15 +1339,9 @@ export function App() {
         switchContextualSurface({ surface: "import" });
       },
       openCollectionCreateDialog,
-      openGeneratedPalette: () => {
-        navigateTo("library", "tokens");
-        switchContextualSurface({
-          surface: "generated-group-editor",
-          generatedGroup: {
-            mode: "create",
-            initialDraft: { selectedType: "colorRamp" },
-          },
-        });
+      openGraphWorkspace: () => {
+        switchContextualSurface({ surface: null });
+        navigateTo("library", "graph");
       },
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
       triggerCreateFromSelection: () => {
@@ -1502,7 +1392,6 @@ export function App() {
       setErrorToast,
       setSuccessToast,
       handleNavigateToCollection,
-      handleNavigateToGeneratedGroup,
       tokenListCompareRef,
       tokenListSelection,
       recentlyTouched,
@@ -2277,6 +2166,10 @@ export function App() {
               mode: "edit",
               isCreate: true,
             });
+          }}
+          onOpenGraph={() => {
+            closeStartHere();
+            navigateTo("library", "graph");
           }}
           onGuidedSetupComplete={() => {
             closeStartHere();

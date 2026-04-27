@@ -39,6 +39,7 @@ interface WelcomePromptProps {
   onImportExistingSystem: () => void;
   onStartFromSelection: () => void;
   onAuthorFirstToken?: () => void;
+  onOpenGraph?: () => void;
   onGuidedSetupComplete: () => void;
   onCollectionCreated?: (name: string) => void;
 }
@@ -127,6 +128,7 @@ export function WelcomePrompt({
   onImportExistingSystem,
   onStartFromSelection,
   onAuthorFirstToken,
+  onOpenGraph,
   onGuidedSetupComplete,
   onCollectionCreated,
 }: WelcomePromptProps) {
@@ -306,6 +308,7 @@ export function WelcomePrompt({
                 onCollectionCreated={onCollectionCreated}
                 onRetryConnection={onRetryConnection}
                 onAuthorFirstToken={onAuthorFirstToken}
+                onOpenGraph={onOpenGraph}
               />
             </div>
           )}

@@ -252,10 +252,9 @@ export function readTokenModeValuesForCollection(
   };
 
   for (const mode of collection.modes.slice(1)) {
-    values[mode.name] =
-      mode.name in secondaryModes
-        ? secondaryModes[mode.name]
-        : token.$value;
+    if (mode.name in secondaryModes) {
+      values[mode.name] = secondaryModes[mode.name];
+    }
   }
 
   return values;

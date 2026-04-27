@@ -29,7 +29,6 @@ import { GitSync } from "./services/git-sync.js";
 import { GeneratorService } from "./services/generator-service.js";
 import { TokenGraphService } from "./services/token-graph-service.js";
 import { OperationLog } from "./services/operation-log.js";
-import { generatorRoutes } from "./routes/generators.js";
 import { graphRoutes } from "./routes/graphs.js";
 import { operationRoutes } from "./routes/operations.js";
 import { resolverRoutes } from "./routes/resolvers.js";
@@ -333,75 +332,6 @@ export async function startServer(config: ServerConfig) {
     );
   });
 
-  // Auto-run generators when a source token is updated.
-  // Wrapped in tokenLock.withLock() so generator writes are serialized against
-  // route-handler mutations — without it, concurrent route writes and generator
-  // writes race on tokenStore state and operation-log snapshots.
-  // Safe to call withLock() from inside a synchronous emit that itself fires
-  // inside an active lock: the promise-chain mutex simply queues this run after
-  // the current holder finishes (no re-entrancy / deadlock risk).
-  tokenStore.onChange((event) => {
-    if (
-      event.type === "collection-added" ||
-      event.type === "collection-updated" ||
-      event.type === "collection-removed"
-    ) {
-      tokenLock
-        .withLock(() =>
-          generatorService.disableUnsupportedKeepUpdated(tokenStore, collectionService),
-        )
-        .then((changed) => {
-          if (changed > 0) {
-            emitWorkspaceFileEvent("workspace-file-changed", "generators", "$generators");
-          }
-        })
-        .catch((err) => {
-          console.warn(
-            "[GeneratorService] Failed to normalize keep-updated state after collection change:",
-            err,
-          );
-        });
-      return;
-    }
-    if (event.type === "token-updated" && event.tokenPath) {
-      const tokenPath = event.tokenPath;
-      tokenLock
-        .withLock(() =>
-          generatorService.runForSourceToken(
-            tokenPath,
-            event.collectionId,
-            tokenStore,
-            collectionService,
-          ),
-        )
-        .catch((err) => {
-          const message = err instanceof Error ? err.message : String(err);
-          console.warn("[Generator] Auto-run failed:", err);
-          tokenStore.emitEvent({
-            type: "generator-error",
-            collectionId: "",
-            message,
-          });
-          // Record the failure persistently so clients connecting later can see it
-          operationLog
-            .record({
-              type: "generator-auto-run-error",
-              description: `Generator auto-run failed for "${tokenPath}": ${message}`,
-              resourceId: "",
-              affectedPaths: [tokenPath],
-              beforeSnapshot: {},
-              afterSnapshot: {},
-            })
-            .catch((logErr) => {
-              console.error(
-                "[OperationLog] Failed to record generator error:",
-                logErr,
-              );
-            });
-        });
-    }
-  });
-
   // Ensure the file watchers are closed on server shutdown
   fastify.addHook("onClose", async () => {
     await tokenStore.shutdown();
@@ -427,7 +357,6 @@ export async function startServer(config: ServerConfig) {
     prefix: "/api",
     tokenDir: config.tokenDir,
   });
-  await fastify.register(generatorRoutes, { prefix: "/api" });
   await fastify.register(graphRoutes, { prefix: "/api" });
   await fastify.register(operationRoutes, { prefix: "/api" });
   await fastify.register(resolverRoutes, { prefix: "/api" });

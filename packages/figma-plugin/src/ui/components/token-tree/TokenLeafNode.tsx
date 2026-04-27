@@ -19,7 +19,6 @@ import {
   PROPERTY_LABELS,
 } from "../../../shared/types";
 import type { BindableProperty } from "../../../shared/types";
-import { createGeneratorOwnershipKey } from "@tokenmanager/core";
 import {
   isAlias,
   resolveTokenValue,
@@ -56,7 +55,6 @@ import { useNearbyTokenMatch } from "../../hooks/useNearbyTokenMatch";
 import { TokenNudge } from "../TokenNudge";
 import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import { matchesShortcut } from "../../shared/shortcutRegistry";
-import { ConfirmModal } from "../ConfirmModal";
 import {
   getLifecycleLabel,
   readTokenPresentationMetadata,
@@ -69,15 +67,12 @@ import {
   computePaddingLeft,
   DepthBar,
   getIncomingRefs,
-  getQuickGeneratedGroupTypeForToken,
   getTokenRowStatus,
   MENU_DANGER_ITEM_CLASS,
   MENU_ITEM_CLASS,
   MENU_SEPARATOR_CLASS,
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
-  formatGeneratedGroupSummaryTitle,
-  getQuickGeneratedGroupActionLabel,
 } from "./tokenTreeNodeShared";
 import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
@@ -111,7 +106,6 @@ export const TokenLeafNode = memo(
       previewedPath,
       inspectMode,
       syncSnapshot,
-      derivedTokenPaths,
       searchHighlight,
       selectedNodes,
       boundTokenPaths,
@@ -132,8 +126,6 @@ export const TokenLeafNode = memo(
       onRequestMoveToken,
       onRequestCopyToken,
       onDuplicateToken,
-      onDetachFromGenerator,
-      onSaveGeneratedException,
       onExtractToAlias,
       onHoverToken,
       onFilterByType,
@@ -153,7 +145,6 @@ export const TokenLeafNode = memo(
       clearPendingRename,
       clearPendingTabEdit,
       onTabToNext,
-      onOpenGeneratedGroupEditor,
       onRovingFocus,
     } = useTokenTreeLeafActions();
 
@@ -189,20 +180,6 @@ export const TokenLeafNode = memo(
       currentValue: TokenMapEntry | undefined;
     } | null>(null);
     const closeQuickEditor = useCallback(() => setQuickEditor(null), []);
-    const [generatedTokenChoiceOpen, setGeneratedTokenChoiceOpen] =
-      useState(false);
-    const [generatedTokenChoiceBusy, setGeneratedTokenChoiceBusy] = useState<
-      "manual-exception" | "detach" | null
-    >(null);
-    const [pendingGeneratedSave, setPendingGeneratedSave] = useState<{
-      nextValue: unknown;
-      previousState?: { type?: string; value: unknown };
-      afterSave?: () => void;
-      commit: () => void | Promise<void>;
-      allowManualException: boolean;
-      manualExceptionReason?: string;
-    } | null>(null);
-    const [showDetachTokenConfirm, setShowDetachTokenConfirm] = useState(false);
     const nodeRef = useRef<HTMLDivElement>(null);
 
     // Token rename state
@@ -211,17 +188,6 @@ export const TokenLeafNode = memo(
     const [renameTokenError, setRenameTokenError] = useState("");
     const renameTokenInputRef = useRef<HTMLInputElement>(null);
     const tokenMenuRef = useRef<HTMLDivElement>(null);
-    const quickGeneratorType = useMemo(
-      () =>
-        getQuickGeneratedGroupTypeForToken(
-          node.path,
-          node.name,
-          node.$type,
-          node.$value,
-        ),
-      [node.path, node.name, node.$type, node.$value],
-    );
-
     useLayoutEffect(() => {
       if (renamingToken && renameTokenInputRef.current) {
         renameTokenInputRef.current.focus();
@@ -250,26 +216,6 @@ export const TokenLeafNode = memo(
       setContextMenuPos(null);
       setTokenMenuAdvanced(false);
     }, []);
-
-    const openQuickGenerator = useCallback(() => {
-      if (!onOpenGeneratedGroupEditor) return;
-      closeTokenMenus();
-      onOpenGeneratedGroupEditor({
-        mode: "create",
-        sourceTokenPath: node.path,
-        sourceCollectionId: collectionId,
-        sourceTokenName: node.name,
-        sourceTokenType: node.$type,
-        sourceTokenValue: node.$value,
-        ...(quickGeneratorType
-          ? {
-              initialDraft: {
-                selectedType: quickGeneratorType,
-              },
-            }
-          : {}),
-      });
-    }, [closeTokenMenus, collectionId, node.$type, node.$value, node.name, node.path, onOpenGeneratedGroupEditor, quickGeneratorType]);
 
     // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
     useEffect(() => {
@@ -360,15 +306,6 @@ export const TokenLeafNode = memo(
       : node.$value;
     const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
     const isFavorite = starredPaths?.has(node.path) ?? false;
-    const producingGenerator =
-      derivedTokenPaths?.get(createGeneratorOwnershipKey(collectionId, node.path)) ??
-      null;
-
-    useEffect(() => {
-      setGeneratedTokenChoiceOpen(false);
-      setGeneratedTokenChoiceBusy(null);
-      setPendingGeneratedSave(null);
-    }, [node.path, producingGenerator?.id]);
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
     const rowStateClass = isHighlighted
@@ -421,102 +358,18 @@ export const TokenLeafNode = memo(
       [node.$type, node.path, onInlineSave],
     );
 
-    const getOverrideableGeneratedStepName = useCallback(() => {
-      if (!producingGenerator) {
-        return null;
-      }
-      const prefix = `${producingGenerator.targetGroup}.`;
-      if (!node.path.startsWith(prefix)) {
-        return null;
-      }
-      const stepName = node.path.slice(prefix.length);
-      if (!stepName || stepName.includes(".")) {
-        return null;
-      }
-      return stepName;
-    }, [node.path, producingGenerator]);
-
     const requestInlineValueSave = useCallback(
       (
         nextValue: unknown,
         previousState?: { type?: string; value: unknown },
         afterSave?: () => void,
       ) => {
-        if (!producingGenerator) {
-          commitInlineValueChange(nextValue, previousState, afterSave);
-          return;
-        }
-        setPendingGeneratedSave({
-          nextValue,
-          previousState,
-          afterSave,
-          commit: () =>
-            commitInlineValueChange(nextValue, previousState, afterSave),
-          allowManualException: true,
-        });
-        setGeneratedTokenChoiceOpen(true);
+        commitInlineValueChange(nextValue, previousState, afterSave);
       },
-      [commitInlineValueChange, producingGenerator],
+      [commitInlineValueChange],
     );
 
-    const handleSaveGeneratedExceptionChoice = useCallback(async () => {
-      if (
-        !pendingGeneratedSave ||
-        !onSaveGeneratedException ||
-        !pendingGeneratedSave.allowManualException
-      ) {
-        return;
-      }
-      setGeneratedTokenChoiceBusy("manual-exception");
-      try {
-        const saved = await onSaveGeneratedException(
-          node.path,
-          pendingGeneratedSave.nextValue,
-        );
-        if (!saved) {
-          return;
-        }
-        pendingGeneratedSave.afterSave?.();
-        setGeneratedTokenChoiceOpen(false);
-        setPendingGeneratedSave(null);
-        dispatchToast(`Saved manual exception for "${node.path}"`, "success", {
-          destination: {
-            kind: "token",
-            tokenPath: node.path,
-            collectionId,
-          },
-        });
-      } finally {
-        setGeneratedTokenChoiceBusy(null);
-      }
-    }, [collectionId, node.path, onSaveGeneratedException, pendingGeneratedSave]);
-
-    const handleDetachAndSaveGeneratedToken = useCallback(async () => {
-      if (!pendingGeneratedSave || !onDetachFromGenerator) {
-        return;
-      }
-      setGeneratedTokenChoiceBusy("detach");
-      try {
-        const detached = await onDetachFromGenerator(node.path);
-        if (!detached) {
-          return;
-        }
-        await pendingGeneratedSave.commit();
-        setGeneratedTokenChoiceOpen(false);
-        setPendingGeneratedSave(null);
-        dispatchToast(`Detached "${node.path}" from its generator`, "success", {
-          destination: {
-            kind: "token",
-            tokenPath: node.path,
-            collectionId,
-          },
-        });
-      } finally {
-        setGeneratedTokenChoiceBusy(null);
-      }
-    }, [collectionId, node.path, onDetachFromGenerator, pendingGeneratedSave]);
-
-    const handleMultiModeGeneratedSaveRequest = useCallback(
+    const handleMultiModeInlineSaveRequest = useCallback(
       (
         nextValue: unknown,
         targetCollectionId: string,
@@ -527,39 +380,17 @@ export const TokenLeafNode = memo(
         if (!node.$type || !onMultiModeInlineSave) {
           return;
         }
-        if (!producingGenerator) {
-          onMultiModeInlineSave(
-            node.path,
-            node.$type,
-            nextValue,
-            targetCollectionId,
-            collectionId,
-            optionName,
-            previousState,
-          );
-          return;
-        }
-        setPendingGeneratedSave({
+        onMultiModeInlineSave(
+          node.path,
+          node.$type,
           nextValue,
+          targetCollectionId,
+          collectionId,
+          optionName,
           previousState,
-          commit: () =>
-            onMultiModeInlineSave(
-              node.path,
-              node.$type!,
-              nextValue,
-              targetCollectionId,
-              collectionId,
-              optionName,
-              previousState,
-              { allowGeneratedEdit: true },
-            ),
-          allowManualException: false,
-          manualExceptionReason:
-            "Manual exceptions only preserve the generated step value. Detach this token if it needs a mode-specific override.",
-        });
-        setGeneratedTokenChoiceOpen(true);
+        );
       },
-      [node.$type, node.path, onMultiModeInlineSave, producingGenerator],
+      [node.$type, node.path, onMultiModeInlineSave],
     );
 
     // Quick editor eligibility — every editable type + alias-valued tokens.
@@ -631,21 +462,6 @@ export const TokenLeafNode = memo(
       });
     }, [incomingRefs]);
     const leafMetadataSegments: RowMetadataSegment[] = [];
-    if (producingGenerator) {
-      leafMetadataSegments.push({
-        label: `Generated by ${producingGenerator.name}`,
-        title: formatGeneratedGroupSummaryTitle(producingGenerator),
-        tone: producingGenerator.isStale ? "warning" : "accent",
-        priority: "identity" as const,
-        onClick: onOpenGeneratedGroupEditor
-          ? () =>
-              onOpenGeneratedGroupEditor({
-                mode: "edit",
-                id: producingGenerator.id,
-              })
-          : undefined,
-      });
-    }
     if (incomingRefs.length > 0) {
       leafMetadataSegments.push({
         label: String(incomingRefs.length),
@@ -1477,36 +1293,6 @@ export const TokenLeafNode = memo(
                       <span className={MENU_SHORTCUT_CLASS}>E</span>
                     </button>
                   )}
-                  {!isAlias(node.$value) && onOpenGeneratedGroupEditor && (
-                    <button
-                      role="menuitem"
-                      tabIndex={-1}
-                      data-accel="g"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={openQuickGenerator}
-                      className={MENU_ITEM_CLASS}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
-                      <span className="flex-1">
-                        {quickGeneratorType
-                          ? getQuickGeneratedGroupActionLabel(quickGeneratorType)
-                          : "Generate from this token…"}
-                      </span>
-                      <span className={MENU_SHORTCUT_CLASS}>G</span>
-                    </button>
-                  )}
-                  {producingGenerator && onDetachFromGenerator && (
-                    <button
-                      role="menuitem"
-                      tabIndex={-1}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => { closeTokenMenus(); setShowDetachTokenConfirm(true); }}
-                      className={MENU_ITEM_CLASS}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M5.16 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l1.72-1.71" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
-                      <span className="flex-1">Detach from generator</span>
-                    </button>
-                  )}
                   <button
                     role="menuitem"
                     tabIndex={-1}
@@ -1644,115 +1430,6 @@ export const TokenLeafNode = memo(
             </div>
           )}
 
-          {generatedTokenChoiceOpen && producingGenerator && pendingGeneratedSave && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
-              onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                  setGeneratedTokenChoiceOpen(false);
-                  setPendingGeneratedSave(null);
-                }
-              }}
-            >
-              <div className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
-                <div className="px-4 pt-4 pb-3">
-                  <h3 className="text-heading font-semibold text-[var(--color-figma-text)]">
-                    This token is generated
-                  </h3>
-                  <p className="mt-1.5 text-body leading-relaxed text-[var(--color-figma-text-secondary)]">
-                    <span className="font-medium text-[var(--color-figma-text)]">
-                      {producingGenerator.name}
-                    </span>{" "}
-                    owns <span className="font-mono text-[var(--color-figma-text)]">{node.path}</span>.
-                    Choose how this edit should behave before saving.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1.5 px-4 pb-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGeneratedTokenChoiceOpen(false);
-                      setPendingGeneratedSave(null);
-                      if (!onOpenGeneratedGroupEditor) {
-                        return;
-                      }
-                      closeTokenMenus();
-                      onOpenGeneratedGroupEditor({
-                        mode: "edit",
-                        id: producingGenerator.id,
-                      });
-                    }}
-                    disabled={!onOpenGeneratedGroupEditor || generatedTokenChoiceBusy !== null}
-                    className="rounded-md bg-[var(--color-figma-accent)] px-3 py-1.5 text-left text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-                  >
-                    Edit generator
-                  </button>
-                  <button
-                    type="button"
-                  onClick={() => {
-                      void handleSaveGeneratedExceptionChoice();
-                    }}
-                    disabled={
-                      !onSaveGeneratedException ||
-                      !pendingGeneratedSave.allowManualException ||
-                      !getOverrideableGeneratedStepName() ||
-                      generatedTokenChoiceBusy !== null
-                    }
-                    className="rounded-md px-3 py-1.5 text-left text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
-                  >
-                    {generatedTokenChoiceBusy === "manual-exception"
-                      ? "Saving manual exception…"
-                      : "Make manual exception"}
-                  </button>
-                  {(!pendingGeneratedSave.allowManualException ||
-                    !onSaveGeneratedException ||
-                    !getOverrideableGeneratedStepName()) && (
-                    <p className="px-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
-                      {pendingGeneratedSave.manualExceptionReason ??
-                        "This generated token cannot keep a manual exception here. Detach it first if it needs to diverge."}
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleDetachAndSaveGeneratedToken();
-                    }}
-                    disabled={!onDetachFromGenerator || generatedTokenChoiceBusy !== null}
-                    className="rounded-md px-3 py-1.5 text-left text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
-                  >
-                    {generatedTokenChoiceBusy === "detach"
-                      ? "Detaching…"
-                      : "Detach from generator"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGeneratedTokenChoiceOpen(false);
-                      setPendingGeneratedSave(null);
-                    }}
-                    disabled={generatedTokenChoiceBusy !== null}
-                    className="text-body text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {showDetachTokenConfirm && producingGenerator && onDetachFromGenerator && (
-            <ConfirmModal
-              title="Detach Token?"
-              description={`Convert "${node.path}" to manual. "${producingGenerator.name}" will stop updating it.`}
-              confirmLabel="Detach token"
-              onCancel={() => setShowDetachTokenConfirm(false)}
-              onConfirm={async () => {
-                await onDetachFromGenerator(node.path);
-                setShowDetachTokenConfirm(false);
-              }}
-            />
-          )}
-
           {/* Unified quick value editor — every editable type + alias editing. */}
           {quickEditor && node.$type && (
             <InlineValuePopover
@@ -1766,7 +1443,7 @@ export const TokenLeafNode = memo(
               anchorRect={quickEditor.anchor}
               onSave={(newVal, previousState) => {
                 if (quickEditor.targetCollectionId) {
-                  handleMultiModeGeneratedSaveRequest(
+                  handleMultiModeInlineSaveRequest(
                     newVal,
                     quickEditor.targetCollectionId,
                     quickEditor.collectionId,
@@ -1823,7 +1500,6 @@ export const TokenLeafNode = memo(
               collectionId={mv.collectionId}
               optionName={mv.optionName}
               sourceTokenPath={node.path}
-              derivedGeneratorName={producingGenerator?.name ?? null}
               onRequestQuickEdit={canQuickEdit ? (req: QuickEditRequest) => {
                 setQuickEditor(req);
                 setInlineNudgeVisible(false);

@@ -1,10 +1,5 @@
 import { useEffect, useRef } from "react";
 
-export interface GeneratorErrorEvent {
-  generatorId?: string;
-  message: string;
-}
-
 export interface ServiceErrorEvent {
   collectionId: string;
   message: string;
@@ -25,13 +20,9 @@ const MAX_DELAY = 30000;
 export function useServerEvents(
   serverUrl: string,
   connected: boolean,
-  onGeneratedGroupError: (event: GeneratorErrorEvent) => void,
   onRefresh?: () => void,
   onServiceError?: (event: ServiceErrorEvent) => void,
 ) {
-  const callbackRef = useRef(onGeneratedGroupError);
-  callbackRef.current = onGeneratedGroupError;
-
   const serviceErrorRef = useRef(onServiceError);
   serviceErrorRef.current = onServiceError;
 
@@ -107,17 +98,6 @@ export function useServerEvents(
           }
           hasConnectedBefore = true;
           return;
-        }
-
-        if (data.type === "generator-error") {
-          callbackRef.current({
-            generatorId:
-              typeof data.generatorId === "string"
-                ? data.generatorId
-                : undefined,
-            message:
-              typeof data.message === "string" ? data.message : "Unknown error",
-          });
         }
 
         if (data.type === "file-load-error") {

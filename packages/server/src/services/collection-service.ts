@@ -1480,8 +1480,8 @@ export class CollectionService {
   async deleteCollection(collectionId: string): Promise<void> {
     const stateBefore = await this.collectionStore.loadState();
     requireCollection(stateBefore, collectionId);
+    this.graphService?.assertNoCollectionReferences([collectionId]);
     const lintConfigBefore = await this.loadLintConfig();
-    const graphStateBefore = this.graphService ? await this.graphService.snapshot() : null;
     const tokensBefore = await this.captureWorkspaceTokensForState(stateBefore);
     const nextState = deleteCollectionIdsFromState(stateBefore, [collectionId]);
     try {
@@ -1494,16 +1494,12 @@ export class CollectionService {
         ),
       });
       await this.lintConfigStore.deleteCollectionId(collectionId);
-      await this.graphService?.deleteCollectionId(collectionId);
     } catch (err) {
       await this.restoreCollectionWorkspaceWithinLock({
         state: stateBefore,
         tokensByCollection: tokensBefore,
       }).catch(() => {});
       await this.restoreLintConfig(lintConfigBefore).catch(() => {});
-      if (graphStateBefore) {
-        await this.graphService?.restore(graphStateBefore).catch(() => {});
-      }
       throw err;
     }
   }
@@ -1516,8 +1512,8 @@ export class CollectionService {
     for (const collectionId of collectionIds) {
       requireCollection(stateBefore, collectionId);
     }
+    this.graphService?.assertNoCollectionReferences(collectionIds);
     const lintConfigBefore = await this.loadLintConfig();
-    const graphStateBefore = this.graphService ? await this.graphService.snapshot() : null;
     const tokensBefore = await this.captureWorkspaceTokensForState(stateBefore);
     const nextState = deleteCollectionIdsFromState(stateBefore, collectionIds);
     try {
@@ -1531,7 +1527,6 @@ export class CollectionService {
       });
       for (const collectionId of collectionIds) {
         await this.lintConfigStore.deleteCollectionId(collectionId);
-        await this.graphService?.deleteCollectionId(collectionId);
       }
     } catch (err) {
       await this.restoreCollectionWorkspaceWithinLock({
@@ -1539,9 +1534,6 @@ export class CollectionService {
         tokensByCollection: tokensBefore,
       }).catch(() => {});
       await this.restoreLintConfig(lintConfigBefore).catch(() => {});
-      if (graphStateBefore) {
-        await this.graphService?.restore(graphStateBefore).catch(() => {});
-      }
       throw err;
     }
   }

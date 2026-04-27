@@ -8,7 +8,6 @@ import { apiFetch } from "../shared/apiFetch";
 import { buildTokenEditorValueBody } from "../shared/tokenEditorPayload";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
-  createGeneratorOwnershipKey,
   getCollectionIdsForPath,
   pathExistsInCollection,
   readGraphProvenance,
@@ -21,7 +20,6 @@ import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { tokenTypeBadgeClass } from "../../shared/types";
 import { TypePicker } from "./TypePicker";
-import type { TokenGenerator } from "../hooks/useGenerators";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
@@ -43,13 +41,11 @@ import { formatTokenValueForDisplay } from "../shared/tokenFormatting";
 import { useTokenTypeParsing } from "../hooks/useTokenTypeParsing";
 import { useTokenEditorUIState } from "../hooks/useTokenEditorUIState";
 import { useTokenEditorSave } from "../hooks/useTokenEditorSave";
-import { useTokenEditorGenerators } from "../hooks/useTokenEditorGenerators";
 import {
   clearEditorDraft,
   saveEditorDraft,
   formatDraftAge,
 } from "../hooks/useTokenEditorUtils";
-import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
@@ -62,7 +58,6 @@ import {
 import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
 import { valueFormatHint } from "./tokenListHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
-import { TokenEditorDerivedGroups } from "./token-editor/TokenEditorDerivedGroups";
 import type { LintViolation } from "../hooks/useLint";
 import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
@@ -81,7 +76,6 @@ interface TokenDetailsProps {
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
   perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
-  generators?: TokenGenerator[];
   isCreateMode?: boolean;
   initialType?: string;
   /** When alias-shaped (e.g. "{color.primary}"), alias mode activates automatically. */
@@ -97,13 +91,10 @@ interface TokenDetailsProps {
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
   onNavigateToToken?: (
     path: string,
     collectionId?: string,
   ) => void;
-  onNavigateToGeneratedGroup?: (generatorId: string) => void;
-  onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   onOpenGraphDocument?: (graphId: string) => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   lintViolations?: LintViolation[];
@@ -165,7 +156,6 @@ export function TokenDetails({
   pathToCollectionId = {},
   collectionIdsByPath = {},
   perCollectionFlat = {},
-  generators = [],
   isCreateMode = false,
   initialType,
   initialValue,
@@ -177,10 +167,7 @@ export function TokenDetails({
   onRefresh,
   availableFonts = [],
   fontWeightsByFamily = {},
-  derivedTokenPaths,
   onNavigateToToken,
-  onNavigateToGeneratedGroup,
-  onOpenGeneratedGroupEditor,
   onOpenGraphDocument,
   pushUndo,
   lintViolations = [],
@@ -370,26 +357,6 @@ export function TokenDetails({
     handleTypeChange,
     focusBlockedField,
   } = typeParsing;
-  const generators$ = useTokenEditorGenerators({
-    tokenPath,
-    tokenCollectionId: ownerCollectionId,
-    tokenType,
-    generators,
-    pathToCollectionId,
-    collectionIdsByPath,
-  });
-  const {
-    existingGeneratorsForToken,
-    canBeGeneratorSource,
-  } = generators$;
-  const producingGenerator =
-    derivedTokenPaths?.get(createGeneratorOwnershipKey(ownerCollectionId, tokenPath)) ??
-    null;
-  const [detachedFromGenerator, setDetachedFromGenerator] = useState(false);
-  const [detachingGeneratorOwnership, setDetachingGeneratorOwnership] =
-    useState(false);
-  const activeProducingGenerator =
-    detachedFromGenerator ? null : producingGenerator;
   const currentTokenEntry = useMemo(
     () => perCollectionFlat[ownerCollectionId]?.[tokenPath] ?? allTokensFlat[tokenPath],
     [allTokensFlat, ownerCollectionId, perCollectionFlat, tokenPath],
@@ -402,8 +369,6 @@ export function TokenDetails({
   const activeGraphProvenance = detachedFromGraph ? null : graphProvenance;
   const [graphName, setGraphName] = useState<string | null>(null);
   const [detachingGraphOutput, setDetachingGraphOutput] = useState(false);
-  const [lockingException, setLockingException] = useState(false);
-  const generatedSaveBypassRef = useRef(false);
 
   const [addingEditorMode, setAddingEditorMode] = useState(false);
   const [editorNewModeName, setEditorNewModeName] = useState("");
@@ -460,65 +425,17 @@ export function TokenDetails({
   ]);
 
   const initialFieldsSnapshot = initialRef.current;
-  const hasGeneratedValueChanges = useMemo(() => {
-    if (!initialFieldsSnapshot) {
-      return false;
-    }
-    return (
-      stableStringify(value) !== stableStringify(initialFieldsSnapshot.value)
-    );
-  }, [initialFieldsSnapshot, value]);
-  const hasGeneratedNonValueChanges = useMemo(() => {
-    if (!initialFieldsSnapshot) {
-      return false;
-    }
-    return (
-      tokenType !== initialFieldsSnapshot.type ||
-      description !== initialFieldsSnapshot.description ||
-      stableStringify(scopes) !== stableStringify(initialFieldsSnapshot.scopes) ||
-      stableStringify(derivationOps) !==
-        stableStringify(initialFieldsSnapshot.derivationOps) ||
-      stableStringify(modeValues) !==
-        stableStringify(initialFieldsSnapshot.modeValues) ||
-      extensionsJsonText !== initialFieldsSnapshot.extensionsJsonText ||
-      lifecycle !== initialFieldsSnapshot.lifecycle ||
-      extendsPath !== initialFieldsSnapshot.extendsPath
-    );
-  }, [
-    derivationOps,
-    description,
-    extendsPath,
-    extensionsJsonText,
-    initialFieldsSnapshot,
-    lifecycle,
-    modeValues,
-    scopes,
-    tokenType,
-  ]);
-  const canCreateManualException =
-    hasGeneratedValueChanges && !hasGeneratedNonValueChanges;
-  const canLockAsException = !hasGeneratedNonValueChanges;
 
   const requestClose = editorSessionHost.requestClose;
-  const [pendingGeneratorSave, setPendingGeneratorSave] = useState<
-    { forceOverwrite: boolean; createAnother: boolean } | null
-  >(null);
   const beforeSaveGeneratedToken = useCallback(
-    async (forceOverwrite: boolean, createAnother: boolean) => {
-      if (
-        isCreateMode ||
-        !activeProducingGenerator ||
-        generatedSaveBypassRef.current
-      ) {
-        if (generatedSaveBypassRef.current) {
-          generatedSaveBypassRef.current = false;
-        }
-        return true;
+    async () => {
+      if (!isCreateMode && activeGraphProvenance) {
+        setError("This token is managed by a graph. Open the graph to change generated values, or detach the token before editing it directly.");
+        return false;
       }
-      setPendingGeneratorSave({ forceOverwrite, createAnother });
-      return false;
+      return true;
     },
-    [activeProducingGenerator, isCreateMode],
+    [activeGraphProvenance, isCreateMode],
   );
 
   const saveHook = useTokenEditorSave({
@@ -630,16 +547,6 @@ export function TokenDetails({
     lsSet(STORAGE_KEYS.LAST_CREATE_TYPE, normalizeTokenType(tokenType));
   }, [isCreateMode, tokenType]);
 
-  const openGeneratedGroupEditor = useCallback((target: TokensLibraryGeneratedGroupEditorTarget) => {
-    onOpenGeneratedGroupEditor?.(target);
-  }, [onOpenGeneratedGroupEditor]);
-
-  useEffect(() => {
-    setDetachedFromGenerator(false);
-    setPendingGeneratorSave(null);
-    generatedSaveBypassRef.current = false;
-  }, [tokenPath, producingGenerator?.id]);
-
   useEffect(() => {
     setDetachedFromGraph(false);
     setGraphName(null);
@@ -697,178 +604,6 @@ export function TokenDetails({
       setDetachingGraphOutput(false);
     }
   }, [activeGraphProvenance, onRefresh, ownerCollectionId, serverUrl, tokenPath]);
-
-  const handleDetachGeneratorOwnership = useCallback(async (): Promise<boolean> => {
-    if (!producingGenerator) return false;
-    setDetachingGeneratorOwnership(true);
-    try {
-      setError(null);
-      await apiFetch(`${serverUrl}/api/generators/${producingGenerator.id}/detach`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          scope: "token",
-          path: tokenPath,
-        }),
-      });
-      if (initialServerSnapshotRef.current) {
-        try {
-            const snapshot = JSON.parse(initialServerSnapshotRef.current) as {
-              $extensions?: Record<string, unknown>;
-            } | null;
-            if (snapshot?.$extensions) {
-              const nextExtensions = { ...snapshot.$extensions };
-              delete nextExtensions["com.tokenmanager.generator"];
-              initialServerSnapshotRef.current = stableStringify({
-                ...snapshot,
-                $extensions:
-                  Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined,
-              });
-            }
-        } catch (err) {
-          console.debug("[TokenEditor] failed to update detached generator snapshot:", err);
-        }
-      }
-      setDetachedFromGenerator(true);
-      onRefresh?.();
-      dispatchToast(
-        `Detached "${tokenPath}" from "${producingGenerator.name}"`,
-        "success",
-        {
-          destination: {
-            kind: "token",
-            tokenPath,
-            collectionId: ownerCollectionId,
-          },
-        },
-      );
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to detach token from generator");
-      return false;
-    } finally {
-      setDetachingGeneratorOwnership(false);
-    }
-  }, [
-    initialServerSnapshotRef,
-    onRefresh,
-    ownerCollectionId,
-    producingGenerator,
-    serverUrl,
-    tokenPath,
-  ]);
-
-  const getProducingGeneratorStepName = useCallback(() => {
-    if (!activeProducingGenerator) {
-      return null;
-    }
-    const prefix = `${activeProducingGenerator.targetGroup}.`;
-    if (!tokenPath.startsWith(prefix)) {
-      return null;
-    }
-    const stepName = tokenPath.slice(prefix.length);
-    if (!stepName || stepName.includes(".")) {
-      return null;
-    }
-    return stepName;
-  }, [activeProducingGenerator, tokenPath]);
-
-  const persistException = useCallback(
-    async (options: { closeAfter: boolean }) => {
-      if (!canLockAsException) {
-        setError(
-          "Manual exceptions only support value edits. Detach this token if you need to keep the other changes.",
-        );
-        return;
-      }
-      const stepName = getProducingGeneratorStepName();
-      if (!activeProducingGenerator || !stepName) {
-        setError("This token cannot store a manual exception. Edit the generator or detach it instead.");
-        return;
-      }
-
-      setLockingException(true);
-      try {
-        setError(null);
-        await apiFetch(
-          `${serverUrl}/api/generators/${activeProducingGenerator.id}/steps/${encodeURIComponent(stepName)}/override`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              value,
-              locked: true,
-            }),
-          },
-        );
-        clearEditorDraft(ownerCollectionId, tokenPath);
-        onSaved?.(tokenPath);
-        onRefresh?.();
-        dispatchToast(
-          `Locked "${tokenPath}" as a manual exception`,
-          "success",
-          {
-            destination: {
-              kind: "token",
-              tokenPath,
-              collectionId: ownerCollectionId,
-            },
-          },
-        );
-        if (options.closeAfter) onBack();
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to save manual exception",
-        );
-      } finally {
-        setLockingException(false);
-      }
-    },
-    [
-      activeProducingGenerator,
-      canLockAsException,
-      getProducingGeneratorStepName,
-      onRefresh,
-      onSaved,
-      onBack,
-      ownerCollectionId,
-      serverUrl,
-      tokenPath,
-      value,
-    ],
-  );
-
-  const handleInlineMakeException = useCallback(
-    () => persistException({ closeAfter: false }),
-    [persistException],
-  );
-
-  const detachAndSave = useCallback(
-    async (forceOverwrite: boolean, createAnother: boolean) => {
-      const detached = await handleDetachGeneratorOwnership();
-      if (!detached) return;
-      generatedSaveBypassRef.current = true;
-      await handleSaveRef.current(forceOverwrite, createAnother);
-    },
-    [handleDetachGeneratorOwnership, handleSaveRef],
-  );
-
-  useEffect(() => {
-    if (!pendingGeneratorSave) return;
-    const args = pendingGeneratorSave;
-    setPendingGeneratorSave(null);
-    if (canLockAsException) {
-      void persistException({ closeAfter: true });
-    } else {
-      void detachAndSave(args.forceOverwrite, args.createAnother);
-    }
-  }, [pendingGeneratorSave, canLockAsException, persistException, detachAndSave]);
 
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
@@ -1257,21 +992,12 @@ export function TokenDetails({
         }).filter((collectionId) => collectionId !== ownerCollectionId)
       : [];
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
-  const generatorSaveHint =
-    isEditMode &&
-    !isCreateMode &&
-    activeProducingGenerator &&
-    isDirty
-      ? canCreateManualException
-        ? "Saving creates a manual exception unless you edit the generator."
-        : "Saving will detach this token from the generator unless you edit the generator."
-      : null;
   const footerNote =
     isCreateMode && duplicatePath
       ? "Path already exists."
       : isCreateMode && !trimmedEditPath
         ? "Enter a token path."
-        : saveBlockReason ?? generatorSaveHint;
+        : saveBlockReason;
 
   const handleCopyPath = () => {
     navigator.clipboard.writeText(tokenPath);
@@ -1687,18 +1413,6 @@ export function TokenDetails({
     </button>
   ) : null;
 
-  const openGeneratedSource = () => {
-    if (!activeProducingGenerator) return;
-    if (onOpenGeneratedGroupEditor) {
-      openGeneratedGroupEditor({
-        mode: "edit",
-        id: activeProducingGenerator.id,
-      });
-      return;
-    }
-    onNavigateToGeneratedGroup?.(activeProducingGenerator.id);
-  };
-
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Value";
   const tokenTypeDisplayLabel =
@@ -1765,65 +1479,6 @@ export function TokenDetails({
           }
           onNavigateToToken={onNavigateToToken}
         />
-
-        {activeProducingGenerator ? (
-          <div
-            className="tm-token-details__generator-banner"
-            role="region"
-            aria-label="Generator ownership"
-          >
-            <div className="tm-token-details__generator-banner-summary">
-              <span>Generated by</span>
-              <span className="tm-token-details__generator-banner-name" title={activeProducingGenerator.name}>
-                {activeProducingGenerator.name}
-              </span>
-            </div>
-            <div className="tm-token-details__generator-banner-actions">
-              {(onOpenGeneratedGroupEditor || onNavigateToGeneratedGroup) ? (
-                <button
-                  type="button"
-                  onClick={openGeneratedSource}
-                  className="tm-token-details__text-button"
-                >
-                  Edit generator
-                </button>
-              ) : null}
-              {isEditMode ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleInlineMakeException();
-                    }}
-                    disabled={
-                      detachingGeneratorOwnership ||
-                      lockingException ||
-                      !canLockAsException
-                    }
-                    title={
-                      !canLockAsException
-                        ? "Manual exceptions only preserve the value. Detach this token if you also changed description, scope, lifecycle, or extensions."
-                        : undefined
-                    }
-                    className="tm-token-details__text-button"
-                  >
-                    {lockingException ? "Locking…" : "Make exception"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleDetachGeneratorOwnership();
-                    }}
-                    disabled={detachingGeneratorOwnership || lockingException}
-                    className="tm-token-details__text-button tm-token-details__text-button--muted"
-                  >
-                    {detachingGeneratorOwnership ? "Detaching…" : "Detach"}
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
 
         {activeGraphProvenance ? (
           <div
@@ -2202,18 +1857,6 @@ export function TokenDetails({
                 allTokensFlat={allTokensFlat}
                 pathToCollectionId={pathToCollectionId}
                 colorFlatMap={colorFlatMap}
-              />
-            ) : null}
-
-            {canBeGeneratorSource && !valueIsAlias ? (
-              <TokenEditorDerivedGroups
-                tokenPath={tokenPath}
-                tokenCollectionId={ownerCollectionId}
-                tokenName={tokenName}
-                tokenType={tokenType}
-                value={value}
-                existingGeneratorsForToken={existingGeneratorsForToken}
-                openGeneratedGroupEditor={openGeneratedGroupEditor}
               />
             ) : null}
 

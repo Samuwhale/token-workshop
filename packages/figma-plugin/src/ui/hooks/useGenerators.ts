@@ -1,11 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import {
-  createGeneratorOwnershipKey,
-  createGeneratorSourceKeys,
-  getGeneratorManagedOutputs,
-} from '@tokenmanager/core';
-import { apiFetch, createFetchSignal } from '../shared/apiFetch';
-import { isAbortError } from '../shared/utils';
+import { useCallback, useMemo } from 'react';
 
 // ---------------------------------------------------------------------------
 // Types (defined inline — do not import from @tokenmanager/core in the plugin)
@@ -244,84 +237,21 @@ export function getGeneratorDashboardStatus(
 }
 
 export function useGenerators(
-  serverUrl: string,
-  connected: boolean,
-  pathToCollectionId?: Record<string, string>,
-  collectionIdsByPath?: Record<string, string[]>,
+  _serverUrl: string,
+  _connected: boolean,
+  _pathToCollectionId?: Record<string, string>,
+  _collectionIdsByPath?: Record<string, string[]>,
 ): UseGeneratorsResult {
-  const [generators, setGenerators] = useState<TokenGenerator[]>([]);
-  const [loading, setLoading] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const fetchGenerators = useCallback(async () => {
-    if (!connected) return;
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setLoading(true);
-    try {
-      const data = await apiFetch<TokenGenerator[]>(`${serverUrl}/api/generators`, {
-        signal: createFetchSignal(controller.signal, 5000),
-      });
-      if (controller.signal.aborted) return;
-      setGenerators(data);
-    } catch (err) {
-      if (isAbortError(err)) return;
-      console.error('Failed to fetch generators:', err);
-    } finally {
-      if (!controller.signal.aborted) setLoading(false);
-    }
-  }, [serverUrl, connected]);
-
-  useEffect(() => {
-    fetchGenerators();
-    return () => { abortRef.current?.abort(); };
-  }, [fetchGenerators]);
-
-  const generatorsBySource = useMemo(() => {
-    const map = new Map<string, TokenGenerator[]>();
-    for (const gen of generators) {
-      const keys = createGeneratorSourceKeys({
-        sourceTokenPath: gen.sourceToken,
-        sourceCollectionId: gen.sourceCollectionId,
-        pathToCollectionId,
-        collectionIdsByPath,
-      });
-      for (const key of keys) {
-        if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push(gen);
-      }
-    }
-    return map;
-  }, [collectionIdsByPath, generators, pathToCollectionId]);
-
-  const generatorsByTargetGroup = useMemo(() => {
-    const map = new Map<string, TokenGenerator>();
-    for (const gen of generators) {
-      const hasManagedOutputs = getGeneratorManagedOutputs(gen).length > 0;
-      if (!gen.targetGroup || !hasManagedOutputs) continue;
-      map.set(
-        createGeneratorOwnershipKey(gen.targetCollection, gen.targetGroup),
-        gen,
-      );
-    }
-    return map;
-  }, [generators]);
-
-  const derivedTokenPaths = useMemo(() => {
-    const map = new Map<string, TokenGenerator>();
-    for (const gen of generators) {
-      for (const output of getGeneratorManagedOutputs(gen)) {
-        map.set(output.key, gen);
-      }
-    }
-    return map;
-  }, [generators]);
+  const generators = useMemo<TokenGenerator[]>(() => [], []);
+  const refreshGenerators = useCallback(() => {}, []);
+  const generatorsBySource = useMemo(() => new Map<string, TokenGenerator[]>(), []);
+  const generatorsByTargetGroup = useMemo(() => new Map<string, TokenGenerator>(), []);
+  const derivedTokenPaths = useMemo(() => new Map<string, TokenGenerator>(), []);
 
   return {
     generators,
-    loading,
-    refreshGenerators: fetchGenerators,
+    loading: false,
+    refreshGenerators,
     generatorsBySource,
     generatorsByTargetGroup,
     derivedTokenPaths,

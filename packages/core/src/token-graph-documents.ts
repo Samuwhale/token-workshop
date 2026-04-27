@@ -566,7 +566,6 @@ function tokenInputValue(
     throw new Error(`Token "${path}" was not found in "${collectionId}".`);
   }
   const modeValues = readTokenModeValuesForCollection(token, collection);
-  const fallbackMode = collection.modes[0]?.name;
   if (
     collection.id !== targetCollection.id &&
     !(modeName in modeValues)
@@ -575,10 +574,13 @@ function tokenInputValue(
       `Token "${path}" is in another collection. Add matching mode names or choose a token from "${targetCollection.id}".`,
     );
   }
+  if (!(modeName in modeValues)) {
+    throw new Error(`Token "${path}" has no value for mode "${modeName}".`);
+  }
   const value = resolveModeValue({
     collection,
     tokenPath: path,
-    value: modeValues[modeName] ?? (fallbackMode ? modeValues[fallbackMode] : token.$value),
+    value: modeValues[modeName],
     modeName,
     tokensByCollection,
     visited: new Set([path]),
@@ -619,12 +621,14 @@ function resolveModeValue({
     throw new Error(`Alias target "${nextPath}" was not found in "${collection.id}".`);
   }
   const nextModes = readTokenModeValuesForCollection(nextToken, collection);
-  const fallbackMode = collection.modes[0]?.name;
+  if (!(modeName in nextModes)) {
+    throw new Error(`Alias target "${nextPath}" has no value for mode "${modeName}".`);
+  }
   visited.add(nextPath);
   return resolveModeValue({
     collection,
     tokenPath: nextPath,
-    value: nextModes[modeName] ?? (fallbackMode ? nextModes[fallbackMode] : nextToken.$value),
+    value: nextModes[modeName],
     modeName,
     tokensByCollection,
     visited,

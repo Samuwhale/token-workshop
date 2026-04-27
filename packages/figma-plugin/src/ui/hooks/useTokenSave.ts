@@ -17,7 +17,6 @@ import {
   createTokenValueBody,
   updateToken,
 } from '../shared/tokenMutations';
-import { apiFetch } from '../shared/apiFetch';
 import type { TokenGenerator } from './useGenerators';
 import { cloneValue } from '../../shared/clone';
 
@@ -32,12 +31,7 @@ export interface UseTokenSaveParams {
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onRecordTouch: (path: string) => void;
-  onRefreshGeneratedGroups?: () => void;
   onError?: (msg: string) => void;
-}
-
-export interface MultiModeSaveOptions {
-  allowGeneratedEdit?: boolean;
 }
 
 export function useTokenSave({
@@ -51,7 +45,6 @@ export function useTokenSave({
   onRefresh,
   onPushUndo,
   onRecordTouch,
-  onRefreshGeneratedGroups,
   onError,
 }: UseTokenSaveParams) {
   const collectionIdRef = useRef(collectionId);
@@ -67,21 +60,6 @@ export function useTokenSave({
       ),
     );
   }, [collectionId, generators]);
-
-  const getOverrideableStepName = useCallback(
-    (generator: TokenGenerator, path: string): string | null => {
-      const prefix = `${generator.targetGroup}.`;
-      if (!path.startsWith(prefix)) {
-        return null;
-      }
-      const stepName = path.slice(prefix.length);
-      if (!stepName || stepName.includes(".")) {
-        return null;
-      }
-      return stepName;
-    },
-    [],
-  );
 
   const handleInlineSave = useCallback(async (
     path: string,
@@ -217,7 +195,6 @@ export function useTokenSave({
     targetCollectionId,
     description,
     mutateModeValues,
-    allowGeneratedEdit = false,
   }: {
     path: string;
     targetCollectionId: string;
@@ -227,14 +204,13 @@ export function useTokenSave({
       currentEntry: TokenMapEntry,
       targetCollection: TokenCollection,
     ) => void;
-    allowGeneratedEdit?: boolean;
   }): Promise<boolean> => {
     if (!connected) {
       return false;
     }
-    if (!allowGeneratedEdit && findProducingGenerator(path)) {
+    if (findProducingGenerator(path)) {
       onError?.(
-        "This generated token must be edited through its generator, saved as a manual exception, or detached first.",
+        "Managed automation outputs are read-only in the token list. Open the graph workspace to change generated tokens.",
       );
       return false;
     }
@@ -339,13 +315,11 @@ export function useTokenSave({
     _collectionId: string,
     optionName: string,
     _previousState?: { type?: string; value: unknown },
-    options?: MultiModeSaveOptions,
   ) => {
     await commitCollectionModeMutation({
       path,
       targetCollectionId,
       description: `Edit mode ${optionName} for ${path}`,
-      allowGeneratedEdit: options?.allowGeneratedEdit,
       mutateModeValues: (nextModeValues) => {
         nextModeValues[optionName] = cloneValue(newValue);
       },
@@ -370,86 +344,10 @@ export function useTokenSave({
     });
   }, [commitCollectionModeMutation]);
 
-  const handleSaveGeneratedException = useCallback(async (
-    path: string,
-    newValue: unknown,
-  ): Promise<boolean> => {
-    if (!connected) return false;
-    const derivedGenerator = findProducingGenerator(path);
-    if (!derivedGenerator) {
-      onError?.("Manual exception failed: generated group ownership not found");
-      return false;
-    }
-    const stepName = getOverrideableStepName(derivedGenerator, path);
-    if (!stepName) {
-      onError?.(
-        "Manual exception failed: this generated token must be detached before it can diverge.",
-      );
-      return false;
-    }
-    try {
-      await apiFetch(
-        `${serverUrl}/api/generators/${derivedGenerator.id}/steps/${encodeURIComponent(stepName)}/override`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: newValue, locked: true }),
-        },
-      );
-    } catch (err) {
-      onError?.(
-        err instanceof ApiError
-          ? err.message
-          : "Manual exception failed: network error",
-      );
-      return false;
-    }
-    await applyTokenMutationSuccess({
-      onRefresh,
-      onRecordTouch,
-      touchedPath: path,
-    });
-    onRefreshGeneratedGroups?.();
-    return true;
-  }, [
-    connected,
-    findProducingGenerator,
-    getOverrideableStepName,
-    onError,
-    onRecordTouch,
-    onRefresh,
-    onRefreshGeneratedGroups,
-    serverUrl,
-  ]);
-
-  const handleDetachFromGenerator = useCallback(async (path: string): Promise<boolean> => {
-    if (!connected) return false;
-    try {
-      const derivedGenerator = findProducingGenerator(path);
-      if (!derivedGenerator) {
-        onError?.("Detach failed: generated group ownership not found");
-        return false;
-      }
-      await apiFetch(`${serverUrl}/api/generators/${derivedGenerator.id}/detach`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scope: 'token', path }),
-      });
-    } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : 'Detach failed: network error');
-      return false;
-    }
-    onRefresh();
-    onRefreshGeneratedGroups?.();
-    return true;
-  }, [connected, findProducingGenerator, onError, onRefresh, onRefreshGeneratedGroups, serverUrl]);
-
   return {
     handleInlineSave,
     handleDescriptionSave,
     handleMultiModeInlineSave,
     handleCopyValueToAllModes,
-    handleSaveGeneratedException,
-    handleDetachFromGenerator,
   };
 }

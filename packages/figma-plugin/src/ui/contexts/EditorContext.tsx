@@ -15,7 +15,6 @@ import { useCollectionStateContext, useTokenFlatMapContext } from './TokenDataCo
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
 import type { CollectionPathResolutionReason } from '@tokenmanager/core';
-import type { TokensLibraryGeneratedGroupEditorTarget } from '../shared/navigationTypes';
 import type { TokenContextNavigationHistoryEntry } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------
@@ -38,13 +37,11 @@ export type TokenDetailsTarget = {
   onMakeWorkingCollection?: (() => void) | null;
 };
 
-export type EditingGeneratedGroup = TokensLibraryGeneratedGroupEditorTarget;
 export type InspectingCollection = { collectionId: string };
 export type EditorContextualSurfaceTarget =
   | { surface: null }
   | { surface: "collection-details"; collection: InspectingCollection }
   | { surface: "token-details"; token: TokenDetailsTarget }
-  | { surface: 'generated-group-editor'; generatedGroup: EditingGeneratedGroup }
   | { surface: 'compare'; mode: 'tokens'; paths: Set<string>; refreshCompareModeConfig?: boolean }
   | { surface: 'compare'; mode: 'cross-collection'; path: string; refreshCompareModeConfig?: boolean }
   | { surface: 'color-analysis' }
@@ -52,8 +49,7 @@ export type EditorContextualSurfaceTarget =
 
 export type TokensLibraryEditorSurface =
   | "collection-details"
-  | "token-details"
-  | "generated-group-editor";
+  | "token-details";
 
 export type TokensLibraryMaintenanceSurface =
   | "compare"
@@ -68,8 +64,6 @@ export interface TokensContextualSurfaceState {
 export interface EditorContextValue {
   tokenDetails: TokenDetailsTarget | null;
   setTokenDetails: Dispatch<SetStateAction<TokenDetailsTarget | null>>;
-  editingGeneratedGroup: EditingGeneratedGroup | null;
-  setEditingGeneratedGroup: Dispatch<SetStateAction<EditingGeneratedGroup | null>>;
   inspectingCollection: InspectingCollection | null;
   setInspectingCollection: Dispatch<SetStateAction<InspectingCollection | null>>;
   highlightedToken: string | null;
@@ -101,7 +95,7 @@ export interface EditorContextValue {
   closeMaintenanceSurface: () => void;
   /**
    * Dismiss every contextual tool that does not survive a Library section change:
-   * compare, color-analysis, import, generated-group editor, collection-details.
+   * compare, color-analysis, import, and collection-details.
    * The pinned token details surface (`tokenDetails`) is preserved on purpose so authors
    * keep context while moving between Tokens, Health, and History.
    */
@@ -143,7 +137,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const { pathToCollectionId, collectionIdsByPath } = useTokenFlatMapContext();
 
   const [tokenDetails, setTokenDetails] = useState<TokenDetailsTarget | null>(null);
-  const [editingGeneratedGroup, setEditingGeneratedGroup] = useState<EditingGeneratedGroup | null>(null);
   const [inspectingCollection, setInspectingCollection] = useState<InspectingCollection | null>(null);
   const [showTokensCompare, setShowTokensCompare] = useState(false);
   const [showColorAnalysis, setShowColorAnalysis] = useState(false);
@@ -202,7 +195,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const clearEditorFamily = useCallback(() => {
     setTokenDetails(null);
-    setEditingGeneratedGroup(null);
     setInspectingCollection(null);
   }, []);
 
@@ -218,7 +210,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const dismissContextualTools = useCallback(() => {
     clearMaintenanceFamily();
-    setEditingGeneratedGroup(null);
     setInspectingCollection(null);
   }, [clearMaintenanceFamily]);
 
@@ -232,15 +223,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     if (target.surface === "token-details") {
       clearMaintenanceFamily();
       setInspectingCollection(null);
-      setEditingGeneratedGroup(null);
       setTokenDetails(target.token);
       return;
     }
 
-    if (
-      target.surface === "collection-details" ||
-      target.surface === "generated-group-editor"
-    ) {
+    if (target.surface === "collection-details") {
       clearEditorFamily();
     } else {
       clearMaintenanceFamily();
@@ -249,11 +236,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     if (target.surface === "collection-details") {
       setInspectingCollection(target.collection);
-      return;
-    }
-
-    if (target.surface === 'generated-group-editor') {
-      setEditingGeneratedGroup(target.generatedGroup);
       return;
     }
 
@@ -294,9 +276,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const editorSurface = useMemo<TokensLibraryEditorSurface | null>(() => {
     if (inspectingCollection) return "collection-details";
     if (tokenDetails) return "token-details";
-    if (editingGeneratedGroup) return "generated-group-editor";
     return null;
-  }, [inspectingCollection, tokenDetails, editingGeneratedGroup]);
+  }, [inspectingCollection, tokenDetails]);
 
   const maintenanceSurface = useMemo<TokensLibraryMaintenanceSurface | null>(() => {
     if (showTokensCompare) return "compare";
@@ -313,8 +294,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const value = useMemo<EditorContextValue>(() => ({
     tokenDetails,
     setTokenDetails,
-    editingGeneratedGroup,
-    setEditingGeneratedGroup,
     inspectingCollection,
     setInspectingCollection,
     highlightedToken,
@@ -347,7 +326,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setAliasNotFoundHandler,
   }), [
     tokenDetails,
-    editingGeneratedGroup,
     inspectingCollection,
     highlightedToken,
     createFromEmpty,

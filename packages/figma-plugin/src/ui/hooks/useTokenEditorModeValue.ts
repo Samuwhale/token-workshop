@@ -55,7 +55,7 @@ export function useTokenEditorModeValue({
       name: mode.name,
       value: index === 0
         ? value
-        : (modeValues[collectionId]?.[mode.name] ?? value),
+        : modeValues[collectionId]?.[mode.name],
       setValue: (v: TokenEditorValue) => setModeValue(mode.name, v),
     }));
   }, [collection, collectionId, value, modeValues, setModeValue]);

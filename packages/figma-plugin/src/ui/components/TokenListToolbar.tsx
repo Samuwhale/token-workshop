@@ -6,7 +6,6 @@ import {
   MoreHorizontal,
   Plus,
   Search,
-  Sparkles,
   Target,
   X,
 } from "lucide-react";
@@ -100,7 +99,6 @@ export interface TokenListToolbarProps {
   openTableCreate: () => void;
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
-  onCreateGeneratedGroup?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
   onFindReplace?: () => void;
@@ -136,7 +134,6 @@ export function TokenListToolbar({
   openTableCreate,
   handleOpenNewGroupDialog,
   onShowPasteModal,
-  onCreateGeneratedGroup,
   onSelectTokens,
   onBulkEdit,
   onFindReplace,
@@ -197,7 +194,6 @@ export function TokenListToolbar({
 
   const hasCreateActions =
     Boolean(handleOpenNewGroupDialog) ||
-    Boolean(onCreateGeneratedGroup) ||
     Boolean(onShowPasteModal) ||
     Boolean(openTableCreate);
   const hasEditActions =
@@ -520,18 +516,6 @@ export function TokenListToolbar({
                   >
                     New group
                   </button>
-                  {onCreateGeneratedGroup ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => runCreateAction(onCreateGeneratedGroup)}
-                      disabled={!connected}
-                      className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                    >
-                      <Sparkles size={11} strokeWidth={1.5} aria-hidden />
-                      Generate group
-                    </button>
-                  ) : null}
                   {onShowPasteModal ? (
                     <button
                       type="button"

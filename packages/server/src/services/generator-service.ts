@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import type {
   GeneratorType,
   GeneratorConfig,
@@ -110,80 +110,6 @@ export type GeneratorPreviewInput = Pick<
   baseGeneratorId?: unknown;
   detachedPaths?: unknown;
 };
-
-export interface GeneratorPreviewChangeEntry {
-  path: string;
-  collectionId: string;
-  type: string;
-  currentValue: unknown;
-  newValue: unknown;
-  changesValue: boolean;
-}
-
-export interface GeneratorPreviewOverwriteEntry
-  extends GeneratorPreviewChangeEntry {
-  owner: "manual" | "generator";
-  generatorId?: string;
-}
-
-export interface GeneratorPreviewManualConflictEntry
-  extends GeneratorPreviewChangeEntry {
-  baselineValue: unknown;
-}
-
-export interface GeneratorPreviewDeletedEntry {
-  path: string;
-  collectionId: string;
-  type: string;
-  currentValue: unknown;
-}
-
-export interface GeneratorPreviewDetachedEntry {
-  path: string;
-  collectionId: string;
-  type: string;
-  currentValue: unknown;
-  newValue?: unknown;
-  state: "preserved" | "recreated";
-}
-
-export interface GeneratorPreviewManualExceptionEntry {
-  path: string;
-  collectionId: string;
-  type: string;
-  currentValue?: unknown;
-  newValue?: unknown;
-  state: "created" | "preserved" | "invalidated";
-}
-
-export interface GeneratorPreviewAnalysis {
-  fingerprint: string;
-  safeCreateCount: number;
-  unchangedCount: number;
-  existingPathSet: string[];
-  safeUpdates: GeneratorPreviewChangeEntry[];
-  nonGeneratorOverwrites: GeneratorPreviewOverwriteEntry[];
-  manualEditConflicts: GeneratorPreviewManualConflictEntry[];
-  deletedOutputs: GeneratorPreviewDeletedEntry[];
-  detachedOutputs: GeneratorPreviewDetachedEntry[];
-  manualExceptions: GeneratorPreviewManualExceptionEntry[];
-  diff: {
-    created: Array<{ path: string; value: unknown; type: string }>;
-    updated: Array<{
-      path: string;
-      currentValue: unknown;
-      newValue: unknown;
-      type: string;
-    }>;
-    unchanged: Array<{ path: string; value: unknown; type: string }>;
-    deleted: Array<{ path: string; currentValue: unknown; type: string }>;
-  };
-}
-
-export interface GeneratorPreviewResult {
-  tokens: GeneratedTokenResult[];
-  analysis: GeneratorPreviewAnalysis;
-}
 
 export interface GeneratorCollectionDependencyMeta {
   id: string;
@@ -1999,15 +1925,6 @@ export class GeneratorService {
     tokenStore: TokenStore,
     sourceValue?: unknown,
   ): Promise<GeneratedTokenResult[]> {
-    const result = await this.previewWithAnalysis(data, tokenStore, sourceValue);
-    return result.tokens;
-  }
-
-  async previewWithAnalysis(
-    data: GeneratorPreviewInput,
-    tokenStore: TokenStore,
-    sourceValue?: unknown,
-  ): Promise<GeneratorPreviewResult> {
     const type = normalizeGeneratorType(data.type);
     const baseGeneratorId =
       typeof data.baseGeneratorId === "string" && data.baseGeneratorId.trim()
@@ -2038,10 +1955,7 @@ export class GeneratorService {
       ...(semanticLayer && { semanticLayer }),
       ...(detachedPaths && { detachedPaths }),
     };
-    let analysisData = normalizedData;
-    let tokens: GeneratedTokenResult[];
     if (sourceValue !== undefined) {
-      // source value already resolved on the client; still resolve config tokenRefs on the server
       const resolvedConfig = await this.resolveConfigTokenRefs(
         normalizedData.config,
         tokenStore,
@@ -2050,283 +1964,18 @@ export class GeneratorService {
         resolvedConfig !== normalizedData.config
           ? { ...normalizedData, config: resolvedConfig }
           : normalizedData;
-      analysisData = resolvedData;
-      tokens = await this.computeResultsWithValue(resolvedData, sourceValue);
+      return this.computeResultsWithValue(resolvedData, sourceValue);
     } else {
       const resolvedConfig = await this.resolveConfigTokenRefs(
         normalizedData.config,
         tokenStore,
       );
-      analysisData =
+      const resolvedData =
         resolvedConfig !== normalizedData.config
           ? { ...normalizedData, config: resolvedConfig }
           : normalizedData;
-      tokens = await this.computeResults(normalizedData, tokenStore);
+      return this.computeResults(resolvedData, tokenStore);
     }
-    const analysis = await this.analyzePreviewResults(
-      analysisData,
-      tokens,
-      tokenStore,
-      baseGenerator,
-    );
-    return { tokens, analysis };
-  }
-
-  private buildPreviewFingerprint(payload: unknown): string {
-    return createHash("sha1").update(stableStringify(payload)).digest("hex");
-  }
-
-  private async analyzePreviewResults(
-    data: GeneratorPreviewInput & {
-      type: GeneratorType;
-      config: GeneratorConfig;
-      overrides?: Record<string, { value: unknown; locked: boolean }>;
-      detachedPaths?: string[];
-      semanticLayer?: GeneratorSemanticLayer;
-    },
-    preview: GeneratedTokenResult[],
-    tokenStore: TokenStore,
-    baseGenerator?: TokenGenerator,
-  ): Promise<GeneratorPreviewAnalysis> {
-    const targetCollection = data.targetCollection;
-    const existingPathSet = new Set<string>();
-    const safeUpdates: GeneratorPreviewChangeEntry[] = [];
-    const nonGeneratorOverwrites: GeneratorPreviewOverwriteEntry[] = [];
-    const manualEditConflicts: GeneratorPreviewManualConflictEntry[] = [];
-    const detachedOutputs: GeneratorPreviewDetachedEntry[] = [];
-    const manualExceptions: GeneratorPreviewManualExceptionEntry[] = [];
-    const diffCreated: GeneratorPreviewAnalysis["diff"]["created"] = [];
-    const diffUpdated: GeneratorPreviewAnalysis["diff"]["updated"] = [];
-    const diffUnchanged: GeneratorPreviewAnalysis["diff"]["unchanged"] = [];
-    const previewPathSet = new Set(preview.map((result) => result.path));
-    const previewResultMap = new Map(
-      preview.map((result) => [result.path, result] as const),
-    );
-    const detachedPathSet = new Set(data.detachedPaths ?? []);
-    const nextOverrides = data.overrides ?? {};
-    const previousOverrides = baseGenerator?.overrides ?? {};
-
-    const baselinePreviewMap = baseGenerator
-      ? new Map(
-          (await this.computeResults(baseGenerator, tokenStore)).map((result) => [
-            result.path,
-            result,
-          ]),
-        )
-      : new Map<string, GeneratedTokenResult>();
-
-    for (const result of preview) {
-      const existing = targetCollection
-        ? await tokenStore.getToken(targetCollection, result.path)
-        : undefined;
-      if (!existing) {
-        diffCreated.push({
-          path: result.path,
-          value: result.value,
-          type: result.type,
-        });
-        continue;
-      }
-
-      existingPathSet.add(result.path);
-      const changesValue =
-        stableStringify(existing.$value) !== stableStringify(result.value);
-      const ext = existing.$extensions?.["com.tokenmanager.generator"];
-
-      if (detachedPathSet.has(result.path)) {
-        detachedOutputs.push({
-          path: result.path,
-          collectionId: targetCollection,
-          type: result.type,
-          currentValue: existing.$value,
-          newValue: result.value,
-          state: "recreated",
-        });
-      } else if (baseGenerator && ext?.generatorId === baseGenerator.id) {
-        const baseline = baselinePreviewMap.get(result.path);
-        const manualEditDetected =
-          baseline !== undefined &&
-          stableStringify(existing.$value) !== stableStringify(baseline.value);
-
-        if (manualEditDetected && changesValue) {
-          manualEditConflicts.push({
-            path: result.path,
-            collectionId: targetCollection,
-            type: result.type,
-            currentValue: existing.$value,
-            newValue: result.value,
-            changesValue,
-            baselineValue: baseline!.value,
-          });
-        } else if (changesValue) {
-          safeUpdates.push({
-            path: result.path,
-            collectionId: targetCollection,
-            type: result.type,
-            currentValue: existing.$value,
-            newValue: result.value,
-            changesValue,
-          });
-        }
-      } else {
-        nonGeneratorOverwrites.push({
-          path: result.path,
-          collectionId: targetCollection,
-          type: result.type,
-          currentValue: existing.$value,
-          newValue: result.value,
-          changesValue,
-          owner: ext?.generatorId ? "generator" : "manual",
-          generatorId: ext?.generatorId,
-        });
-      }
-
-      if (changesValue) {
-        diffUpdated.push({
-          path: result.path,
-          currentValue: existing.$value,
-          newValue: result.value,
-          type: result.type,
-        });
-      } else {
-        diffUnchanged.push({
-          path: result.path,
-          value: result.value,
-          type: result.type,
-        });
-      }
-    }
-
-    const deletedOutputs: GeneratorPreviewDeletedEntry[] = [];
-    if (baseGenerator) {
-      const desiredOutputKeys = new Set(
-        (
-          await this.collectDesiredPreviewOutputs(
-            data,
-            preview,
-            baseGenerator,
-          )
-        ).map((output) => `${output.collectionId}::${output.path}`),
-      );
-      const ownedTokens = tokenStore.findTokensByGeneratorId(baseGenerator.id);
-      for (const owned of ownedTokens) {
-        const token = await tokenStore.getToken(owned.collectionId, owned.path);
-        const ext = token?.$extensions?.["com.tokenmanager.generator"];
-        if (
-          !token ||
-          (ext?.outputKind !== "scale" && ext?.outputKind !== "semantic")
-        ) {
-          continue;
-        }
-        if (!desiredOutputKeys.has(`${owned.collectionId}::${owned.path}`)) {
-          deletedOutputs.push({
-            path: owned.path,
-            collectionId: owned.collectionId,
-            type: token.$type || "unknown",
-            currentValue: token.$value,
-          });
-        }
-      }
-
-      for (const detachedPath of detachedPathSet) {
-        if (previewPathSet.has(detachedPath)) continue;
-        const token = targetCollection
-          ? await tokenStore.getToken(targetCollection, detachedPath)
-          : undefined;
-        if (!token) continue;
-        detachedOutputs.push({
-          path: detachedPath,
-          collectionId: targetCollection,
-          type: token.$type || "unknown",
-          currentValue: token.$value,
-          state: "preserved",
-        });
-      }
-    }
-
-    const exceptionStepNames = new Set([
-      ...Object.keys(previousOverrides),
-      ...Object.keys(nextOverrides),
-    ]);
-    for (const stepName of exceptionStepNames) {
-      const path = `${data.targetGroup}.${stepName}`;
-      const nextOverride = nextOverrides[stepName];
-      const previousOverride = previousOverrides[stepName];
-      const existing = targetCollection
-        ? await tokenStore.getToken(targetCollection, path)
-        : undefined;
-      const previewResult = previewResultMap.get(path);
-      const baselineResult = baselinePreviewMap.get(path);
-      const entryType =
-        previewResult?.type ??
-        baselineResult?.type ??
-        existing?.$type ??
-        "unknown";
-
-      if (nextOverride && previousOverride) {
-        manualExceptions.push({
-          path,
-          collectionId: targetCollection,
-          type: entryType,
-          currentValue: existing?.$value ?? previousOverride.value,
-          newValue: previewResult?.value ?? nextOverride.value,
-          state: "preserved",
-        });
-        continue;
-      }
-
-      if (nextOverride) {
-        manualExceptions.push({
-          path,
-          collectionId: targetCollection,
-          type: entryType,
-          currentValue: existing?.$value,
-          newValue: previewResult?.value ?? nextOverride.value,
-          state: "created",
-        });
-        continue;
-      }
-
-      manualExceptions.push({
-        path,
-        collectionId: targetCollection,
-        type: entryType,
-        currentValue: existing?.$value ?? previousOverride?.value,
-        newValue: previewResult?.value,
-        state: "invalidated",
-      });
-    }
-
-    const analysisWithoutFingerprint = {
-      safeCreateCount: diffCreated.length,
-      unchangedCount: diffUnchanged.length,
-      existingPathSet: [...existingPathSet],
-      safeUpdates,
-      nonGeneratorOverwrites,
-      manualEditConflicts,
-      deletedOutputs,
-      detachedOutputs,
-      manualExceptions,
-      diff: {
-        created: diffCreated,
-        updated: diffUpdated,
-        unchanged: diffUnchanged,
-        deleted: deletedOutputs.map((entry) => ({
-          path: entry.path,
-          currentValue: entry.currentValue,
-          type: entry.type,
-        })),
-      },
-    } satisfies Omit<GeneratorPreviewAnalysis, "fingerprint">;
-
-    return {
-      ...analysisWithoutFingerprint,
-      fingerprint: this.buildPreviewFingerprint({
-        targetCollection,
-        preview,
-        analysis: analysisWithoutFingerprint,
-      }),
-    };
   }
 
   /** Run a saved generator and persist the derived tokens. */

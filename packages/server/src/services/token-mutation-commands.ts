@@ -3,6 +3,8 @@ import type {
   GeneratorPathRenameUpdate,
   GeneratorService,
 } from "./generator-service.js";
+import { readGraphProvenance } from "@tokenmanager/core";
+import { ConflictError } from "../errors.js";
 import type {
   OperationLog,
   SnapshotEntry,
@@ -30,6 +32,7 @@ interface LoggedMutationConfig<TResult> {
   description: string | ((result: TResult) => string);
   collectionId: string;
   captureBefore: () => Promise<SnapshotMap>;
+  guardBefore?: () => Promise<SnapshotMap>;
   mutate: () => Promise<TResult>;
   captureAfter: (result: TResult) => Promise<SnapshotMap>;
   affectedPaths?: (
@@ -53,6 +56,18 @@ function listAffectedPaths(before: SnapshotMap, after: SnapshotMap): string[] {
 
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function assertNoGraphManagedTokens(snapshot: SnapshotMap, action: string): void {
+  const graphManaged = Object.entries(snapshot)
+    .filter(([, entry]) => entry.token && readGraphProvenance(entry.token))
+    .map(([snapshotKey]) => snapshotKey);
+  if (graphManaged.length === 0) return;
+  const preview = graphManaged.slice(0, 5).join(", ");
+  const more = graphManaged.length > 5 ? ` and ${graphManaged.length - 5} more` : "";
+  throw new ConflictError(
+    `Cannot ${action} graph-managed token${graphManaged.length === 1 ? "" : "s"}: ${preview}${more}. Detach from the graph first.`,
+  );
 }
 
 async function rollbackFailedMutation(
@@ -108,6 +123,11 @@ async function executeLoggedMutation<TResult>(
   config: LoggedMutationConfig<TResult>,
 ): Promise<{ result: TResult; operationId: string }> {
   const beforeSnapshot = await config.captureBefore();
+  const guardSnapshot = config.guardBefore ? await config.guardBefore() : {};
+  assertNoGraphManagedTokens(
+    mergeSnapshots(beforeSnapshot, guardSnapshot),
+    config.type.replace(/-/g, " "),
+  );
   const result = await config.mutate();
 
   let operationId: string | undefined;
@@ -253,6 +273,12 @@ export async function copyGroupCommand(
         targetCollectionId,
         groupPath,
       ),
+    guardBefore: () =>
+      captureQualifiedGroupSnapshot(
+        services.tokenStore,
+        sourceCollectionId,
+        groupPath,
+      ),
     mutate: () =>
       services.tokenStore.copyGroup(
         sourceCollectionId,
@@ -391,6 +417,12 @@ export async function copyTokenCommand(
         targetCollectionId,
         [targetPath],
       ),
+    guardBefore: () =>
+      captureQualifiedPathsSnapshot(
+        services.tokenStore,
+        sourceCollectionId,
+        [tokenPath],
+      ),
     mutate: () =>
       services.tokenStore.copyToken(
         sourceCollectionId,
@@ -513,6 +545,12 @@ export async function batchCopyTokensCommand(
       captureQualifiedPathsSnapshot(
         services.tokenStore,
         targetCollectionId,
+        paths,
+      ),
+    guardBefore: () =>
+      captureQualifiedPathsSnapshot(
+        services.tokenStore,
+        sourceCollectionId,
         paths,
       ),
     mutate: () =>

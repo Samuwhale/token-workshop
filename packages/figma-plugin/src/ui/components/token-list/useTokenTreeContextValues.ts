@@ -48,7 +48,6 @@ export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDat
 interface GroupStateDeps {
   collectionId: string;
   groupBy: "path" | "type";
-  activeCollectionModeLabel?: string | null;
   selectMode: boolean;
   expandedPaths: Set<string>;
   highlightedToken: string | null | undefined;
@@ -56,7 +55,6 @@ interface GroupStateDeps {
   dragOverGroup?: string | null;
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
-  generatorsByTargetGroup?: Map<string, TokenGenerator>;
   collectionCoverage?: Map<
     string,
     { configured: number; total: number; totalMissing: number }
@@ -69,7 +67,6 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
     () => ({
       collectionId: deps.collectionId,
       groupBy: deps.groupBy,
-      activeCollectionModeLabel: deps.activeCollectionModeLabel ?? null,
       selectMode: deps.selectMode,
       expandedPaths: deps.expandedPaths,
       highlightedToken: deps.highlightedToken ?? null,
@@ -78,14 +75,13 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       dragOverGroup: deps.dragOverGroup,
       dragOverGroupIsInvalid: deps.dragOverGroupIsInvalid,
       dragSource: deps.dragSource,
-      generatorsByTargetGroup: deps.generatorsByTargetGroup,
       collectionCoverage: deps.collectionCoverage,
       rovingFocusPath: deps.effectiveRovingPath,
     }),
     [
-      deps.collectionId, deps.groupBy, deps.activeCollectionModeLabel, deps.selectMode, deps.expandedPaths,
+      deps.collectionId, deps.groupBy, deps.selectMode, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
-      deps.dragOverGroupIsInvalid, deps.dragSource, deps.generatorsByTargetGroup,
+      deps.dragOverGroupIsInvalid, deps.dragSource,
       deps.collectionCoverage, deps.effectiveRovingPath,
     ],
   );
@@ -103,20 +99,9 @@ interface GroupActionsDeps {
   handleDuplicateGroup: (groupPath: string) => void;
   onPublishGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onCreateGeneratedGroupFromGroup?: (groupPath: string, tokenType: string | null) => void;
   handleZoomIntoGroup: (groupPath: string) => void;
   handleDragOverGroup: (groupPath: string | null, invalid?: boolean) => void;
   handleDropOnGroup: (groupPath: string) => void;
-  onEditGeneratedGroup?: (generatorId: string) => void;
-  onDuplicateGeneratedGroup?: (generatorId: string) => void;
-  handleDeleteGeneratedGroup: (generatorId: string) => Promise<void>;
-  onNavigateToGeneratedGroup?: (generatorId: string) => void;
-  handleRunGeneratedGroup: (generatorId: string) => Promise<void>;
-  handleToggleGeneratedGroupEnabled: (
-    generatorId: string,
-    enabled: boolean,
-  ) => Promise<void>;
-  handleDetachGeneratedGroup: (generatorId: string, groupPath: string) => Promise<void>;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   handleSelectGroupChildren?: (groupNode: TokenNode) => void;
   setRovingFocusPath: (path: string) => void;
@@ -136,20 +121,9 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       onDuplicateGroup: deps.handleDuplicateGroup,
       onPublishGroup: deps.onPublishGroup,
       onSetGroupScopes: deps.onSetGroupScopes,
-      onCreateGeneratedGroupFromGroup: deps.onCreateGeneratedGroupFromGroup,
       onZoomIntoGroup: deps.handleZoomIntoGroup,
       onDragOverGroup: deps.handleDragOverGroup,
       onDropOnGroup: deps.handleDropOnGroup,
-      onEditGeneratedGroup: deps.onEditGeneratedGroup,
-      onDuplicateGeneratedGroup: deps.onDuplicateGeneratedGroup,
-      onDeleteGeneratedGroup: deps.handleDeleteGeneratedGroup,
-      onNavigateToGeneratedGroup: deps.onNavigateToGeneratedGroup,
-      onRunGeneratedGroup: deps.handleRunGeneratedGroup,
-      onToggleGeneratedGroupEnabled: deps.handleToggleGeneratedGroupEnabled,
-      onDetachGeneratedGroup: deps.handleDetachGeneratedGroup,
-      onNavigateToToken: deps.onNavigateToAlias
-        ? (path: string) => deps.onNavigateToAlias!(path)
-        : undefined,
       onSelectGroupChildren: deps.handleSelectGroupChildren,
       onRovingFocus: deps.setRovingFocusPath,
     }),
@@ -165,18 +139,9 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       deps.handleDuplicateGroup,
       deps.onPublishGroup,
       deps.onSetGroupScopes,
-      deps.onCreateGeneratedGroupFromGroup,
       deps.handleZoomIntoGroup,
       deps.handleDragOverGroup,
       deps.handleDropOnGroup,
-      deps.onEditGeneratedGroup,
-      deps.onDuplicateGeneratedGroup,
-      deps.handleDeleteGeneratedGroup,
-      deps.onNavigateToGeneratedGroup,
-      deps.handleRunGeneratedGroup,
-      deps.handleToggleGeneratedGroupEnabled,
-      deps.handleDetachGeneratedGroup,
-      deps.onNavigateToAlias,
       deps.handleSelectGroupChildren,
       deps.setRovingFocusPath,
     ],
@@ -278,11 +243,6 @@ interface LeafActionsDeps {
   handleRequestMoveTokenReview: (path: string) => void;
   handleRequestCopyTokenReview: (path: string) => void;
   handleDuplicateToken: (path: string) => void;
-  handleDetachFromGenerator: (path: string) => Promise<boolean>;
-  handleSaveGeneratedException: (
-    path: string,
-    newValue: unknown,
-  ) => Promise<boolean>;
   handleOpenExtractToAlias: (
     path: string,
     $type?: string,
@@ -309,7 +269,6 @@ interface LeafActionsDeps {
   multiModeData: unknown;
   handleMultiModeInlineSave?: TokenTreeLeafActionsContextType["onMultiModeInlineSave"];
   handleCopyValueToAllModes: (path: string, targetCollectionId: string) => Promise<void>;
-  onOpenGeneratedGroupEditor?: TokenTreeLeafActionsContextType["onOpenGeneratedGroupEditor"];
   onToggleStar?: (path: string) => void;
   handleClearPendingRename: () => void;
   handleClearPendingTabEdit: () => void;
@@ -328,8 +287,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
     handleRequestMoveTokenReview,
     handleRequestCopyTokenReview,
     handleDuplicateToken,
-    handleDetachFromGenerator,
-    handleSaveGeneratedException,
     handleOpenExtractToAlias,
     handleHoverToken,
     setTypeFilter,
@@ -347,7 +304,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
     multiModeData,
     handleMultiModeInlineSave,
     handleCopyValueToAllModes,
-    onOpenGeneratedGroupEditor,
     onToggleStar,
     handleClearPendingRename,
     handleClearPendingTabEdit,
@@ -366,8 +322,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onRequestMoveToken: handleRequestMoveTokenReview,
       onRequestCopyToken: handleRequestCopyTokenReview,
       onDuplicateToken: handleDuplicateToken,
-      onDetachFromGenerator: handleDetachFromGenerator,
-      onSaveGeneratedException: handleSaveGeneratedException,
       onExtractToAlias: handleOpenExtractToAlias,
       onHoverToken: handleHoverToken,
       onFilterByType: setTypeFilter,
@@ -390,7 +344,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       onCopyValueToAllModes: (path, targetCollectionId) => {
         void handleCopyValueToAllModes(path, targetCollectionId);
       },
-      onOpenGeneratedGroupEditor,
       onToggleStar,
       clearPendingRename: handleClearPendingRename,
       clearPendingTabEdit: handleClearPendingTabEdit,
@@ -407,8 +360,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       handleRequestMoveTokenReview,
       handleRequestCopyTokenReview,
       handleDuplicateToken,
-      handleDetachFromGenerator,
-      handleSaveGeneratedException,
       handleOpenExtractToAlias,
       handleHoverToken,
       setTypeFilter,
@@ -426,7 +377,6 @@ export function useTokenTreeLeafActions(deps: LeafActionsDeps): TokenTreeLeafAct
       multiModeData,
       handleMultiModeInlineSave,
       handleCopyValueToAllModes,
-      onOpenGeneratedGroupEditor,
       onToggleStar,
       handleClearPendingRename,
       handleClearPendingTabEdit,

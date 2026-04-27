@@ -272,13 +272,12 @@ export function useCommandPaletteCommands(): {
       },
       {
         id: "generate-color-scale",
-        label: "Generate palette…",
+        label: "Open graph editor…",
         description:
-          "Open the generated-group editor for a palette in the current collection",
+          "Author generated tokens with graph templates and previews",
         category: "Tokens",
         handler: () => {
-          goToTokens();
-          shell.openGeneratedPalette();
+          shell.openGraphWorkspace();
         },
       },
       {

@@ -12,14 +12,6 @@ import type { NodeCapabilities, TokenMapEntry } from "../../shared/types";
 import { BatchActionPanel } from "./batch-actions/BatchActionPanel";
 import type { BatchActionType } from "./batch-actions/types";
 import { FIGMA_SCOPE_OPTIONS } from "../shared/tokenMetadata";
-import { stableStringify } from "../shared/utils";
-import { apiFetch } from "../shared/apiFetch";
-import {
-  STORAGE_KEY_BUILDERS,
-  lsGet,
-  lsRemove,
-  lsSet,
-} from "../shared/storage";
 import {
   flattenVisible,
   pruneDeletedPaths,
@@ -35,7 +27,6 @@ import type { LintViolation } from "../hooks/useLint";
 import type {
   TokenListProps,
   MultiModeValue,
-  TokenListData,
 } from "./tokenListTypes";
 import { VIRTUAL_OVERSCAN } from "./tokenListTypes";
 import { TokenTreeProvider } from "./TokenTreeContext";
@@ -60,11 +51,6 @@ import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { useBoundTokenPaths } from "../hooks/useBoundTokenPaths";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { dispatchToast } from "../shared/toastBus";
-import {
-  getGeneratedGroupKeepUpdatedAvailability,
-  getGeneratedGroupTypeLabel,
-  resolveGeneratedGroupSourceContext,
-} from "../shared/generatedGroupUtils";
 import {
   buildReferencedTokenPathSetFromEntries,
   isTokenEntryUnused,
@@ -92,7 +78,6 @@ import type {
 import { getPluginMessageFromEvent } from "../../shared/utils";
 import { useTokenListModalContext } from "./token-list/useTokenListModalContext";
 import { useToolbarStateChips } from "./token-list/useToolbarStateChips";
-import { TokenListStaleGeneratedBanner } from "./token-list/TokenListStaleGeneratedBanner";
 import {
   useTokenTreeSharedData,
   useTokenTreeGroupState,
@@ -100,7 +85,6 @@ import {
   useTokenTreeLeafState,
   useTokenTreeLeafActions,
 } from "./token-list/useTokenTreeContextValues";
-import { createGeneratedGroupDuplicateDraft } from "../hooks/useGeneratedGroupEditor";
 
 const EMPTY_PATH_SET = new Set<string>();
 
@@ -139,7 +123,6 @@ export function TokenList({
     lintViolations = [],
     syncSnapshot,
     generators,
-    generatorsByTargetGroup,
     derivedTokenPaths,
     tokenUsageCounts,
     tokenUsageReady = false,
@@ -163,8 +146,6 @@ export function TokenList({
     navHistoryLength,
     onClearHighlight,
     onPublishGroup,
-    onCreateGeneratedGroupFromGroup,
-    onRefreshGeneratedGroups,
     onToggleIssuesOnly,
     onFilteredCountChange,
     onNavigateToCollection,
@@ -177,10 +158,6 @@ export function TokenList({
     onError,
     onViewTokenHistory,
     onOpenTokenIssues,
-    onEditGeneratedGroup,
-    onOpenGeneratedGroupEditor,
-    onNavigateToGeneratedGroup,
-    onNavigateToNewGeneratedGroup,
     onDisplayedLeafNodesChange,
     onSelectionChange,
     onOpenCompare,
@@ -258,7 +235,6 @@ export function TokenList({
     multiModeDimId,
     setMultiModeDimId,
   } = viewState;
-  const [runningStaleGenerators, setRunningStaleGenerators] = useState(false);
   const [pendingBatchEditorFocus, setPendingBatchEditorFocus] =
     useState<BatchEditorFocusTarget | null>(null);
   const recentlyTouchedPaths = useMemo(
@@ -289,60 +265,6 @@ export function TokenList({
     }
     prevHighlightRef.current = highlightedToken ?? null;
   }, [collectionId, highlightedToken, recentlyTouched, onTokenTouched]);
-
-  const staleGeneratorsForSet = useMemo(
-    () =>
-      (generators ?? []).filter(
-        (generator) =>
-          generator.targetCollection === collectionId && generator.isStale === true,
-      ),
-    [generators, collectionId],
-  );
-
-  const staleGeneratorBannerStorageKey = useMemo(
-    () => STORAGE_KEY_BUILDERS.staleGeneratedBannerDismissed(collectionId),
-    [collectionId],
-  );
-
-  const getGeneratorSourceValue = useCallback(
-    (
-      generator: Pick<
-        NonNullable<TokenListData["generators"]>[number],
-        "sourceToken" | "sourceCollectionId"
-      >,
-    ) =>
-      resolveGeneratedGroupSourceContext({
-        sourceTokenPath: generator.sourceToken,
-        sourceCollectionId: generator.sourceCollectionId,
-        allTokensFlat,
-        pathToCollectionId,
-        collectionIdsByPath,
-        perCollectionFlat,
-      }).value,
-    [allTokensFlat, collectionIdsByPath, pathToCollectionId, perCollectionFlat],
-  );
-
-  const staleGeneratorSignature = useMemo(
-    () =>
-      stableStringify(
-        staleGeneratorsForSet.map((generator) => ({
-          id: generator.id,
-          sourceToken: generator.sourceToken ?? null,
-          sourceCollectionId: generator.sourceCollectionId ?? null,
-          currentSourceValue: getGeneratorSourceValue(generator) ?? null,
-          lastRunAt: generator.lastRunAt ?? null,
-          lastRunSourceValue: generator.lastRunSourceValue ?? null,
-        })),
-      ),
-    [staleGeneratorsForSet, getGeneratorSourceValue],
-  );
-
-  const [
-    dismissedStaleGeneratorSignature,
-    setDismissedStaleGeneratorSignature,
-  ] = useState<string | null>(() =>
-    lsGet(STORAGE_KEY_BUILDERS.staleGeneratedBannerDismissed(collectionId)),
-  );
 
   // Expand/collapse state managed by useTokenExpansion (called below)
   const batchEditorPanelRef = useRef<HTMLDivElement>(null);
@@ -409,32 +331,6 @@ export function TokenList({
   );
 
   // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
-
-  useEffect(() => {
-    setDismissedStaleGeneratorSignature(lsGet(staleGeneratorBannerStorageKey));
-  }, [staleGeneratorBannerStorageKey]);
-
-  useEffect(() => {
-    if (staleGeneratorsForSet.length === 0) {
-      if (dismissedStaleGeneratorSignature !== null) {
-        setDismissedStaleGeneratorSignature(null);
-        lsRemove(staleGeneratorBannerStorageKey);
-      }
-      return;
-    }
-    if (
-      dismissedStaleGeneratorSignature !== null &&
-      dismissedStaleGeneratorSignature !== staleGeneratorSignature
-    ) {
-      setDismissedStaleGeneratorSignature(null);
-      lsRemove(staleGeneratorBannerStorageKey);
-    }
-  }, [
-    dismissedStaleGeneratorSignature,
-    staleGeneratorBannerStorageKey,
-    staleGeneratorSignature,
-    staleGeneratorsForSet.length,
-  ]);
 
   // Clear optimistic deletions when the server response arrives with fresh tokens
   useEffect(() => {
@@ -1256,7 +1152,6 @@ export function TokenList({
     collections,
     onRefresh,
     onPushUndo,
-    onRefreshGeneratedGroups,
     onSetOperationLoading: setOperationLoading,
     onSetLocallyDeletedPaths: setLocallyDeletedPaths,
     onDeletePaths: (paths, targetCollectionId) => {
@@ -1327,8 +1222,6 @@ export function TokenList({
     handleDescriptionSave: _handleDescriptionSave,
     handleMultiModeInlineSave,
     handleCopyValueToAllModes,
-    handleSaveGeneratedException,
-    handleDetachFromGenerator,
     handleRequestMoveToken,
     handleConfirmMoveToken,
     handleChangeMoveTokenTargetCollection,
@@ -1344,221 +1237,6 @@ export function TokenList({
       setDeleteError(null);
     }
   }, [deleteError, setDeleteError]);
-
-  const handleRunGeneratedGroup = useCallback(
-    async (generatorId: string) => {
-      const generator = generators?.find((candidate) => candidate.id === generatorId);
-      const sourceValue = generator ? getGeneratorSourceValue(generator) : undefined;
-      try {
-        await apiFetch(`${serverUrl}/api/generators/${generatorId}/run`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body:
-            sourceValue !== undefined
-              ? JSON.stringify({ sourceValue })
-              : undefined,
-        });
-        onRefresh();
-      } catch {
-        onError?.("Failed to regenerate — check server connection");
-      }
-    },
-    [getGeneratorSourceValue, onRefresh, onError, generators, serverUrl],
-  );
-
-  const handleToggleGeneratedGroupEnabled = useCallback(
-    async (generatorId: string, enabled: boolean) => {
-      const generator = generators?.find((candidate) => candidate.id === generatorId);
-      const sourceContext = resolveGeneratedGroupSourceContext({
-        sourceTokenPath: generator?.sourceToken,
-        sourceCollectionId: generator?.sourceCollectionId,
-        allTokensFlat: unresolvedAllTokensFlat ?? allTokensFlat,
-        pathToCollectionId,
-        collectionIdsByPath,
-        perCollectionFlat,
-      });
-      const keepUpdatedAvailability = getGeneratedGroupKeepUpdatedAvailability({
-        sourceTokenPath: generator?.sourceToken,
-        sourceCollectionId: generator?.sourceCollectionId,
-        sourceTokenEntry: sourceContext.entry,
-        collections,
-        pathToCollectionId,
-        collectionIdsByPath,
-        perCollectionFlat,
-      });
-      if (enabled && !keepUpdatedAvailability.supported) {
-        onError?.(keepUpdatedAvailability.reason ?? "Keep updated is unavailable");
-        return;
-      }
-      try {
-        await apiFetch(`${serverUrl}/api/generators/${generatorId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ enabled }),
-        });
-        onRefresh();
-        onRefreshGeneratedGroups?.();
-        dispatchToast(
-          enabled ? "Keep updated turned on" : "Keep updated turned off",
-          "success",
-        );
-      } catch {
-        onError?.("Failed to update Keep updated");
-      }
-    },
-    [
-      allTokensFlat,
-      collections,
-      collectionIdsByPath,
-      onError,
-      onRefresh,
-      onRefreshGeneratedGroups,
-      perCollectionFlat,
-      pathToCollectionId,
-      generators,
-      serverUrl,
-      unresolvedAllTokensFlat,
-    ],
-  );
-
-  const handleDuplicateGeneratedGroup = useCallback(
-    (generatorId: string) => {
-      if (!onOpenGeneratedGroupEditor) {
-        onError?.("Cannot duplicate this generated group here");
-        return;
-      }
-      const generator = generators?.find((candidate) => candidate.id === generatorId);
-      if (!generator) {
-        onError?.("Generated group no longer exists");
-        return;
-      }
-      const sourceContext = resolveGeneratedGroupSourceContext({
-        sourceTokenPath: generator.sourceToken,
-        sourceCollectionId: generator.sourceCollectionId,
-        allTokensFlat,
-        pathToCollectionId,
-        collectionIdsByPath,
-        perCollectionFlat,
-      });
-      onOpenGeneratedGroupEditor({
-        mode: "create",
-        sourceTokenPath: generator.sourceToken,
-        sourceCollectionId: generator.sourceCollectionId,
-        sourceTokenName: generator.sourceToken?.split(".").pop(),
-        sourceTokenType: sourceContext.entry?.$type,
-        sourceTokenValue: sourceContext.entry?.$value ?? generator.inlineValue,
-        initialDraft: createGeneratedGroupDuplicateDraft(generator),
-      });
-    },
-    [
-      allTokensFlat,
-      collectionIdsByPath,
-      generators,
-      onError,
-      onOpenGeneratedGroupEditor,
-      pathToCollectionId,
-      perCollectionFlat,
-    ],
-  );
-
-  const handleDeleteGeneratedGroup = useCallback(
-    async (generatorId: string) => {
-      const generator = generators?.find((candidate) => candidate.id === generatorId);
-      try {
-        await apiFetch(`${serverUrl}/api/generators/${generatorId}?deleteTokens=true`, {
-          method: "DELETE",
-        });
-        onRefresh();
-        onRefreshGeneratedGroups?.();
-        dispatchToast(
-          generator
-            ? `Deleted ${getGeneratedGroupTypeLabel(generator.type).toLowerCase()} "${generator.name}"`
-            : "Deleted generated group",
-          "success",
-        );
-      } catch {
-        onError?.("Failed to delete generated group");
-      }
-    },
-    [onError, onRefresh, onRefreshGeneratedGroups, generators, serverUrl],
-  );
-
-  const handleDetachGeneratedGroup = useCallback(
-    async (generatorId: string, groupPath: string) => {
-      try {
-        await apiFetch(`${serverUrl}/api/generators/${generatorId}/detach`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            scope: "group",
-            path: groupPath,
-          }),
-        });
-        onRefresh();
-        onRefreshGeneratedGroups?.();
-      } catch {
-        onError?.("Failed to detach generated group");
-      }
-    },
-    [onError, onRefresh, onRefreshGeneratedGroups, serverUrl],
-  );
-
-  const handleDismissStaleGeneratorBanner = useCallback(() => {
-    lsSet(staleGeneratorBannerStorageKey, staleGeneratorSignature);
-    setDismissedStaleGeneratorSignature(staleGeneratorSignature);
-  }, [staleGeneratorBannerStorageKey, staleGeneratorSignature]);
-
-  const handleRegenerateAllStaleGenerators = useCallback(async () => {
-    if (runningStaleGenerators || staleGeneratorsForSet.length === 0) return;
-    setRunningStaleGenerators(true);
-    let successCount = 0;
-    let totalUpdatedTokens = 0;
-    const failedGenerators: string[] = [];
-    try {
-      for (const generator of staleGeneratorsForSet) {
-        try {
-          const sourceValue = getGeneratorSourceValue(generator);
-          const result = await apiFetch<{ count?: number }>(
-            `${serverUrl}/api/generators/${generator.id}/run`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body:
-                sourceValue !== undefined
-                  ? JSON.stringify({ sourceValue })
-                  : undefined,
-            },
-          );
-          successCount += 1;
-          totalUpdatedTokens += result.count ?? 0;
-        } catch {
-          failedGenerators.push(generator.name);
-        }
-      }
-      if (failedGenerators.length === 0) {
-        dispatchToast(
-          `Re-ran ${successCount} stale generated group${successCount !== 1 ? "s" : ""}${totalUpdatedTokens > 0 ? ` — ${totalUpdatedTokens} token${totalUpdatedTokens !== 1 ? "s" : ""} updated` : ""}`,
-          "success",
-        );
-      } else {
-        dispatchToast(
-          `${failedGenerators.length} generated group${failedGenerators.length !== 1 ? "s" : ""} failed: ${failedGenerators.join(", ")}`,
-          "error",
-        );
-      }
-      onRefresh();
-    } finally {
-      setRunningStaleGenerators(false);
-    }
-  }, [getGeneratorSourceValue, runningStaleGenerators, staleGeneratorsForSet, serverUrl, onRefresh]);
 
   const tokenPromotion = useTokenPromotion({
     connected,
@@ -2136,20 +1814,10 @@ export function TokenList({
     perCollectionFlat,
     collections,
   });
-  const activeCollectionModeLabel = useMemo(() => {
-    const collection = activeCollections.find(
-      (candidate) => candidate.id === collectionId,
-    );
-    if (!collection || collection.modes.length === 0) {
-      return null;
-    }
-    return collection.modes[0]?.name ?? null;
-  }, [activeCollections, collectionId]);
-
   const tokenTreeGroupState = useTokenTreeGroupState({
-    collectionId, groupBy, activeCollectionModeLabel, selectMode, expandedPaths, highlightedToken,
+    collectionId, groupBy, selectMode, expandedPaths, highlightedToken,
     searchHighlight, dragOverGroup, dragOverGroupIsInvalid, dragSource,
-    generatorsByTargetGroup, collectionCoverage,
+    collectionCoverage,
     effectiveRovingPath,
   });
 
@@ -2157,15 +1825,9 @@ export function TokenList({
     handleToggleExpand, requestDeleteGroup, handleOpenCreateSibling,
     setNewGroupDialogParent, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleDuplicateGroup,
-    onPublishGroup, onSetGroupScopes: handleSetGroupScopes, onCreateGeneratedGroupFromGroup,
+    onPublishGroup, onSetGroupScopes: handleSetGroupScopes,
     handleZoomIntoGroup, handleDragOverGroup, handleDropOnGroup,
-    onEditGeneratedGroup,
-    onDuplicateGeneratedGroup: handleDuplicateGeneratedGroup,
-    onNavigateToGeneratedGroup,
-    handleRunGeneratedGroup,
-    handleToggleGeneratedGroupEnabled,
-    handleDeleteGeneratedGroup,
-    handleDetachGeneratedGroup, onNavigateToAlias, handleSelectGroupChildren,
+    onNavigateToAlias, handleSelectGroupChildren,
     setRovingFocusPath,
   });
 
@@ -2183,7 +1845,7 @@ export function TokenList({
   const tokenTreeLeafActions = useTokenTreeLeafActions({
     onEdit, requestDeleteToken, handleTokenSelect, onNavigateToAlias,
     onRefresh, onPushUndo, handleRequestMoveTokenReview, handleRequestCopyTokenReview,
-    handleDuplicateToken, handleDetachFromGenerator, handleSaveGeneratedException, handleOpenExtractToAlias,
+    handleDuplicateToken, handleOpenExtractToAlias,
     handleHoverToken, setTypeFilter, handleInlineSave, handleRenameToken,
     onViewTokenHistory,
     onOpenTokenIssues,
@@ -2193,7 +1855,7 @@ export function TokenList({
     handleDragEndNotify: handleDragEnd,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, handleCopyValueToAllModes,
-    onOpenGeneratedGroupEditor, onToggleStar,
+    onToggleStar,
     handleClearPendingRename, handleClearPendingTabEdit, handleTabToNext,
     setRovingFocusPath,
   });
@@ -2237,10 +1899,6 @@ export function TokenList({
     showBatchCopyToCollection, batchCopyToCollectionTarget, setBatchCopyToCollectionTarget,
     setShowBatchCopyToCollection, handleBatchCopyToCollection,
   });
-
-  const showStaleGeneratorBanner =
-    staleGeneratorsForSet.length > 0 &&
-    dismissedStaleGeneratorSignature !== staleGeneratorSignature;
 
   // Stable callbacks for review overlay panel actions
   const handleCloseVarDiff = useCallback(() => setVarDiffPending(null), []);
@@ -2374,7 +2032,6 @@ export function TokenList({
             openTableCreate={openTableCreate}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
-            onCreateGeneratedGroup={onNavigateToNewGeneratedGroup}
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
@@ -2414,15 +2071,6 @@ export function TokenList({
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {searchQuery ? `${displayedLeafNodes.length} tokens found` : ""}
       </div>
-      {showStaleGeneratorBanner && (
-        <TokenListStaleGeneratedBanner
-          staleGeneratorsForSet={staleGeneratorsForSet}
-          runningStaleGenerators={runningStaleGenerators}
-          onDismiss={handleDismissStaleGeneratorBanner}
-          onRegenerateAll={handleRegenerateAllStaleGenerators}
-          onNavigateToGeneratedGroup={onNavigateToGeneratedGroup}
-        />
-      )}
       {/* Operation loading indicator */}
       {operationLoading && (
         <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)]">
@@ -2514,7 +2162,6 @@ export function TokenList({
             navigation={{
               onNavigateToCollection,
               onCreateNew,
-              onCreateGeneratedGroup: onNavigateToNewGeneratedGroup,
               onOpenImportPanel,
               onExtractFromSelection,
               hasSelection: selectedNodes.length > 0,

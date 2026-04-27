@@ -253,13 +253,11 @@ export const SHORTCUT_REGISTRY: ShortcutEntry[] = [
   { id: 'QUALIFIER_HAS_DUP',     group: 'Token Search',    description: 'Only tokens with duplicate values',          mac: 'has:duplicate',       displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_HAS_DESC',    group: 'Token Search',    description: 'Only tokens with a description',             mac: 'has:description',     displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_HAS_EXT',     group: 'Token Search',    description: 'Only tokens with extensions',                mac: 'has:extension',       displayOnly: true, qualifier: true },
-  { id: 'QUALIFIER_HAS_GEN',     group: 'Token Search',    description: 'Only generated tokens',                      mac: 'has:generated',       displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_HAS_UNUSED',  group: 'Token Search',    description: 'Tokens with no Figma usage or dependents',   mac: 'has:unused',          displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_VALUE',       group: 'Token Search',    description: 'Search within token values',                 mac: 'value:#ff0000',       displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_DESC',        group: 'Token Search',    description: 'Search within descriptions',                 mac: 'desc:primary',        displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_PATH',        group: 'Token Search',    description: 'Filter by path prefix',                      mac: 'path:colors.brand',   displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_NAME',        group: 'Token Search',    description: 'Search by leaf name only',                   mac: 'name:500',            displayOnly: true, qualifier: true },
-  { id: 'QUALIFIER_GENERATOR',   group: 'Token Search',    description: 'Filter by generated group name',             mac: 'generated:brand-palette', displayOnly: true, qualifier: true },
   { id: 'QUALIFIER_GROUP',       group: 'Token Search',    description: 'Navigate to a group path',                   mac: 'group:colors.brand',  displayOnly: true, qualifier: true },
 
   // ── Apply ────────────────────────────────────────────────────────────────

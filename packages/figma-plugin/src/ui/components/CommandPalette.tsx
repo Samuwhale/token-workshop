@@ -588,7 +588,6 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                 { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
                 { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
                 { qual: 'group:colors', desc: 'Navigate directly to a token group', insert: '>group:' },
-                { qual: 'generated:brand-palette', desc: 'Tokens produced by a specific generated group', insert: '>generated:' },
               ].map(({ qual, desc, insert }) => (
                 <button
                   key={qual}

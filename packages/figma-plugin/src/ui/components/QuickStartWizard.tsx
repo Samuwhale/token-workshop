@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
-import { GeneratedGroupEditor } from './GeneratedGroupEditor';
 import { apiFetch } from '../shared/apiFetch';
-import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratedGroupEditor';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -12,6 +10,7 @@ import { createGeneratorDraftFromTemplate } from '../hooks/useGeneratedGroupEdit
 type TaskId = 'author-tokens' | 'modes' | 'foundations';
 type ChecklistView = 'list' | 'template-picker' | 'modes-inline';
 type PrereqPhase = 'connect' | 'create-collection' | null;
+type GraphApiTemplate = 'colorRamp' | 'spacing' | 'type' | 'radius' | 'opacity' | 'shadow' | 'zIndex' | 'formula' | 'blank';
 
 interface QuickStartWizardProps {
   serverUrl: string;
@@ -24,6 +23,7 @@ interface QuickStartWizardProps {
   onCollectionCreated?: (name: string) => void;
   onRetryConnection?: () => void;
   onAuthorFirstToken?: () => void;
+  onOpenGraph?: () => void;
   embedded?: boolean;
   onBack?: () => void;
 }
@@ -280,6 +280,17 @@ function ModeStep({ serverUrl, currentCollectionId, onDone, onSkip }: {
 // Compact template picker for foundations task
 // ---------------------------------------------------------------------------
 
+function graphTemplateForGeneratorType(generatorType: GraphTemplate['generatorType']): GraphApiTemplate {
+  if (generatorType === 'spacingScale') return 'spacing';
+  if (generatorType === 'typeScale') return 'type';
+  if (generatorType === 'borderRadiusScale') return 'radius';
+  if (generatorType === 'opacityScale') return 'opacity';
+  if (generatorType === 'shadowScale') return 'shadow';
+  if (generatorType === 'zIndexScale') return 'zIndex';
+  if (generatorType === 'customScale') return 'formula';
+  return 'colorRamp';
+}
+
 function CompactTemplatePicker({ templates, connected, onSelect }: {
   templates: GraphTemplate[];
   connected: boolean;
@@ -373,6 +384,7 @@ export function QuickStartWizard({
   onCollectionCreated,
   onRetryConnection,
   onAuthorFirstToken,
+  onOpenGraph,
   embedded = false,
   onBack,
 }: QuickStartWizardProps) {
@@ -387,6 +399,8 @@ export function QuickStartWizard({
 
   const [wizardCreatedCollection, setWizardCreatedCollection] = useState<string | null>(null);
   const effectiveCollectionId = wizardCreatedCollection || currentCollectionId;
+  const [foundationError, setFoundationError] = useState('');
+  const [foundationBusy, setFoundationBusy] = useState(false);
 
   const collectionIdsRef = useRef(collectionIds);
   collectionIdsRef.current = collectionIds;
@@ -395,8 +409,6 @@ export function QuickStartWizard({
       setPrereqPhase(collectionIdsRef.current.length === 0 ? 'create-collection' : null);
     }
   }, [connected, prereqPhase]);
-
-  const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(null);
 
   const markCompleted = useCallback((task: TaskId) => {
     setCompletedTasks(prev => new Set([...prev, task]));
@@ -408,15 +420,31 @@ export function QuickStartWizard({
     setPrereqPhase(null);
   }, [onCollectionCreated]);
 
-  const handleFoundationsSaved = useCallback(() => {
-    setSelectedTemplate(null);
-    setChecklistView('list');
-    markCompleted('foundations');
-  }, [markCompleted]);
-
-  const handleTemplateBack = useCallback(() => {
-    setSelectedTemplate(null);
-  }, []);
+  const handleTemplateSelect = useCallback(async (template: GraphTemplate) => {
+    if (!effectiveCollectionId) {
+      setFoundationError('Create a collection before adding a graph.');
+      return;
+    }
+    setFoundationBusy(true);
+    setFoundationError('');
+    try {
+      await apiFetch(`${serverUrl}/api/graphs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetCollectionId: effectiveCollectionId,
+          name: template.label,
+          template: graphTemplateForGeneratorType(template.generatorType),
+        }),
+      });
+      markCompleted('foundations');
+      onOpenGraph?.();
+    } catch (error) {
+      setFoundationError(getErrorMessage(error));
+    } finally {
+      setFoundationBusy(false);
+    }
+  }, [effectiveCollectionId, markCompleted, onOpenGraph, serverUrl]);
 
   const handleModesDone = useCallback(() => {
     setChecklistView('list');
@@ -483,20 +511,6 @@ export function QuickStartWizard({
           {prereqContent}
         </div>
       </div>
-    );
-  }
-
-  if (selectedTemplate) {
-    return (
-      <GeneratedGroupEditor
-        serverUrl={serverUrl}
-        currentCollectionId={effectiveCollectionId}
-        template={selectedTemplate}
-        initialDraft={createGeneratorDraftFromTemplate(selectedTemplate, effectiveCollectionId)}
-        onBack={handleTemplateBack}
-        onClose={onClose}
-        onSaved={handleFoundationsSaved}
-      />
     );
   }
 
@@ -572,11 +586,18 @@ export function QuickStartWizard({
         )}
 
         {checklistView === 'template-picker' && (
-          <CompactTemplatePicker
-            templates={GRAPH_TEMPLATES}
-            connected={connected}
-            onSelect={setSelectedTemplate}
-          />
+          <>
+            <CompactTemplatePicker
+              templates={GRAPH_TEMPLATES}
+              connected={connected && !foundationBusy}
+              onSelect={handleTemplateSelect}
+            />
+            {foundationError ? (
+              <p className="px-4 py-2 text-secondary text-[var(--color-figma-error)]">
+                {foundationError}
+              </p>
+            ) : null}
+          </>
         )}
 
         {checklistView === 'modes-inline' && (

@@ -9,7 +9,6 @@ import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenGenerator } from "../hooks/useGenerators";
 import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
-import type { TokensLibraryGeneratedGroupEditorTarget } from "../shared/navigationTypes";
 import type { TokenCollection } from "@tokenmanager/core";
 
 /** Per-option resolved value for a single token in multi-mode view */
@@ -81,7 +80,6 @@ export interface TokenListData {
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
   generators?: TokenGenerator[];
-  generatorsByTargetGroup?: Map<string, TokenGenerator>;
   derivedTokenPaths?: Map<string, TokenGenerator>;
   tokenUsageCounts?: Record<string, number>;
   tokenUsageReady?: boolean;
@@ -114,11 +112,6 @@ export interface TokenListActions {
   navHistoryLength?: number;
   onClearHighlight?: () => void;
   onPublishGroup?: (groupPath: string, tokenCount: number) => void;
-  onCreateGeneratedGroupFromGroup?: (
-    groupPath: string,
-    tokenType: string | null,
-  ) => void;
-  onRefreshGeneratedGroups?: () => void;
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
@@ -145,11 +138,6 @@ export interface TokenListActions {
   onViewTokenHistory?: (path: string) => void;
   /** Open Health → Issues scoped to a specific token */
   onOpenTokenIssues?: (path: string, collectionId: string) => void;
-  onEditGeneratedGroup?: (generatorId: string) => void;
-  onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
-  onNavigateToGeneratedGroup?: (generatorId: string) => void;
-  /** Open the generator editor to create a new generator */
-  onNavigateToNewGeneratedGroup?: () => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
   onDisplayedLeafNodesChange?: (nodes: TokenNode[]) => void;
   /** Called whenever the multi-selection changes — exposes selection to parent (e.g. command palette bulk-delete) */
@@ -324,8 +312,6 @@ export interface TokenTreeSharedDataContextType {
 export interface TokenTreeGroupStateContextType {
   collectionId: string;
   groupBy: TokenGroupBy;
-  /** Active mode for the current collection in the Tokens view, when that collection has modes. */
-  activeCollectionModeLabel?: string | null;
   selectMode: boolean;
   expandedPaths: Set<string>;
   highlightedToken: string | null;
@@ -336,7 +322,6 @@ export interface TokenTreeGroupStateContextType {
   dragOverGroup?: string | null;
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
-  generatorsByTargetGroup?: Map<string, TokenGenerator>;
   /** Pre-computed collection mode coverage per group: groupPath → { configured, total, totalMissing } */
   collectionCoverage?: Map<string, { configured: number; total: number; totalMissing: number }>;
   /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
@@ -358,31 +343,9 @@ export interface TokenTreeGroupActionsContextType {
   onDuplicateGroup?: (groupPath: string) => void;
   onPublishGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
-  onCreateGeneratedGroupFromGroup?: (
-    groupPath: string,
-    tokenType: string | null,
-  ) => void;
   onZoomIntoGroup?: (groupPath: string) => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
-  onEditGeneratedGroup?: (generatorId: string) => void;
-  onDuplicateGeneratedGroup?: (generatorId: string) => void;
-  onDeleteGeneratedGroup?: (generatorId: string) => Promise<void>;
-  /** Open the generated-group editor for the given group */
-  onNavigateToGeneratedGroup?: (generatorId: string) => void;
-  /** One-click regenerate a specific generated group (by id) — runs POST /api/generators/:id/run */
-  onRunGeneratedGroup?: (generatorId: string) => Promise<void>;
-  /** Toggle background upkeep for a generated group. */
-  onToggleGeneratedGroupEnabled?: (
-    generatorId: string,
-    enabled: boolean,
-  ) => Promise<void>;
-  onDetachGeneratedGroup?: (
-    generatorId: string,
-    groupPath: string,
-  ) => Promise<void>;
-  /** Navigate to a token by path (used for generator source token navigation) */
-  onNavigateToToken?: (path: string) => void;
   onSelectGroupChildren?: (groupNode: TokenNode) => void;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
@@ -441,11 +404,6 @@ export interface TokenTreeLeafActionsContextType {
   onRequestMoveToken?: (tokenPath: string) => void;
   onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateToken?: (path: string) => void;
-  onDetachFromGenerator?: (path: string) => Promise<boolean>;
-  onSaveGeneratedException?: (
-    path: string,
-    newValue: unknown,
-  ) => Promise<boolean>;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   onHoverToken?: (path: string) => void;
   onFilterByType?: (type: string) => void;
@@ -483,11 +441,9 @@ export interface TokenTreeLeafActionsContextType {
     collectionId: string,
     optionName: string,
     previousState?: { type?: string; value: unknown },
-    options?: { allowGeneratedEdit?: boolean },
   ) => void;
   /** Copy a token's first-mode value to every other mode in its collection */
   onCopyValueToAllModes?: (path: string, targetCollectionId: string) => void;
-  onOpenGeneratedGroupEditor?: (target: TokensLibraryGeneratedGroupEditorTarget) => void;
   /** Toggle starred (cross-collection favorites) for the current token */
   onToggleStar?: (path: string) => void;
   /** Clear the pending rename (called by the node once it activates rename mode) */

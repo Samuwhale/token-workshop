@@ -266,18 +266,16 @@ export function getQualifierCompletions(
 /** Available qualifier suggestions for the autocomplete hint. */
 export const QUERY_QUALIFIERS: QueryQualifierDefinition[] = [
   { key: 'type', qualifier: 'type:', desc: 'Filter by token type', example: 'type:color', valueHint: 'Choose a token type such as color, dimension, or typography.' },
-  { key: 'has', qualifier: 'has:alias', desc: 'Only reference tokens', example: 'has:alias', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
-  { key: 'has', qualifier: 'has:direct', desc: 'Only direct-value tokens', example: 'has:direct', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
-  { key: 'has', qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: 'has:duplicate', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
-  { key: 'has', qualifier: 'has:description', desc: 'Only tokens with a description', example: 'has:description', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
-  { key: 'has', qualifier: 'has:extension', desc: 'Only tokens with extensions', example: 'has:extension', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
-  { key: 'has', qualifier: 'has:generated', desc: 'Only generated tokens', example: 'has:generated', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
+  { key: 'has', qualifier: 'has:alias', desc: 'Only reference tokens', example: 'has:alias', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
+  { key: 'has', qualifier: 'has:direct', desc: 'Only direct-value tokens', example: 'has:direct', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
+  { key: 'has', qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: 'has:duplicate', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
+  { key: 'has', qualifier: 'has:description', desc: 'Only tokens with a description', example: 'has:description', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
+  { key: 'has', qualifier: 'has:extension', desc: 'Only tokens with extensions', example: 'has:extension', valueHint: 'Choose a token property like alias, duplicate, extension, or unused.' },
   { key: 'has', qualifier: 'has:unused', desc: 'Tokens with no Figma usage and no alias dependents', example: 'has:unused', valueHint: 'Choose a token property like alias, duplicate, generated, or unused.' },
   { key: 'value', qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000', valueHint: 'Enter a value fragment, for example #ff0000 or 16px.' },
   { key: 'desc', qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary', valueHint: 'Enter words from the token description.' },
   { key: 'path', qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand', valueHint: 'Enter a path segment like colors.brand or spacing.' },
   { key: 'name', qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500', valueHint: 'Enter the token leaf name, such as 500 or primary.' },
-  { key: 'generator', qualifier: 'generated:', desc: 'Filter by generated group name', example: 'generated:brand-palette', valueHint: 'Enter the generated group that produced the token.' },
   { key: 'scope', qualifier: 'scope:', desc: 'Can apply to a Figma field', example: 'scope:fill', valueHint: 'Pick where the token can be applied, e.g. fill, stroke, radius, spacing, typography.' },
   { key: 'group', qualifier: 'group:', desc: 'Navigate to a group path', example: 'group:colors.brand', valueHint: 'Enter a group path like colors.brand.' },
 ];

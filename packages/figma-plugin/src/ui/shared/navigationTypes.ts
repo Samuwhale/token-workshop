@@ -5,8 +5,6 @@
  */
 
 import { STORAGE_KEYS } from "./storage";
-import type { GeneratorDialogInitialDraft } from "../hooks/useGeneratedGroupEditor";
-import type { GeneratorTemplate } from "../hooks/useGenerators";
 
 // User-facing workspace names live on WORKSPACE_TABS[].label / SIDEBAR_GROUPS[].items[].label — guidance copy should reference those, not re-spell them.
 export type TopTab =
@@ -27,29 +25,8 @@ export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
   | "token-details"
-  | "generated-group-editor"
   | "color-analysis"
   | "import";
-export type TokensLibraryGeneratedGroupEditorOrigin = "tokens" | "graph";
-
-export type TokensLibraryGeneratedGroupEditorTarget =
-  | {
-      mode: "edit";
-      id: string;
-      origin?: TokensLibraryGeneratedGroupEditorOrigin;
-    }
-  | {
-      mode: "create";
-      origin?: TokensLibraryGeneratedGroupEditorOrigin;
-      sourceTokenPath?: string;
-      sourceCollectionId?: string;
-      sourceTokenName?: string;
-      sourceTokenType?: string;
-      sourceTokenValue?: unknown;
-      intentPreset?: "semantic-aliases";
-      initialDraft?: GeneratorDialogInitialDraft;
-      template?: GeneratorTemplate;
-    };
 
 export interface TokenContextNavigationHistoryEntry {
   path: string;

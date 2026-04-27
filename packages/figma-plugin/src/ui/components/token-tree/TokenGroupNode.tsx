@@ -1,6 +1,6 @@
 /**
  * TokenGroupNode — renders a group row (expand/collapse header) with context menu,
- * inline rename, metadata editing, and generator summary.
+ * inline rename and metadata editing.
  * Extracted from TokenTreeNode.tsx.
  */
 import {
@@ -13,11 +13,6 @@ import {
   memo,
 } from "react";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
-import {
-  createGeneratorOwnershipKey,
-  getGeneratorManagedOutputs,
-  readTokenCollectionModeValues,
-} from "@tokenmanager/core";
 import { countTokensInGroup, nodeParentPath, countLeaves } from "../tokenListUtils";
 import { inferGroupTokenType, highlightMatch } from "../tokenListHelpers";
 import {
@@ -26,7 +21,6 @@ import {
   useTokenTreeSharedData,
 } from "../TokenTreeContext";
 import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
-import { ConfirmModal } from "../ConfirmModal";
 import {
   getLifecycleLabel,
   readTokenPresentationMetadata,
@@ -37,25 +31,16 @@ import {
   computePaddingLeft,
   DepthBar,
   EMPTY_LINT_VIOLATIONS,
-  GeneratedGlyph,
-  GeneratedGroupSummaryRow,
-  getManagedGeneratorLeafCount,
   MENU_DANGER_ITEM_CLASS,
   MENU_ITEM_CLASS,
   MENU_SEPARATOR_CLASS,
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
-  formatGeneratedGroupSummaryTitle,
 } from "./tokenTreeNodeShared";
 import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
 import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
-import type { GeneratedTokenResult } from "../../hooks/useGenerators";
-import {
-  getGeneratedGroupKeepUpdatedAvailability,
-  getGeneratedGroupSourceTokenEntry,
-} from "../../shared/generatedGroupUtils";
 import { aggregateGroupByModes, GroupModePreview } from "./GroupModePreview";
 
 export const TokenGroupNode = memo(
@@ -69,9 +54,7 @@ export const TokenGroupNode = memo(
     } = props;
 
     const {
-      collectionId,
       groupBy,
-      activeCollectionModeLabel,
       selectMode,
       expandedPaths,
       highlightedToken,
@@ -80,30 +63,12 @@ export const TokenGroupNode = memo(
       dragOverGroup,
       dragOverGroupIsInvalid,
       dragSource,
-      generatorsByTargetGroup,
       collectionCoverage,
       rovingFocusPath: groupRovingFocusPath,
     } = useTokenTreeGroupState();
     const {
       allTokensFlat,
-      modeResolvedTokensFlat,
-      perCollectionFlat,
-      pathToCollectionId,
-      collectionIdsByPath,
-      collections,
     } = useTokenTreeSharedData();
-
-    const dominantTypeForGroup = useMemo(() => {
-      const prefix = `${node.path}.`;
-      const types: Record<string, number> = {};
-      for (const [path, entry] of Object.entries(allTokensFlat)) {
-        if (path === node.path || path.startsWith(prefix)) {
-          const t = entry.$type;
-          if (t) types[t] = (types[t] ?? 0) + 1;
-        }
-      }
-      return Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-    }, [allTokensFlat, node.path]);
 
     const {
       onToggleExpand,
@@ -117,18 +82,9 @@ export const TokenGroupNode = memo(
       onDuplicateGroup,
       onPublishGroup,
       onSetGroupScopes,
-      onCreateGeneratedGroupFromGroup,
       onZoomIntoGroup,
       onDragOverGroup,
       onDropOnGroup,
-      onEditGeneratedGroup,
-      onDuplicateGeneratedGroup,
-      onDeleteGeneratedGroup,
-      onNavigateToGeneratedGroup,
-      onRunGeneratedGroup,
-      onToggleGeneratedGroupEnabled,
-      onDetachGeneratedGroup,
-      onNavigateToToken,
       onSelectGroupChildren,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
@@ -153,13 +109,6 @@ export const TokenGroupNode = memo(
     const [groupMetaType, setGroupMetaType] = useState("");
     const [groupMetaDescription, setGroupMetaDescription] = useState("");
     const [groupMetaSaving, setGroupMetaSaving] = useState(false);
-    const [regenerating, setRegenerating] = useState(false);
-    const [togglingKeepUpdated, setTogglingKeepUpdated] = useState(false);
-    const [detachingGroup, setDetachingGroup] = useState(false);
-    const [deletingGeneratedGroup, setDeletingGeneratedGroup] = useState(false);
-    const [showDetachGroupConfirm, setShowDetachGroupConfirm] = useState(false);
-    const [showDeleteGeneratedGroupConfirm, setShowDeleteGeneratedGroupConfirm] =
-      useState(false);
 
     useLayoutEffect(() => {
       if (renamingGroup && renameGroupInputRef.current) {
@@ -213,88 +162,6 @@ export const TokenGroupNode = memo(
     const structuralActionsEnabled = !isSyntheticTypeGroup;
     const isCategoryHeader = depth === 0 && !isSyntheticTypeGroup;
     const leafCount = countLeaves(node);
-    const targetGenerator =
-      generatorsByTargetGroup?.get(
-        createGeneratorOwnershipKey(collectionId, node.path),
-      ) ?? null;
-    const managedGeneratorLeafCount = useMemo(() => {
-      if (!targetGenerator) return 0;
-      return getManagedGeneratorLeafCount(node, targetGenerator);
-    }, [node, targetGenerator]);
-    const manualExceptionCount = useMemo(() => {
-      if (!targetGenerator?.overrides) {
-        return 0;
-      }
-      return Object.values(targetGenerator.overrides).filter(
-        (override) => override.locked,
-      ).length;
-    }, [targetGenerator]);
-    const keepUpdatedDisabledReason = useMemo(() => {
-      if (!targetGenerator) {
-        return null;
-      }
-      return getGeneratedGroupKeepUpdatedAvailability({
-        sourceTokenPath: targetGenerator.sourceToken,
-        sourceCollectionId: targetGenerator.sourceCollectionId,
-        sourceTokenEntry: getGeneratedGroupSourceTokenEntry({
-          sourceTokenPath: targetGenerator.sourceToken,
-          sourceCollectionId: targetGenerator.sourceCollectionId,
-          allTokensFlat,
-          collectionIdsByPath,
-          perCollectionFlat,
-        }),
-        collections,
-        pathToCollectionId,
-        collectionIdsByPath,
-        perCollectionFlat,
-      }).reason;
-    }, [
-      allTokensFlat,
-      collectionIdsByPath,
-      collections,
-      pathToCollectionId,
-      perCollectionFlat,
-      targetGenerator,
-    ]);
-    const previewTokens = useMemo<GeneratedTokenResult[]>(() => {
-      if (!targetGenerator) {
-        return [];
-      }
-      return getGeneratorManagedOutputs(targetGenerator).flatMap((output) => {
-        const collectionEntry = perCollectionFlat?.[collectionId]?.[output.path];
-        const selectedModeValue =
-          collectionEntry && activeCollectionModeLabel
-            ? readTokenCollectionModeValues(collectionEntry)[collectionId]?.[
-                activeCollectionModeLabel
-              ]
-            : undefined;
-        const entry = collectionEntry
-          ? selectedModeValue === undefined
-            ? collectionEntry
-            : {
-                ...collectionEntry,
-                $value: selectedModeValue,
-              }
-          : modeResolvedTokensFlat?.[output.path] ?? allTokensFlat[output.path];
-        if (!entry?.$type) {
-          return [];
-        }
-        return [{
-          stepName: output.stepName,
-          path: output.path,
-          type: entry.$type as GeneratedTokenResult["type"],
-          value: entry.$value,
-          isOverridden: targetGenerator.overrides?.[output.stepName]?.locked,
-        }];
-      });
-    }, [
-      activeCollectionModeLabel,
-      allTokensFlat,
-      collectionId,
-      modeResolvedTokensFlat,
-      perCollectionFlat,
-      targetGenerator,
-    ]);
     const collectionCoverageSummary = collectionCoverage?.get(node.path) ?? null;
 
     // Aggregate descendant values per mode so collapsed groups preview what's
@@ -319,27 +186,16 @@ export const TokenGroupNode = memo(
         ? summarizeTokenScopes(node.$type, groupPresentation.scopes)
         : null;
     const groupMetadataSegments: RowMetadataSegment[] = [];
-    if (targetGenerator) {
-      const countLabel = managedGeneratorLeafCount === leafCount
-        ? `${leafCount} token${leafCount === 1 ? "" : "s"}`
-        : `${managedGeneratorLeafCount}/${leafCount} tokens`;
-      groupMetadataSegments.push({
-        label: `${countLabel} via ${targetGenerator.name}`,
-        title: `${formatGeneratedGroupSummaryTitle(targetGenerator)}\n${managedGeneratorLeafCount} of ${leafCount} token${leafCount === 1 ? "" : "s"} managed by this generated group`,
-        tone: targetGenerator.isStale ? "warning" : "accent",
-      });
-    } else {
-      groupMetadataSegments.push({
-        label:
-          leafCount === 0
-            ? "Empty"
-            : `${leafCount} token${leafCount === 1 ? "" : "s"}`,
-        title:
-          leafCount === 0
-            ? "This group has no tokens yet"
-            : `${leafCount} token${leafCount === 1 ? "" : "s"} in this group`,
-      });
-    }
+    groupMetadataSegments.push({
+      label:
+        leafCount === 0
+          ? "Empty"
+          : `${leafCount} token${leafCount === 1 ? "" : "s"}`,
+      title:
+        leafCount === 0
+          ? "This group has no tokens yet"
+          : `${leafCount} token${leafCount === 1 ? "" : "s"} in this group`,
+    });
     if (node.$type) {
       groupMetadataSegments.push({
         label: `Type: ${node.$type}`,
@@ -437,7 +293,7 @@ export const TokenGroupNode = memo(
           data-group-path={node.path}
           data-node-name={node.name}
           onFocus={() => onGroupRovingFocus(node.path)}
-          className={`relative cursor-pointer transition-colors group/group token-row-hover ${targetGenerator ? "bg-[var(--color-figma-generator)]/[0.03] hover:bg-[var(--color-figma-generator)]/[0.08]" : "bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)]"} ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
+          className={`relative cursor-pointer transition-colors group/group token-row-hover bg-[var(--color-figma-bg)] hover:bg-[var(--color-figma-bg-hover)] ${groupRowStateClass} ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10" : "ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10") : ""}`}
           data-roving-focus={groupRovingFocusPath === node.path || undefined}
           style={
             hasModeColumns
@@ -542,7 +398,7 @@ export const TokenGroupNode = memo(
           }}
         >
           <div
-            className={`${hasModeColumns ? "sticky left-0 z-[1] min-w-0" : ""} flex items-center gap-1 px-1.5 py-1 ${hasModeColumns ? (dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "bg-[var(--color-figma-error)]/10" : "bg-[var(--color-figma-accent)]/10") : targetGenerator ? "bg-[var(--color-figma-generator)]/[0.03] group-hover/group:bg-[var(--color-figma-generator)]/[0.08]" : "bg-[var(--color-figma-bg)] group-hover/group:bg-[var(--color-figma-bg-hover)]") : ""}`}
+            className={`${hasModeColumns ? "sticky left-0 z-[1] min-w-0" : ""} flex items-center gap-1 px-1.5 py-1 ${hasModeColumns ? (dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "bg-[var(--color-figma-error)]/10" : "bg-[var(--color-figma-accent)]/10") : "bg-[var(--color-figma-bg)] group-hover/group:bg-[var(--color-figma-bg-hover)]") : ""}`}
             style={{
               paddingLeft: `${computePaddingLeft(depth, 8)}px`,
             }}
@@ -637,25 +493,6 @@ export const TokenGroupNode = memo(
                       {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
                     </span>
                   )}
-                {targetGenerator && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (targetGenerator.id) onEditGeneratedGroup?.(targetGenerator.id);
-                    }}
-                    disabled={!targetGenerator.id || !onEditGeneratedGroup}
-                    className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${
-                      targetGenerator.isStale
-                        ? "text-[var(--color-figma-generator)]"
-                        : "text-[var(--color-figma-text-tertiary)]"
-                    } hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-accent)] disabled:cursor-default disabled:opacity-60`}
-                    title={targetGenerator.isStale ? "Generated (source changed) — click to edit" : "Generated group — click to edit"}
-                    aria-label="Edit generator"
-                  >
-                    <GeneratedGlyph size={12} className="shrink-0" />
-                  </button>
-                )}
                 <div
                   className={`flex items-center gap-0.5 shrink-0 ${selectMode || !structuralActionsEnabled ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
                 >
@@ -793,24 +630,6 @@ export const TokenGroupNode = memo(
                     <span className={MENU_SHORTCUT_CLASS}>S</span>
                   </button>
                 )}
-                {targetGenerator?.id && onNavigateToGeneratedGroup && (
-                  <>
-                    <button
-                      role="menuitem"
-                      tabIndex={-1}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        closeGroupMenus();
-                        onNavigateToGeneratedGroup(targetGenerator.id!);
-                      }}
-                      className={MENU_ITEM_CLASS}
-                    >
-                      <GeneratedGlyph size={10} className="shrink-0 opacity-60" />
-                      <span className="flex-1">Open generated group</span>
-                    </button>
-                    <div role="separator" className={MENU_SEPARATOR_CLASS} />
-                  </>
-                )}
                 <button
                   role="menuitem"
                   tabIndex={-1}
@@ -935,23 +754,6 @@ export const TokenGroupNode = memo(
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
                   <span className="flex-1">Copy to collection</span>
                 </button>
-                {onCreateGeneratedGroupFromGroup && (
-                  <button
-                    role="menuitem"
-                    tabIndex={-1}
-                    data-accel="g"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      closeGroupMenus();
-                      onCreateGeneratedGroupFromGroup(node.path, dominantTypeForGroup);
-                    }}
-                    className={MENU_ITEM_CLASS}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" /></svg>
-                    <span className="flex-1">Generate this group</span>
-                    <span className={MENU_SHORTCUT_CLASS}>G</span>
-                  </button>
-                )}
                 {onPublishGroup && (
                   <button
                     role="menuitem"
@@ -1043,116 +845,6 @@ export const TokenGroupNode = memo(
               </button>
             </div>
           </div>
-        )}
-
-        {!props.skipChildren && isExpanded && targetGenerator && (
-          <GeneratedGroupSummaryRow
-            depth={depth}
-            generator={targetGenerator}
-            exceptionCount={manualExceptionCount}
-            previewTokens={previewTokens}
-            running={regenerating}
-            keepUpdatedBusy={togglingKeepUpdated}
-            keepUpdatedDisabledReason={keepUpdatedDisabledReason}
-            detaching={detachingGroup}
-            deleting={deletingGeneratedGroup}
-            onRun={
-              targetGenerator.id && onRunGeneratedGroup
-                ? async () => {
-                    if (regenerating) return;
-                    setRegenerating(true);
-                    try {
-                      await onRunGeneratedGroup(targetGenerator.id);
-                    } finally {
-                      setRegenerating(false);
-                    }
-                  }
-                : undefined
-            }
-            onEdit={
-              targetGenerator.id && onEditGeneratedGroup
-                ? () => onEditGeneratedGroup(targetGenerator.id)
-                : undefined
-            }
-            onDuplicate={
-              targetGenerator.id && onDuplicateGeneratedGroup
-                ? () => onDuplicateGeneratedGroup(targetGenerator.id)
-                : undefined
-            }
-            onToggleKeepUpdated={
-              targetGenerator.id && onToggleGeneratedGroupEnabled
-                ? async (enabled: boolean) => {
-                    if (togglingKeepUpdated) return;
-                    setTogglingKeepUpdated(true);
-                    try {
-                      await onToggleGeneratedGroupEnabled(targetGenerator.id, enabled);
-                    } finally {
-                      setTogglingKeepUpdated(false);
-                    }
-                  }
-                : undefined
-            }
-            onDelete={
-              targetGenerator.id && onDeleteGeneratedGroup
-                ? async () => {
-                    setShowDeleteGeneratedGroupConfirm(true);
-                  }
-                : undefined
-            }
-            onDetach={
-              targetGenerator.id && onDetachGeneratedGroup
-                ? () => {
-                    setShowDetachGroupConfirm(true);
-                  }
-                : undefined
-            }
-            onNavigateToSourceToken={onNavigateToToken}
-          />
-        )}
-
-        {showDeleteGeneratedGroupConfirm && targetGenerator && (
-          <ConfirmModal
-            title="Delete generated group?"
-            description={`Delete "${targetGenerator.name}" and remove the generated tokens in "${node.path}" from this collection.`}
-            confirmLabel="Delete generated group"
-            danger
-            onCancel={() => setShowDeleteGeneratedGroupConfirm(false)}
-            onConfirm={async () => {
-              if (!targetGenerator.id || !onDeleteGeneratedGroup) {
-                setShowDeleteGeneratedGroupConfirm(false);
-                return;
-              }
-              setDeletingGeneratedGroup(true);
-              try {
-                await onDeleteGeneratedGroup(targetGenerator.id);
-                setShowDeleteGeneratedGroupConfirm(false);
-              } finally {
-                setDeletingGeneratedGroup(false);
-              }
-            }}
-          />
-        )}
-
-        {showDetachGroupConfirm && targetGenerator && (
-          <ConfirmModal
-            title="Detach from generator?"
-            description={`Convert ${managedGeneratorLeafCount} generated token${managedGeneratorLeafCount === 1 ? "" : "s"} in "${node.path}" to manual. "${targetGenerator.name}" will stop updating them.`}
-            confirmLabel="Detach from generator"
-            onCancel={() => setShowDetachGroupConfirm(false)}
-            onConfirm={async () => {
-              if (!targetGenerator.id || !onDetachGeneratedGroup) {
-                setShowDetachGroupConfirm(false);
-                return;
-              }
-              setDetachingGroup(true);
-              try {
-                await onDetachGeneratedGroup(targetGenerator.id, node.path);
-                setShowDetachGroupConfirm(false);
-              } finally {
-                setDetachingGroup(false);
-              }
-            }}
-          />
         )}
 
         {!props.skipChildren &&

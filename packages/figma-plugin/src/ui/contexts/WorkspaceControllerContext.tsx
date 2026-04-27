@@ -28,7 +28,7 @@ export interface ShellWorkspaceController {
   openPasteModal: () => void;
   openImportPanel: () => void;
   openCollectionCreateDialog: () => void;
-  openGeneratedPalette: () => void;
+  openGraphWorkspace: () => void;
   toggleQuickApply: () => void;
   triggerCreateFromSelection: () => void;
   triggerExtractFromSelection: () => void;
@@ -75,7 +75,6 @@ export interface TokensWorkspaceController {
   setErrorToast: (message: string) => void;
   setSuccessToast: (message: string) => void;
   handleNavigateToCollection: (collectionId: string, tokenPath: string) => void;
-  handleNavigateToGeneratedGroup: (generatorId: string) => void;
   tokenListCompareRef: MutableRefObject<TokenListImperativeHandle | null>;
   tokenListSelection: string[];
   recentlyTouched: RecentlyTouchedState;

@@ -298,7 +298,11 @@ export function HealthIssuesView({
                             ? () => onSelectIssue(issue)
                             : undefined
                         }
-                        onOpen={onNavigateToToken ? () => onNavigateToToken(issue.path, issue.collectionId) : undefined}
+                        onOpen={
+                          onNavigateToToken && issue.rule !== "graph-diagnostic"
+                            ? () => onNavigateToToken(issue.path, issue.collectionId)
+                            : undefined
+                        }
                         onViewInGraph={
                           onViewIssueInGraph &&
                           (issue.rule === "broken-alias" ||

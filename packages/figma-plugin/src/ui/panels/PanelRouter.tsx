@@ -18,7 +18,6 @@ import { SyncRouter } from "./SyncRouter";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
 import { TokenDetails } from "../components/TokenDetails";
-import { GeneratedGroupEditor } from "../components/GeneratedGroupEditor";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { useResizableBoundary } from "../hooks/useResizableBoundary";
@@ -68,7 +67,6 @@ import {
   buildTokenContextTarget,
   useTokenContextNavigation,
 } from "../hooks/useTokenContextNavigation";
-import type { GeneratorSaveSuccessInfo } from "../hooks/useGeneratedGroupSave";
 import type {
   ImportNextStepRecommendation,
   TopTab,
@@ -77,11 +75,9 @@ import type {
   TokenContextNavigationHistoryEntry,
   TokenContextNavigationRequest,
   TokensLibraryContextualSurface,
-  TokensLibraryGeneratedGroupEditorTarget,
 } from "../shared/navigationTypes";
 import { getMostRelevantImportDestinationCollection } from "../shared/navigationTypes";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
-import type { ToastAction } from "../shared/toastBus";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
 import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
 import { GraphPanel } from "../components/graph/GraphPanel";
@@ -192,15 +188,12 @@ export function PanelRouter({
   const {
     tokenDetails,
     setTokenDetails,
-    editingGeneratedGroup,
-    setEditingGeneratedGroup,
     inspectingCollection,
     setInspectingCollection,
     highlightedToken,
     setHighlightedToken,
     createFromEmpty,
     setCreateFromEmpty,
-    setPendingHighlightForCollection,
     handleNavigateToAlias,
     handleNavigateBack,
     navHistoryLength,
@@ -250,7 +243,6 @@ export function PanelRouter({
   } = useTokenFlatMapContext();
   const {
     generators,
-    generatorsByTargetGroup,
     derivedTokenPaths,
   } = useGeneratorContext();
   const { selectedNodes } = useSelectionContext();
@@ -435,22 +427,6 @@ export function PanelRouter({
     onRefreshReview: refreshReviewData,
     onError: setErrorToast,
   });
-  const editingGeneratedGroupData =
-    editingGeneratedGroup?.mode === "edit"
-      ? (generators.find((generator) => generator.id === editingGeneratedGroup.id) ??
-        null)
-      : null;
-
-  useEffect(() => {
-    if (
-      !editingGeneratedGroup ||
-      editingGeneratedGroup.mode !== "edit" ||
-      editingGeneratedGroupData
-    )
-      return;
-    setEditingGeneratedGroup(null);
-  }, [editingGeneratedGroup, editingGeneratedGroupData, setEditingGeneratedGroup]);
-
   const tokenListHighlightedPath =
     tokenDetails?.collectionId === currentCollectionId
       ? tokenDetails.path
@@ -586,72 +562,6 @@ export function PanelRouter({
     ],
   );
 
-  const openGeneratedGroupEditor = useCallback(
-    (_target: TokensLibraryGeneratedGroupEditorTarget) => {
-      switchContextualSurface({ surface: null });
-      navigateTo("library", "graph");
-    },
-    [navigateTo, switchContextualSurface],
-  );
-
-  const openNewGeneratedGroup = useCallback(() => {
-    openGeneratedGroupEditor({
-      mode: "create",
-      initialDraft: {
-        targetCollection: currentCollectionId,
-      },
-    });
-  }, [currentCollectionId, openGeneratedGroupEditor]);
-
-  const openGeneratedGroupFromGroup = useCallback(
-    (groupPath: string) => {
-      openGeneratedGroupEditor({
-        mode: "create",
-        initialDraft: {
-          targetCollection: currentCollectionId,
-          targetGroup: groupPath,
-        },
-      });
-    },
-    [currentCollectionId, openGeneratedGroupEditor],
-  );
-
-  const openGeneratedTokens = useCallback(
-    (targetGroup: string, targetCollectionId: string) => {
-      switchContextualSurface({ surface: null });
-      setPendingHighlightForCollection(targetGroup, targetCollectionId);
-      if (targetCollectionId !== currentCollectionId) {
-        setCurrentCollectionId(targetCollectionId);
-      }
-      navigateTo("library", "tokens");
-    },
-    [
-      currentCollectionId,
-      navigateTo,
-      setCurrentCollectionId,
-      setPendingHighlightForCollection,
-      switchContextualSurface,
-    ],
-  );
-
-  const buildViewTokensAction = useCallback(
-    (info: GeneratorSaveSuccessInfo): ToastAction => ({
-      label: "View tokens",
-      onClick: () => openGeneratedTokens(info.targetGroup, info.targetCollection),
-    }),
-    [openGeneratedTokens],
-  );
-
-  const getGeneratorSuccessToastActions = useCallback(
-    (info: GeneratorSaveSuccessInfo, originatedFromGraph: boolean) =>
-      originatedFromGraph
-        ? { action: buildViewTokensAction(info) }
-        : {
-            action: buildViewTokensAction(info),
-          },
-    [buildViewTokensAction],
-  );
-
   const handleTokenDetailsBack = useCallback(() => {
     const tokenDetailsHistory = tokenDetails?.navigationHistory ?? [];
     if (tokenDetailsHistory.length > 0) {
@@ -778,14 +688,12 @@ export function PanelRouter({
     if (
       !createFromEmpty ||
       tokenDetails ||
-      editingGeneratedGroup ||
       showTokensCompare
     )
       return;
     openCreateLauncher();
   }, [
     createFromEmpty,
-    editingGeneratedGroup,
     tokenDetails,
     openCreateLauncher,
     showTokensCompare,
@@ -823,15 +731,6 @@ export function PanelRouter({
         collectionId: currentCollectionId,
         tokenCount,
       }),
-    onCreateGeneratedGroupFromGroup: (groupPath: string, _tokenType: string | null) => {
-      openGeneratedGroupFromGroup(groupPath);
-      navigateTo("library", "tokens");
-    },
-    onNavigateToNewGeneratedGroup: () => {
-      openNewGeneratedGroup();
-      navigateTo("library", "tokens");
-    },
-    onRefreshGeneratedGroups: controller.refreshAll,
     onToggleIssuesOnly: () => controller.setShowIssuesOnly((v) => !v),
     onFilteredCountChange: setFilteredCollectionCount,
     onNavigateToCollection: controller.handleNavigateToCollection,
@@ -847,18 +746,6 @@ export function PanelRouter({
     },
     onOpenTokenIssues: (path: string, collectionId: string) =>
       openCollectionIssues(collectionId, path),
-    onEditGeneratedGroup: (generatorId: string) =>
-      controller.guardEditorAction(() => {
-        openGeneratedGroupEditor({
-          mode: "edit",
-          id: generatorId,
-        });
-      }),
-    onOpenGeneratedGroupEditor: (target: TokensLibraryGeneratedGroupEditorTarget) =>
-      controller.guardEditorAction(() => {
-        openGeneratedGroupEditor(target);
-      }),
-    onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
     onDisplayedLeafNodesChange: (nodes: TokenNode[]) => {
       controller.displayedLeafNodesRef.current = nodes;
     },
@@ -929,7 +816,6 @@ export function PanelRouter({
         pathToCollectionId,
         collectionIdsByPath,
         perCollectionFlat,
-        generators,
         isCreateMode: tokenDetails.isCreate,
         initialType: tokenDetails.initialType,
         initialValue: tokenDetails.initialValue,
@@ -950,7 +836,6 @@ export function PanelRouter({
         pushUndo: controller.pushUndo,
         availableFonts: controller.availableFonts,
         fontWeightsByFamily: controller.fontWeightsByFamily,
-        derivedTokenPaths,
         onNavigateToToken: (
           path: string,
           collectionId?: string,
@@ -960,8 +845,6 @@ export function PanelRouter({
             mode: tokenDetails.mode,
             collectionId,
           }),
-        onNavigateToGeneratedGroup: controller.handleNavigateToGeneratedGroup,
-        onOpenGeneratedGroupEditor: openGeneratedGroupEditor,
         onOpenGraphDocument: (graphId: string) => {
           setPendingGraphDocumentId(graphId);
           navigateTo("library", "graph");
@@ -1034,110 +917,6 @@ export function PanelRouter({
     />
   );
 
-  const generatedGroupEditorProps =
-    editingGeneratedGroup &&
-    (editingGeneratedGroup.mode !== "edit" || editingGeneratedGroupData)
-      ? {
-          serverUrl,
-          currentCollectionId:
-            editingGeneratedGroup.mode === "edit"
-              ? (editingGeneratedGroupData?.targetCollection ?? currentCollectionId)
-              : editingGeneratedGroup.initialDraft?.targetCollection ??
-                (editingGeneratedGroup.sourceTokenPath
-                  ? (editingGeneratedGroup.sourceCollectionId ??
-                    resolveCollectionIdForPath({
-                      path: editingGeneratedGroup.sourceTokenPath,
-                      pathToCollectionId,
-                      collectionIdsByPath,
-                      preferredCollectionId: currentCollectionId,
-                    }).collectionId ??
-                    currentCollectionId)
-                  : currentCollectionId),
-          allTokensFlat,
-          sourceValuesFlat: modeResolvedTokensFlat,
-          perCollectionFlat,
-          collections,
-          sourceTokenPath:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.sourceTokenPath
-              : undefined,
-          sourceCollectionId:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.sourceCollectionId
-              : undefined,
-          sourceTokenName:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.sourceTokenName
-              : undefined,
-          sourceTokenType:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.sourceTokenType
-              : undefined,
-          sourceTokenValue:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.sourceTokenValue
-              : undefined,
-          intentPreset:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.intentPreset
-              : undefined,
-          existingGenerator:
-            editingGeneratedGroup.mode === "edit"
-              ? (editingGeneratedGroupData ?? undefined)
-              : undefined,
-          initialDraft:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.initialDraft
-              : undefined,
-          template:
-            editingGeneratedGroup.mode === "create"
-              ? editingGeneratedGroup.template
-              : undefined,
-          pathToCollectionId,
-          collectionIdsByPath,
-          onClose: () => {
-            setEditingGeneratedGroup(null);
-            controller.refreshAll();
-          },
-          onSaved: (info?: GeneratorSaveSuccessInfo) => {
-            const launchedFromGraph = editingGeneratedGroup?.origin === "graph";
-            setEditingGeneratedGroup(null);
-            controller.refreshAll();
-            if (!info) return;
-            if (launchedFromGraph) {
-              openGeneratedTokens(info.targetGroup, info.targetCollection);
-              return;
-            }
-            openGeneratedTokens(info.targetGroup, info.targetCollection);
-          },
-          getSuccessToastAction: (info: GeneratorSaveSuccessInfo) =>
-            getGeneratorSuccessToastActions(
-              info,
-              editingGeneratedGroup?.origin === "graph",
-            ),
-          onPushUndo: controller.pushUndo,
-          presentation: "panel" as const,
-          editorSessionHost: {
-            registerSession: controller.registerEditorSession,
-            requestClose: controller.requestEditorClose,
-          },
-        }
-      : null;
-  const generatedGroupEditorKey =
-    editingGeneratedGroup?.mode === "edit"
-      ? `edit:${editingGeneratedGroup.id}`
-      : editingGeneratedGroup
-        ? `create:${JSON.stringify({
-            sourceTokenPath: editingGeneratedGroup.sourceTokenPath ?? null,
-            sourceCollectionId: editingGeneratedGroup.sourceCollectionId ?? null,
-            sourceTokenType: editingGeneratedGroup.sourceTokenType ?? null,
-            sourceTokenValue: editingGeneratedGroup.sourceTokenValue ?? null,
-            intentPreset: editingGeneratedGroup.intentPreset ?? null,
-            initialDraft: editingGeneratedGroup.initialDraft ?? null,
-            templateId: editingGeneratedGroup.template?.id ?? null,
-          })}`
-        : null;
-
   type TokensContextualSurfaceRenderState = {
     surface: TokensLibraryContextualSurface;
     content: ReactNode;
@@ -1153,23 +932,6 @@ export function PanelRouter({
             <div className="flex flex-col h-full bg-[var(--color-figma-bg)] overflow-hidden">
               <TokenDetails {...tokenDetailsProps} />
             </div>
-          ),
-          onDismiss: controller.requestEditorClose,
-        };
-      }
-
-      if (
-        activeEditorSurface === "generated-group-editor" &&
-        editingGeneratedGroup &&
-        generatedGroupEditorProps
-      ) {
-        return {
-          surface: "generated-group-editor",
-          content: (
-            <GeneratedGroupEditor
-              key={generatedGroupEditorKey ?? "generated-group-editor"}
-              {...generatedGroupEditorProps}
-            />
           ),
           onDismiss: controller.requestEditorClose,
         };
@@ -1262,7 +1024,6 @@ export function PanelRouter({
           syncSnapshot:
             Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
           generators,
-          generatorsByTargetGroup,
           derivedTokenPaths,
           tokenUsageCounts,
           tokenUsageReady: hasTokenUsageScanResult,
@@ -1840,14 +1601,19 @@ export function PanelRouter({
             scope={healthScope}
             onScopeChange={setHealthScope}
             issueActions={issueActions}
-            onSelectIssue={(issue) =>
+            onSelectIssue={(issue) => {
+              if (issue.rule === "graph-diagnostic" && issue.graphId) {
+                setPendingGraphDocumentId(issue.graphId);
+                navigateTo("library", "graph");
+                return;
+              }
               setHealthScope((currentScope) => ({
                 ...currentScope,
                 tokenPath: issue.path,
                 issueKey: suppressKey(issue),
                 nonce: Date.now(),
-              }))
-            }
+              }));
+            }}
           />
         </ErrorBoundary>
       </div>

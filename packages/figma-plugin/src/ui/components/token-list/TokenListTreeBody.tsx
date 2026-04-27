@@ -116,7 +116,6 @@ export interface TokenListZoomGroup {
 export interface TokenListNavigationGroup {
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
   onCreateNew?: (initialPath?: string) => void;
-  onCreateGeneratedGroup?: () => void;
   onOpenImportPanel?: () => void;
   onExtractFromSelection?: () => void;
   hasSelection?: boolean;
@@ -220,7 +219,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     onNavigateToCollection,
     onCreateNew,
-    onCreateGeneratedGroup,
     onOpenImportPanel,
     onExtractFromSelection,
     hasSelection,
@@ -675,16 +673,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             }
             actions={emptyCollectionActions}
           />
-          {onCreateGeneratedGroup && (
-            <button
-              type="button"
-              onClick={onCreateGeneratedGroup}
-              disabled={!connected}
-              className="text-secondary text-[var(--color-figma-text-secondary)] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Or generate a group of tokens
-            </button>
-          )}
         </div>
       </>
     );

@@ -23,7 +23,6 @@ export interface UseTokenCrudParams {
   collections?: TokenCollection[];
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
-  onRefreshGeneratedGroups?: () => void;
   onSetOperationLoading: (msg: string | null) => void;
   onSetLocallyDeletedPaths: (paths: Set<string>) => void;
   onDeletePaths?: (paths: string[], collectionId: string) => void;
@@ -43,7 +42,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
   const {
     connected, serverUrl, collectionId, collectionIds, tokens, allTokensFlat, pathToCollectionId, collectionIdsByPath, perCollectionFlat,
     generators, collections,
-    onRefresh, onPushUndo, onRefreshGeneratedGroups, onSetOperationLoading,
+    onRefresh, onPushUndo, onSetOperationLoading,
     onSetLocallyDeletedPaths, onDeletePaths, onRecordTouch, onRenamePath,
     onMovePath, onClearSelection, onError,
   } = params;
@@ -59,7 +58,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
 
   const dup = useTokenDuplicate({ connected, serverUrl, collectionId, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 
-  const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, generators, collections, onRefresh, onPushUndo, onRecordTouch, onRefreshGeneratedGroups, onError });
+  const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, generators, collections, onRefresh, onPushUndo, onRecordTouch, onError });
 
   return {
     // Rename state + callbacks
@@ -85,8 +84,6 @@ export function useTokenCrud(params: UseTokenCrudParams) {
     handleDescriptionSave: save.handleDescriptionSave,
     handleMultiModeInlineSave: save.handleMultiModeInlineSave,
     handleCopyValueToAllModes: save.handleCopyValueToAllModes,
-    handleSaveGeneratedException: save.handleSaveGeneratedException,
-    handleDetachFromGenerator: save.handleDetachFromGenerator,
     // Move state + callbacks
     movingToken: relocate.move.relocatingToken,
     setMovingToken: relocate.move.setRelocatingToken,
