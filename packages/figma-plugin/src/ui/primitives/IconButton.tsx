@@ -8,8 +8,8 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const SIZE_CLASS: Record<NonNullable<IconButtonProps["size"]>, string> = {
-  sm: "h-5 w-5",
-  md: "h-6 w-6",
+  sm: "h-6 w-6",
+  md: "h-7 w-7",
   lg: "h-8 w-8",
 };
 
@@ -26,7 +26,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       ref={ref}
       type={rest.type ?? "button"}
       {...rest}
-      className={`inline-flex shrink-0 items-center justify-center rounded transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${SIZE_CLASS[size]} ${toneClass} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded transition-colors disabled:opacity-40 disabled:hover:bg-transparent focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${SIZE_CLASS[size]} ${toneClass} ${className}`}
     >
       {children}
     </button>

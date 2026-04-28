@@ -3,6 +3,7 @@ import { Spinner } from './Spinner';
 import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import type { ReactNode } from 'react';
+import { Button } from '../primitives/Button';
 
 interface ConfirmModalProps {
   title: string;
@@ -81,7 +82,7 @@ export function ConfirmModal({
         <div className="tm-modal-header">
           <h3 id="confirm-modal-title" className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h3>
           {description && (
-            <p className="text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
+            <p className="text-body leading-relaxed text-[var(--color-figma-text-secondary)] break-words">
               {description}
             </p>
           )}
@@ -93,27 +94,25 @@ export function ConfirmModal({
         )}
         </div>
         <div className="tm-modal-footer">
-          <button
+          <Button
             onClick={onCancel}
             disabled={!canCancel}
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            variant="secondary"
+            className="w-full bg-[var(--color-figma-bg-secondary)]"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleConfirm}
             disabled={busy || confirmDisabled}
-            className={`flex items-center justify-center gap-1.5 rounded px-3 py-1.5 text-body font-medium transition-colors disabled:opacity-50 ${
-              danger
-                ? 'bg-[var(--color-figma-error)] text-white hover:opacity-90'
-                : 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]'
-            }`}
+            variant={danger ? 'danger' : 'primary'}
+            className="w-full"
           >
             {busy && (
               <Spinner size="sm" className="text-white" />
             )}
             {busy ? `${confirmLabel}…` : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

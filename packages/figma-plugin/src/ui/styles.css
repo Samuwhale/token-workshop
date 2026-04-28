@@ -245,14 +245,14 @@ select:focus-visible,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 12px;
   background: var(--color-figma-overlay);
 }
 
 .tm-modal-panel {
-  inline-size: min(100%, 320px);
-  max-inline-size: calc(100vw - 32px);
-  max-block-size: calc(100vh - 32px);
+  inline-size: min(100%, 360px);
+  max-inline-size: min(560px, calc(100vw - 24px));
+  max-block-size: calc(100vh - 24px);
   display: flex;
   min-block-size: 0;
   min-inline-size: 0;
@@ -266,7 +266,7 @@ select:focus-visible,
 }
 
 .tm-modal-panel--wide {
-  inline-size: min(100%, 480px);
+  inline-size: min(100%, 520px);
 }
 
 .tm-modal-header {
@@ -280,16 +280,17 @@ select:focus-visible,
 .tm-modal-body {
   min-block-size: 0;
   min-inline-size: 0;
-  padding: 0 16px;
+  padding: 0 16px 16px;
   overflow-y: auto;
 }
 
 .tm-modal-footer {
   display: flex;
-  flex-wrap: wrap-reverse;
+  flex-wrap: wrap;
   align-items: stretch;
+  justify-content: flex-end;
   gap: 8px;
-  padding: 12px 16px 16px;
+  padding: 0 16px 16px;
 }
 
 .tm-modal-footer > * {
@@ -1084,6 +1085,20 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__inline-controls {
     align-self: flex-start;
+  }
+}
+
+@media (max-width: 460px) {
+  .tm-modal-header {
+    padding: 14px 14px 10px;
+  }
+
+  .tm-modal-body {
+    padding: 0 14px 14px;
+  }
+
+  .tm-modal-footer {
+    padding: 0 14px 14px;
   }
 }
 

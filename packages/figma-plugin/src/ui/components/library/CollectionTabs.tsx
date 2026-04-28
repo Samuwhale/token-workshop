@@ -155,10 +155,10 @@ export function CollectionTabs({
     <div
       role="tablist"
       aria-label="Collections"
-      className="flex min-w-0 shrink-0 items-center gap-0.5 border-b border-[var(--color-figma-border)] px-2"
+      className="flex min-w-0 shrink-0 items-center gap-1 border-b border-[var(--color-figma-border)] px-2 py-1"
     >
       <div
-        className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        className="flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
       >
         {allCollectionsScope ? (
           <CollectionTab
@@ -218,7 +218,7 @@ export function CollectionTabs({
                       }
                       aria-pressed={settingsActive}
                       title="Collection settings"
-                      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors ${
+                      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors ${
                         settingsActive
                           ? "text-[var(--color-figma-text)]"
                           : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -258,7 +258,7 @@ export function CollectionTabs({
             <div
               ref={searchMenu.menuRef}
               style={searchMenuStyle ?? { visibility: "hidden" }}
-              className="z-50 flex flex-col rounded bg-[var(--color-figma-bg)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+              className="z-50 flex max-w-[min(320px,calc(100vw-24px))] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
               role="dialog"
               aria-label="Find collection"
             >
@@ -384,7 +384,7 @@ export function CollectionTabs({
             <div
               ref={createMenu.menuRef}
               style={createMenuStyle ?? { visibility: "hidden" }}
-              className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+              className="z-50 overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
               role="menu"
             >
               {onOpenCreateCollection ? (
@@ -429,7 +429,7 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
         aria-selected={selected}
         onClick={onClick}
         title={label}
-        className={`group relative flex min-w-0 max-w-[320px] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
+        className={`group relative flex min-w-0 max-w-[280px] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
           selected
             ? "text-[var(--color-figma-text)]"
             : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -454,7 +454,7 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
           </span>
         ) : null}
         {reserveTrailingSpace ? (
-          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center">
             {trailing}
           </span>
         ) : trailing}

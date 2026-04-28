@@ -1205,7 +1205,7 @@ export function PanelRouter({
             className="absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
             onClick={closeNotifications}
           />
-          <div className="absolute right-0 top-0 bottom-0 z-20 w-[320px] border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg panel-slide-in">
+          <div className="absolute right-0 top-0 bottom-0 z-20 w-full max-w-[min(360px,calc(100vw-16px))] border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg panel-slide-in">
             <NotificationsPanel
               history={controller.notificationHistory}
               onClear={controller.clearNotificationHistory}

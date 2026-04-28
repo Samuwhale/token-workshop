@@ -18,7 +18,7 @@ export function SegmentedControl<T extends string>({
 }: SegmentedControlProps<T>) {
   return (
     <div
-      className="inline-flex h-[26px] items-stretch rounded bg-[var(--color-figma-bg)] p-[2px]"
+      className="inline-flex max-w-full flex-wrap items-stretch gap-[2px] rounded bg-[var(--color-figma-bg)] p-[2px]"
       role="tablist"
       aria-label={ariaLabel}
     >
@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string>({
             role="tab"
             aria-selected={selected}
             onClick={() => onChange(option.value)}
-            className={`inline-flex items-center justify-center rounded-[3px] px-2 text-secondary font-medium transition-colors ${
+            className={`inline-flex min-h-[22px] min-w-0 items-center justify-center rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
               selected
                 ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                 : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"

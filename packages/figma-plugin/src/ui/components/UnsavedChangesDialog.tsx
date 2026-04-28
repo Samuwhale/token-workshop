@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Spinner } from "./Spinner";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { Button } from "../primitives/Button";
 
 interface UnsavedChangesDialogProps {
   canSave: boolean;
@@ -65,35 +66,38 @@ export function UnsavedChangesDialog({
         </div>
         <div className="tm-modal-footer pt-0">
           {canSave && (
-            <button
+            <Button
               type="button"
               onClick={onSave}
               disabled={controlsDisabled}
-              className="flex w-full items-center justify-center gap-1.5 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+              variant="primary"
+              className="w-full"
             >
               {busyAction === "save" && <Spinner size="sm" className="text-white" />}
               {busyAction === "save" ? "Saving…" : "Save"}
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="button"
             onClick={onDiscard}
             disabled={controlsDisabled}
-            className="flex w-full items-center justify-center gap-1.5 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-50"
+            variant="secondary"
+            className="w-full border-[var(--color-figma-error)]/25 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
           >
             {busyAction === "discard" && (
               <Spinner size="sm" className="text-[var(--color-figma-error)]" />
             )}
             {busyAction === "discard" ? "Discarding…" : "Discard changes"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onCancel}
             disabled={controlsDisabled}
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+            variant="secondary"
+            className="w-full bg-[var(--color-figma-bg-secondary)]"
           >
             Keep editing
-          </button>
+          </Button>
         </div>
       </div>
     </div>

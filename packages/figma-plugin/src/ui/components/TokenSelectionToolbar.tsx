@@ -112,8 +112,8 @@ export function TokenSelectionToolbar({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+    <div className="flex flex-col gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <input
           type="checkbox"
           checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every(p => selectedPaths.has(p))}
@@ -137,7 +137,7 @@ export function TokenSelectionToolbar({
         ) : null}
       </div>
 
-      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
         {hasSelection && (
           <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
             {(close) => (
@@ -242,7 +242,7 @@ export function TokenSelectionToolbar({
           <button
             onClick={onRequestBulkDelete}
             disabled={!!operationLoading}
-            className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:pointer-events-none disabled:opacity-50"
+            className="inline-flex min-h-[26px] shrink-0 items-center rounded px-2 text-secondary font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:pointer-events-none disabled:opacity-50"
           >
             Delete
           </button>
@@ -250,7 +250,7 @@ export function TokenSelectionToolbar({
 
         <button
           onClick={onClearSelection}
-          className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           aria-label="Clear selection"
         >
           <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">

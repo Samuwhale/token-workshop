@@ -240,7 +240,7 @@ export function NotificationsPanel({
           )}
         </div>
         {inbox.length > 0 && (
-          <div className="mt-2">
+        <div className="mt-2 overflow-x-auto pb-1">
             <SegmentedControl
               options={INBOX_FILTER_OPTIONS}
               value={filter}
@@ -287,10 +287,10 @@ function NotificationCard({
 }) {
   return (
     <div
-      className={`border-b border-[var(--color-figma-border)] py-1.5 pl-2.5 ${severityTint(item)}`}
+      className={`border-b border-[var(--color-figma-border)] px-2.5 py-2 ${severityTint(item)}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-col gap-2">
+        <div className="min-w-0">
           <p className="text-body leading-snug text-[var(--color-figma-text)] break-words">
             {item.message}
           </p>
@@ -304,7 +304,7 @@ function NotificationCard({
         {item.destination && item.actionLabel && (
           <button
             onClick={() => onOpen(item.destination)}
-            className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="inline-flex min-h-[26px] w-full items-center justify-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] sm:w-auto"
           >
             {item.actionLabel}
           </button>

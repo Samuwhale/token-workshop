@@ -19,8 +19,8 @@ const VARIANT_CLASS: Record<NonNullable<ButtonProps["variant"]>, string> = {
 };
 
 const SIZE_CLASS: Record<NonNullable<ButtonProps["size"]>, string> = {
-  sm: "h-[22px] px-2 text-secondary",
-  md: "h-[26px] px-2.5 text-body",
+  sm: "min-h-[22px] px-2 py-1 text-secondary",
+  md: "min-h-[26px] px-2.5 py-1 text-body",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -32,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={rest.type ?? "button"}
       {...rest}
-      className={`inline-flex items-center justify-center gap-1.5 rounded font-medium transition-colors ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
+      className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded text-center leading-tight font-medium transition-colors ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
     >
       {children}
     </button>

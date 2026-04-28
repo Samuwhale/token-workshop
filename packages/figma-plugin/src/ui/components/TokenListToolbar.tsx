@@ -70,6 +70,9 @@ const RESULT_OPTIONS: SegmentedOption<"grouped" | "flat">[] = [
   { value: "flat", label: "Flat" },
 ];
 
+const TOOLBAR_BUTTON_CLASS =
+  "inline-flex min-h-[26px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors";
+
 export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
   navHistoryLength?: number;
@@ -263,14 +266,14 @@ export function TokenListToolbar({
 
   return (
     <div className="bg-[var(--color-figma-bg-secondary)]">
-      <div className="flex flex-col gap-1.5 px-3 pt-2 pb-2">
-        <div className="flex min-w-0 flex-wrap items-start gap-1.5">
+      <div className="flex flex-col gap-2 px-3 py-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
               <button
                 type="button"
                 onClick={onNavigateBack}
-                className="shrink-0 rounded p-1 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                 title="Back (Alt+←)"
                 aria-label="Back"
               >
@@ -289,8 +292,8 @@ export function TokenListToolbar({
             ) : null}
 
             {hasTokens && viewMode === "tree" ? (
-              <div className="relative min-w-[180px] max-w-full flex-1 basis-[220px]">
-                <div className="flex h-[26px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
+              <div className="relative min-w-[180px] max-w-full flex-1 basis-[240px]">
+                <div className="flex min-h-[28px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
                   <Search
                     size={12}
                     strokeWidth={1.5}
@@ -382,7 +385,7 @@ export function TokenListToolbar({
                     ref={qualifierHintsRef}
                     id="qualifier-hints-listbox"
                     role="listbox"
-                    className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
                   >
                     {qualifierHints.map((hint, index) => (
                       <button
@@ -424,10 +427,13 @@ export function TokenListToolbar({
               <div className="min-w-[80px] flex-1" />
             )}
           </div>
+        </div>
 
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-1.5">
+          <div className="min-w-0 flex-1" />
           <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
             {hasTokens ? (
-              <div className="shrink-0">
+              <div className="min-w-0 shrink-0">
                 <SegmentedControl
                   value={viewMode}
                   options={TREE_VIEW_OPTIONS}
@@ -454,7 +460,7 @@ export function TokenListToolbar({
                   aria-haspopup="menu"
                   aria-label="Sort and group"
                   title="Sort and group"
-                  className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                  className={`${TOOLBAR_BUTTON_CLASS} ${
                     sortMenu.open || sortActive
                       ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
                       : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -499,7 +505,7 @@ export function TokenListToolbar({
                   aria-haspopup="menu"
                   aria-label="Create"
                   title="Create"
-                  className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                  className={`${TOOLBAR_BUTTON_CLASS} ${
                     createMenu.open
                       ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
                       : "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)]"
@@ -579,14 +585,14 @@ export function TokenListToolbar({
                   type="button"
                   onClick={actionsMenu.toggle}
                   disabled={!connected}
-                  aria-expanded={actionsMenu.open}
-                  aria-haspopup="menu"
-                  aria-label="More actions"
-                  className={`inline-flex h-[26px] w-[26px] items-center justify-center rounded transition-colors ${
-                    actionsMenu.open
-                      ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                  } disabled:opacity-40`}
+                    aria-expanded={actionsMenu.open}
+                    aria-haspopup="menu"
+                    aria-label="More actions"
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
+                      actionsMenu.open
+                        ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    } disabled:opacity-40`}
                 >
                   <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
                 </button>
