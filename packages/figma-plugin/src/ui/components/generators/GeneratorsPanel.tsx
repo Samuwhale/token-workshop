@@ -937,20 +937,31 @@ export function GeneratorsPanel({
 
   const deleteGenerator = useCallback(async () => {
     if (!activeGenerator) return;
+    const deletedGeneratorId = activeGenerator.id;
+    const targetCollectionId = activeGenerator.targetCollectionId;
     setBusy("delete");
     setError(null);
     try {
       await apiFetch(
-        `${serverUrl}/api/generators/${encodeURIComponent(activeGenerator.id)}`,
+        `${serverUrl}/api/generators/${encodeURIComponent(deletedGeneratorId)}`,
         {
           method: "DELETE",
         },
       );
       const nextGenerators = generators.filter(
-        (generator) => generator.id !== activeGenerator.id,
+        (generator) => generator.id !== deletedGeneratorId,
       );
+      const nextActiveGeneratorId =
+        nextGenerators.find(
+          (generator) => generator.targetCollectionId === targetCollectionId,
+        )?.id ?? null;
       setGenerators(nextGenerators);
-      setActiveGeneratorSelection(nextGenerators[0]?.id ?? null);
+      setActiveGeneratorSelection(nextActiveGeneratorId);
+      setSelectedNodeId(null);
+      setActiveInitialFocus(null);
+      setExternalPreviewInvalidated(false);
+      setLastApply(null);
+      setEditorMode("setup");
       setPreview(null);
       setDirty(false);
       dirtyRef.current = false;
@@ -964,7 +975,7 @@ export function GeneratorsPanel({
     } finally {
       setBusy(null);
     }
-  }, [activeGenerator, generators, serverUrl]);
+  }, [activeGenerator, generators, serverUrl, setActiveGeneratorSelection]);
 
   const selectGenerator = useCallback(
     (generatorId: string) => {

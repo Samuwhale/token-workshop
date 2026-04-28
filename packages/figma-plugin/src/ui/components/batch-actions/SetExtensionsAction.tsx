@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import type { BatchActionProps } from './types';
 import { apiFetch } from '../../shared/apiFetch';
 import { rollbackOperation } from './transforms';
@@ -11,8 +12,6 @@ interface ExtensionRow {
   key: string;
   value: string;
 }
-
-let nextId = 0;
 
 function parseExtensionValue(raw: string): unknown {
   try {
@@ -33,12 +32,15 @@ export function SetExtensionsAction({
 }: BatchActionProps) {
   const [rows, setRows] = useState<ExtensionRow[]>([]);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const nextRowId = useRef(0);
 
   const validRows = rows.filter((r) => r.key.trim().length > 0);
   const canApply = validRows.length > 0 && selectedPaths.size > 0 && connected;
 
   function addRow() {
-    setRows((prev) => [...prev, { id: nextId++, key: '', value: '' }]);
+    const id = nextRowId.current;
+    nextRowId.current += 1;
+    setRows((prev) => [...prev, { id, key: '', value: '' }]);
   }
 
   function updateRow(id: number, field: 'key' | 'value', val: string) {
@@ -128,9 +130,7 @@ export function SetExtensionsAction({
                 className="shrink-0 p-1.5 rounded-md text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                 aria-label="Remove row"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+                <X size={12} aria-hidden="true" />
               </button>
             </div>
           ))}
