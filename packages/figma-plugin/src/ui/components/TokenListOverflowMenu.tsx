@@ -3,6 +3,8 @@ import { Check, Filter } from "lucide-react";
 import type { SortOrder } from "./tokenListTypes";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { TOKEN_TYPE_CATEGORIES } from "../shared/tokenTypeCategories";
+import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
+import { FLOATING_MENU_WIDE_CLASS } from "../shared/menuClasses";
 import {
   getQueryQualifierValues,
   setQueryQualifierValues,
@@ -87,7 +89,9 @@ function MenuItem({
       <span className="w-3 shrink-0 text-center">
         {checked ? <CheckIcon /> : null}
       </span>
-      <span className="flex-1 truncate">{label}</span>
+      <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
+        {label}
+      </span>
       {suffix && (
         <span className="shrink-0 text-[var(--color-figma-text-tertiary)]">
           {suffix}
@@ -117,6 +121,13 @@ export function FilterMenu(
   },
 ) {
   const { open, menuRef, triggerRef, toggle, close } = useDropdownMenu();
+  const menuStyle = useAnchoredFloatingStyle({
+    triggerRef,
+    open,
+    preferredWidth: 240,
+    preferredHeight: 420,
+    align: "end",
+  });
   const runAndClose = useCallback(
     (fn: () => void) => {
       fn();
@@ -169,7 +180,8 @@ export function FilterMenu(
       {open && (
         <div
           ref={menuRef}
-          className="absolute right-0 top-full z-50 mt-1 w-[200px] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl"
+          style={menuStyle ?? { visibility: "hidden" }}
+          className={FLOATING_MENU_WIDE_CLASS}
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, ArrowDown, X, Plus } from "lucide-react";
+import { ArrowUp, ArrowDown, X, Plus, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { apiFetch } from "../shared/apiFetch";
@@ -276,6 +276,18 @@ function ModeRow({
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
           <IconButton
             size="sm"
+            onClick={() => {
+              setRenameValue(modeName);
+              setRenaming(true);
+            }}
+            disabled={saving}
+            aria-label="Rename mode"
+            title="Rename mode"
+          >
+            <Pencil size={11} strokeWidth={1.5} aria-hidden />
+          </IconButton>
+          <IconButton
+            size="sm"
             onClick={() => void handleReorder(-1)}
             disabled={!canMoveUp || saving}
             aria-label="Move up"
@@ -367,6 +379,9 @@ function ModesSection({
     <div>
       <SectionHeader>Modes</SectionHeader>
       <div className="px-3">
+        <p className="px-2 pb-2 text-secondary text-[var(--color-figma-text-tertiary)]">
+          Every token in this collection uses these modes. Rename, reorder, or add modes here.
+        </p>
         {collection.modes.map((mode, index) => (
           <ModeRow
             key={mode.name}

@@ -1,3 +1,4 @@
+import { Plus, X } from "lucide-react";
 import type { Ref } from "react";
 import { COLLECTION_NAME_RE } from "../shared/utils";
 
@@ -6,9 +7,7 @@ const COLLECTION_INPUT_CLASS =
 
 export interface CollectionAuthoringDraft {
   name: string;
-  primaryModeName: string;
-  secondaryModeEnabled: boolean;
-  secondaryModeName: string;
+  modeNames: string[];
 }
 
 interface CollectionAuthoringFieldsProps {
@@ -17,17 +16,17 @@ interface CollectionAuthoringFieldsProps {
   error?: string;
   nameInputRef?: Ref<HTMLInputElement>;
   onNameChange: (value: string) => void;
-  onPrimaryModeChange: (value: string) => void;
-  onSecondaryModeEnabledChange: (enabled: boolean) => void;
-  onSecondaryModeChange: (value: string) => void;
+  onModeNameChange: (index: number, value: string) => void;
+  onAddMode: () => void;
+  onRemoveMode: (index: number) => void;
 }
 
 export function validateCollectionAuthoringDraft(
   draft: CollectionAuthoringDraft,
 ): string | null {
   const trimmedCollectionName = draft.name.trim();
-  const trimmedPrimaryMode = draft.primaryModeName.trim();
-  const trimmedSecondaryMode = draft.secondaryModeName.trim();
+  const trimmedModes = draft.modeNames.map((modeName) => modeName.trim());
+  const nonEmptyModes = trimmedModes.filter(Boolean);
 
   if (!trimmedCollectionName) {
     return "Collection name is required";
@@ -37,23 +36,19 @@ export function validateCollectionAuthoringDraft(
     return "Use letters, numbers, - and _. Use / to group related collections.";
   }
 
-  if (!trimmedPrimaryMode) {
-    return "Add a first mode name";
+  if (nonEmptyModes.length === 0) {
+    return "Add at least one mode";
   }
 
-  if (
-    draft.secondaryModeEnabled &&
-    !trimmedSecondaryMode
-  ) {
-    return "Add a second mode name or remove it";
+  if (trimmedModes.some((modeName) => modeName.length === 0)) {
+    return "Mode names cannot be empty";
   }
 
-  if (
-    draft.secondaryModeEnabled &&
-    trimmedSecondaryMode.localeCompare(trimmedPrimaryMode, undefined, {
-      sensitivity: "accent",
-    }) === 0
-  ) {
+  const uniqueModes = new Set(
+    trimmedModes.map((modeName) => modeName.toLocaleLowerCase()),
+  );
+
+  if (uniqueModes.size !== trimmedModes.length) {
     return "Mode names must be different";
   }
 
@@ -63,11 +58,7 @@ export function validateCollectionAuthoringDraft(
 export function buildCollectionModeNames(
   draft: CollectionAuthoringDraft,
 ): string[] {
-  const modes = [draft.primaryModeName.trim()];
-  if (draft.secondaryModeEnabled) {
-    modes.push(draft.secondaryModeName.trim());
-  }
-  return modes;
+  return draft.modeNames.map((modeName) => modeName.trim()).filter(Boolean);
 }
 
 export function CollectionAuthoringFields({
@@ -76,9 +67,9 @@ export function CollectionAuthoringFields({
   error,
   nameInputRef,
   onNameChange,
-  onPrimaryModeChange,
-  onSecondaryModeEnabledChange,
-  onSecondaryModeChange,
+  onModeNameChange,
+  onAddMode,
+  onRemoveMode,
 }: CollectionAuthoringFieldsProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -101,57 +92,54 @@ export function CollectionAuthoringFields({
       </label>
 
       <div className="flex flex-col gap-2">
-        <label className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-            First mode
+            Modes
           </span>
-          <input
-            type="text"
-            value={draft.primaryModeName}
-            onChange={(event) => onPrimaryModeChange(event.target.value)}
-            placeholder="Default"
-            disabled={pending}
-            className={COLLECTION_INPUT_CLASS}
-          />
-        </label>
-
-        {draft.secondaryModeEnabled ? (
-          <div className="flex flex-col gap-2">
-            <label className="flex flex-col gap-1">
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                Second mode
-              </span>
-              <input
-                type="text"
-                value={draft.secondaryModeName}
-                onChange={(event) => onSecondaryModeChange(event.target.value)}
-                placeholder="Dark"
-                disabled={pending}
-                className={COLLECTION_INPUT_CLASS}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => onSecondaryModeEnabledChange(false)}
-              disabled={pending}
-              className="self-start text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
-            >
-              Use one mode for now
-            </button>
-          </div>
-        ) : (
           <button
             type="button"
-            onClick={() => onSecondaryModeEnabledChange(true)}
+            onClick={onAddMode}
             disabled={pending}
-            className="self-start text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
           >
-            Add another mode
+            <Plus size={12} strokeWidth={1.5} aria-hidden />
+            Add mode
           </button>
-        )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {draft.modeNames.map((modeName, index) => (
+            <label className="flex flex-col gap-1">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                {`Mode ${index + 1}`}
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={modeName}
+                  onChange={(event) => onModeNameChange(index, event.target.value)}
+                  placeholder={index === 0 ? "Default" : index === 1 ? "Dark" : "Mode name"}
+                  disabled={pending}
+                  className={`${COLLECTION_INPUT_CLASS} flex-1`}
+                />
+                {draft.modeNames.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveMode(index)}
+                    disabled={pending}
+                    aria-label={`Remove mode ${index + 1}`}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                  >
+                    <X size={12} strokeWidth={1.5} aria-hidden />
+                  </button>
+                ) : null}
+              </div>
+            </label>
+          ))}
+        </div>
 
         <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-          Start with one mode for a straightforward collection. Add a second only when you already need variants like light and dark.
+          Modes are equal contexts for every token in the collection. Add only the ones you need right now, like Default and Dark.
         </span>
       </div>
 

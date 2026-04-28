@@ -26,9 +26,7 @@ export function CollectionCreateDialog({
 }: CollectionCreateDialogProps) {
   const [draft, setDraft] = useState<CollectionAuthoringDraft>({
     name: "",
-    primaryModeName: "Default",
-    secondaryModeEnabled: false,
-    secondaryModeName: "",
+    modeNames: ["Default"],
   });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -38,9 +36,7 @@ export function CollectionCreateDialog({
     if (!isOpen) return;
     setDraft({
       name: "",
-      primaryModeName: "Default",
-      secondaryModeEnabled: false,
-      secondaryModeName: "",
+      modeNames: ["Default"],
     });
     setError("");
     setPending(false);
@@ -116,7 +112,7 @@ export function CollectionCreateDialog({
 
         <div className="tm-modal-body flex flex-col gap-3 py-3">
           <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-            Collections hold related tokens and their modes. Name the collection, set the first mode, and add a second only if you already need another context.
+            Collections hold related tokens and their modes. Name the collection, then add the mode contexts this collection should support.
           </p>
           <CollectionAuthoringFields
             draft={draft}
@@ -127,20 +123,27 @@ export function CollectionCreateDialog({
               setDraft((current) => ({ ...current, name: value }));
               setError("");
             }}
-            onPrimaryModeChange={(value) => {
-              setDraft((current) => ({ ...current, primaryModeName: value }));
-              setError("");
-            }}
-            onSecondaryModeEnabledChange={(enabled) => {
+            onModeNameChange={(index, value) => {
               setDraft((current) => ({
                 ...current,
-                secondaryModeEnabled: enabled,
-                secondaryModeName: enabled ? current.secondaryModeName : "",
+                modeNames: current.modeNames.map((modeName, modeIndex) =>
+                  modeIndex === index ? value : modeName,
+                ),
               }));
               setError("");
             }}
-            onSecondaryModeChange={(value) => {
-              setDraft((current) => ({ ...current, secondaryModeName: value }));
+            onAddMode={() => {
+              setDraft((current) => ({
+                ...current,
+                modeNames: [...current.modeNames, ""],
+              }));
+              setError("");
+            }}
+            onRemoveMode={(index) => {
+              setDraft((current) => ({
+                ...current,
+                modeNames: current.modeNames.filter((_, modeIndex) => modeIndex !== index),
+              }));
               setError("");
             }}
           />

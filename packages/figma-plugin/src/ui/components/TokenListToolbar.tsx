@@ -266,8 +266,8 @@ export function TokenListToolbar({
   return (
     <div className="bg-[var(--color-figma-bg-secondary)]">
       <div className="flex flex-col gap-2 px-3 py-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
             {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
               <button
                 type="button"
@@ -428,8 +428,8 @@ export function TokenListToolbar({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+        <div className="flex min-w-0 overflow-x-auto pb-px [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          <div className="ml-auto flex min-w-max items-center gap-1.5">
             {hasTokens ? (
               <div className="min-w-0 shrink-0">
                 <SegmentedControl
@@ -682,30 +682,32 @@ export function TokenListToolbar({
         </div>
 
         {hasChipRow ? (
-          <div className="flex flex-wrap items-center gap-1">
-            {showSelectionChip ? (
-              <button
-                type="button"
-                onClick={onToggleInspectMode}
-                aria-pressed={inspectMode}
-                title={
-                  inspectMode
-                    ? "Show all tokens"
-                    : `Show only the ${boundTokenCount} token${boundTokenCount === 1 ? "" : "s"} used on the current selection`
-                }
-                className={`inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-secondary transition-colors ${
-                  inspectMode
-                    ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                    : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-                }`}
-              >
-                <Target size={10} strokeWidth={1.5} aria-hidden />
-                <span>{boundTokenCount} on selection</span>
-              </button>
-            ) : null}
-            {toolbarStateChips.map((chip) => (
-              <Chip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
-            ))}
+          <div className="flex min-w-0 overflow-x-auto pb-px [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            <div className="flex min-w-max items-center gap-1">
+              {showSelectionChip ? (
+                <button
+                  type="button"
+                  onClick={onToggleInspectMode}
+                  aria-pressed={inspectMode}
+                  title={
+                    inspectMode
+                      ? "Show all tokens"
+                      : `Show only the ${boundTokenCount} token${boundTokenCount === 1 ? "" : "s"} used on the current selection`
+                  }
+                  className={`inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-secondary transition-colors ${
+                    inspectMode
+                      ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
+                      : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                  }`}
+                >
+                  <Target size={10} strokeWidth={1.5} aria-hidden />
+                  <span>{boundTokenCount} on selection</span>
+                </button>
+              ) : null}
+              {toolbarStateChips.map((chip) => (
+                <Chip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
+              ))}
+            </div>
           </div>
         ) : null}
       </div>

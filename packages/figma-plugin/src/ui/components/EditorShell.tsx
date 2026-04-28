@@ -105,7 +105,14 @@ export function EditorShell({
           {title}
         </div>
         {headerActions && (
-          <div className="flex min-w-0 flex-wrap items-center gap-1 shrink-0">{headerActions}</div>
+          <div
+            className={joinClasses(
+              "flex min-w-0 flex-wrap items-center gap-1 shrink-0",
+              isAuthoringSurface && "tm-authoring-surface__header-actions",
+            )}
+          >
+            {headerActions}
+          </div>
         )}
       </div>
       {afterHeader}

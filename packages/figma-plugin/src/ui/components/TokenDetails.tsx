@@ -964,73 +964,75 @@ export function TokenDetails({
         </div>
       ) : (
         <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-start gap-1.5 min-w-0">
             {canRenameInPlace ? (
-              <div className="flex items-center gap-0.5 min-w-0 flex-1">
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
                 {parentPrefix && (
                   <span
-                    className="min-w-0 max-w-[50%] shrink truncate font-mono text-body text-[var(--color-figma-text-secondary)]"
+                    className={LONG_TEXT_CLASSES.pathSecondary}
                     title={parentPrefix}
                   >
                     {parentPrefix}.
                   </span>
                 )}
-                <input
-                  type="text"
-                  value={renameInput}
-                  disabled={renameDisabled}
-                  onChange={(e) => {
-                    setRenameInput(e.target.value);
-                    setRenameError(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      void submitRename();
-                    } else if (e.key === "Escape") {
-                      e.preventDefault();
-                      revertRename();
-                      (e.target as HTMLInputElement).blur();
+                <div className="flex min-w-0 items-center gap-0.5">
+                  <input
+                    type="text"
+                    value={renameInput}
+                    disabled={renameDisabled}
+                    onChange={(e) => {
+                      setRenameInput(e.target.value);
+                      setRenameError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void submitRename();
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        revertRename();
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    title={
+                      isDirty
+                        ? "Save or discard your changes before renaming"
+                        : undefined
                     }
-                  }}
-                  title={
-                    isDirty
-                      ? "Save or discard your changes before renaming"
-                      : undefined
-                  }
-                  className={`min-w-0 flex-1 font-mono text-body bg-transparent text-[var(--color-figma-text)] px-1 py-0.5 rounded border outline-none disabled:opacity-60 ${
-                    renameError
-                      ? "border-[var(--color-figma-error)]"
-                      : renameInputDiffers
-                        ? "border-[var(--color-figma-accent)]"
-                        : "border-transparent hover:border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"
-                  }`}
-                  aria-label="Token name"
-                />
-                {renameInputDiffers && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void submitRename()}
-                      disabled={renameDisabled}
-                      title="Save name (Enter)"
-                      aria-label="Save name"
-                      className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
-                    >
-                      <Check size={12} strokeWidth={1.5} aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={revertRename}
-                      disabled={renameSaving}
-                      title="Revert name (Escape)"
-                      aria-label="Revert name"
-                      className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
-                    >
-                      <X size={12} strokeWidth={1.5} aria-hidden />
-                    </button>
-                  </>
-                )}
+                    className={`min-w-0 flex-1 font-mono text-body bg-transparent text-[var(--color-figma-text)] px-1 py-0.5 rounded border outline-none disabled:opacity-60 ${
+                      renameError
+                        ? "border-[var(--color-figma-error)]"
+                        : renameInputDiffers
+                          ? "border-[var(--color-figma-accent)]"
+                          : "border-transparent hover:border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"
+                    }`}
+                    aria-label="Token name"
+                  />
+                  {renameInputDiffers && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void submitRename()}
+                        disabled={renameDisabled}
+                        title="Save name (Enter)"
+                        aria-label="Save name"
+                        className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
+                      >
+                        <Check size={12} strokeWidth={1.5} aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={revertRename}
+                        disabled={renameSaving}
+                        title="Revert name (Escape)"
+                        aria-label="Revert name"
+                        className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
+                      >
+                        <X size={12} strokeWidth={1.5} aria-hidden />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ) : (
               <span
@@ -1186,7 +1188,7 @@ export function TokenDetails({
   const footer = isInspectMode ? null : (
     <div className={AUTHORING_SURFACE_CLASSES.footer}>
       {(footerNote || (isCreateMode && onSaveAndCreateAnother)) && (
-        <div className={`${AUTHORING_SURFACE_CLASSES.footerMeta} flex items-center justify-between gap-2`}>
+        <div className={`${AUTHORING_SURFACE_CLASSES.footerMeta} flex flex-col gap-1.5`}>
           <span
             className={
               footerNote && (duplicatePath || saveBlockReason)
@@ -1202,7 +1204,7 @@ export function TokenDetails({
               onClick={() => handleSave(false, true)}
               disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
               title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-              className="shrink-0 text-secondary font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+              className="self-start text-secondary font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
             >
               Create another{" "}
               <span className="opacity-60">

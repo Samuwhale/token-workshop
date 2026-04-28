@@ -161,36 +161,39 @@ export function TokenDetailsModeRow({
         type="button"
         onClick={handleAliasToggle}
         className={joinClasses(
-          "tm-token-mode-row__icon-button",
-          aliasMode && "tm-token-mode-row__icon-button--active",
+          "tm-token-mode-row__action-button",
+          aliasMode && "tm-token-mode-row__action-button--active",
         )}
-        title={aliasMode ? "Switch to direct value" : "Switch to reference"}
+        title={aliasMode ? "Use a direct value for this mode" : "Reference another token for this mode"}
         aria-label={
-          aliasMode ? "Switch to direct value" : "Switch to reference"
+          aliasMode ? "Use a direct value for this mode" : "Reference another token for this mode"
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
+        <span>{aliasMode ? "Direct value" : "Reference"}</span>
       </button>
       {allowCopyFromPrevious && onCopyFromPrevious ? (
         <button
           type="button"
           onClick={onCopyFromPrevious}
-          className="tm-token-mode-row__icon-button"
+          className="tm-token-mode-row__action-button"
           title="Copy from previous mode"
           aria-label="Copy from previous mode"
         >
           <Copy size={12} strokeWidth={1.5} aria-hidden />
+          <span>Previous</span>
         </button>
       ) : null}
       {allowCopyToAll && onCopyToAll ? (
         <button
           type="button"
           onClick={onCopyToAll}
-          className="tm-token-mode-row__icon-button"
+          className="tm-token-mode-row__action-button"
           title="Copy to all other modes"
           aria-label="Copy to all other modes"
         >
           <Rows3 size={12} strokeWidth={1.5} aria-hidden />
+          <span>All modes</span>
         </button>
       ) : null}
     </div>

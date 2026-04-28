@@ -62,7 +62,7 @@ export const TOP_TABS: {
     label: "Library",
     subTabs: [
       { id: "tokens", label: "Tokens" },
-      { id: "graph", label: "Generators" },
+      { id: "graph", label: "Automations" },
       { id: "health", label: "Review" },
       { id: "history", label: "History" },
     ],
@@ -285,7 +285,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     subTab: "tokens",
     sections: [
       { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
-      { id: "graph",   label: "Generators",   topTab: "library", subTab: "graph" },
+      { id: "graph",   label: "Automations",   topTab: "library", subTab: "graph" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
       { id: "history", label: "History", topTab: "library", subTab: "history" },
     ],
@@ -446,9 +446,9 @@ export function getImportResultNextStepRecommendations(
   if (isLargeInitialImport(summary)) {
     addRecommendation(
       createWorkspaceRecommendation(
-        "publish",
-        "publish-figma",
-        "Large import — confirm sync mapping.",
+        "library",
+        "tokens",
+        "Large import — review the new library structure first.",
       ),
     );
   }

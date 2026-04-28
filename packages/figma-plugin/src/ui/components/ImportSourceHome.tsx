@@ -19,9 +19,21 @@ export function ImportSourceHome() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <div className="text-body font-medium text-[var(--color-figma-text)]">
+          Bring tokens into this library
+        </div>
+        <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          Start from this Figma file or import token files you already maintain elsewhere.
+        </div>
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
           From this Figma file
+        </div>
+        <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          Keep existing collection and mode structure when importing variables.
         </div>
         <div className="flex gap-2">
           <button
@@ -52,6 +64,9 @@ export function ImportSourceHome() {
       <div className="flex flex-col gap-1.5">
         <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
           From a file
+        </div>
+        <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          Use this for JSON, CSS, Tailwind, or Tokens Studio exports.
         </div>
         <div
           onDragEnter={handleDragEnter}

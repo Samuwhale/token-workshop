@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import { Search, Settings2, Upload } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
@@ -133,15 +132,16 @@ export function CollectionTabs({
   const settingsToggle = activeCollectionSettings;
   const settingsTargetId = currentCollectionId ?? null;
   const canManageCollections = Boolean(settingsToggle);
+  const showSettingsButton = canManageCollections && settingsTargetId !== null;
 
   return (
     <div
-      className="flex min-w-0 shrink-0 flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] px-2 py-1"
+      className="flex min-w-0 shrink-0 flex-col gap-1 border-b border-[var(--color-figma-border)] px-2 py-1"
     >
       <div
         role="tablist"
         aria-label="Collections"
-        className="flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        className="flex min-w-0 items-stretch gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
       >
         {allCollectionsScope ? (
           <CollectionTab
@@ -171,10 +171,6 @@ export function CollectionTabs({
               : actionable > 0 && severity === "warning"
                 ? "bg-[var(--color-figma-warning)]"
                 : null;
-          const settingsActive =
-            isCurrent &&
-            settingsToggle?.open === true &&
-            settingsTargetId === collectionId;
 
           return (
             <CollectionTab
@@ -185,41 +181,35 @@ export function CollectionTabs({
               ref={isCurrent ? activeTabRef : undefined}
               healthDotClass={healthTone ?? undefined}
               count={tokenCount}
-              trailing={
-                settingsToggle ? (
-                  isCurrent ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        settingsToggle.onToggle(collectionId);
-                      }}
-                      aria-label={
-                        settingsActive
-                          ? "Hide collection settings"
-                          : "Open collection settings"
-                      }
-                      aria-pressed={settingsActive}
-                      title="Collection settings"
-                      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors ${
-                        settingsActive
-                          ? "text-[var(--color-figma-text)]"
-                          : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                      }`}
-                    >
-                      <Settings2 size={11} strokeWidth={1.5} aria-hidden />
-                    </button>
-                  ) : null
-                ) : undefined
-              }
-              reserveTrailingSpace={Boolean(settingsToggle)}
             />
           );
         })}
       </div>
 
-      {(showSearch || showImportButton || showCreateButton) ? (
-        <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1">
+      {(showSearch || showImportButton || showCreateButton || showSettingsButton) ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
+          {showSettingsButton ? (
+            <button
+              type="button"
+              onClick={() => settingsToggle?.onToggle(settingsTargetId!)}
+              aria-label={
+                settingsToggle?.open === true
+                  ? "Hide collection settings"
+                  : "Open collection settings"
+              }
+              aria-pressed={settingsToggle?.open === true}
+              title="Collection settings"
+              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 transition-colors ${
+                settingsToggle?.open === true
+                  ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              }`}
+            >
+              <Settings2 size={11} strokeWidth={1.5} aria-hidden />
+              <span>Settings</span>
+            </button>
+          ) : null}
+          <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1">
           {showSearch ? (
             <div className="relative shrink-0">
               <button
@@ -374,6 +364,7 @@ export function CollectionTabs({
             </button>
           ) : null}
         </div>
+        </div>
       ) : null}
     </div>
   );
@@ -385,13 +376,11 @@ interface CollectionTabProps {
   onClick: () => void;
   healthDotClass?: string;
   count?: number;
-  trailing?: ReactNode;
-  reserveTrailingSpace?: boolean;
 }
 
 const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
   function CollectionTab(
-    { label, selected, onClick, healthDotClass, count, trailing, reserveTrailingSpace = false },
+    { label, selected, onClick, healthDotClass, count },
     ref,
   ) {
     return (
@@ -426,11 +415,6 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
             {count}
           </span>
         ) : null}
-        {reserveTrailingSpace ? (
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center">
-            {trailing}
-          </span>
-        ) : trailing}
         {selected ? (
           <span
             aria-hidden

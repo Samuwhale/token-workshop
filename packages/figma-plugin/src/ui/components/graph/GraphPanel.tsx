@@ -100,7 +100,7 @@ const TEMPLATE_OPTIONS: Array<{
   { id: "shadow", label: "Shadow scale" },
   { id: "zIndex", label: "Z-index scale" },
   { id: "formula", label: "Formula" },
-  { id: "blank", label: "Blank graph" },
+  { id: "blank", label: "Empty automation" },
 ];
 
 const PALETTE: Array<{
@@ -131,10 +131,10 @@ const PALETTE: Array<{
   { category: "Scales", kind: "zIndexScale", label: "Z-index scale", defaults: { ...DEFAULT_Z_INDEX_SCALE_CONFIG } },
   { category: "Scales", kind: "customScale", label: "Formula scale", defaults: { ...DEFAULT_CUSTOM_SCALE_CONFIG } },
   { category: "Lists", kind: "list", label: "Step list", defaults: { type: "number", items: [1, 2, 3, 4, 5] } },
-  { category: "Authoring", kind: "alias", label: "Alias", defaults: { path: "" } },
-  { category: "Authoring", kind: "output", label: "Token output", defaults: { path: "semantic.token" } },
-  { category: "Authoring", kind: "groupOutput", label: "Group output", defaults: { pathPrefix: "generated.group" } },
-  { category: "Preview", kind: "preview", label: "Value preview", defaults: {} },
+  { category: "Outputs", kind: "alias", label: "Alias", defaults: { path: "" } },
+  { category: "Outputs", kind: "output", label: "Token output", defaults: { path: "semantic.token" } },
+  { category: "Outputs", kind: "groupOutput", label: "Group output", defaults: { pathPrefix: "generated.group" } },
+  { category: "Review", kind: "preview", label: "Value preview", defaults: {} },
 ];
 
 const NODE_TYPES = {
@@ -578,10 +578,10 @@ export function GraphPanel({
       <aside className="flex w-[260px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-[var(--color-figma-border)] px-3 py-3">
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-primary font-semibold">Graphs</h2>
+            <h2 className="text-primary font-semibold">Automations</h2>
             <button
               type="button"
-              title="Create blank graph"
+              title="Create empty automation"
               onClick={() => createGraph("blank")}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
             >
@@ -613,14 +613,14 @@ export function GraphPanel({
             ))}
             {graphs.length === 0 && (
               <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-3 text-secondary text-[var(--color-figma-text-secondary)]">
-                Create a graph from a template to generate managed tokens.
+                Start from a template to generate scales, ramps, and other managed tokens.
               </div>
             )}
           </div>
         </section>
 
         <section>
-          <h2 className="mb-2 text-primary font-semibold">Templates</h2>
+          <h2 className="mb-2 text-primary font-semibold">Start from a template</h2>
           <div className="grid grid-cols-2 gap-1.5">
             {TEMPLATE_OPTIONS.map((template) => (
               <button
@@ -684,7 +684,7 @@ export function GraphPanel({
             <>
               <button
                 type="button"
-                title={leftPanelOpen ? "Hide graph list and nodes" : "Show graph list and nodes"}
+                title={leftPanelOpen ? "Hide automation list and building blocks" : "Show automation list and building blocks"}
                 onClick={() => setLeftPanelOpen((open) => !open)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
               >
@@ -699,6 +699,8 @@ export function GraphPanel({
                 value={activeGraph.targetCollectionId}
                 onChange={(event) => patchActiveGraph({ targetCollectionId: event.target.value })}
                 className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary"
+                aria-label="Target collection"
+                title="Target collection"
               >
                 {collections.map((collection) => (
                   <option key={collection.id} value={collection.id}>
@@ -716,7 +718,7 @@ export function GraphPanel({
                     : preview?.blocking || previewHasCollisions || previewHasNoOutputs
                       ? "Preview has issues"
                       : preview
-                        ? "Preview ready"
+                        ? "Ready to apply"
                         : "Saved"}
               </span>
               <div className="ml-auto flex items-center gap-1.5">
@@ -744,7 +746,7 @@ export function GraphPanel({
                   className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-secondary font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                 >
                   <Play size={14} />
-                  {dirty ? "Save & preview" : "Preview"}
+                  {dirty ? "Save & review" : "Review output"}
                 </button>
                 <button
                   type="button"
@@ -753,7 +755,7 @@ export function GraphPanel({
                   className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1.5 text-secondary font-semibold text-white disabled:opacity-40"
                 >
                   <Sparkles size={14} />
-                  Apply
+                  Create tokens
                 </button>
                 <button
                   type="button"
@@ -770,14 +772,14 @@ export function GraphPanel({
             <>
               <button
                 type="button"
-                title={leftPanelOpen ? "Hide graph list and nodes" : "Show graph list and nodes"}
+                title={leftPanelOpen ? "Hide automation list and building blocks" : "Show automation list and building blocks"}
                 onClick={() => setLeftPanelOpen((open) => !open)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
               >
                 <PanelLeft size={14} />
               </button>
               <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                Create a graph to start authoring generated tokens.
+                Create an automation to generate token foundations for a collection.
               </span>
             </>
           )}
@@ -856,7 +858,7 @@ export function GraphPanel({
                 className="inline-flex items-center gap-2 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-secondary font-semibold text-white"
               >
                 <Plus size={15} />
-                Create blank graph
+                Create empty automation
               </button>
             </div>
           )}
@@ -866,7 +868,7 @@ export function GraphPanel({
       {inspectorOpen && (
       <aside className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)]">
         <section className="p-3">
-          <h2 className="mb-2 text-primary font-semibold">Inspector</h2>
+          <h2 className="mb-2 text-primary font-semibold">Automation step</h2>
           {selectedNode ? (
             <NodeInspector
               node={selectedNode}
@@ -881,14 +883,14 @@ export function GraphPanel({
             />
           ) : (
             <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Select a node to edit inputs and inspect its output.
+              Select a step to edit its inputs and review what it contributes.
             </div>
           )}
         </section>
 
         <section className="p-3">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-primary font-semibold">Output Review</h2>
+            <h2 className="text-primary font-semibold">Output review</h2>
             {targetCollection && (
               <span className="text-tertiary text-[var(--color-figma-text-secondary)]">
                 {targetCollection.modes.length} modes
@@ -1339,7 +1341,7 @@ function PreviewPanel({
   if (!preview) {
     return (
       <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-3 text-secondary text-[var(--color-figma-text-secondary)]">
-        Preview the graph to review created, updated, deleted, and unchanged tokens before applying.
+        Review the automation output before creating or updating tokens in the collection.
       </div>
     );
   }
@@ -1362,7 +1364,7 @@ function PreviewPanel({
       <div className="space-y-2">
         {preview.outputs.length === 0 ? (
           <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary text-[var(--color-figma-error)]">
-            No tokens will be created. Adjust the graph inputs and preview again.
+            No tokens will be created. Adjust the automation and review the output again.
           </div>
         ) : null}
         {preview.outputs.map((output) => (

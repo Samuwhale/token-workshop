@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Layers, MousePointer2, X, ChevronUp } from "lucide-react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
@@ -17,7 +17,7 @@ import { JsonEditorView } from "../JsonEditorView";
 import { TokenListFilteredEmptyState } from "./TokenListStates";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
-import { getGridTemplate } from "../tokenListTypes";
+import { getGridMinWidth, getGridTemplate } from "../tokenListTypes";
 import { apiFetch } from "../../shared/apiFetch";
 import { useModeColumnWidths } from "../../hooks/useModeColumnWidths";
 
@@ -275,9 +275,30 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
   const modeNames = multiModeData?.results.map((r) => r.optionName) ?? [];
   const widthsCollectionId = multiModeData?.collection.id ?? null;
+  const tableContentRef = useRef<HTMLDivElement>(null);
+  const [tableViewportWidth, setTableViewportWidth] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const viewport = tableContentRef.current?.parentElement;
+    if (!viewport) {
+      setTableViewportWidth(null);
+      return;
+    }
+
+    const updateWidth = () => {
+      setTableViewportWidth(viewport.clientWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
   const { widths: modeColumnWidths, setWidth: setModeColumnWidth } =
-    useModeColumnWidths(widthsCollectionId, modeNames);
+    useModeColumnWidths(widthsCollectionId, modeNames, tableViewportWidth);
   const gridTemplate = getGridTemplate(modeColumnWidths);
+  const tableMinWidth = multiModeData
+    ? getGridMinWidth(modeColumnWidths)
+    : null;
   const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
   const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
   const crossCollectionSections = useMemo(() => {
@@ -591,7 +612,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Inspect mode with no selection
   if (inspectMode && selectedNodes.length === 0) {
     return (
-      <>
+      <div
+        ref={tableContentRef}
+        className="min-w-full"
+        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
+      >
         {tableHeader}
         <FeedbackPlaceholder
           variant="empty"
@@ -599,14 +624,18 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           description="Bound tokens will appear here."
           icon={<MousePointer2 size={18} strokeWidth={1.5} aria-hidden />}
         />
-      </>
+      </div>
     );
   }
 
   // JSON editor
   if (viewMode === "json") {
     return (
-      <>
+      <div
+        ref={tableContentRef}
+        className="min-w-full"
+        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
+      >
         {tableHeader}
         <JsonEditorView
           jsonText={jsonEditorProps.jsonText}
@@ -621,7 +650,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           onSave={jsonEditorProps.onSave}
           onRevert={jsonEditorProps.onRevert}
         />
-      </>
+      </div>
     );
   }
 
@@ -657,7 +686,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     }
 
     return (
-      <>
+      <div
+        ref={tableContentRef}
+        className="min-w-full"
+        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
+      >
         {tableHeader}
         <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
           <FeedbackPlaceholder
@@ -674,14 +707,18 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             actions={emptyCollectionActions}
           />
         </div>
-      </>
+      </div>
     );
   }
 
   // Filtered empty state
   if (displayedTokens.length === 0 && filtersActive) {
     return (
-      <>
+      <div
+        ref={tableContentRef}
+        className="min-w-full"
+        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
+      >
         {tableHeader}
         <TokenListFilteredEmptyState
           searchQuery={searchQuery}
@@ -695,13 +732,17 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           onAddQueryQualifierValue={addQueryQualifierValue}
           onInsertSearchQualifier={insertSearchQualifier}
         />
-      </>
+      </div>
     );
   }
 
   // Tree view with virtual scroll
   return (
-    <>
+    <div
+      ref={tableContentRef}
+      className="min-w-full"
+      style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
+    >
       {tableHeader}
       <div className="py-1">
         {zoomBreadcrumb ? (
@@ -892,6 +933,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           })}
         <div style={{ height: virtualBottomPad }} aria-hidden="true" />
       </div>
-    </>
+    </div>
   );
 }

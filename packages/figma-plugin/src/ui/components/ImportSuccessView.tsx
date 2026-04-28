@@ -58,6 +58,17 @@ export function ImportSuccessView() {
         </div>
       )}
 
+      {nextStepRecommendations.length > 0 ? (
+        <div className="flex flex-col items-center gap-1 text-center">
+          <div className="text-secondary font-medium text-[var(--color-figma-text)]">
+            Next step
+          </div>
+          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+            {nextStepRecommendations[0]?.rationale}
+          </div>
+        </div>
+      ) : null}
+
       {hasFailedWrites && (
         <div className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
           <div className="flex items-center justify-between gap-2 mb-1">
@@ -105,7 +116,7 @@ export function ImportSuccessView() {
       <div className="flex flex-wrap items-center justify-center gap-2">
         {nextStepRecommendations.map((recommendation, index) => (
           <button
-            key={`${recommendation.target.topTab}:${recommendation.target.subTab}`}
+            key={`${recommendation.label}:${index}`}
             onClick={() => openImportNextStep(recommendation)}
             className={
               index === 0
@@ -114,7 +125,7 @@ export function ImportSuccessView() {
             }
             title={recommendation.rationale}
           >
-            {index === 0 ? `Next: ${recommendation.label}` : recommendation.label}
+            {index === 0 ? `Review in ${recommendation.label}` : recommendation.label}
           </button>
         ))}
         <button onClick={clearSuccessState} className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">

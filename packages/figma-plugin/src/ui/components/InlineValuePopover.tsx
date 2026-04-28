@@ -96,9 +96,12 @@ export function InlineValuePopover({
 
   const { top, left, width: popoverWidth, maxHeight } = clampPopoverToViewport({
     anchorRect,
-    preferredWidth: 360,
+    preferredWidth: Math.min(
+      Math.max(anchorRect.width + 160, 320),
+      520,
+    ),
     preferredHeight: 480,
-    minVerticalSpace: 200,
+    minVerticalSpace: 220,
   });
 
   const typeBadgeClass = tokenTypeBadgeClass(tokenType);

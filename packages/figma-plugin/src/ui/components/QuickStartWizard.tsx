@@ -117,9 +117,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
 }) {
   const [draft, setDraft] = useState<CollectionAuthoringDraft>({
     name: 'primitives',
-    primaryModeName: 'Default',
-    secondaryModeEnabled: false,
-    secondaryModeName: '',
+    modeNames: ['Default'],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -155,7 +153,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       <div>
         <p className="text-body font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
         <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
-          Collections own their modes, so set up the collection and its first mode together.
+          Collections own their modes, so set up the collection and the mode contexts it needs together.
         </p>
       </div>
 
@@ -167,20 +165,27 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
           setDraft((current) => ({ ...current, name: value }));
           setError('');
         }}
-        onPrimaryModeChange={(value) => {
-          setDraft((current) => ({ ...current, primaryModeName: value }));
-          setError('');
-        }}
-        onSecondaryModeEnabledChange={(enabled) => {
+        onModeNameChange={(index, value) => {
           setDraft((current) => ({
             ...current,
-            secondaryModeEnabled: enabled,
-            secondaryModeName: enabled ? current.secondaryModeName : '',
+            modeNames: current.modeNames.map((modeName, modeIndex) =>
+              modeIndex === index ? value : modeName,
+            ),
           }));
           setError('');
         }}
-        onSecondaryModeChange={(value) => {
-          setDraft((current) => ({ ...current, secondaryModeName: value }));
+        onAddMode={() => {
+          setDraft((current) => ({
+            ...current,
+            modeNames: [...current.modeNames, ''],
+          }));
+          setError('');
+        }}
+        onRemoveMode={(index) => {
+          setDraft((current) => ({
+            ...current,
+            modeNames: current.modeNames.filter((_, modeIndex) => modeIndex !== index),
+          }));
           setError('');
         }}
       />
