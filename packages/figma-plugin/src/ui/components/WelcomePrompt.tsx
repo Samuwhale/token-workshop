@@ -12,12 +12,12 @@ type StartHereBranchCopy = {
 
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
-    title: "Bring tokens into this file",
-    description: "Start a collection, import an existing library, or turn your current selection into tokens.",
+    title: "Set up this file",
+    description: "Create the first collection, import an existing token system, or start from the layers already selected in Figma.",
   },
   "start-new": {
-    title: "Start a token library",
-    description: "Create a collection, set its first mode, and start authoring tokens.",
+    title: "Create your first collection",
+    description: "Collections hold related tokens and their modes. Set up the collection first, then start authoring tokens.",
   },
 };
 
@@ -144,8 +144,8 @@ export function WelcomePrompt({
   const renderRoot = () => (
     <div>
       <ActionRow
-        title="Start a new library"
-        description="Create a collection for this file and start adding tokens from scratch."
+        title="Create your first collection"
+        description="Start with one collection and the mode contexts it needs."
         onClick={() => setBranch("start-new")}
         icon={
           <svg

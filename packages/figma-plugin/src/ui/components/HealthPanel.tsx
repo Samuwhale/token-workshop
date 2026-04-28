@@ -304,6 +304,14 @@ export function HealthPanel({
           (tokenUsageReady && unusedCount > 0)
         ? "warning"
         : "healthy";
+  const scopedCollectionLabel =
+    collectionDisplayNames?.[scopedCollectionKey] ||
+    scopedCollectionKey ||
+    "the current collection";
+  const scopeLabel =
+    scope.mode === "all"
+      ? "Reviewing every collection in the library."
+      : `Reviewing ${scopedCollectionLabel}.`;
 
   const handlePromote = async (group: AliasOpportunityGroup) => {
     const sampleToken = group.tokens[0];
@@ -638,6 +646,7 @@ export function HealthPanel({
         content = (
           <HealthDashboard
             connected={connected}
+            scopeLabel={scopeLabel}
             overallStatus={overallStatus}
             totalIssueCount={totalIssueCount}
             validationLoading={validationLoading}

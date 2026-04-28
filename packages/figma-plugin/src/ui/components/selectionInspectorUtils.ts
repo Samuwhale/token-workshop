@@ -1,4 +1,11 @@
-import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, TokenMapEntry } from '../../shared/types';
+import type {
+  BindableProperty,
+  BindablePropertyValue,
+  BindableTokenValue,
+  NodeCapabilities,
+  SelectionNodeInfo,
+  TokenMapEntry,
+} from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, PROPERTY_LABELS, SCOPE_TO_PROPERTIES, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
@@ -19,9 +26,12 @@ export function getBindingForProperty(nodes: SelectionNodeInfo[], prop: Bindable
   return first;
 }
 
-export function getCurrentValue(nodes: SelectionNodeInfo[], prop: BindableProperty): any {
+export function getCurrentValue(
+  nodes: SelectionNodeInfo[],
+  prop: BindableProperty,
+): BindablePropertyValue | undefined {
   if (nodes.length === 0) return undefined;
-  return (nodes[0].currentValues as Record<string, unknown>)[prop];
+  return nodes[0].currentValues[prop];
 }
 
 /** Returns the distinct binding values (or null for unbound) with layer counts, for a mixed-state property. */
@@ -54,7 +64,10 @@ export function getMergedCapabilities(nodes: SelectionNodeInfo[]): NodeCapabilit
   };
 }
 
-export function formatCurrentValue(prop: BindableProperty, value: any): string {
+export function formatCurrentValue(
+  prop: BindableProperty,
+  value: BindablePropertyValue | undefined,
+): string {
   if (value === undefined || value === null) return '';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') {
@@ -64,8 +77,9 @@ export function formatCurrentValue(prop: BindableProperty, value: any): string {
     }
     return `${Math.round(value * 100) / 100}`;
   }
-  if (typeof value === 'string') return value;
-  return '';
+  return formatTokenValueForDisplay(getTokenTypeForProperty(prop), value, {
+    emptyPlaceholder: '',
+  });
 }
 
 export function getTokenTypeForProperty(prop: BindableProperty): string {
@@ -86,7 +100,10 @@ export function getCompatibleTokenTypes(prop: BindableProperty): string[] {
     .map(([type]) => type);
 }
 
-export function getTokenValueFromProp(prop: BindableProperty, currentValue: any): any {
+export function getTokenValueFromProp(
+  prop: BindableProperty,
+  currentValue: BindablePropertyValue | undefined,
+): BindableTokenValue {
   const type = getTokenTypeForProperty(prop);
   if (type === 'color') return typeof currentValue === 'string' ? currentValue : '#000000';
   if (type === 'dimension') {
@@ -95,19 +112,19 @@ export function getTokenValueFromProp(prop: BindableProperty, currentValue: any)
   }
   if (type === 'number') return typeof currentValue === 'number' ? currentValue : 0;
   if (type === 'boolean') return typeof currentValue === 'boolean' ? currentValue : true;
-  return currentValue ?? '';
+  if (type === 'typography' || type === 'shadow') return currentValue ?? '';
+  return typeof currentValue === 'string' ? currentValue : '';
 }
 
-export function formatTokenValuePreview(prop: BindableProperty, currentValue: any): string {
-  const type = getTokenTypeForProperty(prop);
-  if (type === 'color') return typeof currentValue === 'string' ? currentValue : '#000000';
-  if (type === 'dimension') {
-    const num = typeof currentValue === 'number' ? currentValue : 0;
-    return `${Math.round(num * 100) / 100}px`;
-  }
-  if (type === 'number') return String(typeof currentValue === 'number' ? currentValue : 0);
-  if (type === 'boolean') return String(currentValue);
-  return formatCurrentValue(prop, currentValue);
+export function formatTokenValuePreview(
+  prop: BindableProperty,
+  currentValue: BindablePropertyValue | undefined,
+): string {
+  return formatTokenValueForDisplay(
+    getTokenTypeForProperty(prop),
+    getTokenValueFromProp(prop, currentValue),
+    { emptyPlaceholder: '' },
+  );
 }
 
 export const SUGGESTED_NAMES: Record<BindableProperty, string> = {
@@ -265,6 +282,42 @@ function numericSimilarity(a: number, b: number): number {
   return 1 - Math.abs(a - b) / (max + Math.abs(a - b));
 }
 
+function readNumericTokenValue(value: unknown): number | null {
+  if (typeof value === 'number') return value;
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'value' in value &&
+    typeof (value as { value?: unknown }).value === 'number'
+  ) {
+    return (value as { value: number }).value;
+  }
+  return null;
+}
+
+function areComparableValuesEqual(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) return false;
+    if (left.length !== right.length) return false;
+    return left.every((value, index) => areComparableValuesEqual(value, right[index]));
+  }
+  if (
+    typeof left === 'object' &&
+    left !== null &&
+    typeof right === 'object' &&
+    right !== null
+  ) {
+    const leftEntries = Object.entries(left as Record<string, unknown>);
+    const rightEntries = Object.entries(right as Record<string, unknown>);
+    if (leftEntries.length !== rightEntries.length) return false;
+    return leftEntries.every(([key, value]) =>
+      areComparableValuesEqual(value, (right as Record<string, unknown>)[key]),
+    );
+  }
+  return false;
+}
+
 /**
  * Score a bind candidate for contextual ranking.
  *
@@ -278,8 +331,8 @@ export function scoreBindCandidate(
   tokenPath: string,
   entry: TokenMapEntry,
   prop: BindableProperty,
-  currentValue: any,
-  resolvedTokenValue: any,
+  currentValue: BindablePropertyValue | undefined,
+  resolvedTokenValue: unknown,
   siblingBindings: Set<string>,
   nodeBoundPrefixes: Set<string>,
 ): number {
@@ -297,14 +350,18 @@ export function scoreBindCandidate(
       const sim = colorSimilarity(currentValue, resolvedTokenValue);
       score += Math.round(sim * 30); // 0-30 points
     } else if ((entry.$type === 'dimension' || entry.$type === 'number') && currentValue != null) {
-      const tokenNum = typeof resolvedTokenValue === 'object' && resolvedTokenValue?.value != null
-        ? resolvedTokenValue.value
-        : typeof resolvedTokenValue === 'number' ? resolvedTokenValue : null;
+      const tokenNum = readNumericTokenValue(resolvedTokenValue);
       const propNum = typeof currentValue === 'number' ? currentValue : null;
       if (tokenNum != null && propNum != null) {
         const sim = numericSimilarity(propNum, tokenNum);
         score += Math.round(sim * 30);
       }
+    } else if (entry.$type === 'boolean' && typeof currentValue === 'boolean') {
+      if (currentValue === resolvedTokenValue) {
+        score += 30;
+      }
+    } else if (areComparableValuesEqual(currentValue, resolvedTokenValue)) {
+      score += 30;
     }
   }
 
@@ -467,7 +524,7 @@ export interface SuggestedToken {
   entry: TokenMapEntry;
   score: number;
   bestProperty: BindableProperty;
-  resolvedValue: any;
+  resolvedValue: unknown;
   matchReason: 'value-match' | 'already-bound' | 'sibling-usage' | 'type-match';
   confidence: SuggestionConfidence;
   reason: string;
@@ -644,7 +701,7 @@ export function rankTokensForSelection(
 
   // Pre-compute context data per property
   const propContext = new Map<BindableProperty, {
-    currentValue: any;
+    currentValue: BindablePropertyValue | undefined;
     compatibleTypes: Set<string>;
     siblingBindings: Set<string>;
     existingBinding: string | null | 'mixed';
@@ -667,7 +724,7 @@ export function rankTokensForSelection(
     let bestScore = -1;
     let bestProp: BindableProperty = eligibleProps[0];
     let bestReason: SuggestedToken['matchReason'] = 'type-match';
-    let bestResolved: any = null;
+    let bestResolved: unknown = null;
     let bestScopeHidden = false;
 
     // Quick check: does this token type match ANY eligible property?

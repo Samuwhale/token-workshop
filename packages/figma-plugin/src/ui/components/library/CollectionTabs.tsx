@@ -364,7 +364,7 @@ export function CollectionTabs({
               title="Create collection"
               className="inline-flex h-7 shrink-0 items-center rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
             >
-              New collection
+              Add collection
             </button>
           ) : null}
         </div>

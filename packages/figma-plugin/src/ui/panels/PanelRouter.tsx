@@ -14,6 +14,7 @@ import { Layers, AlertCircle } from "lucide-react";
 import { resolveCollectionIdForPath } from "@tokenmanager/core";
 import { CanvasRouter } from "./CanvasRouter";
 import { ExportRouter } from "./ExportRouter";
+import { GitRouter } from "./GitRouter";
 import { SyncRouter } from "./SyncRouter";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
@@ -1196,6 +1197,14 @@ export function PanelRouter({
         />
       ),
       "publish-code": () => <ExportRouter />,
+      "publish-repository": () => (
+        <GitRouter
+          serverUrl={serverUrl}
+          connected={connected}
+          onPushUndo={controller.pushUndo}
+          onRefreshTokens={controller.refreshAll}
+        />
+      ),
     },
   };
 
@@ -1482,24 +1491,15 @@ export function PanelRouter({
         size="full"
         icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
         title="No collections yet"
-        description="Start by creating a collection, importing an existing system, or extracting tokens from the current selection."
+        description="Start with one collection, import an existing token system, or extract tokens after you select layers in Figma."
         actions={[
           {
             label: "Import tokens",
             onClick: () => controller.onShowImportPanel(),
           },
           {
-            label: "Start from selection",
-            onClick: () => controller.triggerExtractFromSelection(),
-            disabled: selectedNodes.length === 0,
-            title:
-              selectedNodes.length === 0
-                ? "Select layers in Figma first"
-                : undefined,
-          },
-          {
-            label: "New collection",
-            onClick: () => controller.onOpenStartHere("start-new"),
+            label: "Get started",
+            onClick: () => controller.onOpenStartHere("root"),
             tone: "primary",
           },
         ]}

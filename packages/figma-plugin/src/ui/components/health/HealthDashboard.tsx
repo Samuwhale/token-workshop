@@ -14,6 +14,7 @@ interface ReviewRow {
 
 export interface HealthDashboardProps {
   connected: boolean;
+  scopeLabel: string;
   overallStatus: HealthStatus;
   totalIssueCount: number;
   validationLoading: boolean;
@@ -105,6 +106,7 @@ function ReviewSection({
 
 export function HealthDashboard({
   connected,
+  scopeLabel,
   overallStatus,
   totalIssueCount,
   validationLoading,
@@ -221,9 +223,13 @@ export function HealthDashboard({
         ) : null}
       </div>
 
+      <p className="mb-5 text-secondary text-[var(--color-figma-text-secondary)]">
+        {scopeLabel}
+      </p>
+
       <div className="flex flex-col gap-4">
-        <ReviewSection title="Fix next" rows={fixNextRows} />
-        <ReviewSection title="Clean up" rows={cleanupRows} />
+        <ReviewSection title="Fix before publish" rows={fixNextRows} />
+        <ReviewSection title="Clean up library" rows={cleanupRows} />
       </div>
 
       <div className="mt-auto pt-6">

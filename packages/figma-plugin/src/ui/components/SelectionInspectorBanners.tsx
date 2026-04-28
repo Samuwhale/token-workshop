@@ -7,13 +7,13 @@ interface PeerSuggestion {
   peerIds: string[];
   tokenPath: string;
   tokenType: string;
-  resolvedValue: any;
+  resolvedValue: unknown;
 }
 
 interface PropTypeSuggestion {
   tokenPath: string;
   tokenType: string;
-  resolvedValue: any;
+  resolvedValue: unknown;
   targetProps: BindableProperty[];
 }
 

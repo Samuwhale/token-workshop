@@ -3,6 +3,7 @@ import type { BindableProperty, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 import { swatchBgColor } from '../shared/colorUtils';
 import { lsGet, lsSet } from '../shared/storage';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import type { SuggestedToken } from './selectionInspectorUtils';
 import { groupSuggestionsByConfidence, CONFIDENCE_LABELS } from './selectionInspectorUtils';
 
@@ -10,21 +11,10 @@ const LS_KEY = 'suggested-tokens-collapsed';
 const LS_SHOW_ALL_KEY = 'suggested-tokens-show-all';
 const LS_SHOW_SCOPE_HIDDEN_KEY = 'suggested-tokens-show-scope-hidden';
 
-function formatValue(entry: TokenMapEntry, resolvedValue: any): string {
-  if (entry.$type === 'color' && typeof resolvedValue === 'string') {
-    return resolvedValue;
-  }
-  if ((entry.$type === 'dimension' || entry.$type === 'number') && resolvedValue != null) {
-    if (typeof resolvedValue === 'object' && resolvedValue.value != null) {
-      return `${resolvedValue.value}${resolvedValue.unit || ''}`;
-    }
-    if (typeof resolvedValue === 'number') {
-      return String(Math.round(resolvedValue * 100) / 100);
-    }
-  }
-  if (typeof resolvedValue === 'boolean') return String(resolvedValue);
-  if (typeof resolvedValue === 'string') return resolvedValue;
-  return '';
+function formatValue(entry: TokenMapEntry, resolvedValue: unknown): string {
+  return formatTokenValueForDisplay(entry.$type, resolvedValue, {
+    emptyPlaceholder: '',
+  });
 }
 
 interface SuggestedTokensProps {
@@ -135,7 +125,8 @@ export function SuggestedTokens({
               )}
 
               {group.items.map((s) => {
-                const isColor = s.entry.$type === 'color' && typeof s.resolvedValue === 'string';
+                const colorValue = typeof s.resolvedValue === 'string' ? s.resolvedValue : null;
+                const isColor = s.entry.$type === 'color' && colorValue !== null;
                 const valueStr = formatValue(s.entry, s.resolvedValue);
                 const propLabel = PROPERTY_LABELS[s.bestProperty];
 
@@ -153,7 +144,7 @@ export function SuggestedTokens({
                     {isColor ? (
                       <div
                         className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                        style={{ backgroundColor: swatchBgColor(s.resolvedValue) }}
+                        style={{ backgroundColor: swatchBgColor(colorValue) }}
                       />
                     ) : (
                       <div className="w-3 h-3 rounded-sm bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center">

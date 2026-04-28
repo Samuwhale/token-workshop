@@ -12,7 +12,10 @@ export type TopTab =
   | "canvas"
   | "publish";
 export type LibrarySubTab = "tokens" | "graph" | "health" | "history";
-export type PublishSubTab = "publish-figma" | "publish-code";
+export type PublishSubTab =
+  | "publish-figma"
+  | "publish-code"
+  | "publish-repository";
 export type SubTab =
   | LibrarySubTab
   | "inspect"
@@ -62,9 +65,9 @@ export const TOP_TABS: {
     label: "Library",
     subTabs: [
       { id: "tokens", label: "Tokens" },
-      { id: "graph", label: "Automations" },
       { id: "health", label: "Review" },
       { id: "history", label: "History" },
+      { id: "graph", label: "Automations" },
     ],
   },
   {
@@ -81,6 +84,7 @@ export const TOP_TABS: {
     subTabs: [
       { id: "publish-figma", label: "Figma" },
       { id: "publish-code", label: "Code" },
+      { id: "publish-repository", label: "Repository" },
     ],
   },
 ];
@@ -285,15 +289,15 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     subTab: "tokens",
     sections: [
       { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
-      { id: "graph",   label: "Automations",   topTab: "library", subTab: "graph" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
       { id: "history", label: "History", topTab: "library", subTab: "history" },
+      { id: "graph",   label: "Automations",   topTab: "library", subTab: "graph" },
     ],
     matchRoutes: [
       route("library", "tokens"),
-      route("library", "graph"),
       route("library", "health"),
       route("library", "history"),
+      route("library", "graph"),
     ],
   },
   {
@@ -320,10 +324,12 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     sections: [
       { id: "publish-figma", label: "Figma", topTab: "publish", subTab: "publish-figma" },
       { id: "publish-code",  label: "Code",  topTab: "publish", subTab: "publish-code" },
+      { id: "publish-repository",  label: "Repository",  topTab: "publish", subTab: "publish-repository" },
     ],
     matchRoutes: [
       route("publish", "publish-figma"),
       route("publish", "publish-code"),
+      route("publish", "publish-repository"),
     ],
   },
 ];

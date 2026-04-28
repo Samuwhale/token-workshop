@@ -1,6 +1,11 @@
 import { useState, useRef, useLayoutEffect, type ReactNode } from 'react';
 import { NoticeInlineAlert } from '../shared/noticeSystem';
-import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
+import type {
+  BindableProperty,
+  BindableTokenValue,
+  SelectionNodeInfo,
+  TokenMapEntry,
+} from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import { nodeParentPath } from './tokenListUtils';
@@ -48,7 +53,12 @@ interface PropertyRowProps {
   onCancelCreate: () => void;
   onCancelBind: () => void;
   onBindToken: (prop: BindableProperty, tokenPath: string) => void;
-  onTokenCreated: (tokenPath: string, prop: BindableProperty, tokenType: string, tokenValue: any) => void;
+  onTokenCreated: (
+    tokenPath: string,
+    prop: BindableProperty,
+    tokenType: string,
+    tokenValue: BindableTokenValue,
+  ) => void;
   onRemoveBinding: (prop: BindableProperty) => void;
   onDismissBindingError: (prop: BindableProperty) => void;
   bindingError: string | null;
@@ -727,15 +737,15 @@ export function PropertyRow({
             <div className="flex items-center gap-1.5">
               <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
               {(prop === 'fill' || prop === 'stroke') &&
-               typeof getCurrentValue(rootNodes, prop) === 'string' &&
-               getCurrentValue(rootNodes, prop).startsWith('#') && (
+               typeof value === 'string' &&
+               value.startsWith('#') && (
                 <div
                   className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                  style={{ backgroundColor: getCurrentValue(rootNodes, prop) }}
+                  style={{ backgroundColor: value }}
                 />
               )}
               <span className="text-secondary text-[var(--color-figma-text)] font-mono truncate">
-                {formatTokenValuePreview(prop, getCurrentValue(rootNodes, prop))}
+                {formatTokenValuePreview(prop, value)}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">

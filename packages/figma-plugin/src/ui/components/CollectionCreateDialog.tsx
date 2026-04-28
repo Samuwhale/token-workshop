@@ -113,7 +113,7 @@ export function CollectionCreateDialog({
 
         <div className="tm-modal-body py-3">
           <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-            Collections hold related tokens and their modes. Name the collection, then add the mode contexts this collection should support.
+            Collections group related tokens and all of their modes. Start with the collection name, then add the mode contexts it should support.
           </p>
           <CollectionAuthoringFields
             draft={draft}

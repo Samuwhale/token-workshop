@@ -158,8 +158,20 @@ export interface NodeCurrentValues {
   paddingBottom?: number;
   paddingLeft?: number;
   itemSpacing?: number;
+  typography?: TypographyValue;
+  shadow?: ShadowTokenValue | ShadowTokenValue[];
   visible?: boolean;
 }
+
+export type BindablePropertyValue = NodeCurrentValues[BindableProperty];
+export type BindableTokenValue =
+  | string
+  | number
+  | boolean
+  | DimensionValue
+  | TypographyValue
+  | ShadowTokenValue
+  | ShadowTokenValue[];
 
 export interface SelectionNodeInfo {
   id: string;

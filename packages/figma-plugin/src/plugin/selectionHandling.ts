@@ -295,6 +295,65 @@ function getNodeCapabilities(node: SceneNode): NodeCapabilities {
   };
 }
 
+function readTypographyCurrentValue(node: SceneNode): TypographyValue | undefined {
+  if (node.type !== 'TEXT') return undefined;
+
+  const textNode = node as TextNode;
+  const { fontName, fontSize } = textNode;
+  if (fontName === figma.mixed || fontSize === figma.mixed) return undefined;
+
+  const typography: TypographyValue = {
+    fontFamily: fontName.family,
+    fontWeight: fontStyleToWeight(fontName.style),
+    fontSize: { value: fontSize, unit: 'px' },
+  };
+
+  const lineHeight = textNode.lineHeight;
+  if (lineHeight !== figma.mixed) {
+    if (lineHeight.unit === 'PIXELS') {
+      typography.lineHeight = { value: lineHeight.value, unit: 'px' };
+    } else if (lineHeight.unit === 'PERCENT') {
+      typography.lineHeight = lineHeight.value / 100;
+    }
+  }
+
+  const letterSpacing = textNode.letterSpacing;
+  if (letterSpacing !== figma.mixed) {
+    if (letterSpacing.unit === 'PERCENT' && letterSpacing.value !== 0) {
+      typography.letterSpacing = { value: letterSpacing.value, unit: '%' };
+    } else if (letterSpacing.unit === 'PIXELS' && letterSpacing.value !== 0) {
+      typography.letterSpacing = { value: letterSpacing.value, unit: 'px' };
+    }
+  }
+
+  return typography;
+}
+
+function readShadowCurrentValue(
+  node: SceneNode,
+): ShadowTokenValue | ShadowTokenValue[] | undefined {
+  if (!('effects' in node)) return undefined;
+
+  const effects = (node as SceneNode & { effects: readonly Effect[] }).effects;
+  const shadows = effects.filter(
+    (effect): effect is DropShadowEffect | InnerShadowEffect =>
+      (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') &&
+      effect.visible !== false,
+  );
+  if (shadows.length === 0) return undefined;
+
+  const shadowValue: ShadowTokenValue[] = shadows.map((shadow): ShadowTokenValue => ({
+    type: shadow.type === 'INNER_SHADOW' ? 'innerShadow' : 'dropShadow',
+    color: rgbToHex(shadow.color, shadow.color.a ?? 1),
+    offsetX: { value: shadow.offset.x, unit: 'px' },
+    offsetY: { value: shadow.offset.y, unit: 'px' },
+    blur: { value: shadow.radius, unit: 'px' },
+    spread: { value: shadow.spread ?? 0, unit: 'px' },
+  }));
+
+  return shadowValue.length === 1 ? shadowValue[0] : shadowValue;
+}
+
 // Read current visual values from a node for display in the inspector
 function readCurrentValues(node: SceneNode): NodeCurrentValues {
   const values: NodeCurrentValues = {};
@@ -324,6 +383,8 @@ function readCurrentValues(node: SceneNode): NodeCurrentValues {
     values.paddingLeft = n['paddingLeft'] as number;
   }
   if ('itemSpacing' in node) values.itemSpacing = n['itemSpacing'] as number;
+  values.typography = readTypographyCurrentValue(node);
+  values.shadow = readShadowCurrentValue(node);
   if ('visible' in node) values.visible = node.visible;
 
   return values;
@@ -516,67 +577,28 @@ export async function extractTokensFromSelection() {
       }
     }
 
-    // Typography (TEXT nodes only)
-    if (node.type === 'TEXT') {
-      const textNode = node as TextNode;
-      const fontName = textNode.fontName;
-      const fontSize = textNode.fontSize;
-      if (fontName !== figma.mixed && fontSize !== figma.mixed) {
-        const weight = fontStyleToWeight(fontName.style);
-        const typoValue: TypographyValue = {
-          fontFamily: fontName.family,
-          fontWeight: weight,
-          fontSize: { value: fontSize, unit: 'px' },
-        };
-        const lh = textNode.lineHeight;
-        if (lh !== figma.mixed) {
-          if (lh.unit === 'PIXELS') {
-            typoValue.lineHeight = { value: lh.value, unit: 'px' };
-          } else if (lh.unit === 'PERCENT') {
-            typoValue.lineHeight = lh.value / 100;
-          }
-        }
-        const ls = textNode.letterSpacing;
-        if (ls !== figma.mixed && ls.unit === 'PIXELS' && ls.value !== 0) {
-          typoValue.letterSpacing = { value: ls.value, unit: 'px' };
-        }
-        entries.push({
-          property: 'typography',
-          tokenType: 'typography',
-          suggestedName: `typography.${slug}`,
-          value: typoValue,
-          layerName: node.name,
-          layerId: node.id,
-        });
-      }
+    const typographyValue = readTypographyCurrentValue(node);
+    if (typographyValue) {
+      entries.push({
+        property: 'typography',
+        tokenType: 'typography',
+        suggestedName: `typography.${slug}`,
+        value: typographyValue,
+        layerName: node.name,
+        layerId: node.id,
+      });
     }
 
-    // Shadow / effects
-    if ('effects' in node) {
-      const effects = n['effects'];
-      if (Array.isArray(effects)) {
-        const shadows = effects.filter((e: Effect) =>
-          (e.type === 'DROP_SHADOW' || e.type === 'INNER_SHADOW') && e.visible !== false
-        ) as (DropShadowEffect | InnerShadowEffect)[];
-        if (shadows.length > 0) {
-          const shadowValue: ShadowTokenValue[] = shadows.map((s) => ({
-            type: s.type === 'INNER_SHADOW' ? 'innerShadow' : 'dropShadow',
-            color: rgbToHex(s.color, s.color.a ?? 1),
-            offsetX: { value: s.offset.x, unit: 'px' },
-            offsetY: { value: s.offset.y, unit: 'px' },
-            blur: { value: s.radius, unit: 'px' },
-            spread: { value: (s as DropShadowEffect).spread ?? 0, unit: 'px' },
-          } as ShadowTokenValue));
-          entries.push({
-            property: 'shadow',
-            tokenType: 'shadow',
-            suggestedName: `shadow.${slug}`,
-            value: shadowValue.length === 1 ? shadowValue[0] : shadowValue,
-            layerName: node.name,
-            layerId: node.id,
-          });
-        }
-      }
+    const shadowValue = readShadowCurrentValue(node);
+    if (shadowValue) {
+      entries.push({
+        property: 'shadow',
+        tokenType: 'shadow',
+        suggestedName: `shadow.${slug}`,
+        value: shadowValue,
+        layerName: node.name,
+        layerId: node.id,
+      });
     }
 
     // Opacity (only if non-default)

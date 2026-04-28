@@ -12,6 +12,7 @@ import {
 } from "../../shared/types";
 import type {
   BindableProperty,
+  BindableTokenValue,
   SelectionNodeInfo,
   SyncCompleteMessage,
   TokenMapEntry,
@@ -126,13 +127,13 @@ export function SelectionInspector({
     peerIds: string[];
     tokenPath: string;
     tokenType: string;
-    resolvedValue: any;
+    resolvedValue: unknown;
   } | null>(null);
 
   const [propTypeSuggestion, setPropTypeSuggestion] = useState<{
     tokenPath: string;
     tokenType: string;
-    resolvedValue: any;
+    resolvedValue: unknown;
     targetProps: BindableProperty[];
   } | null>(null);
 
@@ -347,7 +348,7 @@ export function SelectionInspector({
       prop: BindableProperty;
       tokenPath: string;
       tokenType: string;
-      resolvedValue: any;
+      resolvedValue: unknown;
     }> = [];
     for (const prop of groupProps) {
       const binding = getBindingForProperty(rootNodes, prop);
@@ -408,7 +409,7 @@ export function SelectionInspector({
       prop: BindableProperty;
       tokenPath: string;
       tokenType: string;
-      resolvedValue: any;
+      resolvedValue: unknown;
     }> = [];
     for (const prop of ALL_BINDABLE_PROPERTIES) {
       const binding = getBindingForProperty(rootNodes, prop);
@@ -608,7 +609,7 @@ export function SelectionInspector({
     tokenPath: string,
     prop: BindableProperty,
     tokenType: string,
-    tokenValue: any,
+    tokenValue: BindableTokenValue,
   ) => {
     parent.postMessage(
       {

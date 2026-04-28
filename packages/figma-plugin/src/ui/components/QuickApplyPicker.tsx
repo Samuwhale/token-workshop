@@ -60,7 +60,12 @@ interface QuickApplyPickerProps {
   selectedNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
   currentCollectionId: string;
-  onApply: (tokenPath: string, tokenType: string, targetProperty: BindableProperty, resolvedValue: any) => void;
+  onApply: (
+    tokenPath: string,
+    tokenType: string,
+    targetProperty: BindableProperty,
+    resolvedValue: unknown,
+  ) => void;
   onUnbind: (targetProperty: BindableProperty) => void;
   onClose: () => void;
 }
