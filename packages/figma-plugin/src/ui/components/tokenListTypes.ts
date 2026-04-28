@@ -107,7 +107,7 @@ export interface TokenListActions {
     initialType?: string,
     initialValue?: string,
   ) => void;
-  onGenerateTokens?: () => void;
+  onCreateGenerator?: () => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;

@@ -23,7 +23,7 @@ export interface SnapshotSummary {
   collectionStorageCount: number;
   collectionCount: number;
   resolverCount: number;
-  graphCount: number;
+  generatorCount: number;
 }
 
 export interface SnapshotDiff {
@@ -36,7 +36,7 @@ export interface SnapshotDiff {
 }
 
 export interface WorkspaceDiff {
-  kind: 'collections' | 'resolver' | 'graph';
+  kind: 'collections' | 'resolver' | 'generator';
   id: string;
   label: string;
   status: ChangeStatus;
@@ -60,10 +60,13 @@ export interface OperationEntry {
   resourceId: string;
   affectedPaths: string[];
   rolledBack: boolean;
-  metadata?: {
-    kind?: string;
-    name?: string;
-    changes?: Array<{
+	  metadata?: {
+	    kind?: string;
+	    name?: string;
+	    generatorName?: string;
+	    targetCollectionId?: string;
+	    collectionId?: string;
+	    changes?: Array<{
       field: string;
       label: string;
       before?: string;

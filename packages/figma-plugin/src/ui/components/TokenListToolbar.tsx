@@ -2,6 +2,8 @@ import { useCallback, type MutableRefObject } from "react";
 import {
   ArrowLeft,
   ArrowUpDown,
+  Check,
+  ChevronDown,
   ChevronRight,
   MoreHorizontal,
   Plus,
@@ -22,7 +24,6 @@ import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import {
   Chip,
   MenuRadioGroup,
-  SegmentedControl,
   type SegmentedOption,
 } from "../primitives";
 
@@ -104,7 +105,7 @@ export interface TokenListToolbarProps {
   onToggleInspectMode: () => void;
   openTableCreate: () => void;
   onCreateToken?: () => void;
-  onGenerateTokens?: () => void;
+  onCreateGenerator?: () => void;
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
   onSelectTokens?: () => void;
@@ -141,7 +142,7 @@ export function TokenListToolbar({
   onToggleInspectMode,
   openTableCreate,
   onCreateToken,
-  onGenerateTokens,
+  onCreateGenerator,
   handleOpenNewGroupDialog,
   onShowPasteModal,
   onSelectTokens,
@@ -162,8 +163,8 @@ export function TokenListToolbar({
   const createMenuStyle = useAnchoredFloatingStyle({
     triggerRef: createMenu.triggerRef,
     open: createMenu.open,
-    preferredWidth: 240,
-    preferredHeight: 360,
+    preferredWidth: 220,
+    preferredHeight: 260,
     align: "end",
   });
   const actionsMenuStyle = useAnchoredFloatingStyle({
@@ -194,19 +195,25 @@ export function TokenListToolbar({
   const searchScope: "collection" | "all" =
     overflowMenuProps?.crossCollectionSearch === true ? "all" : "collection";
   const searchPlaceholder =
-    searchScope === "all"
+    viewMode === "json"
+      ? "Search JSON text"
+      : searchScope === "all"
       ? "Search across collections"
       : "Search name, value, or type";
+  const effectiveSearchTooltip =
+    viewMode === "json" ? "Search raw JSON text" : searchTooltip;
 
   const showSelectionChip = selectedNodeCount > 0 && boundTokenCount > 0;
   const hasChipRow =
     viewMode === "tree" && hasTokens && (showSelectionChip || toolbarStateChips.length > 0);
 
+  const showTreeActions = viewMode === "tree";
   const hasEditActions =
-    Boolean(onSelectTokens) || Boolean(onBulkEdit) || Boolean(onFindReplace);
-  const hasGroupOps = overflowMenuProps?.hasGroups === true;
-  const hasOverflowActions = hasEditActions || hasGroupOps;
-  const showOverflow = hasTokens && viewMode === "tree" && hasOverflowActions;
+    showTreeActions &&
+    (Boolean(onSelectTokens) || Boolean(onBulkEdit) || Boolean(onFindReplace));
+  const hasGroupOps = showTreeActions && overflowMenuProps?.hasGroups === true;
+  const hasOverflowActions = hasEditActions || hasGroupOps || hasTokens;
+  const showOverflow = hasOverflowActions;
   const showCreate = viewMode === "tree";
   const showPrimaryCreateAction = onCreateToken !== undefined;
   const sortOrder: SortOrder = overflowMenuProps?.sortOrder ?? "default";
@@ -265,8 +272,8 @@ export function TokenListToolbar({
 
   return (
     <div className="bg-[var(--color-figma-bg-secondary)]">
-      <div className="tm-responsive-toolbar px-3 py-2">
-        <div className="tm-responsive-toolbar__row">
+      <div className="tm-responsive-toolbar tm-token-toolbar px-3 py-2">
+        <div className="tm-responsive-toolbar__row tm-token-toolbar__row">
           <div className="tm-responsive-toolbar__leading">
             {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
               <button
@@ -290,7 +297,7 @@ export function TokenListToolbar({
               </span>
             ) : null}
 
-            {hasTokens && viewMode === "tree" ? (
+            {hasTokens ? (
               <div className="tm-responsive-toolbar__search relative">
                 <div className="flex min-h-[28px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
                   <Search
@@ -302,12 +309,12 @@ export function TokenListToolbar({
                   <input
                     ref={searchRef}
                     type="text"
-                    role="combobox"
-                    aria-autocomplete="list"
-                    aria-expanded={showQualifierHints && qualifierHints.length > 0}
-                    aria-controls="qualifier-hints-listbox"
+                    role={viewMode === "tree" ? "combobox" : "searchbox"}
+                    aria-autocomplete={viewMode === "tree" ? "list" : undefined}
+                    aria-expanded={viewMode === "tree" ? showQualifierHints && qualifierHints.length > 0 : undefined}
+                    aria-controls={viewMode === "tree" ? "qualifier-hints-listbox" : undefined}
                     aria-activedescendant={
-                      showQualifierHints && qualifierHints.length > 0
+                      viewMode === "tree" && showQualifierHints && qualifierHints.length > 0
                         ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
                         : undefined
                     }
@@ -316,7 +323,7 @@ export function TokenListToolbar({
                       setSearchQuery(event.target.value);
                       setHintIndex(0);
                     }}
-                    onFocus={() => setShowQualifierHints(true)}
+                    onFocus={() => setShowQualifierHints(viewMode === "tree")}
                     onBlur={() => {
                       window.setTimeout(() => setShowQualifierHints(false), 150);
                     }}
@@ -328,6 +335,9 @@ export function TokenListToolbar({
                           setHintIndex(0);
                         }
                         searchRef.current?.blur();
+                        return;
+                      }
+                      if (viewMode !== "tree") {
                         return;
                       }
                       if (!showQualifierHints || qualifierHints.length === 0) {
@@ -357,7 +367,7 @@ export function TokenListToolbar({
                       }
                     }}
                     placeholder={searchPlaceholder}
-                    title={searchTooltip}
+                    title={effectiveSearchTooltip}
                     className="min-w-[40px] flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
                   />
                   {searchQuery ? (
@@ -378,6 +388,7 @@ export function TokenListToolbar({
                 </div>
 
                 {showQualifierHints &&
+                viewMode === "tree" &&
                 activeQueryToken.token.includes(":") &&
                 qualifierHints.length > 0 ? (
                   <div
@@ -426,20 +437,8 @@ export function TokenListToolbar({
               <div className="min-w-[80px] flex-1" />
             )}
           </div>
-        </div>
 
-        <div className="tm-responsive-toolbar__row">
           <div className="tm-responsive-toolbar__actions">
-            {hasTokens ? (
-              <div className="min-w-0 shrink-0">
-                <SegmentedControl
-                  value={viewMode}
-                  options={TREE_VIEW_OPTIONS}
-                  onChange={setViewMode}
-                />
-              </div>
-            ) : null}
-
             {overflowMenuProps && viewMode === "tree" ? (
               <FilterMenu
                 {...overflowMenuProps}
@@ -465,7 +464,7 @@ export function TokenListToolbar({
                   }`}
                 >
                   <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
-                  <span className="whitespace-nowrap">{sortStateLabel ?? "Sort"}</span>
+                  <span className="tm-token-toolbar__button-label whitespace-nowrap">{sortStateLabel ?? "Sort"}</span>
                 </button>
 
                 {sortMenu.open ? (
@@ -494,19 +493,34 @@ export function TokenListToolbar({
 
             {showCreate ? (
               <div className="relative shrink-0">
-                <div className="flex items-center gap-1">
-                  {showPrimaryCreateAction ? (
+                {showPrimaryCreateAction ? (
+                  <div className="inline-flex min-h-[26px] overflow-hidden rounded">
                     <button
                       type="button"
                       onClick={() => onCreateToken?.()}
                       disabled={!connected}
-                      className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`}
+                      title="New token"
+                      aria-label="New token"
+                      className="inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-accent)] px-2 text-secondary font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
                       <Plus size={12} strokeWidth={2} aria-hidden />
-                      <span className="whitespace-nowrap">New token</span>
+                      <span className="tm-token-toolbar__button-label whitespace-nowrap">New token</span>
                     </button>
-                  ) : null}
-
+                    <button
+                      ref={createMenu.triggerRef}
+                      type="button"
+                      onClick={createMenu.toggle}
+                      disabled={!connected}
+                      aria-expanded={createMenu.open}
+                      aria-haspopup="menu"
+                      aria-label="More create actions"
+                      title="More create actions"
+                      className="inline-flex min-h-[26px] w-6 items-center justify-center border-l border-white/25 bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
+                    </button>
+                  </div>
+                ) : (
                   <button
                     ref={createMenu.triggerRef}
                     type="button"
@@ -514,26 +528,15 @@ export function TokenListToolbar({
                     disabled={!connected}
                     aria-expanded={createMenu.open}
                     aria-haspopup="menu"
-                    aria-label={
-                      showPrimaryCreateAction ? "More create actions" : "Create"
-                    }
-                    title={showPrimaryCreateAction ? "More create actions" : "Create"}
-                    className={`${TOOLBAR_BUTTON_CLASS} ${
-                      createMenu.open
-                        ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
-                        : "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)]"
-                    } disabled:opacity-40`}
+                    aria-label="Create"
+                    title="Create"
+                    className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`}
                   >
-                    {showPrimaryCreateAction ? (
-                      <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
-                    ) : (
-                      <>
-                        <Plus size={12} strokeWidth={2} aria-hidden />
-                        <span className="whitespace-nowrap">Create</span>
-                      </>
-                    )}
+                    <Plus size={12} strokeWidth={2} aria-hidden />
+                    <span className="tm-token-toolbar__button-label whitespace-nowrap">Create</span>
+                    <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                   </button>
-                </div>
+                )}
 
                 {createMenu.open ? (
                   <div
@@ -542,15 +545,15 @@ export function TokenListToolbar({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    {onGenerateTokens ? (
+                    {onCreateGenerator ? (
                       <button
                         type="button"
                         role="menuitem"
-                        onClick={() => runCreateAction(onGenerateTokens)}
+                        onClick={() => runCreateAction(onCreateGenerator)}
                         disabled={!connected}
                         className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                       >
-                        Generate tokens…
+                        Generator…
                       </button>
                     ) : null}
                     <button
@@ -593,15 +596,15 @@ export function TokenListToolbar({
                   ref={actionsMenu.triggerRef}
                   type="button"
                   onClick={actionsMenu.toggle}
-                  disabled={!connected}
-                    aria-expanded={actionsMenu.open}
-                    aria-haspopup="menu"
-                    aria-label="More actions"
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
-                      actionsMenu.open
-                        ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                    } disabled:opacity-40`}
+                  aria-expanded={actionsMenu.open}
+                  aria-haspopup="menu"
+                  aria-label="More actions"
+                  title="More actions"
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
+                    actionsMenu.open
+                      ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  } disabled:opacity-40`}
                 >
                   <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
                 </button>
@@ -613,9 +616,40 @@ export function TokenListToolbar({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
+                    {hasTokens ? (
+                      <div className="tm-token-toolbar__overflow-view-section">
+                        <MenuSectionLabel>View</MenuSectionLabel>
+                        {TREE_VIEW_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={viewMode === option.value}
+                            onClick={() =>
+                              runMenuAction(() => setViewMode(option.value))
+                            }
+                            className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                          >
+                            <span className="w-3 shrink-0 text-center">
+                              {viewMode === option.value ? (
+                                <Check size={10} strokeWidth={1.5} aria-hidden />
+                              ) : null}
+                            </span>
+                            <span>{option.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
                     {hasGroupOps ? (
                       <>
-                        <MenuSectionLabel>View</MenuSectionLabel>
+                        {hasTokens ? (
+                          <div
+                            className="tm-token-toolbar__overflow-after-view-separator h-1.5"
+                            aria-hidden
+                          />
+                        ) : null}
+                        <MenuSectionLabel>Groups</MenuSectionLabel>
                         <button
                           type="button"
                           role="menuitem"
@@ -639,6 +673,11 @@ export function TokenListToolbar({
                       <>
                         {hasGroupOps ? (
                           <div className="h-1.5" aria-hidden />
+                        ) : hasTokens ? (
+                          <div
+                            className="tm-token-toolbar__overflow-after-view-separator h-1.5"
+                            aria-hidden
+                          />
                         ) : null}
                         <MenuSectionLabel>Edit</MenuSectionLabel>
                         {onSelectTokens ? (

@@ -131,7 +131,7 @@ export function AppCommandPalette({
       initialQuery={initialQuery}
       commands={commands}
       tokens={currentCollectionPaletteTokens}
-      allSetTokens={paletteTokens}
+      allCollectionTokens={paletteTokens}
       starredTokens={starredPaletteTokens}
       recentTokens={recentPaletteTokens}
       onGoToToken={(token) => {

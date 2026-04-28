@@ -169,7 +169,7 @@ export function FilterMenu(
         title="Filter options"
       >
         <Filter size={12} strokeWidth={1.5} aria-hidden />
-        <span>Filters</span>
+        <span className="tm-token-toolbar__button-label">Filters</span>
         {props.activeCount > 0 && (
           <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-1 text-[10px] font-semibold leading-none text-white">
             {props.activeCount}

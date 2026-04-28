@@ -310,15 +310,15 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const processTokensStudioContent = useCallback((
     raw: string,
     {
-      collectionName = 'Token Sets',
+      collectionName = 'Imported tokens',
       fileName = 'Tokens Studio JSON',
     }: {
       collectionName?: string;
       fileName?: string;
     } = {},
   ) => {
-    const { sets: parsedSets, errors } = parseTokensStudioFile(raw);
-    if (parsedSets.size === 0) {
+    const { sets: parsedTokenGroups, errors } = parseTokensStudioFile(raw);
+    if (parsedTokenGroups.size === 0) {
       setError(null);
       updateFileImportValidation({
         fileName,
@@ -344,9 +344,9 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setSkippedEntries([]);
     setSkippedExpanded(false);
 
-    if (parsedSets.size === 1) {
-      const [, setTokenList] = [...parsedSets.entries()][0];
-      const importTokens: ImportToken[] = setTokenList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
+    if (parsedTokenGroups.size === 1) {
+      const [, tokenGroupList] = [...parsedTokenGroups.entries()][0];
+      const importTokens: ImportToken[] = tokenGroupList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
       const markedTokens = markDuplicatePaths(importTokens);
       setSource('tokens-studio');
       setTokens(markedTokens);
@@ -357,8 +357,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       const modes: ModeData[] = [];
       const names: Record<string, string> = {};
       const enabled: Record<string, boolean> = {};
-      for (const [collectionId, setTokenList] of parsedSets) {
-        const importTokens: ImportToken[] = setTokenList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
+      for (const [collectionId, tokenGroupList] of parsedTokenGroups) {
+        const importTokens: ImportToken[] = tokenGroupList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
         modes.push({ modeId: collectionId, modeName: collectionId, tokens: importTokens });
         const key = modeKey(collectionName, collectionId);
         names[key] = collectionId;
@@ -369,19 +369,19 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       setModeCollectionNames(names);
       setModeEnabled(enabled);
     }
-    const tokenCount = [...parsedSets.values()].reduce((count, setTokenList) => count + setTokenList.length, 0);
-    const setCount = parsedSets.size;
+    const tokenCount = [...parsedTokenGroups.values()].reduce((count, tokenGroupList) => count + tokenGroupList.length, 0);
+    const groupCount = parsedTokenGroups.size;
     updateFileImportValidation({
       fileName,
       source: 'tokens-studio',
       status: 'ready',
       summary: `Parsed ${pluralize(tokenCount, 'token')} from ${fileName}`,
       detail:
-        setCount === 1
-          ? 'Detected a single Tokens Studio collection and prepared it for import.'
-          : `Detected ${pluralize(setCount, 'collection')} and preserved each collection mapping for import.`,
+	        groupCount === 1
+	          ? 'Detected a single Tokens Studio collection and prepared it for import.'
+	          : `Detected ${pluralize(groupCount, 'collection')} and preserved each collection mapping for import.`,
       nextAction:
-        setCount === 1
+	        groupCount === 1
           ? 'Choose the destination collection, then continue to preview or import.'
           : 'Review the destination collection names, then import the parsed collections.',
       tokenCount,
@@ -446,7 +446,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
 
         if (isTokensStudioFormat(root)) {
           processTokensStudioContent(raw, {
-            collectionName: file.name.replace(/\.json$/i, '') || 'Token Sets',
+            collectionName: file.name.replace(/\.json$/i, '') || 'Imported tokens',
             fileName: file.name,
           });
           return;
@@ -805,7 +805,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     reader.onload = () => {
       try {
         processTokensStudioContent(reader.result as string, {
-          collectionName: file.name.replace(/\.json$/i, '') || 'Token Sets',
+          collectionName: file.name.replace(/\.json$/i, '') || 'Imported tokens',
           fileName: file.name,
         });
       } catch (err) {

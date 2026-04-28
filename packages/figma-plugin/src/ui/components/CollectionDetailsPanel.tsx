@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowUp, ArrowDown, X, Plus, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, X, Plus, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { apiFetch } from "../shared/apiFetch";
@@ -22,6 +22,7 @@ interface CollectionDetailsPanelProps {
   connected: boolean;
   presentation?: "panel" | "takeover" | "bottom";
   showCloseButton?: boolean;
+  returnLabel?: string;
   onModeMutated?: () => void;
   onClose: () => void;
   onRename?: (
@@ -72,7 +73,7 @@ interface CollectionDetailsPanelProps {
 
 function SectionHeader({ children }: { children: string }) {
   return (
-    <div className="px-5 pb-1.5 pt-5 text-body font-medium text-[var(--color-figma-text-secondary)]">
+    <div className="px-4 pb-1.5 pt-4 text-body font-medium text-[var(--color-figma-text-secondary)]">
       {children}
     </div>
   );
@@ -379,7 +380,7 @@ function ModesSection({
     <div>
       <SectionHeader>Modes</SectionHeader>
       <div className="px-3">
-        <p className="px-2 pb-2 text-secondary text-[var(--color-figma-text-tertiary)]">
+        <p className="px-1 pb-2 text-secondary text-[var(--color-figma-text-tertiary)]">
           Every token in this collection uses these modes. Rename, reorder, or add modes here.
         </p>
         {collection.modes.map((mode, index) => (
@@ -455,6 +456,7 @@ export function CollectionDetailsPanel({
   connected,
   presentation = "panel",
   showCloseButton = true,
+  returnLabel,
   onModeMutated,
   onClose,
   onDuplicate,
@@ -611,6 +613,8 @@ export function CollectionDetailsPanel({
 
   const tokenCount = collectionTokenCounts[collection.id] ?? 0;
   const modeCount = collection.modes.length;
+  const displayName = getCollectionDisplayName(collection.id, collectionDisplayNames);
+  const showRawId = displayName !== collection.id;
   const savedDescription = collectionDescriptions[collection.id] ?? "";
   const currentDescription =
     editingMetadataCollectionId === collection.id ? metadataDescription : savedDescription;
@@ -659,7 +663,17 @@ export function CollectionDetailsPanel({
       <div className={shellClass}>
         <div className={contentClass}>
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="px-5 pb-4 pt-4">
+            <div className="px-4 pb-3 pt-4">
+              {returnLabel ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mb-3 inline-flex items-center gap-1 text-secondary font-medium text-[var(--color-figma-accent)] hover:underline"
+                >
+                  <ArrowLeft size={12} strokeWidth={1.75} aria-hidden />
+                  {returnLabel}
+                </button>
+              ) : null}
               <div className="flex min-w-0 items-start gap-2">
                 {renaming ? (
                   <div className="min-w-0 flex-1">
@@ -688,10 +702,10 @@ export function CollectionDetailsPanel({
                     onDoubleClick={onRename ? startRename : undefined}
                     title={onRename ? "Double-click to rename" : undefined}
                   >
-                    {getCollectionDisplayName(collection.id, collectionDisplayNames)}
+                    {displayName}
                   </h2>
                 )}
-                {showCloseButton ? (
+                {showCloseButton && !returnLabel ? (
                   <IconButton
                     size="md"
                     onClick={onClose}
@@ -715,8 +729,14 @@ export function CollectionDetailsPanel({
                 className="mt-2 w-full resize-none bg-transparent p-0 text-body leading-[1.5] text-[var(--color-figma-text-secondary)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
               />
 
+              {showRawId ? (
+                <div className="mt-2 truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                  ID <span className="font-mono">{collection.id}</span>
+                </div>
+              ) : null}
+
               {/* Stats row */}
-              <div className="mt-2 flex items-start gap-5">
+              <div className="mt-3 flex items-start gap-5">
                 <Stat value={tokenCount} label={tokenCount === 1 ? "token" : "tokens"} />
                 <Stat value={modeCount} label={modeCount === 1 ? "mode" : "modes"} />
               </div>
@@ -730,7 +750,7 @@ export function CollectionDetailsPanel({
               tokenCount={collectionTokenCounts[collection.id] ?? 0}
             />
 
-            <SectionHeader>Structure</SectionHeader>
+            <SectionHeader>Collection actions</SectionHeader>
             <div className="px-3 pb-2">
               <ActionRow onClick={() => onDuplicate?.(collection.id)}>
                 Duplicate collection

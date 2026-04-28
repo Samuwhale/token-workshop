@@ -10,6 +10,7 @@ interface ListItemProps {
   disabled?: boolean;
   title?: string;
   className?: string;
+  allowWrap?: boolean;
 }
 
 export function ListItem({
@@ -22,6 +23,7 @@ export function ListItem({
   disabled,
   title,
   className = "",
+  allowWrap = false,
 }: ListItemProps) {
   const isButton = onClick !== undefined;
   const stateClass = selected
@@ -29,13 +31,27 @@ export function ListItem({
     : "text-[var(--color-figma-text)]";
   const hoverClass =
     isButton && !selected ? "hover:bg-[var(--surface-hover)]" : "";
-  const baseClass = `flex min-w-0 items-center gap-2 rounded-[var(--radius-lg)] px-1.5 py-1 text-left text-body transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${stateClass} ${hoverClass} ${className}`;
+  const baseClass = `flex min-w-0 gap-2 rounded-[var(--radius-lg)] px-1.5 py-1 text-left text-body transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${allowWrap ? "items-start" : "items-center"} ${stateClass} ${hoverClass} ${className}`;
   const content = (
     <>
-      {leading ? <span className="flex shrink-0 items-center">{leading}</span> : null}
-      <span className="min-w-0 flex-1 truncate">{children}</span>
+      {leading ? (
+        <span className="flex shrink-0 items-center">{leading}</span>
+      ) : null}
+      <span
+        className={`min-w-0 flex-1 ${
+          allowWrap
+            ? "whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-snug"
+            : "truncate"
+        }`}
+      >
+        {children}
+      </span>
       {trailing ? (
-        <span className="ml-auto flex shrink-0 items-center text-[var(--color-figma-text-tertiary)]">
+        <span
+          className={`ml-auto flex shrink-0 items-center text-[var(--color-figma-text-tertiary)] ${
+            allowWrap ? "pt-0.5" : ""
+          }`}
+        >
           {trailing}
         </span>
       ) : null}

@@ -7,7 +7,7 @@ interface TokenResolveEntry {
   $extensions?: TokenMapEntry["$extensions"];
 }
 
-export function projectTokenEntriesToGraphTokens(
+export function projectTokenEntriesToResolutionTokens(
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
 ): Record<string, Record<string, TokenResolveEntry>> {
   const projectedCollections: Record<string, Record<string, TokenResolveEntry>> = {};

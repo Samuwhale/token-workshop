@@ -10,7 +10,7 @@ import { resolveCollectionIdForPath } from "./collection-paths.js";
 import { makeReferenceGlobalRegex } from "./constants.js";
 import { evalExpr } from "./eval-expr.js";
 
-type GraphTokenLike = Pick<Token, "$value" | "$type" | "$extensions">;
+type ResolvedTokenLike = Pick<Token, "$value" | "$type" | "$extensions">;
 
 // Pure mode-aware upstream alias walker. Used by:
 // - useTokenAncestors hook (TokenDetails "Resolves to" block)
@@ -51,13 +51,13 @@ export interface ResolveTokenAncestorsParams {
   tokenPath: string;
   collectionId: string;
   collections: TokenCollection[];
-  tokensByCollection: Record<string, Record<string, GraphTokenLike>>;
+  tokensByCollection: Record<string, Record<string, ResolvedTokenLike>>;
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
 }
 
 function readModeValue(
-  entry: GraphTokenLike,
+  entry: ResolvedTokenLike,
   collection: TokenCollection,
   requestedModeName: string,
 ): { found: boolean; value?: unknown } {
@@ -134,7 +134,7 @@ function resolveModeValue(params: {
   modeName: string;
   preferredCollectionId: string;
   collectionsById: Map<string, TokenCollection>;
-  tokensByCollection: Record<string, Record<string, GraphTokenLike>>;
+  tokensByCollection: Record<string, Record<string, ResolvedTokenLike>>;
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
   visited: Set<string>;
@@ -248,7 +248,7 @@ function resolveTokenModeTerminal(params: {
   collectionId: string;
   modeName: string;
   collectionsById: Map<string, TokenCollection>;
-  tokensByCollection: Record<string, Record<string, GraphTokenLike>>;
+  tokensByCollection: Record<string, Record<string, ResolvedTokenLike>>;
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
   visited: Set<string>;

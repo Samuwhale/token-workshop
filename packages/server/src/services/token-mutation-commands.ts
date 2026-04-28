@@ -1,4 +1,4 @@
-import { readGraphProvenance } from "@tokenmanager/core";
+import { readGeneratorProvenance } from "@tokenmanager/core";
 import { ConflictError } from "../errors.js";
 import type {
   OperationLog,
@@ -50,15 +50,15 @@ function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function assertNoGraphManagedTokens(snapshot: SnapshotMap, action: string): void {
-  const graphManaged = Object.entries(snapshot)
-    .filter(([, entry]) => entry.token && readGraphProvenance(entry.token))
+function assertNoGeneratorManagedTokens(snapshot: SnapshotMap, action: string): void {
+  const generatorManaged = Object.entries(snapshot)
+    .filter(([, entry]) => entry.token && readGeneratorProvenance(entry.token))
     .map(([snapshotKey]) => snapshotKey);
-  if (graphManaged.length === 0) return;
-  const preview = graphManaged.slice(0, 5).join(", ");
-  const more = graphManaged.length > 5 ? ` and ${graphManaged.length - 5} more` : "";
+  if (generatorManaged.length === 0) return;
+  const preview = generatorManaged.slice(0, 5).join(", ");
+  const more = generatorManaged.length > 5 ? ` and ${generatorManaged.length - 5} more` : "";
   throw new ConflictError(
-    `Cannot ${action} graph-managed token${graphManaged.length === 1 ? "" : "s"}: ${preview}${more}. Detach from the graph first.`,
+    `Cannot ${action} generator-managed token${generatorManaged.length === 1 ? "" : "s"}: ${preview}${more}. Detach from the generator first.`,
   );
 }
 
@@ -116,7 +116,7 @@ async function executeLoggedMutation<TResult>(
 ): Promise<{ result: TResult; operationId: string }> {
   const beforeSnapshot = await config.captureBefore();
   const guardSnapshot = config.guardBefore ? await config.guardBefore() : {};
-  assertNoGraphManagedTokens(
+  assertNoGeneratorManagedTokens(
     mergeSnapshots(beforeSnapshot, guardSnapshot),
     config.type.replace(/-/g, " "),
   );

@@ -61,8 +61,6 @@ export type {
   CollectionMode,
   CollectionPublishRouting,
   TokenCollection,
-  SelectedModes,
-  ViewPreset,
   SerializedTokenCollection,
   CollectionsFile,
   TokenModeValues,
@@ -90,10 +88,6 @@ export {
   buildTokenExtensionsWithCollectionModes,
   writeTokenCollectionModeValues,
   writeTokenModeValuesForCollection,
-  normalizeSelectedModes,
-  buildSelectedModesLabel,
-  createViewPresetName,
-  createViewPreset,
   deserializeTokenCollections,
   serializeTokenCollections,
   readCollectionsFileState,
@@ -209,9 +203,9 @@ export type { ExternalFileLoader, ResolverDiagnostic, ResolverResult } from './d
 export { TokenValidator } from './validator.js';
 export type { ValidationResult } from './validator.js';
 
-// Graph generation types and computations
+// Generator types and computations
 export type {
-  GraphGenerationType,
+  GeneratorType,
   ColorRampConfig,
   TypeScaleStep,
   TypeScaleConfig,
@@ -225,12 +219,12 @@ export type {
   ShadowScaleConfig,
   CustomScaleStep,
   CustomScaleConfig,
-  GraphGenerationConfig,
-  GraphGeneratedTokenResult,
-} from './graph-generation-types.js';
+  GeneratorConfig,
+  GeneratorTokenResult,
+} from './generator-types.js';
 export {
   validateStepName,
-} from './graph-generation-types.js';
+} from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
@@ -240,7 +234,25 @@ export {
   DEFAULT_Z_INDEX_SCALE_CONFIG,
   DEFAULT_SHADOW_SCALE_CONFIG,
   DEFAULT_CUSTOM_SCALE_CONFIG,
-} from './graph-generation-types.js';
+} from './generator-types.js';
+export {
+  GENERATOR_PRESET_OPTIONS,
+  SOURCELESS_GENERATOR_PRESETS,
+  buildGeneratorNodesFromStructuredDraft,
+  generatorDefaultConfig,
+  generatorDefaultOutputPrefix,
+  generatorDefaultSourceValue,
+  generatorPresetLabel,
+  makeDefaultStructuredGeneratorDraft,
+  makeGeneratorLiteralData,
+  readStructuredGeneratorDraft,
+} from './generator-presets.js';
+export type {
+  GeneratorPresetKind,
+  GeneratorSourceMode,
+  GeneratorStructuredDraft,
+  GeneratorTemplateKind,
+} from './generator-presets.js';
 
 // Token resolution (mode-aware ancestor walker)
 export { resolveTokenAncestors } from './token-resolve.js';
@@ -251,7 +263,7 @@ export type {
   ResolveTokenAncestorsParams,
 } from './token-resolve.js';
 
-// Graph generation engine
+// Generator engine
 export {
   computeColorRampTokens,
   computeTypeScaleTokens,
@@ -261,27 +273,27 @@ export {
   computeZIndexScaleTokens,
   computeShadowScaleTokens,
   computeCustomScaleTokens,
-} from './graph-generation-engine.js';
+} from './generator-engine.js';
 
-// Token graph documents (advanced automation layer)
+// Token generator documents
 export {
-  createDefaultTokenGraphDocument,
-  evaluateTokenGraphDocument,
-  graphProvenanceHash,
-  readGraphProvenance,
-  tokenFromGraphOutput,
-} from './token-graph-documents.js';
+  createDefaultTokenGeneratorDocument,
+  evaluateTokenGeneratorDocument,
+  generatorProvenanceHash,
+  readGeneratorProvenance,
+  tokenFromGeneratorOutput,
+} from './token-generator-documents.js';
 export type {
-  EvaluateTokenGraphDocumentInput,
-  GraphOutputProvenance,
-  TokenGraphDiagnostic,
-  TokenGraphDocument,
-  TokenGraphEdge,
-  TokenGraphNode as TokenGraphDocumentNode,
-  TokenGraphNodeKind,
-  TokenGraphPortType,
-  TokenGraphPosition,
-  TokenGraphPreviewOutput,
-  TokenGraphPreviewResult,
-  TokenGraphViewport,
-} from './token-graph-documents.js';
+  EvaluateTokenGeneratorDocumentInput,
+  GeneratorOutputProvenance,
+  TokenGeneratorDiagnostic,
+  TokenGeneratorDocument,
+  TokenGeneratorEdge,
+  TokenGeneratorNode as TokenGeneratorDocumentNode,
+  TokenGeneratorNodeKind,
+  TokenGeneratorPortType,
+  TokenGeneratorPosition,
+  TokenGeneratorPreviewOutput,
+  TokenGeneratorPreviewResult,
+  TokenGeneratorViewport,
+} from './token-generator-documents.js';

@@ -3,7 +3,6 @@ import path from "node:path";
 import type {
   CollectionPublishRouting,
   TokenCollection,
-  ViewPreset,
 } from "@tokenmanager/core";
 import {
   readCollectionsFileState,
@@ -16,7 +15,6 @@ import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 export interface CollectionState {
   collections: TokenCollection[];
-  views: ViewPreset[];
 }
 
 export interface CollectionMetadataState {
@@ -28,11 +26,9 @@ export type CollectionPublishRoutingState = CollectionPublishRouting;
 export interface CollectionStore {
   filePath: string;
   load(): Promise<TokenCollection[]>;
-  loadViews(): Promise<ViewPreset[]>;
   loadState(): Promise<CollectionState>;
   reloadFromDisk(): Promise<"changed" | "removed" | "unchanged">;
   save(collections: TokenCollection[]): Promise<void>;
-  saveViews(views: ViewPreset[]): Promise<void>;
   saveState(state: CollectionState): Promise<void>;
   startWriteGuard(absoluteFilePath: string): void;
   endWriteGuard(absoluteFilePath: string): void;
@@ -95,47 +91,6 @@ function validateCollectionState(state: CollectionState): CollectionState {
     throw new ConflictError(
       `Collection state contains duplicate collection ids: ${[...duplicateCollectionIds].join(", ")}`,
     );
-  }
-
-  const validModesByCollectionId = new Map(
-    nextState.collections.map((collection) => [
-      collection.id,
-      new Set(collection.modes.map((mode) => mode.name)),
-    ]),
-  );
-  const viewIds = new Set<string>();
-
-  for (const view of nextState.views) {
-    if (!view.id.trim()) {
-      throw new ConflictError(
-        "Collection view state contains a view with an empty id",
-      );
-    }
-    if (!view.name.trim()) {
-      throw new ConflictError(
-        `View "${view.id}" has an empty name in persisted state`,
-      );
-    }
-    if (viewIds.has(view.id)) {
-      throw new ConflictError(
-        `Collection view state contains duplicate view ids: ${view.id}`,
-      );
-    }
-    viewIds.add(view.id);
-
-    for (const [collectionId, modeName] of Object.entries(view.selections)) {
-      const validModes = validModesByCollectionId.get(collectionId);
-      if (!validModes) {
-        throw new ConflictError(
-          `View "${view.id}" references unknown collection "${collectionId}"`,
-        );
-      }
-      if (!validModes.has(modeName)) {
-        throw new ConflictError(
-          `View "${view.id}" references unknown mode "${modeName}" in collection "${collectionId}"`,
-        );
-      }
-    }
   }
 
   return nextState;
@@ -205,7 +160,7 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
     const mtimeMs = await fileMtimeMs();
     if (mtimeMs === null) {
       return {
-        state: { collections: [], views: [] },
+        state: { collections: [] },
         mtimeMs: null,
         exists: false,
       };
@@ -217,7 +172,7 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
         return {
-          state: { collections: [], views: [] },
+          state: { collections: [] },
           mtimeMs: null,
           exists: false,
         };
@@ -256,11 +211,6 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
       return state.collections;
     },
 
-    async loadViews(): Promise<ViewPreset[]> {
-      const state = await ensureStateLoaded();
-      return state.views;
-    },
-
     async loadState(): Promise<CollectionState> {
       return ensureStateLoaded();
     },
@@ -274,10 +224,8 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
         if (!exists) {
           const hadData =
             cache !== null &&
-            (cache.collections.length > 0 ||
-              cache.views.length > 0 ||
-              cachedMtimeMs !== null);
-          cache = { collections: [], views: [] };
+            (cache.collections.length > 0 || cachedMtimeMs !== null);
+          cache = { collections: [] };
           cachedMtimeMs = null;
           return hadData ? "removed" : "unchanged";
         }
@@ -294,13 +242,7 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
     },
 
     async save(collections: TokenCollection[]): Promise<void> {
-      const state = await ensureStateLoaded();
-      await store.saveState({ ...state, collections });
-    },
-
-    async saveViews(views: ViewPreset[]): Promise<void> {
-      const state = await ensureStateLoaded();
-      await store.saveState({ ...state, views });
+      await store.saveState({ collections });
     },
 
     async saveState(state: CollectionState): Promise<void> {
@@ -310,9 +252,6 @@ export function createCollectionStore(tokenDir: string): CollectionStore {
       }
       const data = {
         $collections: serializeTokenCollections(validatedState.collections),
-        ...(validatedState.views.length > 0
-          ? { $views: validatedState.views }
-          : {}),
       };
       const tmp = `${filePath}.tmp`;
       await fs.writeFile(tmp, JSON.stringify(data, null, 2));

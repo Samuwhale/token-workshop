@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import {
-  readGraphProvenance,
+  readGeneratorProvenance,
   readTokenModeValuesForCollection,
   writeTokenModeValuesForCollection,
   type Token,
@@ -48,8 +48,8 @@ export function useTokenSave({
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
-  const rejectGraphManagedSave = useCallback((path: string, entry: TokenMapEntry | undefined) => {
-    if (!entry || !readGraphProvenance(entry)) {
+  const rejectGeneratorManagedSave = useCallback((path: string, entry: TokenMapEntry | undefined) => {
+    if (!entry || !readGeneratorProvenance(entry)) {
       return false;
     }
     onError?.(
@@ -72,7 +72,7 @@ export function useTokenSave({
     // alias references. Using the per-collection entry also ensures undo is captured
     // when the token lives in a collection outside the current working collection.
     const oldEntry = perCollectionFlat?.[collectionId]?.[path] ?? allTokensFlat[path];
-    if (rejectGraphManagedSave(path, oldEntry)) {
+    if (rejectGeneratorManagedSave(path, oldEntry)) {
       return;
     }
     const previousSnapshot = previousState
@@ -127,7 +127,7 @@ export function useTokenSave({
       onRecordTouch,
       touchedPath: path,
     });
-  }, [connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, rejectGraphManagedSave, onRefresh, onPushUndo, onRecordTouch, onError]);
+  }, [connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, rejectGeneratorManagedSave, onRefresh, onPushUndo, onRecordTouch, onError]);
 
   const handleDescriptionSave = useCallback(async (path: string, description: string) => {
     if (!connected) return;
@@ -222,7 +222,7 @@ export function useTokenSave({
       onError?.(`Save failed: token "${path}" is unavailable in "${targetCollectionId}"`);
       return false;
     }
-    if (rejectGraphManagedSave(path, currentEntry)) {
+    if (rejectGeneratorManagedSave(path, currentEntry)) {
       return false;
     }
 
@@ -299,7 +299,7 @@ export function useTokenSave({
     onRecordTouch,
     onRefresh,
     perCollectionFlat,
-    rejectGraphManagedSave,
+    rejectGeneratorManagedSave,
     serverUrl,
   ]);
 

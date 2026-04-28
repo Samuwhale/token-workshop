@@ -8,7 +8,7 @@ import { HistoryRecentView } from "./history/HistoryRecentView";
 import { HistorySavedView } from "./history/HistorySavedView";
 
 const HISTORY_VIEWS: Array<{ id: HistoryView; label: string }> = [
-  { id: "recent", label: "Recent changes" },
+  { id: "recent", label: "Recent activity" },
   { id: "saved", label: "Checkpoints" },
 ];
 
@@ -44,6 +44,13 @@ export function HistoryPanel({
         : validWorkingCollectionId
       : null;
   const activePanelLabelId = `history-tab-${scope.view}`;
+  const scopeLabel =
+    scope.mode === "all"
+      ? "Showing recovery activity across every collection."
+      : `Showing recovery activity for ${activeCollectionFilter ?? "the current collection"}.`;
+  const tokenScopeLabel = scope.tokenPath
+    ? `Focused on ${scope.tokenPath}.`
+    : null;
 
   useEffect(() => {
     if (scope.mode !== "current") {
@@ -206,6 +213,13 @@ export function HistoryPanel({
           </button>
         </div>
       ) : null}
+
+      <div className="shrink-0 px-3 pb-2">
+        <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+          {scopeLabel}
+          {tokenScopeLabel ? ` ${tokenScopeLabel}` : ""}
+        </p>
+      </div>
 
       <div
         role="tabpanel"

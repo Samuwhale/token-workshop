@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import type { FastifyPluginAsync } from "fastify";
 import type { CollectionPublishRouting, Token } from "@tokenmanager/core";
-import { flattenTokenGroup, readGraphProvenance } from "@tokenmanager/core";
+import { flattenTokenGroup, readGeneratorProvenance } from "@tokenmanager/core";
 import type {
   FieldChange,
   FieldChangeOperationMetadata,
@@ -473,22 +473,22 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Acquire token lock for the entire snapshot-restore-snapshot cycle
       return await withLock(async () => {
-        const graphManagedRestores: string[] = [];
+        const generatorManagedRestores: string[] = [];
         for (const item of toRestore) {
           const currentToken = await fastify.tokenStore.getToken(
             item.collectionId,
             item.path,
           );
           if (
-            readGraphProvenance(currentToken) ||
-            readGraphProvenance(item.token ?? undefined)
+            readGeneratorProvenance(currentToken) ||
+            readGeneratorProvenance(item.token ?? undefined)
           ) {
-            graphManagedRestores.push(`${item.collectionId}/${item.path}`);
+            generatorManagedRestores.push(`${item.collectionId}/${item.path}`);
           }
         }
-        if (graphManagedRestores.length > 0) {
+        if (generatorManagedRestores.length > 0) {
           throw new ConflictError(
-            `Version restore includes graph-managed tokens: ${graphManagedRestores.join(", ")}. Restore the graph document and its outputs together, or detach the outputs first.`,
+            `Version restore includes generator-managed tokens: ${generatorManagedRestores.join(", ")}. Restore the generator and its outputs together, or detach the outputs first.`,
           );
         }
 
@@ -756,7 +756,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           reloadCollectionsWorkspace: () =>
             fastify.collectionService.reloadTokenStorageFromState(),
           resolverStore: fastify.resolverStore,
-          graphService: fastify.graphService,
+          generatorService: fastify.generatorService,
         });
         const hasFailures =
           result.pullFailedFiles.length > 0 ||

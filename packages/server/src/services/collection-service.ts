@@ -3,15 +3,12 @@ import type {
   CollectionPublishRouting,
   DTCGToken,
   ResolverFile,
-  SelectedModes,
   TokenCollection,
   TokenGroup,
-  ViewPreset,
 } from "@tokenmanager/core";
 import {
   flattenTokenGroup,
   isDTCGToken,
-  normalizeSelectedModes,
   readTokenModeValuesForCollection,
   readTokenCollectionModeValues,
   stableStringify,
@@ -28,7 +25,7 @@ import type {
 } from "./collection-store.js";
 import { requireCollection } from "./collection-store.js";
 import type { LintConfig, LintConfigStore } from "./lint.js";
-import type { GraphCollectionDependencyMeta, TokenGraphService } from "./token-graph-service.js";
+import type { GeneratorCollectionDependencyMeta, TokenGeneratorService } from "./token-generator-service.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { TokenStore } from "./token-store.js";
 import type { SnapshotEntry } from "./operation-log.js";
@@ -49,8 +46,8 @@ import {
   rewriteTokenGroupCollectionModes,
   sortFolderRenamePairsForApply,
   sortFolderRenamePairsForRollback,
-  stripAutomationOwnershipFromToken,
-  stripAutomationOwnershipFromTokenGroup,
+  stripGeneratorOwnershipFromToken,
+  stripGeneratorOwnershipFromTokenGroup,
   type FolderCollectionRename,
 } from "./collection-helpers.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
@@ -80,9 +77,9 @@ export interface CollectionResolverImpact {
   name: string;
 }
 
-export interface CollectionGraphImpact {
-  graphId: string;
-  graphName: string;
+export interface CollectionGeneratorImpact {
+  generatorId: string;
+  generatorName: string;
 }
 
 export interface CollectionPreflightImpact {
@@ -92,7 +89,7 @@ export interface CollectionPreflightImpact {
     description?: string;
   };
   resolverRefs: CollectionResolverImpact[];
-  graphRefs: CollectionGraphImpact[];
+  generatorRefs: CollectionGeneratorImpact[];
 }
 
 export interface CollectionSummary extends TokenCollection {
@@ -101,10 +98,9 @@ export interface CollectionSummary extends TokenCollection {
 
 export interface CollectionsOverview {
   collections: CollectionSummary[];
-  views: ViewPreset[];
 }
 
-export type CollectionPreflightBlockerCode = "resolver-collection-ref" | "graph-collection-ref";
+export type CollectionPreflightBlockerCode = "resolver-collection-ref" | "generator-collection-ref";
 
 export interface CollectionPreflightBlocker {
   id: string;
@@ -255,19 +251,6 @@ function renameCollectionIdsInState(
         ? { ...collection, id: nextId }
         : collection;
     }),
-    views: state.views.map((view) => {
-      let changed = false;
-      const nextSelections = { ...view.selections };
-      for (const { from, to } of renames) {
-        if (!(from in nextSelections)) {
-          continue;
-        }
-        nextSelections[to] = nextSelections[from];
-        delete nextSelections[from];
-        changed = true;
-      }
-      return changed ? { ...view, selections: nextSelections } : view;
-    }),
   };
 }
 
@@ -300,19 +283,6 @@ function copyCollectionIdsInState(
         id: targetCollectionId,
       })),
     ],
-    views: state.views.map((view) => {
-      if (!(sourceCollectionId in view.selections)) {
-        return view;
-      }
-      const nextSelections = { ...view.selections };
-      for (const targetCollectionId of targetCollectionIds) {
-        nextSelections[targetCollectionId] = nextSelections[sourceCollectionId];
-      }
-      return {
-        ...view,
-        selections: nextSelections,
-      };
-    }),
   };
 }
 
@@ -329,18 +299,6 @@ function deleteCollectionIdsFromState(
     collections: state.collections.filter(
       (collection) => !deletedCollectionIds.has(collection.id),
     ),
-    views: state.views.map((view) => {
-      let changed = false;
-      const nextSelections = { ...view.selections };
-      for (const collectionId of deletedCollectionIds) {
-        if (!(collectionId in nextSelections)) {
-          continue;
-        }
-        delete nextSelections[collectionId];
-        changed = true;
-      }
-      return changed ? { ...view, selections: nextSelections } : view;
-    }),
   };
 }
 
@@ -441,7 +399,7 @@ function prepareTokenForCollectionMerge(
   sourceCollectionId: string,
   targetCollectionId: string,
 ): Token {
-  const sanitized = stripAutomationOwnershipFromToken(
+  const sanitized = stripGeneratorOwnershipFromToken(
     structuredClone(token as DTCGToken),
   );
   const nextModes = copyCollectionModeKey(
@@ -605,9 +563,9 @@ function buildCollectionImpact(params: {
   tokens: TokenGroup;
   metadata: CollectionMetadataState;
   resolvers: CollectionResolverMeta[];
-  graphs: GraphCollectionDependencyMeta[];
+  generators: GeneratorCollectionDependencyMeta[];
 }): CollectionPreflightImpact {
-  const { collectionId, tokens, metadata, resolvers, graphs } = params;
+  const { collectionId, tokens, metadata, resolvers, generators } = params;
   return {
     collectionId,
     tokenCount: flattenTokenGroup(tokens).size,
@@ -618,10 +576,10 @@ function buildCollectionImpact(params: {
       .filter((resolver) => resolver.referencedCollections.includes(collectionId))
       .map((resolver) => ({ name: resolver.name }))
       .sort((a, b) => a.name.localeCompare(b.name)),
-    graphRefs: graphs
-      .filter((graph) => graph.referencedCollections.includes(collectionId))
-      .map((graph) => ({ graphId: graph.id, graphName: graph.name }))
-      .sort((a, b) => a.graphName.localeCompare(b.graphName)),
+    generatorRefs: generators
+      .filter((generator) => generator.referencedCollections.includes(collectionId))
+      .map((generator) => ({ generatorId: generator.id, generatorName: generator.name }))
+      .sort((a, b) => a.generatorName.localeCompare(b.generatorName)),
   };
 }
 
@@ -636,14 +594,14 @@ function buildResolverReferenceBlockers(
   }));
 }
 
-function buildGraphReferenceBlockers(
+function buildGeneratorReferenceBlockers(
   collectionImpact: CollectionPreflightImpact,
 ): CollectionPreflightBlocker[] {
-  return collectionImpact.graphRefs.map((graph) => ({
-    id: `graph-ref:${graph.graphId}:${collectionImpact.collectionId}`,
-    code: "graph-collection-ref",
+  return collectionImpact.generatorRefs.map((generator) => ({
+    id: `generator-ref:${generator.generatorId}:${collectionImpact.collectionId}`,
+    code: "generator-collection-ref",
     collectionId: collectionImpact.collectionId,
-    message: `Graph "${graph.graphName}" still references "${collectionImpact.collectionId}".`,
+    message: `Generator "${generator.generatorName}" still references "${collectionImpact.collectionId}".`,
   }));
 }
 
@@ -652,7 +610,7 @@ function buildRenameBlockers(
 ): CollectionPreflightBlocker[] {
   return [
     ...buildResolverReferenceBlockers(collectionImpact),
-    ...buildGraphReferenceBlockers(collectionImpact),
+    ...buildGeneratorReferenceBlockers(collectionImpact),
   ];
 }
 
@@ -661,7 +619,7 @@ function buildRemovalBlockers(
 ): CollectionPreflightBlocker[] {
   return [
     ...buildResolverReferenceBlockers(collectionImpact),
-    ...buildGraphReferenceBlockers(collectionImpact),
+    ...buildGeneratorReferenceBlockers(collectionImpact),
   ];
 }
 
@@ -693,7 +651,7 @@ export class CollectionService {
     private readonly resolverStore: ResolverStore,
     private readonly resolverLock: PromiseChainLock,
     private readonly lintConfigStore: LintConfigStore,
-    private readonly graphService?: TokenGraphService,
+    private readonly generatorService?: TokenGeneratorService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -812,7 +770,6 @@ export class CollectionService {
         ...structuredClone(collection),
         tokenCount: counts[collection.id] ?? 0,
       })),
-      views: structuredClone(state.views),
     };
   }
 
@@ -1007,7 +964,7 @@ export class CollectionService {
       }),
     );
 
-    const graphDependencyMeta = this.graphService?.listCollectionDependencyMeta() ?? [];
+    const generatorDependencyMeta = this.generatorService?.listCollectionDependencyMeta() ?? [];
     const snapshot: CollectionDependencySnapshot = {
       resolvers: this.resolverStore
         .listCollectionDependencyMeta()
@@ -1031,7 +988,7 @@ export class CollectionService {
           tokens: loadedCollection.tokens,
           metadata: loadedCollection.metadata,
           resolvers: snapshot.resolvers,
-          graphs: graphDependencyMeta,
+          generators: generatorDependencyMeta,
         }),
       );
     }
@@ -1199,7 +1156,6 @@ export class CollectionService {
       return {
         state: {
           collections: collectionIds.map((collectionId) => byId.get(collectionId)!),
-          views: state.views,
         },
         result: undefined,
       };
@@ -1211,7 +1167,7 @@ export class CollectionService {
     newCollectionId: string,
   ): Promise<void> {
     const dependencyStateBefore = await this.captureDependencyState();
-    const graphStateBefore = this.graphService ? await this.graphService.snapshot() : null;
+    const generatorStateBefore = this.generatorService ? await this.generatorService.snapshot() : null;
     try {
       await this.resolverLock.withLock(() =>
         this.resolverStore.renameCollectionReferences(
@@ -1223,11 +1179,11 @@ export class CollectionService {
         oldCollectionId,
         newCollectionId,
       );
-      await this.graphService?.renameCollectionId(oldCollectionId, newCollectionId);
+      await this.generatorService?.renameCollectionId(oldCollectionId, newCollectionId);
     } catch (err) {
       await this.restoreDependencyState(dependencyStateBefore).catch(() => {});
-      if (graphStateBefore) {
-        await this.graphService?.restore(graphStateBefore).catch(() => {});
+      if (generatorStateBefore) {
+        await this.generatorService?.restore(generatorStateBefore).catch(() => {});
       }
       throw err;
     }
@@ -1258,7 +1214,6 @@ export class CollectionService {
             id: collectionId,
           },
         ],
-        views: stateBefore.views,
       },
       tokensByCollection: addCollectionTokensToWorkspace(
         tokensBefore,
@@ -1340,7 +1295,7 @@ export class CollectionService {
   async deleteCollection(collectionId: string): Promise<void> {
     const stateBefore = await this.collectionStore.loadState();
     requireCollection(stateBefore, collectionId);
-    this.graphService?.assertNoCollectionReferences([collectionId]);
+    this.generatorService?.assertNoCollectionReferences([collectionId]);
     const lintConfigBefore = await this.loadLintConfig();
     const tokensBefore = await this.captureWorkspaceTokensForState(stateBefore);
     const nextState = deleteCollectionIdsFromState(stateBefore, [collectionId]);
@@ -1372,7 +1327,7 @@ export class CollectionService {
     for (const collectionId of collectionIds) {
       requireCollection(stateBefore, collectionId);
     }
-    this.graphService?.assertNoCollectionReferences(collectionIds);
+    this.generatorService?.assertNoCollectionReferences(collectionIds);
     const lintConfigBefore = await this.loadLintConfig();
     const tokensBefore = await this.captureWorkspaceTokensForState(stateBefore);
     const nextState = deleteCollectionIdsFromState(stateBefore, collectionIds);
@@ -1481,7 +1436,7 @@ export class CollectionService {
       const tokensCopyWithModes = rewriteTokenGroupCollectionModes(source.tokens, (modes) =>
         copyCollectionModeKey(modes, sourceCollectionId, nextName!),
       ).tokens;
-      const tokensCopy = stripAutomationOwnershipFromTokenGroup(tokensCopyWithModes);
+      const tokensCopy = stripGeneratorOwnershipFromTokenGroup(tokensCopyWithModes);
       await this.createCollectionFromSourceDefinition(
         sourceCollectionId,
         nextName,
@@ -1805,7 +1760,7 @@ export class CollectionService {
           ) {
             continue;
           }
-          const cleanedTokens = stripAutomationOwnershipFromTokenGroup(
+          const cleanedTokens = stripGeneratorOwnershipFromTokenGroup(
             groupTokens as TokenGroup,
           );
           const renamedTokens = rewriteTokenGroupCollectionModes(
@@ -2239,7 +2194,7 @@ export class CollectionService {
     });
 
     return {
-      previousState: previousState ?? { collections: [], views: [] },
+      previousState: previousState ?? { collections: [] },
       result,
     };
   }
@@ -2299,7 +2254,7 @@ export class CollectionService {
         ],
         afterSnapshot,
         beforeSnapshot,
-        previousState: previousState ?? { collections: [], views: [] },
+        previousState: previousState ?? { collections: [] },
         result,
       };
     } catch (err) {
@@ -2356,7 +2311,6 @@ export class CollectionService {
         result: { option, status },
         state: {
           collections: nextCollections,
-          views: state.views,
         },
       };
     });
@@ -2424,16 +2378,6 @@ export class CollectionService {
         result: collection.modes[modeIndex],
         state: {
           collections: nextCollections,
-          views: state.views.map((view) => ({
-            ...view,
-            selections:
-              view.selections[collectionId] === previousModeName
-                ? {
-                    ...view.selections,
-                    [collectionId]: nextModeName,
-                  }
-                : view.selections,
-          })),
         },
         tokenPatchesByCollection,
       };
@@ -2488,7 +2432,6 @@ export class CollectionService {
         result: collection,
         state: {
           collections: nextCollections,
-          views: state.views,
         },
         tokenPatchesByCollection,
       };
@@ -2541,90 +2484,10 @@ export class CollectionService {
         result: undefined,
         state: {
           collections: nextCollections,
-          views: state.views.map((view) => {
-            if (view.selections[collectionId] !== modeName) {
-              return view;
-            }
-            const nextSelections = { ...view.selections };
-            delete nextSelections[collectionId];
-            return {
-              ...view,
-              selections: nextSelections,
-            };
-          }),
         },
         tokenPatchesByCollection,
       };
     });
   }
 
-  async createView(
-    view: { id: string; name: string; selections: SelectedModes },
-  ): Promise<CollectionStateMutationResult<ViewPreset>> {
-    return this.mutateCollectionState(async (state) => {
-      if (state.views.some((candidate) => candidate.id === view.id)) {
-        throw new ConflictError(`View "${view.id}" already exists`);
-      }
-
-      const nextView: ViewPreset = {
-        id: view.id,
-        name: view.name,
-        selections: normalizeSelectedModes(state.collections, view.selections),
-      };
-
-      return {
-        result: nextView,
-        state: {
-          ...state,
-          views: [...state.views, nextView],
-        },
-      };
-    });
-  }
-
-  async updateView(
-    view: { id: string; name: string; selections: SelectedModes },
-  ): Promise<CollectionStateMutationResult<ViewPreset>> {
-    return this.mutateCollectionState(async (state) => {
-      const viewIndex = state.views.findIndex(
-        (candidate) => candidate.id === view.id,
-      );
-      if (viewIndex === -1) {
-        throw new NotFoundError(`View "${view.id}" not found`);
-      }
-
-      const nextView: ViewPreset = {
-        id: view.id,
-        name: view.name,
-        selections: normalizeSelectedModes(state.collections, view.selections),
-      };
-      const nextViews = state.views.slice();
-      nextViews[viewIndex] = nextView;
-
-      return {
-        result: nextView,
-        state: {
-          ...state,
-          views: nextViews,
-        },
-      };
-    });
-  }
-
-  async deleteView(viewId: string): Promise<CollectionStateMutationResult<ViewPreset>> {
-    return this.mutateCollectionState(async (state) => {
-      const existingView = state.views.find((view) => view.id === viewId);
-      if (!existingView) {
-        throw new NotFoundError(`View "${viewId}" not found`);
-      }
-
-      return {
-        result: existingView,
-        state: {
-          ...state,
-          views: state.views.filter((view) => view.id !== viewId),
-        },
-      };
-    });
-  }
 }

@@ -15,9 +15,12 @@ export interface ValidationIssue {
   /** Concrete fix target — e.g. an alias path like `{primitive.color}` */
   suggestion?: string;
   /** For no-duplicate-values: canonical token path shared by all tokens in this duplicate group. */
-  group?: string;
-  graphId?: string;
-}
+	  group?: string;
+	  generatorId?: string;
+	  generatorDiagnosticId?: string;
+	  generatorNodeId?: string;
+	  generatorEdgeId?: string;
+	}
 
 export interface ValidationCacheResult {
   /** null = validation has never run; [] = ran with no issues */

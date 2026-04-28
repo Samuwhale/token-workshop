@@ -4,9 +4,9 @@ export interface CollectionResolverImpact {
   name: string;
 }
 
-export interface CollectionGraphImpact {
-  graphId: string;
-  graphName: string;
+export interface CollectionGeneratorImpact {
+  generatorId: string;
+  generatorName: string;
 }
 
 export interface CollectionPreflightImpact {
@@ -16,12 +16,12 @@ export interface CollectionPreflightImpact {
     description?: string;
   };
   resolverRefs: CollectionResolverImpact[];
-  graphRefs: CollectionGraphImpact[];
+  generatorRefs: CollectionGeneratorImpact[];
 }
 
 export interface CollectionPreflightBlocker {
   id: string;
-  code: "resolver-collection-ref" | "graph-collection-ref";
+  code: "resolver-collection-ref" | "generator-collection-ref";
   collectionId: string;
   message: string;
 }

@@ -12,7 +12,7 @@ import {
   isFormula,
   isReference,
   flattenTokenGroup,
-  readGraphProvenance,
+  readGeneratorProvenance,
   readTokenScopes,
   stableStringify,
   TokenResolver,
@@ -1441,7 +1441,7 @@ export class TokenStore {
               skip = true;
               break;
             }
-            if ((h === "managed" || h === "graph") && !readGraphProvenance(entry.token)) {
+            if ((h === "managed" || h === "generator") && !readGeneratorProvenance(entry.token)) {
               skip = true;
               break;
             }
@@ -2618,5 +2618,5 @@ export interface ChangeEvent {
   collectionId: string;
   tokenPath?: string;
   message?: string;
-  resourceType?: "collections" | "graphs" | "resolver";
+  resourceType?: "collections" | "generators" | "resolver";
 }

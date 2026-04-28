@@ -1,7 +1,4 @@
-import type {
-  SelectedModes,
-  TokenCollection,
-} from "@tokenmanager/core";
+import type { TokenCollection } from "@tokenmanager/core";
 import type { TokenEditorModeValues } from "./tokenEditorTypes";
 import {
   readTokenCollectionModeValues,
@@ -9,6 +6,8 @@ import {
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { resolveAllAliases } from "../../shared/resolveAlias";
+
+type ModeSelections = Record<string, string>;
 
 function readTokenModes(
   entry: TokenMapEntry | undefined,
@@ -86,7 +85,7 @@ export function completeEditorCollectionModeValues(
 export function applyModeSelectionsToTokens(
   allTokensFlat: Record<string, TokenMapEntry>,
   collections: TokenCollection[],
-  selections: SelectedModes,
+  selections: ModeSelections,
   pathToCollectionId?: Record<string, string>,
 ): Record<string, TokenMapEntry> {
   if (collections.length === 0 || Object.keys(selections).length === 0) {

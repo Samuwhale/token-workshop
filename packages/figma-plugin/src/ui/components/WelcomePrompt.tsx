@@ -12,8 +12,8 @@ type StartHereBranchCopy = {
 
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
-    title: "Set up this file",
-    description: "Create the first collection, import an existing token system, or start from the layers already selected in Figma.",
+    title: "Start with a collection",
+    description: "Set up the first collection for this file, then add tokens to it or bring in structure you already maintain elsewhere.",
   },
   "start-new": {
     title: "Create your first collection",
@@ -37,7 +37,6 @@ interface WelcomePromptProps {
   onImportExistingSystem: () => void;
   onStartFromSelection: () => void;
   onAuthorFirstToken?: () => void;
-  onOpenGraph?: () => void;
   onGuidedSetupComplete: () => void;
   onCollectionCreated?: (name: string) => void;
 }
@@ -126,7 +125,6 @@ export function WelcomePrompt({
   onImportExistingSystem,
   onStartFromSelection,
   onAuthorFirstToken,
-  onOpenGraph,
   onGuidedSetupComplete,
   onCollectionCreated,
 }: WelcomePromptProps) {
@@ -147,6 +145,7 @@ export function WelcomePrompt({
         title="Create your first collection"
         description="Start with one collection and the mode contexts it needs."
         onClick={() => setBranch("start-new")}
+        emphasized
         icon={
           <svg
             width="14"
@@ -302,14 +301,13 @@ export function WelcomePrompt({
                 embedded
                 onBack={() => setBranch("root")}
                 onClose={onClose}
-                onComplete={onGuidedSetupComplete}
-                onCollectionCreated={onCollectionCreated}
-                onRetryConnection={onRetryConnection}
-                onAuthorFirstToken={onAuthorFirstToken}
-                onOpenGraph={onOpenGraph}
-              />
-            </div>
-          )}
+              onComplete={onGuidedSetupComplete}
+              onCollectionCreated={onCollectionCreated}
+              onRetryConnection={onRetryConnection}
+              onAuthorFirstToken={onAuthorFirstToken}
+            />
+          </div>
+        )}
         </div>
       </div>
     </div>

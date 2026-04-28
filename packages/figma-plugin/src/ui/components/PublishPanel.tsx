@@ -50,6 +50,7 @@ import {
   type VariablePublishCompareMode,
   type PublishDiffRow as DiffRow,
   type PublishSyncEntry,
+  type PublishPreflightCluster,
   type PublishPreflightActionId,
   type SyncWorkflowStage,
 } from '../shared/syncWorkflow';
@@ -255,6 +256,17 @@ interface PublishPanelProps {
     routing: PublishRoutingDraft,
   ) => Promise<{ collectionName?: string; modeName?: string }>;
   refreshValidation: () => Promise<ValidationSnapshot | null>;
+	  onOpenGenerator?: (
+	    generatorId: string,
+	    options?: {
+	      preserveHandoff?: boolean;
+	      focus?: {
+	        diagnosticId?: string;
+	        nodeId?: string;
+	        edgeId?: string;
+	      };
+	    },
+	  ) => void;
   /** Increments whenever tokens are edited — used to detect stale readiness results */
   tokenChangeKey?: number;
   publishPanelHandle?: React.MutableRefObject<PublishPanelHandle | null>;
@@ -278,6 +290,7 @@ export function PublishPanel({
   perCollectionFlat,
   savePublishRouting,
   refreshValidation,
+  onOpenGenerator,
   tokenChangeKey,
   publishPanelHandle,
 }: PublishPanelProps) {
@@ -882,7 +895,15 @@ export function PublishPanel({
     target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, []);
 
-  const handlePreflightAction = useCallback(async (actionId: PublishPreflightActionId) => {
+  const handlePreflightAction = useCallback(async (
+    actionId: PublishPreflightActionId,
+	    cluster?: {
+	      recommendedGeneratorId?: string;
+	      recommendedGeneratorDiagnosticId?: string;
+	      recommendedGeneratorNodeId?: string;
+	      recommendedGeneratorEdgeId?: string;
+	    },
+  ) => {
     setPreflightActionBusyId(actionId);
     try {
       if (isResolverPublishCompareActive && actionId === 'push-missing-variables') {
@@ -908,6 +929,27 @@ export function PublishPanel({
           onReturn: () => focusStage('preflight'),
         });
         navigateTo('library', 'health', { preserveHandoff: true });
+        return;
+      }
+
+      if (actionId === 'review-generator-issues') {
+        beginHandoff({
+          reason:
+            'Review the generator outputs behind these blockers, then return to Sync.',
+          onReturn: () => focusStage('preflight'),
+        });
+	        if (cluster?.recommendedGeneratorId && onOpenGenerator) {
+	          onOpenGenerator(cluster.recommendedGeneratorId, {
+	            preserveHandoff: true,
+	            focus: {
+	              diagnosticId: cluster.recommendedGeneratorDiagnosticId,
+	              nodeId: cluster.recommendedGeneratorNodeId,
+	              edgeId: cluster.recommendedGeneratorEdgeId,
+	            },
+	          });
+	          return;
+	        }
+        navigateTo('library', 'generators', { preserveHandoff: true });
         return;
       }
 
@@ -941,18 +983,22 @@ export function PublishPanel({
     beginHandoff,
     isResolverPublishCompareActive,
     navigateTo,
+    onOpenGenerator,
     syncResolverPublishModes,
     triggerReadinessAction,
     varSync,
   ]);
 
-  const preflightActionHandlers = useMemo(() => ({
-    'push-missing-variables': () => void handlePreflightAction('push-missing-variables'),
-    'delete-orphan-variables': () => void handlePreflightAction('delete-orphan-variables'),
-    'review-variable-scopes': () => void handlePreflightAction('review-variable-scopes'),
-    'add-token-descriptions': () => void handlePreflightAction('add-token-descriptions'),
-    'review-draft-tokens': () => void handlePreflightAction('review-draft-tokens'),
-    'review-health-findings': () => void handlePreflightAction('review-health-findings'),
+  const preflightActionHandlers = useMemo<
+    Partial<Record<PublishPreflightActionId, (cluster: PublishPreflightCluster) => void>>
+  >(() => ({
+    'push-missing-variables': (cluster) => void handlePreflightAction('push-missing-variables', cluster),
+    'delete-orphan-variables': (cluster) => void handlePreflightAction('delete-orphan-variables', cluster),
+    'review-variable-scopes': (cluster) => void handlePreflightAction('review-variable-scopes', cluster),
+    'add-token-descriptions': (cluster) => void handlePreflightAction('add-token-descriptions', cluster),
+    'review-draft-tokens': (cluster) => void handlePreflightAction('review-draft-tokens', cluster),
+    'review-generator-issues': (cluster) => void handlePreflightAction('review-generator-issues', cluster),
+    'review-health-findings': (cluster) => void handlePreflightAction('review-health-findings', cluster),
   }), [handlePreflightAction]);
 
   const handleSync = useCallback(async () => {

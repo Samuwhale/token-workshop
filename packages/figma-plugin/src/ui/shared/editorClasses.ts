@@ -2,7 +2,7 @@ import { severityStyles } from './noticeSystem';
 import { LONG_TEXT_CLASSES } from './longTextStyles';
 
 /**
- * Unified authoring surface classes for all token/graph generation creation and editing screens.
+ * Unified authoring surface classes for all token/generator creation and editing screens.
  * Single source of truth for form controls, labels, sections, summaries, and footer buttons.
  */
 export const AUTHORING = {

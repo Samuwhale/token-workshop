@@ -50,13 +50,13 @@ export type TokenEntry = CommandPaletteToken;
 export interface GroupEntry {
   path: string;
   childCount: number;
-  sets: string[];
+  collectionLabels: string[];
 }
 
 interface CommandPaletteProps {
   commands: Command[];
   tokens?: TokenEntry[];
-  allSetTokens?: TokenEntry[];
+  allCollectionTokens?: TokenEntry[];
   starredTokens?: TokenEntry[];
   recentTokens?: TokenEntry[];
   onGoToToken?: (token: TokenEntry) => void;
@@ -154,12 +154,12 @@ function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): Toke
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], allSetTokens, starredTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onRenameToken, onDeleteToken, onMoveToken, onClose, initialQuery = '' }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], allCollectionTokens, starredTokens, recentTokens, onGoToToken, onGoToGroup, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenRef, onCopyTokenValue, onDuplicateToken, onRenameToken, onDeleteToken, onMoveToken, onClose, initialQuery = '' }: CommandPaletteProps) {
   const [query, setQuery] = useState(initialQuery);
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
   const [showAllQualifiers, setShowAllQualifiers] = useState(false);
-  const [searchAllSets, setSearchAllSets] = useState(false);
+  const [searchAllCollections, setSearchAllSets] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -197,26 +197,26 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
   const isTokenMode = query.startsWith('>');
   const tokenQuery = isTokenMode ? query.slice(1).trim() : '';
 
-  // Active token list: all-sets or current-set
-  const activeTokenList = searchAllSets && allSetTokens ? allSetTokens : tokens;
+  // Active token list: all-collections or current-collection
+  const activeTokenList = searchAllCollections && allCollectionTokens ? allCollectionTokens : tokens;
 
   // Derive unique group paths from tokens
   const groups: GroupEntry[] = useMemo(() => {
     if (!activeTokenList.length) return [];
-    const groupMap = new Map<string, { count: number; sets: Set<string> }>();
+    const groupMap = new Map<string, { count: number; collectionLabels: Set<string> }>();
     for (const t of activeTokenList) {
       const parts = t.path.split('.');
       // Build every ancestor group path (all but the leaf)
       for (let i = 1; i < parts.length; i++) {
         const gp = parts.slice(0, i).join('.');
         let entry = groupMap.get(gp);
-        if (!entry) { entry = { count: 0, sets: new Set() }; groupMap.set(gp, entry); }
+        if (!entry) { entry = { count: 0, collectionLabels: new Set() }; groupMap.set(gp, entry); }
         entry.count++;
-        if (t.set) entry.sets.add(t.set);
+        if (t.collectionLabel) entry.collectionLabels.add(t.collectionLabel);
       }
     }
     return Array.from(groupMap.entries())
-      .map(([path, { count, sets }]) => ({ path, childCount: count, sets: Array.from(sets) }))
+      .map(([path, { count, collectionLabels }]) => ({ path, childCount: count, collectionLabels: Array.from(collectionLabels) }))
       .sort((a, b) => a.path.localeCompare(b.path));
   }, [activeTokenList]);
 
@@ -254,7 +254,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
       // Qualifiers only, no free text
       return { filteredTokens: base.slice(0, visibleCount), totalTokenMatches: base.length };
     }
-    // Free text fuzzy matching on the qualifier-filtered set
+    // Free text fuzzy matching on the qualifier-filtered collection
     const matched = base
       .map(t => ({
         t,
@@ -466,7 +466,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isTokenMode
-              ? (searchAllSets ? 'Search all collections… (type:color, has:ref, path:brand)' : 'Search tokens… (type:color, has:ref, path:brand)')
+              ? (searchAllCollections ? 'Search all collections… (type:color, has:ref, path:brand)' : 'Search tokens… (type:color, has:ref, path:brand)')
               : 'Search expert actions… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
@@ -527,17 +527,17 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
             >
               {showAllQualifiers ? 'fewer' : `+${QUERY_QUALIFIERS.length - 6} more`}
             </button>
-            {allSetTokens && (
+            {allCollectionTokens && (
               <button
                 className={`ml-auto text-secondary px-1.5 py-0.5 rounded border transition-colors shrink-0 font-medium ${
-                  searchAllSets
+                  searchAllCollections
                     ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
                     : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
                 onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
-                title={searchAllSets ? 'Searching across collections — click to search only the working collection' : 'Search across all token collections'}
+                title={searchAllCollections ? 'Searching across collections — click to search only the working collection' : 'Search across all token collections'}
               >
-                {searchAllSets ? 'Across collections' : 'Working collection only'}
+                {searchAllCollections ? 'Across collections' : 'Working collection only'}
               </button>
             )}
           </div>
@@ -656,15 +656,15 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
                     }
                   </span>
-                  {searchAllSets && <span className="whitespace-nowrap text-[var(--color-figma-accent)] opacity-70">across all collections</span>}
+                  {searchAllCollections && <span className="whitespace-nowrap text-[var(--color-figma-accent)] opacity-70">across all collections</span>}
                 </div>
               )}
               {filteredTokens.length === 0 && filteredGroups.length === 0 && (
                 <div className="px-3 py-6 text-center text-body text-[var(--color-figma-text-secondary)]">
                   {tokenQuery
-                    ? `No tokens or groups match "${tokenQuery}"${!searchAllSets && allSetTokens ? ' in this collection' : ''}`
+                    ? `No tokens or groups match "${tokenQuery}"${!searchAllCollections && allCollectionTokens ? ' in this collection' : ''}`
                     : <>
-                        Type a token path to search{searchAllSets ? ' across all collections' : ''}
+                        Type a token path to search{searchAllCollections ? ' across all collections' : ''}
                         <div className="mt-1.5 flex flex-col items-center gap-1">
                           <div className="flex gap-1.5 flex-wrap justify-center">
                             {['type:', 'has:alias', 'value:', 'path:', 'name:'].map(q => (
@@ -686,7 +686,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                         </div>
                       </>
                   }
-                  {tokenQuery && !searchAllSets && allSetTokens && (
+                  {tokenQuery && !searchAllCollections && allCollectionTokens && (
                     <div className="mt-1.5">
                       <button
                         className="text-secondary text-[var(--color-figma-accent)] hover:underline"
@@ -768,9 +768,9 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       </span>
                     ) : null}
                     <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
-                    {token.set && (
+                    {searchAllCollections && token.collectionLabel && (
                       <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium max-w-[40%] truncate ${isActive ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                        {token.set}
+                        {token.collectionLabel}
                       </span>
                     )}
                   </button>
@@ -932,9 +932,9 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       <span className="w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ backgroundColor: swatchBgColor(token.value) }} />
                     ) : null}
                     <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
-                    {token.set && (
+                    {searchAllCollections && token.collectionLabel && (
                       <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                        {token.set}
+                        {token.collectionLabel}
                       </span>
                     )}
                   </button>
@@ -969,9 +969,9 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
                       <span className="w-3 h-3 rounded-full shrink-0 border border-black/10" style={{ backgroundColor: swatchBgColor(token.value) }} />
                     ) : null}
                     <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
-                    {token.set && (
+                    {searchAllCollections && token.collectionLabel && (
                       <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
-                        {token.set}
+                        {token.collectionLabel}
                       </span>
                     )}
                   </button>
@@ -1078,7 +1078,7 @@ export function CommandPalette({ commands, tokens = [], allSetTokens, starredTok
             <>
               <span className="whitespace-nowrap">↑↓ navigate</span>
               <span className="whitespace-nowrap">↵ go to token/group</span>
-              {searchAllSets
+              {searchAllCollections
                 ? <span className="whitespace-nowrap text-[var(--color-figma-accent)] opacity-80">searching all collections</span>
                 : <button className="min-w-0 truncate opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
               }

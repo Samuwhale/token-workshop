@@ -33,6 +33,7 @@ export type PublishPreflightActionId =
   | 'review-variable-scopes'
   | 'add-token-descriptions'
   | 'review-draft-tokens'
+  | 'review-generator-issues'
   | 'review-health-findings';
 
 export interface PublishPreflightCluster {
@@ -42,9 +43,13 @@ export interface PublishPreflightCluster {
   severity: PublishPreflightSeverity;
   affectedCount?: number;
   detail?: string;
-  recommendedActionLabel?: string;
-  recommendedActionId?: PublishPreflightActionId;
-}
+	  recommendedActionLabel?: string;
+	  recommendedActionId?: PublishPreflightActionId;
+	  recommendedGeneratorId?: string;
+	  recommendedGeneratorDiagnosticId?: string;
+	  recommendedGeneratorNodeId?: string;
+	  recommendedGeneratorEdgeId?: string;
+	}
 
 export interface PublishPreflightState {
   stage: PublishPreflightStage;

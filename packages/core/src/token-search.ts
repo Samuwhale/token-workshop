@@ -66,31 +66,23 @@ export const CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET = new Set<string>(
 
 export const SEARCH_HAS_VALUES = new Set<string>([
   "alias",
-  "ref",
   "direct",
   "duplicate",
-  "dup",
   "description",
-  "desc",
   "extension",
-  "ext",
   "managed",
-  "graph",
+  "generator",
   "unused",
 ]);
 
 export const CROSS_COLLECTION_SEARCH_HAS_VALUES = new Set<string>([
   "alias",
-  "ref",
   "direct",
   "duplicate",
-  "dup",
   "description",
-  "desc",
   "extension",
-  "ext",
   "managed",
-  "graph",
+  "generator",
 ]);
 
 export const SEARCH_HAS_CANONICAL_MAP: Record<
@@ -98,15 +90,11 @@ export const SEARCH_HAS_CANONICAL_MAP: Record<
   SearchHasQualifierValue
 > = {
   alias: "alias",
-  ref: "alias",
   direct: "direct",
   duplicate: "duplicate",
-  dup: "duplicate",
   description: "description",
-  desc: "description",
   extension: "extension",
-  ext: "extension",
   managed: "managed",
-  graph: "managed",
+  generator: "managed",
   unused: "unused",
 };

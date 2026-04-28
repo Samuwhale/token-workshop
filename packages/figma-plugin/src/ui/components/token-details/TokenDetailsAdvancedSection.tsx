@@ -6,26 +6,26 @@ interface TokenDetailsAdvancedSectionProps {
   open: boolean;
   onToggle: () => void;
   extendsSection?: ReactNode;
-  isInspectMode: boolean;
   readOnlyExtensionsText: string;
   extensionsJsonText: string;
   onExtensionsJsonTextChange: (value: string) => void;
   extensionsJsonError: string | null;
   onExtensionsJsonErrorChange: (value: string | null) => void;
   rawJsonPreview: string;
+  editable?: boolean;
 }
 
 export function TokenDetailsAdvancedSection({
   open,
   onToggle,
   extendsSection,
-  isInspectMode,
   readOnlyExtensionsText,
   extensionsJsonText,
   onExtensionsJsonTextChange,
   extensionsJsonError,
   onExtensionsJsonErrorChange,
   rawJsonPreview,
+  editable = true,
 }: TokenDetailsAdvancedSectionProps) {
   return (
     <Collapsible
@@ -42,7 +42,7 @@ export function TokenDetailsAdvancedSection({
               Additional DTCG metadata and plugin-specific fields.
             </p>
           </div>
-          {isInspectMode ? (
+          {!editable ? (
             <pre className="tm-token-details__code-block">{readOnlyExtensionsText}</pre>
           ) : (
             <MetadataEditor

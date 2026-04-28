@@ -26,9 +26,9 @@ import { docsRoutes } from "./routes/docs.js";
 import { helpRoutes } from "./routes/help.js";
 import { TokenStore } from "./services/token-store.js";
 import { GitSync } from "./services/git-sync.js";
-import { TokenGraphService } from "./services/token-graph-service.js";
+import { TokenGeneratorService } from "./services/token-generator-service.js";
 import { OperationLog } from "./services/operation-log.js";
-import { graphRoutes } from "./routes/graphs.js";
+import { generatorRoutes } from "./routes/generators.js";
 import { operationRoutes } from "./routes/operations.js";
 import { resolverRoutes } from "./routes/resolvers.js";
 import { ResolverStore } from "./services/resolver-store.js";
@@ -109,8 +109,8 @@ export async function startServer(config: ServerConfig) {
 
   const gitSync = new GitSync(config.tokenDir);
 
-  const graphService = new TokenGraphService(config.tokenDir);
-  await graphService.initialize();
+  const generatorService = new TokenGeneratorService(config.tokenDir);
+  await generatorService.initialize();
 
   const operationLog = new OperationLog(config.tokenDir);
 
@@ -129,14 +129,14 @@ export async function startServer(config: ServerConfig) {
     resolverStore,
     resolverStore.lock,
     lintConfigStore,
-    graphService,
+    generatorService,
   );
 
   // Replay any snapshot restore that was interrupted by a previous crash
   await manualSnapshots.recoverPendingRestore(
     collectionService,
     resolverStore,
-    graphService,
+    generatorService,
     lintConfigStore,
   );
 
@@ -146,15 +146,15 @@ export async function startServer(config: ServerConfig) {
 
   const emitWorkspaceFileEvent = (
     type: "workspace-file-changed" | "workspace-file-removed",
-    resourceType: "collections" | "graphs" | "resolver",
+    resourceType: "collections" | "generators" | "resolver",
     collectionId: string,
   ) => {
     eventBus.push({ type, resourceType, collectionId });
   };
 
-  const graphsFilePath = path.join(config.tokenDir, "$graphs.json");
+  const generatorsFilePath = path.join(config.tokenDir, "$generators.json");
   const workspaceWatcher = watch(
-    [collectionsStore.filePath, graphsFilePath],
+    [collectionsStore.filePath, generatorsFilePath],
     {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200 },
@@ -183,20 +183,20 @@ export async function startServer(config: ServerConfig) {
     }
   };
 
-  const reloadGraphsFromDisk = async (removed = false) => {
+  const reloadGeneratorsFromDisk = async (removed = false) => {
     try {
-      await graphService.reloadFromDisk();
+      await generatorService.reloadFromDisk();
       emitWorkspaceFileEvent(
         removed ? "workspace-file-removed" : "workspace-file-changed",
-        "graphs",
-        "$graphs",
+        "generators",
+        "$generators",
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.warn("[TokenGraphService] Failed to reload graphs from disk:", err);
+      console.warn("[TokenGeneratorService] Failed to reload generators from disk:", err);
       tokenStore.emitEvent({
         type: "file-load-error",
-        collectionId: "$graphs",
+        collectionId: "$generators",
         message,
       });
     }
@@ -208,8 +208,8 @@ export async function startServer(config: ServerConfig) {
       void reloadCollectionsFromDisk();
       return;
     }
-    if (filePath === graphsFilePath) {
-      void tokenLock.withLock(() => reloadGraphsFromDisk());
+    if (filePath === generatorsFilePath) {
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
     }
   });
 
@@ -219,8 +219,8 @@ export async function startServer(config: ServerConfig) {
       void reloadCollectionsFromDisk();
       return;
     }
-    if (filePath === graphsFilePath) {
-      void tokenLock.withLock(() => reloadGraphsFromDisk());
+    if (filePath === generatorsFilePath) {
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk());
     }
   });
 
@@ -230,8 +230,8 @@ export async function startServer(config: ServerConfig) {
       void reloadCollectionsFromDisk();
       return;
     }
-    if (filePath === graphsFilePath) {
-      void tokenLock.withLock(() => reloadGraphsFromDisk(true));
+    if (filePath === generatorsFilePath) {
+      void tokenLock.withLock(() => reloadGeneratorsFromDisk(true));
     }
   });
 
@@ -245,7 +245,7 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate("resolverLock", resolverStore.lock);
   fastify.decorate("collectionsStore", collectionsStore);
   fastify.decorate("gitSync", gitSync);
-  fastify.decorate("graphService", graphService);
+  fastify.decorate("generatorService", generatorService);
   fastify.decorate("operationLog", operationLog);
   fastify.decorate("resolverStore", resolverStore);
   fastify.decorate("manualSnapshots", manualSnapshots);
@@ -294,7 +294,7 @@ export async function startServer(config: ServerConfig) {
     prefix: "/api",
     tokenDir: config.tokenDir,
   });
-  await fastify.register(graphRoutes, { prefix: "/api" });
+  await fastify.register(generatorRoutes, { prefix: "/api" });
   await fastify.register(operationRoutes, { prefix: "/api" });
   await fastify.register(resolverRoutes, { prefix: "/api" });
   await fastify.register(snapshotRoutes, { prefix: "/api" });
@@ -322,7 +322,7 @@ declare module "fastify" {
     tokenLock: PromiseChainLock;
     resolverLock: PromiseChainLock;
     gitSync: GitSync;
-    graphService: TokenGraphService;
+    generatorService: TokenGeneratorService;
     operationLog: OperationLog;
     resolverStore: ResolverStore;
     manualSnapshots: ManualSnapshotStore;

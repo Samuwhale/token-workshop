@@ -121,13 +121,27 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
             $description?: string;
           };
         }> = [];
-        const metadataChanges = Array.isArray(entry.metadata?.changes)
-          ? entry.metadata.changes.map((change) => ({
-              ...change,
-              before: change.after,
-              after: change.before,
-            }))
-          : [];
+	        const metadataChanges = Array.isArray(entry.metadata?.changes)
+	          ? entry.metadata.changes.map((change) => ({
+	              ...change,
+	              before: change.after,
+	              after: change.before,
+	            }))
+	          : [];
+	        const generatorRestoreStep = entry.rollbackSteps?.find(
+	          (step) => step.action === "restore-generators",
+	        );
+	        if (generatorRestoreStep) {
+	          const metadata = entry.metadata as Record<string, unknown> | undefined;
+	          const generatorName =
+	            typeof metadata?.generatorName === "string" ? metadata.generatorName : "Generator";
+	          metadataChanges.push({
+	            field: "generators",
+	            label: "Generator documents",
+	            before: `${generatorName} current state`,
+	            after: `${generatorRestoreStep.generators.length} stored generator${generatorRestoreStep.generators.length === 1 ? "" : "s"}`,
+	          });
+	        }
         for (const p of allPaths) {
           const currentEntry = entry.afterSnapshot[p];
           const restoredEntry = entry.beforeSnapshot[p];
@@ -202,7 +216,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
               collectionService: fastify.collectionService,
               resolverLock: fastify.resolverLock,
               resolverStore: fastify.resolverStore,
-              graphService: fastify.graphService,
+              generatorService: fastify.generatorService,
               lintConfigStore: fastify.lintConfigStore,
             },
           );

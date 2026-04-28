@@ -104,8 +104,8 @@ function CollectionPreflightCard({
   label?: string;
   collectionDisplayNames?: Record<string, string>;
 }) {
-  const graphRefs = impact.graphRefs ?? [];
-  const hasDependencies = impact.resolverRefs.length > 0 || graphRefs.length > 0;
+  const generatorRefs = impact.generatorRefs ?? [];
+  const hasDependencies = impact.resolverRefs.length > 0 || generatorRefs.length > 0;
   const displayName = getCollectionDisplayName(impact.collectionId, collectionDisplayNames);
 
   return (
@@ -132,7 +132,7 @@ function CollectionPreflightCard({
       ) : null}
       {!hasDependencies ? (
         <div className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
-          No linked resolver or graph dependencies detected.
+          No linked resolver or generator dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
@@ -153,18 +153,18 @@ function CollectionPreflightCard({
               </div>
             </div>
           ) : null}
-          {graphRefs.length > 0 ? (
+          {generatorRefs.length > 0 ? (
             <div className="flex flex-col gap-1">
               <div className="text-secondary font-medium text-[var(--color-figma-text)]">
-                Graph refs ({graphRefs.length})
+                Generator refs ({generatorRefs.length})
               </div>
               <div className="flex flex-wrap gap-1">
-                {graphRefs.map((graph) => (
+                {generatorRefs.map((generator) => (
                   <span
-                    key={graph.graphId}
+                    key={generator.generatorId}
                     className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)]"
                   >
-                    {graph.graphName}
+                    {generator.generatorName}
                   </span>
                 ))}
               </div>

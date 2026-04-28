@@ -275,7 +275,7 @@ export function useCommandPaletteCommands(): {
           "Start from generator templates and edit advanced output flows",
         category: "Tokens",
         handler: () => {
-          shell.openGraphWorkspace();
+          shell.openGeneratorsWorkspace();
         },
       },
       {

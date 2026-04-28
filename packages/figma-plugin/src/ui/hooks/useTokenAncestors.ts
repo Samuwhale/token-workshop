@@ -7,7 +7,7 @@ import {
   type TokenCollection,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
-import { projectTokenEntriesToGraphTokens } from "../shared/graphTokens";
+import { projectTokenEntriesToResolutionTokens } from "../shared/tokenProjection";
 
 // Mode-aware upstream alias walker. Dependents are fetched from the server
 // (see useTokenDependents); ancestors are derived locally because the server
@@ -36,7 +36,7 @@ export function useTokenAncestors({
   collectionIdsByPath,
 }: UseTokenAncestorsParams): { chains: AncestorChainByMode[]; isEmpty: boolean } {
   const tokensByCollection = useMemo(
-    () => projectTokenEntriesToGraphTokens(perCollectionFlat),
+    () => projectTokenEntriesToResolutionTokens(perCollectionFlat),
     [perCollectionFlat],
   );
 

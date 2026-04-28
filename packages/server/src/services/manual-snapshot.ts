@@ -5,15 +5,14 @@ import { flattenTokenGroup, stableStringify } from "@tokenmanager/core";
 import type {
   ResolverFile,
   TokenCollection,
-  ViewPreset,
   Token,
-  TokenGraphDocument,
+  TokenGeneratorDocument,
   TokenGroup,
 } from "@tokenmanager/core";
 import type { TokenStore } from "./token-store.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { CollectionService } from "./collection-service.js";
-import type { TokenGraphService } from "./token-graph-service.js";
+import type { TokenGeneratorService } from "./token-generator-service.js";
 import type { LintConfig, LintConfigStore } from "./lint.js";
 import { NotFoundError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -30,19 +29,18 @@ export interface ManualSnapshotToken {
 
 type SnapshotCollectionTokens = Record<string, Record<string, ManualSnapshotToken>>;
 type SnapshotResolvers = Record<string, ResolverFile>;
-type SnapshotGraphs = TokenGraphDocument[];
+type SnapshotGenerators = TokenGeneratorDocument[];
 
 type ManualSnapshotComparableState = Pick<
   ManualSnapshotEntry,
-  "data" | "collections" | "views" | "resolvers" | "graphs" | "lintConfig"
+  "data" | "collections" | "resolvers" | "generators" | "lintConfig"
 >;
 
 interface RestoreWorkspaceState {
   collectionIds: string[];
   collections: TokenCollection[];
-  views?: ViewPreset[];
   resolvers: SnapshotResolvers;
-  graphs: SnapshotGraphs;
+  generators: SnapshotGenerators;
   lintConfig: LintConfig;
 }
 
@@ -54,7 +52,6 @@ type RestorePlanStep =
   | (RestorePlanStepBase & {
       kind: "restore-collection-workspace";
       collections: TokenCollection[];
-      views: ViewPreset[];
       data: SnapshotCollectionTokens;
     })
   | (RestorePlanStepBase & {
@@ -67,8 +64,8 @@ type RestorePlanStep =
       name: string;
     })
   | (RestorePlanStepBase & {
-      kind: "restore-graphs";
-      graphs: SnapshotGraphs;
+      kind: "restore-generators";
+      generators: SnapshotGenerators;
     })
   | (RestorePlanStepBase & {
       kind: "restore-lint-config";
@@ -80,9 +77,8 @@ interface RestorePlan {
   snapshotLabel: string;
   data: SnapshotCollectionTokens;
   collections: TokenCollection[];
-  views: ViewPreset[];
   resolvers: SnapshotResolvers;
-  graphs: SnapshotGraphs;
+  generators: SnapshotGenerators;
   lintConfig: LintConfig;
   deleteCollectionIds: string[];
   deleteResolverNames: string[];
@@ -103,9 +99,8 @@ export interface ManualSnapshotEntry {
   /** Flat map: collectionId -> (tokenPath -> token) */
   data: SnapshotCollectionTokens;
   collections: TokenCollection[];
-  views: ViewPreset[];
   resolvers: SnapshotResolvers;
-  graphs: SnapshotGraphs;
+  generators: SnapshotGenerators;
   lintConfig: LintConfig;
 }
 
@@ -116,9 +111,8 @@ export interface ManualSnapshotSummary {
   tokenCount: number;
   collectionStorageCount: number;
   collectionCount: number;
-  viewCount: number;
   resolverCount: number;
-  graphCount: number;
+  generatorCount: number;
 }
 
 export interface TokenDiff {
@@ -130,7 +124,7 @@ export interface TokenDiff {
 }
 
 export interface WorkspaceDiff {
-  kind: "collections" | "resolver" | "graph" | "lint";
+  kind: "collections" | "resolver" | "generator" | "lint";
   id: string;
   label: string;
   status: "added" | "modified" | "removed";
@@ -166,8 +160,8 @@ function cloneResolvers(resolvers: SnapshotResolvers): SnapshotResolvers {
   return structuredClone(resolvers);
 }
 
-function cloneGraphs(graphs: SnapshotGraphs): SnapshotGraphs {
-  return structuredClone(graphs);
+function cloneGenerators(generators: SnapshotGenerators): SnapshotGenerators {
+  return structuredClone(generators);
 }
 
 function cloneLintConfig(config: LintConfig): LintConfig {
@@ -186,8 +180,8 @@ function buildDeleteResolverStepId(name: string): string {
   return `delete-resolver:${name}`;
 }
 
-function buildRestoreGraphsStepId(): string {
-  return "restore-graphs";
+function buildRestoreGeneratorsStepId(): string {
+  return "restore-generators";
 }
 
 function buildRestoreLintConfigStepId(): string {
@@ -210,14 +204,11 @@ function normalizeSnapshotEntry(raw: unknown): ManualSnapshotEntry {
     collections: Array.isArray(raw.collections)
       ? structuredClone(raw.collections as TokenCollection[])
       : [],
-    views: Array.isArray(raw.views)
-      ? structuredClone(raw.views as ViewPreset[])
-      : [],
     resolvers: isRecord(raw.resolvers)
       ? cloneResolvers(raw.resolvers as SnapshotResolvers)
       : {},
-    graphs: Array.isArray(raw.graphs)
-      ? cloneGraphs(raw.graphs as SnapshotGraphs)
+    generators: Array.isArray(raw.generators)
+      ? cloneGenerators(raw.generators as SnapshotGenerators)
       : [],
     lintConfig: isRecord(raw.lintConfig)
       ? cloneLintConfig(raw.lintConfig as unknown as LintConfig)
@@ -237,14 +228,11 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
   const collections = Array.isArray(raw.collections)
     ? structuredClone(raw.collections as TokenCollection[])
     : [];
-  const views = Array.isArray(raw.views)
-    ? structuredClone(raw.views as ViewPreset[])
-    : [];
   const resolvers = isRecord(raw.resolvers)
     ? cloneResolvers(raw.resolvers as SnapshotResolvers)
     : {};
-  const graphs = Array.isArray(raw.graphs)
-    ? cloneGraphs(raw.graphs as SnapshotGraphs)
+  const generators = Array.isArray(raw.generators)
+    ? cloneGenerators(raw.generators as SnapshotGenerators)
     : [];
   const lintConfig = isRecord(raw.lintConfig)
     ? cloneLintConfig(raw.lintConfig as unknown as LintConfig)
@@ -261,9 +249,8 @@ function normalizeRestoreJournal(raw: unknown): RestoreJournal {
     snapshotLabel,
     data,
     collections,
-    views,
     resolvers,
-    graphs,
+    generators,
     lintConfig,
     deleteCollectionIds,
     deleteResolverNames,
@@ -336,11 +323,11 @@ function listTokenDiffs(
 function listWorkspaceDiffs(
   before: Pick<
     ManualSnapshotComparableState,
-    "collections" | "views" | "resolvers" | "graphs" | "lintConfig"
+    "collections" | "resolvers" | "generators" | "lintConfig"
   >,
   after: Pick<
     ManualSnapshotComparableState,
-    "collections" | "views" | "resolvers" | "graphs" | "lintConfig"
+    "collections" | "resolvers" | "generators" | "lintConfig"
   >,
 ): WorkspaceDiff[] {
   const diffs: WorkspaceDiff[] = [];
@@ -348,20 +335,17 @@ function listWorkspaceDiffs(
   if (
     stableStringify({
       collections: before.collections,
-      views: before.views,
     }) !==
     stableStringify({
       collections: after.collections,
-      views: after.views,
     })
   ) {
-    const beforeEmpty =
-      before.collections.length === 0 && before.views.length === 0;
-    const afterEmpty = after.collections.length === 0 && after.views.length === 0;
+    const beforeEmpty = before.collections.length === 0;
+    const afterEmpty = after.collections.length === 0;
     diffs.push({
       kind: "collections",
       id: COLLECTIONS_WORKSPACE_ID,
-      label: "Collections, modes, and view presets",
+      label: "Collections and modes",
       status: beforeEmpty ? "added" : afterEmpty ? "removed" : "modified",
     });
   }
@@ -405,30 +389,30 @@ function listWorkspaceDiffs(
     }
   }
 
-  const graphIds = new Set([
-    ...before.graphs.map((graph) => graph.id),
-    ...after.graphs.map((graph) => graph.id),
+  const generatorIds = new Set([
+    ...before.generators.map((generator) => generator.id),
+    ...after.generators.map((generator) => generator.id),
   ]);
-  const beforeGraphsById = new Map(before.graphs.map((graph) => [graph.id, graph]));
-  const afterGraphsById = new Map(after.graphs.map((graph) => [graph.id, graph]));
-  for (const id of graphIds) {
-    const beforeGraph = beforeGraphsById.get(id);
-    const afterGraph = afterGraphsById.get(id);
-    const label = beforeGraph?.name ?? afterGraph?.name ?? `Graph ${id}`;
-    if (!beforeGraph && afterGraph) {
-      diffs.push({ kind: "graph", id, label, status: "added" });
+  const beforeGeneratorsById = new Map(before.generators.map((generator) => [generator.id, generator]));
+  const afterGeneratorsById = new Map(after.generators.map((generator) => [generator.id, generator]));
+  for (const id of generatorIds) {
+    const beforeGenerator = beforeGeneratorsById.get(id);
+    const afterGenerator = afterGeneratorsById.get(id);
+    const label = beforeGenerator?.name ?? afterGenerator?.name ?? `Generator ${id}`;
+    if (!beforeGenerator && afterGenerator) {
+      diffs.push({ kind: "generator", id, label, status: "added" });
       continue;
     }
-    if (beforeGraph && !afterGraph) {
-      diffs.push({ kind: "graph", id, label, status: "removed" });
+    if (beforeGenerator && !afterGenerator) {
+      diffs.push({ kind: "generator", id, label, status: "removed" });
       continue;
     }
     if (
-      beforeGraph &&
-      afterGraph &&
-      stableStringify(beforeGraph) !== stableStringify(afterGraph)
+      beforeGenerator &&
+      afterGenerator &&
+      stableStringify(beforeGenerator) !== stableStringify(afterGenerator)
     ) {
-      diffs.push({ kind: "graph", id, label, status: "modified" });
+      diffs.push({ kind: "generator", id, label, status: "modified" });
     }
   }
 
@@ -467,16 +451,14 @@ function compareSnapshotStates(
 
 function buildSnapshotRestoreRollbackSteps({
   currentCollections,
-  currentViews,
   currentResolvers,
-  currentGraphs,
+  currentGenerators,
   currentLintConfig,
   snapshotResolvers,
 }: {
   currentCollections: TokenCollection[];
-  currentViews: ViewPreset[];
   currentResolvers: SnapshotResolvers;
-  currentGraphs: SnapshotGraphs;
+  currentGenerators: SnapshotGenerators;
   currentLintConfig: LintConfig;
   snapshotResolvers: SnapshotResolvers;
 }): RollbackStep[] {
@@ -484,7 +466,6 @@ function buildSnapshotRestoreRollbackSteps({
     {
       action: "restore-collection-state",
       collections: structuredClone(currentCollections),
-      views: structuredClone(currentViews),
     },
     {
       action: "restore-lint-config",
@@ -507,8 +488,8 @@ function buildSnapshotRestoreRollbackSteps({
   }
 
   steps.push({
-    action: "restore-graphs",
-    graphs: cloneGraphs(currentGraphs),
+    action: "restore-generators",
+    generators: cloneGenerators(currentGenerators),
   });
 
   return steps;
@@ -624,13 +605,13 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
   ): Promise<ManualSnapshotEntry> {
-    const [collectionState, resolvers, graphs, lintConfig] = await Promise.all([
+    const [collectionState, resolvers, generators, lintConfig] = await Promise.all([
       collectionService.loadState(),
       this.captureCurrentResolvers(resolverStore),
-      graphService.list(),
+      generatorService.list(),
       lintConfigStore.get(),
     ]);
     const collectionIds = collectionState.collections.map(
@@ -644,9 +625,8 @@ export class ManualSnapshotStore {
       timestamp: "",
       data,
       collections: collectionState.collections,
-      views: collectionState.views,
       resolvers,
-      graphs,
+      generators,
       lintConfig,
     };
   }
@@ -656,7 +636,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
   ): Promise<ManualSnapshotEntry> {
     return this.lock.withLock(async () => {
@@ -666,7 +646,7 @@ export class ManualSnapshotStore {
         tokenStore,
         collectionService,
         resolverStore,
-        graphService,
+        generatorService,
         lintConfigStore,
       );
 
@@ -676,9 +656,8 @@ export class ManualSnapshotStore {
         timestamp: new Date().toISOString(),
         data: current.data,
         collections: current.collections,
-        views: current.views,
         resolvers: current.resolvers,
-        graphs: current.graphs,
+        generators: current.generators,
         lintConfig: current.lintConfig,
       };
 
@@ -710,9 +689,8 @@ export class ManualSnapshotStore {
         ),
         collectionStorageCount: Object.keys(snapshot.data).length,
         collectionCount: snapshot.collections.length,
-        viewCount: snapshot.views.length,
         resolverCount: Object.keys(snapshot.resolvers).length,
-        graphCount: snapshot.graphs.length,
+        generatorCount: snapshot.generators.length,
       }));
   }
 
@@ -753,7 +731,6 @@ export class ManualSnapshotStore {
       stepId: RESTORE_COLLECTION_WORKSPACE_STEP_ID,
       kind: "restore-collection-workspace",
       collections: structuredClone(source.collections),
-      views: structuredClone(source.views),
       data: structuredClone(source.data),
     });
 
@@ -775,9 +752,9 @@ export class ManualSnapshotStore {
     }
 
     steps.push({
-      stepId: buildRestoreGraphsStepId(),
-      kind: "restore-graphs",
-      graphs: cloneGraphs(source.graphs),
+      stepId: buildRestoreGeneratorsStepId(),
+      kind: "restore-generators",
+      generators: cloneGenerators(source.generators),
     });
 
     steps.push({
@@ -802,9 +779,8 @@ export class ManualSnapshotStore {
       snapshotLabel: snapshot.label,
       data: snapshot.data,
       collections: structuredClone(snapshot.collections),
-      views: structuredClone(snapshot.views),
       resolvers: cloneResolvers(snapshot.resolvers),
-      graphs: cloneGraphs(snapshot.graphs),
+      generators: cloneGenerators(snapshot.generators),
       lintConfig: cloneLintConfig(snapshot.lintConfig),
       deleteCollectionIds: currentWorkspaceState.collectionIds.filter(
         (collectionId) => !(collectionId in snapshot.data),
@@ -814,9 +790,8 @@ export class ManualSnapshotStore {
       ),
       rollbackSteps: buildSnapshotRestoreRollbackSteps({
         currentCollections: currentWorkspaceState.collections,
-        currentViews: currentWorkspaceState.views ?? [],
         currentResolvers: currentWorkspaceState.resolvers,
-        currentGraphs: currentWorkspaceState.graphs,
+        currentGenerators: currentWorkspaceState.generators,
         currentLintConfig: currentWorkspaceState.lintConfig,
         snapshotResolvers: snapshot.resolvers,
       }),
@@ -831,9 +806,8 @@ export class ManualSnapshotStore {
       snapshotLabel: journal.snapshotLabel,
       data: journal.data,
       collections: structuredClone(journal.collections),
-      views: structuredClone(journal.views),
       resolvers: cloneResolvers(journal.resolvers),
-      graphs: cloneGraphs(journal.graphs),
+      generators: cloneGenerators(journal.generators),
       lintConfig: cloneLintConfig(journal.lintConfig),
       deleteCollectionIds: structuredClone(journal.deleteCollectionIds),
       deleteResolverNames: structuredClone(journal.deleteResolverNames),
@@ -849,9 +823,8 @@ export class ManualSnapshotStore {
       snapshotLabel: plan.snapshotLabel,
       data: plan.data,
       collections: structuredClone(plan.collections),
-      views: structuredClone(plan.views),
       resolvers: cloneResolvers(plan.resolvers),
-      graphs: cloneGraphs(plan.graphs),
+      generators: cloneGenerators(plan.generators),
       lintConfig: cloneLintConfig(plan.lintConfig),
       deleteCollectionIds: structuredClone(plan.deleteCollectionIds),
       deleteResolverNames: structuredClone(plan.deleteResolverNames),
@@ -898,7 +871,7 @@ export class ManualSnapshotStore {
     tokenStore: TokenStore,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
   ): Promise<ManualSnapshotDiff> {
     await this.ensureLoaded();
@@ -911,7 +884,7 @@ export class ManualSnapshotStore {
       tokenStore,
       collectionService,
       resolverStore,
-      graphService,
+      generatorService,
       lintConfigStore,
     );
 
@@ -922,7 +895,6 @@ export class ManualSnapshotStore {
     collectionService: CollectionService,
     state: {
       collections: TokenCollection[];
-      views: ViewPreset[];
       data: SnapshotCollectionTokens;
     },
   ): Promise<void> {
@@ -936,7 +908,6 @@ export class ManualSnapshotStore {
     await collectionService.restoreCollectionWorkspaceWithinLock({
       state: {
         collections: structuredClone(state.collections),
-        views: structuredClone(state.views),
       },
       tokensByCollection,
     });
@@ -958,22 +929,21 @@ export class ManualSnapshotStore {
   private async captureRestoreWorkspaceState(
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
   ): Promise<RestoreWorkspaceState> {
-    const [collectionState, resolvers, graphs, lintConfig] = await Promise.all([
+    const [collectionState, resolvers, generators, lintConfig] = await Promise.all([
       collectionService.loadState(),
       this.captureCurrentResolvers(resolverStore),
-      graphService.list(),
+      generatorService.list(),
       lintConfigStore.get(),
     ]);
 
     return {
       collectionIds: collectionState.collections.map((collection) => collection.id),
       collections: collectionState.collections,
-      views: collectionState.views,
       resolvers,
-      graphs,
+      generators,
       lintConfig,
     };
   }
@@ -989,13 +959,13 @@ export class ManualSnapshotStore {
   private describeRestoreStep(step: RestorePlanStep): string {
     switch (step.kind) {
       case "restore-collection-workspace":
-        return "restore collections, modes, view presets, and token storage";
+        return "restore collections, modes, and token storage";
       case "restore-resolver":
         return `restore resolver "${step.name}"`;
       case "delete-resolver":
         return `delete resolver "${step.name}"`;
-      case "restore-graphs":
-        return "restore graph documents";
+      case "restore-generators":
+        return "restore generator documents";
       case "restore-lint-config":
         return "restore lint configuration";
     }
@@ -1005,7 +975,7 @@ export class ManualSnapshotStore {
     step: RestorePlanStep,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
   ): Promise<void> {
     switch (step.kind) {
@@ -1013,7 +983,6 @@ export class ManualSnapshotStore {
         await resolverStore.lock.withLock(async () => {
           await this.restoreCollectionWorkspace(collectionService, {
             collections: step.collections,
-            views: step.views,
             data: step.data,
           });
         });
@@ -1028,8 +997,8 @@ export class ManualSnapshotStore {
           await resolverStore.delete(step.name);
         });
         return;
-      case "restore-graphs":
-        await graphService.restore(step.graphs);
+      case "restore-generators":
+        await generatorService.restore(step.generators);
         return;
       case "restore-lint-config":
         await lintConfigStore.save(step.config);
@@ -1042,7 +1011,7 @@ export class ManualSnapshotStore {
     journal: RestoreJournal,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
     options: { recoveryMode: boolean },
   ): Promise<boolean> {
@@ -1066,7 +1035,7 @@ export class ManualSnapshotStore {
           step,
           collectionService,
           resolverStore,
-          graphService,
+          generatorService,
           lintConfigStore,
         );
         journal.completedStepIds.push(step.stepId);
@@ -1095,7 +1064,7 @@ export class ManualSnapshotStore {
     id: string,
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
     currentWorkspaceState?: RestoreWorkspaceState,
   ): Promise<{
@@ -1118,23 +1087,12 @@ export class ManualSnapshotStore {
         (await this.captureRestoreWorkspaceState(
           collectionService,
           resolverStore,
-          graphService,
+          generatorService,
           lintConfigStore,
         ));
-      const currentCollectionState =
-        baseline.views !== undefined
-          ? { collections: baseline.collections, views: baseline.views }
-          : await collectionService.loadState();
-      const resolvedBaseline =
-        baseline.views !== undefined
-          ? baseline
-          : {
-              ...baseline,
-              views: currentCollectionState.views,
-            };
       const plan = this.buildRestorePlanFromSnapshot(
         snapshot,
-        resolvedBaseline,
+        baseline,
       );
       const journal = this.createRestoreJournal(plan);
       await this.writeRestoreJournal(journal);
@@ -1144,7 +1102,7 @@ export class ManualSnapshotStore {
         journal,
         collectionService,
         resolverStore,
-        graphService,
+        generatorService,
         lintConfigStore,
         { recoveryMode: false },
       );
@@ -1158,7 +1116,7 @@ export class ManualSnapshotStore {
   async recoverPendingRestore(
     collectionService: CollectionService,
     resolverStore: ResolverStore,
-    graphService: TokenGraphService,
+    generatorService: TokenGeneratorService,
     lintConfigStore: LintConfigStore,
   ): Promise<void> {
     let journal: RestoreJournal;
@@ -1203,7 +1161,7 @@ export class ManualSnapshotStore {
       journal,
       collectionService,
       resolverStore,
-      graphService,
+      generatorService,
       lintConfigStore,
       { recoveryMode: true },
     );

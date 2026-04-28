@@ -1,4 +1,4 @@
-import type { Ref } from "react";
+import { useEffect, useMemo, type Ref } from "react";
 import { NoticeFieldMessage } from "../shared/noticeSystem";
 
 export interface JsonEditorViewProps {
@@ -8,6 +8,7 @@ export interface JsonEditorViewProps {
   jsonSaving: boolean;
   jsonBrokenRefs: string[];
   jsonTextareaRef: Ref<HTMLTextAreaElement>;
+  searchQuery?: string;
   connected: boolean;
   hasTokens: boolean;
   onChange: (val: string) => void;
@@ -22,12 +23,56 @@ export function JsonEditorView({
   jsonSaving,
   jsonBrokenRefs,
   jsonTextareaRef,
+  searchQuery = "",
   connected,
   hasTokens,
   onChange,
   onSave,
   onRevert,
 }: JsonEditorViewProps) {
+  const jsonSearch = useMemo(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      return { query: "", firstIndex: -1, count: 0 };
+    }
+
+    const source = jsonText.toLocaleLowerCase();
+    const needle = query.toLocaleLowerCase();
+    let count = 0;
+    let firstIndex = -1;
+    let fromIndex = 0;
+
+    while (fromIndex <= source.length) {
+      const nextIndex = source.indexOf(needle, fromIndex);
+      if (nextIndex === -1) break;
+      if (firstIndex === -1) firstIndex = nextIndex;
+      count += 1;
+      fromIndex = nextIndex + Math.max(needle.length, 1);
+    }
+
+    return { query, firstIndex, count };
+  }, [jsonText, searchQuery]);
+
+  useEffect(() => {
+    if (!jsonSearch.query || jsonSearch.firstIndex < 0) return;
+    if (!jsonTextareaRef || typeof jsonTextareaRef === "function" || !("current" in jsonTextareaRef)) return;
+
+    const textarea = jsonTextareaRef.current;
+    if (!textarea) return;
+
+    const start = jsonSearch.firstIndex;
+    const end = start + jsonSearch.query.length;
+    textarea.focus({ preventScroll: true });
+    textarea.setSelectionRange(start, end);
+  }, [jsonSearch.firstIndex, jsonSearch.query, jsonTextareaRef]);
+
+  const searchStatus =
+    jsonSearch.query.length === 0
+      ? null
+      : jsonSearch.count === 0
+        ? "No matches"
+        : `${jsonSearch.count} match${jsonSearch.count === 1 ? "" : "es"}`;
+
   return (
     <div className="h-full flex flex-col">
       <textarea
@@ -70,13 +115,20 @@ export function JsonEditorView({
           </NoticeFieldMessage>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-            {!hasTokens
-              ? "Paste DTCG JSON to import tokens"
-              : jsonDirty
-                ? "Unsaved changes"
-                : "Up to date"}
-          </span>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+              {!hasTokens
+                ? "Paste DTCG JSON to import tokens"
+                : jsonDirty
+                  ? "Unsaved changes"
+                  : "Up to date"}
+            </span>
+            {searchStatus ? (
+              <span className="truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                {searchStatus}
+              </span>
+            ) : null}
+          </div>
           <div className="flex gap-1">
             {jsonDirty && hasTokens && (
               <button

@@ -1,5 +1,18 @@
-import { adaptShortcut, getErrorMessage, stableStringify } from "../shared/utils";
-import { Copy, Check, Clock, Files, Trash2, Link2, X, Plus } from "lucide-react";
+import {
+  adaptShortcut,
+  getErrorMessage,
+  stableStringify,
+} from "../shared/utils";
+import {
+  Copy,
+  Check,
+  Clock,
+  Files,
+  Trash2,
+  Link2,
+  X,
+  Plus,
+} from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
 import { AUTHORING_SURFACE_CLASSES, EditorShell } from "./EditorShell";
@@ -10,7 +23,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   getCollectionIdsForPath,
   pathExistsInCollection,
-  readGraphProvenance,
+  readGeneratorProvenance,
   resolveCollectionIdForPath,
   resolveRefValue,
 } from "@tokenmanager/core";
@@ -18,18 +31,13 @@ import type { TokenCollection, TokenType } from "@tokenmanager/core";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
-import { tokenTypeBadgeClass } from "../../shared/types";
 import { TypePicker } from "./TypePicker";
 import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
-import { DerivationEditor, summarizeDerivationOp } from "./DerivationEditor";
+import { DerivationEditor } from "./DerivationEditor";
 import { ScopeEditor } from "./ScopeEditor";
-import {
-  FIGMA_SCOPE_OPTIONS,
-  getLifecycleLabel,
-  getScopeLabels,
-} from "../shared/tokenMetadata";
+import { FIGMA_SCOPE_OPTIONS } from "../shared/tokenMetadata";
 import { useTokenEditorModeValue } from "../hooks/useTokenEditorModeValue";
 import { PathAutocomplete } from "./PathAutocomplete";
 
@@ -55,20 +63,25 @@ import {
   resolveSyncComparableValue,
 } from "../shared/tokenSync";
 
-import { detectAliasCycle, parsePastedValue, getInitialCreateValue, NAMESPACE_SUGGESTIONS } from "./token-editor/tokenEditorHelpers";
+import {
+  detectAliasCycle,
+  parsePastedValue,
+  getInitialCreateValue,
+  NAMESPACE_SUGGESTIONS,
+} from "./token-editor/tokenEditorHelpers";
 import { valueFormatHint } from "./tokenListHelpers";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
 import type { LintViolation } from "../hooks/useLint";
 import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
-import { Field, ListItem, Section, Stack, Surface } from "../primitives";
+import { Field, ListItem, Section, Stack } from "../primitives";
+import { Collapsible } from "./Collapsible";
 interface TokenDetailsProps {
   tokenPath: string;
   currentCollectionId: string;
   collectionId?: string;
   serverUrl: string;
-  mode?: "inspect" | "edit";
   onBack: () => void;
   backLabel?: string;
   allTokensFlat?: Record<string, TokenMapEntry>;
@@ -90,20 +103,14 @@ interface TokenDetailsProps {
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   availableFonts?: string[];
   fontWeightsByFamily?: Record<string, number[]>;
-  onNavigateToToken?: (
-    path: string,
-    collectionId?: string,
-  ) => void;
-  onOpenGraphDocument?: (graphId: string) => void;
+  onNavigateToToken?: (path: string, collectionId?: string) => void;
+  onOpenGenerator?: (generatorId: string) => void;
   pushUndo?: (slot: import("../hooks/useUndo").UndoSlot) => void;
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
-  onEnterEditMode?: () => void;
   onDuplicate?: () => void;
   onOpenInHealth?: () => void;
   onManageCollectionModes?: (collectionId: string) => void;
-  requiresWorkingCollectionForEdit?: boolean;
-  onMakeWorkingCollection?: () => void;
 }
 
 function cloneModeValue<T>(value: T): T {
@@ -125,7 +132,8 @@ function getStoredModeValue(
     return entry.$value;
   }
 
-  const collectionModes = entry.$extensions?.tokenmanager?.modes?.[collectionId];
+  const collectionModes =
+    entry.$extensions?.tokenmanager?.modes?.[collectionId];
   if (
     !collectionModes ||
     typeof collectionModes !== "object" ||
@@ -167,13 +175,11 @@ function formatCollectionIdList(collectionIds: string[]): string {
   return `${collectionIds.slice(0, -1).join(", ")}, and ${collectionIds.at(-1)}`;
 }
 
-
 export function TokenDetails({
   tokenPath,
   currentCollectionId,
   collectionId: explicitCollectionId,
   serverUrl,
-  mode = "edit",
   onBack,
   backLabel,
   allTokensFlat = {},
@@ -192,28 +198,25 @@ export function TokenDetails({
   availableFonts = [],
   fontWeightsByFamily = {},
   onNavigateToToken,
-  onOpenGraphDocument,
+  onOpenGenerator,
   pushUndo,
   lintViolations = [],
   syncSnapshot,
-  onEnterEditMode,
   onDuplicate,
   onOpenInHealth,
   onManageCollectionModes,
-  requiresWorkingCollectionForEdit = false,
-  onMakeWorkingCollection,
 }: TokenDetailsProps) {
   const ownerCollectionId = useMemo(
     () =>
       explicitCollectionId ??
       (isCreateMode
         ? currentCollectionId
-        : resolveCollectionIdForPath({
+        : (resolveCollectionIdForPath({
             path: tokenPath,
             pathToCollectionId,
             collectionIdsByPath,
             preferredCollectionId: currentCollectionId,
-          }).collectionId ?? currentCollectionId),
+          }).collectionId ?? currentCollectionId)),
     [
       collectionIdsByPath,
       explicitCollectionId,
@@ -223,12 +226,8 @@ export function TokenDetails({
       tokenPath,
     ],
   );
-  const detailsMode = isCreateMode ? "edit" : mode;
-  const isInspectMode = detailsMode === "inspect";
-  const isEditMode = !isInspectMode;
   const showingExternalCollection = ownerCollectionId !== currentCollectionId;
-  const canEditInPlace =
-    !showingExternalCollection || !requiresWorkingCollectionForEdit;
+  const canEditInPlace = true;
   const uiState = useTokenEditorUIState({
     tokenPath,
   });
@@ -302,9 +301,10 @@ export function TokenDetails({
   const [renameInput, setRenameInput] = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
-  const [renameConfirm, setRenameConfirm] = useState<
-    { newPath: string; aliasCount: number } | null
-  >(null);
+  const [renameConfirm, setRenameConfirm] = useState<{
+    newPath: string;
+    aliasCount: number;
+  } | null>(null);
 
   // Keep rename input in sync with the incoming token path so the field reflects
   // the current name whenever the editor loads or switches tokens.
@@ -383,17 +383,22 @@ export function TokenDetails({
     focusBlockedField,
   } = typeParsing;
   const currentTokenEntry = useMemo(
-    () => perCollectionFlat[ownerCollectionId]?.[tokenPath] ?? allTokensFlat[tokenPath],
+    () =>
+      perCollectionFlat[ownerCollectionId]?.[tokenPath] ??
+      allTokensFlat[tokenPath],
     [allTokensFlat, ownerCollectionId, perCollectionFlat, tokenPath],
   );
-  const graphProvenance = useMemo(
-    () => readGraphProvenance(currentTokenEntry),
+  const generatorProvenance = useMemo(
+    () => readGeneratorProvenance(currentTokenEntry),
     [currentTokenEntry],
   );
-  const [detachedFromGraph, setDetachedFromGraph] = useState(false);
-  const activeGraphProvenance = detachedFromGraph ? null : graphProvenance;
-  const [graphName, setGraphName] = useState<string | null>(null);
-  const [detachingGraphOutput, setDetachingGraphOutput] = useState(false);
+  const [detachedFromGenerator, setDetachedFromGenerator] = useState(false);
+  const activeGeneratorProvenance = detachedFromGenerator ? null : generatorProvenance;
+  const isGeneratorLocked = !isCreateMode && Boolean(activeGeneratorProvenance);
+  const fieldEditable = !isGeneratorLocked;
+  const [generatorName, setGeneratorName] = useState<string | null>(null);
+  const [detachingGeneratorOutput, setDetachingGeneratorOutput] = useState(false);
+  const [showDetachGeneratorConfirm, setShowDetachGeneratorConfirm] = useState(false);
 
   const initialFieldsSnapshot = initialRef.current;
   const ambiguousExtendsCollectionIds = useMemo(() => {
@@ -444,20 +449,19 @@ export function TokenDetails({
   const saveBlockReason = ambiguousReferenceMessage ?? editorSaveBlockReason;
 
   const requestClose = editorSessionHost.requestClose;
-  const beforeSaveGeneratedToken = useCallback(
-    async () => {
-      if (!isCreateMode && activeGraphProvenance) {
-        setError("This token is managed by a graph. Open the graph to change generated values, or detach the token before editing it directly.");
-        return false;
-      }
-      if (ambiguousReferenceMessage) {
-        setError(ambiguousReferenceMessage);
-        return false;
-      }
-      return true;
-    },
-    [activeGraphProvenance, ambiguousReferenceMessage, isCreateMode],
-  );
+  const beforeSaveGeneratedToken = useCallback(async () => {
+    if (!isCreateMode && activeGeneratorProvenance) {
+      setError(
+        "This token is managed by a generator. Open the generator to change generated values, or detach the token before editing it directly.",
+      );
+      return false;
+    }
+    if (ambiguousReferenceMessage) {
+      setError(ambiguousReferenceMessage);
+      return false;
+    }
+    return true;
+  }, [activeGeneratorProvenance, ambiguousReferenceMessage, isCreateMode]);
 
   const saveHook = useTokenEditorSave({
     serverUrl,
@@ -498,47 +502,54 @@ export function TokenDetails({
   } = saveHook;
 
   const displayError = error || saveError;
-  const setDisplayError = useCallback((v: string | null) => {
-    setError(v);
-    setSaveError(v);
-  }, [setError, setSaveError]);
+  const setDisplayError = useCallback(
+    (v: string | null) => {
+      setError(v);
+      setSaveError(v);
+    },
+    [setError, setSaveError],
+  );
 
   useEffect(() => {
     if (!isCreateMode) return;
     const resolvedType = normalizeTokenType(initialType);
-    const initialCreateValue = getInitialCreateValue(resolvedType, initialValue);
+    const initialCreateValue = getInitialCreateValue(
+      resolvedType,
+      initialValue,
+    );
     const collection = collections.find((c) => c.id === ownerCollectionId);
     const initModeValues: Record<string, Record<string, unknown>> = {};
     if (collection && collection.modes.length >= 2) {
       const collectionModes: Record<string, unknown> = {};
       for (let i = 1; i < collection.modes.length; i++) {
-        collectionModes[collection.modes[i].name] = structuredClone(initialCreateValue);
+        collectionModes[collection.modes[i].name] =
+          structuredClone(initialCreateValue);
       }
       initModeValues[collection.id] = collectionModes;
     }
     initialRef.current = {
       value: initialCreateValue,
-      description: '',
+      description: "",
       scopes: [],
       type: resolvedType,
       derivationOps: [],
       modeValues: initModeValues,
-      extensionsJsonText: '',
-      lifecycle: 'published',
-      extendsPath: '',
+      extensionsJsonText: "",
+      lifecycle: "published",
+      extendsPath: "",
     };
     setTokenType(resolvedType);
     setValue(initialCreateValue);
-    setDescription('');
+    setDescription("");
     setScopes([]);
     setDerivationOps([]);
     setModeValues(initModeValues);
-    setExtensionsJsonText('');
+    setExtensionsJsonText("");
     setExtensionsJsonError(null);
-    setLifecycle('published');
-    setExtendsPath('');
+    setLifecycle("published");
+    setExtendsPath("");
     setEditPath(tokenPath);
-    setShowPathAutocomplete(tokenPath.trim().endsWith('.'));
+    setShowPathAutocomplete(tokenPath.trim().endsWith("."));
     setDisplayError(null);
   }, [
     collections,
@@ -569,36 +580,36 @@ export function TokenDetails({
   }, [isCreateMode, tokenType]);
 
   useEffect(() => {
-    setDetachedFromGraph(false);
-    setGraphName(null);
-  }, [tokenPath, graphProvenance?.graphId]);
+    setDetachedFromGenerator(false);
+    setGeneratorName(null);
+  }, [tokenPath, generatorProvenance?.generatorId]);
 
   useEffect(() => {
-    if (!activeGraphProvenance?.graphId) return;
+    if (!activeGeneratorProvenance?.generatorId) return;
     let cancelled = false;
-    apiFetch<{ graph?: { name?: string } }>(
-      `${serverUrl}/api/graphs/${encodeURIComponent(activeGraphProvenance.graphId)}`,
+    apiFetch<{ generator?: { name?: string } }>(
+      `${serverUrl}/api/generators/${encodeURIComponent(activeGeneratorProvenance.generatorId)}`,
     )
       .then((response) => {
         if (!cancelled) {
-          setGraphName(response.graph?.name ?? activeGraphProvenance.graphId);
+          setGeneratorName(response.generator?.name ?? activeGeneratorProvenance.generatorId);
         }
       })
       .catch(() => {
-        if (!cancelled) setGraphName(activeGraphProvenance.graphId);
+        if (!cancelled) setGeneratorName(activeGeneratorProvenance.generatorId);
       });
     return () => {
       cancelled = true;
     };
-  }, [activeGraphProvenance?.graphId, serverUrl]);
+  }, [activeGeneratorProvenance?.generatorId, serverUrl]);
 
-  const handleDetachGraphOutput = useCallback(async (): Promise<void> => {
-    if (!activeGraphProvenance) return;
-    setDetachingGraphOutput(true);
+  const handleDetachGeneratorOutput = useCallback(async (): Promise<void> => {
+    if (!activeGeneratorProvenance) return;
+    setDetachingGeneratorOutput(true);
     try {
       setError(null);
       await apiFetch(
-        `${serverUrl}/api/graphs/${encodeURIComponent(activeGraphProvenance.graphId)}/outputs/detach`,
+        `${serverUrl}/api/generators/${encodeURIComponent(activeGeneratorProvenance.generatorId)}/outputs/detach`,
         {
           method: "POST",
           headers: {
@@ -609,10 +620,14 @@ export function TokenDetails({
             path: tokenPath,
           }),
         },
-      );
-      setDetachedFromGraph(true);
-      onRefresh?.();
-      dispatchToast(`Detached "${tokenPath}" from graph`, "success", {
+	      );
+	      setDetachedFromGenerator(true);
+	      if (passthroughTokenManagerRef.current) {
+	        delete passthroughTokenManagerRef.current.generator;
+	      }
+	      onRefresh?.();
+      setShowDetachGeneratorConfirm(false);
+      dispatchToast(`Detached "${tokenPath}" from generator`, "success", {
         destination: {
           kind: "token",
           tokenPath,
@@ -620,11 +635,21 @@ export function TokenDetails({
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to detach token from graph");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to detach token from generator",
+      );
     } finally {
-      setDetachingGraphOutput(false);
+      setDetachingGeneratorOutput(false);
     }
-  }, [activeGraphProvenance, onRefresh, ownerCollectionId, serverUrl, tokenPath]);
+  }, [
+    activeGeneratorProvenance,
+    onRefresh,
+    ownerCollectionId,
+    serverUrl,
+    tokenPath,
+  ]);
 
   const duplicatePath = useMemo(() => {
     if (!isCreateMode) return false;
@@ -646,21 +671,21 @@ export function TokenDetails({
 
   useEffect(() => {
     editorSessionHost.registerSession({
-      isDirty: isEditMode ? isDirty : false,
+      isDirty: fieldEditable ? isDirty : false,
       canSave:
-        isEditMode &&
+        fieldEditable &&
         canSave &&
         !saving &&
         !duplicatePath &&
         (!isCreateMode || editPath.trim().length > 0),
       save: async () => {
-        if (isEditMode) {
+        if (fieldEditable) {
           return handleSaveRef.current();
         }
         return false;
       },
       discard: async () => {
-        if (isEditMode) {
+        if (fieldEditable) {
           clearEditorDraft(ownerCollectionId, tokenPath);
           setPendingDraft(null);
         }
@@ -676,10 +701,10 @@ export function TokenDetails({
     duplicatePath,
     editPath,
     editorSessionHost,
+    fieldEditable,
     handleSaveRef,
     isCreateMode,
     isDirty,
-    isEditMode,
     onBack,
     saving,
     ownerCollectionId,
@@ -699,7 +724,7 @@ export function TokenDetails({
   }, [tokenPath]);
 
   useEffect(() => {
-    if (!isEditMode || !isDirty || isCreateMode) return;
+    if (!isDirty || isCreateMode) return;
     saveEditorDraft(ownerCollectionId, tokenPath, {
       tokenType,
       value,
@@ -713,7 +738,6 @@ export function TokenDetails({
     });
   }, [
     isDirty,
-    isEditMode,
     ownerCollectionId,
     tokenPath,
     isCreateMode,
@@ -727,7 +751,6 @@ export function TokenDetails({
     lifecycle,
     extendsPath,
   ]);
-
 
   const handleRevert = () => {
     if (!initialRef.current) return;
@@ -783,19 +806,22 @@ export function TokenDetails({
   );
 
   const [detailsOpen, setDetailsOpen] = useState(() => {
-    return lsGet(STORAGE_KEYS.EDITOR_DETAILS) === '1';
+    return lsGet(STORAGE_KEYS.EDITOR_DETAILS) === "1";
   });
+  const [relationshipsOpen, setRelationshipsOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const toggleDetails = useCallback(() => {
     setDetailsOpen((v) => {
       const next = !v;
-      lsSet(STORAGE_KEYS.EDITOR_DETAILS, next ? '1' : '0');
+      lsSet(STORAGE_KEYS.EDITOR_DETAILS, next ? "1" : "0");
       return next;
     });
   }, []);
 
   const rawJsonPreview = useMemo(() => {
     const editorCollection =
-      collections.find((collection) => collection.id === ownerCollectionId) ?? null;
+      collections.find((collection) => collection.id === ownerCollectionId) ??
+      null;
     return JSON.stringify(
       buildTokenEditorValueBody({
         tokenType,
@@ -845,11 +871,15 @@ export function TokenDetails({
 
   const lastDotIdx = tokenPath.lastIndexOf(".");
   const parentPrefix = lastDotIdx >= 0 ? tokenPath.slice(0, lastDotIdx) : "";
-  const leafName = lastDotIdx >= 0 ? tokenPath.slice(lastDotIdx + 1) : tokenPath;
-  const canRenameInPlace =
-    !isCreateMode && isEditMode && canEditInPlace;
+  const leafName =
+    lastDotIdx >= 0 ? tokenPath.slice(lastDotIdx + 1) : tokenPath;
+  const canRenameInPlace = !isCreateMode && fieldEditable && canEditInPlace;
   const renameInputDiffers = renameInput !== leafName;
   const renameDisabled = !canRenameInPlace || isDirty || saving || renameSaving;
+  const renamePreviewLeaf = renameInput.trim();
+  const renamePreviewPath = parentPrefix
+    ? `${parentPrefix}.${renamePreviewLeaf}`
+    : renamePreviewLeaf;
 
   const revertRename = useCallback(() => {
     setRenameInput(leafName);
@@ -989,7 +1019,10 @@ export function TokenDetails({
 
   if (loading) {
     return (
-      <div role="status" className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-body">
+      <div
+        role="status"
+        className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-body"
+      >
         <Spinner size="md" className="text-[var(--color-figma-accent)]" />
         Loading token...
       </div>
@@ -1000,10 +1033,11 @@ export function TokenDetails({
     !isCreateMode &&
     hasSyncSnapshotChange(syncSnapshot, tokenPath, syncComparableValue);
 
-  const tokenLintViolations = lintViolations.filter((v) => v.path === tokenPath);
+  const tokenLintViolations = lintViolations.filter(
+    (v) => v.path === tokenPath,
+  );
 
   const trimmedEditPath = editPath.trim();
-  const trimmedEditLeaf = trimmedEditPath.split(".").filter(Boolean).pop() ?? "";
   const conflictingOtherCollectionIds =
     isCreateMode && trimmedEditPath
       ? getCollectionIdsForPath({
@@ -1014,7 +1048,9 @@ export function TokenDetails({
       : [];
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
   const footerNote =
-    isCreateMode && duplicatePath
+    isGeneratorLocked
+      ? "Managed by generator. Detach before editing directly."
+      : isCreateMode && duplicatePath
       ? "Path already exists."
       : isCreateMode && !trimmedEditPath
         ? "Enter a token path."
@@ -1026,181 +1062,94 @@ export function TokenDetails({
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const headerStatus = isGeneratorLocked
+    ? "Managed by generator"
+    : isDirty
+      ? "Modified"
+      : syncChanged
+        ? "Not synced"
+        : isCreateMode
+          ? "New"
+          : "Saved";
+  const contextLabel = isCreateMode
+    ? `Create in ${ownerCollectionId}`
+    : showingExternalCollection
+      ? `${ownerCollectionId} · opened from another collection`
+      : null;
+
   const headerTitle = (
-    <>
-      {isCreateMode ? (
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="text-body font-semibold text-[var(--color-figma-text)]">
-            New token
-          </div>
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-            {`Create in ${ownerCollectionId}`}
-          </div>
-        </div>
-      ) : (
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <div className="flex min-w-0 flex-wrap items-start gap-1.5">
-            {canRenameInPlace ? (
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                {parentPrefix && (
-                  <span
-                    className={LONG_TEXT_CLASSES.pathSecondary}
-                    title={parentPrefix}
-                  >
-                    {parentPrefix}.
-                  </span>
-                )}
-                <div className="flex min-w-0 items-center gap-0.5">
-                  <input
-                    type="text"
-                    value={renameInput}
-                    disabled={renameDisabled}
-                    onChange={(e) => {
-                      setRenameInput(e.target.value);
-                      setRenameError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void submitRename();
-                      } else if (e.key === "Escape") {
-                        e.preventDefault();
-                        revertRename();
-                        (e.target as HTMLInputElement).blur();
-                      }
-                    }}
-                    title={
-                      isDirty
-                        ? "Save or discard your changes before renaming"
-                        : undefined
-                    }
-                    className={`min-w-0 flex-1 font-mono text-body bg-transparent text-[var(--color-figma-text)] px-1 py-0.5 rounded border outline-none disabled:opacity-60 ${
-                      renameError
-                        ? "border-[var(--color-figma-error)]"
-                        : renameInputDiffers
-                          ? "border-[var(--color-figma-accent)]"
-                          : "border-transparent hover:border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]"
-                    }`}
-                    aria-label="Token name"
-                  />
-                  {renameInputDiffers && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => void submitRename()}
-                        disabled={renameDisabled}
-                        title="Save name (Enter)"
-                        aria-label="Save name"
-                        className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
-                      >
-                        <Check size={12} strokeWidth={1.5} aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={revertRename}
-                        disabled={renameSaving}
-                        title="Revert name (Escape)"
-                        aria-label="Revert name"
-                        className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-50"
-                      >
-                        <X size={12} strokeWidth={1.5} aria-hidden />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <span
-                className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
-                title={tokenPath}
-              >
-                {tokenPath}
-              </span>
-            )}
-            <div className="ml-auto flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={handleCopyPath}
-                title="Copy token path"
-                aria-label="Copy token path"
-                className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-              >
-                {copied ? (
-                  <Check size={12} strokeWidth={1.5} aria-hidden />
-                ) : (
-                  <Copy size={12} strokeWidth={1.5} aria-hidden />
-                )}
-              </button>
-              {isEditMode && isDirty && (
-                <span
-                  className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
-                  title="Unsaved changes"
-                  aria-label="Unsaved changes"
-                />
-              )}
-              {syncChanged && (
-                <span
-                  className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)]"
-                  title="Not yet synced to Figma"
-                  aria-label="Not yet synced to Figma"
-                />
-              )}
-            </div>
-          </div>
-          {renameError && (
-            <div className="min-w-0">
-              <span className="text-secondary text-[var(--color-figma-error)]">
-                {renameError}
-              </span>
-            </div>
-          )}
-          <div className="min-w-0">
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
-              {showingExternalCollection
-                ? `Collection: ${ownerCollectionId} · Working in ${currentCollectionId}`
-                : `Collection: ${ownerCollectionId}`}
-            </span>
-          </div>
-        </div>
-      )}
-    </>
+    <div className="tm-token-details__header-title">
+      <div className="tm-token-details__header-mainline">
+        <span
+          className="tm-token-details__header-path"
+          title={isCreateMode ? "New token" : tokenPath}
+        >
+          {isCreateMode ? "New token" : tokenPath}
+        </span>
+        <span
+          className={`tm-token-details__status-dot ${
+            isGeneratorLocked
+              ? "tm-token-details__status-dot--locked"
+              : isDirty
+                ? "tm-token-details__status-dot--dirty"
+                : syncChanged
+                  ? "tm-token-details__status-dot--sync"
+                  : "tm-token-details__status-dot--saved"
+          }`}
+          aria-hidden
+        />
+      </div>
+      <div className="tm-token-details__header-context">
+        {contextLabel ? (
+          <>
+            <span className="truncate">{contextLabel}</span>
+            <span aria-hidden>·</span>
+          </>
+        ) : null}
+        <span>{headerStatus}</span>
+      </div>
+    </div>
   );
 
   const headerActions = (
     <>
-      {!isCreateMode && isInspectMode && onDuplicate && (
+      {!isCreateMode && (
+        <button
+          type="button"
+          onClick={handleCopyPath}
+          title="Copy token path"
+          aria-label="Copy token path"
+          className="tm-token-details__header-icon"
+        >
+          {copied ? (
+            <Check size={12} strokeWidth={1.5} aria-hidden />
+          ) : (
+            <Copy size={12} strokeWidth={1.5} aria-hidden />
+          )}
+        </button>
+      )}
+      {!isCreateMode && onDuplicate && (
         <button
           type="button"
           onClick={onDuplicate}
           title="Duplicate token"
           aria-label="Duplicate token"
-          className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+          className="tm-token-details__header-icon"
         >
           <Files size={12} strokeWidth={1.5} aria-hidden />
         </button>
       )}
-      {!isCreateMode && isInspectMode && onEnterEditMode && canEditInPlace && (
+	      {!isCreateMode && !activeGeneratorProvenance && (
         <button
           type="button"
-          onClick={onEnterEditMode}
-          className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
+          onClick={() => setShowDeleteConfirm(true)}
+          title="Delete token"
+          aria-label="Delete token"
+          className="tm-token-details__header-icon tm-token-details__header-icon--danger"
         >
-          Edit
+          <Trash2 size={12} strokeWidth={1.5} aria-hidden />
         </button>
       )}
-      {!isCreateMode &&
-        isInspectMode &&
-        showingExternalCollection &&
-        requiresWorkingCollectionForEdit &&
-        onMakeWorkingCollection && (
-          <button
-            type="button"
-            onClick={onMakeWorkingCollection}
-            className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
-          >
-            Make working collection
-          </button>
-        )}
       {valueIsAlias &&
         tokenType === "color" &&
         (() => {
@@ -1223,20 +1172,14 @@ export function TokenDetails({
 
   const afterHeader = (
     <>
-      {!isCreateMode &&
-        isInspectMode &&
-        showingExternalCollection &&
-        requiresWorkingCollectionForEdit && (
-          <div className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-body">
-            <span className="text-[var(--color-figma-text-secondary)]">
-              This token belongs to <span className="font-medium text-[var(--color-figma-text)]">{ownerCollectionId}</span>.
-              Switch the working collection to edit it.
-            </span>
-          </div>
-        )}
-      {isEditMode && pendingDraft && !isCreateMode && (
+      {pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-body">
-          <Clock size={12} strokeWidth={1.5} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
+          <Clock
+            size={12}
+            strokeWidth={1.5}
+            className="shrink-0 text-[var(--color-figma-warning)]"
+            aria-hidden
+          />
           <span className="min-w-0 flex-1 break-words text-[var(--color-figma-warning)]">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
@@ -1262,10 +1205,12 @@ export function TokenDetails({
     </>
   );
 
-  const footer = isInspectMode ? null : (
+  const footer = (
     <div className={AUTHORING_SURFACE_CLASSES.footer}>
       {(footerNote || (isCreateMode && onSaveAndCreateAnother)) && (
-        <div className={`${AUTHORING_SURFACE_CLASSES.footerMeta} flex flex-col gap-1.5`}>
+        <div
+          className={`${AUTHORING_SURFACE_CLASSES.footerMeta} flex flex-col gap-1.5`}
+        >
           <span
             className={
               footerNote && (duplicatePath || saveBlockReason)
@@ -1292,22 +1237,17 @@ export function TokenDetails({
         </div>
       )}
       <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
-        <div className={`flex flex-wrap items-center gap-2 ${AUTHORING_SURFACE_CLASSES.footerSecondary}`}>
-          {!isCreateMode && (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              title="Delete token"
-              aria-label="Delete token"
-              className={`${AUTHORING_SURFACE_CLASSES.footerIcon} rounded p-1.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]`}
-            >
-              <Trash2 size={12} strokeWidth={1.5} aria-hidden />
-            </button>
-          )}
-          <button type="button" onClick={requestClose} className={AUTHORING.footerBtnSecondary}>
+        <div
+          className={`flex flex-wrap items-center gap-2 ${AUTHORING_SURFACE_CLASSES.footerSecondary}`}
+        >
+          <button
+            type="button"
+            onClick={requestClose}
+            className={AUTHORING.footerBtnSecondary}
+          >
             {isDirty || isCreateMode ? "Cancel" : "Close"}
           </button>
-          {isDirty && !isCreateMode && (
+          {fieldEditable && isDirty && !isCreateMode && (
             <button
               type="button"
               onClick={handleRevert}
@@ -1330,12 +1270,16 @@ export function TokenDetails({
             onClick={() => handleSave()}
             disabled={
               saving ||
+              !fieldEditable ||
               !canSave ||
               duplicatePath ||
               (!isCreateMode && !isDirty) ||
               (isCreateMode && !trimmedEditPath)
             }
-            title={saveBlockReason || `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`}
+            title={
+              saveBlockReason ||
+              `Save (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE)})`
+            }
             className={AUTHORING.footerBtnPrimary}
           >
             {saving ? (
@@ -1345,9 +1289,7 @@ export function TokenDetails({
                 "Saving…"
               )
             ) : (
-              <>
-                {isCreateMode ? "Create" : "Save"}
-              </>
+              <>{isCreateMode ? "Create" : "Save"}</>
             )}
           </button>
         </div>
@@ -1355,75 +1297,80 @@ export function TokenDetails({
     </div>
   );
 
-  const extendsSection = !valueIsAlias && COMPOSITE_TOKEN_TYPES.has(tokenType) ? (
-    <div className="flex flex-col gap-1">
-      <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-        Inherits from
-      </label>
-      {extendsPath ? (
-        <div className="flex items-center gap-1.5">
-          <Link2 size={12} strokeWidth={1.5} className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden />
-          <span
-            className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
-            title={extendsPath}
-          >
-            {extendsPath}
-          </span>
-          {isEditMode && (
-            <button
-              type="button"
-              onClick={() => setExtendsPath("")}
-              title="Remove base token"
-              aria-label="Remove base token"
-              className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+  const extendsSection =
+    !valueIsAlias && COMPOSITE_TOKEN_TYPES.has(tokenType) ? (
+      <div className="flex flex-col gap-1">
+        <label className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+          Inherits from
+        </label>
+        {extendsPath ? (
+          <div className="flex items-center gap-1.5">
+            <Link2
+              size={12}
+              strokeWidth={1.5}
+              className="shrink-0 text-[var(--color-figma-accent)]"
+              aria-hidden
+            />
+            <span
+              className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
+              title={extendsPath}
             >
-              <X size={10} strokeWidth={1.5} aria-hidden />
-            </button>
-          )}
-        </div>
-      ) : isEditMode ? (
-        <ExtendsTokenPicker
-          tokenType={tokenType}
-          allTokensFlat={allTokensFlat}
-          pathToCollectionId={pathToCollectionId}
-          currentPath={isCreateMode ? trimmedEditPath : tokenPath}
-          onSelect={setExtendsPath}
-        />
-      ) : (
-        <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
-          No base token
-        </p>
-      )}
-      {extendsPath &&
-        (() => {
-          if (ambiguousExtendsCollectionIds.length > 0) {
+              {extendsPath}
+            </span>
+            {fieldEditable && (
+              <button
+                type="button"
+                onClick={() => setExtendsPath("")}
+                title="Remove base token"
+                aria-label="Remove base token"
+                className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+              >
+                <X size={10} strokeWidth={1.5} aria-hidden />
+              </button>
+            )}
+          </div>
+        ) : fieldEditable ? (
+          <ExtendsTokenPicker
+            tokenType={tokenType}
+            allTokensFlat={allTokensFlat}
+            pathToCollectionId={pathToCollectionId}
+            currentPath={isCreateMode ? trimmedEditPath : tokenPath}
+            onSelect={setExtendsPath}
+          />
+        ) : (
+          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            No base token
+          </p>
+        )}
+        {extendsPath &&
+          (() => {
+            if (ambiguousExtendsCollectionIds.length > 0) {
+              return (
+                <p className="text-secondary text-[var(--color-figma-error)]">
+                  This path is also used in{" "}
+                  {formatCollectionIdList(ambiguousExtendsCollectionIds)}. Pick
+                  a token path that belongs to one collection before inheriting
+                  from it.
+                </p>
+              );
+            }
+            const base = allTokensFlat[extendsPath];
+            if (!base) {
+              return (
+                <p className="text-secondary text-[var(--color-figma-error)]">
+                  Base token not found
+                </p>
+              );
+            }
             return (
-              <p className="text-secondary text-[var(--color-figma-error)]">
-                This path is also used in{" "}
-                {formatCollectionIdList(ambiguousExtendsCollectionIds)}. Pick a token
-                path that belongs to one collection before inheriting from it.
+              <p className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+                Base properties merged with overrides.
               </p>
             );
-          }
-          const base = allTokensFlat[extendsPath];
-          if (!base) {
-            return (
-              <p className="text-secondary text-[var(--color-figma-error)]">
-                Base token not found
-              </p>
-            );
-          }
-          return (
-            <p className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
-              Base properties merged with overrides.
-            </p>
-          );
-        })()}
-    </div>
-  ) : null;
+          })()}
+      </div>
+    ) : null;
 
-  const scopeLabels = getScopeLabels(tokenType, scopes);
-  const lifecycleLabel = getLifecycleLabel(lifecycle) ?? "Published";
   const readOnlyExtensionsText = extensionsJsonText.trim() || "{}";
   const lifecycleDotClass =
     lifecycle === "draft"
@@ -1447,26 +1394,25 @@ export function TokenDetails({
 
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Value";
-  const tokenTypeDisplayLabel =
-    tokenType.charAt(0).toUpperCase() + tokenType.slice(1);
-  const valueSectionActions = !isCreateMode ? (
-    isInspectMode ? (
-      <span
-        className={`px-1.5 py-0.5 rounded text-secondary font-medium ${tokenTypeBadgeClass(tokenType)}`}
+  const valueSectionActions =
+    fieldEditable && onManageCollectionModes ? (
+      <button
+        type="button"
+        onClick={() => onManageCollectionModes(ownerCollectionId)}
+        className="tm-token-details__text-button inline-flex items-center gap-1"
       >
-        {tokenTypeDisplayLabel}
-      </span>
-    ) : (
-      <TypePicker
-        value={tokenType}
-        onChange={handleTypeChange}
-        title="Change token type"
-        withChevron
-        className={`pr-5 pl-2 py-1 rounded text-secondary font-medium cursor-pointer border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] outline-none focus-visible:border-[var(--color-figma-accent)] appearance-none ${tokenTypeBadgeClass(tokenType)}`}
-        style={{ backgroundImage: "none" }}
-      />
-    )
-  ) : null;
+        <Plus size={12} strokeWidth={1.5} aria-hidden />
+        Manage modes
+      </button>
+    ) : null;
+  const referenceCount =
+    (ancestors.isEmpty ? 0 : ancestors.chains.length) + dependents.length;
+  const referencesLabel =
+    referenceCount > 0 ? `References (${referenceCount})` : "References";
+  const reviewIssuesLabel =
+    tokenLintViolations.length > 0
+      ? `Review issues (${tokenLintViolations.length})`
+      : "Review issues";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -1481,7 +1427,10 @@ export function TokenDetails({
         bodyRef={scrollContainerRef}
         bodyProps={{
           onScroll: (e) => {
-            scrollPositionsRef.current.set(tokenPath, e.currentTarget.scrollTop);
+            scrollPositionsRef.current.set(
+              tokenPath,
+              e.currentTarget.scrollTop,
+            );
           },
         }}
         bodyClassName={AUTHORING_SURFACE_CLASSES.bodyStack}
@@ -1490,10 +1439,10 @@ export function TokenDetails({
         <TokenDetailsStatusBanners
           displayError={displayError}
           retryAction={retryAction}
-          lintViolations={tokenLintViolations}
+          lintViolations={[]}
           lifecycle={lifecycle}
           isCreateMode={isCreateMode}
-          isEditMode={isEditMode}
+          isEditMode
           pendingTypeChange={pendingTypeChange}
           tokenType={tokenType}
           dependents={dependents}
@@ -1512,51 +1461,53 @@ export function TokenDetails({
           onNavigateToToken={onNavigateToToken}
         />
 
-        {activeGraphProvenance ? (
+        {activeGeneratorProvenance ? (
           <div
-            className="tm-token-details__graph-banner"
-            role="region"
-            aria-label="Graph ownership"
+            className="tm-token-details__generator-banner"
+            role="status"
+            aria-label="Generator ownership"
           >
-            <div className="tm-token-details__graph-banner-summary">
-              <span>Generated by graph</span>
+            <div className="tm-token-details__generator-banner-summary">
+              <span>Managed by generator</span>
               <span
-                className="tm-token-details__graph-banner-name"
-                title={graphName ?? activeGraphProvenance.graphId}
+                className="tm-token-details__generator-banner-name"
+                title={generatorName ?? activeGeneratorProvenance.generatorId}
               >
-                {graphName ?? activeGraphProvenance.graphId}
+                {generatorName ?? activeGeneratorProvenance.generatorId}
               </span>
             </div>
-            <div className="tm-token-details__graph-banner-actions">
-              {onOpenGraphDocument ? (
+            <div className="tm-token-details__generator-banner-actions">
+              {onOpenGenerator ? (
                 <button
                   type="button"
-                  onClick={() => onOpenGraphDocument(activeGraphProvenance.graphId)}
+                  onClick={() =>
+                    onOpenGenerator(activeGeneratorProvenance.generatorId)
+                  }
                   className="tm-token-details__text-button"
                 >
-                  Open graph
+                  Open generator
                 </button>
               ) : null}
-              {isEditMode ? (
+              {fieldEditable || isGeneratorLocked ? (
                 <button
                   type="button"
                   onClick={() => {
-                    void handleDetachGraphOutput();
+                    setShowDetachGeneratorConfirm(true);
                   }}
-                  disabled={detachingGraphOutput}
+                  disabled={detachingGeneratorOutput}
                   className="tm-token-details__text-button tm-token-details__text-button--muted"
                 >
-                  {detachingGraphOutput ? "Detaching…" : "Detach"}
+                  {detachingGeneratorOutput ? "Detaching…" : "Detach"}
                 </button>
               ) : null}
             </div>
           </div>
         ) : null}
 
-        {isCreateMode ? (
-          <div className="tm-token-details__setup">
-            <div className="tm-token-details__setup-row">
-              <div className="relative" ref={pathInputWrapperRef}>
+        <Section title="Identity" emphasis="secondary" className="pt-0">
+          <div className="tm-token-details__identity-grid">
+            {isCreateMode ? (
+              <div className="relative tm-token-details__identity-path" ref={pathInputWrapperRef}>
                 <Field label="Token path">
                   <input
                     type="text"
@@ -1571,12 +1522,16 @@ export function TokenDetails({
                     }}
                     onBlur={(e) => {
                       if (
-                        !pathInputWrapperRef.current?.contains(e.relatedTarget as Node)
+                        !pathInputWrapperRef.current?.contains(
+                          e.relatedTarget as Node,
+                        )
                       ) {
                         setShowPathAutocomplete(false);
                       }
                     }}
-                    placeholder={NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"}
+                    placeholder={
+                      NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"
+                    }
                     autoFocus
                     autoComplete="off"
                     className={`${AUTHORING.inputMono} ${
@@ -1599,58 +1554,110 @@ export function TokenDetails({
                   />
                 ) : null}
               </div>
-
-              <Field label="Type">
-                <TypePicker
-                  value={tokenType}
-                  onChange={handleTypeChange}
-                  title="Change token type"
-                  className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                />
-              </Field>
-            </div>
-
-            <div className="tm-token-details__setup-meta">
-              <span>Collection: {ownerCollectionId}</span>
-              {trimmedEditLeaf ? <span>Leaf: {trimmedEditLeaf}</span> : null}
-            </div>
-
-            {duplicatePath ? (
-              <p className="tm-token-details__error-copy">
-                A token with this path already exists in{" "}
-                {ownerCollectionId}.
-              </p>
-            ) : null}
-            {!duplicatePath && conflictingOtherCollectionIds.length > 0 ? (
-              <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
-                This path is already used in{" "}
-                {formatCollectionIdList(conflictingOtherCollectionIds)}.
-                Creating it here will make references to{" "}
-                <span className="font-mono">{trimmedEditPath}</span> ambiguous
-                across collections.
-              </p>
-            ) : null}
-
-            {!editPath.includes(".") && createSuggestions.length > 0 ? (
-              <div className="tm-token-details__suggestions">
-                <span className="text-secondary text-[var(--color-figma-text-secondary)]">Try</span>
-                {createSuggestions.map((prefix) => (
-                  <button
-                    key={prefix}
-                    type="button"
-                    onClick={() => {
-                      setEditPath(prefix);
-                      setDisplayError(null);
-                    }}
-                    className="tm-token-details__suggestion-button"
-                  >
-                    {prefix}
-                  </button>
-                ))}
+            ) : (
+              <div className="tm-token-details__identity-path">
+                <Field label="Token name" error={renameError}>
+                  <div className="tm-token-details__rename-row">
+                    <input
+                      type="text"
+                      value={renameInput}
+                      disabled={renameDisabled}
+                      onChange={(e) => {
+                        setRenameInput(e.target.value);
+                        setRenameError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void submitRename();
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          revertRename();
+                          (e.target as HTMLInputElement).blur();
+                        }
+                      }}
+                      title={
+                        isDirty
+                          ? "Save or discard value changes before renaming"
+                          : undefined
+                      }
+                      className={`${AUTHORING.inputMono} ${
+                        renameError
+                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
+                          : renameInputDiffers
+                            ? "border-[var(--color-figma-accent)] focus-visible:border-[var(--color-figma-accent)]"
+                            : ""
+                      }`}
+                      aria-label="Token name"
+                    />
+                    {renameInputDiffers ? (
+                      <button
+                        type="button"
+                        onClick={() => void submitRename()}
+                        disabled={renameDisabled}
+                        title="Save name"
+                        aria-label="Save name"
+                        className="tm-token-details__inline-icon"
+                      >
+                        <Check size={12} strokeWidth={1.5} aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                </Field>
+                <p className="m-0 mt-1 min-w-0 truncate text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+                  Full path:{" "}
+                  <span className="font-mono">{renamePreviewPath}</span>
+                </p>
               </div>
-            ) : null}
+            )}
+
+            <Field label="Type">
+              <TypePicker
+                value={tokenType}
+                onChange={handleTypeChange}
+                disabled={!fieldEditable}
+                title={fieldEditable ? "Change token type" : "Detach generator before changing type"}
+                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+              />
+            </Field>
           </div>
-        ) : null}
+
+          {duplicatePath ? (
+            <p className="tm-token-details__error-copy">
+              A token with this path already exists in {ownerCollectionId}.
+            </p>
+          ) : null}
+          {!duplicatePath && conflictingOtherCollectionIds.length > 0 ? (
+            <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+              This path is already used in{" "}
+              {formatCollectionIdList(conflictingOtherCollectionIds)}. Creating
+              it here will make references to{" "}
+              <span className="font-mono">{trimmedEditPath}</span> ambiguous
+              across collections.
+            </p>
+          ) : null}
+
+          {isCreateMode && !editPath.includes(".") && createSuggestions.length > 0 ? (
+            <div className="tm-token-details__suggestions">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                Try
+              </span>
+              {createSuggestions.map((prefix) => (
+                <button
+                  key={prefix}
+                  type="button"
+                  onClick={() => {
+                    setEditPath(prefix);
+                    setDisplayError(null);
+                  }}
+                  className="tm-token-details__suggestion-button"
+                >
+                  {prefix}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </Section>
 
         <Section
           title={valueSectionTitle}
@@ -1660,14 +1667,14 @@ export function TokenDetails({
           <Stack
             gap={3}
             ref={valueEditorContainerRef}
-            onPaste={isEditMode ? handlePaste : undefined}
+            onPaste={fieldEditable ? handlePaste : undefined}
           >
-            <Surface variant="muted" padding="sm">
+            <div className="tm-token-details__mode-list">
               <Stack
                 gap={1}
                 title={
                   modeValue.modes.length >= 2
-                    ? (valueFormatHint(tokenType) || undefined)
+                    ? valueFormatHint(tokenType) || undefined
                     : undefined
                 }
               >
@@ -1684,10 +1691,13 @@ export function TokenDetails({
                   const initialModeVal =
                     modeIdx === 0
                       ? initialFieldsSnapshot?.value
-                      : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[mode.name];
+                      : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[
+                          mode.name
+                        ];
                   const isModeModified =
                     initialModeVal !== undefined &&
-                    stableStringify(modeVal) !== stableStringify(initialModeVal);
+                    stableStringify(modeVal) !==
+                      stableStringify(initialModeVal);
                   const showModeLabel = modeValue.modes.length >= 2;
 
                   return (
@@ -1696,12 +1706,12 @@ export function TokenDetails({
                       modeName={mode.name}
                       tokenType={tokenType}
                       value={modeVal}
-                      editable={isEditMode}
-                      onChange={isEditMode ? mode.setValue : undefined}
+                      editable={fieldEditable}
+                      onChange={fieldEditable ? mode.setValue : undefined}
                       allTokensFlat={allTokensFlat}
                       pathToCollectionId={pathToCollectionId}
                       showModeLabel={showModeLabel}
-                      autoFocus={modeIdx === 0 && !isCreateMode && isEditMode}
+                      autoFocus={modeIdx === 0 && !isCreateMode && fieldEditable}
                       inheritedValue={inheritedValue}
                       availableFonts={availableFonts}
                       fontWeightsByFamily={fontWeightsByFamily}
@@ -1710,15 +1720,14 @@ export function TokenDetails({
                       modified={isModeModified && !isCreateMode}
                       onNavigateToToken={(path) => onNavigateToToken?.(path)}
                       allowCopyFromPrevious={
-                        isEditMode &&
-                        modeValue.modes.length > 1 &&
-                        modeIdx > 0
+                        fieldEditable && modeValue.modes.length > 1 && modeIdx > 0
                       }
                       onCopyFromPrevious={
-                        isEditMode && modeValue.modes.length > 1 && modeIdx > 0
+                        fieldEditable && modeValue.modes.length > 1 && modeIdx > 0
                           ? () => {
                               const sourceIdx = modeIdx - 1;
-                              const sourceValue = modeValue.modes[sourceIdx].value;
+                              const sourceValue =
+                                modeValue.modes[sourceIdx].value;
                               if (sourceValue != null) {
                                 mode.setValue(cloneModeValue(sourceValue));
                               }
@@ -1726,12 +1735,12 @@ export function TokenDetails({
                           : undefined
                       }
                       allowCopyToAll={
-                        isEditMode &&
+                        fieldEditable &&
                         modeValue.modes.length > 1 &&
                         modeVal != null
                       }
                       onCopyToAll={
-                        isEditMode &&
+                        fieldEditable &&
                         modeValue.modes.length > 1 &&
                         modeVal != null
                           ? () => {
@@ -1747,27 +1756,10 @@ export function TokenDetails({
                     />
                   );
                 })}
-                {isEditMode ? (
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                      Modes belong to the collection and apply to every token in it.
-                    </span>
-                    {onManageCollectionModes ? (
-                      <button
-                        type="button"
-                        onClick={() => onManageCollectionModes(ownerCollectionId)}
-                        className="inline-flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:underline"
-                      >
-                        <Plus size={12} strokeWidth={1.5} aria-hidden />
-                        Manage collection modes
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
               </Stack>
-            </Surface>
+            </div>
 
-            {isEditMode && valueIsAlias ? (
+            {fieldEditable && valueIsAlias ? (
               <DerivationEditor
                 sourceType={tokenType as TokenType | undefined}
                 reference={value as string}
@@ -1777,101 +1769,229 @@ export function TokenDetails({
               />
             ) : null}
 
-            {isInspectMode && derivationOps.length > 0 ? (
-              <Field label="Modifier">
-                <Stack gap={1}>
-                  {derivationOps.map((op, idx) => (
-                    <ListItem key={idx}>
-                      <span className={LONG_TEXT_CLASSES.textPrimary}>
-                        {summarizeDerivationOp(op)}
-                      </span>
-                    </ListItem>
-                  ))}
-                </Stack>
-              </Field>
-            ) : null}
           </Stack>
         </Section>
 
         <Section title="Details" emphasis="secondary">
           <Stack gap={4}>
             <Field label="Description">
-              {isInspectMode ? (
-                <p className="m-0 text-body text-[var(--color-figma-text)]">
-                  {description ? (
-                    description
-                  ) : (
-                    <span className="italic text-[var(--color-figma-text-tertiary)]">
-                      No description
-                    </span>
-                  )}
-                </p>
-              ) : (
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional description"
-                  rows={2}
-                  className="min-h-[56px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)]"
-                />
-              )}
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={!fieldEditable}
+                placeholder="Optional description"
+                rows={2}
+                className="min-h-[56px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+              />
             </Field>
 
-            <Stack direction="row" gap={4}>
+            <div className="tm-token-details__details-list">
               {FIGMA_SCOPE_OPTIONS[tokenType] ? (
-                <Field
-                  label="Can apply to"
-                  help="Pick the Figma fields this token is valid for. Leave empty to allow any compatible field."
-                  className="flex-1"
-                >
-                  {isInspectMode ? (
-                    <div className="text-body text-[var(--color-figma-text)]">
-                      {scopeLabels.length > 0
-                        ? scopeLabels.join(", ")
-                        : "Any compatible field"}
-                    </div>
-                  ) : (
-                    <ScopeEditor
-                      tokenTypes={[tokenType]}
-                      selectedScopes={scopes}
-                      onChange={setScopes}
-                      compact
-                    />
-                  )}
+                <Field label="Can apply to">
+                  <ScopeEditor
+                    tokenTypes={[tokenType]}
+                    selectedScopes={scopes}
+                    onChange={setScopes}
+                    disabled={!fieldEditable}
+                    compact
+                    showDescriptions={false}
+                  />
                 </Field>
               ) : null}
 
-              <Field label="Lifecycle" className="flex-1">
-                <Stack direction="row" gap={2} align="center">
+              <Field label="Lifecycle">
+                <div className="tm-token-details__lifecycle-row">
                   <span
                     className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
                     aria-hidden
                   />
-                  {isInspectMode ? (
-                    <span className="text-body text-[var(--color-figma-text)]">
-                      {lifecycleLabel}
-                    </span>
-                  ) : (
-                    <select
-                      value={lifecycle}
-                      onChange={(e) => setLifecycle(e.target.value as typeof lifecycle)}
-                      className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                      aria-label="Lifecycle"
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="published">Published</option>
-                      <option value="deprecated">Deprecated</option>
-                    </select>
-                  )}
-                </Stack>
+                  <select
+                    value={lifecycle}
+                    onChange={(e) =>
+                      setLifecycle(e.target.value as typeof lifecycle)
+                    }
+                    disabled={!fieldEditable}
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+                    aria-label="Lifecycle"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="deprecated">Deprecated</option>
+                  </select>
+                </div>
               </Field>
-            </Stack>
+            </div>
           </Stack>
         </Section>
 
         {!isCreateMode ? (
-          <Section title="Related" emphasis="support">
-            <Stack gap={5}>
+          <Section emphasis="support" className="tm-token-details__disclosures">
+            <Collapsible
+              open={relationshipsOpen}
+              onToggle={() => setRelationshipsOpen((open) => !open)}
+              label={referencesLabel}
+              className="tm-token-details__collapsible"
+            >
+              <div className="tm-token-details__collapsible-body tm-token-details__reference-body">
+                {ancestors.isEmpty && dependents.length === 0 ? (
+                  <p className="tm-token-details__empty-copy">
+                    No aliases or dependent tokens.
+                  </p>
+                ) : null}
+
+                {!ancestors.isEmpty ? (
+                  <div className="tm-token-details__reference-group">
+                    <div className="tm-token-details__reference-heading">
+                      Resolves through
+                    </div>
+                    <div className="tm-token-details__reference-list">
+                      {ancestors.chains.map((chain) => (
+                        <div
+                          key={chain.modeName}
+                          className="tm-token-details__reference-chain"
+                        >
+                          {ancestors.chains.length > 1 ? (
+                            <div className="tm-token-details__list-note">
+                              {chain.modeName}
+                            </div>
+                          ) : null}
+                          {chain.rows.map((row, rowIdx) => {
+                            const key = `${chain.modeName}::${rowIdx}::${row.path}`;
+                            const crossCollection =
+                              row.collectionId &&
+                              row.collectionId !== ownerCollectionId;
+                            const statusLabel = getAncestorRowStatusLabel(
+                              row.status,
+                            );
+                            const tags = (
+                              <>
+                                {crossCollection ? (
+                                  <span className="tm-token-details__mini-tag">
+                                    {row.collectionId}
+                                  </span>
+                                ) : null}
+                                {row.formulaSource ? (
+                                  <span
+                                    className="tm-token-details__mini-tag"
+                                    title={row.formulaSource}
+                                  >
+                                    formula
+                                  </span>
+                                ) : null}
+                                {statusLabel ? (
+                                  <span className="tm-token-details__mini-tag">
+                                    {statusLabel}
+                                  </span>
+                                ) : null}
+                              </>
+                            );
+                            const handleNavigate =
+                              onNavigateToToken &&
+                              row.collectionId &&
+                              row.status !== "missing" &&
+                              row.status !== "ambiguous"
+                                ? () =>
+                                    onNavigateToToken(
+                                      row.path,
+                                      row.collectionId,
+                                    )
+                                : undefined;
+                            return (
+                              <ListItem
+                                key={key}
+                                onClick={handleNavigate}
+                                title={
+                                  handleNavigate
+                                    ? `Open ${row.path}`
+                                    : undefined
+                                }
+                                trailing={tags}
+                                allowWrap
+                              >
+                                <span className={LONG_TEXT_CLASSES.monoPrimary}>
+                                  {row.path}
+                                </span>
+                              </ListItem>
+                            );
+                          })}
+                          {chain.terminalKind === "literal" &&
+                          chain.terminalValue !== undefined ? (
+                            <ListItem
+                              allowWrap
+                              className="tm-token-details__reference-terminal"
+                            >
+                              <span className={LONG_TEXT_CLASSES.monoPrimary}>
+                                {formatTokenValueForDisplay(
+                                  chain.terminalType,
+                                  chain.terminalValue,
+                                )}
+                              </span>
+                            </ListItem>
+                          ) : null}
+                          {(() => {
+                            const terminalNote = getAncestorTerminalNote(
+                              chain.terminalKind,
+                            );
+                            return terminalNote ? (
+                              <div className="tm-token-details__list-note">
+                                {terminalNote}
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {dependents.length > 0 ? (
+                  <div className="tm-token-details__reference-group">
+                    <div className="tm-token-details__reference-heading">
+                      Used by
+                    </div>
+                    <div className="tm-token-details__reference-list">
+                      {dependents.slice(0, 20).map((dep) => {
+                        const tag =
+                          dep.collectionId !== ownerCollectionId ? (
+                            <span className="tm-token-details__mini-tag">
+                              {dep.collectionId}
+                            </span>
+                          ) : null;
+                        return (
+                          <ListItem
+                            key={dep.path}
+                            onClick={
+                              onNavigateToToken
+                                ? () =>
+                                    onNavigateToToken(
+                                      dep.path,
+                                      dep.collectionId,
+                                    )
+                                : undefined
+                            }
+                            title={
+                              onNavigateToToken ? `Open ${dep.path}` : undefined
+                            }
+                            trailing={tag}
+                            allowWrap
+                          >
+                            <span className={LONG_TEXT_CLASSES.monoPrimary}>
+                              {dep.path}
+                            </span>
+                          </ListItem>
+                        );
+                      })}
+                      {dependents.length > 20 ? (
+                        <div className="tm-token-details__list-note">
+                          and {dependents.length - 20} more…
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </Collapsible>
+
             {tokenType === "color" ? (
               <ContrastChecker
                 tokenPath={tokenPath}
@@ -1882,118 +2002,41 @@ export function TokenDetails({
               />
             ) : null}
 
-            {isInspectMode && onOpenInHealth ? (
-              <div className="tm-token-details__related-actions">
-                <button
-                  type="button"
-                  onClick={onOpenInHealth}
-                  className="tm-token-details__text-button"
-                >
-                  Open in review
-                </button>
-              </div>
-            ) : null}
-
-            {!ancestors.isEmpty ? (
-              <Field label="Resolves to">
-                <div className="max-h-36 overflow-y-auto">
-                  <Stack gap={1} className="p-1.5">
-                    {ancestors.chains.map((chain) => (
-                      <Stack key={chain.modeName} gap={1}>
-                        {ancestors.chains.length > 1 ? (
-                          <div className="tm-token-details__list-note">{chain.modeName}</div>
-                        ) : null}
-                        {chain.rows.map((row, rowIdx) => {
-                          const key = `${chain.modeName}::${rowIdx}::${row.path}`;
-                          const crossCollection =
-                            row.collectionId && row.collectionId !== ownerCollectionId;
-                          const statusLabel = getAncestorRowStatusLabel(row.status);
-                          const tags = (
-                            <>
-                              {crossCollection ? (
-                                <span className="tm-token-details__mini-tag">{row.collectionId}</span>
-                              ) : null}
-                              {row.formulaSource ? (
-                                <span
-                                  className="tm-token-details__mini-tag"
-                                  title={row.formulaSource}
-                                >
-                                  formula
-                                </span>
-                              ) : null}
-                              {statusLabel ? (
-                                <span className="tm-token-details__mini-tag">{statusLabel}</span>
-                              ) : null}
-                            </>
-                          );
-                          const handleNavigate =
-                            onNavigateToToken &&
-                            row.collectionId &&
-                            row.status !== "missing" &&
-                            row.status !== "ambiguous"
-                              ? () => onNavigateToToken(row.path, row.collectionId)
-                              : undefined;
-                          return (
-                            <ListItem
-                              key={key}
-                              onClick={handleNavigate}
-                              title={handleNavigate ? `Open ${row.path}` : undefined}
-                              trailing={tags}
-                            >
-                              <span className={LONG_TEXT_CLASSES.monoPrimary}>{row.path}</span>
-                            </ListItem>
-                          );
-                        })}
-                        {chain.terminalKind === "literal" && chain.terminalValue !== undefined ? (
-                          <ListItem>
-                            <span className={LONG_TEXT_CLASSES.monoPrimary}>
-                              {formatTokenValueForDisplay(chain.terminalType, chain.terminalValue)}
-                            </span>
-                          </ListItem>
-                        ) : null}
-                        {(() => {
-                          const terminalNote = getAncestorTerminalNote(chain.terminalKind);
-                          return terminalNote ? (
-                            <div className="tm-token-details__list-note">{terminalNote}</div>
-                          ) : null;
-                        })()}
-                      </Stack>
+            <Collapsible
+              open={reviewOpen}
+              onToggle={() => setReviewOpen((open) => !open)}
+              label={reviewIssuesLabel}
+              className="tm-token-details__collapsible"
+            >
+              <div className="tm-token-details__collapsible-body">
+                {tokenLintViolations.length > 0 ? (
+                  <Stack gap={1}>
+                    {tokenLintViolations.map((violation, index) => (
+                      <ListItem key={`${violation.rule}:${index}`} allowWrap>
+                        <span className={LONG_TEXT_CLASSES.textPrimary}>
+                          {violation.message}
+                        </span>
+                      </ListItem>
                     ))}
                   </Stack>
-                </div>
-              </Field>
-            ) : null}
-
-            {dependents.length > 0 ? (
-              <Field label="Dependent tokens">
-                <div className="max-h-36 overflow-y-auto">
-                  <Stack gap={1} className="p-1.5">
-                    {dependents.slice(0, 20).map((dep) => {
-                      const tag =
-                        dep.collectionId !== ownerCollectionId ? (
-                          <span className="tm-token-details__mini-tag">{dep.collectionId}</span>
-                        ) : null;
-                      return (
-                        <ListItem
-                          key={dep.path}
-                          onClick={onNavigateToToken ? () => onNavigateToToken(dep.path, dep.collectionId) : undefined}
-                          title={onNavigateToToken ? `Open ${dep.path}` : undefined}
-                          trailing={tag}
-                        >
-                          <span className={LONG_TEXT_CLASSES.monoPrimary}>{dep.path}</span>
-                        </ListItem>
-                      );
-                    })}
-                    {dependents.length > 20 ? (
-                      <div className="tm-token-details__list-note">
-                        and {dependents.length - 20} more…
-                      </div>
-                    ) : null}
-                  </Stack>
-                </div>
-              </Field>
-            ) : null}
-            </Stack>
+                ) : (
+                  <p className="m-0 text-secondary text-[var(--color-figma-text-secondary)]">
+                    No review issues for this token.
+                  </p>
+                )}
+                {onOpenInHealth ? (
+                  <div className="tm-token-details__related-actions">
+                    <button
+                      type="button"
+                      onClick={onOpenInHealth}
+                      className="tm-token-details__text-button"
+                    >
+                      Open in review
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </Collapsible>
           </Section>
         ) : null}
 
@@ -2001,13 +2044,13 @@ export function TokenDetails({
           open={detailsOpen}
           onToggle={toggleDetails}
           extendsSection={extendsSection}
-          isInspectMode={isInspectMode}
           readOnlyExtensionsText={readOnlyExtensionsText}
           extensionsJsonText={extensionsJsonText}
           onExtensionsJsonTextChange={setExtensionsJsonText}
           extensionsJsonError={extensionsJsonError}
           onExtensionsJsonErrorChange={setExtensionsJsonError}
           rawJsonPreview={rawJsonPreview}
+          editable={fieldEditable}
         />
       </EditorShell>
 
@@ -2044,7 +2087,9 @@ export function TokenDetails({
         <ConfirmModal
           title={`Rename "${leafName}"?`}
           description={`${renameConfirm.aliasCount} ${
-            renameConfirm.aliasCount === 1 ? "alias reference" : "alias references"
+            renameConfirm.aliasCount === 1
+              ? "alias reference"
+              : "alias references"
           } will be updated to point to ${renameConfirm.newPath}.`}
           confirmLabel="Rename and update references"
           cancelLabel="Cancel"
@@ -2052,6 +2097,17 @@ export function TokenDetails({
           onCancel={() => setRenameConfirm(null)}
         />
       )}
+
+      {showDetachGeneratorConfirm && activeGeneratorProvenance ? (
+        <ConfirmModal
+          title="Detach from generator?"
+          description="This token becomes manual and stops updating when the generator is previewed or applied."
+          confirmLabel="Detach"
+          cancelLabel="Cancel"
+          onConfirm={handleDetachGeneratorOutput}
+          onCancel={() => setShowDetachGeneratorConfirm(false)}
+        />
+      ) : null}
     </div>
   );
 }

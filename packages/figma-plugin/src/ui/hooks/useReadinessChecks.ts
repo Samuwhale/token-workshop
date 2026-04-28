@@ -78,20 +78,29 @@ interface ClusterDraft {
   severity: PublishPreflightCluster['severity'];
   affectedCount?: number;
   detail?: string;
-  recommendedActionLabel?: string;
-  recommendedActionId?: PublishPreflightActionId;
-}
+	  recommendedActionLabel?: string;
+	  recommendedActionId?: PublishPreflightActionId;
+	  recommendedGeneratorId?: string;
+	  recommendedGeneratorDiagnosticId?: string;
+	  recommendedGeneratorNodeId?: string;
+	  recommendedGeneratorEdgeId?: string;
+	}
 
 type VariableSyncSnapshot = Awaited<ReturnType<typeof loadVariableSyncSnapshot>>;
 
-interface GraphStatusItem {
-  graph: {
+interface GeneratorStatusItem {
+  generator: {
     id: string;
     name: string;
     targetCollectionId: string;
   };
   preview: {
-    diagnostics: Array<{ severity: 'error' | 'warning' | 'info' }>;
+    diagnostics: Array<{
+      id: string;
+      severity: 'error' | 'warning' | 'info';
+      nodeId?: string;
+      edgeId?: string;
+    }>;
     outputs: Array<{ collision?: boolean }>;
   };
   stale: boolean;
@@ -256,27 +265,29 @@ export function useReadinessChecks({
         resolverPublishMappings,
       );
       const validationSnapshot = await refreshValidation();
-      let graphStatuses: GraphStatusItem[] = [];
-      let graphStatusError: string | null = null;
+      let generatorStatuses: GeneratorStatusItem[] = [];
+      let generatorStatusError: string | null = null;
       try {
-        const graphStatusResponse = await apiFetch<{ graphs: GraphStatusItem[] }>(
-          `${serverUrl}/api/graphs/status`,
+        const generatorStatusResponse = await apiFetch<{ generators: GeneratorStatusItem[] }>(
+          `${serverUrl}/api/generators/status`,
         );
-        graphStatuses = graphStatusResponse.graphs;
+        generatorStatuses = generatorStatusResponse.generators;
       } catch (error) {
-        graphStatuses = [];
-        graphStatusError = describeError(error);
+        generatorStatuses = [];
+        generatorStatusError = describeError(error);
       }
       const activeValidationIssues =
         validationSnapshot?.issues.filter((issue) => issue.collectionId === currentCollectionId && issue.severity === 'error') ?? [];
-      const graphIssues = graphStatuses.filter((item) =>
-        item.graph.targetCollectionId === currentCollectionId &&
-        (item.blocking ||
-          item.stale ||
-          item.unapplied ||
-          item.preview.diagnostics.length > 0 ||
-          item.preview.outputs.some((output) => output.collision))
-      );
+	      const generatorIssues = generatorStatuses.filter((item) =>
+	        item.generator.targetCollectionId === currentCollectionId &&
+	        (item.blocking ||
+	          item.stale ||
+	          item.unapplied ||
+	          item.preview.diagnostics.length > 0 ||
+	          item.preview.outputs.some((output) => output.collision))
+	      );
+	      const recommendedGeneratorIssue = generatorIssues[0];
+	      const recommendedGeneratorDiagnostic = recommendedGeneratorIssue?.preview.diagnostics[0];
       const { localOnly: missingInFigma, figmaOnly: rawOrphans } = getSyncRowsByCategory(snapshot.rows);
       const resolverOrphanPlan = compareMode === 'resolver-publish' && resolverPublishMappings
         ? buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings)
@@ -386,20 +397,24 @@ export function useReadinessChecks({
           recommendedActionId: activeValidationIssues.length > 0 ? 'review-health-findings' : undefined,
         },
         {
-          id: 'graph-documents',
-          label: 'Generated token outputs',
-          severity: graphStatusError || graphIssues.some((item) => item.blocking || item.preview.diagnostics.some((diagnostic) => diagnostic.severity === 'error'))
+          id: 'generators',
+          label: 'Generators',
+          severity: generatorStatusError || generatorIssues.some((item) => item.blocking || item.preview.diagnostics.some((diagnostic) => diagnostic.severity === 'error'))
             ? 'blocking'
             : 'advisory',
-          affectedCount: graphStatusError ? 1 : graphIssues.length || undefined,
-          detail: graphStatusError
-            ? `Generator status could not be checked: ${graphStatusError}`
-            : graphIssues.length > 0
-            ? `${formatCount(graphIssues.length, 'generator')} need preview, apply, or diagnostic review before publishing this collection to Figma.`
+          affectedCount: generatorStatusError ? 1 : generatorIssues.length || undefined,
+          detail: generatorStatusError
+            ? `Generator status could not be checked: ${generatorStatusError}`
+            : generatorIssues.length > 0
+            ? `${formatCount(generatorIssues.length, 'generator')} need preview, apply, or diagnostic review before publishing this collection to Figma.`
             : undefined,
-          recommendedActionLabel: graphStatusError || graphIssues.length > 0 ? 'Open Review' : undefined,
-          recommendedActionId: graphStatusError || graphIssues.length > 0 ? 'review-health-findings' : undefined,
-        },
+	          recommendedActionLabel: generatorStatusError || generatorIssues.length > 0 ? 'Open Generators' : undefined,
+	          recommendedActionId: generatorStatusError || generatorIssues.length > 0 ? 'review-generator-issues' : undefined,
+	          recommendedGeneratorId: recommendedGeneratorIssue?.generator.id,
+	          recommendedGeneratorDiagnosticId: recommendedGeneratorDiagnostic?.id,
+	          recommendedGeneratorNodeId: recommendedGeneratorDiagnostic?.nodeId,
+	          recommendedGeneratorEdgeId: recommendedGeneratorDiagnostic?.edgeId,
+	        },
         {
           id: 'draft-tokens',
           label: 'Draft lifecycle tokens',
@@ -420,9 +435,13 @@ export function useReadinessChecks({
         status: draft.affectedCount && draft.affectedCount > 0 ? 'fail' : 'pass',
         affectedCount: draft.affectedCount,
         detail: draft.detail,
-        recommendedActionLabel: draft.recommendedActionLabel,
-        recommendedActionId: draft.recommendedActionId,
-      })));
+	        recommendedActionLabel: draft.recommendedActionLabel,
+	        recommendedActionId: draft.recommendedActionId,
+	        recommendedGeneratorId: draft.recommendedGeneratorId,
+	        recommendedGeneratorDiagnosticId: draft.recommendedGeneratorDiagnosticId,
+	        recommendedGeneratorNodeId: draft.recommendedGeneratorNodeId,
+	        recommendedGeneratorEdgeId: draft.recommendedGeneratorEdgeId,
+	      })));
 
       const runKey = tokenChangeKey ?? 0;
       setChecksRunAtKey(runKey);

@@ -2,7 +2,7 @@
  * DTCG Resolver Engine (v2025.10)
  *
  * Implements the Design Tokens Resolver Module specification.
- * Given a ResolverFile and a set of modifier inputs, merges token sources
+ * Given an external DTCG ResolverFile and modifier inputs, merges token sources
  * in resolution order and resolves all aliases to produce a single flat
  * token output.
  *
@@ -408,7 +408,7 @@ type InternalTarget =
   | { kind: 'modifier'; name: string; value: ResolverModifier };
 
 /**
- * Resolve a JSON Pointer like "#/sets/foundation" or "#/modifiers/theme"
+ * Resolve an external DTCG resolver JSON Pointer like "#/sets/foundation" or "#/modifiers/theme"
  * within the resolver file itself.
  */
 function resolveInternalPointer(ref: string, file: ResolverFile): InternalTarget | null {

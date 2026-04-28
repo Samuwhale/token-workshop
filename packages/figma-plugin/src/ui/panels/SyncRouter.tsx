@@ -11,6 +11,17 @@ import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 interface SyncRouterProps {
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
+	  onOpenGenerator?: (
+	    generatorId: string,
+	    options?: {
+	      preserveHandoff?: boolean;
+	      focus?: {
+	        diagnosticId?: string;
+	        nodeId?: string;
+	        edgeId?: string;
+	      };
+	    },
+	  ) => void;
   savePublishRouting: (
     collectionId: string,
     routing: PublishRoutingDraft,
@@ -20,6 +31,7 @@ interface SyncRouterProps {
 export function SyncRouter({
   collectionMap,
   modeMap,
+  onOpenGenerator,
   savePublishRouting,
 }: SyncRouterProps): ReactNode {
   const { serverUrl, connected } = useConnectionContext();
@@ -67,6 +79,7 @@ export function SyncRouter({
             perCollectionFlat={perCollectionFlat}
             savePublishRouting={savePublishRouting}
             refreshValidation={controller.refreshValidation}
+            onOpenGenerator={onOpenGenerator}
             tokenChangeKey={controller.tokenChangeKey}
             publishPanelHandle={controller.publishPanelHandleRef}
           />

@@ -169,6 +169,7 @@ export function App() {
     () => collections.map((collection) => collection.id),
     [collections],
   );
+  const librarySetupRequired = collections.length === 0;
   const {
     allTokensFlat,
     pathToCollectionId,
@@ -204,8 +205,7 @@ export function App() {
     startHereState,
     dismissEphemeralOverlays,
     openStartHere,
-    closeStartHere,
-    completeStartHere,
+    finishStartHere,
   } = useOverlayManager();
   const [collectionPickerFocusRequestKey, setCollectionPickerFocusRequestKey] = useState(0);
   const recentlyTouched = useRecentlyTouched();
@@ -935,6 +935,13 @@ export function App() {
     };
   }, [activeTopTab, activeSubTab, dismissContextualTools]);
 
+  useEffect(() => {
+    if (!librarySetupRequired || activeTopTab === "library") {
+      return;
+    }
+    navigateTo("library", "tokens");
+  }, [activeTopTab, librarySetupRequired, navigateTo]);
+
   const openSecondaryPanel = useCallback(
     (panel: SecondarySurfaceId) => {
       dismissEphemeralOverlays();
@@ -1328,9 +1335,9 @@ export function App() {
         switchContextualSurface({ surface: "import" });
       },
       openCollectionCreateDialog,
-      openGraphWorkspace: () => {
+      openGeneratorsWorkspace: () => {
         switchContextualSurface({ surface: null });
-        navigateTo("library", "graph");
+        navigateTo("library", "generators");
       },
       toggleQuickApply: () => setShowQuickApply((visible) => !visible),
       triggerCreateFromSelection: () => {
@@ -1620,6 +1627,17 @@ export function App() {
   const notificationCount = notificationHistory.length;
 
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
+    if (librarySetupRequired && item.workspaceId !== "library") {
+      guardEditorAction(() => {
+        navigateTo("library", "tokens");
+        closeSecondarySurface();
+        closeNotifications();
+        clearHandoff();
+        setExpandedWorkspaces(new Set(["library"]));
+        openStartHere("root");
+      });
+      return;
+    }
     const isAlreadyActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
     if (isAlreadyActive) {
       setExpandedWorkspaces((prev) => {
@@ -1640,7 +1658,24 @@ export function App() {
       clearHandoff();
       setExpandedWorkspaces((prev) => new Set(prev).add(item.workspaceId));
     });
-  }, [activeWorkspace.id, activeSecondarySurface, guardEditorAction, navigateTo, closeSecondarySurface, closeNotifications, clearHandoff]);
+  }, [
+    activeWorkspace.id,
+    activeSecondarySurface,
+    clearHandoff,
+    closeNotifications,
+    closeSecondarySurface,
+    guardEditorAction,
+    librarySetupRequired,
+    navigateTo,
+    openStartHere,
+  ]);
+  const runStartHereAction = useCallback(
+    (action: () => void) => {
+      finishStartHere();
+      action();
+    },
+    [finishStartHere],
+  );
 
   const workspaceIcon = (id: string) => {
     switch (id) {
@@ -1674,12 +1709,15 @@ export function App() {
               className="flex flex-col gap-px"
             >
               {group.items.map((item) => {
+                const requiresSetup =
+                  librarySetupRequired && item.workspaceId !== "library";
                 const isWorkspaceActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
                 const workspace = WORKSPACE_TABS.find((w) => w.id === item.workspaceId);
                 const allSections = workspace?.sections ?? [];
-                const sections = allSections;
+                const sections = requiresSetup ? [] : allSections;
                 const showCanvasSelectionAdornment =
                   item.id === "canvas" &&
+                  !requiresSetup &&
                   !isWorkspaceActive &&
                   selectionHealth.hasSelection;
                 const canvasHasBrokenBindings =
@@ -1690,6 +1728,7 @@ export function App() {
                   count: number | null;
                   label: string;
                 } | null = (() => {
+                  if (requiresSetup) return null;
                   if (item.id !== "publish" || isWorkspaceActive) return null;
                   if (syncError) return { tone: "error", count: null, label: `Apply failed: ${syncError}` };
                   if (syncResult && syncResult.errors > 0) {
@@ -1712,13 +1751,15 @@ export function App() {
                 const inactiveTextClass = `${publishIsIdle ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
 
                 if (sidebarCollapsed) {
-                  const tooltipLabel = showCanvasSelectionAdornment
-                    ? canvasHasBrokenBindings
-                      ? `${item.label} · ${selectionHealth.selectionCount} selected · ${selectionHealth.staleBindingCount} broken`
-                      : `${item.label} · ${selectionHealth.selectionCount} selected`
-                    : syncAdornment
-                      ? `${item.label} · ${syncAdornment.label}`
-                      : item.label;
+                  const tooltipLabel = requiresSetup
+                    ? `${item.label} · set up a collection first`
+                    : showCanvasSelectionAdornment
+                      ? canvasHasBrokenBindings
+                        ? `${item.label} · ${selectionHealth.selectionCount} selected · ${selectionHealth.staleBindingCount} broken`
+                        : `${item.label} · ${selectionHealth.selectionCount} selected`
+                      : syncAdornment
+                        ? `${item.label} · ${syncAdornment.label}`
+                        : item.label;
                   return (
                     <Tooltip
                       key={item.id}
@@ -1731,7 +1772,9 @@ export function App() {
                         className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
                             ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-accent)]"
-                            : inactiveTextClass
+                            : requiresSetup
+                              ? "text-[var(--color-figma-text-tertiary)] opacity-60"
+                              : inactiveTextClass
                         }`}
                       >
                         {isWorkspaceActive && (
@@ -1763,10 +1806,13 @@ export function App() {
                   <div key={item.id} className="mb-0.5">
                     <button
                       onClick={() => handleSidebarItemClick(item)}
+                      title={requiresSetup ? "Set up a collection first" : undefined}
                       className={`relative flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
                         isWorkspaceActive
                           ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                          : inactiveTextClass
+                          : requiresSetup
+                            ? "text-[var(--color-figma-text-tertiary)] opacity-60"
+                            : inactiveTextClass
                       }`}
                     >
                       {isWorkspaceActive && (
@@ -2130,36 +2176,36 @@ export function App() {
           currentCollectionId={currentCollectionId}
           collectionIds={collectionIds}
           initialBranch={startHereState.initialBranch}
-          onClose={closeStartHere}
+          onClose={finishStartHere}
           onRetryConnection={retryConnection}
           onImportExistingSystem={() => {
-            completeStartHere();
-            navigateTo("library", "tokens");
-            switchContextualSurface({ surface: "import" });
-          }}
-          onStartFromSelection={() => {
-            completeStartHere();
-            dismissEphemeralOverlays();
-            navigateTo("canvas", "inspect");
-            setTriggerExtractToken((n) => n + 1);
-          }}
-          onAuthorFirstToken={() => {
-            completeStartHere();
-            navigateTo("library", "tokens");
-            setTokenDetails({
-              path: "",
-              collectionId: currentCollectionId,
-              mode: "edit",
-              isCreate: true,
+            runStartHereAction(() => {
+              navigateTo("library", "tokens");
+              switchContextualSurface({ surface: "import" });
             });
           }}
-          onOpenGraph={() => {
-            completeStartHere();
-            navigateTo("library", "graph");
+          onStartFromSelection={() => {
+            runStartHereAction(() => {
+              dismissEphemeralOverlays();
+              navigateTo("canvas", "inspect");
+              setTriggerExtractToken((n) => n + 1);
+            });
+          }}
+          onAuthorFirstToken={() => {
+            runStartHereAction(() => {
+              navigateTo("library", "tokens");
+              setTokenDetails({
+                path: "",
+                collectionId: currentCollectionId,
+                mode: "edit",
+                isCreate: true,
+              });
+            });
           }}
           onGuidedSetupComplete={() => {
-            completeStartHere();
-            refreshAll();
+            runStartHereAction(() => {
+              refreshAll();
+            });
           }}
           onCollectionCreated={(name) => {
             void addCollectionToState(name);

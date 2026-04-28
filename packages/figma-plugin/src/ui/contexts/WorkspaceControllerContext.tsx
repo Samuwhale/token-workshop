@@ -28,7 +28,7 @@ export interface ShellWorkspaceController {
   openPasteModal: () => void;
   openImportPanel: () => void;
   openCollectionCreateDialog: () => void;
-  openGraphWorkspace: () => void;
+  openGeneratorsWorkspace: () => void;
   toggleQuickApply: () => void;
   triggerCreateFromSelection: () => void;
   triggerExtractFromSelection: () => void;

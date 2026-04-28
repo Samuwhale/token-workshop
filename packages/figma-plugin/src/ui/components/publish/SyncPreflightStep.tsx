@@ -9,7 +9,7 @@ interface SyncPreflightStepProps {
   blockingClusters: PublishPreflightCluster[];
   advisoryClusters: PublishPreflightCluster[];
   running: boolean;
-  actionHandlers: Partial<Record<string, () => void>>;
+  actionHandlers: Partial<Record<string, (cluster: PublishPreflightCluster) => void>>;
   actionBusyId?: string | null;
 }
 
@@ -79,7 +79,7 @@ function ClusterGroup({
   title: string;
   tone: 'danger' | 'warning';
   clusters: PublishPreflightCluster[];
-  actionHandlers: Partial<Record<string, () => void>>;
+  actionHandlers: Partial<Record<string, (cluster: PublishPreflightCluster) => void>>;
   actionBusyId: string | null;
 }) {
   const toneClasses = tone === 'danger'
@@ -118,7 +118,7 @@ function ClusterGroup({
 
                 {action && cluster.recommendedActionLabel && (
                   <button
-                    onClick={action}
+                    onClick={() => action(cluster)}
                     disabled={isBusy}
                     className="shrink-0 rounded-md bg-[var(--color-figma-accent)]/8 px-2 py-1 text-secondary font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/15 disabled:cursor-not-allowed disabled:opacity-40"
                   >

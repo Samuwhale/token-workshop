@@ -14,7 +14,7 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
 
   const collectionCount = workspaceDiffs.filter(diff => diff.kind === 'collections').length;
   const resolverCount = workspaceDiffs.filter(diff => diff.kind === 'resolver').length;
-  const graphCount = workspaceDiffs.filter(diff => diff.kind === 'graph').length;
+  const generatorCount = workspaceDiffs.filter(diff => diff.kind === 'generator').length;
   const parts: string[] = [];
 
   if (collectionCount > 0) {
@@ -23,8 +23,8 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   if (resolverCount > 0) {
     parts.push(`${resolverCount} resolver ${resolverCount === 1 ? 'change' : 'changes'}`);
   }
-  if (graphCount > 0) {
-    parts.push(`${graphCount} graph ${graphCount === 1 ? 'change' : 'changes'}`);
+  if (generatorCount > 0) {
+    parts.push(`${generatorCount} generator ${generatorCount === 1 ? 'change' : 'changes'}`);
   }
 
   return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
@@ -630,7 +630,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               <polyline points="7 3 7 8 15 8" />
             </svg>
             <p className="text-body text-[var(--color-figma-text-secondary)]">
-              Save your current workspace before making changes. Come back to compare or restore collections, modes, resolvers, and automation anytime.
+              Save your current workspace before making changes. Come back to compare or restore collections, modes, resolvers, and generators anytime.
             </p>
           </div>
         )}
@@ -648,10 +648,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                     </p>
                     <p className="text-secondary text-[var(--color-figma-text-tertiary)] mt-0.5">
                       {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.collectionStorageCount} {s.collectionStorageCount === 1 ? 'collection file' : 'collection files'}
-                      {(s.collectionCount + s.resolverCount + s.graphCount) > 0 ? ` · ${[
+                      {(s.collectionCount + s.resolverCount + s.generatorCount) > 0 ? ` · ${[
                         s.collectionCount > 0 ? `${s.collectionCount} ${s.collectionCount === 1 ? 'collection' : 'collections'}` : '',
                         s.resolverCount > 0 ? `${s.resolverCount} ${s.resolverCount === 1 ? 'resolver' : 'resolvers'}` : '',
-                        s.graphCount > 0 ? `${s.graphCount} ${s.graphCount === 1 ? 'graph' : 'graphs'}` : '',
+                        s.generatorCount > 0 ? `${s.generatorCount} ${s.generatorCount === 1 ? 'generator' : 'generators'}` : '',
                       ].filter(Boolean).join(' · ')}` : ''}
                     </p>
                   </div>

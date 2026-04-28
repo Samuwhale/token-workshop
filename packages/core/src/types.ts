@@ -151,15 +151,6 @@ export interface TokenCollection {
   modes: CollectionMode[];
 }
 
-/** One selected mode per collection. Key = collection id, value = mode name. */
-export type SelectedModes = Record<string, string>;
-
-export interface ViewPreset {
-  id: string;
-  name: string;
-  selections: SelectedModes;
-}
-
 /** Serialized file shape for `$collections.json`. */
 export interface SerializedTokenCollection {
   id: string;
@@ -170,7 +161,6 @@ export interface SerializedTokenCollection {
 
 export interface CollectionsFile {
   $collections: SerializedTokenCollection[];
-  $views?: ViewPreset[];
 }
 
 // ---------------------------------------------------------------------------
@@ -220,9 +210,9 @@ export interface TokenManagerExtensions {
   extends?: string;
   /** Per-collection mode overrides keyed by collection id, then mode name. */
   modes?: TokenModeValues;
-  /** Graph provenance for tokens managed by a graph document. */
-  graph?: {
-    graphId: string;
+  /** Generator provenance for tokens managed by a generator. */
+  generator?: {
+    generatorId: string;
     outputNodeId: string;
     outputKey: string;
     lastAppliedHash: string;
@@ -299,14 +289,14 @@ export interface ResolverRef {
 /** A source: either a file/pointer reference or inline tokens. */
 export type ResolverSource = ResolverRef | DTCGGroup;
 
-/** A named set of token sources in the resolver. */
+/** External DTCG resolver vocabulary: a named set of token sources. Not part of TokenManager token authoring. */
 export interface ResolverSet {
   description?: string;
   sources: ResolverSource[];
   $extensions?: TokenExtensions;
 }
 
-/** A modifier: named dimension with multiple contexts, each mapping to token sources. */
+/** External DTCG resolver vocabulary: a named dimension with multiple contexts. */
 export interface ResolverModifier {
   description?: string;
   contexts: Record<string, ResolverSource[]>;
@@ -314,10 +304,10 @@ export interface ResolverModifier {
   $extensions?: TokenExtensions;
 }
 
-/** An entry in the resolutionOrder array — always a $ref to a set or modifier. */
+/** External DTCG resolver vocabulary: an entry in resolutionOrder. */
 export type ResolutionOrderEntry = ResolverRef;
 
-/** The root structure of a *.resolver.json file (DTCG v2025.10). */
+/** External *.resolver.json file shape from the DTCG resolver spec (v2025.10). */
 export interface ResolverFile {
   $schema?: string;
   name?: string;

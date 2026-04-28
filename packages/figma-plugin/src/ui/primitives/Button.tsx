@@ -23,18 +23,20 @@ const SIZE_CLASS: Record<NonNullable<ButtonProps["size"]>, string> = {
   md: "min-h-[26px] px-2.5 py-1 text-body",
 };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "secondary", size = "md", className = "", children, ...rest },
-  ref,
-) {
-  return (
-    <button
-      ref={ref}
-      type={rest.type ?? "button"}
-      {...rest}
-      className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded text-center leading-tight font-medium transition-colors ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
-    >
-      {children}
-    </button>
-  );
-});
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  function Button(
+    { variant = "secondary", size = "md", className = "", children, ...rest },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        type={rest.type ?? "button"}
+        {...rest}
+        className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded text-center leading-tight font-medium outline-none transition-colors focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[1px] ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
+      >
+        {children}
+      </button>
+    );
+  },
+);

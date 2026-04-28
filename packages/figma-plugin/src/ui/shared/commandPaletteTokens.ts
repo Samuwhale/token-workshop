@@ -11,7 +11,7 @@ export interface CommandPaletteToken {
   collectionId: string;
   type: string;
   value?: string;
-  set?: string;
+  collectionLabel?: string;
   isAlias?: boolean;
   description?: string;
   scopes?: string[];
@@ -87,7 +87,7 @@ export function buildCommandPaletteTokens(
         typeof entry.$value === "string"
           ? entry.$value
           : stableStringify(entry.$value),
-      set: collectionId,
+      collectionLabel: collectionId,
       isAlias: isAlias(entry.$value),
       description: entry.$description,
       scopes: entry.$scopes,

@@ -1,12 +1,15 @@
-import { useMemo, useState, useEffect } from 'react';
-import { swatchBgColor } from '../../shared/colorUtils';
-import { getDiffRowId } from '../../shared/syncWorkflow';
+import { useMemo, useState, useEffect } from "react";
+import { swatchBgColor } from "../../shared/colorUtils";
+import { getDiffRowId } from "../../shared/syncWorkflow";
+import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
+
+type TokenChange = import("../../hooks/useGitDiff").TokenChange;
 
 // Display row shape used by VarDiffRowItem — compatible with both VarDiffRow and StyleDiffRow.
 interface VarDiffRow {
   id?: string;
   path: string;
-  cat: 'local-only' | 'figma-only' | 'conflict';
+  cat: "local-only" | "figma-only" | "conflict";
   localValue?: string;
   figmaValue?: string;
   localType?: string;
@@ -25,18 +28,36 @@ export interface PreviewRow {
   figmaValue?: string;
   localType?: string;
   figmaType?: string;
-  cat: 'local-only' | 'figma-only' | 'conflict';
+  cat: "local-only" | "figma-only" | "conflict";
   targetLabel?: string;
 }
 
-/* ── Helpers ────────────────────────────────────────────────────────────── */
-
-export function truncateValue(v: string, max = 24): string {
-  return v.length > max ? v.slice(0, max) + '\u2026' : v;
+export function isHexColor(v: string | undefined): v is string {
+  return typeof v === "string" && /^#[0-9a-fA-F]{3,8}$/.test(v);
 }
 
-export function isHexColor(v: string | undefined): v is string {
-  return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v);
+interface TokenChangeCounts {
+  added: number;
+  modified: number;
+  removed: number;
+}
+
+const EMPTY_TOKEN_CHANGE_COUNTS: TokenChangeCounts = {
+  added: 0,
+  modified: 0,
+  removed: 0,
+};
+
+function countTokenChanges(changes: TokenChange[]): TokenChangeCounts {
+  const counts = { ...EMPTY_TOKEN_CHANGE_COUNTS };
+  for (const change of changes) {
+    counts[change.status] += 1;
+  }
+  return counts;
+}
+
+function stringifyTokenValue(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
 }
 
 /* ── DiffSwatch ─────────────────────────────────────────────────────────── */
@@ -53,61 +74,123 @@ export function DiffSwatch({ hex }: { hex: string }) {
 
 /* ── ValueCell ──────────────────────────────────────────────────────────── */
 
-export function ValueCell({ label, value, type }: { label: string; value: string | undefined; type: string | undefined }) {
-  const v = value ?? '';
-  const showSwatch = (type === 'color' || isHexColor(v)) && isHexColor(v);
+export function ValueCell({
+  label,
+  value,
+  type,
+}: {
+  label: string;
+  value: string | undefined;
+  type: string | undefined;
+}) {
+  const v = value ?? "";
+  const showSwatch = (type === "color" || isHexColor(v)) && isHexColor(v);
   return (
-    <div className="flex items-center gap-1 min-w-0 flex-1">
-      <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">{label}</span>
-      {showSwatch && <DiffSwatch hex={v} />}
-      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={v}>{truncateValue(v)}</span>
+    <div className="flex min-w-[140px] flex-1 flex-col gap-0.5">
+      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+        {label}
+      </span>
+      <div className="flex min-w-0 items-start gap-1">
+        {showSwatch && <DiffSwatch hex={v} />}
+        <span
+          className={`${LONG_TEXT_CLASSES.monoPrimary} text-secondary`}
+          title={v}
+        >
+          {v || "—"}
+        </span>
+      </div>
     </div>
   );
 }
 
 /* ── TokenChangeRow ─────────────────────────────────────────────────────── */
 
-export function TokenChangeRow({ change }: { change: import('../../hooks/useGitDiff').TokenChange }) {
+export function TokenChangeRow({
+  change,
+}: {
+  change: TokenChange;
+}) {
   const statusColor =
-    change.status === 'added' ? 'text-[var(--color-figma-success)]' :
-    change.status === 'removed' ? 'text-[var(--color-figma-error)]' :
-    'text-[var(--color-figma-warning)]';
-  const statusChar = change.status === 'added' ? '+' : change.status === 'removed' ? '\u2212' : '~';
-  const valStr = (v: any) => typeof v === 'string' ? v : JSON.stringify(v);
-  const isColor = change.type === 'color';
-  const beforeStr = change.before != null ? valStr(change.before) : undefined;
-  const afterStr = change.after != null ? valStr(change.after) : undefined;
+    change.status === "added"
+      ? "text-[var(--color-figma-success)]"
+      : change.status === "removed"
+        ? "text-[var(--color-figma-error)]"
+        : "text-[var(--color-figma-warning)]";
+  const statusChar =
+    change.status === "added"
+      ? "+"
+      : change.status === "removed"
+        ? "\u2212"
+        : "~";
+  const isColor = change.type === "color";
+  const beforeStr =
+    change.before != null ? stringifyTokenValue(change.before) : undefined;
+  const afterStr =
+    change.after != null ? stringifyTokenValue(change.after) : undefined;
 
   return (
     <div className="px-3 py-1">
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span className={`text-secondary font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
-        <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
+      <div className="flex min-w-0 items-start gap-1.5">
+        <span
+          className={`text-secondary font-mono font-bold w-3 shrink-0 ${statusColor}`}
+        >
+          {statusChar}
+        </span>
+        <span
+          className={`${LONG_TEXT_CLASSES.monoPrimary} text-secondary`}
+          title={change.path}
+        >
+          {change.path}
+        </span>
       </div>
-      {change.status === 'modified' && (
+      {change.status === "modified" && (
         <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-secondary font-mono">
-          <div className="flex items-center gap-1 min-w-0">
-            <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+          <div className="flex min-w-0 items-start gap-1">
+            <span className="text-[var(--color-figma-error)] shrink-0 w-3">
+              &minus;
+            </span>
             {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
-            <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeStr}>{truncateValue(beforeStr ?? '', 40)}</span>
+            <span
+              className={`${LONG_TEXT_CLASSES.monoSecondary} text-secondary`}
+              title={beforeStr}
+            >
+              {beforeStr ?? ""}
+            </span>
           </div>
-          <div className="flex items-center gap-1 min-w-0">
-            <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+          <div className="flex min-w-0 items-start gap-1">
+            <span className="text-[var(--color-figma-success)] shrink-0 w-3">
+              +
+            </span>
             {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
-            <span className="text-[var(--color-figma-text)] truncate" title={afterStr}>{truncateValue(afterStr ?? '', 40)}</span>
+            <span
+              className={`${LONG_TEXT_CLASSES.monoPrimary} text-secondary`}
+              title={afterStr}
+            >
+              {afterStr ?? ""}
+            </span>
           </div>
         </div>
       )}
-      {change.status === 'added' && afterStr !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
+      {change.status === "added" && afterStr !== undefined && (
+        <div className="ml-4 mt-0.5 flex min-w-0 items-start gap-1 text-secondary font-mono">
           {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
-          <span className="text-[var(--color-figma-text-secondary)] truncate" title={afterStr}>{truncateValue(afterStr, 40)}</span>
+          <span
+            className={`${LONG_TEXT_CLASSES.monoSecondary} text-secondary`}
+            title={afterStr}
+          >
+            {afterStr}
+          </span>
         </div>
       )}
-      {change.status === 'removed' && beforeStr !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
+      {change.status === "removed" && beforeStr !== undefined && (
+        <div className="ml-4 mt-0.5 flex min-w-0 items-start gap-1 text-secondary font-mono">
           {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
-          <span className="text-[var(--color-figma-text-secondary)] line-through truncate" title={beforeStr}>{truncateValue(beforeStr, 40)}</span>
+          <span
+            className={`${LONG_TEXT_CLASSES.monoSecondary} text-secondary line-through`}
+            title={beforeStr}
+          >
+            {beforeStr}
+          </span>
         </div>
       )}
     </div>
@@ -127,34 +210,53 @@ export function FileTokenDiffList({
   allChanges: Array<{ file: string; status: string }>;
   selectedFiles: Set<string>;
   setSelectedFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
-  tokenPreview: import('../../hooks/useGitDiff').TokenChange[] | null;
+  tokenPreview: TokenChange[] | null;
   tokenPreviewLoading: boolean;
   fetchTokenPreview: () => Promise<void>;
 }) {
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (tokenPreview === null && !tokenPreviewLoading && allChanges.length > 0) {
+    if (
+      tokenPreview === null &&
+      !tokenPreviewLoading &&
+      allChanges.length > 0
+    ) {
       fetchTokenPreview();
     }
   }, [allChanges.length, tokenPreview, tokenPreviewLoading, fetchTokenPreview]);
 
   const changesByFile = useMemo(() => {
-    const map = new Map<string, import('../../hooks/useGitDiff').TokenChange[]>();
+    const map = new Map<
+      string,
+      { changes: TokenChange[]; counts: TokenChangeCounts }
+    >();
     if (!tokenPreview) return map;
     for (const tc of tokenPreview) {
-      const fileName = tc.collectionId + '.tokens.json';
-      const arr = map.get(fileName);
-      if (arr) arr.push(tc);
-      else map.set(fileName, [tc]);
+      const fileName = tc.collectionId + ".tokens.json";
+      const existing = map.get(fileName);
+      if (existing) {
+        existing.changes.push(tc);
+        existing.counts[tc.status] += 1;
+        continue;
+      }
+      map.set(fileName, {
+        changes: [tc],
+        counts: countTokenChanges([tc]),
+      });
     }
     return map;
   }, [tokenPreview]);
+  const previewCounts = useMemo(
+    () => countTokenChanges(tokenPreview ?? []),
+    [tokenPreview],
+  );
 
   const toggleExpand = (file: string) => {
-    setExpandedFiles(prev => {
+    setExpandedFiles((prev) => {
       const next = new Set(prev);
-      if (next.has(file)) next.delete(file); else next.add(file);
+      if (next.has(file)) next.delete(file);
+      else next.add(file);
       return next;
     });
   };
@@ -165,11 +267,18 @@ export function FileTokenDiffList({
         <label className="flex items-center gap-1.5 cursor-pointer select-none">
           <input
             type="checkbox"
-            checked={allChanges.length > 0 && selectedFiles.size === allChanges.length}
-            ref={el => { if (el) el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < allChanges.length; }}
-            onChange={e => {
+            checked={
+              allChanges.length > 0 && selectedFiles.size === allChanges.length
+            }
+            ref={(el) => {
+              if (el)
+                el.indeterminate =
+                  selectedFiles.size > 0 &&
+                  selectedFiles.size < allChanges.length;
+            }}
+            onChange={(e) => {
               if (e.target.checked) {
-                setSelectedFiles(new Set(allChanges.map(c => c.file)));
+                setSelectedFiles(new Set(allChanges.map((c) => c.file)));
               } else {
                 setSelectedFiles(new Set());
               }
@@ -188,77 +297,127 @@ export function FileTokenDiffList({
         </span>
       </div>
       <div className="max-h-64 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-        {allChanges.map((change, i) => {
-          const fileTokenChanges = changesByFile.get(change.file) ?? [];
-          const isTokenFile = change.file.endsWith('.tokens.json');
+        {allChanges.map((change) => {
+          const fileTokenSummary = changesByFile.get(change.file);
+          const fileTokenChanges = fileTokenSummary?.changes ?? [];
+          const isTokenFile = change.file.endsWith(".tokens.json");
           const hasTokenChanges = fileTokenChanges.length > 0;
           const isExpanded = expandedFiles.has(change.file);
-          const addedCount = fileTokenChanges.filter(c => c.status === 'added').length;
-          const modifiedCount = fileTokenChanges.filter(c => c.status === 'modified').length;
-          const removedCount = fileTokenChanges.filter(c => c.status === 'removed').length;
+          const fileCounts =
+            fileTokenSummary?.counts ?? EMPTY_TOKEN_CHANGE_COUNTS;
 
           return (
-            <div key={i}>
+            <div key={change.file}>
               <div className="flex items-center gap-2 px-3 py-1 hover:bg-[var(--color-figma-bg-hover)] group">
                 <button
+                  type="button"
                   onClick={() => hasTokenChanges && toggleExpand(change.file)}
                   disabled={!hasTokenChanges}
                   className="w-3 h-3 flex items-center justify-center shrink-0 disabled:opacity-0"
-                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                  aria-label={isExpanded ? "Collapse" : "Expand"}
                 >
-                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isExpanded ? 'rotate-90' : ''} text-[var(--color-figma-text-tertiary)]`}>
+                  <svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 8 8"
+                    fill="currentColor"
+                    className={`transition-transform ${isExpanded ? "rotate-90" : ""} text-[var(--color-figma-text-tertiary)]`}
+                  >
                     <path d="M2 1l4 3-4 3V1z" />
                   </svg>
                 </button>
-                <label className="flex items-center cursor-pointer" onClick={e => e.stopPropagation()}>
+                <label
+                  className="flex items-center cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <input
                     type="checkbox"
                     checked={selectedFiles.has(change.file)}
-                    onChange={e => {
-                      setSelectedFiles(prev => {
+                    onChange={(e) => {
+                      setSelectedFiles((prev) => {
                         const next = new Set(prev);
-                        if (e.target.checked) next.add(change.file); else next.delete(change.file);
+                        if (e.target.checked) next.add(change.file);
+                        else next.delete(change.file);
                         return next;
                       });
                     }}
                     className="w-3 h-3"
                   />
                 </label>
-                <span className={`text-secondary font-mono font-bold w-3 flex-shrink-0 ${
-                  change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
-                  change.status === 'A' ? 'text-[var(--color-figma-success)]' :
-                  change.status === 'D' ? 'text-[var(--color-figma-error)]' :
-                  'text-[var(--color-figma-text-secondary)]'
-                }`}>
+                <span
+                  className={`text-secondary font-mono font-bold w-3 flex-shrink-0 ${
+                    change.status === "M"
+                      ? "text-[var(--color-figma-warning)]"
+                      : change.status === "A"
+                        ? "text-[var(--color-figma-success)]"
+                        : change.status === "D"
+                          ? "text-[var(--color-figma-error)]"
+                          : "text-[var(--color-figma-text-secondary)]"
+                  }`}
+                >
                   {change.status}
                 </span>
                 <button
+                  type="button"
                   onClick={() => hasTokenChanges && toggleExpand(change.file)}
-                  className="text-secondary text-[var(--color-figma-text)] truncate text-left flex-1 min-w-0"
+                  className="min-w-0 flex-1 text-left text-secondary text-[var(--color-figma-text)] [overflow-wrap:anywhere]"
                   disabled={!hasTokenChanges}
                 >
                   {change.file}
                 </button>
-                {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && hasTokenChanges && (
-                  <span className="flex gap-1.5 text-secondary font-mono shrink-0 ml-auto">
-                    {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
-                    {modifiedCount > 0 && <span className="text-[var(--color-figma-warning)]">~{modifiedCount}</span>}
-                    {removedCount > 0 && <span className="text-[var(--color-figma-error)]">&minus;{removedCount}</span>}
-                  </span>
-                )}
-                {isTokenFile && tokenPreview !== null && !tokenPreviewLoading && !hasTokenChanges && change.status !== 'D' && (
-                  <span className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    no value changes
-                  </span>
-                )}
+                {isTokenFile &&
+                  tokenPreview !== null &&
+                  !tokenPreviewLoading &&
+                  hasTokenChanges && (
+                    <span className="flex gap-1.5 text-secondary font-mono shrink-0 ml-auto">
+                      {fileCounts.added > 0 && (
+                        <span className="text-[var(--color-figma-success)]">
+                          +{fileCounts.added}
+                        </span>
+                      )}
+                      {fileCounts.modified > 0 && (
+                        <span className="text-[var(--color-figma-warning)]">
+                          ~{fileCounts.modified}
+                        </span>
+                      )}
+                      {fileCounts.removed > 0 && (
+                        <span className="text-[var(--color-figma-error)]">
+                          &minus;{fileCounts.removed}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                {isTokenFile &&
+                  tokenPreview !== null &&
+                  !tokenPreviewLoading &&
+                  !hasTokenChanges &&
+                  change.status !== "D" && (
+                    <span className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
+                      <svg
+                        width="8"
+                        height="8"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-[var(--color-figma-success)]"
+                        aria-hidden="true"
+                      >
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                      no value changes
+                    </span>
+                  )}
               </div>
               {isExpanded && hasTokenChanges && (
                 <div className="bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                  {fileTokenChanges.map((tc, j) => (
-                    <TokenChangeRow key={j} change={tc} />
+                  {fileTokenChanges.map((tc) => (
+                    <TokenChangeRow
+                      key={`${tc.collectionId}:${tc.path}:${tc.status}`}
+                      change={tc}
+                    />
                   ))}
                 </div>
               )}
@@ -266,75 +425,153 @@ export function FileTokenDiffList({
           );
         })}
       </div>
-      {tokenPreview !== null && !tokenPreviewLoading && tokenPreview.length > 0 && (
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
-          {tokenPreview.filter(c => c.status === 'added').length > 0 && <span className="text-[var(--color-figma-success)]">+{tokenPreview.filter(c => c.status === 'added').length} added</span>}
-          {tokenPreview.filter(c => c.status === 'modified').length > 0 && <span className="text-[var(--color-figma-warning)]">~{tokenPreview.filter(c => c.status === 'modified').length} modified</span>}
-          {tokenPreview.filter(c => c.status === 'removed').length > 0 && <span className="text-[var(--color-figma-error)]">&minus;{tokenPreview.filter(c => c.status === 'removed').length} removed</span>}
-        </div>
-      )}
+      {tokenPreview !== null &&
+        !tokenPreviewLoading &&
+        (previewCounts.added > 0 ||
+          previewCounts.modified > 0 ||
+          previewCounts.removed > 0) && (
+          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
+            {previewCounts.added > 0 && (
+              <span className="text-[var(--color-figma-success)]">
+                +{previewCounts.added} added
+              </span>
+            )}
+            {previewCounts.modified > 0 && (
+              <span className="text-[var(--color-figma-warning)]">
+                ~{previewCounts.modified} modified
+              </span>
+            )}
+            {previewCounts.removed > 0 && (
+              <span className="text-[var(--color-figma-error)]">
+                &minus;{previewCounts.removed} removed
+              </span>
+            )}
+          </div>
+        )}
     </div>
   );
 }
 
 /* ── SyncDiffSummary ────────────────────────────────────────────────────── */
 
-export function SyncDiffSummary({ rows, dirs }: {
+export function SyncDiffSummary({
+  rows,
+  dirs,
+}: {
   rows: PreviewRow[];
-  dirs: Record<string, 'push' | 'pull' | 'skip'>;
+  dirs: Record<string, "push" | "pull" | "skip">;
 }) {
-  const pushRows = rows.filter(r => dirs[getDiffRowId(r)] === 'push');
-  const pullRows = rows.filter(r => dirs[getDiffRowId(r)] === 'pull');
-  const skipCount = rows.filter(r => dirs[getDiffRowId(r)] === 'skip').length;
+  const pushRows = rows.filter((r) => dirs[getDiffRowId(r)] === "push");
+  const pullRows = rows.filter((r) => dirs[getDiffRowId(r)] === "pull");
+  const skipCount = rows.filter((r) => dirs[getDiffRowId(r)] === "skip").length;
 
-  const sections: { label: string; arrow: string; items: PreviewRow[]; direction: 'push' | 'pull' }[] = [];
-  if (pushRows.length > 0) sections.push({ label: 'Update Figma', arrow: '\u2191', items: pushRows, direction: 'push' });
-  if (pullRows.length > 0) sections.push({ label: 'Update local', arrow: '\u2193', items: pullRows, direction: 'pull' });
+  const sections: {
+    label: string;
+    arrow: string;
+    items: PreviewRow[];
+    direction: "push" | "pull";
+  }[] = [];
+  if (pushRows.length > 0)
+    sections.push({
+      label: "Update Figma",
+      arrow: "\u2191",
+      items: pushRows,
+      direction: "push",
+    });
+  if (pullRows.length > 0)
+    sections.push({
+      label: "Update local",
+      arrow: "\u2193",
+      items: pullRows,
+      direction: "pull",
+    });
 
   if (sections.length === 0) {
-    return <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)]">No changes to apply (all skipped).</p>;
+    return (
+      <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)]">
+        No changes to apply (all skipped).
+      </p>
+    );
   }
 
   return (
     <div className="mt-2">
-      {sections.map(section => (
+      {sections.map((section) => (
         <div key={section.label} className="mb-2">
           <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] mb-1">
             {section.arrow} {section.label} ({section.items.length})
           </div>
           <div className="max-h-36 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-            {section.items.map(r => {
-              const isColor = r.localType === 'color' || r.figmaType === 'color';
-              const beforeVal = section.direction === 'push' ? r.figmaValue : r.localValue;
-              const afterVal = section.direction === 'push' ? r.localValue : r.figmaValue;
+            {section.items.map((r) => {
+              const isColor =
+                r.localType === "color" || r.figmaType === "color";
+              const beforeVal =
+                section.direction === "push" ? r.figmaValue : r.localValue;
+              const afterVal =
+                section.direction === "push" ? r.localValue : r.figmaValue;
               return (
                 <div key={getDiffRowId(r)} className="px-2 py-1">
-                  <div className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={r.path}>{r.path}</div>
+                  <div
+                    className={`${LONG_TEXT_CLASSES.monoPrimary} text-secondary`}
+                    title={r.path}
+                  >
+                    {r.path}
+                  </div>
                   {r.targetLabel ? (
-                    <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)] truncate" title={r.targetLabel}>
+                    <div
+                      className={`${LONG_TEXT_CLASSES.textTertiary} mt-0.5 text-secondary`}
+                      title={r.targetLabel}
+                    >
                       {r.targetLabel}
                     </div>
                   ) : null}
-                  {r.cat === 'conflict' && (
+                  {r.cat === "conflict" && (
                     <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-secondary font-mono">
-                      <div className="flex items-center gap-1 min-w-0">
-                        <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
-                        {isColor && isHexColor(beforeVal) && <DiffSwatch hex={beforeVal} />}
-                        <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeVal ?? ''}>{truncateValue(beforeVal ?? '', 36)}</span>
+                      <div className="flex min-w-0 items-start gap-1">
+                        <span className="text-[var(--color-figma-error)] shrink-0 w-3">
+                          &minus;
+                        </span>
+                        {isColor && isHexColor(beforeVal) && (
+                          <DiffSwatch hex={beforeVal} />
+                        )}
+                        <span
+                          className={`${LONG_TEXT_CLASSES.monoSecondary} text-secondary`}
+                          title={beforeVal ?? ""}
+                        >
+                          {beforeVal ?? ""}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1 min-w-0">
-                        <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
-                        {isColor && isHexColor(afterVal) && <DiffSwatch hex={afterVal} />}
-                        <span className="text-[var(--color-figma-text)] truncate" title={afterVal ?? ''}>{truncateValue(afterVal ?? '', 36)}</span>
+                      <div className="flex min-w-0 items-start gap-1">
+                        <span className="text-[var(--color-figma-success)] shrink-0 w-3">
+                          +
+                        </span>
+                        {isColor && isHexColor(afterVal) && (
+                          <DiffSwatch hex={afterVal} />
+                        )}
+                        <span
+                          className={`${LONG_TEXT_CLASSES.monoPrimary} text-secondary`}
+                          title={afterVal ?? ""}
+                        >
+                          {afterVal ?? ""}
+                        </span>
                       </div>
                     </div>
                   )}
-                  {r.cat !== 'conflict' && (r.localValue ?? r.figmaValue) !== undefined && (
-                    <div className="flex items-center gap-1 mt-0.5 ml-1 text-secondary font-mono min-w-0">
-                      {isColor && isHexColor(r.localValue ?? r.figmaValue) && <DiffSwatch hex={(r.localValue ?? r.figmaValue)!} />}
-                      <span className="text-[var(--color-figma-text-secondary)] truncate" title={r.localValue ?? r.figmaValue}>{truncateValue((r.localValue ?? r.figmaValue) ?? '', 36)}</span>
-                    </div>
-                  )}
+                  {r.cat !== "conflict" &&
+                    (r.localValue ?? r.figmaValue) !== undefined && (
+                      <div className="mt-0.5 ml-1 flex min-w-0 items-start gap-1 text-secondary font-mono">
+                        {isColor &&
+                          isHexColor(r.localValue ?? r.figmaValue) && (
+                            <DiffSwatch hex={(r.localValue ?? r.figmaValue)!} />
+                          )}
+                        <span
+                          className={`${LONG_TEXT_CLASSES.monoSecondary} text-secondary`}
+                          title={r.localValue ?? r.figmaValue}
+                        >
+                          {r.localValue ?? r.figmaValue ?? ""}
+                        </span>
+                      </div>
+                    )}
                 </div>
               );
             })}
@@ -342,7 +579,9 @@ export function SyncDiffSummary({ rows, dirs }: {
         </div>
       ))}
       {skipCount > 0 && (
-        <p className="text-secondary text-[var(--color-figma-text-tertiary)]">{skipCount} item{skipCount !== 1 ? 's' : ''} skipped.</p>
+        <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          {skipCount} item{skipCount !== 1 ? "s" : ""} skipped.
+        </p>
       )}
     </div>
   );
@@ -350,19 +589,32 @@ export function SyncDiffSummary({ rows, dirs }: {
 
 /* ── VarDiffRowItem ─────────────────────────────────────────────────────── */
 
-export function VarDiffRowItem({ row, dir, onChange, reviewOnly = false }: {
+export function VarDiffRowItem({
+  row,
+  dir,
+  onChange,
+  reviewOnly = false,
+}: {
   row: VarDiffRow;
-  dir: 'push' | 'pull' | 'skip';
-  onChange: (dir: 'push' | 'pull' | 'skip') => void;
+  dir: "push" | "pull" | "skip";
+  onChange: (dir: "push" | "pull" | "skip") => void;
   reviewOnly?: boolean;
 }) {
   return (
     <div className="px-3 py-1.5 flex flex-col gap-1">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
-          <div className="text-secondary text-[var(--color-figma-text)] truncate font-mono" title={row.path}>{row.path}</div>
+          <div
+            className={`${LONG_TEXT_CLASSES.monoPrimary} text-secondary`}
+            title={row.path}
+          >
+            {row.path}
+          </div>
           {row.targetLabel ? (
-            <div className="mt-0.5 text-secondary text-[var(--color-figma-text-tertiary)] truncate" title={row.targetLabel}>
+            <div
+              className={`${LONG_TEXT_CLASSES.textTertiary} mt-0.5 text-secondary`}
+              title={row.targetLabel}
+            >
               {row.targetLabel}
             </div>
           ) : null}
@@ -374,34 +626,63 @@ export function VarDiffRowItem({ row, dir, onChange, reviewOnly = false }: {
         ) : (
           <select
             value={dir}
-            onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
+            onChange={(e) =>
+              onChange(e.target.value as "push" | "pull" | "skip")
+            }
             className="text-secondary border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
           >
-            <option value="push">{'\u2191'} Update Figma</option>
-            <option value="pull">{'\u2193'} Update local</option>
+            <option value="push">{"\u2191"} Update Figma</option>
+            <option value="pull">{"\u2193"} Update local</option>
             <option value="skip">Skip</option>
           </select>
         )}
       </div>
-      {row.cat === 'conflict' && (
-        <div className="flex items-center gap-1.5 pl-0.5">
-          <ValueCell label="Local" value={row.localValue} type={row.localType} />
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
-            <path d="M1 4h6M5 2l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      {row.cat === "conflict" && (
+        <div className="flex flex-wrap items-start gap-1.5 pl-0.5">
+          <ValueCell
+            label="Local"
+            value={row.localValue}
+            type={row.localType}
+          />
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 8 8"
+            fill="none"
+            className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+            aria-hidden="true"
+          >
+            <path
+              d="M1 4h6M5 2l2 2-2 2"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
-          <ValueCell label="Figma" value={row.figmaValue} type={row.figmaType} />
+          <ValueCell
+            label="Figma"
+            value={row.figmaValue}
+            type={row.figmaType}
+          />
         </div>
       )}
-      {row.cat === 'local-only' && row.localValue !== undefined && (
-        <div className="flex items-center gap-1 pl-0.5">
-          {(row.localType === 'color' || isHexColor(row.localValue)) && isHexColor(row.localValue) && <DiffSwatch hex={row.localValue} />}
-          <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
+      {row.cat === "local-only" && row.localValue !== undefined && (
+        <div className="flex min-w-0 items-start gap-1 pl-0.5">
+          {(row.localType === "color" || isHexColor(row.localValue)) &&
+            isHexColor(row.localValue) && <DiffSwatch hex={row.localValue} />}
+          <span className={`${LONG_TEXT_CLASSES.monoSecondary} text-secondary`}>
+            {row.localValue}
+          </span>
         </div>
       )}
-      {row.cat === 'figma-only' && row.figmaValue !== undefined && (
-        <div className="flex items-center gap-1 pl-0.5">
-          {(row.figmaType === 'color' || isHexColor(row.figmaValue)) && isHexColor(row.figmaValue) && <DiffSwatch hex={row.figmaValue} />}
-          <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
+      {row.cat === "figma-only" && row.figmaValue !== undefined && (
+        <div className="flex min-w-0 items-start gap-1 pl-0.5">
+          {(row.figmaType === "color" || isHexColor(row.figmaValue)) &&
+            isHexColor(row.figmaValue) && <DiffSwatch hex={row.figmaValue} />}
+          <span className={`${LONG_TEXT_CLASSES.monoSecondary} text-secondary`}>
+            {row.figmaValue}
+          </span>
         </div>
       )}
     </div>

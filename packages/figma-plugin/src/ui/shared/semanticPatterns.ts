@@ -1,7 +1,7 @@
 export interface SemanticPattern {
   id: string;
   label: string;
-  applicableTo: string[]; // graph generation types
+  applicableTo: string[]; // generator types
   mappings: Array<{ semantic: string; step: string }>;
 }
 

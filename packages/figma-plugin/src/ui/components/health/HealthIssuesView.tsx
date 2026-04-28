@@ -20,7 +20,7 @@ export interface HealthIssuesViewProps {
   onFix: (issue: ValidationIssue) => void;
   onIgnore: (issue: ValidationIssue) => void;
   onNavigateToToken?: (path: string, collectionId: string) => void;
-  onViewIssueInGraph?: (issue: ValidationIssue) => void;
+  onViewIssueInGenerator?: (issue: ValidationIssue) => void;
   initialTokenPath?: string | null;
   selectedIssueKey?: string | null;
   selectedTokenPath?: string | null;
@@ -37,7 +37,7 @@ export function HealthIssuesView({
   onFix,
   onIgnore,
   onNavigateToToken,
-  onViewIssueInGraph,
+  onViewIssueInGenerator,
   initialTokenPath = null,
   selectedIssueKey = null,
   selectedTokenPath = null,
@@ -300,16 +300,14 @@ export function HealthIssuesView({
                             : undefined
                         }
                         onOpen={
-                          onNavigateToToken && issue.rule !== "graph-diagnostic"
+                          onNavigateToToken && issue.rule !== "generator-diagnostic"
                             ? () => onNavigateToToken(issue.path, issue.collectionId)
                             : undefined
                         }
-                        onViewInGraph={
-                          onViewIssueInGraph &&
-                          (issue.rule === "broken-alias" ||
-                            issue.rule === "circular-reference" ||
-                            issue.rule === "graph-diagnostic")
-                            ? () => onViewIssueInGraph(issue)
+                        onViewInGenerator={
+                          onViewIssueInGenerator &&
+                          issue.generatorId
+                            ? () => onViewIssueInGenerator(issue)
                             : undefined
                         }
                       />
@@ -361,7 +359,7 @@ function IssueRow({
   onIgnore,
   onSelect,
   onOpen,
-  onViewInGraph,
+  onViewInGenerator,
 }: {
   issue: ValidationIssue;
   selected: boolean;
@@ -372,7 +370,7 @@ function IssueRow({
   onIgnore: () => void;
   onSelect?: () => void;
   onOpen?: () => void;
-  onViewInGraph?: () => void;
+  onViewInGenerator?: () => void;
 }) {
   const overflowMenu = useDropdownMenu();
 
@@ -419,11 +417,11 @@ function IssueRow({
           </button>
         )}
 
-        {onViewInGraph && (
+        {onViewInGenerator && (
           <button
             onClick={(event) => {
               event.stopPropagation();
-              onViewInGraph();
+              onViewInGenerator();
             }}
             className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
           >

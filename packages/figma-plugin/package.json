@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.mjs",
+    "build": "tsc --noEmit && node build.mjs",
     "dev": "node build.mjs --watch",
     "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit",
     "standalone": "node standalone/serve.mjs",
     "validate": "node standalone/validate.mjs"
   },

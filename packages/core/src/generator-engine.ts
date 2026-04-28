@@ -1,5 +1,5 @@
 /**
- * Graph generation engine: pure computation functions for graph-managed token output nodes.
+ * Generator engine: pure computation functions for managed token output nodes.
  */
 
 import type {
@@ -11,9 +11,9 @@ import type {
   ZIndexScaleConfig,
   ShadowScaleConfig,
   CustomScaleConfig,
-  GraphGeneratedTokenResult,
-} from './graph-generation-types.js';
-import { validateStepName } from './graph-generation-types.js';
+  GeneratorTokenResult,
+} from './generator-types.js';
+import { validateStepName } from './generator-types.js';
 import { hexToLab, labToHex } from './color-math.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
 
@@ -97,14 +97,14 @@ export function computeColorRampTokens(
   sourceHex: string,
   config: ColorRampConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   // Validate step names before generating
   for (const step of config.steps) {
     validateStepName(String(step));
   }
 
   const lab = hexToLab(sourceHex);
-  if (!lab) throw new Error(`Invalid hex color for color ramp graph generation: "${sourceHex}"`);
+  if (!lab) throw new Error(`Invalid hex color for color ramp generator: "${sourceHex}"`);
   const [, bA, bB] = lab;
 
   const { steps, lightEnd, darkEnd, chromaBoost, includeSource, sourceStep } = config;
@@ -147,7 +147,7 @@ export function computeTypeScaleTokens(
   sourceValue: { value: number; unit: string },
   config: TypeScaleConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   const { steps, ratio, unit, baseStep, roundTo } = config;
 
   // Validate step names before generating
@@ -158,7 +158,7 @@ export function computeTypeScaleTokens(
   const baseStepDef = steps.find(s => s.name === baseStep);
   if (!baseStepDef) {
     throw new Error(
-      `Type scale graph generation: baseStep "${baseStep}" does not match any step name. ` +
+      `Type scale generator: baseStep "${baseStep}" does not match any step name. ` +
         `Available steps: ${steps.map(s => s.name).join(', ')}.`,
     );
   }
@@ -193,7 +193,7 @@ export function computeSpacingScaleTokens(
   sourceValue: { value: number; unit: string },
   config: SpacingScaleConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   const { steps, unit } = config;
 
   // Validate step names before generating
@@ -227,7 +227,7 @@ export function computeSpacingScaleTokens(
 export function computeOpacityScaleTokens(
   config: OpacityScaleConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   // Validate step names before generating
   for (const step of config.steps) {
     validateStepName(step.name);
@@ -258,7 +258,7 @@ export function computeBorderRadiusScaleTokens(
   sourceValue: { value: number; unit: string },
   config: BorderRadiusScaleConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   const { steps, unit } = config;
 
   // Validate step names before generating
@@ -295,7 +295,7 @@ export function computeBorderRadiusScaleTokens(
 export function computeZIndexScaleTokens(
   config: ZIndexScaleConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   // Validate step names before generating
   for (const step of config.steps) {
     validateStepName(step.name);
@@ -322,7 +322,7 @@ export function computeZIndexScaleTokens(
 export function computeShadowScaleTokens(
   config: ShadowScaleConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   const { steps, color } = config;
 
   // Validate step names before generating
@@ -385,7 +385,7 @@ export function computeCustomScaleTokens(
   sourceValue: number | undefined,
   config: CustomScaleConfig,
   targetGroup: string,
-): GraphGeneratedTokenResult[] {
+): GeneratorTokenResult[] {
   const { steps, formula, roundTo, outputType, unit } = config;
   const base = sourceValue ?? 0;
 
@@ -398,7 +398,7 @@ export function computeCustomScaleTokens(
   const sorted = [...steps].sort((a, b) => a.index - b.index);
 
   let prev = base;
-  const results: GraphGeneratedTokenResult[] = [];
+  const results: GeneratorTokenResult[] = [];
 
   for (const step of sorted) {
     const vars: Record<string, number> = {

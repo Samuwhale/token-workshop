@@ -4,9 +4,8 @@ import { randomUUID } from "node:crypto";
 import type {
   ResolverFile,
   TokenCollection,
-  ViewPreset,
   Token,
-  TokenGraphDocument,
+  TokenGeneratorDocument,
 } from "@tokenmanager/core";
 import type {
   CollectionMetadataState,
@@ -17,7 +16,7 @@ import type { LintConfig } from "./lint.js";
 import type {
   TokenStore,
 } from "./token-store.js";
-import type { TokenGraphService } from "./token-graph-service.js";
+import type { TokenGeneratorService } from "./token-generator-service.js";
 import { stableStringify } from "@tokenmanager/core";
 import { NotFoundError, ConflictError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -223,9 +222,8 @@ export type RollbackStep =
   | {
       action: "restore-collection-state";
       collections: TokenCollection[];
-      views?: ViewPreset[];
     }
-  | { action: "restore-graphs"; graphs: TokenGraphDocument[] }
+  | { action: "restore-generators"; generators: TokenGeneratorDocument[] }
   | { action: "restore-lint-config"; config: LintConfig }
   | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string };
@@ -248,7 +246,7 @@ export interface RollbackContext {
       newName: string,
     ): Promise<string[]>;
   };
-  graphService?: TokenGraphService;
+  generatorService?: TokenGeneratorService;
   lintConfigStore?: {
     get(): Promise<LintConfig>;
     save(config: LintConfig): Promise<void>;
@@ -620,19 +618,18 @@ export class OperationLog {
           inverse.push({
             action: "restore-collection-state",
             collections: currentState.collections,
-            views: currentState.views,
           });
           break;
         }
-        case "restore-graphs": {
-          if (!ctx.graphService) {
+        case "restore-generators": {
+          if (!ctx.generatorService) {
             throw new Error(
-              'Cannot compute inverse rollback step "restore-graphs": graphService not available in RollbackContext',
+              'Cannot compute inverse rollback step "restore-generators": generatorService not available in RollbackContext',
             );
           }
           inverse.push({
-            action: "restore-graphs",
-            graphs: await ctx.graphService.list(),
+            action: "restore-generators",
+            generators: await ctx.generatorService.list(),
           });
           break;
         }
@@ -749,16 +746,15 @@ export class OperationLog {
           }
           await ctx.collectionService.restoreWorkspaceStateWithinLock({
             collections: step.collections,
-            views: step.views ?? [],
           });
           break;
-        case "restore-graphs":
-          if (!ctx.graphService) {
+        case "restore-generators":
+          if (!ctx.generatorService) {
             throw new Error(
-              'Cannot execute rollback step "restore-graphs": graphService not available in RollbackContext',
+              'Cannot execute rollback step "restore-generators": generatorService not available in RollbackContext',
             );
           }
-          await ctx.graphService.restore(step.graphs);
+          await ctx.generatorService.restore(step.generators);
           break;
         case "restore-lint-config":
           if (!ctx.lintConfigStore) {

@@ -135,7 +135,7 @@ export function TokenList({
   actions: {
     onEdit,
     onCreateNew,
-    onGenerateTokens,
+    onCreateGenerator,
     onRefresh,
     onPushUndo,
     onTokenCreated,
@@ -2009,7 +2009,7 @@ export function TokenList({
             onToggleInspectMode={() => setInspectMode((v) => !v)}
             openTableCreate={openTableCreate}
             onCreateToken={() => onCreateNew?.()}
-            onGenerateTokens={onGenerateTokens}
+            onCreateGenerator={onCreateGenerator}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
@@ -2087,6 +2087,7 @@ export function TokenList({
               jsonSaving,
               jsonBrokenRefs,
               jsonTextareaRef,
+              searchQuery,
               connected,
               onChange: handleJsonChange,
               onSave: handleJsonSave,

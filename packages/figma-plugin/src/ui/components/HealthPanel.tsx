@@ -24,18 +24,20 @@ import { HealthRulesView } from "./health/HealthRulesView";
 import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
 import type { CollectionReviewSummary } from "../shared/reviewSummary";
 
-interface GraphStatusItem {
-  graph: {
+interface GeneratorStatusItem {
+  generator: {
     id: string;
     name: string;
     targetCollectionId: string;
   };
   preview: {
-    diagnostics: Array<{
-      id: string;
-      severity: "error" | "warning" | "info";
-      message: string;
-    }>;
+	    diagnostics: Array<{
+	      id: string;
+	      severity: "error" | "warning" | "info";
+	      message: string;
+	      nodeId?: string;
+	      edgeId?: string;
+	    }>;
     outputs: Array<{ collision?: boolean }>;
   };
   stale: boolean;
@@ -56,7 +58,7 @@ export interface HealthPanelProps {
   tokenUsageCounts: Record<string, number>;
   tokenUsageReady: boolean;
   onNavigateToToken?: (path: string, collectionId: string) => void;
-  onViewIssueInGraph?: (issue: ValidationIssue) => void;
+  onViewIssueInGenerator?: (issue: ValidationIssue) => void;
   validationIssues: ValidationIssue[] | null;
   validationLoading: boolean;
   validationError: string | null;
@@ -69,7 +71,7 @@ export interface HealthPanelProps {
   onRefreshReview: () => Promise<unknown> | void;
   onPushUndo?: (slot: UndoSlot) => void;
   onError: (msg: string) => void;
-  onNavigateToGraphs?: () => void;
+  onNavigateToGenerators?: () => void;
   scope: HealthScope;
   onScopeChange: (scope: HealthScope) => void;
   issueActions: UseIssueActionsResult;
@@ -89,7 +91,7 @@ export function HealthPanel({
   tokenUsageCounts,
   tokenUsageReady,
   onNavigateToToken,
-  onViewIssueInGraph,
+  onViewIssueInGenerator,
   validationIssues: validationIssuesProp,
   validationLoading,
   validationError,
@@ -102,7 +104,7 @@ export function HealthPanel({
   onRefreshReview,
   onPushUndo,
   onError,
-  onNavigateToGraphs,
+  onNavigateToGenerators,
   scope,
   onScopeChange,
   issueActions,
@@ -123,8 +125,8 @@ export function HealthPanel({
   const scopedCollectionKey = scopedCollectionId ?? "";
 
   const [promotingAliasGroupId, setPromotingAliasGroupId] = useState<string | null>(null);
-  const [graphStatuses, setGraphStatuses] = useState<GraphStatusItem[]>([]);
-  const [graphStatusError, setGraphStatusError] = useState<string | null>(null);
+  const [generatorStatuses, setGeneratorStatuses] = useState<GeneratorStatusItem[]>([]);
+  const [generatorStatusError, setGeneratorStatusError] = useState<string | null>(null);
 
   useEffect(() => {
     if (scope.mode !== "current") {
@@ -142,22 +144,22 @@ export function HealthPanel({
 
   useEffect(() => {
     if (!connected) {
-      setGraphStatuses([]);
-      setGraphStatusError(null);
+      setGeneratorStatuses([]);
+      setGeneratorStatusError(null);
       return;
     }
     let cancelled = false;
-    apiFetch<{ graphs: GraphStatusItem[] }>(`${serverUrl}/api/graphs/status`)
+    apiFetch<{ generators: GeneratorStatusItem[] }>(`${serverUrl}/api/generators/status`)
       .then((response) => {
         if (!cancelled) {
-          setGraphStatuses(response.graphs);
-          setGraphStatusError(null);
+          setGeneratorStatuses(response.generators);
+          setGeneratorStatusError(null);
         }
       })
       .catch((error) => {
         if (!cancelled) {
-          setGraphStatuses([]);
-          setGraphStatusError(error instanceof Error ? error.message : String(error));
+          setGeneratorStatuses([]);
+          setGeneratorStatusError(error instanceof Error ? error.message : String(error));
         }
       });
     return () => {
@@ -195,38 +197,43 @@ export function HealthPanel({
       s.rule !== "no-duplicate-values" &&
       s.rule !== "alias-opportunity",
   );
-  const graphIssues: ValidationIssue[] = graphStatuses
-    .filter((item) => item.graph.targetCollectionId === scopedCollectionKey)
+  const generatorIssues: ValidationIssue[] = generatorStatuses
+    .filter((item) => item.generator.targetCollectionId === scopedCollectionKey)
     .flatMap((item) => {
       const diagnostics = item.preview.diagnostics.map<ValidationIssue>((diagnostic) => ({
-        rule: "graph-diagnostic",
-        path: item.graph.name,
-        collectionId: item.graph.targetCollectionId,
+        rule: "generator-diagnostic",
+        path: item.generator.name,
+        collectionId: item.generator.targetCollectionId,
         severity: diagnostic.severity,
-        message: diagnostic.message,
-        graphId: item.graph.id,
-      }));
+	        message: diagnostic.message,
+	        generatorId: item.generator.id,
+	        generatorDiagnosticId: diagnostic.id,
+	        generatorNodeId: diagnostic.nodeId,
+	        generatorEdgeId: diagnostic.edgeId,
+	      }));
       if (item.stale || item.unapplied) {
         diagnostics.unshift({
-          rule: "graph-diagnostic",
-          path: item.graph.name,
-          collectionId: item.graph.targetCollectionId,
+          rule: "generator-diagnostic",
+          path: item.generator.name,
+          collectionId: item.generator.targetCollectionId,
           severity: item.blocking ? "error" : "warning",
-          message: item.stale
-            ? "Generated token outputs are stale. Preview and apply the generator before publishing."
-            : "Generated token outputs have not been applied yet.",
-          graphId: item.graph.id,
-        });
+	          message: item.stale
+	            ? "Generator outputs are stale. Preview and apply the generator before publishing."
+	            : "Generator outputs have not been applied yet.",
+	          generatorId: item.generator.id,
+	          generatorDiagnosticId: item.stale ? `${item.generator.id}-stale` : `${item.generator.id}-unapplied`,
+	        });
       }
       if (item.preview.outputs.some((output) => output.collision)) {
         diagnostics.unshift({
-          rule: "graph-diagnostic",
-          path: item.graph.name,
-          collectionId: item.graph.targetCollectionId,
+          rule: "generator-diagnostic",
+          path: item.generator.name,
+          collectionId: item.generator.targetCollectionId,
           severity: "error",
-          message: "A generated output collides with a manually edited token. Open the generator to resolve or detach the token.",
-          graphId: item.graph.id,
-        });
+	          message: "A generated output collides with a manually edited token. Open the generator to resolve or detach the token.",
+	          generatorId: item.generator.id,
+	          generatorDiagnosticId: `${item.generator.id}-collision`,
+	        });
       }
       return diagnostics;
     });
@@ -251,9 +258,9 @@ export function HealthPanel({
   const issueStatus = statusFromIssueSeverities(
     tokenLevelSignals.map((signal) => signal.severity),
   );
-  const graphIssueCount = graphIssues.length;
-  const graphStatus = statusFromIssueSeverities(
-    graphIssues.map((issue) => issue.severity),
+  const generatorIssueCount = generatorIssues.length;
+  const generatorStatus = statusFromIssueSeverities(
+    generatorIssues.map((issue) => issue.severity),
   );
   const unusedCount = unusedTokens.length;
   const deprecatedCount = deprecatedUsageEntriesForCurrent.length;
@@ -277,12 +284,12 @@ export function HealthPanel({
       suggestion: s.suggestion,
       group: s.group,
     })),
-    ...graphIssues,
+    ...generatorIssues,
   ];
 
   const totalIssueCount =
     issueCount +
-    graphIssueCount +
+    generatorIssueCount +
     (unusedDataReady ? unusedCount : 0) +
     deprecatedCount +
     aliasOpportunitiesCount +
@@ -291,7 +298,7 @@ export function HealthPanel({
     ? collectionReviewSummaries.get(scopedCollectionKey)
     : undefined;
   const overallStatus: HealthStatus =
-    validationError || graphStatusError
+    validationError || generatorStatusError
       ? "critical"
       : currentReviewSummary?.severity === "critical"
       ? "critical"
@@ -300,7 +307,7 @@ export function HealthPanel({
           duplicateCount > 0 ||
           deprecatedCount > 0 ||
           aliasOpportunitiesCount > 0 ||
-          graphIssues.length > 0 ||
+          generatorIssues.length > 0 ||
           (tokenUsageReady && unusedCount > 0)
         ? "warning"
         : "healthy";
@@ -442,7 +449,7 @@ export function HealthPanel({
   const collectionSummariesPending =
     scope.mode === "all" &&
     (validationLoading || deprecatedUsageLoading || !unusedDataReady);
-  const libraryReviewErrors = [validationError, deprecatedUsageError, graphStatusError].filter(
+  const libraryReviewErrors = [validationError, deprecatedUsageError, generatorStatusError].filter(
     (message): message is string => Boolean(message),
   );
 
@@ -567,7 +574,7 @@ export function HealthPanel({
             onFix={applyIssueFix}
             onIgnore={handleSuppress}
             onNavigateToToken={onNavigateToToken}
-            onViewIssueInGraph={onViewIssueInGraph}
+            onViewIssueInGenerator={onViewIssueInGenerator}
             initialTokenPath={activeIssueTokenPath}
             selectedIssueKey={scope.issueKey ?? null}
             selectedTokenPath={activeIssueTokenPath}
@@ -654,8 +661,8 @@ export function HealthPanel({
             validationError={validationError}
             issueCount={issueCount}
             issueStatus={issueStatus}
-            graphIssueCount={graphIssueCount}
-            graphStatus={graphStatus}
+            generatorIssueCount={generatorIssueCount}
+            generatorStatus={generatorStatus}
             unusedReady={unusedDataReady}
             unusedCount={unusedCount}
             deprecatedCount={deprecatedCount}
@@ -671,7 +678,7 @@ export function HealthPanel({
                 nonce: Date.now(),
               })
             }
-            onNavigateToGraphs={onNavigateToGraphs}
+            onNavigateToGenerators={onNavigateToGenerators}
           />
         );
         break;

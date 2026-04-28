@@ -1,16 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import type {
-  SelectedModes,
-} from "@tokenmanager/core";
 import { handleRouteError } from "../errors.js";
-
-function slugifyName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   fastify,
@@ -55,7 +44,6 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
             {
               action: "restore-collection-state",
               collections: mutation.previousState.collections,
-              views: mutation.previousState.views,
             },
           ],
         });
@@ -96,7 +84,6 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
           {
             action: "restore-collection-state",
             collections: mutation.previousState.collections,
-            views: mutation.previousState.views,
           },
         ],
       });
@@ -133,7 +120,6 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
             {
               action: "restore-collection-state",
               collections: mutation.previousState.collections,
-              views: mutation.previousState.views,
             },
           ],
         });
@@ -164,7 +150,6 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
             {
               action: "restore-collection-state",
               collections: mutation.previousState.collections,
-              views: mutation.previousState.views,
             },
           ],
         });
@@ -175,118 +160,4 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     },
   );
 
-  fastify.post<{
-    Body: { id: string; name: string; selections: SelectedModes };
-  }>("/views", async (request, reply) => {
-    const { id, name, selections } = request.body || {};
-    if (!id || typeof id !== "string") {
-      return reply.status(400).send({ error: "View id is required" });
-    }
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return reply.status(400).send({ error: "View name is required" });
-    }
-    if (!selections || typeof selections !== "object" || Array.isArray(selections)) {
-      return reply.status(400).send({ error: "View selections are required" });
-    }
-
-    try {
-      const normalizedId = slugifyName(id);
-      if (!normalizedId) {
-        return reply.status(400).send({
-          error: "View id must include at least one letter or number",
-        });
-      }
-      const mutation = await fastify.collectionService.createView({
-        id: normalizedId,
-        name: name.trim(),
-        selections: selections as SelectedModes,
-      });
-      await fastify.operationLog.record({
-        type: "view-create",
-        description: `Create view "${mutation.result.name}"`,
-        resourceId: "$collections",
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        rollbackSteps: [
-          {
-            action: "restore-collection-state",
-            collections: mutation.previousState.collections,
-            views: mutation.previousState.views,
-          },
-        ],
-      });
-      return reply.status(201).send({ ok: true, view: mutation.result });
-    } catch (err) {
-      return handleRouteError(reply, err, "Failed to create view");
-    }
-  });
-
-  fastify.put<{
-    Params: { id: string };
-    Body: { name: string; selections: SelectedModes };
-  }>("/views/:id", async (request, reply) => {
-    const { id } = request.params;
-    const { name, selections } = request.body || {};
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return reply.status(400).send({ error: "View name is required" });
-    }
-    if (!selections || typeof selections !== "object" || Array.isArray(selections)) {
-      return reply.status(400).send({ error: "View selections are required" });
-    }
-
-    try {
-      const mutation = await fastify.collectionService.updateView({
-        id,
-        name: name.trim(),
-        selections: selections as SelectedModes,
-      });
-      await fastify.operationLog.record({
-        type: "view-update",
-        description: `Update view "${mutation.result.name}"`,
-        resourceId: "$collections",
-        affectedPaths: [],
-        beforeSnapshot: {},
-        afterSnapshot: {},
-        rollbackSteps: [
-          {
-            action: "restore-collection-state",
-            collections: mutation.previousState.collections,
-            views: mutation.previousState.views,
-          },
-        ],
-      });
-      return { ok: true, view: mutation.result };
-    } catch (err) {
-      return handleRouteError(reply, err, "Failed to update view");
-    }
-  });
-
-  fastify.delete<{ Params: { id: string } }>(
-    "/views/:id",
-    async (request, reply) => {
-      const { id } = request.params;
-      try {
-        const mutation = await fastify.collectionService.deleteView(id);
-        await fastify.operationLog.record({
-          type: "view-delete",
-          description: `Delete view "${mutation.result.name}"`,
-          resourceId: "$collections",
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
-          rollbackSteps: [
-            {
-              action: "restore-collection-state",
-              collections: mutation.previousState.collections,
-              views: mutation.previousState.views,
-            },
-          ],
-        });
-        return { ok: true, id };
-      } catch (err) {
-        return handleRouteError(reply, err, "Failed to delete view");
-      }
-    },
-  );
 };

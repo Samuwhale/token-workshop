@@ -20,11 +20,22 @@ function operationTouchesCollection(
   collectionId: string | null | undefined,
 ) {
   if (!collectionId) return true;
+  if (op.metadata?.targetCollectionId === collectionId || op.metadata?.collectionId === collectionId) {
+    return true;
+  }
   return op.resourceId
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean)
     .includes(collectionId);
+}
+
+function operationSubtitle(op: OperationEntry): string {
+  if (op.metadata?.generatorName) {
+    const collection = op.metadata.targetCollectionId || op.metadata.collectionId;
+    return collection ? `${op.metadata.generatorName} · ${collection}` : op.metadata.generatorName;
+  }
+  return op.resourceId;
 }
 
 export interface HistoryRecentViewProps {
@@ -144,8 +155,8 @@ export function HistoryRecentView({
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search…"
-            aria-label="Search recent changes"
+            placeholder="Search activity"
+            aria-label="Search activity"
             className="flex-1 min-w-0 bg-transparent py-1 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
           />
           {searchQuery && (
@@ -174,7 +185,7 @@ export function HistoryRecentView({
         {isEmpty ? (
           <FeedbackPlaceholder
             variant={filterTokenPath || searchQuery || collectionFilter ? 'no-results' : 'empty'}
-            title={filterTokenPath || searchQuery || collectionFilter ? 'No results' : 'No recent changes'}
+            title={filterTokenPath || searchQuery || collectionFilter ? 'No results' : 'No recent activity'}
             description={filterTokenPath || searchQuery || collectionFilter ? 'Try a different search or clear filters.' : 'Make an edit to see changes here.'}
             secondaryAction={filterTokenPath || searchQuery || collectionFilter ? { label: 'Clear filters', onClick: () => { setSearchQuery(''); onClearFilter?.(); } } : undefined}
           />
@@ -212,7 +223,8 @@ export function HistoryRecentView({
               const isError = op.type.includes('error');
               const metadataChanges = getFieldChanges(op);
               const isSetMetadata = metadataChanges.length > 0;
-              const impactLabel = isSetMetadata
+	              const subtitle = operationSubtitle(op);
+	              const impactLabel = isSetMetadata
                 ? `${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''}`
                 : `${op.affectedPaths.length} path${op.affectedPaths.length !== 1 ? 's' : ''}`;
               return (
@@ -223,8 +235,8 @@ export function HistoryRecentView({
                       {op.description}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                      <span className="min-w-0 max-w-full truncate font-mono text-secondary text-[var(--color-figma-text-tertiary)]" title={op.resourceId}>
-                        {op.resourceId}
+	                      <span className="min-w-0 max-w-full truncate text-secondary text-[var(--color-figma-text-tertiary)]" title={subtitle}>
+	                        {subtitle}
                       </span>
                       <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
                       <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>

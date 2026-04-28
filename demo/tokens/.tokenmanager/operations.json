@@ -1,0 +1,25 @@
+[
+  {
+    "type": "generator-create",
+    "description": "Create generator \"Color ramp\"",
+    "resourceId": "b164b5ac-6e11-4605-b75c-1841d03c425b",
+    "affectedPaths": [],
+    "beforeSnapshot": {},
+    "afterSnapshot": {},
+    "metadata": {
+      "kind": "generator-create",
+      "generatorId": "b164b5ac-6e11-4605-b75c-1841d03c425b",
+      "generatorName": "Color ramp",
+      "targetCollectionId": "-0--color-primitives"
+    },
+    "rollbackSteps": [
+      {
+        "action": "restore-generators",
+        "generators": []
+      }
+    ],
+    "id": "88b07275-ee49-451b-bd71-cbfadc64014f",
+    "timestamp": "2026-04-28T13:25:39.736Z",
+    "rolledBack": false
+  }
+]

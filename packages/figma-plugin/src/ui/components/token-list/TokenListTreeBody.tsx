@@ -55,6 +55,7 @@ interface JsonEditorProps {
   jsonSaving: boolean;
   jsonBrokenRefs: string[];
   jsonTextareaRef: React.RefObject<HTMLTextAreaElement>;
+  searchQuery: string;
   connected: boolean;
   onChange: (text: string) => void;
   onSave: () => void;
@@ -596,6 +597,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           jsonSaving={jsonEditorProps.jsonSaving}
           jsonBrokenRefs={jsonEditorProps.jsonBrokenRefs}
           jsonTextareaRef={jsonEditorProps.jsonTextareaRef}
+          searchQuery={jsonEditorProps.searchQuery}
           connected={jsonEditorProps.connected}
           hasTokens={tokens.length > 0}
           onChange={jsonEditorProps.onChange}

@@ -6,7 +6,7 @@ import { BadRequestError, GitTimeoutError } from "../errors.js";
 import type { CollectionStore } from "./collection-store.js";
 import type { TokenStore } from "./token-store.js";
 import type { ResolverStore } from "./resolver-store.js";
-import type { TokenGraphService } from "./token-graph-service.js";
+import type { TokenGeneratorService } from "./token-generator-service.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 /**
@@ -294,30 +294,81 @@ export class GitSync {
     }
   }
 
-  private validateGraphTokenChoices(
-    choices: Record<string, "push" | "pull" | "skip">,
-  ): void {
-    const graphChoice = Object.entries(choices).find(
-      ([file]) => path.basename(file) === "$graphs.json",
-    )?.[1];
-    if (!graphChoice) {
-      return;
+  private tokenContentHasGeneratorProvenance(content: string | null): boolean {
+    if (!content) return false;
+    try {
+      for (const [, token] of flattenTokenGroup(JSON.parse(content))) {
+        const tokenmanager = token.$extensions?.tokenmanager;
+        if (
+          tokenmanager &&
+          typeof tokenmanager === "object" &&
+          !Array.isArray(tokenmanager) &&
+          "generator" in tokenmanager
+        ) {
+          return true;
+        }
+      }
+    } catch {
+      return false;
     }
+    return false;
+  }
 
-    const tokenChoices = Object.entries(choices).filter(([file]) =>
-      file.endsWith(".tokens.json"),
+  private async readRemoteFile(file: string): Promise<string | null> {
+    const branch = await this.getCurrentBranch();
+    try {
+      return await this.git.show([`origin/${branch}:${file}`]);
+    } catch {
+      return null;
+    }
+  }
+
+  private async validateGeneratorTokenChoices(
+    choices: Record<string, "push" | "pull" | "skip">,
+  ): Promise<void> {
+    const generatorChoice = Object.entries(choices).find(
+      ([file]) => path.basename(file) === "$generators.json",
+    )?.[1];
+
+    const tokenChoices = Object.entries(choices).filter(
+      (entry): entry is [string, "push" | "pull"] =>
+        entry[0].endsWith(".tokens.json") && entry[1] !== "skip",
     );
     if (tokenChoices.length === 0) {
       return;
     }
 
-    const splitTokenFiles = tokenChoices.filter(
-      ([, direction]) => direction !== graphChoice,
-    );
+    const generatorManagedTokenFiles: string[] = [];
+    for (const [file] of tokenChoices) {
+      const [localContent, remoteContent] = await Promise.all([
+        this.readWorkingTreeFile(file),
+        this.readRemoteFile(file),
+      ]);
+      if (
+        this.tokenContentHasGeneratorProvenance(localContent) ||
+        this.tokenContentHasGeneratorProvenance(remoteContent)
+      ) {
+        generatorManagedTokenFiles.push(file);
+      }
+    }
+
+    if (generatorManagedTokenFiles.length === 0) {
+      return;
+    }
+
+    if (!generatorChoice || generatorChoice === "skip") {
+      throw new BadRequestError(
+        `Generator-managed token files require $generators.json in the same sync action: ${generatorManagedTokenFiles.join(", ")}.`,
+      );
+    }
+
+    const splitTokenFiles = tokenChoices
+      .filter(([file]) => generatorManagedTokenFiles.includes(file))
+      .filter(([, direction]) => direction !== generatorChoice);
     if (splitTokenFiles.length > 0) {
       throw new BadRequestError(
-        `$graphs.json and token files must use the same sync direction. ` +
-          `Graph-managed outputs cannot be pulled or pushed separately from graph metadata.`,
+        `$generators.json and token files must use the same sync direction. ` +
+          `Generator-managed outputs cannot be pulled or pushed separately from generator metadata.`,
       );
     }
   }
@@ -976,7 +1027,7 @@ export class GitSync {
       collectionsStore?: CollectionStore;
       reloadCollectionsWorkspace?: () => Promise<void>;
       resolverStore?: ResolverStore;
-      graphService?: TokenGraphService;
+      generatorService?: TokenGeneratorService;
     },
   ): Promise<ApplyDiffResult> {
     return this.lock.withLock(async () => {
@@ -987,7 +1038,7 @@ export class GitSync {
         .filter(([, d]) => d === "push")
         .map(([f]) => f);
       this.validatePaths([...toPull, ...toPush]);
-      this.validateGraphTokenChoices(choices);
+      await this.validateGeneratorTokenChoices(choices);
 
       const result: ApplyDiffResult = {
         pullFailedFiles: [],
@@ -1081,10 +1132,10 @@ export class GitSync {
               ) {
                 await stores.resolverStore.reloadFile(file);
               } else if (
-                stores?.graphService &&
-                path.basename(file) === "$graphs.json"
+                stores?.generatorService &&
+                path.basename(file) === "$generators.json"
               ) {
-                await stores.graphService.reloadFromDisk();
+                await stores.generatorService.reloadFromDisk();
               }
             } catch (err) {
               console.warn(

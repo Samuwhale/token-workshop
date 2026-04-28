@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../../shared/apiFetch";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
+import { ConfirmModal } from "../ConfirmModal";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
@@ -135,7 +136,8 @@ export function ModeColumnHeader({
   );
 
   const canMoveUp = modeIndex > 0 && allModeNames.length > 1;
-  const canMoveDown = modeIndex < allModeNames.length - 1 && allModeNames.length > 1;
+  const canMoveDown =
+    modeIndex < allModeNames.length - 1 && allModeNames.length > 1;
   const canDelete = allModeNames.length > 1;
 
   const widthRef = useRef(width);
@@ -183,10 +185,7 @@ export function ModeColumnHeader({
   );
 
   return (
-    <div
-      ref={cellRef}
-      className="relative min-w-0"
-    >
+    <div ref={cellRef} className="relative min-w-0">
       <div
         role="separator"
         aria-orientation="vertical"
@@ -281,36 +280,18 @@ export function ModeColumnHeader({
         </div>
       )}
       {confirmDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setConfirmDelete(false);
-          }}
+        <ConfirmModal
+          title="Delete mode"
+          description="Delete this mode from the collection. Tokens keep their other mode values."
+          confirmLabel="Delete mode"
+          danger
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
         >
-          <div className="w-[320px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-4 shadow-xl">
-            <p className="mb-3 text-body text-[var(--color-figma-text)]">
-              Delete mode <span className="font-mono">{modeName}</span>? Tokens keep other mode values; this mode's values are removed.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                disabled={busy}
-                className="rounded px-3 py-1 text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDelete()}
-                disabled={busy}
-                className="rounded bg-[var(--color-figma-error)] px-3 py-1 text-body text-white hover:opacity-90 disabled:opacity-50"
-              >
-                {busy ? "Deleting…" : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
+          <p className="font-mono text-body text-[var(--color-figma-text)] [overflow-wrap:anywhere]">
+            {modeName}
+          </p>
+        </ConfirmModal>
       )}
     </div>
   );

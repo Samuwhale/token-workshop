@@ -22,8 +22,8 @@ export interface HealthDashboardProps {
   validationError: string | null;
   issueCount: number;
   issueStatus: HealthStatus;
-  graphIssueCount: number;
-  graphStatus: HealthStatus;
+  generatorIssueCount: number;
+  generatorStatus: HealthStatus;
   unusedReady: boolean;
   unusedCount: number;
   deprecatedCount: number;
@@ -31,7 +31,7 @@ export interface HealthDashboardProps {
   duplicateCount: number;
   hiddenCount: number;
   onNavigateToView: (view: HealthView) => void;
-  onNavigateToGraphs?: () => void;
+  onNavigateToGenerators?: () => void;
 }
 
 function StatusIcon({ status }: { status: HealthStatus }) {
@@ -114,8 +114,8 @@ export function HealthDashboard({
   validationError,
   issueCount,
   issueStatus,
-  graphIssueCount,
-  graphStatus,
+  generatorIssueCount,
+  generatorStatus,
   unusedReady,
   unusedCount,
   deprecatedCount,
@@ -123,7 +123,7 @@ export function HealthDashboard({
   duplicateCount,
   hiddenCount,
   onNavigateToView,
-  onNavigateToGraphs,
+  onNavigateToGenerators,
 }: HealthDashboardProps) {
   if (!connected) {
     return (
@@ -148,12 +148,12 @@ export function HealthDashboard({
       onOpen: openView("issues"),
     },
     {
-      id: "graphs",
+      id: "generators",
       label: "Generator updates",
-      count: graphIssueCount,
-      severity: graphStatus,
-      disabled: !onNavigateToGraphs,
-      onOpen: () => onNavigateToGraphs?.(),
+      count: generatorIssueCount,
+      severity: generatorStatus,
+      disabled: !onNavigateToGenerators,
+      onOpen: () => onNavigateToGenerators?.(),
     },
     {
       id: "deprecated",

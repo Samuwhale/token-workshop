@@ -47,11 +47,12 @@ export function splitTokenManagerExtension(
   const passthrough: Record<string, unknown> = {};
   for (const [key, entryValue] of Object.entries(source)) {
     if (
-      key !== 'derivation' &&
-      key !== 'modes' &&
-      key !== 'lifecycle' &&
-      key !== 'extends'
-    ) {
+	      key !== 'derivation' &&
+	      key !== 'modes' &&
+	      key !== 'lifecycle' &&
+	      key !== 'extends' &&
+	      key !== 'generator'
+	    ) {
       passthrough[key] = entryValue;
     }
   }

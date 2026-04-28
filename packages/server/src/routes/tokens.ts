@@ -13,7 +13,7 @@ import {
   getTokenLifecycle,
   isReference,
   parseReference,
-  readGraphProvenance,
+  readGeneratorProvenance,
   readTokenCollectionModeValues,
   readTokenScopes,
   type Token,
@@ -56,7 +56,7 @@ interface TokenMutationRouteBody {
   $scopes?: string[] | null;
 }
 
-function getGraphManagedPaths(
+function getGeneratorManagedPaths(
   flatTokens: Record<string, Token>,
   paths: string[],
 ): string[] {
@@ -65,7 +65,7 @@ function getGraphManagedPaths(
     for (const [leafPath, token] of Object.entries(flatTokens)) {
       if (
         (leafPath === path || leafPath.startsWith(`${path}.`)) &&
-        readGraphProvenance(token)
+        readGeneratorProvenance(token)
       ) {
         selected.add(leafPath);
       }
@@ -74,50 +74,50 @@ function getGraphManagedPaths(
   return [...selected].sort();
 }
 
-function assertNoGraphManagedTokenDelete(
+function assertNoGeneratorManagedTokenDelete(
   flatTokens: Record<string, Token>,
   paths: string[],
 ): void {
-  const graphManagedPaths = getGraphManagedPaths(flatTokens, paths);
-  if (graphManagedPaths.length === 0) return;
-  const preview = graphManagedPaths.slice(0, 5).map((path) => `"${path}"`).join(', ');
-  const more = graphManagedPaths.length > 5 ? ` and ${graphManagedPaths.length - 5} more` : '';
+  const generatorManagedPaths = getGeneratorManagedPaths(flatTokens, paths);
+  if (generatorManagedPaths.length === 0) return;
+  const preview = generatorManagedPaths.slice(0, 5).map((path) => `"${path}"`).join(', ');
+  const more = generatorManagedPaths.length > 5 ? ` and ${generatorManagedPaths.length - 5} more` : '';
   throw new ConflictError(
-    `Cannot delete graph-managed token${graphManagedPaths.length === 1 ? '' : 's'} ${preview}${more}. Detach from the graph first.`,
+    `Cannot delete generator-managed token${generatorManagedPaths.length === 1 ? '' : 's'} ${preview}${more}. Detach from the generator first.`,
   );
 }
 
-function assertNoGraphManagedTokenMutation(
+function assertNoGeneratorManagedTokenMutation(
   flatTokens: Record<string, Token>,
   paths: string[],
   action: string,
 ): void {
-  const graphManagedPaths = getGraphManagedPaths(flatTokens, paths);
-  if (graphManagedPaths.length === 0) return;
-  const preview = graphManagedPaths.slice(0, 5).map((path) => `"${path}"`).join(', ');
-  const more = graphManagedPaths.length > 5 ? ` and ${graphManagedPaths.length - 5} more` : '';
+  const generatorManagedPaths = getGeneratorManagedPaths(flatTokens, paths);
+  if (generatorManagedPaths.length === 0) return;
+  const preview = generatorManagedPaths.slice(0, 5).map((path) => `"${path}"`).join(', ');
+  const more = generatorManagedPaths.length > 5 ? ` and ${generatorManagedPaths.length - 5} more` : '';
   throw new ConflictError(
-    `Cannot ${action} graph-managed token${graphManagedPaths.length === 1 ? '' : 's'} ${preview}${more}. Detach from the graph first.`,
+    `Cannot ${action} generator-managed token${generatorManagedPaths.length === 1 ? '' : 's'} ${preview}${more}. Detach from the generator first.`,
   );
 }
 
-function tokenBodyContainsGraphProvenance(token: Pick<Token, '$extensions'>): boolean {
+function tokenBodyContainsGeneratorProvenance(token: Pick<Token, '$extensions'>): boolean {
   const tokenmanager = token.$extensions?.tokenmanager;
   return Boolean(
     tokenmanager &&
       typeof tokenmanager === 'object' &&
       !Array.isArray(tokenmanager) &&
-      'graph' in tokenmanager
+      'generator' in tokenmanager
   );
 }
 
-function assertNoGraphProvenanceWrite(
+function assertNoGeneratorProvenanceWrite(
   token: Pick<Token, '$extensions'>,
   action: string,
 ): void {
-  if (!tokenBodyContainsGraphProvenance(token)) return;
+  if (!tokenBodyContainsGeneratorProvenance(token)) return;
   throw new ConflictError(
-    `Cannot ${action} graph provenance directly. Apply the graph or detach the token first.`,
+    `Cannot ${action} generator provenance directly. Apply the generator or detach the token first.`,
   );
 }
 
@@ -946,7 +946,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return withLock(async () => {
       try {
         const flatTokens = await fastify.tokenStore.getFlatTokensForCollection(collectionId);
-        assertNoGraphManagedTokenMutation(
+        assertNoGeneratorManagedTokenMutation(
           flatTokens,
           listBulkRenameAffectedPaths(Object.keys(flatTokens), find, replace, isRegex),
           'rename',
@@ -1018,9 +1018,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
                 error: `Token "${entry.path}" not found in collection "${collectionId}"`,
               });
           }
-          if (readGraphProvenance(existingToken)) {
+          if (readGeneratorProvenance(existingToken)) {
             throw new ConflictError(
-              `Cannot update graph-managed token "${entry.path}". Detach from the graph first.`,
+              `Cannot update generator-managed token "${entry.path}". Detach from the generator first.`,
             );
           }
           normalizedPatches.push({
@@ -1036,7 +1036,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               collection,
             ),
           });
-          assertNoGraphProvenanceWrite(
+          assertNoGeneratorProvenanceWrite(
             normalizedPatches[normalizedPatches.length - 1].patch,
             `write "${entry.path}"`,
           );
@@ -1155,9 +1155,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           if (!token) {
             return reply.status(404).send({ error: `Source token "${sourceToken.path}" not found in collection "${sourceToken.collectionId}"` });
           }
-          if (readGraphProvenance(token)) {
+          if (readGeneratorProvenance(token)) {
             throw new ConflictError(
-              `Cannot promote graph-managed token "${sourceToken.path}" in "${sourceToken.collectionId}". Detach from the graph first.`,
+              `Cannot promote generator-managed token "${sourceToken.path}" in "${sourceToken.collectionId}". Detach from the generator first.`,
             );
           }
           if (isReference(token.$value)) {
@@ -1408,7 +1408,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const token = normalizeScopedVariableToken(
         normalizeCreateRouteBody(rawTokenBody),
       );
-      assertNoGraphProvenanceWrite(token, `write "${tokenPath}"`);
+      assertNoGeneratorProvenanceWrite(token, `write "${tokenPath}"`);
       if (token.$value === undefined) {
         return reply.status(400).send({ error: `Token "${tokenPath}" must have a $value` });
       }
@@ -1437,9 +1437,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             collectionId,
             t.path,
           );
-          if (existingToken && strategy !== 'skip' && readGraphProvenance(existingToken)) {
+          if (existingToken && strategy !== 'skip' && readGeneratorProvenance(existingToken)) {
             throw new ConflictError(
-              `Cannot ${strategy} graph-managed token "${t.path}". Detach from the graph first.`,
+              `Cannot ${strategy} generator-managed token "${t.path}". Detach from the generator first.`,
             );
           }
           const modeError = await validateTokenModesForCollectionWrite(
@@ -1638,9 +1638,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               error: `Dependent token "${dependent.path}" in collection "${dependent.collectionId}" no longer exists`,
             });
           }
-          if (readGraphProvenance(existing)) {
+          if (readGeneratorProvenance(existing)) {
             throw new ConflictError(
-              `Cannot retarget graph-managed token "${dependent.path}" in "${dependent.collectionId}". Detach from the graph first.`,
+              `Cannot retarget generator-managed token "${dependent.path}" in "${dependent.collectionId}". Detach from the generator first.`,
             );
           }
           if (existing.$type && replacementType && existing.$type !== replacementType) {
@@ -1962,7 +1962,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.status(400).send({ error: modeError });
           }
           for (const [path, token] of flattenTokenGroup(normalizedBody)) {
-            assertNoGraphProvenanceWrite(token, `write "${path}"`);
+            assertNoGeneratorProvenanceWrite(token, `write "${path}"`);
           }
           const validationErrors = _tokenValidator
             .validateSet(normalizedBody)
@@ -1973,7 +1973,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             });
           }
           const existingFlatTokens = await fastify.tokenStore.getFlatTokensForCollection(collectionId);
-          assertNoGraphManagedTokenMutation(
+          assertNoGeneratorManagedTokenMutation(
             existingFlatTokens,
             Object.keys(existingFlatTokens),
             'replace collection tokens containing',
@@ -2057,7 +2057,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             body as Token,
             collection,
           );
-          assertNoGraphProvenanceWrite(normalizedBody, `create "${tokenPath}"`);
+          assertNoGeneratorProvenanceWrite(normalizedBody, `create "${tokenPath}"`);
           const modeError = await validateTokenModesForCollectionWrite(
             collectionId,
             tokenPath,
@@ -2137,9 +2137,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               error: `Token "${tokenPath}" not found in collection "${collectionId}"`,
             });
           }
-          if (readGraphProvenance(existingToken)) {
+          if (readGeneratorProvenance(existingToken)) {
             throw new ConflictError(
-              `Cannot update graph-managed token "${tokenPath}". Detach from the graph first.`,
+              `Cannot update generator-managed token "${tokenPath}". Detach from the generator first.`,
             );
           }
           const body = normalizeScopedVariableToken(
@@ -2150,7 +2150,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             body as Partial<Token>,
             collection,
           );
-          assertNoGraphProvenanceWrite(normalizedBody, `update "${tokenPath}"`);
+          assertNoGeneratorProvenanceWrite(normalizedBody, `update "${tokenPath}"`);
           const modeError = await validateTokenModesForCollectionWrite(
             collectionId,
             tokenPath,
@@ -2222,7 +2222,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           const flatTokens = await fastify.tokenStore.getFlatTokensForCollection(collectionId);
-          assertNoGraphManagedTokenDelete(flatTokens, paths);
+          assertNoGeneratorManagedTokenDelete(flatTokens, paths);
           if (!force) {
             // Expand group paths to all leaf tokens they contain
             const allDeletedLeaves = new Set<string>();
@@ -2294,7 +2294,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return withLock(async () => {
         try {
           const flatTokens = await fastify.tokenStore.getFlatTokensForCollection(collectionId);
-          assertNoGraphManagedTokenDelete(flatTokens, [tokenPath]);
+          assertNoGeneratorManagedTokenDelete(flatTokens, [tokenPath]);
           if (!force) {
             // Collect all leaf token paths being deleted (single token or all tokens in a group)
             const deletedPaths = Object.keys(flatTokens).filter(

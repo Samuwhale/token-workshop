@@ -1,5 +1,4 @@
 import {
-  forwardRef,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -7,15 +6,24 @@ import {
   useRef,
   useState,
 } from "react";
-import { Search, Settings2, Upload } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Plus,
+  Search,
+  Settings2,
+  Upload,
+  X,
+} from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
+import { useDropdownMenu } from "../../hooks/useDropdownMenu";
+import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
+import { FLOATING_MENU_WIDE_CLASS } from "../../shared/menuClasses";
 import type { CollectionReviewSummary } from "../../shared/reviewSummary";
 import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
-import { useDropdownMenu } from "../../hooks/useDropdownMenu";
-import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 
 interface AllCollectionsScope {
   selected: boolean;
@@ -41,6 +49,20 @@ interface CollectionTabsProps {
   onOpenImport?: () => void;
 }
 
+function collectionHealthTone(summary?: CollectionReviewSummary): string | null {
+  const actionable = summary?.actionable ?? 0;
+  if (actionable === 0) return null;
+  if (summary?.severity === "critical") return "bg-[var(--color-figma-error)]";
+  if (summary?.severity === "warning") return "bg-[var(--color-figma-warning)]";
+  return null;
+}
+
+function formatCollectionMeta(tokenCount: number, modeCount: number): string {
+  const tokenLabel = tokenCount === 1 ? "token" : "tokens";
+  const modeLabel = modeCount === 1 ? "mode" : "modes";
+  return `${tokenCount} ${tokenLabel} · ${modeCount} ${modeLabel}`;
+}
+
 export function CollectionTabs({
   collections,
   currentCollectionId = null,
@@ -54,17 +76,20 @@ export function CollectionTabs({
   onOpenCreateCollection,
   onOpenImport,
 }: CollectionTabsProps) {
-  const showSearch = collections.length > 1 || Boolean(allCollectionsScope);
-  const showCreateButton = Boolean(onOpenCreateCollection);
-  const showImportButton = Boolean(onOpenImport);
-
-  const searchMenu = useDropdownMenu();
-  const searchMenuStyle = useAnchoredFloatingStyle({
-    triggerRef: searchMenu.triggerRef,
-    open: searchMenu.open,
-    preferredWidth: 280,
-    preferredHeight: 360,
-    align: "end",
+  const {
+    open: switcherOpen,
+    setOpen: setSwitcherOpen,
+    toggle: toggleSwitcher,
+    close: closeSwitcherMenu,
+    menuRef: switcherMenuRef,
+    triggerRef: switcherTriggerRef,
+  } = useDropdownMenu();
+  const switcherStyle = useAnchoredFloatingStyle({
+    triggerRef: switcherTriggerRef,
+    open: switcherOpen,
+    preferredWidth: 340,
+    preferredHeight: 380,
+    align: "start",
   });
 
   const [query, setQuery] = useState("");
@@ -72,361 +97,302 @@ export function CollectionTabs({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastHandledFocusRequestKeyRef = useRef(focusRequestKey);
 
+  const currentCollection = useMemo(
+    () =>
+      currentCollectionId
+        ? collections.find((collection) => collection.id === currentCollectionId) ?? null
+        : null,
+    [collections, currentCollectionId],
+  );
+  const currentDisplayName = currentCollection
+    ? getCollectionDisplayName(currentCollection.id, collectionDisplayNames)
+    : allCollectionsScope?.selected
+      ? "All collections"
+      : "Choose collection";
+  const currentMeta = currentCollection
+    ? formatCollectionMeta(
+        collectionTokenCounts[currentCollection.id] ?? 0,
+        currentCollection.modes.length,
+      )
+    : allCollectionsScope?.selected
+      ? `${collections.length} ${collections.length === 1 ? "collection" : "collections"}`
+      : "";
+
   const filteredCollections = useMemo(
     () => filterCollections(collections, deferredQuery, collectionDisplayNames),
     [collections, deferredQuery, collectionDisplayNames],
   );
+
+  const showManageButton =
+    Boolean(activeCollectionSettings) &&
+    currentCollectionId !== null &&
+    allCollectionsScope?.selected !== true;
+  const showCreateButton = Boolean(onOpenCreateCollection);
+  const showImportButton = Boolean(onOpenImport);
+  const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
+
+  const closeSwitcher = useCallback(() => {
+    closeSwitcherMenu({ restoreFocus: false });
+  }, [closeSwitcherMenu]);
+
+  const handleSelectCollection = useCallback(
+    (collectionId: string) => {
+      onSelectCollection(collectionId);
+      setQuery("");
+      closeSwitcher();
+    },
+    [closeSwitcher, onSelectCollection],
+  );
+
+  const handleSelectAll = useCallback(() => {
+    allCollectionsScope?.onSelect();
+    setQuery("");
+    closeSwitcher();
+  }, [allCollectionsScope, closeSwitcher]);
 
   useEffect(() => {
     if (focusRequestKey <= lastHandledFocusRequestKeyRef.current) {
       return;
     }
     lastHandledFocusRequestKeyRef.current = focusRequestKey;
-    if (!showSearch) {
+    setSwitcherOpen(true);
+  }, [focusRequestKey, setSwitcherOpen]);
+
+  useEffect(() => {
+    if (!switcherOpen) {
+      if (query.length > 0) setQuery("");
       return;
     }
-    searchMenu.setOpen(true);
     requestAnimationFrame(() => {
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
     });
-  }, [focusRequestKey, searchMenu, showSearch]);
-
-  useEffect(() => {
-    if (!searchMenu.open) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
-    });
-  }, [searchMenu.open]);
-
-  useEffect(() => {
-    if (!searchMenu.open) {
-      setQuery("");
-    }
-  }, [searchMenu.open]);
-
-  const activeTabRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    activeTabRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "nearest",
-    });
-  }, [currentCollectionId, allCollectionsScope?.selected]);
-
-  const handleSelectFromMenu = useCallback(
-    (collectionId: string) => {
-      onSelectCollection(collectionId);
-      searchMenu.close({ restoreFocus: false });
-    },
-    [onSelectCollection, searchMenu],
-  );
-
-  const handleSelectAllFromMenu = useCallback(() => {
-    allCollectionsScope?.onSelect();
-    searchMenu.close({ restoreFocus: false });
-  }, [allCollectionsScope, searchMenu]);
-
-  const settingsToggle = activeCollectionSettings;
-  const settingsTargetId = currentCollectionId ?? null;
-  const canManageCollections = Boolean(settingsToggle);
-  const showSettingsButton = canManageCollections && settingsTargetId !== null;
+  }, [query.length, switcherOpen]);
 
   return (
-    <div
-      className="flex min-w-0 shrink-0 flex-col gap-1 border-b border-[var(--color-figma-border)] px-2 py-1"
-    >
-      <div
-        role="tablist"
-        aria-label="Collections"
-        className="flex min-w-0 items-stretch gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
-      >
-        {allCollectionsScope ? (
-          <CollectionTab
-            label="All"
-            selected={allCollectionsScope.selected}
-            onClick={allCollectionsScope.onSelect}
-            ref={allCollectionsScope.selected ? activeTabRef : undefined}
-          />
-        ) : null}
-
-        {collections.map((collection) => {
-          const collectionId = collection.id;
-          const isCurrent =
-            (!allCollectionsScope || !allCollectionsScope.selected) &&
-            collectionId === currentCollectionId;
-          const displayName = getCollectionDisplayName(
-            collectionId,
-            collectionDisplayNames,
-          );
-          const tokenCount = collectionTokenCounts[collectionId];
-          const summary = collectionHealth?.get(collectionId);
-          const actionable = summary?.actionable ?? 0;
-          const severity = summary?.severity;
-          const healthTone =
-            actionable > 0 && severity === "critical"
-              ? "bg-[var(--color-figma-error)]"
-              : actionable > 0 && severity === "warning"
-                ? "bg-[var(--color-figma-warning)]"
-                : null;
-
-          return (
-            <CollectionTab
-              key={collectionId}
-              label={displayName}
-              selected={isCurrent}
-              onClick={() => onSelectCollection(collectionId)}
-              ref={isCurrent ? activeTabRef : undefined}
-              healthDotClass={healthTone ?? undefined}
-              count={tokenCount}
-            />
-          );
-        })}
-      </div>
-
-      {(showSearch || showImportButton || showCreateButton || showSettingsButton) ? (
-        <div className="tm-responsive-toolbar">
-          <div className="tm-responsive-toolbar__row">
-          {showSettingsButton ? (
+    <div className="flex min-w-0 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
+      <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
+        <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
+          <div className="tm-responsive-toolbar__leading tm-collection-toolbar__leading">
             <button
+              ref={switcherTriggerRef}
               type="button"
-              onClick={() => settingsToggle?.onToggle(settingsTargetId!)}
-              aria-label={
-                settingsToggle?.open === true
-                  ? "Hide collection settings"
-                  : "Open collection settings"
-              }
-              aria-pressed={settingsToggle?.open === true}
-              title="Collection settings"
-              className={`inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 transition-colors ${
-                settingsToggle?.open === true
+              onClick={toggleSwitcher}
+              aria-haspopup="dialog"
+              aria-expanded={switcherOpen}
+              className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left transition-colors ${
+                switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
               }`}
             >
-              <Settings2 size={11} strokeWidth={1.5} aria-hidden />
-              <span className="truncate">Settings</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-body font-medium">
+                  {currentDisplayName}
+                </span>
+                {currentMeta ? (
+                  <span className="block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                    {currentMeta}
+                  </span>
+                ) : null}
+              </span>
+              <ChevronDown
+                size={12}
+                strokeWidth={1.5}
+                className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+                aria-hidden
+              />
             </button>
-          ) : null}
-          <div className="tm-responsive-toolbar__actions">
-          {showSearch ? (
-            <div className="relative shrink-0">
+
+            {switcherOpen ? (
+              <div
+                ref={switcherMenuRef}
+                style={switcherStyle ?? { visibility: "hidden" }}
+                className={`${FLOATING_MENU_WIDE_CLASS} flex flex-col p-1`}
+                role="dialog"
+                aria-label="Choose collection"
+              >
+                <div className="mb-1 flex min-h-[28px] items-center gap-1.5 rounded bg-[var(--color-figma-bg-secondary)] px-2">
+                  <Search
+                    size={12}
+                    strokeWidth={1.5}
+                    className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+                    aria-hidden
+                  />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape" && query.length > 0) {
+                        event.stopPropagation();
+                        setQuery("");
+                      }
+                    }}
+                    placeholder="Search collections"
+                    aria-label="Search collections"
+                    className="min-w-0 flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuery("");
+                        requestAnimationFrame(() => searchInputRef.current?.focus());
+                      }}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+                      aria-label="Clear collection search"
+                    >
+                      <X size={10} strokeWidth={1.5} aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="min-h-0 overflow-y-auto">
+                  {allCollectionsScope ? (
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={allCollectionsScope.selected}
+                      onClick={handleSelectAll}
+                      className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
+                        allCollectionsScope.selected
+                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                          : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                      }`}
+                    >
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[var(--color-figma-accent)]">
+                        {allCollectionsScope.selected ? (
+                          <Check size={12} strokeWidth={1.7} aria-hidden />
+                        ) : null}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-body font-medium">
+                          All collections
+                        </span>
+                        <span className="block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                          {collections.length}{" "}
+                          {collections.length === 1 ? "collection" : "collections"}
+                        </span>
+                      </span>
+                    </button>
+                  ) : null}
+
+                  {hasNoMatches ? (
+                    <div className="px-2 py-3 text-secondary text-[var(--color-figma-text-tertiary)]">
+                      No collections match "{query.trim()}".
+                    </div>
+                  ) : (
+                    filteredCollections.map((collection) => {
+                      const collectionId = collection.id;
+                      const isCurrent =
+                        allCollectionsScope?.selected !== true &&
+                        collectionId === currentCollectionId;
+                      const displayName = getCollectionDisplayName(
+                        collectionId,
+                        collectionDisplayNames,
+                      );
+                      const healthTone = collectionHealthTone(
+                        collectionHealth?.get(collectionId),
+                      );
+                      const meta = formatCollectionMeta(
+                        collectionTokenCounts[collectionId] ?? 0,
+                        collection.modes.length,
+                      );
+
+                      return (
+                        <button
+                          key={collectionId}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={isCurrent}
+                          onClick={() => handleSelectCollection(collectionId)}
+                          className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
+                            isCurrent
+                              ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                              : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                          }`}
+                        >
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[var(--color-figma-accent)]">
+                            {isCurrent ? (
+                              <Check size={12} strokeWidth={1.7} aria-hidden />
+                            ) : healthTone ? (
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${healthTone}`}
+                                aria-hidden
+                              />
+                            ) : null}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-body font-medium">
+                              {displayName}
+                            </span>
+                            <span className="block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                              {meta}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
+            {showManageButton ? (
               <button
-                ref={searchMenu.triggerRef}
                 type="button"
-                onClick={searchMenu.toggle}
-                aria-expanded={searchMenu.open}
-                aria-haspopup="dialog"
-                aria-label="Find collection"
-                title="Find collection"
-                className={`inline-flex h-7 items-center gap-1 rounded px-2 transition-colors ${
-                  searchMenu.open
+                onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
+                aria-label={
+                  activeCollectionSettings?.open === true
+                    ? "Hide collection management"
+                    : "Manage collection"
+                }
+                aria-pressed={activeCollectionSettings?.open === true}
+                className={`inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                  activeCollectionSettings?.open === true
                     ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                     : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                 }`}
               >
-                <Search size={12} strokeWidth={1.5} aria-hidden />
-                <span className="truncate">Find</span>
+                <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+                <span className="tm-collection-toolbar__optional-label truncate">
+                  Manage
+                </span>
               </button>
+            ) : null}
 
-              {searchMenu.open ? (
-                <div
-                  ref={searchMenu.menuRef}
-                  style={searchMenuStyle ?? { visibility: "hidden" }}
-                  className="z-50 flex max-w-[min(320px,calc(100vw-24px))] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-                  role="dialog"
-                  aria-label="Find collection"
-                >
-                  <div className="mb-1 flex min-h-[24px] items-center gap-1.5 rounded bg-[var(--color-figma-bg-secondary)] px-2">
-                    <Search
-                      size={11}
-                      strokeWidth={1.5}
-                      className="shrink-0 text-[var(--color-figma-text-tertiary)]"
-                      aria-hidden
-                    />
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Filter collections"
-                      className="min-w-0 flex-1 bg-transparent py-0.5 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
-                    />
-                  </div>
-                  <div className="max-h-[280px] min-h-0 overflow-y-auto">
-                    {allCollectionsScope ? (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={handleSelectAllFromMenu}
-                        className={`mb-0.5 flex w-full items-center rounded px-2 py-1 text-left text-body transition-colors ${
-                          allCollectionsScope.selected
-                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                        }`}
-                      >
-                        All collections
-                      </button>
-                    ) : null}
-                    {filteredCollections.length === 0 ? (
-                      <div className="px-2 py-3 text-secondary text-[var(--color-figma-text-tertiary)]">
-                        No matches.
-                      </div>
-                    ) : (
-                      filteredCollections.map((collection) => {
-                        const collectionId = collection.id;
-                        const isCurrent = collectionId === currentCollectionId;
-                        const displayName = getCollectionDisplayName(
-                          collectionId,
-                          collectionDisplayNames,
-                        );
-                        const tokenCount = collectionTokenCounts[collectionId] ?? 0;
-                        const summary = collectionHealth?.get(collectionId);
-                        const actionable = summary?.actionable ?? 0;
-                        const severity = summary?.severity;
-                        const healthTone =
-                          actionable > 0 && severity === "critical"
-                            ? "bg-[var(--color-figma-error)]"
-                            : actionable > 0 && severity === "warning"
-                              ? "bg-[var(--color-figma-warning)]"
-                              : null;
-                        return (
-                          <div
-                            key={collectionId}
-                            className={`mb-0.5 flex items-center gap-1 rounded ${
-                              isCurrent
-                                ? "bg-[var(--color-figma-bg-selected)]"
-                                : "hover:bg-[var(--color-figma-bg-hover)]"
-                            }`}
-                          >
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => handleSelectFromMenu(collectionId)}
-                              className="flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left"
-                            >
-                              {healthTone ? (
-                                <span
-                                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthTone}`}
-                                  aria-hidden
-                                />
-                              ) : null}
-                              <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
-                                {displayName}
-                              </span>
-                              <span className="shrink-0 text-secondary tabular-nums text-[var(--color-figma-text-tertiary)]">
-                                {tokenCount}
-                              </span>
-                            </button>
-                            {canManageCollections ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  onSelectCollection(collectionId);
-                                  settingsToggle?.onToggle(collectionId);
-                                  searchMenu.close({ restoreFocus: false });
-                                }}
-                                aria-label={`Manage ${displayName}`}
-                                title="Manage collection"
-                                className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                              >
-                                <Settings2 size={11} strokeWidth={1.5} aria-hidden />
-                              </button>
-                            ) : null}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+            {showCreateButton ? (
+              <button
+                type="button"
+                onClick={onOpenCreateCollection}
+                title="Create collection"
+                className="inline-flex h-7 shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+              >
+                <Plus size={12} strokeWidth={1.7} aria-hidden />
+                <span className="truncate">New collection</span>
+              </button>
+            ) : null}
 
-          {showImportButton ? (
-            <button
-              type="button"
-              onClick={onOpenImport}
-              title="Import collections"
-              className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            >
-              <Upload size={12} strokeWidth={1.5} aria-hidden />
-              <span>Import</span>
-            </button>
-          ) : null}
-
-          {showCreateButton ? (
-            <button
-              type="button"
-              onClick={onOpenCreateCollection}
-              title="Create collection"
-              className="inline-flex h-7 shrink-0 items-center rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-            >
-              Add collection
-            </button>
-          ) : null}
+            {showImportButton ? (
+              <button
+                type="button"
+                onClick={onOpenImport}
+                title="Import collections"
+                className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              >
+                <Upload size={12} strokeWidth={1.5} aria-hidden />
+                <span className="tm-collection-toolbar__optional-label truncate">
+                  Import
+                </span>
+              </button>
+            ) : null}
+          </div>
         </div>
-        </div>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }
-
-interface CollectionTabProps {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  healthDotClass?: string;
-  count?: number;
-}
-
-const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
-  function CollectionTab(
-    { label, selected, onClick, healthDotClass, count },
-    ref,
-  ) {
-    return (
-      <button
-        ref={ref}
-        role="tab"
-        type="button"
-        aria-selected={selected}
-        onClick={onClick}
-        title={label}
-        className={`group relative flex min-w-0 max-w-[min(280px,60vw)] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
-          selected
-            ? "text-[var(--color-figma-text)]"
-            : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
-        }`}
-      >
-        {healthDotClass ? (
-          <span
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthDotClass}`}
-            aria-hidden
-          />
-        ) : null}
-        <span className="min-w-0 flex-1 truncate">{label}</span>
-        {typeof count === "number" ? (
-          <span
-            className={`shrink-0 text-secondary tabular-nums ${
-              selected
-                ? "text-[var(--color-figma-text-secondary)]"
-                : "text-[var(--color-figma-text-tertiary)]"
-            }`}
-          >
-            {count}
-          </span>
-        ) : null}
-        {selected ? (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-[var(--color-figma-accent)]"
-          />
-        ) : null}
-      </button>
-    );
-  },
-);

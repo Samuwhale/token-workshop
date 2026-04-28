@@ -11,7 +11,7 @@ export type TopTab =
   | "library"
   | "canvas"
   | "publish";
-export type LibrarySubTab = "tokens" | "graph" | "health" | "history";
+export type LibrarySubTab = "tokens" | "generators" | "health" | "history";
 export type PublishSubTab =
   | "publish-figma"
   | "publish-code"
@@ -28,7 +28,7 @@ export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
   | "token-details"
-  | "generate-tokens"
+  | "generator-create"
   | "color-analysis"
   | "import";
 
@@ -67,7 +67,7 @@ export const TOP_TABS: {
       { id: "tokens", label: "Tokens" },
       { id: "health", label: "Review" },
       { id: "history", label: "History" },
-      { id: "graph", label: "Automations" },
+      { id: "generators", label: "Generators" },
     ],
   },
   {
@@ -291,13 +291,13 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
       { id: "history", label: "History", topTab: "library", subTab: "history" },
-      { id: "graph",   label: "Automations",   topTab: "library", subTab: "graph" },
+      { id: "generators", label: "Generators", topTab: "library", subTab: "generators" },
     ],
     matchRoutes: [
       route("library", "tokens"),
       route("library", "health"),
       route("library", "history"),
-      route("library", "graph"),
+      route("library", "generators"),
     ],
   },
   {

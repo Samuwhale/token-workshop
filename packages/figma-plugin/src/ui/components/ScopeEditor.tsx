@@ -17,6 +17,8 @@ interface ScopeEditorProps {
   onChange: (next: string[]) => void;
   /** When true, hides the helper text row. */
   compact?: boolean;
+  showDescriptions?: boolean;
+  disabled?: boolean;
 }
 
 function computeAvailableScopes(tokenTypes: string[]): ScopeOption[] {
@@ -40,6 +42,8 @@ export function ScopeEditor({
   selectedScopes,
   onChange,
   compact = false,
+  showDescriptions = true,
+  disabled = false,
 }: ScopeEditorProps) {
   const available = useMemo(() => computeAvailableScopes(tokenTypes), [tokenTypes]);
 
@@ -72,6 +76,7 @@ export function ScopeEditor({
             <button
               type="button"
               onClick={() => onChange([])}
+              disabled={disabled}
               className="text-secondary text-[var(--color-figma-accent)] ml-auto hover:underline"
             >
               Clear all
@@ -79,25 +84,38 @@ export function ScopeEditor({
           )}
         </div>
       )}
-      {available.map(scope => (
-        <label
-          key={scope.value}
-          className="flex items-start gap-2 py-1 cursor-pointer"
-        >
-          <input
-            type="checkbox"
-            checked={selectedScopes.includes(scope.value)}
-            onChange={() => toggle(scope.value)}
-            className="mt-0.5 accent-[var(--color-figma-accent)]"
-          />
-          <div className="min-w-0">
-            <div className="text-body text-[var(--color-figma-text)]">{scope.label}</div>
-            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              {scope.description}
+      <div
+        className={
+          compact ? "tm-scope-editor__compact-list" : "flex flex-col gap-1"
+        }
+      >
+        {available.map(scope => (
+          <label
+            key={scope.value}
+            className={`flex items-start gap-2 py-1 ${
+              compact ? "tm-scope-editor__compact-option" : ""
+            } ${disabled ? "cursor-default opacity-60" : "cursor-pointer"}`}
+          >
+            <input
+              type="checkbox"
+              checked={selectedScopes.includes(scope.value)}
+              onChange={() => toggle(scope.value)}
+              disabled={disabled}
+              className="mt-0.5 accent-[var(--color-figma-accent)]"
+            />
+            <div className="min-w-0">
+              <div className="text-body text-[var(--color-figma-text)]">
+                {scope.label}
+              </div>
+              {showDescriptions ? (
+                <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                  {scope.description}
+                </div>
+              ) : null}
             </div>
-          </div>
-        </label>
-      ))}
+          </label>
+        ))}
+      </div>
     </div>
   );
 }

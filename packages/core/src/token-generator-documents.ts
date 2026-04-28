@@ -22,7 +22,7 @@ import {
   computeSpacingScaleTokens,
   computeTypeScaleTokens,
   computeZIndexScaleTokens,
-} from './graph-generation-engine.js';
+} from './generator-engine.js';
 import {
   DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
   DEFAULT_COLOR_RAMP_CONFIG,
@@ -35,13 +35,13 @@ import {
   type BorderRadiusScaleConfig,
   type ColorRampConfig,
   type CustomScaleConfig,
-  type GraphGeneratedTokenResult,
+  type GeneratorTokenResult,
   type OpacityScaleConfig,
   type ShadowScaleConfig,
   type SpacingScaleConfig,
   type TypeScaleConfig,
   type ZIndexScaleConfig,
-} from './graph-generation-types.js';
+} from './generator-types.js';
 import { stableStringify } from './stable-stringify.js';
 import { isReference, parseReference } from './dtcg-types.js';
 import type {
@@ -52,7 +52,7 @@ import type {
   TokenValue,
 } from './types.js';
 
-export type TokenGraphPortType =
+export type TokenGeneratorPortType =
   | 'color'
   | 'number'
   | 'dimension'
@@ -62,7 +62,7 @@ export type TokenGraphPortType =
   | 'list'
   | 'any';
 
-export type TokenGraphNodeKind =
+export type TokenGeneratorNodeKind =
   | 'tokenInput'
   | 'literal'
   | 'math'
@@ -76,32 +76,31 @@ export type TokenGraphNodeKind =
   | 'shadowScale'
   | 'zIndexScale'
   | 'customScale'
-  | 'list'
-  | 'alias'
-  | 'output'
-  | 'groupOutput'
-  | 'preview';
+	  | 'list'
+	  | 'alias'
+	  | 'output'
+	  | 'groupOutput';
 
-export interface TokenGraphViewport {
+export interface TokenGeneratorViewport {
   x: number;
   y: number;
   zoom: number;
 }
 
-export interface TokenGraphPosition {
+export interface TokenGeneratorPosition {
   x: number;
   y: number;
 }
 
-export interface TokenGraphNode {
+export interface TokenGeneratorNode {
   id: string;
-  kind: TokenGraphNodeKind;
+  kind: TokenGeneratorNodeKind;
   label: string;
-  position: TokenGraphPosition;
+  position: TokenGeneratorPosition;
   data: Record<string, unknown>;
 }
 
-export interface TokenGraphEdge {
+export interface TokenGeneratorEdge {
   id: string;
   from: {
     nodeId: string;
@@ -113,30 +112,28 @@ export interface TokenGraphEdge {
   };
 }
 
-export interface GraphOutputProvenance {
-  graphId: string;
+export interface GeneratorOutputProvenance {
+  generatorId: string;
   outputNodeId: string;
   outputKey: string;
   lastAppliedHash: string;
 }
 
-export interface TokenGraphDocument {
+export interface TokenGeneratorDocument {
   id: string;
   name: string;
   targetCollectionId: string;
-  nodes: TokenGraphNode[];
-  edges: TokenGraphEdge[];
-  viewport: TokenGraphViewport;
+  nodes: TokenGeneratorNode[];
+  edges: TokenGeneratorEdge[];
+  viewport: TokenGeneratorViewport;
   createdAt: string;
   updatedAt: string;
-  lastPreviewAt?: string;
-  lastAppliedAt?: string;
-  lastPreviewDiagnostics?: TokenGraphDiagnostic[];
-  lastApplyDiagnostics?: TokenGraphDiagnostic[];
+	  lastAppliedAt?: string;
+	  lastApplyDiagnostics?: TokenGeneratorDiagnostic[];
   outputHashes?: Record<string, string>;
 }
 
-export interface TokenGraphDiagnostic {
+export interface TokenGeneratorDiagnostic {
   id: string;
   severity: 'info' | 'warning' | 'error';
   message: string;
@@ -144,7 +141,7 @@ export interface TokenGraphDiagnostic {
   edgeId?: string;
 }
 
-export interface TokenGraphPreviewOutput {
+export interface TokenGeneratorPreviewOutput {
   path: string;
   type: TokenType;
   modeValues: Record<string, TokenValue | TokenReference>;
@@ -156,32 +153,32 @@ export interface TokenGraphPreviewOutput {
   collision: boolean;
 }
 
-export interface TokenGraphPreviewResult {
-  graphId: string;
+export interface TokenGeneratorPreviewResult {
+  generatorId: string;
   targetCollectionId: string;
   targetModes: string[];
-  outputs: TokenGraphPreviewOutput[];
-  diagnostics: TokenGraphDiagnostic[];
+  outputs: TokenGeneratorPreviewOutput[];
+  diagnostics: TokenGeneratorDiagnostic[];
   blocking: boolean;
   hash: string;
   previewedAt: string;
 }
 
-export interface EvaluateTokenGraphDocumentInput {
-  document: TokenGraphDocument;
+export interface EvaluateTokenGeneratorDocumentInput {
+  document: TokenGeneratorDocument;
   collections: TokenCollection[];
   tokensByCollection: Record<string, Record<string, Token>>;
 }
 
-type GraphRuntimeValue =
+type GeneratorRuntimeValue =
   | {
       kind: 'scalar';
-      type: TokenGraphPortType;
+      type: TokenGeneratorPortType;
       value: TokenValue | TokenReference;
     }
   | {
       kind: 'list';
-      type: TokenGraphPortType;
+      type: TokenGeneratorPortType;
       values: Array<{
         key: string;
         label: string;
@@ -190,14 +187,14 @@ type GraphRuntimeValue =
       }>;
     };
 
-type ModeRuntimeValues = Record<string, GraphRuntimeValue | undefined>;
+type ModeRuntimeValues = Record<string, GeneratorRuntimeValue | undefined>;
 
-export function createDefaultTokenGraphDocument(
+export function createDefaultTokenGeneratorDocument(
   targetCollectionId: string,
-  name = 'New token graph',
-): TokenGraphDocument {
+  name = 'New generator',
+): TokenGeneratorDocument {
   const now = new Date().toISOString();
-  const id = `graph_${Math.random().toString(36).slice(2, 10)}`;
+  const id = `generator_${Math.random().toString(36).slice(2, 10)}`;
   return {
     id,
     name,
@@ -243,12 +240,12 @@ export function createDefaultTokenGraphDocument(
   };
 }
 
-export function graphProvenanceHash(
-  document: TokenGraphDocument,
-  outputs: TokenGraphPreviewOutput[],
+export function generatorProvenanceHash(
+  document: TokenGeneratorDocument,
+  outputs: TokenGeneratorPreviewOutput[],
 ): string {
   return stableStringify({
-    graphId: document.id,
+    generatorId: document.id,
     targetCollectionId: document.targetCollectionId,
     nodes: document.nodes,
     edges: document.edges,
@@ -261,10 +258,10 @@ export function graphProvenanceHash(
   });
 }
 
-export function tokenFromGraphOutput(
+export function tokenFromGeneratorOutput(
   collection: TokenCollection,
-  output: TokenGraphPreviewOutput,
-  provenance: GraphOutputProvenance,
+  output: TokenGeneratorPreviewOutput,
+  provenance: GeneratorOutputProvenance,
   existingToken?: Token,
 ): Token {
   const token: Token = existingToken ? cloneToken(existingToken) : {
@@ -283,7 +280,7 @@ export function tokenFromGraphOutput(
     ...(token.$extensions ?? {}),
     tokenmanager: {
       ...tokenmanager,
-      graph: provenance,
+      generator: provenance,
     },
   };
   const nextModes = readTokenCollectionModeValues(token);
@@ -312,16 +309,16 @@ function cloneToken(token: Token): Token {
   return JSON.parse(JSON.stringify(token)) as Token;
 }
 
-export function readGraphProvenance(
+export function readGeneratorProvenance(
   token: Pick<Token, '$extensions'> | undefined,
-): GraphOutputProvenance | null {
-  const raw = token?.$extensions?.tokenmanager?.graph;
+): GeneratorOutputProvenance | null {
+  const raw = token?.$extensions?.tokenmanager?.generator;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return null;
   }
   const record = raw as Record<string, unknown>;
   if (
-    typeof record.graphId !== 'string' ||
+    typeof record.generatorId !== 'string' ||
     typeof record.outputNodeId !== 'string' ||
     typeof record.outputKey !== 'string' ||
     typeof record.lastAppliedHash !== 'string'
@@ -329,19 +326,19 @@ export function readGraphProvenance(
     return null;
   }
   return {
-    graphId: record.graphId,
+    generatorId: record.generatorId,
     outputNodeId: record.outputNodeId,
     outputKey: record.outputKey,
     lastAppliedHash: record.lastAppliedHash,
   };
 }
 
-export function evaluateTokenGraphDocument({
+export function evaluateTokenGeneratorDocument({
   document,
   collections,
   tokensByCollection,
-}: EvaluateTokenGraphDocumentInput): TokenGraphPreviewResult {
-  const diagnostics: TokenGraphDiagnostic[] = [];
+}: EvaluateTokenGeneratorDocumentInput): TokenGeneratorPreviewResult {
+  const diagnostics: TokenGeneratorDiagnostic[] = [];
   const targetCollection = collections.find(
     (collection) => collection.id === document.targetCollectionId,
   );
@@ -384,14 +381,14 @@ export function evaluateTokenGraphDocument({
       id: `cycle-${nodeId}`,
       severity: 'error',
       nodeId,
-      message: 'This node participates in a cycle. Graphs must run top to bottom without loops.',
+      message: 'This node participates in a cycle. Generator flows must run top to bottom without loops.',
     });
   }
   if (diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
     return emptyPreview(document, diagnostics, previewedAt, modeNames);
   }
 
-  const incoming = new Map<string, TokenGraphEdge[]>();
+  const incoming = new Map<string, TokenGeneratorEdge[]>();
   for (const edge of document.edges) {
     const key = `${edge.to.nodeId}:${edge.to.port}`;
     incoming.set(key, [...(incoming.get(key) ?? []), edge]);
@@ -420,7 +417,7 @@ export function evaluateTokenGraphDocument({
     return result;
   };
 
-  const outputs: TokenGraphPreviewOutput[] = [];
+  const outputs: TokenGeneratorPreviewOutput[] = [];
   for (const node of document.nodes) {
     if (node.kind !== 'output' && node.kind !== 'groupOutput') {
       continue;
@@ -439,9 +436,9 @@ export function evaluateTokenGraphDocument({
     );
   }
 
-  const hash = graphProvenanceHash(document, outputs);
+  const hash = generatorProvenanceHash(document, outputs);
   return {
-    graphId: document.id,
+    generatorId: document.id,
     targetCollectionId: targetCollection.id,
     targetModes: modeNames,
     outputs,
@@ -453,19 +450,19 @@ export function evaluateTokenGraphDocument({
 }
 
 function emptyPreview(
-  document: TokenGraphDocument,
-  diagnostics: TokenGraphDiagnostic[],
+  document: TokenGeneratorDocument,
+  diagnostics: TokenGeneratorDiagnostic[],
   previewedAt: string,
   targetModes: string[] = [],
-): TokenGraphPreviewResult {
+): TokenGeneratorPreviewResult {
   return {
-    graphId: document.id,
+    generatorId: document.id,
     targetCollectionId: document.targetCollectionId,
     targetModes,
     outputs: [],
     diagnostics,
     blocking: diagnostics.some((diagnostic) => diagnostic.severity === 'error'),
-    hash: stableStringify({ graphId: document.id, diagnostics }),
+    hash: stableStringify({ generatorId: document.id, diagnostics }),
     previewedAt,
   };
 }
@@ -479,13 +476,13 @@ function evaluateNodeForModes({
   input,
   diagnostics,
 }: {
-  node: TokenGraphNode;
+  node: TokenGeneratorNode;
   modeNames: string[];
   targetCollection: TokenCollection;
   collections: TokenCollection[];
   tokensByCollection: Record<string, Record<string, Token>>;
   input: (port: string) => ModeRuntimeValues;
-  diagnostics: TokenGraphDiagnostic[];
+  diagnostics: TokenGeneratorDiagnostic[];
 }): ModeRuntimeValues {
   const result: ModeRuntimeValues = {};
 
@@ -523,21 +520,21 @@ function evaluateNodeForMode({
   tokensByCollection,
   input,
 }: {
-  node: TokenGraphNode;
+  node: TokenGeneratorNode;
   modeName: string;
-  source: GraphRuntimeValue | undefined;
+  source: GeneratorRuntimeValue | undefined;
   targetCollection: TokenCollection;
   collections: TokenCollection[];
   tokensByCollection: Record<string, Record<string, Token>>;
   input: (port: string) => ModeRuntimeValues;
-}): GraphRuntimeValue | undefined {
+}): GeneratorRuntimeValue | undefined {
   switch (node.kind) {
     case 'literal':
       return literalValue(node);
     case 'tokenInput':
       return tokenInputValue(node, modeName, targetCollection, collections, tokensByCollection);
     case 'alias':
-      return aliasValue(node);
+      return aliasValue(node, targetCollection, tokensByCollection);
     case 'math':
       return mathValue(node, source);
     case 'formula':
@@ -562,17 +559,16 @@ function evaluateNodeForMode({
       return customScaleValue(node, source);
     case 'list':
       return listValue(node);
-    case 'output':
-    case 'groupOutput':
-    case 'preview':
-      return source;
+	    case 'output':
+	    case 'groupOutput':
+	      return source;
     default:
       return undefined;
   }
 }
 
-function literalValue(node: TokenGraphNode): GraphRuntimeValue {
-  const type = String(node.data.type ?? 'string') as TokenGraphPortType;
+function literalValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
+  const type = String(node.data.type ?? 'string') as TokenGeneratorPortType;
   const raw = node.data.value;
   if (type === 'number') return { kind: 'scalar', type, value: Number(raw ?? 0) };
   if (type === 'dimension') {
@@ -590,12 +586,12 @@ function literalValue(node: TokenGraphNode): GraphRuntimeValue {
 }
 
 function tokenInputValue(
-  node: TokenGraphNode,
+  node: TokenGeneratorNode,
   modeName: string,
   targetCollection: TokenCollection,
   collections: TokenCollection[],
   tokensByCollection: Record<string, Record<string, Token>>,
-): GraphRuntimeValue {
+): GeneratorRuntimeValue {
   const path = String(node.data.path ?? '').trim();
   if (!path) throw new Error('Choose a token source.');
   const collectionId = String(node.data.collectionId ?? targetCollection.id);
@@ -674,9 +670,16 @@ function resolveModeValue({
   });
 }
 
-function aliasValue(node: TokenGraphNode): GraphRuntimeValue {
+function aliasValue(
+  node: TokenGeneratorNode,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+): GeneratorRuntimeValue {
   const path = String(node.data.path ?? '').trim();
   if (!path) throw new Error('Choose a token to reference.');
+  if (!tokensByCollection[targetCollection.id]?.[path]) {
+    throw new Error(`Token "${path}" was not found in "${targetCollection.id}".`);
+  }
   return {
     kind: 'scalar',
     type: 'token',
@@ -685,9 +688,9 @@ function aliasValue(node: TokenGraphNode): GraphRuntimeValue {
 }
 
 function mathValue(
-  node: TokenGraphNode,
-  source: GraphRuntimeValue | undefined,
-): GraphRuntimeValue {
+  node: TokenGeneratorNode,
+  source: GeneratorRuntimeValue | undefined,
+): GeneratorRuntimeValue {
   const operation = String(node.data.operation ?? 'add');
   const amount = Number(node.data.amount ?? 0);
   const value = requireScalar(source, 'Math nodes need an input value.');
@@ -743,11 +746,11 @@ function isDimensionLike(value: unknown): value is { value: number; unit: string
 }
 
 function formulaValue(
-  node: TokenGraphNode,
+  node: TokenGeneratorNode,
   modeName: string,
-  source: GraphRuntimeValue | undefined,
+  source: GeneratorRuntimeValue | undefined,
   input: (port: string) => ModeRuntimeValues,
-): GraphRuntimeValue {
+): GeneratorRuntimeValue {
   const vars: Record<string, number> = {};
   if (source) {
     const scalar = requireScalar(source, 'Formula input has no value.');
@@ -768,9 +771,9 @@ function formulaValue(
 }
 
 function colorValue(
-  node: TokenGraphNode,
-  source: GraphRuntimeValue | undefined,
-): GraphRuntimeValue {
+  node: TokenGeneratorNode,
+  source: GeneratorRuntimeValue | undefined,
+): GeneratorRuntimeValue {
   const value = String(requireScalar(source, 'Color nodes need a source color.'));
   const amount = Number(node.data.amount ?? 0);
   const operation = String(node.data.operation ?? 'lighten');
@@ -790,9 +793,9 @@ function colorValue(
 }
 
 function colorRampValue(
-  node: TokenGraphNode,
-  source: GraphRuntimeValue | undefined,
-): GraphRuntimeValue {
+  node: TokenGeneratorNode,
+  source: GeneratorRuntimeValue | undefined,
+): GeneratorRuntimeValue {
   const sourceColor = String(requireScalar(source, 'Color ramps need a source color.'));
   const config = readNodeConfig<ColorRampConfig>(node, DEFAULT_COLOR_RAMP_CONFIG);
   const generated = computeColorRampTokens(sourceColor, config, 'output');
@@ -800,9 +803,9 @@ function colorRampValue(
 }
 
 function spacingScaleValue(
-  node: TokenGraphNode,
-  source: GraphRuntimeValue | undefined,
-): GraphRuntimeValue {
+  node: TokenGeneratorNode,
+  source: GeneratorRuntimeValue | undefined,
+): GeneratorRuntimeValue {
   const config = readNodeConfig<SpacingScaleConfig>(node, DEFAULT_SPACING_SCALE_CONFIG);
   return generatedResultsToList(
     'dimension',
@@ -811,9 +814,9 @@ function spacingScaleValue(
 }
 
 function typeScaleValue(
-  node: TokenGraphNode,
-  source: GraphRuntimeValue | undefined,
-): GraphRuntimeValue {
+  node: TokenGeneratorNode,
+  source: GeneratorRuntimeValue | undefined,
+): GeneratorRuntimeValue {
   const config = readNodeConfig<TypeScaleConfig>(node, DEFAULT_TYPE_SCALE_CONFIG);
   return generatedResultsToList(
     'dimension',
@@ -822,9 +825,9 @@ function typeScaleValue(
 }
 
 function borderRadiusScaleValue(
-  node: TokenGraphNode,
-  source: GraphRuntimeValue | undefined,
-): GraphRuntimeValue {
+  node: TokenGeneratorNode,
+  source: GeneratorRuntimeValue | undefined,
+): GeneratorRuntimeValue {
   const config = readNodeConfig<BorderRadiusScaleConfig>(node, DEFAULT_BORDER_RADIUS_SCALE_CONFIG);
   return generatedResultsToList(
     'dimension',
@@ -832,27 +835,27 @@ function borderRadiusScaleValue(
   );
 }
 
-function opacityScaleValue(node: TokenGraphNode): GraphRuntimeValue {
+function opacityScaleValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
   const config = readNodeConfig<OpacityScaleConfig>(node, DEFAULT_OPACITY_SCALE_CONFIG);
   return generatedResultsToList('number', computeOpacityScaleTokens(config, 'output'));
 }
 
-function shadowScaleValue(node: TokenGraphNode): GraphRuntimeValue {
+function shadowScaleValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
   const config = readNodeConfig<ShadowScaleConfig>(node, DEFAULT_SHADOW_SCALE_CONFIG);
   return generatedResultsToList('token', computeShadowScaleTokens(config, 'output'));
 }
 
-function zIndexScaleValue(node: TokenGraphNode): GraphRuntimeValue {
+function zIndexScaleValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
   const config = readNodeConfig<ZIndexScaleConfig>(node, DEFAULT_Z_INDEX_SCALE_CONFIG);
   return generatedResultsToList('number', computeZIndexScaleTokens(config, 'output'));
 }
 
 function customScaleValue(
-  node: TokenGraphNode,
-  source: GraphRuntimeValue | undefined,
-): GraphRuntimeValue {
+  node: TokenGeneratorNode,
+  source: GeneratorRuntimeValue | undefined,
+): GeneratorRuntimeValue {
   const config = readNodeConfig<CustomScaleConfig>(node, DEFAULT_CUSTOM_SCALE_CONFIG);
-  const outputPortType: TokenGraphPortType =
+  const outputPortType: TokenGeneratorPortType =
     config.outputType === 'dimension' ||
     config.outputType === 'number'
       ? config.outputType
@@ -864,7 +867,7 @@ function customScaleValue(
 }
 
 function readNodeConfig<T extends object>(
-  node: TokenGraphNode,
+  node: TokenGeneratorNode,
   defaults: T,
 ): T {
   const rawConfig = node.data.config;
@@ -876,9 +879,9 @@ function readNodeConfig<T extends object>(
 }
 
 function generatedResultsToList(
-  type: TokenGraphPortType,
-  generated: GraphGeneratedTokenResult[],
-): GraphRuntimeValue {
+  type: TokenGeneratorPortType,
+  generated: GeneratorTokenResult[],
+): GeneratorRuntimeValue {
   return {
     kind: 'list',
     type,
@@ -892,7 +895,7 @@ function generatedResultsToList(
 }
 
 function requireDimensionSource(
-  source: GraphRuntimeValue | undefined,
+  source: GeneratorRuntimeValue | undefined,
   message: string,
 ): { value: number; unit: string } {
   const value = requireScalar(source, message);
@@ -905,7 +908,7 @@ function requireDimensionSource(
   throw new Error(message);
 }
 
-function requireNumericSource(source: GraphRuntimeValue): number {
+function requireNumericSource(source: GeneratorRuntimeValue): number {
   const value = requireScalar(source, 'Formula scales need a numeric base value.');
   if (isDimensionLike(value)) {
     return value.value;
@@ -917,11 +920,11 @@ function requireNumericSource(source: GraphRuntimeValue): number {
   return numberValue;
 }
 
-function listValue(node: TokenGraphNode): GraphRuntimeValue {
+function listValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
   const items = Array.isArray(node.data.items) ? node.data.items : [];
   return {
     kind: 'list',
-    type: String(node.data.type ?? 'number') as TokenGraphPortType,
+    type: String(node.data.type ?? 'number') as TokenGeneratorPortType,
     values: items.map((item, index) => {
       if (isListItemRecord(item)) {
         const key = String(item.key ?? index + 1);
@@ -952,7 +955,7 @@ function isListItemRecord(item: unknown): item is Record<string, unknown> {
 }
 
 function requireScalar(
-  value: GraphRuntimeValue | undefined,
+  value: GeneratorRuntimeValue | undefined,
   message: string,
 ): TokenValue | TokenReference {
   if (!value) throw new Error(message);
@@ -969,14 +972,14 @@ function materializeOutputs({
   existingTokens,
   diagnostics,
 }: {
-  document: TokenGraphDocument;
-  node: TokenGraphNode;
+  document: TokenGeneratorDocument;
+  node: TokenGeneratorNode;
   targetCollection: TokenCollection;
   modeNames: string[];
   valuesByMode: ModeRuntimeValues;
   existingTokens: Record<string, Token>;
-  diagnostics: TokenGraphDiagnostic[];
-}): TokenGraphPreviewOutput[] {
+  diagnostics: TokenGeneratorDiagnostic[];
+}): TokenGeneratorPreviewOutput[] {
   const firstModeValue = valuesByMode[modeNames[0]];
   const path = String(node.data.path ?? '').trim();
   const pathPrefix = String(node.data.pathPrefix ?? path).trim();
@@ -1012,7 +1015,7 @@ function materializeOutputs({
       });
       return [];
     }
-    const listValuesByMode = new Map<string, Extract<GraphRuntimeValue, { kind: 'list' }>>();
+    const listValuesByMode = new Map<string, Extract<GeneratorRuntimeValue, { kind: 'list' }>>();
     for (const modeName of modeNames) {
       const modeValue = valuesByMode[modeName];
       if (!modeValue) {
@@ -1129,15 +1132,15 @@ function makeOutput({
   type,
   existingTokens,
 }: {
-  document: TokenGraphDocument;
-  node: TokenGraphNode;
+  document: TokenGeneratorDocument;
+  node: TokenGeneratorNode;
   targetCollection: TokenCollection;
   outputPath: string;
   outputKey: string;
   modeValues: Record<string, TokenValue | TokenReference>;
   type: TokenType;
   existingTokens: Record<string, Token>;
-}): TokenGraphPreviewOutput {
+}): TokenGeneratorPreviewOutput {
   const existingToken = existingTokens[outputPath];
   const expectedHash = stableStringify({ documentId: document.id, nodeId: node.id, outputKey, modeValues, type });
   const existingModeValues = existingToken
@@ -1152,7 +1155,7 @@ function makeOutput({
         type: existingToken.$type,
       })
     : null;
-  const provenance = readGraphProvenance(existingToken);
+  const provenance = readGeneratorProvenance(existingToken);
   const change = !existingToken
     ? 'created'
     : stableStringify({ modeValues: existingModeValues, type: existingToken.$type }) ===
@@ -1170,8 +1173,8 @@ function makeOutput({
     change,
     collision: Boolean(
       existingToken &&
-      (provenance?.graphId !== document.id ||
-        (provenance.graphId === document.id &&
+      (provenance?.generatorId !== document.id ||
+        (provenance.generatorId === document.id &&
           existingHash !== provenance.lastAppliedHash)),
     ),
   };
@@ -1194,7 +1197,7 @@ function inferTokenType(value: unknown): TokenType {
   return 'string';
 }
 
-function findCycleNodeIds(document: TokenGraphDocument): Set<string> {
+function findCycleNodeIds(document: TokenGeneratorDocument): Set<string> {
   const outgoing = new Map<string, string[]>();
   for (const edge of document.edges) {
     outgoing.set(edge.from.nodeId, [...(outgoing.get(edge.from.nodeId) ?? []), edge.to.nodeId]);

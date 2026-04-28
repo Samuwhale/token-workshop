@@ -1,11 +1,11 @@
 /**
- * Graph generation types: pure configuration for graph-managed token outputs.
+ * Generator types: pure configuration for managed token outputs.
  */
 
 import type { TokenType } from './types.js';
 import type { DimensionUnit } from './constants.js';
 
-export type GraphGenerationType =
+export type GeneratorType =
   | 'colorRamp'
   | 'typeScale'
   | 'spacingScale'
@@ -47,7 +47,7 @@ export interface ColorRampConfig {
   /**
    * Maps config field names to token paths for runtime resolution.
    * When a field has a tokenRef, the server resolves the token value and uses it
-   * instead of the stored literal value when the graph generation runs.
+   * instead of the stored literal value when the generator runs.
    */
   $tokenRefs?: {
     lightEnd?: string;
@@ -208,7 +208,7 @@ export interface CustomScaleConfig {
 // Union
 // ---------------------------------------------------------------------------
 
-export type GraphGenerationConfig =
+export type GeneratorConfig =
   | ColorRampConfig
   | TypeScaleConfig
   | SpacingScaleConfig
@@ -259,7 +259,7 @@ export function validateStepName(stepName: string): void {
 // Generated token output
 // ---------------------------------------------------------------------------
 
-export interface GraphGeneratedTokenResult {
+export interface GeneratorTokenResult {
   /** Step name, e.g. "100", "sm", "2" */
   stepName: string;
   /** Full token path: `${targetGroup}.${stepName}` */

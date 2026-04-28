@@ -1,0 +1,95 @@
+{
+  "$generators": [
+    {
+      "id": "b164b5ac-6e11-4605-b75c-1841d03c425b",
+      "name": "Color ramp",
+      "targetCollectionId": "-0--color-primitives",
+      "nodes": [
+        {
+          "id": "source",
+          "kind": "literal",
+          "label": "Base color",
+          "position": {
+            "x": 90,
+            "y": 150
+          },
+          "data": {
+            "type": "color",
+            "value": "#6366f1"
+          }
+        },
+        {
+          "id": "generation",
+          "kind": "colorRamp",
+          "label": "Palette",
+          "position": {
+            "x": 360,
+            "y": 140
+          },
+          "data": {
+            "steps": [
+              50,
+              100,
+              200,
+              300,
+              400,
+              500,
+              600,
+              700,
+              800,
+              900,
+              950
+            ],
+            "lightEnd": 97,
+            "darkEnd": 8,
+            "chromaBoost": 1,
+            "includeSource": false
+          }
+        },
+        {
+          "id": "output",
+          "kind": "groupOutput",
+          "label": "Output tokens",
+          "position": {
+            "x": 650,
+            "y": 150
+          },
+          "data": {
+            "pathPrefix": "color.brand"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "source-generation",
+          "from": {
+            "nodeId": "source",
+            "port": "value"
+          },
+          "to": {
+            "nodeId": "generation",
+            "port": "value"
+          }
+        },
+        {
+          "id": "generation-output",
+          "from": {
+            "nodeId": "generation",
+            "port": "value"
+          },
+          "to": {
+            "nodeId": "output",
+            "port": "value"
+          }
+        }
+      ],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 1
+      },
+      "createdAt": "2026-04-28T13:25:39.734Z",
+      "updatedAt": "2026-04-28T13:25:39.735Z"
+    }
+  ]
+}

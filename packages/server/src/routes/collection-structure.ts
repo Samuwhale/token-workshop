@@ -23,7 +23,6 @@ function buildCollectionsRollbackStep(state: CollectionState): RollbackStep {
   return {
     action: "restore-collection-state" as const,
     collections: structuredClone(state.collections),
-    views: structuredClone(state.views),
   };
 }
 
@@ -598,11 +597,11 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
         try {
           await fastify.resolverLock.withLock(async () => {
             await fastify.collectionService.restoreCollectionWorkspaceWithinLock({
-              state: { collections: [], views: [] },
+              state: { collections: [] },
               tokensByCollection: {},
             });
             await fastify.resolverStore.reset();
-            await fastify.graphService.restore([]);
+            await fastify.generatorService.restore([]);
             await fastify.lintConfigStore.reset();
             await fastify.operationLog.reset();
             await fastify.manualSnapshots.reset();

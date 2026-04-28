@@ -1,6 +1,6 @@
 import type { TokenNode } from '../hooks/useTokens';
 import {
-  readGraphProvenance,
+  readGeneratorProvenance,
   SEARCH_HAS_CANONICAL_MAP,
   SEARCH_HAS_CANONICAL_VALUES,
   SEARCH_HAS_VALUES as HAS_VALUES,
@@ -486,7 +486,7 @@ function filterTokenNodesStructured(
         if ((h === 'duplicate' || h === 'dup') && (!duplicateValuePaths || !duplicateValuePaths.has(node.path))) { hasMatch = false; break; }
         if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
         if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
-        if ((h === 'managed' || h === 'graph') && !readGraphProvenance(node)) { hasMatch = false; break; }
+        if ((h === 'managed' || h === 'generator') && !readGeneratorProvenance(node)) { hasMatch = false; break; }
         if (h === 'unused' && (!unusedTokenPaths || !unusedTokenPaths.has(node.path))) { hasMatch = false; break; }
       }
       if (!hasMatch) continue;

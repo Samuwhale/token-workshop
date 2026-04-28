@@ -1,13 +1,11 @@
 import type {
   CollectionMode,
   CollectionPublishRouting,
-  SelectedModes,
   SerializedTokenCollection,
   Token,
   TokenCollection,
   TokenModeValues,
   TokenExtensions,
-  ViewPreset,
 } from "./types.js";
 import { stableStringify } from "./stable-stringify.js";
 
@@ -94,36 +92,6 @@ function normalizeSerializedTokenCollection(
     ...(publishRouting ? { publishRouting } : {}),
     modes,
   };
-}
-
-function normalizeSelectedModesRecord(value: unknown): SelectedModes | null {
-  if (!isPlainObject(value)) {
-    return null;
-  }
-
-  const selections: SelectedModes = {};
-  for (const [collectionId, modeName] of Object.entries(value)) {
-    if (collectionId.trim().length === 0 || typeof modeName !== "string") {
-      continue;
-    }
-    selections[collectionId] = modeName;
-  }
-  return selections;
-}
-
-function normalizeViewPreset(value: unknown): ViewPreset | null {
-  if (!isPlainObject(value)) {
-    return null;
-  }
-
-  const id = typeof value.id === "string" ? value.id.trim() : "";
-  const name = typeof value.name === "string" ? value.name.trim() : "";
-  const selections = normalizeSelectedModesRecord(value.selections);
-  if (!id || !name || !selections) {
-    return null;
-  }
-
-  return { id, name, selections };
 }
 
 export function findCollectionById(
@@ -292,62 +260,6 @@ export function writeTokenModeValuesForCollection(
   writeTokenCollectionModeValues(token, nextModes);
 }
 
-export function normalizeSelectedModes(
-  collections: TokenCollection[],
-  selections: SelectedModes,
-): SelectedModes {
-  const next: SelectedModes = {};
-
-  for (const collection of collections) {
-    const selectedMode = selections[collection.id];
-    if (
-      selectedMode &&
-      collection.modes.some((mode) => mode.name === selectedMode)
-    ) {
-      next[collection.id] = selectedMode;
-    }
-  }
-
-  return next;
-}
-
-export function buildSelectedModesLabel(
-  collections: TokenCollection[],
-  selections: SelectedModes,
-): string {
-  return collections
-    .map((collection) => {
-      const modeName = selections[collection.id];
-      return modeName ? `${collection.id} · ${modeName}` : null;
-    })
-    .filter(Boolean)
-    .join(" · ");
-}
-
-export function createViewPresetName(
-  collections: TokenCollection[],
-  selections: SelectedModes,
-): string {
-  const parts = collections
-    .map((collection) => selections[collection.id])
-    .filter((value): value is string => Boolean(value));
-  return parts.join(" / ") || "New view";
-}
-
-export function createViewPreset(params: {
-  id: string;
-  name: string;
-  collections: TokenCollection[];
-  selections: SelectedModes;
-}): ViewPreset {
-  const { id, name, collections, selections } = params;
-  return {
-    id,
-    name,
-    selections: normalizeSelectedModes(collections, selections),
-  };
-}
-
 export function deserializeTokenCollections(
   collections: SerializedTokenCollection[],
 ): TokenCollection[] {
@@ -378,11 +290,9 @@ export function readCollectionsFileState(
   file: unknown,
 ): {
   collections: TokenCollection[];
-  views: ViewPreset[];
 } {
   const data = isPlainObject(file) ? file : null;
   const rawCollections = Array.isArray(data?.$collections) ? data.$collections : [];
-  const rawViews = Array.isArray(data?.$views) ? data.$views : [];
   const collections = deserializeTokenCollections(
     rawCollections
       .map((collection) => normalizeSerializedTokenCollection(collection))
@@ -393,8 +303,5 @@ export function readCollectionsFileState(
 
   return {
     collections,
-    views: rawViews
-      .map((view) => normalizeViewPreset(view))
-      .filter((view): view is ViewPreset => view !== null),
   };
 }
