@@ -1,5 +1,8 @@
-import type { RefObject } from "react";
+import type { Ref } from "react";
 import { COLLECTION_NAME_RE } from "../shared/utils";
+
+const COLLECTION_INPUT_CLASS =
+  "rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60";
 
 export interface CollectionAuthoringDraft {
   name: string;
@@ -12,7 +15,7 @@ interface CollectionAuthoringFieldsProps {
   draft: CollectionAuthoringDraft;
   pending?: boolean;
   error?: string;
-  nameInputRef?: RefObject<HTMLInputElement | null>;
+  nameInputRef?: Ref<HTMLInputElement>;
   onNameChange: (value: string) => void;
   onPrimaryModeChange: (value: string) => void;
   onSecondaryModeEnabledChange: (enabled: boolean) => void;
@@ -90,7 +93,7 @@ export function CollectionAuthoringFields({
           onChange={(event) => onNameChange(event.target.value)}
           placeholder="primitives"
           disabled={pending}
-          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+          className={COLLECTION_INPUT_CLASS}
         />
         <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
           Keep this simple. Use `/` only when your library already groups collections that way.
@@ -108,7 +111,7 @@ export function CollectionAuthoringFields({
             onChange={(event) => onPrimaryModeChange(event.target.value)}
             placeholder="Default"
             disabled={pending}
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+            className={COLLECTION_INPUT_CLASS}
           />
         </label>
 
@@ -124,7 +127,7 @@ export function CollectionAuthoringFields({
                 onChange={(event) => onSecondaryModeChange(event.target.value)}
                 placeholder="Dark"
                 disabled={pending}
-                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+                className={COLLECTION_INPUT_CLASS}
               />
             </label>
             <button

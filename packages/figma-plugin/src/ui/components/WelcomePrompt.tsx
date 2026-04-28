@@ -17,13 +17,11 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   },
   "start-new": {
     title: "Start a token library",
-    description: "Create a collection, choose modes when you need them, and start authoring tokens.",
+    description: "Create a collection, set its first mode, and start authoring tokens.",
   },
 };
 
-export function getStartHereBranchCopy(
-  branch: StartHereBranch,
-): StartHereBranchCopy {
+function getStartHereBranchCopy(branch: StartHereBranch): StartHereBranchCopy {
   return START_HERE_BRANCH_COPY[branch];
 }
 
@@ -44,7 +42,7 @@ interface WelcomePromptProps {
   onCollectionCreated?: (name: string) => void;
 }
 
-interface ActionCardProps {
+interface ActionRowProps {
   title: string;
   description: string;
   disabled?: boolean;
@@ -60,7 +58,7 @@ function ActionRow({
   onClick,
   icon,
   emphasized = false,
-}: ActionCardProps) {
+}: ActionRowProps) {
   return (
     <button
       type="button"

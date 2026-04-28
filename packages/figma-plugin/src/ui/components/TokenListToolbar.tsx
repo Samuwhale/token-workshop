@@ -18,7 +18,7 @@ import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
 import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
-import type { TokenGroupBy } from "./tokenListTypes";
+import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import {
   Chip,
   MenuRadioGroup,
@@ -73,6 +73,8 @@ const RESULT_OPTIONS: SegmentedOption<"grouped" | "flat">[] = [
 
 const TOOLBAR_BUTTON_CLASS =
   "inline-flex min-h-[26px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors";
+
+type SearchResultPresentation = "grouped" | "flat";
 
 export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
@@ -200,27 +202,23 @@ export function TokenListToolbar({
   const hasChipRow =
     viewMode === "tree" && hasTokens && (showSelectionChip || toolbarStateChips.length > 0);
 
-  const hasCreateActions =
-    Boolean(onCreateToken) ||
-    Boolean(onGenerateTokens) ||
-    Boolean(handleOpenNewGroupDialog) ||
-    Boolean(onShowPasteModal) ||
-    Boolean(openTableCreate);
   const hasEditActions =
     Boolean(onSelectTokens) || Boolean(onBulkEdit) || Boolean(onFindReplace);
   const hasGroupOps = overflowMenuProps?.hasGroups === true;
   const hasOverflowActions = hasEditActions || hasGroupOps;
-  const showOverflow =
-    hasTokens && viewMode === "tree" && hasOverflowActions;
-  const showCreate = viewMode === "tree" && hasCreateActions;
+  const showOverflow = hasTokens && viewMode === "tree" && hasOverflowActions;
+  const showCreate = viewMode === "tree";
+  const showPrimaryCreateAction = onCreateToken !== undefined;
+  const sortOrder: SortOrder = overflowMenuProps?.sortOrder ?? "default";
 
   const sortActive =
-    Boolean(overflowMenuProps) &&
-    (overflowMenuProps!.sortOrder !== "default" || groupBy !== "path");
+    overflowMenuProps !== null &&
+    overflowMenuProps !== undefined &&
+    (sortOrder !== "default" || groupBy !== "path");
   const sortStateLabel =
-    overflowMenuProps && overflowMenuProps.sortOrder === "alpha-asc"
+    sortOrder === "alpha-asc"
       ? "A – Z"
-      : overflowMenuProps && overflowMenuProps.sortOrder === "by-type"
+      : sortOrder === "by-type"
         ? "Type"
         : groupBy === "type"
           ? "By type"
@@ -238,10 +236,10 @@ export function TokenListToolbar({
         {
           key: "sort",
           label: "Sort",
-          value: overflowMenuProps.sortOrder,
+          value: sortOrder,
           onChange: (v: string) =>
             overflowMenuProps.onSortOrderChange(
-              v as "default" | "alpha-asc" | "by-type",
+              v as SortOrder,
             ),
           options: SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
         } as RadioMenuGroup<string>,
@@ -253,7 +251,7 @@ export function TokenListToolbar({
                 value: overflowMenuProps.searchResultPresentation,
                 onChange: (v: string) =>
                   overflowMenuProps.onSearchResultPresentationChange(
-                    v as "grouped" | "flat",
+                    v as SearchResultPresentation,
                   ),
                 options: RESULT_OPTIONS.map((o) => ({
                   value: o.value,
@@ -496,24 +494,46 @@ export function TokenListToolbar({
 
             {showCreate ? (
               <div className="relative shrink-0">
-                <button
-                  ref={createMenu.triggerRef}
-                  type="button"
-                  onClick={createMenu.toggle}
-                  disabled={!connected}
-                  aria-expanded={createMenu.open}
-                  aria-haspopup="menu"
-                  aria-label="Create"
-                  title="Create"
-                  className={`${TOOLBAR_BUTTON_CLASS} ${
-                    createMenu.open
-                      ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
-                      : "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)]"
-                  } disabled:opacity-40`}
-                >
-                  <Plus size={12} strokeWidth={2} aria-hidden />
-                  <span className="whitespace-nowrap">Create</span>
-                </button>
+                <div className="flex items-center gap-1">
+                  {showPrimaryCreateAction ? (
+                    <button
+                      type="button"
+                      onClick={() => onCreateToken?.()}
+                      disabled={!connected}
+                      className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`}
+                    >
+                      <Plus size={12} strokeWidth={2} aria-hidden />
+                      <span className="whitespace-nowrap">New token</span>
+                    </button>
+                  ) : null}
+
+                  <button
+                    ref={createMenu.triggerRef}
+                    type="button"
+                    onClick={createMenu.toggle}
+                    disabled={!connected}
+                    aria-expanded={createMenu.open}
+                    aria-haspopup="menu"
+                    aria-label={
+                      showPrimaryCreateAction ? "More create actions" : "Create"
+                    }
+                    title={showPrimaryCreateAction ? "More create actions" : "Create"}
+                    className={`${TOOLBAR_BUTTON_CLASS} ${
+                      createMenu.open
+                        ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
+                        : "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)]"
+                    } disabled:opacity-40`}
+                  >
+                    {showPrimaryCreateAction ? (
+                      <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
+                    ) : (
+                      <>
+                        <Plus size={12} strokeWidth={2} aria-hidden />
+                        <span className="whitespace-nowrap">Create</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 {createMenu.open ? (
                   <div
@@ -522,17 +542,6 @@ export function TokenListToolbar({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    {onCreateToken ? (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => runCreateAction(onCreateToken)}
-                        disabled={!connected}
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                      >
-                        New token
-                      </button>
-                    ) : null}
                     {onGenerateTokens ? (
                       <button
                         type="button"

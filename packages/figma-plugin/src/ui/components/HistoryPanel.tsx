@@ -11,7 +11,7 @@ import { GitRepositoryPanel } from "./publish/GitRepositoryPanel";
 const HISTORY_VIEWS: Array<{ id: HistoryView; label: string }> = [
   { id: "recent", label: "Recent" },
   { id: "saved", label: "Checkpoints" },
-  { id: "git", label: "Git" },
+  { id: "git", label: "Repository" },
 ];
 
 export function HistoryPanel({
@@ -67,6 +67,12 @@ export function HistoryPanel({
       tokenPath: null,
     });
   }, [onScopeChange, scope]);
+  const handleViewChange = useCallback(
+    (view: HistoryView) => {
+      onScopeChange({ ...scope, view });
+    },
+    [onScopeChange, scope],
+  );
 
   const handleSaveSnapshot = useCallback(async () => {
     const label = saveLabel.trim() || `Snapshot ${new Date().toLocaleString()}`;
@@ -110,13 +116,11 @@ export function HistoryPanel({
           aria-label="History views"
           className="inline-flex min-w-0 max-w-full flex-wrap items-center rounded bg-[var(--color-figma-bg-secondary)] p-0.5"
           onKeyDown={(event) => {
-            const currentIndex = HISTORY_VIEWS.findIndex(
-              (view) => view.id === scope.view,
-            );
+            const currentIndex = HISTORY_VIEWS.findIndex((view) => view.id === scope.view);
             if (event.key === "ArrowRight") {
               event.preventDefault();
               const next = HISTORY_VIEWS[(currentIndex + 1) % HISTORY_VIEWS.length];
-              onScopeChange({ ...scope, view: next.id });
+              handleViewChange(next.id);
               document.getElementById(`history-tab-${next.id}`)?.focus();
             } else if (event.key === "ArrowLeft") {
               event.preventDefault();
@@ -124,7 +128,7 @@ export function HistoryPanel({
                 HISTORY_VIEWS[
                   (currentIndex - 1 + HISTORY_VIEWS.length) % HISTORY_VIEWS.length
                 ];
-              onScopeChange({ ...scope, view: next.id });
+              handleViewChange(next.id);
               document.getElementById(`history-tab-${next.id}`)?.focus();
             }
           }}
@@ -137,7 +141,7 @@ export function HistoryPanel({
               aria-selected={scope.view === view.id}
               aria-controls={`history-tabpanel-${view.id}`}
               tabIndex={scope.view === view.id ? 0 : -1}
-              onClick={() => onScopeChange({ ...scope, view: view.id })}
+              onClick={() => handleViewChange(view.id)}
               className={`rounded px-2.5 py-1 text-secondary font-medium transition-colors ${
                 scope.view === view.id
                   ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
@@ -149,19 +153,21 @@ export function HistoryPanel({
           ))}
         </div>
 
-        {scope.view !== "git" && !showSaveInput ? (
-          <button
-            type="button"
-            onClick={() => {
-              const lastOp = recentOperations?.[0];
-              setSaveLabel(defaultSnapshotLabel(lastOp?.description));
-              setShowSaveInput(true);
-            }}
-            className="rounded text-secondary font-medium text-[var(--color-figma-accent)] hover:underline"
-          >
-            Save checkpoint
-          </button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {scope.view !== "git" && !showSaveInput ? (
+            <button
+              type="button"
+              onClick={() => {
+                const lastOp = recentOperations?.[0];
+                setSaveLabel(defaultSnapshotLabel(lastOp?.description));
+                setShowSaveInput(true);
+              }}
+              className="rounded text-secondary font-medium text-[var(--color-figma-accent)] hover:underline"
+            >
+              Save checkpoint
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {showSaveInput ? (
