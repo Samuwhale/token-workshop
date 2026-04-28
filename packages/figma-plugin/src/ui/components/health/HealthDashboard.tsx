@@ -147,7 +147,7 @@ export function HealthDashboard({
     },
     {
       id: "graphs",
-      label: "Graph workflows",
+      label: "Generator updates",
       count: graphIssueCount,
       severity: graphStatus,
       disabled: !onNavigateToGraphs,

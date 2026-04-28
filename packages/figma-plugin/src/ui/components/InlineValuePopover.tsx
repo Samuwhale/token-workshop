@@ -96,7 +96,7 @@ export function InlineValuePopover({
 
   const { top, left, width: popoverWidth, maxHeight } = clampPopoverToViewport({
     anchorRect,
-    preferredWidth: 320,
+    preferredWidth: 360,
     preferredHeight: 480,
     minVerticalSpace: 200,
   });
@@ -117,22 +117,26 @@ export function InlineValuePopover({
       onMouseDown={e => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
-        <span className="text-body text-[var(--color-figma-text)] font-medium truncate min-w-0 flex-1" title={tokenPath}>
-          {tokenName}
-        </span>
-        {modeLabel && (
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)] truncate max-w-[80px] min-w-0" title={`Mode: ${modeLabel}`}>
-            {modeLabel}
-          </span>
-        )}
-        <span className={`px-1.5 py-0.5 rounded text-secondary font-medium shrink-0 ${typeBadgeClass}`}>
-          {tokenType}
-        </span>
+      <div className="flex flex-wrap items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="text-body font-medium text-[var(--color-figma-text)] truncate" title={tokenPath}>
+            {tokenName}
+          </div>
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+            {modeLabel ? (
+              <span className="min-w-0 truncate" title={`Mode: ${modeLabel}`}>
+                {modeLabel}
+              </span>
+            ) : null}
+            <span className={`shrink-0 rounded px-1.5 py-0.5 font-medium ${typeBadgeClass}`}>
+              {tokenType}
+            </span>
+          </div>
+        </div>
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
           aria-label="Close"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -159,28 +163,30 @@ export function InlineValuePopover({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-figma-border)] shrink-0">
+      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--color-figma-border)] px-3 py-2 shrink-0">
         <button
           type="button"
           onClick={onOpenFullEditor}
-          className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline mr-auto transition-colors"
+          className="min-w-0 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)] hover:underline"
         >
           Open token details →
         </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-2 py-1 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          className="px-2.5 py-1 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-        >
-          Save
-        </button>
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-[26px] items-center justify-center rounded px-2 py-1 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="inline-flex min-h-[26px] items-center justify-center rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </div>
   );

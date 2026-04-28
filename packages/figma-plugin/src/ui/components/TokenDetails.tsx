@@ -1011,9 +1011,7 @@ export function TokenDetails({
             New token
           </div>
           <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-            {showingExternalCollection
-              ? `${ownerCollectionId} · Working collection: ${currentCollectionId}`
-              : ownerCollectionId}
+            {`Create in ${ownerCollectionId}`}
           </div>
         </div>
       ) : (
@@ -1132,8 +1130,8 @@ export function TokenDetails({
           <div className="min-w-0">
             <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
               {showingExternalCollection
-                ? `Viewing ${ownerCollectionId} · Working collection: ${currentCollectionId}`
-                : `in ${ownerCollectionId}`}
+                ? `Collection: ${ownerCollectionId} · Working in ${currentCollectionId}`
+                : `Collection: ${ownerCollectionId}`}
             </span>
           </div>
         </div>

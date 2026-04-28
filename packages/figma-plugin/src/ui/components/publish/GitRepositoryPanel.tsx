@@ -549,13 +549,13 @@ function GitPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-preview-dialog-title">
-        <div className="px-4 pt-4 pb-2">
+    <div className="tm-modal-shell" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div ref={dialogRef} className="tm-modal-panel tm-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="git-preview-dialog-title">
+        <div className="tm-modal-header">
           <h3 id="git-preview-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h3>
           <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">{subtitle}</p>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-2">
+        <div className="tm-modal-body flex-1">
           {loading && (
             <div className="flex items-center gap-2 py-4 justify-center">
               <Spinner size="md" className="text-[var(--color-figma-text-secondary)]" />
@@ -620,7 +620,7 @@ function GitPreviewModal({
             </>
           )}
         </div>
-        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
+        <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
           <button onClick={onCancel} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
           <button onClick={handleConfirm} disabled={loading || busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
             {busy && <Spinner size="sm" className="text-white" />}
@@ -693,13 +693,13 @@ function CommitPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={dialogRef} className="w-[380px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-commit-dialog-title">
-        <div className="px-4 pt-4 pb-2">
+    <div className="tm-modal-shell" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div ref={dialogRef} className="tm-modal-panel tm-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="git-commit-dialog-title">
+        <div className="tm-modal-header">
           <h3 id="git-commit-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">Save version</h3>
           <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">Review before saving.</p>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-2">
+        <div className="tm-modal-body flex-1">
           <div className="mb-2 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
             <div className="text-secondary text-[var(--color-figma-text-tertiary)] mb-0.5">Message</div>
             <div className="text-body text-[var(--color-figma-text)] font-medium">{commitMsg}</div>
@@ -765,7 +765,7 @@ function CommitPreviewModal({
             </div>
           )}
         </div>
-        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
+        <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
           <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
           <button onClick={handleConfirm} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
             {busy && <Spinner size="sm" className="text-white" />}
@@ -807,13 +807,13 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
   if (pullFiles.length > 0) sections.push({ label: 'Update local', arrow: '↓', files: pullFiles });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div ref={dialogRef} className="w-[360px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="git-apply-dialog-title">
-        <div className="px-4 pt-4 pb-2">
+    <div className="tm-modal-shell" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div ref={dialogRef} className="tm-modal-panel tm-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="git-apply-dialog-title">
+        <div className="tm-modal-header">
           <h3 id="git-apply-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">Apply changes</h3>
           <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">Review which direction each file should go.</p>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-2">
+        <div className="tm-modal-body flex-1">
           {!hasChanges ? (
             <p className="py-3 text-secondary text-[var(--color-figma-text-secondary)]">Nothing to apply.</p>
           ) : (
@@ -830,7 +830,7 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
             </>
           )}
         </div>
-        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)] flex gap-2">
+        <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
           <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
           <button onClick={handleConfirm} disabled={busy || !hasChanges} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
             {busy && <Spinner size="sm" className="text-white" />}

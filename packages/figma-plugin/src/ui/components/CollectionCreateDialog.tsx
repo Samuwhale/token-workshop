@@ -2,10 +2,15 @@ import { useEffect, useRef, useState } from "react";
 
 const COLLECTION_PATH_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
+export interface CreateCollectionRequest {
+  name: string;
+  modes: string[];
+}
+
 interface CollectionCreateDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string) => Promise<string>;
+  onCreate: (request: CreateCollectionRequest) => Promise<string>;
   onCreated?: (collectionId: string) => void;
 }
 
@@ -16,6 +21,8 @@ export function CollectionCreateDialog({
   onCreated,
 }: CollectionCreateDialogProps) {
   const [collectionName, setCollectionName] = useState("");
+  const [primaryModeName, setPrimaryModeName] = useState("Default");
+  const [secondaryModeName, setSecondaryModeName] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -23,6 +30,8 @@ export function CollectionCreateDialog({
   useEffect(() => {
     if (!isOpen) return;
     setCollectionName("");
+    setPrimaryModeName("Default");
+    setSecondaryModeName("");
     setError("");
     setPending(false);
     window.requestAnimationFrame(() => {
@@ -34,6 +43,8 @@ export function CollectionCreateDialog({
 
   const handleSubmit = async () => {
     const trimmedCollectionName = collectionName.trim();
+    const trimmedPrimaryMode = primaryModeName.trim();
+    const trimmedSecondaryMode = secondaryModeName.trim();
 
     if (!trimmedCollectionName) {
       setError("Collection name is required");
@@ -43,11 +54,29 @@ export function CollectionCreateDialog({
       setError("Use letters, numbers, - and _. Use / to group related collections.");
       return;
     }
+    if (!trimmedPrimaryMode) {
+      setError("Add a first mode name");
+      return;
+    }
+    if (
+      trimmedSecondaryMode &&
+      trimmedSecondaryMode.localeCompare(trimmedPrimaryMode, undefined, {
+        sensitivity: "accent",
+      }) === 0
+    ) {
+      setError("Mode names must be different");
+      return;
+    }
 
     setPending(true);
     setError("");
     try {
-      const createdCollectionId = await onCreate(trimmedCollectionName);
+      const createdCollectionId = await onCreate({
+        name: trimmedCollectionName,
+        modes: trimmedSecondaryMode
+          ? [trimmedPrimaryMode, trimmedSecondaryMode]
+          : [trimmedPrimaryMode],
+      });
       onCreated?.(createdCollectionId);
       onClose();
     } catch (submitError) {
@@ -98,6 +127,10 @@ export function CollectionCreateDialog({
         </div>
 
         <div className="tm-modal-body flex flex-col gap-3 py-3">
+          <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+            Collections hold related tokens and their mode columns. Start with a simple
+            name, then add the first mode you want to edit.
+          </p>
           <label className="flex flex-col gap-1">
             <span className="text-secondary text-[var(--color-figma-text-secondary)]">
               Collection name
@@ -115,9 +148,48 @@ export function CollectionCreateDialog({
               className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
             />
             <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              Use `/` only when that name is already part of your system structure.
+              Keep this simple. Use `/` only when your library already groups collections that way.
             </span>
           </label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                First mode
+              </span>
+              <input
+                type="text"
+                value={primaryModeName}
+                onChange={(event) => {
+                  setPrimaryModeName(event.target.value);
+                  setError("");
+                }}
+                placeholder="Default"
+                disabled={pending}
+                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                Second mode
+              </span>
+              <input
+                type="text"
+                value={secondaryModeName}
+                onChange={(event) => {
+                  setSecondaryModeName(event.target.value);
+                  setError("");
+                }}
+                placeholder="Optional"
+                disabled={pending}
+                className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+              />
+            </label>
+          </div>
+          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            Add one mode now for a straightforward collection, or two if you already know
+            this collection needs variants like light and dark.
+          </span>
 
           {error && <div className="text-secondary text-[var(--color-figma-error)]">{error}</div>}
         </div>

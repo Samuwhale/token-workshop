@@ -1419,8 +1419,9 @@ export class CollectionService {
   async createCollectionOperation(params: {
     collectionId: string;
     tokens?: TokenGroup;
+    definition?: Partial<TokenCollection>;
   }): Promise<CollectionCreateMutationResult> {
-    const { collectionId, tokens } = params;
+    const { collectionId, tokens, definition } = params;
     return this.tokenStore.lock.withLock(async () => {
       const previousCollectionState = await this.collectionStore.loadState();
       if (
@@ -1430,7 +1431,7 @@ export class CollectionService {
       ) {
         throw new ConflictError(`Collection "${collectionId}" already exists`);
       }
-      await this.createCollection(collectionId, tokens ?? {});
+      await this.createCollection(collectionId, tokens ?? {}, definition);
       const afterSnapshot = await snapshotCollection(this.tokenStore, collectionId);
       return {
         result: { id: collectionId },

@@ -162,53 +162,50 @@ export function AliasAutocomplete({
           data-idx={idx}
           onMouseDown={e => { e.preventDefault(); handleSelect(candidate); }}
           onMouseEnter={() => setActiveIdx(idx)}
-          className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${entry.$lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
+          className={`w-full px-2 py-1.5 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${entry.$lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
         >
-          {/* Value preview swatch — use resolved color */}
-          {resolved.$type === 'color' && typeof resolved.$value === 'string' ? (
-            <div
-              className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-              style={{ backgroundColor: resolved.$value }}
-            />
-          ) : (
-            <div className="w-3 h-3 shrink-0" />
-          )}
-
-          {/* Path */}
-          <span className={`flex-1 text-secondary text-[var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
-
-          {/* Resolved value — show final value; if it's an alias show alias source in muted text */}
-          {previewValue && (
-            <span
-              className="text-secondary text-[var(--color-figma-text-secondary)] truncate max-w-[120px] shrink-0"
-              title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
-            >
-              {isAliasToken && rawPreview !== previewValue ? (
-                <span className="opacity-50">{rawPreview.replace(/^\{|\}$/g, '')}&nbsp;→&nbsp;</span>
+          <div className="grid min-w-0 grid-cols-[12px_minmax(0,1fr)] gap-x-2 gap-y-0.5">
+            {resolved.$type === 'color' && typeof resolved.$value === 'string' ? (
+              <div
+                className="mt-0.5 h-3 w-3 rounded-sm border border-[var(--color-figma-border)]"
+                style={{ backgroundColor: resolved.$value }}
+              />
+            ) : (
+              <div className="h-3 w-3" />
+            )}
+            <span className={`min-w-0 text-secondary text-[var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
+            <div />
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+              {previewValue ? (
+                <span
+                  className="min-w-0 truncate"
+                  title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
+                >
+                  {isAliasToken && rawPreview !== previewValue ? (
+                    <span className="opacity-50">{rawPreview.replace(/^\{|\}$/g, '')}&nbsp;→&nbsp;</span>
+                  ) : null}
+                  {previewValue}
+                </span>
               ) : null}
-              {previewValue}
-            </span>
-          )}
-
-          {/* Type badge */}
-          <span className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 ${tokenTypeBadgeClass(entry.$type)}`}>
-            {entry.$type}
-          </span>
-
-          {/* Lifecycle badge */}
-          {entry.$lifecycle === 'draft' && (
-            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">draft</span>
-          )}
-          {entry.$lifecycle === 'deprecated' && (
-            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-secondary)]">deprecated</span>
-          )}
-
-          {/* Set name */}
-          {candidate.isAmbiguousPath && candidate.collectionId && (
-            <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-              {candidate.collectionId}
-            </span>
-          )}
+              <span className={`shrink-0 rounded px-1 py-0.5 text-[8px] font-medium uppercase ${tokenTypeBadgeClass(entry.$type)}`}>
+                {entry.$type}
+              </span>
+              {entry.$lifecycle === 'draft' && (
+                <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[8px] font-medium text-[var(--color-figma-warning)]">draft</span>
+              )}
+              {entry.$lifecycle === 'deprecated' && (
+                <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">deprecated</span>
+              )}
+              {candidate.isAmbiguousPath && candidate.collectionId ? (
+                <span
+                  className="min-w-0 truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                  title={candidate.collectionId}
+                >
+                  {candidate.collectionId}
+                </span>
+              ) : null}
+            </div>
+          </div>
         </button>
         );
       })}

@@ -255,7 +255,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
             <span className="text-body font-medium text-[var(--color-figma-text)] truncate" title={layerSummary}>
-              Apply — {layerSummary}
+              Apply token to {layerSummary}
             </span>
             <kbd className="ml-auto text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
               ESC

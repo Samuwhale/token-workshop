@@ -1557,7 +1557,7 @@ export function PanelRouter({
     const body = (
       <div className="h-full min-h-0 overflow-hidden">
         <ErrorBoundary
-          panelName="Graph"
+          panelName="Generators"
           onReset={() => navigateTo("library", "tokens")}
         >
           <GraphPanel
@@ -1574,7 +1574,7 @@ export function PanelRouter({
                 collectionId,
                 mode: "inspect",
                 origin: "graph",
-                returnLabel: "Back to graph",
+                returnLabel: "Back to generators",
               });
             }}
           />

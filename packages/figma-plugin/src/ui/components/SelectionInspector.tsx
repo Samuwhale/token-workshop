@@ -823,7 +823,7 @@ export function SelectionInspector({
               className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors disabled:opacity-50"
               title="Apply to selection"
             >
-              Apply
+              Apply to selection
             </button>
           )}
           {connected && (
@@ -833,7 +833,7 @@ export function SelectionInspector({
               className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
               title="Apply to page"
             >
-              Page
+              Apply to page
             </button>
           )}
           {totalBindings > 0 && (
@@ -842,7 +842,7 @@ export function SelectionInspector({
               className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
             >
-              Clear
+              Remove bindings
             </button>
           )}
         </div>

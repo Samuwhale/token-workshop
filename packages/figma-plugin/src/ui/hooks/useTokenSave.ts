@@ -53,7 +53,7 @@ export function useTokenSave({
       return false;
     }
     onError?.(
-      `Token "${path}" is managed by a graph. Open the graph workspace to change generated outputs, or detach it first.`,
+      `Token "${path}" is managed by a generator. Open Generators to change generated outputs, or detach it first.`,
     );
     return true;
   }, [onError]);

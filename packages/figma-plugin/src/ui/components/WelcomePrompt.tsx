@@ -12,12 +12,12 @@ type StartHereBranchCopy = {
 
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
-    title: "Start with TokenManager",
-    description: "Choose how you want to begin working with collections, tokens, and modes.",
+    title: "Bring tokens into this file",
+    description: "Start a collection, import an existing library, or turn your current selection into tokens.",
   },
   "start-new": {
     title: "Start a token library",
-    description: "Create your first collection, then start authoring tokens and modes.",
+    description: "Create a collection, choose modes when you need them, and start authoring tokens.",
   },
 };
 
@@ -147,7 +147,7 @@ export function WelcomePrompt({
     <div>
       <ActionRow
         title="Start a new library"
-        description="Create your first collection and begin authoring tokens from scratch."
+        description="Create a collection for this file and start adding tokens from scratch."
         onClick={() => setBranch("start-new")}
         icon={
           <svg
@@ -168,7 +168,7 @@ export function WelcomePrompt({
       />
       <ActionRow
         title="Import existing tokens"
-        description="Bring in Figma variables, styles, or token files and keep working from there."
+        description="Bring in variables, styles, or token files and keep the structure you already have."
         onClick={() => handleAction(onImportExistingSystem)}
         icon={
           <svg
@@ -190,7 +190,7 @@ export function WelcomePrompt({
       />
       <ActionRow
         title="Start from current selection"
-        description="Extract colors, type, and spacing from the layers you already have selected in Figma."
+        description="Extract colors, type, and spacing from the layers already selected in Figma."
         onClick={() => handleAction(onStartFromSelection)}
         icon={
           <svg

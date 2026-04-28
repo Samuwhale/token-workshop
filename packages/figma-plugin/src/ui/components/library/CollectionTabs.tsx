@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Plus, Search, Settings2, Upload } from "lucide-react";
+import { Search, Settings2, Upload } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
 import type { CollectionReviewSummary } from "../../shared/reviewSummary";
 import {
@@ -56,7 +56,7 @@ export function CollectionTabs({
   onOpenImport,
 }: CollectionTabsProps) {
   const showSearch = collections.length > 1 || Boolean(allCollectionsScope);
-  const showCreateMenu = Boolean(onOpenCreateCollection);
+  const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
 
   const searchMenu = useDropdownMenu();
@@ -65,15 +65,6 @@ export function CollectionTabs({
     open: searchMenu.open,
     preferredWidth: 280,
     preferredHeight: 360,
-    align: "end",
-  });
-
-  const createMenu = useDropdownMenu();
-  const createMenuStyle = useAnchoredFloatingStyle({
-    triggerRef: createMenu.triggerRef,
-    open: createMenu.open,
-    preferredWidth: 200,
-    preferredHeight: 200,
     align: "end",
   });
 
@@ -138,15 +129,6 @@ export function CollectionTabs({
     allCollectionsScope?.onSelect();
     searchMenu.close({ restoreFocus: false });
   }, [allCollectionsScope, searchMenu]);
-
-  const runCreateAction = useCallback(
-    (action?: () => void) => {
-      if (!action) return;
-      action();
-      createMenu.close({ restoreFocus: false });
-    },
-    [createMenu],
-  );
 
   const settingsToggle = activeCollectionSettings;
   const settingsTargetId = currentCollectionId ?? null;
@@ -353,54 +335,21 @@ export function CollectionTabs({
         <button
           type="button"
           onClick={onOpenImport}
-          aria-label="Import collections"
-          title="Import collections"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         >
           <Upload size={12} strokeWidth={1.5} aria-hidden />
+          <span>Import</span>
         </button>
       ) : null}
 
-      {showCreateMenu ? (
-        <div className="relative shrink-0">
-          <button
-            ref={createMenu.triggerRef}
-            type="button"
-            onClick={createMenu.toggle}
-            aria-expanded={createMenu.open}
-            aria-haspopup="menu"
-            aria-label="Add collection"
-            title="Add collection"
-            className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
-              createMenu.open
-                ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            }`}
-          >
-            <Plus size={12} strokeWidth={1.5} aria-hidden />
-          </button>
-
-          {createMenu.open ? (
-            <div
-              ref={createMenu.menuRef}
-              style={createMenuStyle ?? { visibility: "hidden" }}
-              className="z-50 overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-              role="menu"
-            >
-              {onOpenCreateCollection ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => runCreateAction(onOpenCreateCollection)}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <Plus size={11} strokeWidth={1.5} aria-hidden />
-                  New collection
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+      {showCreateButton ? (
+        <button
+          type="button"
+          onClick={onOpenCreateCollection}
+          className="inline-flex h-7 shrink-0 items-center rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+        >
+          New collection
+        </button>
       ) : null}
     </div>
   );

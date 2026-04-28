@@ -213,8 +213,8 @@ export function HealthPanel({
           collectionId: item.graph.targetCollectionId,
           severity: item.blocking ? "error" : "warning",
           message: item.stale
-            ? "Graph outputs are stale. Preview and apply the graph before publishing."
-            : "Graph outputs have not been applied yet.",
+            ? "Generated token outputs are stale. Preview and apply the generator before publishing."
+            : "Generated token outputs have not been applied yet.",
           graphId: item.graph.id,
         });
       }
@@ -224,7 +224,7 @@ export function HealthPanel({
           path: item.graph.name,
           collectionId: item.graph.targetCollectionId,
           severity: "error",
-          message: "Graph output collides with a manually edited token. Open the graph to resolve or detach the token.",
+          message: "A generated output collides with a manually edited token. Open the generator to resolve or detach the token.",
           graphId: item.graph.id,
         });
       }

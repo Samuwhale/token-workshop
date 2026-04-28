@@ -41,10 +41,17 @@ function buildWorkspaceTokensFromSnapshot(
 
 export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/collections — create a collection
-  fastify.post<{ Body: { id: string; tokens?: Record<string, unknown> } }>(
+  fastify.post<{
+    Body: {
+      id: string;
+      description?: string;
+      modes?: Array<{ name: string }>;
+      tokens?: Record<string, unknown>;
+    };
+  }>(
     "/collections",
     async (request, reply) => {
-      const { id, tokens } = request.body || {};
+      const { id, description, modes, tokens } = request.body || {};
       if (!id) {
         return reply.status(400).send({ error: "Collection id is required" });
       }
@@ -54,6 +61,21 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
             "Collection id must contain only alphanumeric characters, dashes, underscores, and / for folders",
         });
       }
+      if (
+        modes !== undefined &&
+        (!Array.isArray(modes) ||
+          modes.some(
+            (mode) =>
+              !mode ||
+              typeof mode !== "object" ||
+              typeof mode.name !== "string" ||
+              !mode.name.trim(),
+          ))
+      ) {
+        return reply.status(400).send({
+          error: "Modes must be an array of objects with non-empty names",
+        });
+      }
 
       let mutation: Awaited<
         ReturnType<typeof fastify.collectionService.createCollectionOperation>
@@ -61,6 +83,14 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
       try {
         mutation = await fastify.collectionService.createCollectionOperation({
           collectionId: id,
+          definition:
+            description !== undefined || modes !== undefined
+              ? {
+                  description: description?.trim() || undefined,
+                  modes:
+                    modes?.map((mode) => ({ name: mode.name.trim() })) ?? [],
+                }
+              : undefined,
           tokens: (tokens as TokenGroup | undefined) ?? undefined,
         });
         await fastify.operationLog.record({

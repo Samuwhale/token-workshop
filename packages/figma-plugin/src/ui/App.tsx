@@ -13,6 +13,7 @@ import {
 } from "./components/WelcomePrompt";
 import { AppCommandPalette } from "./components/AppCommandPalette";
 import { CollectionCreateDialog } from "./components/CollectionCreateDialog";
+import type { CreateCollectionRequest } from "./components/CollectionCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Tooltip } from "./shared/Tooltip";
@@ -854,7 +855,7 @@ export function App() {
 
   // Create a collection by name — shared by dialogs, collection pickers, and onboarding.
   const createCollectionByName = useCallback(
-    async (name: string) => {
+    async ({ name, modes }: CreateCollectionRequest) => {
       const result = await apiFetch<{
         ok: true;
         id: string;
@@ -862,7 +863,10 @@ export function App() {
       }>(`${serverUrl}/api/collections`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: name }),
+        body: JSON.stringify({
+          id: name,
+          modes: modes.map((modeName) => ({ name: modeName })),
+        }),
         signal: createFetchSignal(getDisconnectSignal(), 5000),
       });
       syncCollectionSummariesToState(result.collections);

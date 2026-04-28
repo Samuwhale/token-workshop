@@ -270,9 +270,9 @@ export function useCommandPaletteCommands(): {
       },
       {
         id: "generate-color-scale",
-        label: "Open graph editor…",
+        label: "Open generators…",
         description:
-          "Author generated tokens with graph templates and previews",
+          "Start from generator templates and edit advanced output flows",
         category: "Tokens",
         handler: () => {
           shell.openGraphWorkspace();

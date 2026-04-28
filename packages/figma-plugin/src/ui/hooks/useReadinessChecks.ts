@@ -387,15 +387,15 @@ export function useReadinessChecks({
         },
         {
           id: 'graph-documents',
-          label: 'Graph outputs',
+          label: 'Generated token outputs',
           severity: graphStatusError || graphIssues.some((item) => item.blocking || item.preview.diagnostics.some((diagnostic) => diagnostic.severity === 'error'))
             ? 'blocking'
             : 'advisory',
           affectedCount: graphStatusError ? 1 : graphIssues.length || undefined,
           detail: graphStatusError
-            ? `Graph status could not be checked: ${graphStatusError}`
+            ? `Generator status could not be checked: ${graphStatusError}`
             : graphIssues.length > 0
-            ? `${formatCount(graphIssues.length, 'graph')} need preview, apply, or diagnostic review before publishing this collection to Figma.`
+            ? `${formatCount(graphIssues.length, 'generator')} need preview, apply, or diagnostic review before publishing this collection to Figma.`
             : undefined,
           recommendedActionLabel: graphStatusError || graphIssues.length > 0 ? 'Open Review' : undefined,
           recommendedActionId: graphStatusError || graphIssues.length > 0 ? 'review-health-findings' : undefined,

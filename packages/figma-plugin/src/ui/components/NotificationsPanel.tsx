@@ -304,7 +304,7 @@ function NotificationCard({
         {item.destination && item.actionLabel && (
           <button
             onClick={() => onOpen(item.destination)}
-            className="inline-flex min-h-[26px] w-full items-center justify-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] sm:w-auto"
+            className="inline-flex min-h-[26px] self-start items-center justify-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             {item.actionLabel}
           </button>

@@ -54,8 +54,8 @@ const SETUP_ACTIONS: SetupActionDef[] = [
   },
   {
     id: 'foundations',
-    label: 'Start from a template',
-    description: 'Create a color ramp, type scale, spacing scale, or another generated foundation.',
+    label: 'Generate foundations',
+    description: 'Start from a color ramp, type scale, spacing scale, or another prepared generator.',
     helper: 'Optional',
   },
 ];
@@ -146,7 +146,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       <div>
         <p className="text-body font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
         <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
-          Collections are the main place where you author tokens and modes.
+          Collections are where you organize related tokens and their modes.
         </p>
       </div>
 
@@ -160,13 +160,13 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
           onKeyDown={e => e.key === 'Enter' && handleCreate()}
-          placeholder="Primitives or Brand/Primitives"
+          placeholder="Primitives"
           autoFocus
           className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
         />
         {error && <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{error}</p>}
         <p className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
-          Use <code className="font-mono">/</code> only when that name is already part of your system structure.
+          Start with a simple name. Use <code className="font-mono">/</code> only when your library already groups collections that way.
         </p>
       </div>
 
@@ -428,7 +428,7 @@ export function QuickStartWizard({
 
   const handleTemplateSelect = useCallback(async (template: GraphTemplate) => {
     if (!effectiveCollectionId) {
-      setFoundationError('Create a collection before adding a graph.');
+      setFoundationError('Create a collection before adding a generator.');
       return;
     }
     setFoundationBusy(true);

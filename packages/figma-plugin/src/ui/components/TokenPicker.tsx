@@ -282,67 +282,61 @@ export function TokenPickerDropdown({
               data-idx={idx}
               onMouseDown={e => { e.preventDefault(); handleSelect(candidate); }}
               onMouseEnter={() => setActiveIdx(idx)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${
+              className={`w-full px-2 py-1.5 text-left transition-colors ${
                 idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''
               } ${entry.$lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
             >
-              {/* Color swatch */}
-              {isColor ? (
-                <div
-                  className="w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                  style={{ backgroundColor: swatchBgColor(resolved.$value as string) }}
-                />
-              ) : (
-                <div className="w-4 h-4 shrink-0" />
-              )}
-
-              {/* Path */}
-              <span
-                className={`min-w-0 flex-1 text-body text-[var(--color-figma-text)] truncate ${
-                  entry.$lifecycle === 'deprecated' ? 'line-through' : ''
-                }`}
-              >
-                {path}
-              </span>
-
-              {/* Resolved value preview */}
-              {previewValue && (
+              <div className="grid min-w-0 grid-cols-[16px_minmax(0,1fr)] gap-x-2 gap-y-0.5">
+                {isColor ? (
+                  <div
+                    className="mt-0.5 h-4 w-4 rounded-sm border border-[var(--color-figma-border)]"
+                    style={{ backgroundColor: swatchBgColor(resolved.$value as string) }}
+                  />
+                ) : (
+                  <div className="h-4 w-4" />
+                )}
                 <span
-                  className="min-w-0 max-w-[40%] truncate text-secondary text-[var(--color-figma-text-secondary)]"
-                  title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
+                  className={`min-w-0 text-body text-[var(--color-figma-text)] truncate ${
+                    entry.$lifecycle === 'deprecated' ? 'line-through' : ''
+                  }`}
                 >
-                  {previewValue}
+                  {path}
                 </span>
-              )}
-
-              {/* Type badge */}
-              <span
-                className={`text-[8px] px-1 py-0.5 rounded font-medium shrink-0 ${tokenTypeBadgeClass(entry.$type)}`}
-              >
-                {entry.$type}
-              </span>
-
-              {/* Lifecycle badges */}
-              {entry.$lifecycle === 'draft' && (
-                <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
-                  draft
-                </span>
-              )}
-              {entry.$lifecycle === 'deprecated' && (
-                <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-[var(--color-figma-text-tertiary)]/20 text-[var(--color-figma-text-secondary)]">
-                  deprecated
-                </span>
-              )}
-
-              {/* Set name */}
-              {candidate.isAmbiguousPath && candidate.collectionId && (
-                <span
-                  className="min-w-0 max-w-[30%] truncate text-[8px] text-[var(--color-figma-text-secondary)]"
-                  title={candidate.collectionId}
-                >
-                  {candidate.collectionId}
-                </span>
-              )}
+                <div />
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                  {previewValue ? (
+                    <span
+                      className="min-w-0 truncate"
+                      title={isAliasToken ? `${rawPreview} → ${previewValue}` : previewValue}
+                    >
+                      {previewValue}
+                    </span>
+                  ) : null}
+                  <span
+                    className={`shrink-0 rounded px-1 py-0.5 text-[8px] font-medium ${tokenTypeBadgeClass(entry.$type)}`}
+                  >
+                    {entry.$type}
+                  </span>
+                  {entry.$lifecycle === 'draft' && (
+                    <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[8px] font-medium text-[var(--color-figma-warning)]">
+                      draft
+                    </span>
+                  )}
+                  {entry.$lifecycle === 'deprecated' && (
+                    <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">
+                      deprecated
+                    </span>
+                  )}
+                  {candidate.isAmbiguousPath && candidate.collectionId && (
+                    <span
+                      className="min-w-0 truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                      title={candidate.collectionId}
+                    >
+                      {candidate.collectionId}
+                    </span>
+                  )}
+                </div>
+              </div>
             </button>
           );
         })}

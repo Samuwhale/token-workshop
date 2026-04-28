@@ -62,7 +62,7 @@ export const TOP_TABS: {
     label: "Library",
     subTabs: [
       { id: "tokens", label: "Tokens" },
-      { id: "graph", label: "Graph" },
+      { id: "graph", label: "Generators" },
       { id: "health", label: "Review" },
       { id: "history", label: "History" },
     ],
@@ -285,7 +285,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     subTab: "tokens",
     sections: [
       { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
-      { id: "graph",   label: "Graph",   topTab: "library", subTab: "graph" },
+      { id: "graph",   label: "Generators",   topTab: "library", subTab: "graph" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
       { id: "history", label: "History", topTab: "library", subTab: "history" },
     ],

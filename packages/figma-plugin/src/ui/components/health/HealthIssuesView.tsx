@@ -425,7 +425,7 @@ function IssueRow({
           }}
           className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
         >
-          View in graph
+          Open generator
         </button>
       )}
 

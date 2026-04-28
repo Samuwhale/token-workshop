@@ -429,8 +429,7 @@ export function TokenListToolbar({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-1.5">
-          <div className="min-w-0 flex-1" />
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
             {hasTokens ? (
               <div className="min-w-0 shrink-0">
