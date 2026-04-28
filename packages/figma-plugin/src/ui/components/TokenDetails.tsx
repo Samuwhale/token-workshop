@@ -440,6 +440,8 @@ export function TokenDetails({
     : ambiguousExtendsCollectionIds.length > 0
       ? `Inherited token "${extendsPath}" exists in ${formatCollectionIdList(ambiguousExtendsCollectionIds)}. Inheritance requires a token path that belongs to one collection.`
       : null;
+  const canSave = editorCanSave && ambiguousReferenceMessage === null;
+  const saveBlockReason = ambiguousReferenceMessage ?? editorSaveBlockReason;
 
   const requestClose = editorSessionHost.requestClose;
   const beforeSaveGeneratedToken = useCallback(
@@ -1011,8 +1013,6 @@ export function TokenDetails({
         }).filter((collectionId) => collectionId !== ownerCollectionId)
       : [];
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
-  const canSave = editorCanSave && ambiguousReferenceMessage === null;
-  const saveBlockReason = ambiguousReferenceMessage ?? editorSaveBlockReason;
   const footerNote =
     isCreateMode && duplicatePath
       ? "Path already exists."

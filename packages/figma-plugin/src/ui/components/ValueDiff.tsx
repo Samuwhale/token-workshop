@@ -28,8 +28,8 @@ const ArrowRight = () => (
   </svg>
 );
 
-function formatMeasure(v: any, type: 'dimension' | 'duration'): string {
-  return formatTokenValueForDisplay(type, v, { emptyPlaceholder: '' });
+function formatMeasure(value: unknown, type: 'dimension' | 'duration'): string {
+  return formatTokenValueForDisplay(type, value, { emptyPlaceholder: '' });
 }
 
 function formatDelta(value: number, unit: string): string {
@@ -37,8 +37,19 @@ function formatDelta(value: number, unit: string): string {
   return `${rounded > 0 ? '+' : ''}${rounded}${unit}`;
 }
 
-function formatTypo(v: any): string {
-  return formatTokenValueForDisplay('typography', v);
+function formatTypo(value: unknown): string {
+  return formatTokenValueForDisplay('typography', value);
+}
+
+function parseNumericValue(value: unknown): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -200,8 +211,8 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
   }
 
   if (type === 'number') {
-    const beforeNum = parseFloat(before) || 0;
-    const afterNum = parseFloat(after) || 0;
+    const beforeNum = parseNumericValue(before);
+    const afterNum = parseNumericValue(after);
     const delta = Math.round((afterNum - beforeNum) * 1000) / 1000;
     const deltaStr = delta !== 0 ? `${delta > 0 ? '+' : ''}${delta}` : null;
     return (

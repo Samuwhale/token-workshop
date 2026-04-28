@@ -1482,11 +1482,27 @@ export function PanelRouter({
         size="full"
         icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
         title="No collections yet"
-        description="Start by importing a system, authoring one, or extracting from your current selection."
-        primaryAction={{
-          label: "Get started",
-          onClick: () => controller.onOpenStartHere(),
-        }}
+        description="Start by creating a collection, importing an existing system, or extracting tokens from the current selection."
+        actions={[
+          {
+            label: "Import tokens",
+            onClick: () => controller.onShowImportPanel(),
+          },
+          {
+            label: "Start from selection",
+            onClick: () => controller.triggerExtractFromSelection(),
+            disabled: selectedNodes.length === 0,
+            title:
+              selectedNodes.length === 0
+                ? "Select layers in Figma first"
+                : undefined,
+          },
+          {
+            label: "New collection",
+            onClick: () => controller.onOpenStartHere("start-new"),
+            tone: "primary",
+          },
+        ]}
       />
     ) : hasTokensLibrarySurface ? (
       renderTokensLibraryBody()

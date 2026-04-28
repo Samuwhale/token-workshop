@@ -148,8 +148,6 @@ interface TokenListTreeBodyProps {
 }
 
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
-const MODE_PRESETS = ["Light", "Dark", "Compact"];
-
 export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     viewMode,
@@ -224,7 +222,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     hasSelection,
   } = props.navigation;
 
-  const [addingMode, setAddingMode] = useState(false);
   const [newModeName, setNewModeName] = useState("");
   const [addingModeSaving, setAddingModeSaving] = useState(false);
 
@@ -244,7 +241,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         },
       );
       setNewModeName("");
-      setAddingMode(false);
+      setAddModeMenuOpen(false);
       onModeMutated?.();
     } catch {
       // keep input open on error
@@ -252,26 +249,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       setAddingModeSaving(false);
     }
   }, [addModeTargetId, newModeName, onModeMutated, serverUrl]);
-
-  const handleAddModePreset = useCallback(async (name: string) => {
-    if (!addModeTargetId) return;
-    setAddingModeSaving(true);
-    try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(addModeTargetId)}/modes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        },
-      );
-      onModeMutated?.();
-    } catch {
-      // silent — the mode wasn't added
-    } finally {
-      setAddingModeSaving(false);
-    }
-  }, [addModeTargetId, onModeMutated, serverUrl]);
 
   const modeNames = multiModeData?.results.map((r) => r.optionName) ?? [];
   const widthsCollectionId = multiModeData?.collection.id ?? null;
@@ -322,7 +299,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     const onDocMouseDown = (e: MouseEvent) => {
       if (addModeMenuContainerRef.current?.contains(e.target as Node)) return;
       setAddModeMenuOpen(false);
-      setAddingMode(false);
       setNewModeName("");
     };
     window.addEventListener("mousedown", onDocMouseDown);
@@ -331,17 +307,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
   const closeAddModeMenu = useCallback(() => {
     setAddModeMenuOpen(false);
-    setAddingMode(false);
     setNewModeName("");
   }, []);
-
-  const handleAddModeFromMenu = useCallback(
-    async (name: string) => {
-      setAddModeMenuOpen(false);
-      await handleAddModePreset(name);
-    },
-    [handleAddModePreset],
-  );
 
   // Unified table header — always shown for the tree view. For single-mode
   // collections this renders one mode column; multi-mode collections render
@@ -390,7 +357,13 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       >
         <button
           type="button"
-          onClick={() => setAddModeMenuOpen((v) => !v)}
+          onClick={() => {
+            if (addModeMenuOpen) {
+              closeAddModeMenu();
+              return;
+            }
+            setAddModeMenuOpen(true);
+          }}
           disabled={!connected}
           className="w-full flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
           title="Add mode"
@@ -407,50 +380,29 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             className="absolute right-0 top-full z-30 mt-0.5 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {addingMode ? (
-              <div className="px-2 py-1">
-                <input
-                  type="text"
-                  value={newModeName}
-                  onChange={(e) => setNewModeName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      void handleAddMode().then(() => setAddModeMenuOpen(false));
-                    }
-                    if (e.key === "Escape") closeAddModeMenu();
-                  }}
-                  onBlur={() => {
-                    if (!newModeName.trim()) closeAddModeMenu();
-                  }}
-                  autoFocus
-                  disabled={addingModeSaving}
-                  placeholder="Mode name"
-                  className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
-                />
-              </div>
-            ) : (
-              <>
-                {MODE_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => void handleAddModeFromMenu(preset)}
-                    disabled={addingModeSaving}
-                    className="block w-full px-3 py-1 text-left text-body text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
-                  >
-                    {preset}
-                  </button>
-                ))}
-                <div className="my-1 h-px bg-[var(--color-figma-border)]" />
-                <button
-                  type="button"
-                  onClick={() => setAddingMode(true)}
-                  className="block w-full px-3 py-1 text-left text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                >
-                  Custom…
-                </button>
-              </>
-            )}
+            <div className="px-2 py-1">
+              <input
+                type="text"
+                value={newModeName}
+                onChange={(e) => setNewModeName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    void handleAddMode();
+                  }
+                  if (e.key === "Escape") closeAddModeMenu();
+                }}
+                onBlur={() => {
+                  if (!newModeName.trim()) closeAddModeMenu();
+                }}
+                autoFocus
+                disabled={addingModeSaving}
+                placeholder="Mode name"
+                className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
+              />
+              <p className="mt-1 px-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+                Name the context this collection needs, such as Desktop, Marketing, or Dark.
+              </p>
+            </div>
           </div>
         )}
       </div>

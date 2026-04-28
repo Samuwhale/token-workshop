@@ -2,7 +2,6 @@ import { formatTokenValueForDisplay } from './tokenFormatting';
 import { formatUnitTokenValue } from './tokenValueParsing';
 
 import type {
-  BorderValue,
   ShadowTokenValue,
   TypographyValue,
 } from '../../shared/types';
@@ -27,13 +26,16 @@ function normalizeGradientStops(value: unknown): GradientStop[] {
       ? value.stops
       : [];
 
-  return source
+  const stops = source
     .filter((stop): stop is GradientStop => (
       isRecord(stop) &&
       typeof stop.color === 'string' &&
       (stop.position === undefined || typeof stop.position === 'number')
-    ))
-    .toSorted((left, right) => (left.position ?? 0) - (right.position ?? 0));
+    ));
+
+  return stops.sort((left: GradientStop, right: GradientStop) => (
+    (left.position ?? 0) - (right.position ?? 0)
+  ));
 }
 
 function normalizeShadowLayers(value: unknown): ShadowTokenValue[] {
@@ -155,10 +157,9 @@ export function formatBorderSummary(value: unknown): string {
     return '—';
   }
 
-  const border = value as BorderValue;
-  const width = formatDimensionCss(border.width, '');
-  const style = typeof border.style === 'string' ? border.style : '';
-  const color = typeof border.color === 'string' ? border.color : '';
+  const width = formatDimensionCss(value.width, '');
+  const style = typeof value.style === 'string' ? value.style : '';
+  const color = typeof value.color === 'string' ? value.color : '';
   return [width, style, color].filter(Boolean).join(' ') || '—';
 }
 

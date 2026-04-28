@@ -13,7 +13,6 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
-type SetupActionId = 'author-tokens' | 'foundations';
 type WizardView = 'overview' | 'template-picker';
 type PrereqPhase = 'connect' | 'create-collection' | null;
 type GraphApiTemplate = 'colorRamp' | 'spacing' | 'type' | 'radius' | 'opacity' | 'shadow' | 'zIndex' | 'formula' | 'blank';
@@ -33,32 +32,6 @@ interface QuickStartWizardProps {
   embedded?: boolean;
   onBack?: () => void;
 }
-
-// ---------------------------------------------------------------------------
-// Task definitions
-// ---------------------------------------------------------------------------
-
-interface SetupActionDef {
-  id: SetupActionId;
-  label: string;
-  description: string;
-  helper?: string;
-}
-
-const SETUP_ACTIONS: SetupActionDef[] = [
-  {
-    id: 'author-tokens',
-    label: 'Add your first token',
-    description: 'Open the token editor and start authoring in this collection.',
-    helper: 'Best next step',
-  },
-  {
-    id: 'foundations',
-    label: 'Generate foundations',
-    description: 'Start from a color ramp, type scale, spacing scale, or another prepared generator.',
-    helper: 'Optional',
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Connect Step
@@ -90,12 +63,14 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={onClose}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
         >
           Close
         </button>
         <button
+          type="button"
           onClick={onRetry}
           disabled={checking}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-60"
@@ -191,6 +166,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       />
 
       <button
+        type="button"
         onClick={handleCreate}
         disabled={saving || !draft.name.trim()}
         className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
@@ -226,6 +202,7 @@ function CompactTemplatePicker({ templates, connected, onSelect }: {
       {templates.map(template => (
         <button
           key={template.id}
+          type="button"
           onClick={() => onSelect(template)}
           disabled={!connected}
           className="w-full text-left px-4 py-2.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 group"
@@ -238,50 +215,6 @@ function CompactTemplatePicker({ templates, connected, onSelect }: {
             <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
               <path d="M4.5 2.5L8 6l-3.5 3.5" />
             </svg>
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Setup action list
-// ---------------------------------------------------------------------------
-
-function SetupActionList({ connected, onSelect }: {
-  connected: boolean;
-  onSelect: (taskId: SetupActionId) => void;
-}) {
-  return (
-    <div className="flex flex-col">
-      {SETUP_ACTIONS.map((action) => (
-        <button
-          key={action.id}
-          type="button"
-          onClick={() => onSelect(action.id)}
-          disabled={!connected}
-          className="w-full text-left px-4 py-3 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 group"
-        >
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-body font-medium text-[var(--color-figma-text)]">{action.label}</span>
-                {action.helper ? (
-                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                    {action.helper}
-                  </span>
-                ) : null}
-              </div>
-              <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
-                {action.description}
-              </p>
-            </div>
-            {connected ? (
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="mt-1 shrink-0 text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity">
-                <path d="M4.5 2.5L8 6l-3.5 3.5" />
-              </svg>
-            ) : null}
           </div>
         </button>
       ))}
@@ -359,17 +292,6 @@ export function QuickStartWizard({
       setFoundationBusy(false);
     }
   }, [effectiveCollectionId, onOpenGraph, serverUrl]);
-
-  const handleActionSelect = useCallback((taskId: SetupActionId) => {
-    switch (taskId) {
-      case 'author-tokens':
-        onAuthorFirstToken?.();
-        break;
-      case 'foundations':
-        setWizardView('template-picker');
-        break;
-    }
-  }, [onAuthorFirstToken]);
 
   if (prereqPhase === 'connect' || prereqPhase === 'create-collection') {
     const prereqContent = (
@@ -467,21 +389,36 @@ export function QuickStartWizard({
             <div className="px-4 pb-3 pt-4">
               <p className="text-body font-medium text-[var(--color-figma-text)]">
                 {effectiveCollectionId
-                  ? `"${effectiveCollectionId}" is ready. Choose what to do next.`
-                  : 'Choose what to do next.'}
+                  ? `"${effectiveCollectionId}" is ready. Create your first token next.`
+                  : 'Create your first token next.'}
               </p>
               <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
-                Start with authoring, or use a starter recipe to generate a foundation set.
+                Keep the first step simple. Generators and other automations can wait until after the first token is in place.
               </p>
             </div>
-            <SetupActionList
-              connected={connected}
-              onSelect={handleActionSelect}
-            />
-            <div className="px-4 py-3">
+            <div className="px-4 pb-2">
               <button
+                type="button"
+                onClick={onAuthorFirstToken}
+                disabled={!connected}
+                className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+              >
+                Create first token
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-2 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setWizardView('template-picker')}
+                disabled={!connected}
+                className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-40"
+              >
+                Start with a generator instead
+              </button>
+              <button
+                type="button"
                 onClick={onComplete}
-                className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
               >
                 Done for now
               </button>
@@ -491,6 +428,11 @@ export function QuickStartWizard({
 
         {wizardView === 'template-picker' && (
           <>
+            <div className="px-4 pb-2 pt-4">
+              <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+                Starter generators are optional. Use one when you already know the structure you want to create.
+              </p>
+            </div>
             <CompactTemplatePicker
               templates={GRAPH_TEMPLATES}
               connected={connected && !foundationBusy}
@@ -501,6 +443,15 @@ export function QuickStartWizard({
                 {foundationError}
               </p>
             ) : null}
+            <div className="px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setWizardView('overview')}
+                className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+              >
+                Back to first token
+              </button>
+            </div>
           </>
         )}
       </div>

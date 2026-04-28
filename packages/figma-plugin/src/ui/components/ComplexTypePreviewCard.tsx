@@ -28,7 +28,7 @@ function TypographyPreview({ value }: { value: Record<string, unknown> }) {
   const letterSpacing = value.letterSpacing ? formatDimensionCss(value.letterSpacing, 'normal') : 'normal';
 
   const props = [fontFamily, `${fontSize}/${lineHeight}`, `wt ${fontWeight}`];
-  if (value.fontStyle) props.push(value.fontStyle);
+  if (typeof value.fontStyle === 'string') props.push(value.fontStyle);
 
   return (
     <div>
