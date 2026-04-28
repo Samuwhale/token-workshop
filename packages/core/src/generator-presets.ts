@@ -166,7 +166,7 @@ export function buildGeneratorNodesFromStructuredDraft(
   });
   edges.push({
     id: 'generation-output',
-    from: { nodeId: generationId, port: 'value' },
+    from: { nodeId: generationId, port: 'steps' },
     to: { nodeId: outputId, port: 'value' },
   });
 

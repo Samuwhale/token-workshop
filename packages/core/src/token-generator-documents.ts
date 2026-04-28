@@ -76,10 +76,10 @@ export type TokenGeneratorNodeKind =
   | 'shadowScale'
   | 'zIndexScale'
   | 'customScale'
-	  | 'list'
-	  | 'alias'
-	  | 'output'
-	  | 'groupOutput';
+  | 'list'
+  | 'alias'
+  | 'output'
+  | 'groupOutput';
 
 export interface TokenGeneratorViewport {
   x: number;
@@ -128,8 +128,8 @@ export interface TokenGeneratorDocument {
   viewport: TokenGeneratorViewport;
   createdAt: string;
   updatedAt: string;
-	  lastAppliedAt?: string;
-	  lastApplyDiagnostics?: TokenGeneratorDiagnostic[];
+  lastAppliedAt?: string;
+  lastApplyDiagnostics?: TokenGeneratorDiagnostic[];
   outputHashes?: Record<string, string>;
 }
 
@@ -559,9 +559,9 @@ function evaluateNodeForMode({
       return customScaleValue(node, source);
     case 'list':
       return listValue(node);
-	    case 'output':
-	    case 'groupOutput':
-	      return source;
+    case 'output':
+    case 'groupOutput':
+      return source;
     default:
       return undefined;
   }

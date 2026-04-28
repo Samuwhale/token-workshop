@@ -83,6 +83,7 @@ interface GeneratorsPanelProps {
   onNavigateToToken: (path: string, collectionId: string) => void;
   tokenChangeKey?: number;
   initialGeneratorId?: string | null;
+  initialView?: GeneratorEditorMode | null;
   initialFocus?: GeneratorPanelFocus | null;
   onInitialGeneratorHandled?: () => void;
 }
@@ -296,6 +297,7 @@ export function GeneratorsPanel({
   onNavigateToToken,
   tokenChangeKey,
   initialGeneratorId,
+  initialView,
   initialFocus,
   onInitialGeneratorHandled,
 }: GeneratorsPanelProps) {
@@ -330,6 +332,8 @@ export function GeneratorsPanel({
   > | null>(null);
   const [nodes, setNodes] = useNodesState<GraphFlowNode>([]);
   const [edges, setEdges] = useEdgesState<GraphFlowEdge>([]);
+  const nodesRef = useRef<GraphFlowNode[]>([]);
+  const edgesRef = useRef<GraphFlowEdge[]>([]);
   const previewRef = useRef<TokenGeneratorPreviewResult | null>(null);
   const autoPreviewRunRef = useRef(0);
   const latestPreviewSignatureRef = useRef("");
@@ -435,6 +439,14 @@ export function GeneratorsPanel({
   }, [preview]);
 
   useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
+  useEffect(() => {
     if (!initialGeneratorId) return;
     const initialGenerator = generators.find(
       (generator) => generator.id === initialGeneratorId,
@@ -449,8 +461,10 @@ export function GeneratorsPanel({
     setLastApply(null);
     setDirty(false);
     setExternalPreviewInvalidated(false);
-    if (focus?.nodeId) {
+    if (initialView === "graph" || focus?.nodeId) {
       setEditorMode("graph");
+    }
+    if (focus?.nodeId) {
       setSelectedNodeId(focus.nodeId);
       setInspectorOpen(true);
     }
@@ -483,6 +497,7 @@ export function GeneratorsPanel({
     generators,
     initialFocus,
     initialGeneratorId,
+    initialView,
     onInitialGeneratorHandled,
     serverUrl,
   ]);
@@ -869,10 +884,10 @@ export function GeneratorsPanel({
         data: { ...item.defaults },
       };
       const flowNode: GraphFlowNode = {
-          id,
-          type: "graphNode",
-          position: resolvedPosition,
-          data: { graphNode, preview: preview ?? undefined },
+        id,
+        type: "graphNode",
+        position: resolvedPosition,
+        data: { graphNode, preview: preview ?? undefined },
       };
       const nextNodes = [...nodes, flowNode];
       setNodes(nextNodes);
@@ -931,6 +946,107 @@ export function GeneratorsPanel({
     setNodes,
   ]);
 
+  const addOutputStep = useCallback(() => {
+    if (!activeGenerator) return;
+    const sourceNode =
+      (selectedNode &&
+      !["output", "groupOutput"].includes(selectedNode.kind)
+        ? selectedNode
+        : null) ??
+      [...nodes]
+        .map((node) => node.data.graphNode)
+        .filter((node) => !["output", "groupOutput"].includes(node.kind))
+        .sort((a, b) => b.position.x - a.position.x)[0] ??
+      null;
+    const sourcePorts = sourceNode ? getNodeOutputPorts(sourceNode) : [];
+    const outputKind =
+      sourcePorts.includes("steps") ||
+      sourceNode?.kind === "list"
+        ? "groupOutput"
+        : "output";
+    const paletteItem = PALETTE.find((item) => item.kind === outputKind);
+    if (!paletteItem) return;
+    const id = `${paletteItem.kind}_${Math.random().toString(36).slice(2, 8)}`;
+    const position = sourceNode
+      ? { x: sourceNode.position.x + 280, y: sourceNode.position.y + 10 }
+      : {
+          x:
+            Math.max(180, ...nodes.map((node) => node.position.x)) + 260,
+          y: 160,
+        };
+    const graphNode: TokenGeneratorDocumentNode = {
+      id,
+      kind: paletteItem.kind,
+      label: paletteItem.label,
+      position,
+      data: { ...paletteItem.defaults },
+    };
+    const flowNode: GraphFlowNode = {
+      id,
+      type: "graphNode",
+      position,
+      data: { graphNode, preview: preview ?? undefined },
+    };
+    const sourcePort = sourcePorts.includes("steps") ? "steps" : "value";
+    const nextEdges =
+      sourceNode && sourcePorts.length > 0
+        ? addEdge(
+            {
+              id: `${sourceNode.id}-${sourcePort}-${id}-value`,
+              source: sourceNode.id,
+              sourceHandle: sourcePort,
+              target: id,
+              targetHandle: "value",
+            },
+            edges,
+          )
+        : edges;
+    const nextNodes = [...nodes, flowNode];
+    setNodes(nextNodes);
+    setEdges(nextEdges);
+    commitFlowState(nextNodes, nextEdges);
+    setSelectedNodeId(id);
+    setInspectorOpen(true);
+    setNodeLibraryOpen(false);
+    setEditorMode("graph");
+  }, [
+    activeGenerator,
+    commitFlowState,
+    edges,
+    nodes,
+    preview,
+    selectedNode,
+    setEdges,
+    setNodes,
+  ]);
+
+  const focusGraphIssue = useCallback(
+    (issue: GraphIssue) => {
+      setEditorMode("graph");
+      setNodeLibraryOpen(false);
+      if (issue.id === "missing-output") {
+        addOutputStep();
+        return;
+      }
+      if (issue.nodeId) {
+        setSelectedNodeId(issue.nodeId);
+        setInspectorOpen(true);
+      }
+    },
+    [addOutputStep],
+  );
+
+  const focusFirstGraphIssue = useCallback(() => {
+    const issue =
+      graphIssues.find((item) => item.severity === "error") ??
+      graphIssues[0];
+    if (issue) {
+      focusGraphIssue(issue);
+    } else {
+      setEditorMode("graph");
+    }
+  }, [focusGraphIssue, graphIssues]);
+
   const contextualPalette = useMemo(
     () => contextualPaletteItems(PALETTE, selectedNode, activeGenerator),
     [activeGenerator, selectedNode],
@@ -971,19 +1087,17 @@ export function GeneratorsPanel({
                 <button
                   key={issue.id}
                   type="button"
-                  onClick={() => {
-                    if (issue.nodeId) {
-                      setSelectedNodeId(issue.nodeId);
-                      setInspectorOpen(true);
-                    }
-                  }}
-                  className={`rounded-md px-2 py-1 text-tertiary font-medium shadow-sm ${
+                  onClick={() => focusGraphIssue(issue)}
+                  className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-tertiary font-medium shadow-sm transition-colors ${
                     issue.severity === "error"
-                      ? "bg-[color-mix(in_srgb,var(--color-figma-error)_12%,var(--color-figma-bg))] text-[var(--color-figma-error)]"
-                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
+                      ? "bg-[color-mix(in_srgb,var(--color-figma-error)_12%,var(--color-figma-bg))] text-[var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_18%,var(--color-figma-bg))]"
+                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                   }`}
                 >
                   {issue.message}
+                  {issue.id === "missing-output" ? (
+                    <Plus size={12} aria-hidden />
+                  ) : null}
                 </button>
               ))}
               {graphIssues.length > 4 ? (
@@ -999,18 +1113,18 @@ export function GeneratorsPanel({
             nodeTypes={NODE_TYPES}
             onNodesChange={(changes) => {
               if (hasStructuralNodeChange(changes)) {
-                const nextNodes = applyNodeChanges(changes, nodes);
+                const nextNodes = applyNodeChanges(changes, nodesRef.current);
                 setNodes(nextNodes);
-                commitFlowState(nextNodes, edges);
+                commitFlowState(nextNodes, edgesRef.current);
                 return;
               }
               setNodes((current) => applyNodeChanges(changes, current));
             }}
             onEdgesChange={(changes) => {
               if (hasStructuralEdgeChange(changes)) {
-                const nextEdges = applyEdgeChanges(changes, edges);
+                const nextEdges = applyEdgeChanges(changes, edgesRef.current);
                 setEdges(nextEdges);
-                commitFlowState(nodes, nextEdges);
+                commitFlowState(nodesRef.current, nextEdges);
                 return;
               }
               setEdges((current) => applyEdgeChanges(changes, current));
@@ -1187,11 +1301,24 @@ export function GeneratorsPanel({
                       Graph
                     </button>
                   </div>
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                    {busy
-                      ? `${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`
-                      : statusLabel}
-                  </span>
+                  {busy ? (
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                      {`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
+                    </span>
+                  ) : graphHasErrors ? (
+                    <button
+                      type="button"
+                      onClick={focusFirstGraphIssue}
+                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+                    >
+                      <AlertTriangle size={13} />
+                      {statusLabel}
+                    </button>
+                  ) : (
+                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                      {statusLabel}
+                    </span>
+                  )}
                   <div className="ml-auto flex items-center gap-1.5">
                     {editorMode === "graph" ? (
                       <>
@@ -1315,6 +1442,7 @@ export function GeneratorsPanel({
                         graphIssues={graphIssues}
                         onChangeStructuredDraft={updateStructuredDraft}
                         onEditGraph={() => setEditorMode("graph")}
+                        onFocusGraphIssue={focusGraphIssue}
                       />
                     </aside>
                     <section className="min-w-0 flex-1 overflow-auto p-3">
@@ -1373,6 +1501,7 @@ function GeneratorSetupSummary({
   graphIssues,
   onChangeStructuredDraft,
   onEditGraph,
+  onFocusGraphIssue,
 }: {
   generator: TokenGeneratorDocument;
   targetCollection: TokenCollection | undefined;
@@ -1385,6 +1514,7 @@ function GeneratorSetupSummary({
   graphIssues: GraphIssue[];
   onChangeStructuredDraft: (patch: Partial<GeneratorStructuredDraft>) => void;
   onEditGraph: () => void;
+  onFocusGraphIssue: (issue: GraphIssue) => void;
 }) {
   const outputNodes = generator.nodes.filter(
     (node) => node.kind === "groupOutput" || node.kind === "output",
@@ -1460,16 +1590,18 @@ function GeneratorSetupSummary({
               Needs attention
             </h3>
             {graphIssues.slice(0, 4).map((issue) => (
-              <div
+              <button
                 key={issue.id}
+                type="button"
+                onClick={() => onFocusGraphIssue(issue)}
                 className={`rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary ${
                   issue.severity === "error"
                     ? "text-[var(--color-figma-error)]"
                     : "text-[var(--color-figma-text-secondary)]"
-                }`}
+                } text-left hover:bg-[var(--color-figma-bg-hover)]`}
               >
                 {issue.message}
-              </div>
+              </button>
             ))}
           </section>
         ) : null}
@@ -1492,9 +1624,20 @@ function GeneratorSetupSummary({
               ))}
             </div>
           ) : (
-            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+            <button
+              type="button"
+              onClick={() =>
+                onFocusGraphIssue({
+                  id: "missing-output",
+                  severity: "error",
+                  message: "Add an output step",
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              <Plus size={13} />
               Add an output on the generator canvas before applying.
-            </p>
+            </button>
           )}
         </section>
       </div>
@@ -2342,7 +2485,7 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
 
   return (
     <div
-      className={`min-w-[180px] rounded-lg border bg-[var(--color-figma-bg)] px-3 py-2 shadow-sm ${
+      className={`tm-graph-node min-w-[180px] rounded-lg border bg-[var(--color-figma-bg)] px-3 py-2 shadow-sm ${
         selected
           ? "border-[var(--color-figma-accent)]"
           : hasErrors

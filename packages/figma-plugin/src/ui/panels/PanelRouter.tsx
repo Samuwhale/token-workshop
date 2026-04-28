@@ -254,6 +254,8 @@ export function PanelRouter({
   >(null);
   const [pendingGeneratorFocus, setPendingGeneratorFocus] =
     useState<GeneratorPanelFocus | null>(null);
+  const [pendingGeneratorInitialView, setPendingGeneratorInitialView] =
+    useState<"setup" | "graph" | null>(null);
   const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
     useState<string | null>(null);
   const [generatorCreateOutputPrefix, setGeneratorCreateOutputPrefix] =
@@ -829,6 +831,7 @@ export function PanelRouter({
           setCurrentCollectionId(tokenDetails.collectionId);
           setPendingGeneratorDocumentId(generatorId);
           setPendingGeneratorFocus(null);
+          setPendingGeneratorInitialView(null);
           navigateTo("library", "generators");
         },
         lintViolations: healthSignals.lintViolationsForCurrent,
@@ -941,10 +944,11 @@ export function PanelRouter({
                 setGeneratorCreateOutputPrefix(null);
                 switchContextualSurface({ surface: null });
               }}
-              onOpenGenerator={(generatorId, collectionId) => {
+              onOpenGenerator={(generatorId, collectionId, initialView) => {
                 setCurrentCollectionId(collectionId);
                 setPendingGeneratorDocumentId(generatorId);
                 setPendingGeneratorFocus(null);
+                setPendingGeneratorInitialView(initialView ?? null);
                 setGeneratorCreateOutputPrefix(null);
                 switchContextualSurface({ surface: null });
                 navigateTo("library", "generators");
@@ -1184,6 +1188,7 @@ export function PanelRouter({
           onOpenGenerator={(generatorId, options) => {
             setPendingGeneratorDocumentId(generatorId);
             setPendingGeneratorFocus(options?.focus ?? null);
+            setPendingGeneratorInitialView(null);
             navigateTo("library", "generators", options);
           }}
           savePublishRouting={savePublishRouting}
@@ -1614,10 +1619,12 @@ export function PanelRouter({
             perCollectionFlat={perCollectionFlat}
             tokenChangeKey={controller.tokenChangeKey}
             initialGeneratorId={pendingGeneratorDocumentId}
+            initialView={pendingGeneratorInitialView}
             initialFocus={pendingGeneratorFocus}
             onInitialGeneratorHandled={() => {
               setPendingGeneratorDocumentId(null);
               setPendingGeneratorFocus(null);
+              setPendingGeneratorInitialView(null);
             }}
             onNavigateToToken={(path, collectionId) => {
               openTokenInContext({
@@ -1689,6 +1696,7 @@ export function PanelRouter({
                 nodeId: issue.generatorNodeId,
                 edgeId: issue.generatorEdgeId,
               });
+              setPendingGeneratorInitialView(null);
               navigateTo("library", "generators");
             }}
             scope={healthScope}
@@ -1703,6 +1711,7 @@ export function PanelRouter({
                   nodeId: issue.generatorNodeId,
                   edgeId: issue.generatorEdgeId,
                 });
+                setPendingGeneratorInitialView(null);
                 navigateTo("library", "generators");
                 return;
               }
