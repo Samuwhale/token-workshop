@@ -30,13 +30,16 @@ import { dispatchToast } from "../shared/toastBus";
 import { getErrorMessage, COLLECTION_NAME_RE } from "../shared/utils";
 import {
   getImportResultNextStepRecommendations,
+  isWorkspaceImportNextStepRecommendation,
   type ImportNextStepRecommendation,
+  type WorkspaceImportNextStepRecommendation,
 } from "../shared/navigationTypes";
 
 export interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
   workingCollectionId: string;
+  onClose: () => void;
   onImported: () => void;
   onImportComplete: (result: ImportCompletionResult) => void;
   onOpenImportNextStep: (
@@ -98,11 +101,6 @@ export interface ImportCompletionResult {
   sourceCollectionCount?: number;
 }
 
-export interface CollectionModeDestinationStatus {
-  sharedDestinationCount: number;
-  ambiguousPathCount: number;
-}
-
 type ExistingTokenValue = { $type: string; $value: unknown };
 type ConflictDecision = "accept" | "merge" | "reject";
 type ImportBatch = { collectionId: string; tokens: Record<string, unknown>[] };
@@ -125,7 +123,6 @@ type CollectionImportPlan = {
     tokens: CollectionImportTokenSource[];
   }[];
   totalPathCount: number;
-  modeKeys: string[];
   secondaryModeNames: string[];
   primaryModeName: string | null;
 };
@@ -184,19 +181,11 @@ export interface ImportDestinationContextValue {
   newCollectionError: string | null;
   modeCollectionNames: Record<string, string>;
   modeEnabled: Record<string, boolean>;
-  collectionModeDestinationStatus: Record<
-    string,
-    CollectionModeDestinationStatus
-  >;
   hasAmbiguousCollectionImport: boolean;
   ambiguousCollectionImportCount: number;
-  hasUnresolvedModeDestinations: boolean;
-  unresolvedModeDestinationCount: number;
   totalEnabledCollections: number;
   totalEnabledTokens: number;
   usesCollectionDestination: boolean;
-  destinationReady: boolean;
-  canContinueToPreview: boolean;
   hasInvalidModeCollectionNames: boolean;
   setNewCollectionInputVisible: React.Dispatch<React.SetStateAction<boolean>>;
   setNewCollectionDraft: React.Dispatch<React.SetStateAction<string>>;
@@ -264,13 +253,15 @@ export interface ImportResultContextValue {
   copyFeedback: boolean;
   lastImport: ImportHistory | null;
   lastImportReviewSummary: LastImportReviewSummary | null;
-  importNextStepRecommendations: ImportNextStepRecommendation[];
+  importNextStepRecommendations: WorkspaceImportNextStepRecommendation[];
   undoing: boolean;
   failedImportGroups: ImportFailureGroup[];
   handleUndoImport: () => Promise<void>;
   handleRetryFailed: () => Promise<void>;
   handleCopyFailedPaths: () => void;
-  openImportNextStep: (recommendation: ImportNextStepRecommendation) => void;
+  openImportNextStep: (
+    recommendation: WorkspaceImportNextStepRecommendation,
+  ) => void;
   clearSuccessState: () => void;
 }
 
@@ -463,7 +454,6 @@ function buildCollectionImportPlans(
   modeCollectionNames: Record<string, string>,
 ): {
   plans: CollectionImportPlan[];
-  modeStatus: Record<string, CollectionModeDestinationStatus>;
   ambiguousPathCount: number;
 } {
   const groupedPlans = new Map<
@@ -471,7 +461,6 @@ function buildCollectionImportPlans(
     {
       collectionId: string;
       pathSources: Map<string, CollectionImportTokenSource[]>;
-      modeKeys: Set<string>;
     }
   >();
 
@@ -500,12 +489,10 @@ function buildCollectionImportPlans(
         plan = {
           collectionId,
           pathSources: new Map(),
-          modeKeys: new Set(),
         };
         groupedPlans.set(collectionId, plan);
       }
 
-      plan.modeKeys.add(key);
       for (const token of mode.tokens) {
         const pathSources = plan.pathSources.get(token.path) ?? [];
         pathSources.push({
@@ -521,19 +508,10 @@ function buildCollectionImportPlans(
     }
   }
 
-  const modeStatus: Record<string, CollectionModeDestinationStatus> = {};
   const plans: CollectionImportPlan[] = [];
   let ambiguousPathCount = 0;
 
   for (const plan of groupedPlans.values()) {
-    const modeKeys = [...plan.modeKeys];
-    for (const modeKeyValue of modeKeys) {
-      modeStatus[modeKeyValue] = {
-        sharedDestinationCount: modeKeys.length,
-        ambiguousPathCount: 0,
-      };
-    }
-
     const writeTokens: CollectionImportTokenSource[] = [];
     const duplicateConflicts: CollectionImportPlan["duplicateConflicts"] = [];
     const mergedModeNames = new Set<string>();
@@ -589,17 +567,6 @@ function buildCollectionImportPlans(
       } else {
         ambiguousPathCount += 1;
         duplicateConflicts.push({ path, tokens: pathSources });
-        const conflictingModes = new Set(
-          pathSources.map((source) => source.modeKey),
-        );
-        for (const modeKeyValue of conflictingModes) {
-          const currentStatus = modeStatus[modeKeyValue] ?? {
-            sharedDestinationCount: modeKeys.length,
-            ambiguousPathCount: 0,
-          };
-          currentStatus.ambiguousPathCount += 1;
-          modeStatus[modeKeyValue] = currentStatus;
-        }
       }
     }
 
@@ -608,7 +575,6 @@ function buildCollectionImportPlans(
       writeTokens,
       duplicateConflicts,
       totalPathCount: plan.pathSources.size,
-      modeKeys,
       secondaryModeNames: [...mergedModeNames],
       primaryModeName,
     });
@@ -616,7 +582,6 @@ function buildCollectionImportPlans(
 
   return {
     plans,
-    modeStatus,
     ambiguousPathCount,
   };
 }
@@ -774,7 +739,6 @@ export function ImportPanelProvider({
 
   const {
     plans: collectionImportPlans,
-    modeStatus: collectionModeDestinationStatus,
     ambiguousPathCount: ambiguousCollectionImportCount,
   } = useMemo(
     () =>
@@ -805,43 +769,6 @@ export function ImportPanelProvider({
     [collectionImportPlans],
   );
   const hasAmbiguousCollectionImport = ambiguousCollectionImportCount > 0;
-  const unresolvedModeDestinationCount = useMemo(
-    () =>
-      src.collectionData.reduce((count, collection) => {
-        return (
-          count +
-          collection.modes.reduce((modeCount, mode) => {
-            const key = modeKey(collection.name, mode.modeId);
-            if (!(src.modeEnabled[key] ?? true)) {
-              return modeCount;
-            }
-
-            const explicitDestination = src.modeCollectionNames[key]?.trim() ?? "";
-            if (explicitDestination) {
-              return modeCount;
-            }
-
-            const suggestedDestination = defaultCollectionName(
-              collection.name,
-              mode.modeName,
-              collection.modes.length,
-            );
-            const exactMatchAvailable =
-              collectionsHook.collectionIds.includes(collection.name) ||
-              collectionsHook.collectionIds.includes(suggestedDestination);
-
-            return exactMatchAvailable ? modeCount : modeCount + 1;
-          }, 0)
-        );
-      }, 0),
-    [
-      collectionsHook.collectionIds,
-      src.collectionData,
-      src.modeCollectionNames,
-      src.modeEnabled,
-    ],
-  );
-  const hasUnresolvedModeDestinations = unresolvedModeDestinationCount > 0;
 
   const previewNewCount = useMemo(
     () =>
@@ -1728,12 +1655,12 @@ export function ImportPanelProvider({
       lastImportResult === null
         ? []
         : getImportResultNextStepRecommendations(lastImportResult).filter(
-            (recommendation) => recommendation.target.kind === "workspace",
+            isWorkspaceImportNextStepRecommendation,
           ),
     [lastImportResult],
   );
   const openImportNextStep = useCallback(
-    (recommendation: ImportNextStepRecommendation) => {
+    (recommendation: WorkspaceImportNextStepRecommendation) => {
       if (lastImportResult === null) {
         return;
       }
@@ -1765,30 +1692,6 @@ export function ImportPanelProvider({
       ),
     [src.collectionData, src.modeEnabled, src.modeCollectionNames],
   );
-
-  const hasValidSingleSetDestination = useMemo(() => {
-    const trimmedTarget = collectionsHook.targetCollectionId.trim();
-    return (
-      !collectionsHook.newCollectionInputVisible &&
-      !!trimmedTarget &&
-      COLLECTION_NAME_RE.test(trimmedTarget)
-    );
-  }, [
-    collectionsHook.newCollectionInputVisible,
-    collectionsHook.targetCollectionId,
-  ]);
-
-  const destinationReady = usesCollectionDestination
-    ? totalEnabledCollections > 0 &&
-      !hasInvalidModeCollectionNames &&
-      !hasAmbiguousCollectionImport &&
-      !hasUnresolvedModeDestinations
-    : hasValidSingleSetDestination;
-
-  const canContinueToPreview =
-    src.tokens.length > 0 &&
-    !usesCollectionDestination &&
-    hasValidSingleSetDestination;
 
   const sourceValue = useMemo<ImportSourceContextValue>(
     () => ({
@@ -1887,16 +1790,11 @@ export function ImportPanelProvider({
       newCollectionError: collectionsHook.newCollectionError,
       modeCollectionNames: src.modeCollectionNames,
       modeEnabled: src.modeEnabled,
-      collectionModeDestinationStatus,
       hasAmbiguousCollectionImport,
       ambiguousCollectionImportCount,
-      hasUnresolvedModeDestinations,
-      unresolvedModeDestinationCount,
       totalEnabledCollections,
       totalEnabledTokens,
       usesCollectionDestination,
-      destinationReady,
-      canContinueToPreview,
       hasInvalidModeCollectionNames,
       setNewCollectionInputVisible: collectionsHook.setNewCollectionInputVisible,
       setNewCollectionDraft: collectionsHook.setNewCollectionDraft,
@@ -1911,13 +1809,8 @@ export function ImportPanelProvider({
     }),
     [
       ambiguousCollectionImportCount,
-      canContinueToPreview,
-      collectionModeDestinationStatus,
-      destinationReady,
       hasAmbiguousCollectionImport,
       hasInvalidModeCollectionNames,
-      hasUnresolvedModeDestinations,
-      unresolvedModeDestinationCount,
       collectionsHook.cancelNewCollection,
       collectionsHook.collectionIds,
       collectionsHook.collectionsError,

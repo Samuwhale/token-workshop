@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SyncCompleteMessage, TokenMapEntry } from "../../shared/types";
 import {
   RemapBindingsPanel,
@@ -11,12 +11,16 @@ interface CanvasRepairPanelProps {
   tokenMap: Record<string, TokenMapEntry>;
   syncResult: SyncCompleteMessage | null;
   prefillEntries: readonly RemapBindingsPrefillEntry[] | null;
+  defaultScope?: "selection" | "page";
+  onClose: () => void;
 }
 
 export function CanvasRepairPanel({
   tokenMap,
   syncResult,
   prefillEntries,
+  defaultScope = "page",
+  onClose,
 }: CanvasRepairPanelProps) {
   const staleEntries = useMemo(() => {
     const byFrom = new Map<string, RemapBindingsPrefillEntry>();
@@ -34,6 +38,10 @@ export function CanvasRepairPanel({
   const [rows, setRows] = useState<RemapBindingsRow[]>(() =>
     buildRemapRowsFromEntries(staleEntries),
   );
+
+  useEffect(() => {
+    setRows(buildRemapRowsFromEntries(staleEntries));
+  }, [staleEntries]);
 
   const suggestedCount = staleEntries.filter(
     (entry) => entry.to && entry.to.trim().length > 0,
@@ -64,7 +72,8 @@ export function CanvasRepairPanel({
             rows={rows}
             onRowsChange={setRows}
             fromSuggestions={staleEntries.map((entry) => entry.from)}
-            onClose={() => {}}
+            onClose={onClose}
+            defaultScope={defaultScope}
             embedded
           />
         ) : (

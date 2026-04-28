@@ -35,10 +35,12 @@ function CanvasRepairPanelMount({
   tokenMap,
   syncResult,
   consumePendingRepairPrefill,
+  onClose,
 }: {
   tokenMap: Parameters<typeof CanvasRepairPanel>[0]["tokenMap"];
   syncResult: Parameters<typeof CanvasRepairPanel>[0]["syncResult"];
   consumePendingRepairPrefill: () => readonly RepairPrefillEntry[] | null;
+  onClose: () => void;
 }) {
   const [prefillEntries] = useState<readonly RepairPrefillEntry[] | null>(() =>
     consumePendingRepairPrefill(),
@@ -48,6 +50,8 @@ function CanvasRepairPanelMount({
       tokenMap={tokenMap}
       syncResult={syncResult}
       prefillEntries={prefillEntries}
+      defaultScope={prefillEntries && prefillEntries.length > 0 ? "selection" : "page"}
+      onClose={onClose}
     />
   );
 }
@@ -162,6 +166,7 @@ export function CanvasRouter({
           tokenMap={allTokensFlat}
           syncResult={syncResult}
           consumePendingRepairPrefill={consumePendingRepairPrefill}
+          onClose={() => navigateTo("canvas", "inspect")}
         />
       </ErrorBoundary>
     </div>

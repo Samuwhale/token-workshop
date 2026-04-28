@@ -1668,14 +1668,15 @@ export function TokenDetails({
                       fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
                       modified={isModeModified && !isCreateMode}
                       onNavigateToToken={(path) => onNavigateToToken?.(path)}
-                      allowCopyFromPrevious={isEditMode && modeValue.modes.length > 1}
+                      allowCopyFromPrevious={
+                        isEditMode &&
+                        modeValue.modes.length > 1 &&
+                        modeIdx > 0
+                      }
                       onCopyFromPrevious={
-                        isEditMode && modeValue.modes.length > 1
+                        isEditMode && modeValue.modes.length > 1 && modeIdx > 0
                           ? () => {
-                              const sourceIdx =
-                                modeIdx === 0
-                                  ? modeValue.modes.length - 1
-                                  : modeIdx - 1;
+                              const sourceIdx = modeIdx - 1;
                               const sourceValue = modeValue.modes[sourceIdx].value;
                               if (sourceValue != null) {
                                 mode.setValue(cloneModeValue(sourceValue));

@@ -1024,6 +1024,7 @@ export function PanelRouter({
                   serverUrl={serverUrl}
                   connected={connected}
                   workingCollectionId={currentCollectionId}
+                  onClose={closeMaintenanceSurface}
                   onImported={refreshTokens}
                   onImportComplete={(result) => {
                     controller.onImportComplete(result);
@@ -1122,9 +1123,10 @@ export function PanelRouter({
         setCurrentCollectionId(targetCollectionId);
       }
 
+      closeMaintenanceSurface();
       navigateTo(recommendation.target.topTab, recommendation.target.subTab);
     },
-    [navigateTo, setCurrentCollectionId],
+    [closeMaintenanceSurface, navigateTo, setCurrentCollectionId],
   );
 
   type SecondaryPanelRenderer = () => ReactNode;
@@ -1329,16 +1331,18 @@ export function PanelRouter({
             ? {
                 open: activeEditorSurface === "collection-details",
                 onToggle: (collectionId: string) => {
-                  if (
-                    activeEditorSurface === "collection-details" &&
-                    inspectingCollection?.collectionId === collectionId
-                  ) {
-                    switchContextualSurface({ surface: null });
-                    return;
-                  }
-                  switchContextualSurface({
-                    surface: "collection-details",
-                    collection: { collectionId },
+                  guardEditorAction(() => {
+                    if (
+                      activeEditorSurface === "collection-details" &&
+                      inspectingCollection?.collectionId === collectionId
+                    ) {
+                      switchContextualSurface({ surface: null });
+                      return;
+                    }
+                    switchContextualSurface({
+                      surface: "collection-details",
+                      collection: { collectionId },
+                    });
                   });
                 },
               }

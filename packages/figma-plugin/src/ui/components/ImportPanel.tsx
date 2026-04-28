@@ -15,7 +15,13 @@ import { ImportTokenListView } from './ImportTokenListView';
 import { ImportPreviewFooter } from './ImportPreviewFooter';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 
-function ImportPanelRoot({ connected }: { connected: boolean }) {
+function ImportPanelRoot({
+  connected,
+  onClose,
+}: {
+  connected: boolean;
+  onClose: () => void;
+}) {
   const {
     collectionData,
     tokens,
@@ -44,24 +50,72 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') escapeRef.current?.();
+      if (e.key !== 'Escape') {
+        return;
+      }
+      if (escapeRef.current) {
+        escapeRef.current();
+        return;
+      }
+      if (showHome) {
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [onClose, showHome]);
 
   if (!connected) {
     return (
-      <FeedbackPlaceholder
-        variant="disconnected"
-        title="Connect to the token server"
-        description="Import requires an active server connection."
-      />
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-body font-medium text-[var(--color-figma-text)]">
+              Import tokens
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+        <div className="flex min-h-0 flex-1 items-center justify-center p-3">
+          <FeedbackPlaceholder
+            variant="disconnected"
+            title="Connect to the token server"
+            description="Import requires an active server connection."
+          />
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-body font-medium text-[var(--color-figma-text)]">
+              Import tokens
+            </div>
+            {showHome ? (
+              <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+                Bring in variables, styles, or token files.
+              </div>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          >
+            Close
+          </button>
+        </div>
+      </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
         {error && (
           <FeedbackPlaceholder
@@ -98,7 +152,7 @@ function ImportPanelRoot({ connected }: { connected: boolean }) {
 export function ImportPanel(props: ImportPanelProps) {
   return (
     <ImportPanelProvider {...props}>
-      <ImportPanelRoot connected={props.connected} />
+      <ImportPanelRoot connected={props.connected} onClose={props.onClose} />
     </ImportPanelProvider>
   );
 }

@@ -213,10 +213,20 @@ export type ImportNextStepTarget =
       secondarySurfaceId: SecondarySurfaceId;
     };
 
+export type WorkspaceImportNextStepTarget = Extract<
+  ImportNextStepTarget,
+  { kind: "workspace" }
+>;
+
 export interface ImportNextStepRecommendation {
   target: ImportNextStepTarget;
   label: string;
   rationale: string;
+}
+
+export interface WorkspaceImportNextStepRecommendation
+  extends ImportNextStepRecommendation {
+  target: WorkspaceImportNextStepTarget;
 }
 
 const PRIMARY_IMPORT_COLLECTION_SEGMENTS = new Set([
@@ -350,7 +360,7 @@ function createWorkspaceRecommendation(
   topTab: TopTab,
   subTab: SubTab,
   rationale: string,
-): ImportNextStepRecommendation {
+): WorkspaceImportNextStepRecommendation {
   const workspace = resolveWorkspace(topTab, subTab);
   return {
     target: {
@@ -362,6 +372,12 @@ function createWorkspaceRecommendation(
     label: workspace.label,
     rationale,
   };
+}
+
+export function isWorkspaceImportNextStepRecommendation(
+  recommendation: ImportNextStepRecommendation,
+): recommendation is WorkspaceImportNextStepRecommendation {
+  return recommendation.target.kind === "workspace";
 }
 
 

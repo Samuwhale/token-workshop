@@ -25,9 +25,7 @@ export function ImportSuccessView() {
     ? "var(--color-figma-warning)"
     : "var(--color-figma-success)";
 
-  const viewTokensRecommendation = importNextStepRecommendations.find(
-    (r) => r.target.kind === "workspace" && r.target.topTab === "library" && r.target.subTab === "tokens",
-  );
+  const nextStepRecommendations = importNextStepRecommendations.slice(0, 2);
 
   return (
     <div className="flex flex-col items-center gap-3 py-6">
@@ -104,15 +102,21 @@ export function ImportSuccessView() {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        {viewTokensRecommendation && (
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {nextStepRecommendations.map((recommendation, index) => (
           <button
-            onClick={() => openImportNextStep(viewTokensRecommendation)}
-            className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white hover:opacity-90"
+            key={`${recommendation.target.topTab}:${recommendation.target.subTab}`}
+            onClick={() => openImportNextStep(recommendation)}
+            className={
+              index === 0
+                ? "rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white hover:opacity-90"
+                : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+            }
+            title={recommendation.rationale}
           >
-            View tokens
+            {index === 0 ? `Next: ${recommendation.label}` : recommendation.label}
           </button>
-        )}
+        ))}
         <button onClick={clearSuccessState} className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
           Import more
         </button>

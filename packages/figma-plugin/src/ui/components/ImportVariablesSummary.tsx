@@ -20,8 +20,6 @@ export function ImportVariablesSummary() {
     hasInvalidModeCollectionNames,
     hasAmbiguousCollectionImport,
     ambiguousCollectionImportCount,
-    hasUnresolvedModeDestinations,
-    unresolvedModeDestinationCount,
     setModeCollectionNames,
   } = useImportDestinationContext();
   const {
@@ -43,7 +41,6 @@ export function ImportVariablesSummary() {
     totalEnabledCollections > 0 &&
     !hasInvalidModeCollectionNames &&
     !hasBlockingCollisions &&
-    !hasUnresolvedModeDestinations &&
     !importing;
 
   const importTokenCount = strategy === 'skip' && varConflictPreview
@@ -72,35 +69,16 @@ export function ImportVariablesSummary() {
           : '';
     const destinationName = explicitDestination || exactMatchDestination || suggestedDestination;
     const modeNames = enabledModes.map(m => m.modeName);
-    const requiresExplicitDestination = enabledModes.some((mode) => {
-      const key = modeKey(col.name, mode.modeId);
-      const explicitName = modeCollectionNames[key]?.trim() ?? '';
-      if (explicitName) {
-        return false;
-      }
-      const suggestedName = defaultCollectionName(col.name, mode.modeName, col.modes.length);
-      return !collectionIds.includes(col.name) && !collectionIds.includes(suggestedName);
-    });
-
     return {
       name: col.name,
       destinationName: destinationName.trim(),
-      suggestedDestination,
       modeCount: col.modes.length,
       enabledModeCount: enabledModes.length,
       tokenCount,
       modeNames,
       firstModeKey,
-      requiresExplicitDestination,
     };
   }).filter(s => s.enabledModeCount > 0);
-
-  // Detect destination name collisions between different Figma collections
-  const destinationCounts = new Map<string, number>();
-  for (const s of collectionSummaries) {
-    destinationCounts.set(s.destinationName, (destinationCounts.get(s.destinationName) ?? 0) + 1);
-  }
-  const hasNameCollisions = [...destinationCounts.values()].some(c => c > 1);
 
   return (
     <div className="flex flex-col gap-3">
@@ -125,52 +103,39 @@ export function ImportVariablesSummary() {
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="var(--color-figma-success)" aria-hidden="true">
                   <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.5 5.5L7 10 4.5 7.5l1-1L7 8l3.5-3.5 1 1Z" />
                 </svg>
-                {editingCollection === summary.name ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={modeCollectionNames[summary.firstModeKey] ?? summary.destinationName}
-                    onChange={e => {
-                      const newNames = { ...modeCollectionNames };
-                      for (const mode of collectionData.find(c => c.name === summary.name)?.modes ?? []) {
-                        newNames[modeKey(summary.name, mode.modeId)] = e.target.value;
-                      }
-                      setModeCollectionNames(prev => ({ ...prev, ...newNames }));
-                    }}
-                    onBlur={() => setEditingCollection(null)}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingCollection(null); }}
-                    className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] text-body font-medium text-[var(--color-figma-text)] outline-none"
-                  />
-                ) : (
-                  <span
-                    className={`min-w-0 break-words cursor-pointer text-body hover:text-[var(--color-figma-accent)] ${
-                      summary.requiresExplicitDestination
-                        ? 'text-[var(--color-figma-text-secondary)]'
-                        : 'font-medium text-[var(--color-figma-text)]'
-                    }`}
-                    onClick={() => {
-                      if (summary.requiresExplicitDestination) {
-                        const sourceCollection = collectionData.find(
-                          (collection) => collection.name === summary.name,
-                        );
-                        if (sourceCollection) {
-                          const nextNames = { ...modeCollectionNames };
-                          for (const mode of sourceCollection.modes) {
-                            nextNames[modeKey(summary.name, mode.modeId)] = summary.suggestedDestination;
-                          }
-                          setModeCollectionNames((previous) => ({
-                            ...previous,
-                            ...nextNames,
-                          }));
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                    Destination collection
+                  </div>
+                  {editingCollection === summary.name ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      value={modeCollectionNames[summary.firstModeKey] ?? summary.destinationName}
+                      onChange={e => {
+                        const newNames = { ...modeCollectionNames };
+                        for (const mode of collectionData.find(c => c.name === summary.name)?.modes ?? []) {
+                          newNames[modeKey(summary.name, mode.modeId)] = e.target.value;
                         }
-                      }
-                      setEditingCollection(summary.name);
-                    }}
-                    title={summary.requiresExplicitDestination ? 'Choose a destination collection' : 'Click to rename'}
-                  >
-                    {summary.requiresExplicitDestination ? 'Choose destination' : summary.destinationName}
-                  </span>
-                )}
+                        setModeCollectionNames(prev => ({ ...prev, ...newNames }));
+                      }}
+                      onBlur={() => setEditingCollection(null)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingCollection(null); }}
+                      className="flex-1 min-w-0 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-body font-medium text-[var(--color-figma-text)] outline-none"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex min-h-[30px] w-full min-w-0 items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      onClick={() => {
+                        setEditingCollection(summary.name);
+                      }}
+                      title="Rename destination collection"
+                    >
+                      <span className="truncate">{summary.destinationName}</span>
+                    </button>
+                  )}
+                </div>
               </div>
               <span className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">
                 {summary.tokenCount} tokens
@@ -179,16 +144,6 @@ export function ImportVariablesSummary() {
             {summary.modeCount > 1 && (
               <div className="mt-1 break-words text-secondary text-[var(--color-figma-text-tertiary)]">
                 {summary.modeNames.join(', ')}
-              </div>
-            )}
-            {summary.requiresExplicitDestination && (
-              <div className="mt-1 text-secondary text-[var(--color-figma-warning)]">
-                Choose an existing collection or create "{summary.suggestedDestination}" to continue.
-              </div>
-            )}
-            {hasNameCollisions && destinationCounts.get(summary.destinationName)! > 1 && (
-              <div className="mt-1 text-secondary text-[var(--color-figma-error)]">
-                Destination name conflicts with another collection — click to rename
               </div>
             )}
           </div>
@@ -225,12 +180,6 @@ export function ImportVariablesSummary() {
         {hasBlockingCollisions && !importing && (
           <div className="text-secondary text-[var(--color-figma-error)]">
             {ambiguousCollectionImportCount} duplicate destination path{ambiguousCollectionImportCount !== 1 ? 's' : ''} — rename a collection above.
-          </div>
-        )}
-
-        {hasUnresolvedModeDestinations && !importing && (
-          <div className="text-secondary text-[var(--color-figma-error)]">
-            {unresolvedModeDestinationCount} destination{unresolvedModeDestinationCount !== 1 ? 's' : ''} still need an explicit collection mapping.
           </div>
         )}
 

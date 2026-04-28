@@ -29,6 +29,7 @@ interface RemapBindingsPanelProps {
   onRowsChange: (rows: RemapBindingsRow[]) => void;
   fromSuggestions?: string[];
   onClose: () => void;
+  defaultScope?: "selection" | "page";
   embedded?: boolean;
 }
 
@@ -83,11 +84,14 @@ export function RemapBindingsPanel({
   onRowsChange,
   fromSuggestions,
   onClose,
+  defaultScope = "page",
   embedded = false,
 }: RemapBindingsPanelProps) {
   const remapRows =
     rows.length > 0 ? rows : buildRemapRowsFromEntries();
-  const [remapScope, setRemapScope] = useState<"selection" | "page">("page");
+  const [remapScope, setRemapScope] = useState<"selection" | "page">(
+    defaultScope,
+  );
   const [remapRunning, setRemapRunning] = useState(false);
   const [remapProgress, setRemapProgress] = useState<{
     processed: number;
@@ -133,6 +137,10 @@ export function RemapBindingsPanel({
     setRemapValidationMessage(null);
     setRemapError(null);
   }, [remapRows, remapScope]);
+
+  useEffect(() => {
+    setRemapScope(defaultScope);
+  }, [defaultScope]);
 
   const fromAutocompletePaths = useMemo(
     () =>
