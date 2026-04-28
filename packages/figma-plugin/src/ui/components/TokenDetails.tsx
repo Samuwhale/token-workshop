@@ -1019,13 +1019,21 @@ export function TokenDetails({
 
   if (loading) {
     return (
-      <div
-        role="status"
-        className="flex flex-col items-center justify-center gap-2 py-3 text-[var(--color-figma-text-secondary)] text-body"
+      <EditorShell
+        title={isCreateMode ? "New token" : tokenPath}
+        onBack={onBack}
+        backAriaLabel={backLabel ?? "Back"}
+        backTitle={backLabel}
+        surface="authoring"
       >
-        <Spinner size="md" className="text-[var(--color-figma-accent)]" />
-        Loading token...
-      </div>
+        <div
+          role="status"
+          className="flex min-h-full flex-col items-center justify-center gap-2 px-4 py-6 text-body text-[var(--color-figma-text-secondary)]"
+        >
+          <Spinner size="md" className="text-[var(--color-figma-accent)]" />
+          Loading token...
+        </div>
+      </EditorShell>
     );
   }
 
@@ -1081,7 +1089,7 @@ export function TokenDetails({
     <div className="tm-token-details__header-title">
       <div className="tm-token-details__header-mainline">
         <span
-          className="tm-token-details__header-path"
+          className={`tm-token-details__header-path ${LONG_TEXT_CLASSES.path}`}
           title={isCreateMode ? "New token" : tokenPath}
         >
           {isCreateMode ? "New token" : tokenPath}
@@ -1102,7 +1110,7 @@ export function TokenDetails({
       <div className="tm-token-details__header-context">
         {contextLabel ? (
           <>
-            <span className="truncate">{contextLabel}</span>
+            <span className={LONG_TEXT_CLASSES.textSecondary}>{contextLabel}</span>
             <span aria-hidden>·</span>
           </>
         ) : null}
@@ -1604,7 +1612,7 @@ export function TokenDetails({
                     ) : null}
                   </div>
                 </Field>
-                <p className="m-0 mt-1 min-w-0 truncate text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+                <p className={`m-0 mt-1 text-secondary text-[var(--color-figma-text-secondary)] ${LONG_TEXT_CLASSES.pathSecondary}`}>
                   Full path:{" "}
                   <span className="font-mono">{renamePreviewPath}</span>
                 </p>

@@ -122,28 +122,37 @@ export function TokenRefInput({
 
       {/* Linked state: show token badge instead of field UI */}
       {tokenRef ? (
-        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/40 min-w-0">
-          {/* Color swatch if it's a color value */}
-          {linkedEntry?.$type === 'color' && typeof linkedResolvedValue === 'string' && (
-            <div
-              className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-              style={{ backgroundColor: linkedResolvedValue }}
-            />
-          )}
-          <span className="flex-1 text-secondary font-mono text-[var(--color-figma-accent)] truncate" title={tokenRef}>
-            {tokenRef}
-          </span>
-          {linkedValueLabel && (
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
-              {linkedValueLabel}
-            </span>
-          )}
+        <div className="flex min-w-0 flex-wrap items-start gap-2 rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-bg)] px-2 py-1.5">
+          <div className="flex min-w-0 flex-1 items-start gap-1.5">
+            {linkedEntry?.$type === 'color' && typeof linkedResolvedValue === 'string' && (
+              <div
+                className="mt-0.5 h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
+                style={{ backgroundColor: linkedResolvedValue }}
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <div
+                className="min-w-0 break-words font-mono text-secondary text-[var(--color-figma-accent)] [overflow-wrap:anywhere]"
+                title={tokenRef}
+              >
+                {tokenRef}
+              </div>
+              {linkedValueLabel ? (
+                <div
+                  className="mt-0.5 min-w-0 break-words font-mono text-secondary text-[var(--color-figma-text-secondary)] [overflow-wrap:anywhere]"
+                  title={linkedValueLabel}
+                >
+                  {linkedValueLabel}
+                </div>
+              ) : null}
+            </div>
+          </div>
           <button
             type="button"
             onClick={onUnlink}
             title="Unlink token — edit value directly"
             aria-label="Unlink token"
-            className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-secondary font-medium text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+            className="inline-flex min-h-[26px] shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-secondary font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error)]"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>

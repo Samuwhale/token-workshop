@@ -20,6 +20,18 @@ export interface ExportPreviewModalProps {
   onClose: () => void;
 }
 
+function splitPreviewPath(path: string): { fileName: string; directory: string | null } {
+  const normalized = path.replace(/\\/g, "/");
+  const lastSlash = normalized.lastIndexOf("/");
+  if (lastSlash < 0) {
+    return { fileName: normalized, directory: null };
+  }
+  return {
+    fileName: normalized.slice(lastSlash + 1),
+    directory: normalized.slice(0, lastSlash) || null,
+  };
+}
+
 export function ExportPreviewModal({
   results,
   fileIndex,
@@ -65,32 +77,41 @@ export function ExportPreviewModal({
         aria-modal="true"
         aria-label="Export Preview"
       >
-        {/* Header */}
-        <div className="flex shrink-0 flex-wrap items-start justify-between gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5">
-          <div className="flex min-w-0 items-center gap-2">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-[var(--color-figma-accent)]"
-              aria-hidden="true"
-            >
-              <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
-            </svg>
-            <span className="text-body font-semibold text-[var(--color-figma-text)]">
-              Export Preview
-            </span>
+        <div className="tm-modal-header tm-modal-header--split border-b border-[var(--color-figma-border)]">
+          <div className="tm-modal-header__headline">
+            <div className="flex min-w-0 items-center gap-2">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-[var(--color-figma-accent)]"
+                aria-hidden="true"
+              >
+                <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
+              </svg>
+              <span className="tm-dialog-title">Export preview</span>
+            </div>
+            <div className="tm-modal-meta">
+              {results.length} file{results.length !== 1 ? "s" : ""} ·{" "}
+              {platformIds.join(", ")}
+              {selectedCollectionCount !== null &&
+                selectedCollectionCount !== undefined &&
+                ` · ${selectedCollectionCount} collection${selectedCollectionCount !== 1 ? "s" : ""}`}
+              {changesOnly &&
+                changedTokenCount != null &&
+                ` · ${changedTokenCount} changed token${changedTokenCount !== 1 ? "s" : ""}`}
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="tm-modal-header__actions">
             <button
               type="button"
               onClick={onClose}
-              className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+              className="tm-modal-close-button"
               aria-label="Close preview"
             >
               <svg
@@ -109,48 +130,43 @@ export function ExportPreviewModal({
               </svg>
             </button>
           </div>
-          <div className="min-w-0 basis-full break-words text-secondary text-[var(--color-figma-text-tertiary)]">
-            {results.length} file{results.length !== 1 ? "s" : ""} ·{" "}
-            {platformIds.join(", ")}
-            {selectedCollectionCount !== null &&
-              selectedCollectionCount !== undefined &&
-              ` · ${selectedCollectionCount} collection${selectedCollectionCount !== 1 ? "s" : ""}`}
-            {changesOnly &&
-              changedTokenCount != null &&
-              ` · ${changedTokenCount} changed token${changedTokenCount !== 1 ? "s" : ""}`}
-          </div>
         </div>
 
-        {/* File tabs */}
         <div
           role="tablist"
           aria-label="Export files"
-          className="flex shrink-0 items-stretch gap-0.5 overflow-x-auto px-2 pt-2 scrollbar-thin"
+          className="tm-modal-tablist"
         >
-          {results.map((file, i) => (
-            <button
-              key={file.path}
-              type="button"
-              role="tab"
-              aria-selected={i === fileIndex}
-              onClick={() => onFileSelect(i)}
-              className={`flex min-w-[160px] max-w-[min(360px,80vw)] shrink-0 items-start gap-1.5 rounded-t-md border border-b-0 px-2 py-1.5 text-secondary text-left transition-colors ${
-                i === fileIndex
-                  ? "bg-[var(--color-figma-bg-secondary)] border-[var(--color-figma-border)] text-[var(--color-figma-text)]"
-                  : "bg-transparent border-transparent text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-              }`}
-            >
-              <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[8px] font-medium uppercase font-sans text-[var(--color-figma-accent)]">
-                {file.platform}
-              </span>
-              <span
-                className="min-w-0 break-all font-mono leading-snug"
-                title={file.path}
+          {results.map((file, i) => {
+            const { fileName, directory } = splitPreviewPath(file.path);
+            return (
+              <button
+                key={file.path}
+                type="button"
+                role="tab"
+                aria-selected={i === fileIndex}
+                onClick={() => onFileSelect(i)}
+                className={`tm-modal-tab ${i === fileIndex ? "tm-modal-tab--active" : ""}`}
               >
-                {file.path}
-              </span>
-            </button>
-          ))}
+                <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[8px] font-medium uppercase font-sans text-[var(--color-figma-accent)]">
+                  {file.platform}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-mono leading-snug" title={file.path}>
+                    {fileName}
+                  </span>
+                  {directory ? (
+                    <span
+                      className="block truncate pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]"
+                      title={directory}
+                    >
+                      {directory}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Code viewer */}
@@ -176,12 +192,11 @@ export function ExportPreviewModal({
           )}
         </div>
 
-        {/* Footer actions */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2.5">
-          <span className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+        <div className="tm-modal-footer border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] pt-2.5">
+          <span className="min-w-0 flex-1 self-center text-secondary text-[var(--color-figma-text-tertiary)]">
             {lines.length} line{lines.length !== 1 ? "s" : ""}
           </span>
-          <div className="flex min-w-0 flex-1 flex-wrap items-stretch justify-end gap-2">
+          <div className="flex min-w-0 flex-[2] flex-wrap items-stretch justify-end gap-2">
             <button
               type="button"
               onClick={() => activeFile && onCopyFile(activeFile)}

@@ -267,6 +267,31 @@ export class TokenGeneratorService {
     return this.buildPreview(generator, collectionService, tokenStore);
   }
 
+  async previewDocument(
+    id: string,
+    input: GeneratorUpdateInput,
+    collectionService: CollectionService,
+    tokenStore: TokenStore,
+  ): Promise<TokenGeneratorPreviewResult> {
+    const existing = this.generators.get(id);
+    if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
+    let generator: TokenGeneratorDocument;
+    try {
+      generator = normalizeGeneratorDocument({
+        ...existing,
+        ...input,
+        id: existing.id,
+        createdAt: existing.createdAt,
+        updatedAt: existing.updatedAt,
+      });
+    } catch (error) {
+      throw new BadRequestError(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+    return this.buildPreview(generator, collectionService, tokenStore);
+  }
+
   async status(
     collectionService: CollectionService,
     tokenStore: TokenStore,

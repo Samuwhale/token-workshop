@@ -225,6 +225,31 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  fastify.post<{ Params: GeneratorParams; Body: GeneratorUpdateInput }>(
+    "/generators/:id/preview-draft",
+    async (request, reply) => {
+      try {
+        const body = readGeneratorUpdateBody(request.body);
+        if (body.targetCollectionId) {
+          await fastify.collectionService.requireCollectionsExist([
+            body.targetCollectionId,
+          ]);
+        }
+        const preview = await fastify.tokenLock.withLock(() =>
+          fastify.generatorService.previewDocument(
+            request.params.id,
+            body,
+            fastify.collectionService,
+            fastify.tokenStore,
+          ),
+        );
+        return { preview };
+      } catch (error) {
+        return handleRouteError(reply, error);
+      }
+    },
+  );
+
   fastify.post<{ Params: GeneratorParams; Body: GeneratorDetachBody }>(
     "/generators/:id/outputs/detach",
     async (request, reply) => {
@@ -276,3 +301,10 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 };
+
+function readGeneratorUpdateBody(body: unknown): GeneratorUpdateInput {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new BadRequestError("Generator draft preview body must be an object.");
+  }
+  return body as GeneratorUpdateInput;
+}

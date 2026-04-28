@@ -738,6 +738,9 @@ export function App() {
     snap: { below: 56, to: 40 },
   });
   const sidebarCollapsed = sidebarBoundary.size <= 40;
+  const sidebarCompact =
+    sidebarBoundary.size > 40 && sidebarBoundary.size < 112;
+  const sidebarIconOnly = sidebarCollapsed || sidebarCompact;
   const toggleSidebarCollapsed = useCallback(() => {
     sidebarBoundary.setSize(sidebarBoundary.size <= 40 ? 120 : 40);
   }, [sidebarBoundary]);
@@ -1702,7 +1705,7 @@ export function App() {
         aria-label="Workspaces"
       >
         {/* Accordion navigation */}
-        <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-1 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
+        <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarIconOnly ? 'px-1 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
           {SIDEBAR_GROUPS.map((group) => (
             <div
               key={group.id}
@@ -1750,7 +1753,7 @@ export function App() {
                   item.id === "publish" && !isWorkspaceActive && syncAdornment === null;
                 const inactiveTextClass = `${publishIsIdle ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
 
-                if (sidebarCollapsed) {
+                if (sidebarIconOnly) {
                   const tooltipLabel = requiresSetup
                     ? `${item.label} · set up a collection first`
                     : showCanvasSelectionAdornment
@@ -1769,7 +1772,7 @@ export function App() {
                       <button
                         onClick={() => handleSidebarItemClick(item)}
                         aria-label={item.label}
-                        className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
+                        className={`relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
                             ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-accent)]"
                             : requiresSetup
@@ -1910,8 +1913,8 @@ export function App() {
         </div>
 
         {/* Bottom utilities */}
-        <div className={`flex flex-col gap-px border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
-          {sidebarCollapsed ? (
+        <div className={`flex flex-col gap-px border-t border-[var(--color-figma-border)] ${sidebarIconOnly ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
+          {sidebarIconOnly ? (
             <>
               <div className="flex flex-col items-center gap-0.5">
                 <Tooltip label={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`} position="right">
@@ -1996,7 +1999,7 @@ export function App() {
               </div>
             </>
           )}
-          {!connected && !sidebarCollapsed && (
+          {!connected && !sidebarIconOnly && (
             <div className="mt-1 rounded-md bg-[var(--color-figma-error)]/8 px-2.5 py-1.5">
               <div className="text-secondary text-[var(--color-figma-text-secondary)]">
                 {checking ? "Connecting…" : "Server offline"}
@@ -2011,17 +2014,17 @@ export function App() {
               )}
             </div>
           )}
-          {!connected && sidebarCollapsed && (
+          {!connected && sidebarIconOnly && (
             <Tooltip label={checking ? "Connecting…" : "Server offline"} position="right">
               <div className="mx-auto h-2 w-2 rounded-full bg-[var(--color-figma-error)]" />
             </Tooltip>
           )}
-          <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--color-figma-border)]`} />
-          <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
+          <div className={`${sidebarIconOnly ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--color-figma-border)]`} />
+          <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarIconOnly}>
             <button
               onClick={toggleSidebarCollapsed}
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className={`flex items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto h-7 w-7' : 'h-7 w-full'}`}
+              className={`flex items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarIconOnly ? `${sidebarCollapsed ? 'mx-auto w-7' : 'w-full'} h-7` : 'h-7 w-full'}`}
             >
               {sidebarCollapsed ? (
                 <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -14,6 +15,7 @@ import {
   Position,
   ReactFlow,
   type ReactFlowInstance,
+  type Viewport,
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
@@ -334,9 +336,22 @@ export function GeneratorsPanel({
   const [edges, setEdges] = useEdgesState<GraphFlowEdge>([]);
   const nodesRef = useRef<GraphFlowNode[]>([]);
   const edgesRef = useRef<GraphFlowEdge[]>([]);
+  const activeGeneratorIdRef = useRef<string | null>(null);
   const previewRef = useRef<TokenGeneratorPreviewResult | null>(null);
+  const localGraphEditRef = useRef(false);
+  const dirtyRef = useRef(false);
+  const dirtyGeneratorIdRef = useRef<string | null>(null);
+  const graphRevisionRef = useRef(0);
   const autoPreviewRunRef = useRef(0);
   const latestPreviewSignatureRef = useRef("");
+
+  const setActiveGeneratorSelection = useCallback(
+    (generatorId: string | null) => {
+      activeGeneratorIdRef.current = generatorId;
+      setActiveGeneratorId(generatorId);
+    },
+    [],
+  );
 
   const activeGenerator = useMemo(
     () => generators.find((graph) => graph.id === activeGeneratorId) ?? null,
@@ -388,7 +403,6 @@ export function GeneratorsPanel({
             targetCollectionId: activeGenerator.targetCollectionId,
             nodes: activeGenerator.nodes,
             edges: activeGenerator.edges,
-            viewport: activeGenerator.viewport,
             tokenChangeKey,
           })
         : "",
@@ -410,21 +424,41 @@ export function GeneratorsPanel({
     const data = await apiFetch<GeneratorListResponse>(
       `${serverUrl}/api/generators`,
     );
-    setGenerators(data.generators);
+    setGenerators((current) => {
+      const dirtyGeneratorId = dirtyGeneratorIdRef.current;
+      if (!dirtyRef.current || !dirtyGeneratorId) {
+        return data.generators;
+      }
+      const dirtyGenerator = current.find(
+        (generator) => generator.id === dirtyGeneratorId,
+      );
+      if (!dirtyGenerator) {
+        return data.generators;
+      }
+      const merged = data.generators.map((generator) =>
+        generator.id === dirtyGenerator.id ? dirtyGenerator : generator,
+      );
+      return merged.some((generator) => generator.id === dirtyGenerator.id)
+        ? merged
+        : [dirtyGenerator, ...merged];
+    });
     setActiveGeneratorId((current) => {
-      if (dirty) return current;
+      if (dirtyRef.current) return current;
       const currentGenerator = data.generators.find(
         (generator) => generator.id === current,
       );
-      if (currentGenerator?.targetCollectionId === workingCollectionId)
+      if (currentGenerator?.targetCollectionId === workingCollectionId) {
+        activeGeneratorIdRef.current = current;
         return current;
-      return (
+      }
+      const nextId =
         data.generators.find(
           (generator) => generator.targetCollectionId === workingCollectionId,
-        )?.id ?? null
-      );
+        )?.id ?? null;
+      activeGeneratorIdRef.current = nextId;
+      return nextId;
     });
-  }, [dirty, serverUrl, workingCollectionId]);
+  }, [serverUrl, workingCollectionId]);
 
   useEffect(() => {
     loadGenerators().catch((loadError) =>
@@ -437,6 +471,14 @@ export function GeneratorsPanel({
   useEffect(() => {
     previewRef.current = preview;
   }, [preview]);
+
+  useEffect(() => {
+    activeGeneratorIdRef.current = activeGeneratorId;
+  }, [activeGeneratorId]);
+
+  useEffect(() => {
+    dirtyRef.current = dirty;
+  }, [dirty]);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -453,14 +495,26 @@ export function GeneratorsPanel({
     );
     if (!initialGenerator) return;
     let cancelled = false;
+    const currentGeneratorId = activeGeneratorIdRef.current;
+    const preservingDirtyGenerator =
+      dirtyRef.current && currentGeneratorId === initialGeneratorId;
+    if (dirtyRef.current && currentGeneratorId !== initialGeneratorId) {
+      setError("Save the current generator before opening another one.");
+      onInitialGeneratorHandled?.();
+      return;
+    }
     const focus = initialFocus ?? null;
     setActiveInitialFocus(focus);
-    setActiveGeneratorId(initialGeneratorId);
-    setPreview(null);
+    setActiveGeneratorSelection(initialGeneratorId);
     setError(null);
-    setLastApply(null);
-    setDirty(false);
-    setExternalPreviewInvalidated(false);
+    if (!preservingDirtyGenerator) {
+      setPreview(null);
+      setLastApply(null);
+      setDirty(false);
+      dirtyRef.current = false;
+      dirtyGeneratorIdRef.current = null;
+      setExternalPreviewInvalidated(false);
+    }
     if (initialView === "graph" || focus?.nodeId) {
       setEditorMode("graph");
     }
@@ -468,13 +522,23 @@ export function GeneratorsPanel({
       setSelectedNodeId(focus.nodeId);
       setInspectorOpen(true);
     }
+    if (preservingDirtyGenerator) {
+      onInitialGeneratorHandled?.();
+      return;
+    }
     setBusy("preview");
     apiFetch<GeneratorPreviewResponse>(
       `${serverUrl}/api/generators/${encodeURIComponent(initialGenerator.id)}/preview`,
       { method: "POST" },
     )
       .then((data) => {
-        if (cancelled) return;
+        if (
+          cancelled ||
+          activeGeneratorIdRef.current !== initialGenerator.id ||
+          data.preview.generatorId !== initialGenerator.id
+        ) {
+          return;
+        }
         setPreview(data.preview);
         setExternalPreviewInvalidated(false);
       })
@@ -500,6 +564,7 @@ export function GeneratorsPanel({
     initialView,
     onInitialGeneratorHandled,
     serverUrl,
+    setActiveGeneratorSelection,
   ]);
 
   useEffect(() => {
@@ -513,12 +578,13 @@ export function GeneratorsPanel({
       setError("Save the current generator before switching collections.");
       return;
     }
-    setActiveGeneratorId(scopedGenerators[0]?.id ?? null);
+    setActiveGeneratorSelection(scopedGenerators[0]?.id ?? null);
   }, [
     activeGenerator,
     dirty,
     initialGeneratorId,
     scopedGenerators,
+    setActiveGeneratorSelection,
     workingCollectionId,
   ]);
 
@@ -535,10 +601,14 @@ export function GeneratorsPanel({
     }
   }, [selectedNodeId]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!activeGenerator) {
       setNodes([]);
       setEdges([]);
+      return;
+    }
+    if (localGraphEditRef.current) {
+      localGraphEditRef.current = false;
       return;
     }
     setNodes(toFlowNodes(activeGenerator, previewRef.current));
@@ -548,12 +618,7 @@ export function GeneratorsPanel({
         ? current
         : null,
     );
-  }, [
-    activeGenerator,
-    activeGeneratorStructureSignature,
-    setEdges,
-    setNodes,
-  ]);
+  }, [activeGenerator, activeGeneratorStructureSignature, setEdges, setNodes]);
 
   useEffect(() => {
     if (!activeGenerator) return;
@@ -587,6 +652,9 @@ export function GeneratorsPanel({
         ),
       );
       setDirty(true);
+      dirtyRef.current = true;
+      dirtyGeneratorIdRef.current = activeGenerator.id;
+      graphRevisionRef.current += 1;
       setPreview(null);
       setLastApply(null);
       setExternalPreviewInvalidated(false);
@@ -608,6 +676,8 @@ export function GeneratorsPanel({
   const commitFlowState = useCallback(
     (nextNodes: GraphFlowNode[], nextEdges: GraphFlowEdge[]) => {
       if (!activeGenerator) return;
+      localGraphEditRef.current = true;
+      graphRevisionRef.current += 1;
       const nextGenerator = graphWithFlowState(
         activeGenerator,
         nextNodes,
@@ -621,9 +691,50 @@ export function GeneratorsPanel({
         ),
       );
       setDirty(true);
+      dirtyRef.current = true;
+      dirtyGeneratorIdRef.current = activeGenerator.id;
       setPreview(null);
       setLastApply(null);
       setExternalPreviewInvalidated(false);
+    },
+    [activeGenerator],
+  );
+
+  const commitViewport = useCallback(
+    (viewport: Viewport) => {
+      if (!activeGenerator) return;
+      const currentViewport = activeGenerator.viewport;
+      if (
+        currentViewport.x === viewport.x &&
+        currentViewport.y === viewport.y &&
+        currentViewport.zoom === viewport.zoom
+      ) {
+        return;
+      }
+      setGenerators((current) =>
+        current.map((generator) =>
+          generator.id === activeGenerator.id
+            ? {
+                ...graphWithFlowState(
+                  activeGenerator,
+                  nodesRef.current,
+                  edgesRef.current,
+                ),
+                viewport: {
+                  x: viewport.x,
+                  y: viewport.y,
+                  zoom: viewport.zoom,
+                },
+                updatedAt: new Date().toISOString(),
+              }
+            : generator,
+        ),
+      );
+      setDirty(true);
+      dirtyRef.current = true;
+      dirtyGeneratorIdRef.current = activeGenerator.id;
+      graphRevisionRef.current += 1;
+      setLastApply(null);
     },
     [activeGenerator],
   );
@@ -650,6 +761,7 @@ export function GeneratorsPanel({
   const saveGenerator = useCallback(async () => {
     const generator = syncFlowToGenerator();
     if (!generator) return null;
+    const saveRevision = graphRevisionRef.current;
     setBusy("save");
     setError(null);
     try {
@@ -667,12 +779,20 @@ export function GeneratorsPanel({
           }),
         },
       );
+      if (
+        activeGeneratorIdRef.current !== data.generator.id ||
+        graphRevisionRef.current !== saveRevision
+      ) {
+        return null;
+      }
       setGenerators((current) =>
         current.map((candidate) =>
           candidate.id === data.generator.id ? data.generator : candidate,
         ),
       );
       setDirty(false);
+      dirtyRef.current = false;
+      dirtyGeneratorIdRef.current = null;
       setExternalPreviewInvalidated(false);
       return data.generator;
     } catch (saveError) {
@@ -689,7 +809,6 @@ export function GeneratorsPanel({
     if (!activeGenerator || createPanelOpen || !activeGeneratorSignature) return;
     if (
       preview &&
-      !dirty &&
       !externalPreviewInvalidated &&
       latestPreviewSignatureRef.current === activeGeneratorSignature
     ) {
@@ -701,16 +820,43 @@ export function GeneratorsPanel({
     setExternalPreviewInvalidated(true);
 
     const timeout = window.setTimeout(async () => {
-      const saved = dirty ? await saveGenerator() : activeGenerator;
-      if (!saved || autoPreviewRunRef.current !== runId) return;
+      const previewGenerator = dirty
+        ? graphWithFlowState(
+            activeGenerator,
+            nodesRef.current,
+            edgesRef.current,
+          )
+        : activeGenerator;
+      const previewGeneratorId = previewGenerator.id;
+      if (autoPreviewRunRef.current !== runId) return;
       setBusy("preview");
       setError(null);
       try {
         const data = await apiFetch<GeneratorPreviewResponse>(
-          `${serverUrl}/api/generators/${encodeURIComponent(saved.id)}/preview`,
-          { method: "POST" },
+          dirty
+            ? `${serverUrl}/api/generators/${encodeURIComponent(previewGeneratorId)}/preview-draft`
+            : `${serverUrl}/api/generators/${encodeURIComponent(previewGeneratorId)}/preview`,
+          dirty
+            ? {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: previewGenerator.name,
+                  targetCollectionId: previewGenerator.targetCollectionId,
+                  nodes: previewGenerator.nodes,
+                  edges: previewGenerator.edges,
+                  viewport: previewGenerator.viewport,
+                }),
+              }
+            : { method: "POST" },
         );
-        if (autoPreviewRunRef.current !== runId) return;
+        if (
+          autoPreviewRunRef.current !== runId ||
+          activeGeneratorIdRef.current !== previewGeneratorId ||
+          data.preview.generatorId !== previewGeneratorId
+        ) {
+          return;
+        }
         setPreview(data.preview);
         latestPreviewSignatureRef.current = activeGeneratorSignature;
         setExternalPreviewInvalidated(false);
@@ -735,14 +881,16 @@ export function GeneratorsPanel({
     dirty,
     externalPreviewInvalidated,
     preview,
-    saveGenerator,
     serverUrl,
   ]);
 
   const applyGenerator = useCallback(async () => {
+    if (dirty) {
+      setError("Save the generator before applying the latest preview.");
+      return;
+    }
     if (
       !preview ||
-      dirty ||
       preview.blocking ||
       preview.outputs.length === 0 ||
       preview.outputs.some((output) => output.collision)
@@ -763,6 +911,12 @@ export function GeneratorsPanel({
           body: JSON.stringify({ previewHash: preview.hash }),
         },
       );
+      if (
+        activeGeneratorIdRef.current !== saved.id ||
+        data.preview.generatorId !== saved.id
+      ) {
+        return;
+      }
       setPreview(data.preview);
       setLastApply(data);
       await loadGenerators();
@@ -796,9 +950,11 @@ export function GeneratorsPanel({
         (generator) => generator.id !== activeGenerator.id,
       );
       setGenerators(nextGenerators);
-      setActiveGeneratorId(nextGenerators[0]?.id ?? null);
+      setActiveGeneratorSelection(nextGenerators[0]?.id ?? null);
       setPreview(null);
       setDirty(false);
+      dirtyRef.current = false;
+      dirtyGeneratorIdRef.current = null;
     } catch (deleteError) {
       setError(
         deleteError instanceof Error
@@ -812,20 +968,27 @@ export function GeneratorsPanel({
 
   const selectGenerator = useCallback(
     (generatorId: string) => {
+      if (busy) {
+        setError("Wait for the current generator action to finish.");
+        return;
+      }
       if (dirty) {
         setError("Save the current generator before switching to another one.");
         return;
       }
-      setActiveGeneratorId(generatorId);
+      autoPreviewRunRef.current += 1;
+      setActiveGeneratorSelection(generatorId);
       setPreview(null);
       setActiveInitialFocus(null);
       setError(null);
       setLastApply(null);
       setExternalPreviewInvalidated(false);
       setDirty(false);
+      dirtyRef.current = false;
+      dirtyGeneratorIdRef.current = null;
       setEditorMode("setup");
     },
-    [dirty],
+    [busy, dirty, setActiveGeneratorSelection],
   );
 
   const updateNodeData = useCallback(
@@ -1065,7 +1228,7 @@ export function GeneratorsPanel({
   const statusLabel = graphHasErrors
     ? "Fix settings"
     : dirty
-      ? "Unsaved changes"
+      ? "Save before applying"
       : externalPreviewInvalidated
         ? "Updating preview"
         : preview?.blocking || previewHasCollisions || previewHasNoOutputs
@@ -1083,7 +1246,7 @@ export function GeneratorsPanel({
         <section className="relative min-w-[420px] flex-1 max-[760px]:min-h-[360px] max-[760px]:w-full max-[760px]:min-w-0">
           {graphIssues.length > 0 ? (
             <div className="absolute left-3 top-3 z-10 flex max-w-[520px] flex-wrap gap-1.5">
-              {graphIssues.slice(0, 4).map((issue) => (
+              {graphIssues.map((issue) => (
                 <button
                   key={issue.id}
                   type="button"
@@ -1100,14 +1263,10 @@ export function GeneratorsPanel({
                   ) : null}
                 </button>
               ))}
-              {graphIssues.length > 4 ? (
-                <span className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-tertiary text-[var(--color-figma-text-secondary)] shadow-sm">
-                  +{graphIssues.length - 4} more
-                </span>
-              ) : null}
             </div>
           ) : null}
           <ReactFlow
+            key={activeGenerator.id}
             nodes={nodes}
             edges={edges}
             nodeTypes={NODE_TYPES}
@@ -1131,6 +1290,7 @@ export function GeneratorsPanel({
             }}
             onConnect={onConnect}
             onInit={setFlowInstance}
+            onMoveEnd={(_event, viewport) => commitViewport(viewport)}
             onPaneClick={() => setSelectedNodeId(null)}
             onNodeClick={(_event, node) => {
               setSelectedNodeId(node.id);
@@ -1156,7 +1316,7 @@ export function GeneratorsPanel({
               }) ?? { x: event.clientX, y: event.clientY };
               addPaletteNode(item, position);
             }}
-            fitView
+            defaultViewport={activeGenerator.viewport}
             className="tm-graph"
             proOptions={{ hideAttribution: true }}
           >
@@ -1206,6 +1366,14 @@ export function GeneratorsPanel({
           activeGeneratorId={activeGeneratorId}
           createPanelOpen={createPanelOpen}
           onCreate={() => {
+            if (busy) {
+              setError("Wait for the current generator action to finish.");
+              return;
+            }
+            if (dirty) {
+              setError("Save the current generator before creating another one.");
+              return;
+            }
             setCreatePanelOpen(true);
             setEditorMode("setup");
             setError(null);
@@ -1226,11 +1394,20 @@ export function GeneratorsPanel({
             perCollectionFlat={perCollectionFlat}
             onClose={() => setCreatePanelOpen(false)}
             onOpenGenerator={(generatorId, collectionId, initialView) => {
+              if (
+                dirtyRef.current &&
+                dirtyGeneratorIdRef.current &&
+                dirtyGeneratorIdRef.current !== generatorId
+              ) {
+                setError("Save the current generator before opening another one.");
+                setCreatePanelOpen(false);
+                return;
+              }
               if (collectionId === workingCollectionId) {
-                setActiveGeneratorId(generatorId);
+                setActiveGeneratorSelection(generatorId);
                 setEditorMode(initialView ?? "setup");
                 void loadGenerators().then(() => {
-                  setActiveGeneratorId(generatorId);
+                  setActiveGeneratorSelection(generatorId);
                   setEditorMode(initialView ?? "setup");
                 });
               } else {
@@ -1302,11 +1479,15 @@ export function GeneratorsPanel({
                     </button>
                   </div>
                   {busy ? (
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                    <span
+                      id="generator-status-label"
+                      className="text-secondary text-[var(--color-figma-text-secondary)]"
+                    >
                       {`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
                     </span>
                   ) : graphHasErrors ? (
                     <button
+                      id="generator-status-label"
                       type="button"
                       onClick={focusFirstGraphIssue}
                       className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
@@ -1315,7 +1496,10 @@ export function GeneratorsPanel({
                       {statusLabel}
                     </button>
                   ) : (
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                    <span
+                      id="generator-status-label"
+                      className="text-secondary text-[var(--color-figma-text-secondary)]"
+                    >
                       {statusLabel}
                     </span>
                   )}
@@ -1365,6 +1549,7 @@ export function GeneratorsPanel({
                       type="button"
                       title="Apply generator"
                       aria-label="Apply generator"
+                      aria-describedby="generator-status-label"
                       onClick={applyGenerator}
                       disabled={
                         busy !== null ||
@@ -1589,7 +1774,7 @@ function GeneratorSetupSummary({
             <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
               Needs attention
             </h3>
-            {graphIssues.slice(0, 4).map((issue) => (
+            {graphIssues.map((issue) => (
               <button
                 key={issue.id}
                 type="button"
@@ -1636,7 +1821,7 @@ function GeneratorSetupSummary({
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               <Plus size={13} />
-              Add an output on the generator canvas before applying.
+              Add output step
             </button>
           )}
         </section>
@@ -2075,8 +2260,12 @@ function TokenModeValueCell({
           {previewIsValueBearing(token.$type) ? (
             <ValuePreview type={token.$type} value={value} size={12} />
           ) : null}
-          <span className="truncate">
-            {modeName}: {formatValue(value)}
+          <span
+            className={`truncate ${
+              value == null ? "text-[var(--color-figma-text-tertiary)]" : ""
+            }`}
+          >
+            {modeName}: {value == null ? "No value" : formatValue(value)}
           </span>
         </span>
       ))}
@@ -2093,7 +2282,7 @@ function readTokenModeValues(
   const collectionModes = token.$extensions?.tokenmanager?.modes?.[collectionId];
   return modes.map((modeName, index) => [
     modeName,
-    index === 0 ? token.$value : collectionModes?.[modeName] ?? token.$value,
+    index === 0 ? token.$value : collectionModes?.[modeName],
   ]);
 }
 
@@ -3207,14 +3396,16 @@ function contextualPaletteItems(
       (item) => item.category === "Inputs" || item.category === "Scales",
     );
   if (!selectedNode) {
+    const hasNodes = generator.nodes.length > 0;
     const hasOutput = generator.nodes.some(
       (node) => node.kind === "output" || node.kind === "groupOutput",
     );
-    return palette.filter((item) =>
-      hasOutput
-        ? item.category === "Inputs" || item.category === "Scales"
-        : item.category === "Outputs",
-    );
+    return palette.filter((item) => {
+      if (item.category === "Inputs" || item.category === "Scales") {
+        return true;
+      }
+      return item.category === "Outputs" && (!hasNodes || !hasOutput);
+    });
   }
   if (
     selectedNode.kind === "tokenInput" ||

@@ -180,18 +180,18 @@ export function CollectionTabs({
               onClick={toggleSwitcher}
               aria-haspopup="dialog"
               aria-expanded={switcherOpen}
-              className={`flex h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left transition-colors ${
+              className={`tm-collection-toolbar__trigger flex h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left transition-colors ${
                 switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                   : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
               }`}
             >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-body font-medium">
+              <span className="tm-collection-toolbar__summary min-w-0 flex-1">
+                <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
                   {currentDisplayName}
                 </span>
                 {currentMeta ? (
-                  <span className="block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                  <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
                     {currentMeta}
                   </span>
                 ) : null}
@@ -352,7 +352,7 @@ export function CollectionTabs({
                     : "Manage collection"
                 }
                 aria-pressed={activeCollectionSettings?.open === true}
-                className={`inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                className={`tm-collection-toolbar__action inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
                   activeCollectionSettings?.open === true
                     ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                     : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -370,7 +370,7 @@ export function CollectionTabs({
                 type="button"
                 onClick={onOpenCreateCollection}
                 title="Create collection"
-                className="inline-flex h-7 shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                className="tm-collection-toolbar__action tm-collection-toolbar__action--primary inline-flex h-7 shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
               >
                 <Plus size={12} strokeWidth={1.7} aria-hidden />
                 <span className="truncate">New collection</span>
@@ -382,7 +382,7 @@ export function CollectionTabs({
                 type="button"
                 onClick={onOpenImport}
                 title="Import collections"
-                className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                className="tm-collection-toolbar__action inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
                 <Upload size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-collection-toolbar__optional-label truncate">
