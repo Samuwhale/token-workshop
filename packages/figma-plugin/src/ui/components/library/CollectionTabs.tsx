@@ -135,11 +135,11 @@ export function CollectionTabs({
 
   return (
     <div
-      role="tablist"
-      aria-label="Collections"
-      className="flex min-w-0 shrink-0 items-center gap-1 border-b border-[var(--color-figma-border)] px-2 py-1"
+      className="flex min-w-0 shrink-0 flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] px-2 py-1"
     >
       <div
+        role="tablist"
+        aria-label="Collections"
         className="flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
       >
         {allCollectionsScope ? (
@@ -217,139 +217,143 @@ export function CollectionTabs({
         })}
       </div>
 
-      {showSearch ? (
-        <div className="relative shrink-0">
-          <button
-            ref={searchMenu.triggerRef}
-            type="button"
-            onClick={searchMenu.toggle}
-            aria-expanded={searchMenu.open}
-            aria-haspopup="dialog"
-            aria-label="Find collection"
-            title="Find collection"
-            className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
-              searchMenu.open
-                ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-            }`}
-          >
-            <Search size={12} strokeWidth={1.5} aria-hidden />
-          </button>
+      {(showSearch || showImportButton || showCreateButton) ? (
+        <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1">
+          {showSearch ? (
+            <div className="relative shrink-0">
+              <button
+                ref={searchMenu.triggerRef}
+                type="button"
+                onClick={searchMenu.toggle}
+                aria-expanded={searchMenu.open}
+                aria-haspopup="dialog"
+                aria-label="Find collection"
+                title="Find collection"
+                className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
+                  searchMenu.open
+                    ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                }`}
+              >
+                <Search size={12} strokeWidth={1.5} aria-hidden />
+              </button>
 
-          {searchMenu.open ? (
-            <div
-              ref={searchMenu.menuRef}
-              style={searchMenuStyle ?? { visibility: "hidden" }}
-              className="z-50 flex max-w-[min(320px,calc(100vw-24px))] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
-              role="dialog"
-              aria-label="Find collection"
-            >
-              <div className="mb-1 flex min-h-[24px] items-center gap-1.5 rounded bg-[var(--color-figma-bg-secondary)] px-2">
-                <Search
-                  size={11}
-                  strokeWidth={1.5}
-                  className="shrink-0 text-[var(--color-figma-text-tertiary)]"
-                  aria-hidden
-                />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Filter collections"
-                  className="min-w-0 flex-1 bg-transparent py-0.5 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
-                />
-              </div>
-              <div className="max-h-[280px] min-h-0 overflow-y-auto">
-                {allCollectionsScope ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={handleSelectAllFromMenu}
-                    className={`mb-0.5 flex w-full items-center rounded px-2 py-1 text-left text-body transition-colors ${
-                      allCollectionsScope.selected
-                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                    }`}
-                  >
-                    All collections
-                  </button>
-                ) : null}
-                {filteredCollections.length === 0 ? (
-                  <div className="px-2 py-3 text-secondary text-[var(--color-figma-text-tertiary)]">
-                    No matches.
+              {searchMenu.open ? (
+                <div
+                  ref={searchMenu.menuRef}
+                  style={searchMenuStyle ?? { visibility: "hidden" }}
+                  className="z-50 flex max-w-[min(320px,calc(100vw-24px))] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                  role="dialog"
+                  aria-label="Find collection"
+                >
+                  <div className="mb-1 flex min-h-[24px] items-center gap-1.5 rounded bg-[var(--color-figma-bg-secondary)] px-2">
+                    <Search
+                      size={11}
+                      strokeWidth={1.5}
+                      className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+                      aria-hidden
+                    />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Filter collections"
+                      className="min-w-0 flex-1 bg-transparent py-0.5 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                    />
                   </div>
-                ) : (
-                  filteredCollections.map((collection) => {
-                    const collectionId = collection.id;
-                    const isCurrent = collectionId === currentCollectionId;
-                    const displayName = getCollectionDisplayName(
-                      collectionId,
-                      collectionDisplayNames,
-                    );
-                    const tokenCount = collectionTokenCounts[collectionId] ?? 0;
-                    const summary = collectionHealth?.get(collectionId);
-                    const actionable = summary?.actionable ?? 0;
-                    const severity = summary?.severity;
-                    const healthTone =
-                      actionable > 0 && severity === "critical"
-                        ? "bg-[var(--color-figma-error)]"
-                        : actionable > 0 && severity === "warning"
-                          ? "bg-[var(--color-figma-warning)]"
-                          : null;
-                    return (
+                  <div className="max-h-[280px] min-h-0 overflow-y-auto">
+                    {allCollectionsScope ? (
                       <button
-                        key={collectionId}
                         type="button"
                         role="menuitem"
-                        onClick={() => handleSelectFromMenu(collectionId)}
-                        className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
-                          isCurrent
-                            ? "bg-[var(--color-figma-bg-selected)]"
-                            : "hover:bg-[var(--color-figma-bg-hover)]"
+                        onClick={handleSelectAllFromMenu}
+                        className={`mb-0.5 flex w-full items-center rounded px-2 py-1 text-left text-body transition-colors ${
+                          allCollectionsScope.selected
+                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                         }`}
                       >
-                        {healthTone ? (
-                          <span
-                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthTone}`}
-                            aria-hidden
-                          />
-                        ) : null}
-                        <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
-                          {displayName}
-                        </span>
-                        <span className="shrink-0 text-secondary tabular-nums text-[var(--color-figma-text-tertiary)]">
-                          {tokenCount}
-                        </span>
+                        All collections
                       </button>
-                    );
-                  })
-                )}
-              </div>
+                    ) : null}
+                    {filteredCollections.length === 0 ? (
+                      <div className="px-2 py-3 text-secondary text-[var(--color-figma-text-tertiary)]">
+                        No matches.
+                      </div>
+                    ) : (
+                      filteredCollections.map((collection) => {
+                        const collectionId = collection.id;
+                        const isCurrent = collectionId === currentCollectionId;
+                        const displayName = getCollectionDisplayName(
+                          collectionId,
+                          collectionDisplayNames,
+                        );
+                        const tokenCount = collectionTokenCounts[collectionId] ?? 0;
+                        const summary = collectionHealth?.get(collectionId);
+                        const actionable = summary?.actionable ?? 0;
+                        const severity = summary?.severity;
+                        const healthTone =
+                          actionable > 0 && severity === "critical"
+                            ? "bg-[var(--color-figma-error)]"
+                            : actionable > 0 && severity === "warning"
+                              ? "bg-[var(--color-figma-warning)]"
+                              : null;
+                        return (
+                          <button
+                            key={collectionId}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => handleSelectFromMenu(collectionId)}
+                            className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
+                              isCurrent
+                                ? "bg-[var(--color-figma-bg-selected)]"
+                                : "hover:bg-[var(--color-figma-bg-hover)]"
+                            }`}
+                          >
+                            {healthTone ? (
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthTone}`}
+                                aria-hidden
+                              />
+                            ) : null}
+                            <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
+                              {displayName}
+                            </span>
+                            <span className="shrink-0 text-secondary tabular-nums text-[var(--color-figma-text-tertiary)]">
+                              {tokenCount}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
+
+          {showImportButton ? (
+            <button
+              type="button"
+              onClick={onOpenImport}
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              <Upload size={12} strokeWidth={1.5} aria-hidden />
+              <span>Import</span>
+            </button>
+          ) : null}
+
+          {showCreateButton ? (
+            <button
+              type="button"
+              onClick={onOpenCreateCollection}
+              className="inline-flex h-7 shrink-0 items-center rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+            >
+              New collection
+            </button>
+          ) : null}
         </div>
-      ) : null}
-
-      {showImportButton ? (
-        <button
-          type="button"
-          onClick={onOpenImport}
-          className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-        >
-          <Upload size={12} strokeWidth={1.5} aria-hidden />
-          <span>Import</span>
-        </button>
-      ) : null}
-
-      {showCreateButton ? (
-        <button
-          type="button"
-          onClick={onOpenCreateCollection}
-          className="inline-flex h-7 shrink-0 items-center rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
-        >
-          New collection
-        </button>
       ) : null}
     </div>
   );
@@ -378,7 +382,7 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
         aria-selected={selected}
         onClick={onClick}
         title={label}
-        className={`group relative flex min-w-0 max-w-[280px] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
+        className={`group relative flex min-w-0 max-w-[min(280px,60vw)] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
           selected
             ? "text-[var(--color-figma-text)]"
             : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"

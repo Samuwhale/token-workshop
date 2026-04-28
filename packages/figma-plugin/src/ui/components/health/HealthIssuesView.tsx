@@ -5,6 +5,7 @@ import type { NoticeSeverity } from "../../shared/noticeSystem";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { dispatchToast } from "../../shared/toastBus";
 import { downloadBlob } from "../../shared/utils";
+import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
 import { Spinner } from "../Spinner";
 import { getRuleLabel, hasFix, fixLabel, suppressKey } from "../../shared/ruleLabels";
 import { HealthSubViewHeader } from "./HealthSubViewHeader";
@@ -218,7 +219,7 @@ export function HealthIssuesView({
         }
       />
       {tokenPathFilter && (
-        <div className="shrink-0 truncate px-3 pb-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="shrink-0 break-all px-3 pb-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
           {tokenPathFilter}
         </div>
       )}
@@ -377,7 +378,7 @@ function IssueRow({
 
   return (
     <div
-      className={`group flex items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-1.5 last:border-b-0 ${
+      className={`group flex flex-col gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 last:border-b-0 ${
         onSelect
           ? selected
             ? "cursor-pointer bg-[var(--color-figma-bg-selected)]"
@@ -386,92 +387,94 @@ function IssueRow({
       }`}
       onClick={onSelect}
     >
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-secondary text-[var(--color-figma-text)] font-medium font-mono truncate">
+          <span className="min-w-0 break-all text-secondary font-mono font-medium text-[var(--color-figma-text)]">
             {issue.path}
           </span>
           <span className="text-secondary text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
             {issue.collectionId}
           </span>
         </div>
-        <div className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
+        <div className="mt-0.5 break-words text-secondary text-[var(--color-figma-text-secondary)]">
           {issue.message}
         </div>
       </div>
 
-      {hasFixAction && (
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onFix();
-          }}
-          disabled={fixing}
-          className={`text-secondary shrink-0 disabled:opacity-40 disabled:cursor-wait hover:underline ${
-            issue.suggestedFix === "delete-token"
-              ? "text-[var(--color-figma-error)]"
-              : "text-[var(--color-figma-accent)]"
-          }`}
-        >
-          {fixing ? <Spinner size="xs" /> : fixLabelText}
-        </button>
-      )}
-
-      {onViewInGraph && (
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onViewInGraph();
-          }}
-          className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
-        >
-          Open generator
-        </button>
-      )}
-
-      {onOpen && (
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-          className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
-        >
-          Open
-        </button>
-      )}
-
-      <div className="relative shrink-0">
-        <button
-          ref={overflowMenu.triggerRef}
-          onClick={(event) => {
-            event.stopPropagation();
-            overflowMenu.toggle();
-          }}
-          className="text-secondary px-1 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
-          aria-haspopup="true"
-          aria-expanded={overflowMenu.open}
-          aria-label="More actions"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
-          </svg>
-        </button>
-        {overflowMenu.open && (
-          <div
-            ref={overflowMenu.menuRef}
-            className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
-            role="menu"
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        {hasFixAction && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onFix();
+            }}
+            disabled={fixing}
+            className={`text-secondary shrink-0 disabled:opacity-40 disabled:cursor-wait hover:underline ${
+              issue.suggestedFix === "delete-token"
+                ? "text-[var(--color-figma-error)]"
+                : "text-[var(--color-figma-accent)]"
+            }`}
           >
-            <button
-              role="menuitem"
-              onClick={() => { onIgnore(); overflowMenu.close(); }}
-              className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              Hide this issue
-            </button>
-          </div>
+            {fixing ? <Spinner size="xs" /> : fixLabelText}
+          </button>
         )}
+
+        {onViewInGraph && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onViewInGraph();
+            }}
+            className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
+          >
+            Open generator
+          </button>
+        )}
+
+        {onOpen && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen();
+            }}
+            className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
+          >
+            Open
+          </button>
+        )}
+
+        <div className="relative shrink-0">
+          <button
+            ref={overflowMenu.triggerRef}
+            onClick={(event) => {
+              event.stopPropagation();
+              overflowMenu.toggle();
+            }}
+            className="text-secondary rounded px-1 py-0.5 text-[var(--color-figma-text-tertiary)] opacity-0 transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+            aria-haspopup="true"
+            aria-expanded={overflowMenu.open}
+            aria-label="More actions"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+            </svg>
+          </button>
+          {overflowMenu.open && (
+            <div
+              ref={overflowMenu.menuRef}
+              className={`absolute right-0 top-full mt-1 ${FLOATING_MENU_CLASS}`}
+              role="menu"
+            >
+              <button
+                role="menuitem"
+                onClick={() => { onIgnore(); overflowMenu.close(); }}
+                className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Hide this issue
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

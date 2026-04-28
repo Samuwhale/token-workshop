@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useDropdownMenu } from '../hooks/useDropdownMenu';
+import { FLOATING_MENU_WIDE_CLASS } from '../shared/menuClasses';
 import type { BatchActionType } from './batch-actions/types';
 
 export interface TokenSelectionToolbarProps {
@@ -33,8 +34,7 @@ export interface TokenSelectionToolbarProps {
 const menuItemClass =
   'w-full flex items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40';
 const menuSeparator = 'border-t border-[var(--color-figma-border)] my-1';
-const menuPanel =
-  'absolute right-0 top-full z-50 mt-1 w-[180px] max-w-[calc(100vw-16px)] overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-xl';
+const menuPanel = `absolute right-0 top-full mt-1 ${FLOATING_MENU_WIDE_CLASS}`;
 
 function ToolbarDropdown({
   label,
@@ -137,116 +137,118 @@ export function TokenSelectionToolbar({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
-        {hasSelection && (
-          <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
-            {(close) => (
-              <>
-                <button type="button" role="menuitem" onClick={() => openAction('set-description', close)} className={menuItemClass}>
-                  Set description
-                </button>
-                <button type="button" role="menuitem" onClick={() => openAction('change-type', close)} className={menuItemClass}>
-                  Change type
-                </button>
-                <div className={menuSeparator} />
-                {hasColors && (
-                  <button type="button" role="menuitem" onClick={() => openAction('adjust-colors', close)} className={menuItemClass}>
-                    Adjust colors
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-1">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
+          {hasSelection && (
+            <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
+              {(close) => (
+                <>
+                  <button type="button" role="menuitem" onClick={() => openAction('set-description', close)} className={menuItemClass}>
+                    Set description
                   </button>
-                )}
-                {hasNumeric && (
-                  <button type="button" role="menuitem" onClick={() => openAction('scale-numbers', close)} className={menuItemClass}>
-                    Scale numbers
+                  <button type="button" role="menuitem" onClick={() => openAction('change-type', close)} className={menuItemClass}>
+                    Change type
                   </button>
-                )}
-                <button type="button" role="menuitem" onClick={() => openAction('set-value', close)} className={menuItemClass}>
-                  Set value
-                </button>
-                <button type="button" role="menuitem" onClick={() => openAction('set-alias', close)} className={menuItemClass}>
-                  Set alias
-                </button>
-                <div className={menuSeparator} />
-                <button type="button" role="menuitem" onClick={() => openAction('find-replace', close)} className={menuItemClass}>
-                  Find & replace
-                </button>
-                <button type="button" role="menuitem" onClick={() => openAction('rewrite-aliases', close)} className={menuItemClass}>
-                  Rewrite aliases
-                </button>
-                <div className={menuSeparator} />
-                {hasScopableTypes && (
-                  <button type="button" role="menuitem" onClick={() => openAction('figma-scopes', close)} className={menuItemClass}>
-                    Can apply to
+                  <div className={menuSeparator} />
+                  {hasColors && (
+                    <button type="button" role="menuitem" onClick={() => openAction('adjust-colors', close)} className={menuItemClass}>
+                      Adjust colors
+                    </button>
+                  )}
+                  {hasNumeric && (
+                    <button type="button" role="menuitem" onClick={() => openAction('scale-numbers', close)} className={menuItemClass}>
+                      Scale numbers
+                    </button>
+                  )}
+                  <button type="button" role="menuitem" onClick={() => openAction('set-value', close)} className={menuItemClass}>
+                    Set value
                   </button>
-                )}
-                <button type="button" role="menuitem" onClick={() => openAction('set-extensions', close)} className={menuItemClass}>
-                  Set extensions
-                </button>
-                {onCompare && (
-                  <>
-                    <div className={menuSeparator} />
-                    <button type="button" role="menuitem" onClick={() => { close(); onCompare(); }} className={menuItemClass}>
-                      Compare {selectedPaths.size}
+                  <button type="button" role="menuitem" onClick={() => openAction('set-alias', close)} className={menuItemClass}>
+                    Set alias
+                  </button>
+                  <div className={menuSeparator} />
+                  <button type="button" role="menuitem" onClick={() => openAction('find-replace', close)} className={menuItemClass}>
+                    Find & replace
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => openAction('rewrite-aliases', close)} className={menuItemClass}>
+                    Rewrite aliases
+                  </button>
+                  <div className={menuSeparator} />
+                  {hasScopableTypes && (
+                    <button type="button" role="menuitem" onClick={() => openAction('figma-scopes', close)} className={menuItemClass}>
+                      Can apply to
                     </button>
-                  </>
-                )}
-              </>
-            )}
-          </ToolbarDropdown>
-        )}
+                  )}
+                  <button type="button" role="menuitem" onClick={() => openAction('set-extensions', close)} className={menuItemClass}>
+                    Set extensions
+                  </button>
+                  {onCompare && (
+                    <>
+                      <div className={menuSeparator} />
+                      <button type="button" role="menuitem" onClick={() => { close(); onCompare(); }} className={menuItemClass}>
+                        Compare {selectedPaths.size}
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </ToolbarDropdown>
+          )}
 
-        {hasSelection && (
-          <ToolbarDropdown label="Copy" disabled={!!operationLoading}>
-            {(close) => (
-              <>
-                <button type="button" role="menuitem" onClick={() => { close(); onCopyJson(); }} className={menuItemClass}>
-                  <span aria-live="polite">{copyFeedback ? 'Copied!' : 'JSON'}</span>
-                </button>
-                <button type="button" role="menuitem" onClick={() => { close(); onCopyCssVar(); }} className={menuItemClass}>
-                  <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'CSS variables'}</span>
-                </button>
-                <button type="button" role="menuitem" onClick={() => { close(); onCopyDtcgRef(); }} className={menuItemClass}>
-                  <span aria-live="polite" className="font-mono">{copyAliasFeedback ? 'Copied!' : '{alias}'}</span>
-                </button>
-              </>
-            )}
-          </ToolbarDropdown>
-        )}
+          {hasSelection && (
+            <ToolbarDropdown label="Copy" disabled={!!operationLoading}>
+              {(close) => (
+                <>
+                  <button type="button" role="menuitem" onClick={() => { close(); onCopyJson(); }} className={menuItemClass}>
+                    <span aria-live="polite">{copyFeedback ? 'Copied!' : 'JSON'}</span>
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { close(); onCopyCssVar(); }} className={menuItemClass}>
+                    <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'CSS variables'}</span>
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { close(); onCopyDtcgRef(); }} className={menuItemClass}>
+                    <span aria-live="polite" className="font-mono">{copyAliasFeedback ? 'Copied!' : '{alias}'}</span>
+                  </button>
+                </>
+              )}
+            </ToolbarDropdown>
+          )}
 
-        {hasSelection && (
-          <ToolbarDropdown label="Move" disabled={!!operationLoading}>
-            {(close) => (
-              <>
-                <button type="button" role="menuitem" onClick={() => { close(); onMoveToGroup(); }} className={menuItemClass}>
-                  Move to group…
-                </button>
-                {collectionIds.length > 1 && (
-                  <>
-                    <button type="button" role="menuitem" onClick={() => { close(); onMoveToCollection(); }} className={menuItemClass}>
-                      Move to collection…
-                    </button>
-                    <button type="button" role="menuitem" onClick={() => { close(); onCopyToCollection(); }} className={menuItemClass}>
-                      Copy to collection…
-                    </button>
-                  </>
-                )}
-                <div className={menuSeparator} />
-                <button type="button" role="menuitem" onClick={() => { close(); onLinkToTokens(); }} className={menuItemClass}>
-                  Promote to alias
-                </button>
-              </>
-            )}
-          </ToolbarDropdown>
-        )}
+          {hasSelection && (
+            <ToolbarDropdown label="Move" disabled={!!operationLoading}>
+              {(close) => (
+                <>
+                  <button type="button" role="menuitem" onClick={() => { close(); onMoveToGroup(); }} className={menuItemClass}>
+                    Move to group…
+                  </button>
+                  {collectionIds.length > 1 && (
+                    <>
+                      <button type="button" role="menuitem" onClick={() => { close(); onMoveToCollection(); }} className={menuItemClass}>
+                        Move to collection…
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => { close(); onCopyToCollection(); }} className={menuItemClass}>
+                        Copy to collection…
+                      </button>
+                    </>
+                  )}
+                  <div className={menuSeparator} />
+                  <button type="button" role="menuitem" onClick={() => { close(); onLinkToTokens(); }} className={menuItemClass}>
+                    Promote to alias
+                  </button>
+                </>
+              )}
+            </ToolbarDropdown>
+          )}
 
-        {hasSelection && (
-          <button
-            onClick={onRequestBulkDelete}
-            disabled={!!operationLoading}
-            className="inline-flex min-h-[26px] shrink-0 items-center rounded px-2 text-secondary font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:pointer-events-none disabled:opacity-50"
-          >
-            Delete
-          </button>
-        )}
+          {hasSelection && (
+            <button
+              onClick={onRequestBulkDelete}
+              disabled={!!operationLoading}
+              className="inline-flex min-h-[26px] shrink-0 items-center rounded px-2 text-secondary font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
+        </div>
 
         <button
           onClick={onClearSelection}

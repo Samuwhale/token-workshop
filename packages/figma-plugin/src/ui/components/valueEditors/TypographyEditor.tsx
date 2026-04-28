@@ -137,11 +137,11 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
             />
           ) : (
             <>
-              <div className="flex gap-1 items-center">
+              <div className="flex min-w-0 flex-wrap items-center gap-1">
                 <select
                   value={val.fontWeight ?? 400}
                   onChange={e => update('fontWeight', parseInt(e.target.value))}
-                  className={`${AUTHORING.input} flex-1 ${fieldBorderClass(false, weightUnavailable)}`}
+                  className={`${AUTHORING.input} min-w-[120px] flex-1 ${fieldBorderClass(false, weightUnavailable)}`}
                 >
                   {FONT_WEIGHTS.map(fw => {
                     const unavailable = availableWeights !== null && !availableWeights.includes(fw.value);
@@ -156,9 +156,9 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
                   type="button"
                   onClick={() => update('fontWeight', '{')}
                   title="Reference a token"
-                  className="p-0.5 rounded shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                 >
-                  <Link2 size={10} strokeWidth={2} aria-hidden />
+                  <Link2 size={12} strokeWidth={1.8} aria-hidden />
                 </button>
               </div>
               <FieldMessage warning={weightUnavailable ? `Weight ${currentWeight} not available in this font family` : undefined} />

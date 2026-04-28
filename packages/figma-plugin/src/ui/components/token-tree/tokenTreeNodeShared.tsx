@@ -97,7 +97,7 @@ export function DerivationGlyph({
 export type MenuPosition = { x: number; y: number };
 
 export const MENU_SURFACE_CLASS =
-  "fixed z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1";
+  "fixed z-50 min-w-[192px] max-w-[min(320px,calc(100vw-16px))] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg";
 export const MENU_ITEM_CLASS =
   "w-full flex items-center gap-2 px-2.5 py-1.5 text-body text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors";
 export const MENU_DANGER_ITEM_CLASS =
@@ -183,9 +183,7 @@ export function TokenRowBrowseMetaBadge({
   const content = (
     <>
       {glyph}
-      <span
-        className={`truncate ${expanded ? "max-w-[140px]" : "max-w-[88px]"}`}
-      >
+      <span className="min-w-0 max-w-full flex-1 truncate">
         {label}
       </span>
     </>
@@ -194,6 +192,7 @@ export function TokenRowBrowseMetaBadge({
   const className = [
     "inline-flex",
     "min-w-0",
+    "max-w-full",
     "shrink",
     "items-center",
     "gap-1",

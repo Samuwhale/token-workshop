@@ -29,7 +29,7 @@ export function ToastStack({ toasts, onDismiss, undoToast }: ToastStackProps) {
   if (!hasAny) return null;
 
   return (
-    <div className="fixed bottom-4 left-14 right-3 z-50 flex flex-col gap-1.5 pointer-events-none">
+    <div className="fixed bottom-4 left-3 right-3 z-50 flex flex-col gap-1.5 pointer-events-none sm:left-14">
       {hasUndo && undoToast && (
         <UndoRow
           description={undoToast.description}
@@ -77,51 +77,53 @@ function UndoRow({
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-body shadow-lg animate-toast-in"
+      className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[var(--color-figma-bg)] shadow-lg animate-toast-in"
     >
-      <span className="flex-1 truncate min-w-0">{undoLabel}</span>
-      <button
-        onClick={onUndo}
-        disabled={!canUndo}
-        title={`Undo (${modKey}Z)`}
-        className="shrink-0 px-2 py-0.5 rounded font-medium text-secondary transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
-      >
-        Undo
-        <kbd className="ml-1 opacity-50 font-normal">{modKey}Z</kbd>
-      </button>
-      <button
-        onClick={onRedo}
-        disabled={!canRedo}
-        title={
-          redoDescription
-            ? `Redo: ${redoDescription} (${modKey}${shiftKey}Z)`
-            : `Redo (${modKey}${shiftKey}Z)`
-        }
-        className="shrink-0 px-2 py-0.5 rounded font-medium text-secondary transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
-      >
-        Redo
-        <kbd className="ml-1 opacity-50 font-normal">
-          {modKey}
-          {shiftKey}Z
-        </kbd>
-      </button>
-      <button
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="shrink-0 p-0.5 rounded hover:bg-white/20 text-white/60 hover:text-white transition-colors"
-      >
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
+      <span className="min-w-0 flex-1 break-words">{undoLabel}</span>
+      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          title={`Undo (${modKey}Z)`}
+          className="shrink-0 rounded bg-white/20 px-2 py-0.5 font-medium text-secondary transition-colors hover:bg-white/30 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-white/20"
         >
-          <path d="M1 1l6 6M7 1L1 7" />
-        </svg>
-      </button>
+          Undo
+          <kbd className="ml-1 opacity-50 font-normal">{modKey}Z</kbd>
+        </button>
+        <button
+          onClick={onRedo}
+          disabled={!canRedo}
+          title={
+            redoDescription
+              ? `Redo: ${redoDescription} (${modKey}${shiftKey}Z)`
+              : `Redo (${modKey}${shiftKey}Z)`
+          }
+          className="shrink-0 rounded bg-white/20 px-2 py-0.5 font-medium text-secondary transition-colors hover:bg-white/30 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-white/20"
+        >
+          Redo
+          <kbd className="ml-1 opacity-50 font-normal">
+            {modKey}
+            {shiftKey}Z
+          </kbd>
+        </button>
+        <button
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="shrink-0 rounded p-0.5 text-white/60 transition-colors hover:bg-white/20 hover:text-white"
+        >
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 8 8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          >
+            <path d="M1 1l6 6M7 1L1 7" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
@@ -191,51 +193,53 @@ function MessageRow({
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-auto flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-body shadow-lg animate-toast-in"
+      className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[var(--color-figma-bg)] shadow-lg animate-toast-in"
     >
       {iconEl}
-      <span className="flex-1 min-w-0 break-words line-clamp-3">
+      <span className="min-w-0 flex-1 break-words">
         {toast.message}
       </span>
-      {toast.secondaryAction && (
+      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+        {toast.secondaryAction && (
+          <button
+            onClick={() => {
+              toast.secondaryAction!.onClick();
+              onDismiss(toast.id);
+            }}
+            className="shrink-0 rounded px-2 py-0.5 text-secondary text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            {toast.secondaryAction.label}
+          </button>
+        )}
+        {toast.action && (
+          <button
+            onClick={() => {
+              toast.action!.onClick();
+              onDismiss(toast.id);
+            }}
+            className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-0.5 font-medium text-secondary text-white transition-colors hover:brightness-110"
+          >
+            {toast.action.label}
+          </button>
+        )}
         <button
-          onClick={() => {
-            toast.secondaryAction!.onClick();
-            onDismiss(toast.id);
-          }}
-          className="shrink-0 px-2 py-0.5 rounded text-secondary text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          onClick={() => onDismiss(toast.id)}
+          aria-label="Dismiss"
+          className="shrink-0 rounded p-0.5 text-white/60 transition-colors hover:bg-white/20 hover:text-white"
         >
-          {toast.secondaryAction.label}
+          <svg
+            width="8"
+            height="8"
+            viewBox="0 0 8 8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          >
+            <path d="M1 1l6 6M7 1L1 7" />
+          </svg>
         </button>
-      )}
-      {toast.action && (
-        <button
-          onClick={() => {
-            toast.action!.onClick();
-            onDismiss(toast.id);
-          }}
-          className="shrink-0 px-2 py-0.5 rounded font-medium text-secondary transition-colors bg-[var(--color-figma-accent)] text-white hover:brightness-110"
-        >
-          {toast.action.label}
-        </button>
-      )}
-      <button
-        onClick={() => onDismiss(toast.id)}
-        aria-label="Dismiss"
-        className="shrink-0 p-0.5 rounded hover:bg-white/20 text-white/60 hover:text-white transition-colors"
-      >
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        >
-          <path d="M1 1l6 6M7 1L1 7" />
-        </svg>
-      </button>
+      </div>
     </div>
   );
 }

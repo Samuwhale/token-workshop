@@ -205,13 +205,21 @@ a[role="menuitem"] {
   justify-content: flex-start;
 }
 
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-[role="slider"]:focus-visible,
-[role="group"][tabindex]:focus-visible,
-[role="combobox"]:focus-visible {
+:where(
+  button,
+  a[href],
+  input,
+  textarea,
+  select,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="menuitemcheckbox"],
+  [role="slider"],
+  [role="group"][tabindex],
+  [role="combobox"]
+):focus-visible {
   outline: 1.5px solid var(--color-figma-accent);
   outline-offset: -1px;
 }
@@ -478,6 +486,14 @@ select:focus-visible,
   justify-content: flex-end;
   gap: 6px;
   margin-left: auto;
+}
+
+@media (max-width: 420px) {
+  .tm-panel-bar__actions {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
 }
 
 /* Token details surface */
@@ -992,8 +1008,8 @@ button.tm-token-details__text-button:disabled:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 22px;
-  block-size: 22px;
+  inline-size: 28px;
+  block-size: 28px;
   border-radius: 6px;
   color: var(--color-figma-text-tertiary);
   transition: opacity 150ms ease, color 150ms ease, background-color 150ms ease;

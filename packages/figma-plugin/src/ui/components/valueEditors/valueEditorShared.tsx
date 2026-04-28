@@ -10,6 +10,9 @@ import { isAlias, extractAliasPath } from '../../../shared/resolveAlias';
 import { FontFamilyPicker } from '../FontFamilyPicker';
 import { AUTHORING } from '../../shared/editorClasses';
 
+const REFERENCE_BUTTON_CLASS =
+  'flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors';
+
 /** Per-type format hints shown below the "Value" label in the token editor. */
 export const VALUE_FORMAT_HINTS: Record<string, string> = {
   color: '#hex, rgb(), oklch(), color(display-p3 …)',
@@ -132,7 +135,7 @@ export const SubPropInput = memo(function SubPropInput({
   };
 
   return (
-    <div className="relative flex items-center gap-1">
+    <div className="relative flex min-w-0 flex-wrap items-center gap-1">
       <input
         ref={effectiveRef}
         type="text"
@@ -155,20 +158,20 @@ export const SubPropInput = memo(function SubPropInput({
         }}
         onBlur={() => setTimeout(() => setShowAC(false), 150)}
         placeholder={placeholder}
-        className={`${AUTHORING.input} flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
+        className={`${AUTHORING.input} min-w-[96px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
       />
       <button
         type="button"
         onClick={openRefPicker}
         title={isAliasVal ? 'Clear reference — use direct value' : 'Reference a token'}
         aria-label={isAliasVal ? 'Clear reference' : 'Reference a token'}
-        className={`p-0.5 rounded shrink-0 transition-colors ${
+        className={`${REFERENCE_BUTTON_CLASS} ${
           isAliasVal
             ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]'
             : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
         }`}
       >
-        <Link2 size={10} strokeWidth={2} aria-hidden />
+        <Link2 size={12} strokeWidth={1.8} aria-hidden />
       </button>
       {showAC && (
         <AliasAutocomplete
@@ -227,13 +230,13 @@ export const DimensionSubProp = memo(function DimensionSubProp({
   }
 
   return (
-    <div className="flex gap-1 items-center">
+    <div className="flex min-w-0 flex-wrap items-center gap-1">
       <input
         ref={inputRef}
         type="number"
         value={dim.value ?? 0}
         onChange={e => onChange({ ...dim, value: parseFloat(e.target.value) || 0 })}
-        className={`${AUTHORING.input} flex-1`}
+        className={`${AUTHORING.input} min-w-[96px] flex-1`}
         placeholder={placeholder}
         onKeyDown={e => {
           if (e.key === '{') {
@@ -245,7 +248,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
       <select
         value={dim.unit ?? units[0]}
         onChange={e => onChange({ ...dim, unit: e.target.value })}
-        className={`${AUTHORING.input} w-14`}
+        className={`${AUTHORING.input} w-[72px] shrink-0`}
       >
         {units.map(u => <option key={u} value={u}>{u}</option>)}
       </select>
@@ -253,9 +256,9 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         type="button"
         onClick={() => onChange('{')}
         title="Reference a token"
-        className="p-0.5 rounded shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+        className={`${REFERENCE_BUTTON_CLASS} text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
       >
-        <Link2 size={10} strokeWidth={2} aria-hidden />
+        <Link2 size={12} strokeWidth={1.8} aria-hidden />
       </button>
     </div>
   );
@@ -286,7 +289,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
   if (isAliasVal || showAC) {
     // Show alias autocomplete input
     return (
-      <div className="relative flex items-center gap-1">
+      <div className="relative flex min-w-0 flex-wrap items-center gap-1">
         <input
           ref={inputRef}
           type="text"
@@ -302,7 +305,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           }}
           onBlur={() => setTimeout(() => setShowAC(false), 150)}
           placeholder="Inter"
-          className={`${AUTHORING.input} flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
+          className={`${AUTHORING.input} min-w-[96px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
         />
         {isAliasVal && (
           <button
@@ -310,9 +313,9 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
             onClick={() => { onChange(''); setShowAC(false); }}
             title="Clear reference — use direct value"
             aria-label="Clear reference"
-            className="p-0.5 rounded shrink-0 transition-colors text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]"
+            className={`${REFERENCE_BUTTON_CLASS} text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]`}
           >
-            <Link2 size={10} strokeWidth={2} aria-hidden />
+            <Link2 size={12} strokeWidth={1.8} aria-hidden />
           </button>
         )}
         {showAC && (
@@ -334,8 +337,8 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
 
   // Literal mode — use font picker with a way to switch to alias
   return (
-    <div className="flex items-center gap-1">
-      <div className="flex-1">
+    <div className="flex min-w-0 flex-wrap items-center gap-1">
+      <div className="min-w-[120px] flex-1">
         <FontFamilyPicker
           value={typeof value === 'string' ? value : ''}
           onChange={v => {
@@ -352,9 +355,9 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
         type="button"
         onClick={() => { onChange('{'); setShowAC(true); }}
         title="Reference a token"
-        className="p-0.5 rounded shrink-0 transition-colors text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+        className={`${REFERENCE_BUTTON_CLASS} text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
       >
-        <Link2 size={10} strokeWidth={2} aria-hidden />
+        <Link2 size={12} strokeWidth={1.8} aria-hidden />
       </button>
     </div>
   );

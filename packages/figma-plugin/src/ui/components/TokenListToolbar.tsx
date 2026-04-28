@@ -17,6 +17,7 @@ import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
+import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
 import type { TokenGroupBy } from "./tokenListTypes";
 import {
   Chip,
@@ -292,7 +293,7 @@ export function TokenListToolbar({
             ) : null}
 
             {hasTokens && viewMode === "tree" ? (
-              <div className="relative min-w-[180px] max-w-full flex-1 basis-[240px]">
+              <div className="relative min-w-[140px] max-w-full flex-1 basis-[220px]">
                 <div className="flex min-h-[28px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
                   <Search
                     size={12}
@@ -473,7 +474,7 @@ export function TokenListToolbar({
                   <div
                     ref={sortMenu.menuRef}
                     style={sortMenuStyle ?? { visibility: "hidden" }}
-                    className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
                     {viewRadioGroups.map((group, idx) => (
@@ -518,7 +519,7 @@ export function TokenListToolbar({
                   <div
                     ref={createMenu.menuRef}
                     style={createMenuStyle ?? { visibility: "hidden" }}
-                    className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
                     {onCreateToken ? (
@@ -600,7 +601,7 @@ export function TokenListToolbar({
                   <div
                     ref={actionsMenu.menuRef}
                     style={actionsMenuStyle ?? { visibility: "hidden" }}
-                    className="z-50 overflow-y-auto rounded bg-[var(--color-figma-bg)] py-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
                     {hasGroupOps ? (
