@@ -38,6 +38,7 @@ export function ExtendsTokenPicker({
   const candidates = useMemo(() => {
     return scopedCandidates.filter(
       (candidate) =>
+        !candidate.isAmbiguousPath &&
         candidate.entry.$type === tokenType &&
         !(
           candidate.path === currentPath &&
@@ -118,21 +119,17 @@ export function ExtendsTokenPicker({
               setSearch("");
             }}
             className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-body hover:bg-[var(--color-figma-bg-hover)]`}
-            title={
-              candidate.isAmbiguousPath && candidate.collectionId
-                ? `${candidate.path} (${candidate.collectionId})`
-                : candidate.path
-            }
+            title={candidate.path}
           >
             <span>{candidate.path}</span>
-            {candidate.isAmbiguousPath && candidate.collectionId ? (
-              <span className="ml-2 text-[10px] text-[var(--color-figma-text-secondary)]">
-                {candidate.collectionId}
-              </span>
-            ) : null}
           </button>
         ))}
       </div>
+      {filtered.length > 0 ? (
+        <p className="px-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+          Only tokens with unique paths can be used for inheritance.
+        </p>
+      ) : null}
     </div>
   );
 }

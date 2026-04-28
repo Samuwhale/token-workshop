@@ -112,6 +112,31 @@ function cloneModeValue<T>(value: T): T {
     : value;
 }
 
+function getStoredModeValue(
+  entry: TokenMapEntry | undefined,
+  collectionId: string,
+  modeName: string,
+  modeIndex: number,
+): unknown {
+  if (!entry) {
+    return undefined;
+  }
+  if (modeIndex === 0) {
+    return entry.$value;
+  }
+
+  const collectionModes = entry.$extensions?.tokenmanager?.modes?.[collectionId];
+  if (
+    !collectionModes ||
+    typeof collectionModes !== "object" ||
+    Array.isArray(collectionModes)
+  ) {
+    return undefined;
+  }
+
+  return (collectionModes as Record<string, unknown>)[modeName];
+}
+
 function getAncestorRowStatusLabel(
   status: "missing" | "ambiguous" | "cycle" | undefined,
 ): string | null {
@@ -351,8 +376,8 @@ export function TokenDetails({
     fontFamilyRef,
     fontSizeRef,
     aliasCycleError: _aliasCycleError,
-    canSave,
-    saveBlockReason,
+    canSave: editorCanSave,
+    saveBlockReason: editorSaveBlockReason,
     applyTypeChange,
     handleTypeChange,
     focusBlockedField,
@@ -371,6 +396,50 @@ export function TokenDetails({
   const [detachingGraphOutput, setDetachingGraphOutput] = useState(false);
 
   const initialFieldsSnapshot = initialRef.current;
+  const ambiguousExtendsCollectionIds = useMemo(() => {
+    const path = extendsPath.trim();
+    if (!path) {
+      return [];
+    }
+
+    const collectionIds = getCollectionIdsForPath({
+      path,
+      pathToCollectionId,
+      collectionIdsByPath,
+    });
+    return collectionIds.length > 1 ? collectionIds : [];
+  }, [collectionIdsByPath, extendsPath, pathToCollectionId]);
+  const ambiguousAliasReferences = useMemo(
+    () =>
+      modeValue.modes.flatMap((mode) => {
+        if (typeof mode.value !== "string" || !isAlias(mode.value)) {
+          return [];
+        }
+
+        const path = extractAliasPath(mode.value)?.trim();
+        if (!path) {
+          return [];
+        }
+
+        const collectionIds = getCollectionIdsForPath({
+          path,
+          pathToCollectionId,
+          collectionIdsByPath,
+        });
+        if (collectionIds.length <= 1) {
+          return [];
+        }
+
+        return [{ modeName: mode.name, path, collectionIds }];
+      }),
+    [collectionIdsByPath, modeValue.modes, pathToCollectionId],
+  );
+  const firstAmbiguousAliasReference = ambiguousAliasReferences[0] ?? null;
+  const ambiguousReferenceMessage = firstAmbiguousAliasReference
+    ? `Mode "${firstAmbiguousAliasReference.modeName}" references "${firstAmbiguousAliasReference.path}", which exists in ${formatCollectionIdList(firstAmbiguousAliasReference.collectionIds)}. References must point to a token path that belongs to one collection.`
+    : ambiguousExtendsCollectionIds.length > 0
+      ? `Inherited token "${extendsPath}" exists in ${formatCollectionIdList(ambiguousExtendsCollectionIds)}. Inheritance requires a token path that belongs to one collection.`
+      : null;
 
   const requestClose = editorSessionHost.requestClose;
   const beforeSaveGeneratedToken = useCallback(
@@ -379,9 +448,13 @@ export function TokenDetails({
         setError("This token is managed by a graph. Open the graph to change generated values, or detach the token before editing it directly.");
         return false;
       }
+      if (ambiguousReferenceMessage) {
+        setError(ambiguousReferenceMessage);
+        return false;
+      }
       return true;
     },
-    [activeGraphProvenance, isCreateMode],
+    [activeGraphProvenance, ambiguousReferenceMessage, isCreateMode],
   );
 
   const saveHook = useTokenEditorSave({
@@ -938,6 +1011,8 @@ export function TokenDetails({
         }).filter((collectionId) => collectionId !== ownerCollectionId)
       : [];
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
+  const canSave = editorCanSave && ambiguousReferenceMessage === null;
+  const saveBlockReason = ambiguousReferenceMessage ?? editorSaveBlockReason;
   const footerNote =
     isCreateMode && duplicatePath
       ? "Path already exists."
@@ -1319,6 +1394,15 @@ export function TokenDetails({
       )}
       {extendsPath &&
         (() => {
+          if (ambiguousExtendsCollectionIds.length > 0) {
+            return (
+              <p className="text-secondary text-[var(--color-figma-error)]">
+                This path is also used in{" "}
+                {formatCollectionIdList(ambiguousExtendsCollectionIds)}. Pick a token
+                path that belongs to one collection before inheriting from it.
+              </p>
+            );
+          }
           const base = allTokensFlat[extendsPath];
           if (!base) {
             return (
@@ -1587,7 +1671,14 @@ export function TokenDetails({
               >
                 {modeValue.modes.map((mode, modeIdx) => {
                   const modeVal = mode.value;
-                  const inheritedValue = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
+                  const inheritedValue = extendsPath
+                    ? getStoredModeValue(
+                        allTokensFlat[extendsPath],
+                        ownerCollectionId,
+                        mode.name,
+                        modeIdx,
+                      )
+                    : undefined;
                   const initialModeVal =
                     modeIdx === 0
                       ? initialFieldsSnapshot?.value

@@ -76,13 +76,23 @@ export function AliasAutocomplete({
     if (!q) {
       const recentEntries: ScopedTokenCandidate[] = [];
       for (const candidate of getRecentScopedTokenCandidates(candidates)) {
-        if (filterType && candidate.entry.$type !== filterType) continue;
+        if (
+          candidate.isAmbiguousPath ||
+          (filterType && candidate.entry.$type !== filterType)
+        ) {
+          continue;
+        }
         recentEntries.push(candidate);
         if (recentEntries.length >= 6) break;
       }
       const recentSet = new Set(recentEntries.map((candidate) => candidate.key));
       const all = candidates
-        .filter((candidate) => (!filterType || candidate.entry.$type === filterType) && !recentSet.has(candidate.key));
+        .filter(
+          (candidate) =>
+            !candidate.isAmbiguousPath &&
+            (!filterType || candidate.entry.$type === filterType) &&
+            !recentSet.has(candidate.key),
+        );
       const remaining = all.slice(0, MAX_RESULTS - recentEntries.length);
       return {
         entries: [...recentEntries, ...remaining],
@@ -92,7 +102,12 @@ export function AliasAutocomplete({
     }
     const scored: Array<[ScopedTokenCandidate, number]> = [];
     for (const candidate of candidates) {
-      if (filterType && candidate.entry.$type !== filterType) continue;
+      if (
+        candidate.isAmbiguousPath ||
+        (filterType && candidate.entry.$type !== filterType)
+      ) {
+        continue;
+      }
       const score = fuzzyScore(q, candidate.path);
       if (score >= 0) scored.push([candidate, score]);
     }
@@ -136,7 +151,7 @@ export function AliasAutocomplete({
   if (entries.length === 0) {
     return (
       <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-2 px-3 text-secondary text-[var(--color-figma-text-secondary)]">
-        No matching tokens
+        No matching tokens with a unique path
       </div>
     );
   }
@@ -196,14 +211,6 @@ export function AliasAutocomplete({
               {entry.$lifecycle === 'deprecated' && (
                 <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">deprecated</span>
               )}
-              {candidate.isAmbiguousPath && candidate.collectionId ? (
-                <span
-                  className="min-w-0 truncate text-[8px] text-[var(--color-figma-text-secondary)]"
-                  title={candidate.collectionId}
-                >
-                  {candidate.collectionId}
-                </span>
-              ) : null}
             </div>
           </div>
         </button>
