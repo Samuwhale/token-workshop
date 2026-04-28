@@ -1,6 +1,7 @@
 import {
   useState,
   useEffect,
+  useLayoutEffect,
   useRef,
   useCallback,
   useMemo,
@@ -681,6 +682,10 @@ export function SelectionInspector({
     null,
   );
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const inspectorSplitRef = useRef<HTMLDivElement>(null);
+  const [inspectorSplitWidth, setInspectorSplitWidth] = useState<number | null>(
+    null,
+  );
 
   const remapMissingTokens = useMemo(() => {
     if (syncResult?.missingTokens.length) return syncResult.missingTokens;
@@ -690,6 +695,23 @@ export function SelectionInspector({
   }, [freshSyncResult, syncResult]);
 
   const selectionHealth = useSelectionHealth(selectedNodes, tokenMap);
+
+  useLayoutEffect(() => {
+    const element = inspectorSplitRef.current;
+    if (!element) {
+      setInspectorSplitWidth(null);
+      return;
+    }
+
+    const updateWidth = () => {
+      setInspectorSplitWidth(element.clientWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const staleBindingEntries = useMemo(() => {
     const byFrom = new Map<string, { from: string; to?: string }>();
@@ -712,6 +734,12 @@ export function SelectionInspector({
     });
     setExtractOpen(unboundProperties);
   }, [rootNodes]);
+
+  const hasSecondaryInspectorPane = extractOpen !== null || suggestions.length > 0;
+  const stackSecondaryInspectorPane =
+    hasSecondaryInspectorPane &&
+    inspectorSplitWidth !== null &&
+    inspectorSplitWidth < 420;
 
   const lastHandledExtractTrigger = useRef(0);
   useEffect(() => {
@@ -946,10 +974,20 @@ export function SelectionInspector({
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div
+        ref={inspectorSplitRef}
+        className={`flex-1 min-h-0 overflow-hidden ${
+          stackSecondaryInspectorPane ? "flex flex-col" : "flex"
+        }`}
+      >
         <div
           className="flex flex-col overflow-hidden min-w-0"
-          style={{ flex: extractOpen || suggestions.length > 0 ? '56 0 0%' : '1 0 0%' }}
+          style={{
+            flex:
+              hasSecondaryInspectorPane && !stackSecondaryInspectorPane
+                ? "56 0 0%"
+                : "1 0 0%",
+          }}
         >
           <div className="flex-1 overflow-y-auto">
 
@@ -1109,8 +1147,16 @@ export function SelectionInspector({
 
         {extractOpen ? (
           <div
-            className="flex flex-col border-l border-[var(--color-figma-border)] overflow-hidden"
-            style={{ flex: '44 0 0%', minWidth: 0 }}
+            className={`flex flex-col overflow-hidden ${
+              stackSecondaryInspectorPane
+                ? "border-t border-[var(--color-figma-border)]"
+                : "border-l border-[var(--color-figma-border)]"
+            }`}
+            style={{
+              flex: stackSecondaryInspectorPane ? "0 0 46%" : "44 0 0%",
+              minWidth: 0,
+              minHeight: stackSecondaryInspectorPane ? 176 : 0,
+            }}
           >
             <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center gap-1.5">
               <span className="text-secondary font-semibold text-[var(--color-figma-text-secondary)] flex-1">Extract</span>
@@ -1149,8 +1195,16 @@ export function SelectionInspector({
           </div>
         ) : suggestions.length > 0 ? (
           <div
-            className="flex flex-col border-l border-[var(--color-figma-border)] overflow-hidden"
-            style={{ flex: '44 0 0%', minWidth: 0 }}
+            className={`flex flex-col overflow-hidden ${
+              stackSecondaryInspectorPane
+                ? "border-t border-[var(--color-figma-border)]"
+                : "border-l border-[var(--color-figma-border)]"
+            }`}
+            style={{
+              flex: stackSecondaryInspectorPane ? "0 0 46%" : "44 0 0%",
+              minWidth: 0,
+              minHeight: stackSecondaryInspectorPane ? 176 : 0,
+            }}
           >
             <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center gap-1.5">
               <span className="text-secondary font-semibold text-[var(--color-figma-text-secondary)] flex-1">Matches</span>

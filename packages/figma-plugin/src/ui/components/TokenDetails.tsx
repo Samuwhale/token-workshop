@@ -1111,7 +1111,7 @@ export function TokenDetails({
               </div>
             ) : (
               <span
-                className="min-w-0 flex-1 truncate font-mono text-body text-[var(--color-figma-text)]"
+                className={`${LONG_TEXT_CLASSES.monoPrimary} flex-1`}
                 title={tokenPath}
               >
                 {tokenPath}
@@ -1237,7 +1237,7 @@ export function TokenDetails({
       {isEditMode && pendingDraft && !isCreateMode && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 text-body">
           <Clock size={12} strokeWidth={1.5} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />
-          <span className="min-w-0 flex-1 text-[var(--color-figma-warning)] truncate">
+          <span className="min-w-0 flex-1 break-words text-[var(--color-figma-warning)]">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
           <button
@@ -1292,14 +1292,14 @@ export function TokenDetails({
         </div>
       )}
       <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={`flex flex-wrap items-center gap-2 ${AUTHORING_SURFACE_CLASSES.footerSecondary}`}>
           {!isCreateMode && (
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
               title="Delete token"
               aria-label="Delete token"
-              className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+              className={`${AUTHORING_SURFACE_CLASSES.footerIcon} rounded p-1.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]`}
             >
               <Trash2 size={12} strokeWidth={1.5} aria-hidden />
             </button>
@@ -1319,7 +1319,7 @@ export function TokenDetails({
           )}
         </div>
         <div
-          className="ml-auto min-w-0 flex-1"
+          className={AUTHORING_SURFACE_CLASSES.footerPrimary}
           onClick={() => {
             if (!canSave && saveBlockReason && tokenType === "typography")
               focusBlockedField();

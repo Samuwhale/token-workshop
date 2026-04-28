@@ -1261,7 +1261,9 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__action-label {
-    display: none;
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.15;
   }
 }
 

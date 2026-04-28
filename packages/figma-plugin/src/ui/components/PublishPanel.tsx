@@ -1433,7 +1433,7 @@ function ResolverModePublishCard({
           ) : null}
         </div>
         {activeResolver ? (
-          <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
             <button
               onClick={onReset}
               disabled={loading || saving || syncing || dirtyCount === 0}
@@ -1444,14 +1444,14 @@ function ResolverModePublishCard({
             <button
               onClick={onSave}
               disabled={loading || saving || syncing || dirtyCount === 0}
-              className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+              className="min-w-0 flex-[1_1_96px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
             >
               {saving ? 'Saving…' : dirtyCount > 0 ? `Save ${dirtyCount}` : 'Saved'}
             </button>
             <button
               onClick={onSync}
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
-              className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+              className="min-w-0 flex-[1_1_180px] rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
             >
               {syncing ? 'Syncing…' : 'Sync resolver modes'}
             </button>

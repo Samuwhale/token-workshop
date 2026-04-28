@@ -750,7 +750,7 @@ export function SettingsPanel({
                 </ul>
               </div>
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={async () => {
                   const defaultUrl = "http://localhost:9400";
@@ -761,7 +761,7 @@ export function SettingsPanel({
                 }}
                 disabled={checking}
                 title="Reset server URL to http://localhost:9400"
-                className="whitespace-nowrap rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
               >
                 Reset to default
               </button>
@@ -772,7 +772,7 @@ export function SettingsPanel({
                   setConnectResult(ok ? "ok" : "fail");
                 }}
                 disabled={checking}
-                className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                className="min-w-0 flex-[1.4_1_180px] rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
               >
                 {checking ? "Connecting..." : "Connect"}
               </button>
