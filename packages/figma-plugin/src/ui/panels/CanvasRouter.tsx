@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { resolveCollectionIdForPath } from "@tokenmanager/core";
 import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
@@ -20,7 +20,6 @@ import {
   useSyncWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
-import { useSelectionHealth } from "../hooks/useSelectionHealth";
 import type { useTokenContextNavigation } from "../hooks/useTokenContextNavigation";
 import type { LibraryReviewSummary } from "../shared/reviewSummary";
 type SubTab = "inspect" | "repair";
@@ -69,33 +68,12 @@ export function CanvasRouter({
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     navigateTo,
-    pendingRepairPrefill,
     setPendingRepairPrefill,
     consumePendingRepairPrefill,
   } = useNavigationContext();
   const tokens = useTokensWorkspaceController();
   const apply = useApplyWorkspaceController();
   const syncCtrl = useSyncWorkspaceController();
-
-  const selectionHealth = useSelectionHealth(selectedNodes, allTokensFlat);
-
-  useEffect(() => {
-    if (subTab !== "repair") return;
-    if (!selectionHealth.hasSelection) return;
-    const hasWork =
-      selectionHealth.staleBindingCount > 0 ||
-      (pendingRepairPrefill?.length ?? 0) > 0 ||
-      (syncResult?.missingTokens.length ?? 0) > 0;
-    if (!hasWork) navigateTo("canvas", "inspect");
-  }, [
-    subTab,
-    selectionHealth.hasSelection,
-    selectionHealth.staleBindingCount,
-    pendingRepairPrefill,
-    syncResult,
-    navigateTo,
-  ]);
-
   const deliveryStrip = (
     <DeliveryStatusStrip
       reviewStatus={reviewTotals.status}

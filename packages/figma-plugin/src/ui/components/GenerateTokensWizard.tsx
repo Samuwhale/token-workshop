@@ -304,6 +304,10 @@ function formatValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function readCollectionLabel(collection: TokenCollection): string {
+  return collection.publishRouting?.collectionName?.trim() || collection.id;
+}
+
 export function GenerateTokensWizard({
   serverUrl,
   collections,
@@ -340,9 +344,17 @@ export function GenerateTokensWizard({
   const draftGraphIdRef = useRef<string | null>(null);
   const draftPreservedRef = useRef(false);
   const latestPayloadKeyRef = useRef("");
+  const fallbackCollectionId = collections[0]?.id ?? "";
 
   const selectedOption = GENERATE_OPTIONS.find((item) => item.id === kind) ?? GENERATE_OPTIONS[0];
   const targetCollection = collections.find((collection) => collection.id === targetCollectionId);
+  const collectionOptions = useMemo(
+    () => collections.map((collection) => ({
+      id: collection.id,
+      label: readCollectionLabel(collection),
+    })),
+    [collections],
+  );
   const sourceTokenOptions = useMemo(() => {
     const tokens = perCollectionFlat[sourceCollectionId] ?? {};
     return Object.entries(tokens)
@@ -354,6 +366,49 @@ export function GenerateTokensWizard({
       .map(([path]) => path)
       .sort((a, b) => a.localeCompare(b));
   }, [kind, perCollectionFlat, sourceCollectionId]);
+
+  useEffect(() => {
+    if (collections.length === 0) {
+      if (targetCollectionId) {
+        setTargetCollectionId("");
+      }
+      if (sourceCollectionId) {
+        setSourceCollectionId("");
+      }
+      if (sourceTokenPath) {
+        setSourceTokenPath("");
+      }
+      return;
+    }
+
+    if (!collections.some((collection) => collection.id === targetCollectionId)) {
+      setTargetCollectionId(fallbackCollectionId);
+      setPreview(null);
+    }
+
+    if (!collections.some((collection) => collection.id === sourceCollectionId)) {
+      setSourceCollectionId(fallbackCollectionId);
+      setSourceTokenPath("");
+      setPreview(null);
+    }
+  }, [
+    collections,
+    fallbackCollectionId,
+    sourceCollectionId,
+    sourceTokenPath,
+    targetCollectionId,
+  ]);
+
+  useEffect(() => {
+    if (!sourceTokenPath) {
+      return;
+    }
+    if (sourceTokenOptions.includes(sourceTokenPath)) {
+      return;
+    }
+    setSourceTokenPath("");
+    setPreview(null);
+  }, [sourceTokenOptions, sourceTokenPath]);
 
   const previewBlocking = Boolean(
     preview?.blocking ||
@@ -646,9 +701,9 @@ export function GenerateTokensWizard({
               }}
               className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
             >
-              {collections.map((collection) => (
+              {collectionOptions.map((collection) => (
                 <option key={collection.id} value={collection.id}>
-                  {collection.name || collection.id}
+                  {collection.label}
                 </option>
               ))}
             </select>
@@ -719,9 +774,9 @@ export function GenerateTokensWizard({
                       }}
                       className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
                     >
-                      {collections.map((collection) => (
+                      {collectionOptions.map((collection) => (
                         <option key={collection.id} value={collection.id}>
-                          {collection.name || collection.id}
+                          {collection.label}
                         </option>
                       ))}
                     </select>

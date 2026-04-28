@@ -7,8 +7,8 @@ import { getCollectionDisplayName } from "../shared/libraryCollections";
 import { ActionRow, IconButton, TextInput } from "../primitives";
 import {
   CollectionMergeInline,
-  SetDeleteDialog,
-  SetSplitDialog,
+  CollectionDeleteDialog,
+  CollectionSplitDialog,
   useCollectionStructuralPreflight,
 } from "./CollectionStructureDialogs";
 
@@ -741,7 +741,7 @@ export function CollectionDetailsPanel({
       </div>
 
       {deletingCollectionId === collection.id && onDeleteConfirm && onDeleteCancel ? (
-        <SetDeleteDialog
+        <CollectionDeleteDialog
           deletingCollectionId={deletingCollectionId}
           collectionDisplayNames={collectionDisplayNames}
           preflight={deletePreflight.data}
@@ -756,7 +756,7 @@ export function CollectionDetailsPanel({
       onSplitClose &&
       setSplitDeleteOriginal &&
       onSplitConfirm ? (
-        <SetSplitDialog
+        <CollectionSplitDialog
           collectionIds={collectionIds}
           collectionDisplayNames={collectionDisplayNames}
           splittingCollectionId={splittingCollectionId}

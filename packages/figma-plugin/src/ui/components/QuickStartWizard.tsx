@@ -399,8 +399,7 @@ export function QuickStartWizard({
   embedded = false,
   onBack,
 }: QuickStartWizardProps) {
-  const [completedTasks, setCompletedTasks] = useState<Set<TaskId>>(new Set());
-  const [checklistView, setChecklistView] = useState<ChecklistView>('list');
+  const [wizardView, setWizardView] = useState<WizardView>('overview');
 
   const [prereqPhase, setPrereqPhase] = useState<PrereqPhase>(() => {
     if (!connected) return 'connect';
@@ -420,10 +419,6 @@ export function QuickStartWizard({
       setPrereqPhase(collectionIdsRef.current.length === 0 ? 'create-collection' : null);
     }
   }, [connected, prereqPhase]);
-
-  const markCompleted = useCallback((task: TaskId) => {
-    setCompletedTasks(prev => new Set([...prev, task]));
-  }, []);
 
   const handleCollectionCreated = useCallback((name: string) => {
     setWizardCreatedCollection(name);
@@ -448,45 +443,42 @@ export function QuickStartWizard({
           template: graphTemplateForGraphKind(template.graphKind),
         }),
       });
-      markCompleted('foundations');
       onOpenGraph?.();
     } catch (error) {
       setFoundationError(getErrorMessage(error));
     } finally {
       setFoundationBusy(false);
     }
-  }, [effectiveCollectionId, markCompleted, onOpenGraph, serverUrl]);
+  }, [effectiveCollectionId, onOpenGraph, serverUrl]);
 
   const handleModesDone = useCallback(() => {
-    setChecklistView('list');
-    markCompleted('modes');
-  }, [markCompleted]);
-
-  const handleModesBack = useCallback(() => {
-    setChecklistView('list');
+    setWizardView('overview');
   }, []);
 
-  const handleTaskSelect = useCallback((taskId: TaskId) => {
+  const handleModesBack = useCallback(() => {
+    setWizardView('overview');
+  }, []);
+
+  const handleActionSelect = useCallback((taskId: SetupActionId) => {
     switch (taskId) {
       case 'author-tokens':
-        markCompleted('author-tokens');
         onAuthorFirstToken?.();
         break;
       case 'foundations':
-        setChecklistView('template-picker');
+        setWizardView('template-picker');
         break;
       case 'modes':
-        setChecklistView('modes-inline');
+        setWizardView('modes-inline');
         break;
     }
-  }, [markCompleted, onAuthorFirstToken]);
+  }, [onAuthorFirstToken]);
 
   if (prereqPhase === 'connect' || prereqPhase === 'create-collection') {
     const prereqContent = (
       <>
         {!embedded && (
           <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-            <div className="text-heading font-semibold text-[var(--color-figma-text)]">Create a token system</div>
+            <div className="text-heading font-semibold text-[var(--color-figma-text)]">Start a token library</div>
             <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
@@ -525,12 +517,10 @@ export function QuickStartWizard({
     );
   }
 
-  const hasCompletedAny = completedTasks.size > 0;
-
-  const showBackButton = checklistView !== 'list';
-  const viewTitle = checklistView === 'template-picker'
+  const showBackButton = wizardView !== 'overview';
+  const viewTitle = wizardView === 'template-picker'
     ? 'Choose a template'
-    : checklistView === 'modes-inline'
+    : wizardView === 'modes-inline'
       ? 'Add modes'
       : null;
 
@@ -541,7 +531,7 @@ export function QuickStartWizard({
           <div className="flex items-center gap-2">
             {showBackButton && (
               <button
-                onClick={() => setChecklistView('list')}
+                onClick={() => setWizardView('overview')}
                 className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 aria-label="Back"
               >
@@ -551,7 +541,7 @@ export function QuickStartWizard({
               </button>
             )}
               <div className="text-heading font-semibold text-[var(--color-figma-text)]">
-              {viewTitle ?? 'Create a token system'}
+              {viewTitle ?? 'Start a token library'}
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
@@ -563,7 +553,7 @@ export function QuickStartWizard({
       {embedded && showBackButton && (
         <div className="px-4 py-2 border-b border-[var(--color-figma-border)] flex items-center gap-2">
           <button
-            onClick={() => setChecklistView('list')}
+            onClick={() => setWizardView('overview')}
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
             aria-label="Back"
           >
@@ -576,27 +566,34 @@ export function QuickStartWizard({
       )}
 
       <div className="flex-1 overflow-y-auto">
-        {checklistView === 'list' && (
+        {wizardView === 'overview' && (
           <>
-            <TaskChecklist
-              completedTasks={completedTasks}
+            <div className="px-4 pb-3 pt-4">
+              <p className="text-body font-medium text-[var(--color-figma-text)]">
+                {effectiveCollectionId
+                  ? `"${effectiveCollectionId}" is ready. Choose what to do next.`
+                  : 'Choose what to do next.'}
+              </p>
+              <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+                Start with authoring. Add modes or templates only when the collection needs them.
+              </p>
+            </div>
+            <SetupActionList
               connected={connected}
-              onSelect={handleTaskSelect}
+              onSelect={handleActionSelect}
             />
-            {hasCompletedAny && (
-              <div className="px-4 py-3">
-                <button
-                  onClick={onComplete}
-                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
-                >
-                  Finish Setup
-                </button>
-              </div>
-            )}
+            <div className="px-4 py-3">
+              <button
+                onClick={onComplete}
+                className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
+              >
+                Done for now
+              </button>
+            </div>
           </>
         )}
 
-        {checklistView === 'template-picker' && (
+        {wizardView === 'template-picker' && (
           <>
             <CompactTemplatePicker
               templates={GRAPH_TEMPLATES}
@@ -611,9 +608,8 @@ export function QuickStartWizard({
           </>
         )}
 
-        {checklistView === 'modes-inline' && (
+        {wizardView === 'modes-inline' && (
           <div className="p-3 flex flex-col gap-2">
-
             <ModeStep
               serverUrl={serverUrl}
               currentCollectionId={effectiveCollectionId}

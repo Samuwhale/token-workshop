@@ -315,7 +315,7 @@ function StructuralPreflightSummary({
   );
 }
 
-export function SetDeleteDialog({
+export function CollectionDeleteDialog({
   deletingCollectionId,
   collectionDisplayNames,
   preflight,
@@ -609,7 +609,7 @@ export function CollectionMergeInline({
   );
 }
 
-export function SetSplitDialog({
+export function CollectionSplitDialog({
   collectionIds,
   collectionDisplayNames,
   splittingCollectionId,

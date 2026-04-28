@@ -42,8 +42,6 @@ interface CollectionTabsProps {
   onOpenImport?: () => void;
 }
 
-const SEARCH_THRESHOLD = 6;
-
 export function CollectionTabs({
   collections,
   currentCollectionId = null,
@@ -57,8 +55,9 @@ export function CollectionTabs({
   onOpenCreateCollection,
   onOpenImport,
 }: CollectionTabsProps) {
-  const showSearch = collections.length > SEARCH_THRESHOLD;
-  const showCreateMenu = Boolean(onOpenCreateCollection || onOpenImport);
+  const showSearch = collections.length > 1 || Boolean(allCollectionsScope);
+  const showCreateMenu = Boolean(onOpenCreateCollection);
+  const showImportButton = Boolean(onOpenImport);
 
   const searchMenu = useDropdownMenu();
   const searchMenuStyle = useAnchoredFloatingStyle({
@@ -350,6 +349,18 @@ export function CollectionTabs({
         </div>
       ) : null}
 
+      {showImportButton ? (
+        <button
+          type="button"
+          onClick={onOpenImport}
+          aria-label="Import collections"
+          title="Import collections"
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+        >
+          <Upload size={12} strokeWidth={1.5} aria-hidden />
+        </button>
+      ) : null}
+
       {showCreateMenu ? (
         <div className="relative shrink-0">
           <button
@@ -385,17 +396,6 @@ export function CollectionTabs({
                 >
                   <Plus size={11} strokeWidth={1.5} aria-hidden />
                   New collection
-                </button>
-              ) : null}
-              {onOpenImport ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => runCreateAction(onOpenImport)}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <Upload size={11} strokeWidth={1.5} aria-hidden />
-                  Import…
                 </button>
               ) : null}
             </div>

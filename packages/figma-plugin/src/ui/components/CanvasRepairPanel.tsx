@@ -38,6 +38,7 @@ export function CanvasRepairPanel({
   const suggestedCount = staleEntries.filter(
     (entry) => entry.to && entry.to.trim().length > 0,
   ).length;
+  const hasRepairWork = staleEntries.length > 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -45,22 +46,39 @@ export function CanvasRepairPanel({
         <div className="text-secondary font-medium text-[var(--color-figma-text)]">
           Repair broken bindings
         </div>
-        {staleEntries.length > 0 && (
+        {hasRepairWork ? (
           <div className="text-secondary text-[var(--color-figma-text-secondary)]">
             {staleEntries.length} stale path{staleEntries.length === 1 ? "" : "s"} detected
             {suggestedCount > 0 && ` · ${suggestedCount} suggested`}
           </div>
+        ) : (
+          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+            Broken token paths will appear here when a selection or sync result needs repair.
+          </div>
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <RemapBindingsPanel
-          tokenMap={tokenMap}
-          rows={rows}
-          onRowsChange={setRows}
-          fromSuggestions={staleEntries.map((entry) => entry.from)}
-          onClose={() => {}}
-          embedded
-        />
+        {hasRepairWork ? (
+          <RemapBindingsPanel
+            tokenMap={tokenMap}
+            rows={rows}
+            onRowsChange={setRows}
+            fromSuggestions={staleEntries.map((entry) => entry.from)}
+            onClose={() => {}}
+            embedded
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center px-6 text-center">
+            <div className="max-w-[240px]">
+              <div className="text-body font-medium text-[var(--color-figma-text)]">
+                Nothing to repair right now
+              </div>
+              <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+                When a layer still points to a token path that no longer exists, you can remap it here instead of fixing bindings one by one.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

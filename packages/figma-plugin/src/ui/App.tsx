@@ -85,7 +85,7 @@ import {
 } from "./shared/aliasMutations";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
-import { STORAGE_KEYS, lsSet, lsGetJson } from "./shared/storage";
+import { STORAGE_KEYS, lsGetJson } from "./shared/storage";
 import {
   Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
@@ -127,7 +127,6 @@ export function App() {
     notificationsOpen,
     toggleNotifications,
     closeNotifications,
-    pendingRepairPrefill,
   } = useNavigationContext();
   const {
     tokenDetails,
@@ -202,8 +201,6 @@ export function App() {
     paletteDeleteConfirm,
     setPaletteDeleteConfirm,
     startHereState,
-    setStartHereState,
-    initialFirstRun,
     dismissEphemeralOverlays,
     openStartHere,
     closeStartHere,
@@ -362,19 +359,6 @@ export function App() {
     navigateTo,
     switchContextualSurface,
   ]);
-  useEffect(() => {
-    if (!initialFirstRun || !startHereState.open) return;
-    if (Object.keys(allTokensFlat).length === 0) return;
-    lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
-    setStartHereState({ open: false, initialBranch: "root" });
-  }, [
-    allTokensFlat,
-    initialFirstRun,
-    setStartHereState,
-    startHereState.open,
-    startHereState.initialBranch,
-  ]);
-
   const handleImportComplete = useCallback(
     (result: ImportCompletionResult) => {
       const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
@@ -1689,15 +1673,7 @@ export function App() {
                 const isWorkspaceActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
                 const workspace = WORKSPACE_TABS.find((w) => w.id === item.workspaceId);
                 const allSections = workspace?.sections ?? [];
-                const canvasCanRepair =
-                  selectionHealth.staleBindingCount > 0 ||
-                  (pendingRepairPrefill?.length ?? 0) > 0 ||
-                  (syncResult?.missingTokens.length ?? 0) > 0 ||
-                  (activeTopTab === "canvas" && activeSubTab === "repair");
-                const sections =
-                  item.id === "canvas" && !canvasCanRepair
-                    ? allSections.filter((section) => section.id !== "repair")
-                    : allSections;
+                const sections = allSections;
                 const showCanvasSelectionAdornment =
                   item.id === "canvas" &&
                   !isWorkspaceActive &&

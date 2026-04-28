@@ -421,7 +421,6 @@ export class TokenResolver {
           }
         : token.$extensions;
       const resolvedExtensions = this.resolveModeExtensions(
-        token,
         path,
         $type,
         ops,
@@ -512,7 +511,6 @@ export class TokenResolver {
   }
 
   private resolveModeExtensions(
-    token: Token,
     path: string,
     $type: TokenType,
     ops: readonly DerivationOp[],
