@@ -45,9 +45,7 @@ import {
   useSelectionContext,
   useUsageContext,
 } from "../contexts/InspectContext";
-import {
-  useNavigationContext,
-} from "../contexts/NavigationContext";
+import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import {
@@ -80,7 +78,10 @@ import { getMostRelevantImportDestinationCollection } from "../shared/navigation
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
 import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
-import { GeneratorsPanel, type GeneratorPanelFocus } from "../components/generators/GeneratorsPanel";
+import {
+  GeneratorsPanel,
+  type GeneratorPanelFocus,
+} from "../components/generators/GeneratorsPanel";
 import { GeneratorCreatePanel } from "../components/GeneratorCreatePanel";
 
 const DEFAULT_CREATE_TYPE = "color";
@@ -149,7 +150,8 @@ export function PanelRouter({
   const tokensController = useTokensWorkspaceController();
   const applyController = useApplyWorkspaceController();
   const syncController = useSyncWorkspaceController();
-  const collectionStructureController = useCollectionStructureWorkspaceController();
+  const collectionStructureController =
+    useCollectionStructureWorkspaceController();
   const controller = {
     ...shell,
     ...editorShell,
@@ -216,7 +218,8 @@ export function PanelRouter({
     showImport,
   } = useEditorContext();
   const activeEditorSurface = tokensContextualSurfaceState.editorSurface;
-  const activeMaintenanceSurface = tokensContextualSurfaceState.maintenanceSurface;
+  const activeMaintenanceSurface =
+    tokensContextualSurfaceState.maintenanceSurface;
 
   // Read all four contexts — these cover ~40% of the data that panels need.
   const { serverUrl, connected, checking, updateServerUrlAndConnect } =
@@ -246,9 +249,15 @@ export function PanelRouter({
   const { tokenUsageCounts, hasTokenUsageScanResult } = useUsageContext();
   const healthRouteIntentRef = useRef<"deep-link" | null>(null);
   const historyRouteIntentRef = useRef<"deep-link" | null>(null);
-  const [pendingGeneratorDocumentId, setPendingGeneratorDocumentId] = useState<string | null>(null);
-  const [pendingGeneratorFocus, setPendingGeneratorFocus] = useState<GeneratorPanelFocus | null>(null);
-  const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] = useState<string | null>(null);
+  const [pendingGeneratorDocumentId, setPendingGeneratorDocumentId] = useState<
+    string | null
+  >(null);
+  const [pendingGeneratorFocus, setPendingGeneratorFocus] =
+    useState<GeneratorPanelFocus | null>(null);
+  const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
+    useState<string | null>(null);
+  const [generatorCreateOutputPrefix, setGeneratorCreateOutputPrefix] =
+    useState<string | null>(null);
   const createLibraryHealthScope = useCallback(
     (overrides?: Partial<HealthScope>): HealthScope => ({
       mode: "current",
@@ -347,24 +356,6 @@ export function PanelRouter({
     guardEditorAction,
   });
 
-  const openTokenDetails = useCallback(
-    (
-      path: string,
-      collectionId: string,
-      mode: "inspect" | "edit",
-      name?: string,
-    ) => {
-      openTokenInContext({
-        path,
-        collectionId,
-        mode,
-        name,
-        origin: "tokens",
-      } satisfies TokenContextNavigationRequest);
-    },
-    [openTokenInContext],
-  );
-
   const healthSignals = useHealthSignals({
     validationIssues,
     lintViolations,
@@ -390,12 +381,16 @@ export function PanelRouter({
   const deprecatedUsage = useDeprecatedUsage({
     serverUrl,
     connected,
-    refreshKey: (controller.validationLastRefreshed?.getTime() ?? 0) + reviewRefreshKey,
+    refreshKey:
+      (controller.validationLastRefreshed?.getTime() ?? 0) + reviewRefreshKey,
   });
   const deprecatedUsageCountsByCollection = useMemo(
     () =>
       deprecatedUsage.entries.reduce<Map<string, number>>((counts, entry) => {
-        counts.set(entry.collectionId, (counts.get(entry.collectionId) ?? 0) + 1);
+        counts.set(
+          entry.collectionId,
+          (counts.get(entry.collectionId) ?? 0) + 1,
+        );
         return counts;
       }, new Map()),
     [deprecatedUsage.entries],
@@ -443,7 +438,8 @@ export function PanelRouter({
       initialValue?: string;
       currentCollectionId?: string;
     }) => {
-      const targetCollectionId = options?.currentCollectionId ?? currentCollectionId;
+      const targetCollectionId =
+        options?.currentCollectionId ?? currentCollectionId;
       switchContextualSurface({
         surface: "token-details",
         token: {
@@ -513,7 +509,10 @@ export function PanelRouter({
                   path: current.path,
                   collectionId: current.collectionId,
                   mode: current.mode,
-                  name: current.name ?? current.path.split(".").pop() ?? current.path,
+                  name:
+                    current.name ??
+                    current.path.split(".").pop() ??
+                    current.path,
                 },
               ]
             : [];
@@ -670,19 +669,9 @@ export function PanelRouter({
   );
 
   useEffect(() => {
-    if (
-      !createFromEmpty ||
-      tokenDetails ||
-      showTokensCompare
-    )
-      return;
+    if (!createFromEmpty || tokenDetails || showTokensCompare) return;
     openCreateLauncher();
-  }, [
-    createFromEmpty,
-    tokenDetails,
-    openCreateLauncher,
-    showTokensCompare,
-  ]);
+  }, [createFromEmpty, tokenDetails, openCreateLauncher, showTokensCompare]);
 
   // Build the common TokenList `actions` object once.
   const tokenListActions = {
@@ -691,7 +680,12 @@ export function PanelRouter({
       controller.guardEditorAction(() => {
         switchContextualSurface({
           surface: "token-details",
-          token: { path, name, collectionId: currentCollectionId, mode: "edit" },
+          token: {
+            path,
+            name,
+            collectionId: currentCollectionId,
+            mode: "edit",
+          },
         });
         setHighlightedToken(path);
       }),
@@ -702,8 +696,9 @@ export function PanelRouter({
     ) => {
       openCreateLauncher({ initialPath, initialType, initialValue });
     },
-    onCreateGenerator: () => {
+    onCreateGenerator: (initialOutputPrefix?: string) => {
       controller.guardEditorAction(() => {
+        setGeneratorCreateOutputPrefix(initialOutputPrefix?.trim() || null);
         switchContextualSurface({ surface: "generator-create" });
       });
     },
@@ -716,7 +711,7 @@ export function PanelRouter({
     onClearHighlight: () => setHighlightedToken(null),
     onPublishGroup: (groupPath: string, tokenCount: number) =>
       controller.setPublishPending({
-        scope: 'group',
+        scope: "group",
         groupPath,
         collectionId: currentCollectionId,
         tokenCount,
@@ -824,21 +819,18 @@ export function PanelRouter({
         pushUndo: controller.pushUndo,
         availableFonts: controller.availableFonts,
         fontWeightsByFamily: controller.fontWeightsByFamily,
-        onNavigateToToken: (
-          path: string,
-          collectionId?: string,
-        ) =>
+        onNavigateToToken: (path: string, collectionId?: string) =>
           openLinkedTokenInDetails({
             path,
             mode: tokenDetails.mode,
             collectionId,
           }),
-	        onOpenGenerator: (generatorId: string) => {
-	          setCurrentCollectionId(tokenDetails.collectionId);
-	          setPendingGeneratorDocumentId(generatorId);
-	          setPendingGeneratorFocus(null);
-	          navigateTo("library", "generators");
-	        },
+        onOpenGenerator: (generatorId: string) => {
+          setCurrentCollectionId(tokenDetails.collectionId);
+          setPendingGeneratorDocumentId(generatorId);
+          setPendingGeneratorFocus(null);
+          navigateTo("library", "generators");
+        },
         lintViolations: healthSignals.lintViolationsForCurrent,
         syncSnapshot:
           Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined,
@@ -906,7 +898,11 @@ export function PanelRouter({
 
   const getEditorSurfaceRenderState =
     (): TokensContextualSurfaceRenderState | null => {
-      if (activeEditorSurface === "token-details" && tokenDetails && tokenDetailsProps) {
+      if (
+        activeEditorSurface === "token-details" &&
+        tokenDetails &&
+        tokenDetailsProps
+      ) {
         return {
           surface: "token-details",
           content: (
@@ -918,10 +914,15 @@ export function PanelRouter({
         };
       }
 
-      if (activeEditorSurface === "collection-details" && inspectingCollection) {
+      if (
+        activeEditorSurface === "collection-details" &&
+        inspectingCollection
+      ) {
         return {
           surface: "collection-details",
-          content: renderCollectionDetailsInInspector(inspectingCollection.collectionId),
+          content: renderCollectionDetailsInInspector(
+            inspectingCollection.collectionId,
+          ),
           onDismiss: () => switchContextualSurface({ surface: null }),
         };
       }
@@ -934,27 +935,36 @@ export function PanelRouter({
               serverUrl={serverUrl}
               collections={collections}
               workingCollectionId={currentCollectionId}
+              initialOutputPrefix={generatorCreateOutputPrefix}
               perCollectionFlat={perCollectionFlat}
-              onClose={() => switchContextualSurface({ surface: null })}
+              onClose={() => {
+                setGeneratorCreateOutputPrefix(null);
+                switchContextualSurface({ surface: null });
+              }}
               onApplied={({ collectionId, firstPath, outputPrefix }) => {
                 setCurrentCollectionId(collectionId);
                 if (firstPath) {
                   setHighlightedToken(firstPath);
                 }
                 setPendingGeneratorOutputGroup(outputPrefix);
+                setGeneratorCreateOutputPrefix(null);
                 switchContextualSurface({ surface: null });
                 refreshAll();
               }}
               onOpenGenerator={(generatorId, collectionId) => {
-	                setCurrentCollectionId(collectionId);
-	                setPendingGeneratorDocumentId(generatorId);
-	                setPendingGeneratorFocus(null);
-	                switchContextualSurface({ surface: null });
+                setCurrentCollectionId(collectionId);
+                setPendingGeneratorDocumentId(generatorId);
+                setPendingGeneratorFocus(null);
+                setGeneratorCreateOutputPrefix(null);
+                switchContextualSurface({ surface: null });
                 navigateTo("library", "generators");
               }}
             />
           ),
-          onDismiss: () => switchContextualSurface({ surface: null }),
+          onDismiss: () => {
+            setGeneratorCreateOutputPrefix(null);
+            switchContextualSurface({ surface: null });
+          },
         };
       }
 
@@ -987,7 +997,8 @@ export function PanelRouter({
                   mode: "inspect",
                   origin: "color-analysis",
                   returnLabel: "Back to Color analysis",
-                  onReturn: () => switchContextualSurface({ surface: "color-analysis" }),
+                  onReturn: () =>
+                    switchContextualSurface({ surface: "color-analysis" }),
                 });
               }}
               onClose={closeMaintenanceSurface}
@@ -1002,7 +1013,10 @@ export function PanelRouter({
           surface: "import",
           content: (
             <div className="h-full min-h-0 overflow-hidden">
-              <ErrorBoundary panelName="Import" onReset={closeMaintenanceSurface}>
+              <ErrorBoundary
+                panelName="Import"
+                onReset={closeMaintenanceSurface}
+              >
                 <ImportPanel
                   serverUrl={serverUrl}
                   connected={connected}
@@ -1030,7 +1044,13 @@ export function PanelRouter({
   const renderTokensLibraryBody = () => (
     <div className="flex-1 min-w-0 overflow-hidden">
       <TokenList
-        ctx={{ collectionId: currentCollectionId, collectionIds, serverUrl, connected, selectedNodes }}
+        ctx={{
+          collectionId: currentCollectionId,
+          collectionIds,
+          serverUrl,
+          connected,
+          selectedNodes,
+        }}
         data={{
           tokens,
           allTokensFlat: modeResolvedTokensFlat,
@@ -1053,7 +1073,9 @@ export function PanelRouter({
         focusGroupPath={pendingGeneratorOutputGroup}
         onFocusGroupHandled={() => setPendingGeneratorOutputGroup(null)}
         showIssuesOnly={controller.showIssuesOnly}
-        editingTokenPath={tokenDetails?.mode === "edit" ? tokenDetails.path : null}
+        editingTokenPath={
+          tokenDetails?.mode === "edit" ? tokenDetails.path : null
+        }
         compareHandle={controller.tokenListCompareRef}
       />
     </div>
@@ -1169,11 +1191,11 @@ export function PanelRouter({
         <SyncRouter
           collectionMap={collectionMap}
           modeMap={modeMap}
-	          onOpenGenerator={(generatorId, options) => {
-	            setPendingGeneratorDocumentId(generatorId);
-	            setPendingGeneratorFocus(options?.focus ?? null);
-	            navigateTo("library", "generators", options);
-	          }}
+          onOpenGenerator={(generatorId, options) => {
+            setPendingGeneratorDocumentId(generatorId);
+            setPendingGeneratorFocus(options?.focus ?? null);
+            navigateTo("library", "generators", options);
+          }}
           savePublishRouting={savePublishRouting}
         />
       ),
@@ -1304,13 +1326,13 @@ export function PanelRouter({
         ? currentCollectionId
         : section === "generators"
           ? currentCollectionId
-        : section === "health"
-          ? healthScope.mode === "current"
-            ? healthScope.collectionId ?? currentCollectionId
-            : null
-          : historyScope.mode === "current"
-            ? historyScope.collectionId ?? currentCollectionId
-            : null;
+          : section === "health"
+            ? healthScope.mode === "current"
+              ? (healthScope.collectionId ?? currentCollectionId)
+              : null
+            : historyScope.mode === "current"
+              ? (historyScope.collectionId ?? currentCollectionId)
+              : null;
 
     return (
       <CollectionTabs
@@ -1398,7 +1420,9 @@ export function PanelRouter({
             />
             <div
               className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-              style={{ width: `clamp(240px, 42%, ${sideEditorBoundary.size}px)` }}
+              style={{
+                width: `clamp(240px, 42%, ${sideEditorBoundary.size}px)`,
+              }}
             >
               {contextualPanel}
             </div>
@@ -1412,7 +1436,8 @@ export function PanelRouter({
     return (
       <CollectionDetailsPanel
         collection={
-          collections.find((collection) => collection.id === collectionId) ?? null
+          collections.find((collection) => collection.id === collectionId) ??
+          null
         }
         collectionIds={collectionIds}
         collectionTokenCounts={collectionTokenCounts}
@@ -1436,29 +1461,43 @@ export function PanelRouter({
         onEditInfo={collectionStructureController.onEditInfo}
         onMerge={collectionStructureController.onMerge}
         onSplit={collectionStructureController.onSplit}
-        editingMetadataCollectionId={collectionStructureController.editingMetadataCollectionId}
+        editingMetadataCollectionId={
+          collectionStructureController.editingMetadataCollectionId
+        }
         metadataDescription={collectionStructureController.metadataDescription}
-        setMetadataDescription={collectionStructureController.setMetadataDescription}
+        setMetadataDescription={
+          collectionStructureController.setMetadataDescription
+        }
         onMetadataSave={collectionStructureController.onMetadataSave}
-        deletingCollectionId={collectionStructureController.deletingCollectionId}
+        deletingCollectionId={
+          collectionStructureController.deletingCollectionId
+        }
         onDeleteConfirm={collectionStructureController.onDeleteConfirm}
         onDeleteCancel={collectionStructureController.onDeleteCancel}
         mergingCollectionId={collectionStructureController.mergingCollectionId}
-        mergeTargetCollectionId={collectionStructureController.mergeTargetCollectionId}
+        mergeTargetCollectionId={
+          collectionStructureController.mergeTargetCollectionId
+        }
         mergeConflicts={collectionStructureController.mergeConflicts}
         mergeResolutions={collectionStructureController.mergeResolutions}
         mergeChecked={collectionStructureController.mergeChecked}
         mergeLoading={collectionStructureController.mergeLoading}
         onMergeTargetChange={collectionStructureController.onMergeTargetChange}
         setMergeResolutions={collectionStructureController.setMergeResolutions}
-        onMergeCheckConflicts={collectionStructureController.onMergeCheckConflicts}
+        onMergeCheckConflicts={
+          collectionStructureController.onMergeCheckConflicts
+        }
         onMergeConfirm={collectionStructureController.onMergeConfirm}
         onMergeClose={collectionStructureController.onMergeClose}
-        splittingCollectionId={collectionStructureController.splittingCollectionId}
+        splittingCollectionId={
+          collectionStructureController.splittingCollectionId
+        }
         splitPreview={collectionStructureController.splitPreview}
         splitDeleteOriginal={collectionStructureController.splitDeleteOriginal}
         splitLoading={collectionStructureController.splitLoading}
-        setSplitDeleteOriginal={collectionStructureController.setSplitDeleteOriginal}
+        setSplitDeleteOriginal={
+          collectionStructureController.setSplitDeleteOriginal
+        }
         onSplitConfirm={collectionStructureController.onSplitConfirm}
         onSplitClose={collectionStructureController.onSplitClose}
       />
@@ -1467,9 +1506,7 @@ export function PanelRouter({
 
   function renderLibraryTokens(): ReactNode {
     const tokensEmpty =
-      collections.length === 0 &&
-      !createFromEmpty &&
-      !tokenDetails;
+      collections.length === 0 && !createFromEmpty && !tokenDetails;
 
     const body = tokensEmpty ? (
       <FeedbackPlaceholder
@@ -1512,14 +1549,16 @@ export function PanelRouter({
   function renderReviewContextPanel(): ReactNode {
     const scopedCollectionId =
       healthScope.mode === "current"
-        ? healthScope.collectionId ?? currentCollectionId
+        ? (healthScope.collectionId ?? currentCollectionId)
         : null;
     const selectedIssue =
       healthScope.mode === "current" &&
       healthScope.view === "issues" &&
       (healthScope.issueKey || healthScope.tokenPath)
-        ? (validationIssues ?? [])
-            .filter((issue) => !issueActions.suppressedKeys.has(suppressKey(issue)))
+        ? ((validationIssues ?? [])
+            .filter(
+              (issue) => !issueActions.suppressedKeys.has(suppressKey(issue)),
+            )
             .filter((issue) => issue.rule !== "no-duplicate-values")
             .filter((issue) => issue.rule !== "alias-opportunity")
             .find(
@@ -1528,7 +1567,7 @@ export function PanelRouter({
                 (healthScope.issueKey
                   ? suppressKey(issue) === healthScope.issueKey
                   : issue.path === healthScope.tokenPath),
-            ) ?? null
+            ) ?? null)
         : null;
 
     if (!selectedIssue) {
@@ -1652,30 +1691,30 @@ export function PanelRouter({
             onError={controller.setErrorToast}
             onNavigateToGenerators={() => navigateTo("library", "generators")}
             onViewIssueInGenerator={(issue) => {
-	              if (!issue.generatorId) return;
-	              setCurrentCollectionId(issue.collectionId);
-	              setPendingGeneratorDocumentId(issue.generatorId);
-	              setPendingGeneratorFocus({
-	                diagnosticId: issue.generatorDiagnosticId,
-	                nodeId: issue.generatorNodeId,
-	                edgeId: issue.generatorEdgeId,
-	              });
-	              navigateTo("library", "generators");
-	            }}
+              if (!issue.generatorId) return;
+              setCurrentCollectionId(issue.collectionId);
+              setPendingGeneratorDocumentId(issue.generatorId);
+              setPendingGeneratorFocus({
+                diagnosticId: issue.generatorDiagnosticId,
+                nodeId: issue.generatorNodeId,
+                edgeId: issue.generatorEdgeId,
+              });
+              navigateTo("library", "generators");
+            }}
             scope={healthScope}
             onScopeChange={setHealthScope}
             issueActions={issueActions}
             onSelectIssue={(issue) => {
-	              if (issue.rule === "generator-diagnostic" && issue.generatorId) {
-	                setCurrentCollectionId(issue.collectionId);
-	                setPendingGeneratorDocumentId(issue.generatorId);
-	                setPendingGeneratorFocus({
-	                  diagnosticId: issue.generatorDiagnosticId,
-	                  nodeId: issue.generatorNodeId,
-	                  edgeId: issue.generatorEdgeId,
-	                });
-	                navigateTo("library", "generators");
-	                return;
+              if (issue.rule === "generator-diagnostic" && issue.generatorId) {
+                setCurrentCollectionId(issue.collectionId);
+                setPendingGeneratorDocumentId(issue.generatorId);
+                setPendingGeneratorFocus({
+                  diagnosticId: issue.generatorDiagnosticId,
+                  nodeId: issue.generatorNodeId,
+                  edgeId: issue.generatorEdgeId,
+                });
+                navigateTo("library", "generators");
+                return;
               }
               setHealthScope((currentScope) => ({
                 ...currentScope,
@@ -1692,7 +1731,8 @@ export function PanelRouter({
     return renderLibraryScaffold({
       body,
       tabs: renderCollectionTabs("health"),
-      contextualPanel: renderTokensContextualPanel() ?? renderReviewContextPanel(),
+      contextualPanel:
+        renderTokensContextualPanel() ?? renderReviewContextPanel(),
     });
   }
 

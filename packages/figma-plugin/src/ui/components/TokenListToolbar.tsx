@@ -21,11 +21,7 @@ import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
 import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
-import {
-  Chip,
-  MenuRadioGroup,
-  type SegmentedOption,
-} from "../primitives";
+import { Chip, MenuRadioGroup, type SegmentedOption } from "../primitives";
 
 interface QualifierHint {
   id: string;
@@ -105,7 +101,7 @@ export interface TokenListToolbarProps {
   onToggleInspectMode: () => void;
   openTableCreate: () => void;
   onCreateToken?: () => void;
-  onCreateGenerator?: () => void;
+  onCreateGenerator?: (initialOutputPrefix?: string) => void;
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
   onSelectTokens?: () => void;
@@ -198,14 +194,16 @@ export function TokenListToolbar({
     viewMode === "json"
       ? "Search JSON text"
       : searchScope === "all"
-      ? "Search across collections"
-      : "Search name, value, or type";
+        ? "Search across collections"
+        : "Search name, value, or type";
   const effectiveSearchTooltip =
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
 
   const showSelectionChip = selectedNodeCount > 0 && boundTokenCount > 0;
   const hasChipRow =
-    viewMode === "tree" && hasTokens && (showSelectionChip || toolbarStateChips.length > 0);
+    viewMode === "tree" &&
+    hasTokens &&
+    (showSelectionChip || toolbarStateChips.length > 0);
 
   const showTreeActions = viewMode === "tree";
   const hasEditActions =
@@ -238,17 +236,21 @@ export function TokenListToolbar({
           label: "Group by",
           value: groupBy,
           onChange: (v: string) => setGroupBy(v as TokenGroupBy),
-          options: GROUP_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+          options: GROUP_OPTIONS.map((o) => ({
+            value: o.value,
+            label: o.label,
+          })),
         } as RadioMenuGroup<string>,
         {
           key: "sort",
           label: "Sort",
           value: sortOrder,
           onChange: (v: string) =>
-            overflowMenuProps.onSortOrderChange(
-              v as SortOrder,
-            ),
-          options: SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+            overflowMenuProps.onSortOrderChange(v as SortOrder),
+          options: SORT_OPTIONS.map((o) => ({
+            value: o.value,
+            label: o.label,
+          })),
         } as RadioMenuGroup<string>,
         ...(overflowMenuProps.canToggleSearchResultPresentation
           ? [
@@ -311,10 +313,20 @@ export function TokenListToolbar({
                     type="text"
                     role={viewMode === "tree" ? "combobox" : "searchbox"}
                     aria-autocomplete={viewMode === "tree" ? "list" : undefined}
-                    aria-expanded={viewMode === "tree" ? showQualifierHints && qualifierHints.length > 0 : undefined}
-                    aria-controls={viewMode === "tree" ? "qualifier-hints-listbox" : undefined}
+                    aria-expanded={
+                      viewMode === "tree"
+                        ? showQualifierHints && qualifierHints.length > 0
+                        : undefined
+                    }
+                    aria-controls={
+                      viewMode === "tree"
+                        ? "qualifier-hints-listbox"
+                        : undefined
+                    }
                     aria-activedescendant={
-                      viewMode === "tree" && showQualifierHints && qualifierHints.length > 0
+                      viewMode === "tree" &&
+                      showQualifierHints &&
+                      qualifierHints.length > 0
                         ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
                         : undefined
                     }
@@ -325,7 +337,10 @@ export function TokenListToolbar({
                     }}
                     onFocus={() => setShowQualifierHints(viewMode === "tree")}
                     onBlur={() => {
-                      window.setTimeout(() => setShowQualifierHints(false), 150);
+                      window.setTimeout(
+                        () => setShowQualifierHints(false),
+                        150,
+                      );
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Escape") {
@@ -356,12 +371,20 @@ export function TokenListToolbar({
                         (event.key === "Enter" && qualifierHints.length > 0)
                       ) {
                         const hint = qualifierHints[hintIndex];
-                        if (!hint || hint.kind !== "replacement" || !hint.replacement) {
+                        if (
+                          !hint ||
+                          hint.kind !== "replacement" ||
+                          !hint.replacement
+                        ) {
                           return;
                         }
                         event.preventDefault();
                         setSearchQuery(
-                          replaceQueryToken(searchQuery, activeQueryToken, hint.replacement),
+                          replaceQueryToken(
+                            searchQuery,
+                            activeQueryToken,
+                            hint.replacement,
+                          ),
                         );
                         setHintIndex(0);
                       }
@@ -405,7 +428,10 @@ export function TokenListToolbar({
                         aria-selected={index === hintIndex}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
-                          if (hint.kind !== "replacement" || !hint.replacement) {
+                          if (
+                            hint.kind !== "replacement" ||
+                            !hint.replacement
+                          ) {
                             return;
                           }
                           setSearchQuery(
@@ -447,7 +473,9 @@ export function TokenListToolbar({
               />
             ) : null}
 
-            {overflowMenuProps && viewMode === "tree" && viewRadioGroups.length > 0 ? (
+            {overflowMenuProps &&
+            viewMode === "tree" &&
+            viewRadioGroups.length > 0 ? (
               <div className="relative shrink-0">
                 <button
                   ref={sortMenu.triggerRef}
@@ -464,7 +492,9 @@ export function TokenListToolbar({
                   }`}
                 >
                   <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
-                  <span className="tm-token-toolbar__button-label whitespace-nowrap">{sortStateLabel ?? "Sort"}</span>
+                  <span className="tm-token-toolbar__button-label whitespace-nowrap">
+                    {sortStateLabel ?? "Sort"}
+                  </span>
                 </button>
 
                 {sortMenu.open ? (
@@ -504,7 +534,9 @@ export function TokenListToolbar({
                       className="inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-accent)] px-2 text-secondary font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
                       <Plus size={12} strokeWidth={2} aria-hidden />
-                      <span className="tm-token-toolbar__button-label whitespace-nowrap">New token</span>
+                      <span className="tm-token-toolbar__button-label whitespace-nowrap">
+                        New token
+                      </span>
                     </button>
                     <button
                       ref={createMenu.triggerRef}
@@ -533,7 +565,9 @@ export function TokenListToolbar({
                     className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`}
                   >
                     <Plus size={12} strokeWidth={2} aria-hidden />
-                    <span className="tm-token-toolbar__button-label whitespace-nowrap">Create</span>
+                    <span className="tm-token-toolbar__button-label whitespace-nowrap">
+                      Create
+                    </span>
                     <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                   </button>
                 )}
@@ -549,7 +583,11 @@ export function TokenListToolbar({
                       <button
                         type="button"
                         role="menuitem"
-                        onClick={() => runCreateAction(onCreateGenerator)}
+                        onClick={() =>
+                          runCreateAction(() =>
+                            onCreateGenerator(zoomRootPath ?? undefined),
+                          )
+                        }
                         disabled={!connected}
                         className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                       >
@@ -632,7 +670,11 @@ export function TokenListToolbar({
                           >
                             <span className="w-3 shrink-0 text-center">
                               {viewMode === option.value ? (
-                                <Check size={10} strokeWidth={1.5} aria-hidden />
+                                <Check
+                                  size={10}
+                                  strokeWidth={1.5}
+                                  aria-hidden
+                                />
                               ) : null}
                             </span>
                             <span>{option.label}</span>
@@ -743,7 +785,11 @@ export function TokenListToolbar({
               </button>
             ) : null}
             {toolbarStateChips.map((chip) => (
-              <Chip key={chip.key} label={chip.label} onRemove={chip.onRemove} />
+              <Chip
+                key={chip.key}
+                label={chip.label}
+                onRemove={chip.onRemove}
+              />
             ))}
           </div>
         ) : null}

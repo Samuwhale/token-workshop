@@ -56,7 +56,11 @@ export function getGridTemplate(modeWidths: number[]): string {
 
 export function getGridMinWidth(modeWidths: number[]): number {
   const widths = modeWidths.length > 0 ? modeWidths : [DEFAULT_MODE_COL_PX];
-  return TOKEN_COLUMN_MIN_PX + widths.reduce((sum, width) => sum + width, 0) + ADD_MODE_SLOT_PX;
+  return (
+    TOKEN_COLUMN_MIN_PX +
+    widths.reduce((sum, width) => sum + width, 0) +
+    ADD_MODE_SLOT_PX
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -107,7 +111,7 @@ export interface TokenListActions {
     initialType?: string,
     initialValue?: string,
   ) => void;
-  onCreateGenerator?: () => void;
+  onCreateGenerator?: (initialOutputPrefix?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;
@@ -316,7 +320,10 @@ export interface TokenTreeGroupStateContextType {
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
   /** Pre-computed collection mode coverage per group: groupPath → { configured, total, totalMissing } */
-  collectionCoverage?: Map<string, { configured: number; total: number; totalMissing: number }>;
+  collectionCoverage?: Map<
+    string,
+    { configured: number; total: number; totalMissing: number }
+  >;
   /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
   rovingFocusPath: string | null;
 }
@@ -386,10 +393,7 @@ export interface TokenTreeLeafStateContextType {
 export interface TokenTreeLeafActionsContextType {
   onEdit: (path: string, name?: string) => void;
   onDelete: (path: string) => void;
-  onToggleSelect: (
-    path: string,
-    modifiers?: { shift: boolean },
-  ) => void;
+  onToggleSelect: (path: string, modifiers?: { shift: boolean }) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;

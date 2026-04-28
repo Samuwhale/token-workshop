@@ -64,10 +64,16 @@ export interface GeneratorCreateInput {
   name?: string;
   targetCollectionId: string;
   template?: GeneratorTemplateKind;
+  nodes?: TokenGeneratorDocument["nodes"];
+  edges?: TokenGeneratorDocument["edges"];
+  viewport?: TokenGeneratorDocument["viewport"];
 }
 
 export type GeneratorUpdateInput = Partial<
-  Pick<TokenGeneratorDocument, "name" | "targetCollectionId" | "nodes" | "edges" | "viewport">
+  Pick<
+    TokenGeneratorDocument,
+    "name" | "targetCollectionId" | "nodes" | "edges" | "viewport"
+  >
 >;
 
 export type GeneratorDraftInput = Pick<
@@ -127,7 +133,9 @@ export class TokenGeneratorService {
       const raw = await fs.readFile(this.filePath, "utf-8");
       const parsed = JSON.parse(raw) as GeneratorStoreFile;
       if (!Array.isArray(parsed.$generators)) {
-        throw new Error(`Invalid generator store "${this.filePath}": $generators must be an array`);
+        throw new Error(
+          `Invalid generator store "${this.filePath}": $generators must be an array`,
+        );
       }
       const generators = parsed.$generators;
       this.generators = new Map(
@@ -172,14 +180,27 @@ export class TokenGeneratorService {
 
   async create(input: GeneratorCreateInput): Promise<TokenGeneratorDocument> {
     return this.lock.withLock(async () => {
-      const generator = buildTemplateGenerator(input);
+      const generator =
+        input.nodes && input.edges && input.viewport
+          ? buildDraftGenerator({
+              name: input.name ?? generatorPresetLabel(input.template),
+              targetCollectionId: input.targetCollectionId,
+              nodes: input.nodes,
+              edges: input.edges,
+              viewport: input.viewport,
+            })
+          : buildTemplateGenerator(input);
       this.generators.set(generator.id, generator);
       await this.persist();
       return cloneGenerator(generator);
     });
   }
 
-  async update(id: string, input: GeneratorUpdateInput, tokenStore?: TokenStore): Promise<TokenGeneratorDocument> {
+  async update(
+    id: string,
+    input: GeneratorUpdateInput,
+    tokenStore?: TokenStore,
+  ): Promise<TokenGeneratorDocument> {
     return this.lock.withLock(async () => {
       const existing = this.generators.get(id);
       if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
@@ -228,10 +249,10 @@ export class TokenGeneratorService {
     id: string,
     collectionService: CollectionService,
     tokenStore: TokenStore,
-		  ): Promise<TokenGeneratorPreviewResult> {
-		    const generator = this.generators.get(id);
-		    if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
-		    return this.buildPreview(generator, collectionService, tokenStore);
+  ): Promise<TokenGeneratorPreviewResult> {
+    const generator = this.generators.get(id);
+    if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
+    return this.buildPreview(generator, collectionService, tokenStore);
   }
 
   async previewDraft(
@@ -250,7 +271,11 @@ export class TokenGeneratorService {
     const generators = Array.from(this.generators.values()).map(cloneGenerator);
     const items: GeneratorStatusItem[] = [];
     for (const generator of generators) {
-      const preview = await this.buildPreview(generator, collectionService, tokenStore);
+      const preview = await this.buildPreview(
+        generator,
+        collectionService,
+        tokenStore,
+      );
       const previewHashes = Object.fromEntries(
         preview.outputs.map((output) => [output.path, output.hash]),
       );
@@ -269,7 +294,8 @@ export class TokenGeneratorService {
           preview.blocking ||
           stale ||
           preview.outputs.some((output) => output.collision),
-        managedTokenCount: this.findOwnedTokenRefs(generator.id, tokenStore).length,
+        managedTokenCount: this.findOwnedTokenRefs(generator.id, tokenStore)
+          .length,
       });
     }
     return items;
@@ -286,16 +312,27 @@ export class TokenGeneratorService {
       const generator = this.generators.get(id);
       if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
 
-      const preview = await this.buildPreview(generator, collectionService, tokenStore);
-      if (options.expectedPreviewHash && preview.hash !== options.expectedPreviewHash) {
+      const preview = await this.buildPreview(
+        generator,
+        collectionService,
+        tokenStore,
+      );
+      if (
+        options.expectedPreviewHash &&
+        preview.hash !== options.expectedPreviewHash
+      ) {
         throw new ConflictError(
           "Generator outputs changed since the last review. Review the generator again before applying.",
         );
       }
       if (preview.blocking) {
-        throw new BadRequestError("Fix generator diagnostics before applying outputs.");
+        throw new BadRequestError(
+          "Fix generator diagnostics before applying outputs.",
+        );
       }
-      const manualCollisions = preview.outputs.filter((output) => output.collision);
+      const manualCollisions = preview.outputs.filter(
+        (output) => output.collision,
+      );
       if (manualCollisions.length > 0) {
         throw new ConflictError(
           `Generator would overwrite manual tokens: ${manualCollisions.map((output) => output.path).join(", ")}`,
@@ -307,10 +344,14 @@ export class TokenGeneratorService {
         (collection) => collection.id === generator.targetCollectionId,
       );
       if (!targetCollection) {
-        throw new NotFoundError(`Collection "${generator.targetCollectionId}" not found`);
+        throw new NotFoundError(
+          `Collection "${generator.targetCollectionId}" not found`,
+        );
       }
 
-      const targetOutputPaths = new Set(preview.outputs.map((output) => output.path));
+      const targetOutputPaths = new Set(
+        preview.outputs.map((output) => output.path),
+      );
       const currentOwnedRefs = this.findOwnedTokenRefs(
         generator.id,
         tokenStore,
@@ -329,20 +370,37 @@ export class TokenGeneratorService {
       const modifiedDeleted = currentOwnedRefs.filter(
         (entry) =>
           !targetOutputPaths.has(entry.path) &&
-          !this.tokenStillMatchesAppliedGeneratorOutput(generator, targetCollection, entry.token),
+          !this.tokenStillMatchesAppliedGeneratorOutput(
+            generator,
+            targetCollection,
+            entry.token,
+          ),
       );
       if (modifiedDeleted.length > 0) {
         throw new ConflictError(
           `Generator would delete manually changed tokens: ${modifiedDeleted.map((entry) => entry.path).join(", ")}. Detach those tokens before applying.`,
         );
       }
-	      const touchedPaths = [...new Set([...preview.outputs.map((output) => output.path), ...deleted])];
-	      const beforeSnapshot = await snapshotPaths(tokenStore, generator.targetCollectionId, touchedPaths);
-	      const generatorBefore = cloneGenerator(generator);
-	      const generatorStateBefore = Array.from(this.generators.values()).map(cloneGenerator);
-	      const rollbackGeneratorState = options.newGenerator
-	        ? generatorStateBefore.filter((candidate) => candidate.id !== generator.id)
-	        : generatorStateBefore;
+      const touchedPaths = [
+        ...new Set([
+          ...preview.outputs.map((output) => output.path),
+          ...deleted,
+        ]),
+      ];
+      const beforeSnapshot = await snapshotPaths(
+        tokenStore,
+        generator.targetCollectionId,
+        touchedPaths,
+      );
+      const generatorBefore = cloneGenerator(generator);
+      const generatorStateBefore = Array.from(this.generators.values()).map(
+        cloneGenerator,
+      );
+      const rollbackGeneratorState = options.newGenerator
+        ? generatorStateBefore.filter(
+            (candidate) => candidate.id !== generator.id,
+          )
+        : generatorStateBefore;
 
       const tokens = preview.outputs.map((output) => ({
         path: output.path,
@@ -362,16 +420,30 @@ export class TokenGeneratorService {
       try {
         if (tokens.length > 0) {
           tokenWritesStarted = true;
-          await tokenStore.batchUpsertTokens(generator.targetCollectionId, tokens, "overwrite");
+          await tokenStore.batchUpsertTokens(
+            generator.targetCollectionId,
+            tokens,
+            "overwrite",
+          );
         }
         if (deleted.length > 0) {
           tokenWritesStarted = true;
           await tokenStore.deleteTokens(generator.targetCollectionId, deleted);
         }
 
-        const afterSnapshot = await snapshotPaths(tokenStore, generator.targetCollectionId, touchedPaths);
-        const changedKeys = listChangedSnapshotKeys(beforeSnapshot, afterSnapshot);
-        const changedPaths = listChangedSnapshotTokenPaths(beforeSnapshot, afterSnapshot);
+        const afterSnapshot = await snapshotPaths(
+          tokenStore,
+          generator.targetCollectionId,
+          touchedPaths,
+        );
+        const changedKeys = listChangedSnapshotKeys(
+          beforeSnapshot,
+          afterSnapshot,
+        );
+        const changedPaths = listChangedSnapshotTokenPaths(
+          beforeSnapshot,
+          afterSnapshot,
+        );
         const created = preview.outputs
           .filter((output) => output.change === "created")
           .map((output) => output.path);
@@ -391,27 +463,27 @@ export class TokenGeneratorService {
         this.generators.set(generator.id, updatedGenerator);
         await this.persist();
 
-	        const operation = await operationLog.record({
-	          type: "generator-apply",
-	          description: `Apply generator "${generator.name}"`,
-	          resourceId: generator.id,
-	          affectedPaths: changedPaths,
-	          beforeSnapshot: pickSnapshotEntries(beforeSnapshot, changedKeys),
-	          afterSnapshot: pickSnapshotEntries(afterSnapshot, changedKeys),
-	          metadata: {
-	            kind: "generator-apply",
-	            generatorId: generator.id,
-	            generatorName: generator.name,
-	            targetCollectionId: generator.targetCollectionId,
-	          },
-	          rollbackSteps: [
-	            {
-	              action: "restore-generators",
-	              generators: rollbackGeneratorState,
-	            },
-	          ],
-	        });
-	        const operationId = operation.id;
+        const operation = await operationLog.record({
+          type: "generator-apply",
+          description: `Apply generator "${generator.name}"`,
+          resourceId: generator.id,
+          affectedPaths: changedPaths,
+          beforeSnapshot: pickSnapshotEntries(beforeSnapshot, changedKeys),
+          afterSnapshot: pickSnapshotEntries(afterSnapshot, changedKeys),
+          metadata: {
+            kind: "generator-apply",
+            generatorId: generator.id,
+            generatorName: generator.name,
+            targetCollectionId: generator.targetCollectionId,
+          },
+          rollbackSteps: [
+            {
+              action: "restore-generators",
+              generators: rollbackGeneratorState,
+            },
+          ],
+        });
+        const operationId = operation.id;
 
         return {
           preview,
@@ -422,7 +494,11 @@ export class TokenGeneratorService {
         };
       } catch (error) {
         if (tokenWritesStarted) {
-          await restoreSnapshot(tokenStore, generator.targetCollectionId, beforeSnapshot);
+          await restoreSnapshot(
+            tokenStore,
+            generator.targetCollectionId,
+            beforeSnapshot,
+          );
         }
         this.generators.set(generatorBefore.id, generatorBefore);
         await this.persist();
@@ -473,13 +549,19 @@ export class TokenGeneratorService {
       if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
       const token = await tokenStore.getToken(collectionId, tokenPath);
       if (!token) {
-        throw new NotFoundError(`Token "${tokenPath}" not found in collection "${collectionId}"`);
+        throw new NotFoundError(
+          `Token "${tokenPath}" not found in collection "${collectionId}"`,
+        );
       }
       const provenance = readGeneratorProvenance(token);
       if (provenance?.generatorId !== id) {
-        throw new BadRequestError(`Token "${tokenPath}" is not managed by generator "${generator.name}".`);
+        throw new BadRequestError(
+          `Token "${tokenPath}" is not managed by generator "${generator.name}".`,
+        );
       }
-      const beforeSnapshot = await snapshotPaths(tokenStore, collectionId, [tokenPath]);
+      const beforeSnapshot = await snapshotPaths(tokenStore, collectionId, [
+        tokenPath,
+      ]);
       const nextToken = structuredClone(token);
       const extensions = { ...(nextToken.$extensions ?? {}) };
       const tokenmanager =
@@ -503,8 +585,13 @@ export class TokenGeneratorService {
       try {
         await tokenStore.updateToken(collectionId, tokenPath, nextToken);
         tokenUpdated = true;
-        const afterSnapshot = await snapshotPaths(tokenStore, collectionId, [tokenPath]);
-        const changedKeys = listChangedSnapshotKeys(beforeSnapshot, afterSnapshot);
+        const afterSnapshot = await snapshotPaths(tokenStore, collectionId, [
+          tokenPath,
+        ]);
+        const changedKeys = listChangedSnapshotKeys(
+          beforeSnapshot,
+          afterSnapshot,
+        );
         let operationId: string | undefined;
         if (changedKeys.length > 0) {
           const operation = await operationLog.record({
@@ -534,36 +621,47 @@ export class TokenGeneratorService {
     });
   }
 
-  async renameCollectionId(oldCollectionId: string, newCollectionId: string): Promise<number> {
+  async renameCollectionId(
+    oldCollectionId: string,
+    newCollectionId: string,
+  ): Promise<number> {
     return this.lock.withLock(async () => {
       let changed = 0;
-      const nextGenerators = Array.from(this.generators.values()).map((generator) => {
-        let generatorChanged = false;
-        const nodes = generator.nodes.map((node) => {
-          if (node.data.collectionId !== oldCollectionId) return node;
-          generatorChanged = true;
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              collectionId: newCollectionId,
-            },
-          };
-        });
-        const targetCollectionId =
-          generator.targetCollectionId === oldCollectionId ? newCollectionId : generator.targetCollectionId;
-        generatorChanged = generatorChanged || targetCollectionId !== generator.targetCollectionId;
-        if (!generatorChanged) return generator;
-        changed += 1;
-        return normalizeGeneratorDocument({
-          ...generator,
-          targetCollectionId,
-          nodes,
-          updatedAt: new Date().toISOString(),
-        });
-      });
+      const nextGenerators = Array.from(this.generators.values()).map(
+        (generator) => {
+          let generatorChanged = false;
+          const nodes = generator.nodes.map((node) => {
+            if (node.data.collectionId !== oldCollectionId) return node;
+            generatorChanged = true;
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                collectionId: newCollectionId,
+              },
+            };
+          });
+          const targetCollectionId =
+            generator.targetCollectionId === oldCollectionId
+              ? newCollectionId
+              : generator.targetCollectionId;
+          generatorChanged =
+            generatorChanged ||
+            targetCollectionId !== generator.targetCollectionId;
+          if (!generatorChanged) return generator;
+          changed += 1;
+          return normalizeGeneratorDocument({
+            ...generator,
+            targetCollectionId,
+            nodes,
+            updatedAt: new Date().toISOString(),
+          });
+        },
+      );
       if (changed > 0) {
-        this.generators = new Map(nextGenerators.map((generator) => [generator.id, generator]));
+        this.generators = new Map(
+          nextGenerators.map((generator) => [generator.id, generator]),
+        );
         await this.persist();
       }
       return changed;
@@ -577,7 +675,9 @@ export class TokenGeneratorService {
       );
       const deleted = this.generators.size - nextGenerators.length;
       if (deleted > 0) {
-        this.generators = new Map(nextGenerators.map((generator) => [generator.id, generator]));
+        this.generators = new Map(
+          nextGenerators.map((generator) => [generator.id, generator]),
+        );
         await this.persist();
       }
       return deleted;
@@ -615,7 +715,10 @@ export class TokenGeneratorService {
             generator.targetCollectionId,
             ...generator.nodes
               .map((node) => node.data.collectionId)
-              .filter((collectionId): collectionId is string => typeof collectionId === "string"),
+              .filter(
+                (collectionId): collectionId is string =>
+                  typeof collectionId === "string",
+              ),
           ]),
         ].filter(Boolean),
       }))
@@ -649,7 +752,7 @@ export class TokenGeneratorService {
     });
   }
 
-	  private async persist(): Promise<void> {
+  private async persist(): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     const tmp = `${this.filePath}.tmp`;
     const body: GeneratorStoreFile = {
@@ -736,11 +839,16 @@ function tokenHasManualGeneratorOutputMetadata(token: Token): boolean {
   return false;
 }
 
-function sameStringRecord(left: Record<string, string>, right: Record<string, string>): boolean {
+function sameStringRecord(
+  left: Record<string, string>,
+  right: Record<string, string>,
+): boolean {
   const leftKeys = Object.keys(left).sort();
   const rightKeys = Object.keys(right).sort();
   if (leftKeys.length !== rightKeys.length) return false;
-  return leftKeys.every((key, index) => key === rightKeys[index] && left[key] === right[key]);
+  return leftKeys.every(
+    (key, index) => key === rightKeys[index] && left[key] === right[key],
+  );
 }
 
 async function snapshotPaths(
@@ -772,7 +880,9 @@ async function restoreSnapshot(
   );
 }
 
-function buildTemplateGenerator(input: GeneratorCreateInput): TokenGeneratorDocument {
+function buildTemplateGenerator(
+  input: GeneratorCreateInput,
+): TokenGeneratorDocument {
   const base = createDefaultTokenGeneratorDocument(
     input.targetCollectionId,
     input.name ?? generatorPresetLabel(input.template),
@@ -793,7 +903,9 @@ function buildTemplateGenerator(input: GeneratorCreateInput): TokenGeneratorDocu
   return normalizeGeneratorDocument(base);
 }
 
-function buildDraftGenerator(input: GeneratorDraftInput): TokenGeneratorDocument {
+function buildDraftGenerator(
+  input: GeneratorDraftInput,
+): TokenGeneratorDocument {
   const now = new Date().toISOString();
   return normalizeGeneratorDocument({
     id: randomUUID(),
@@ -833,7 +945,9 @@ function validateGeneratorViewport(
     !Number.isFinite(viewport.y) ||
     !Number.isFinite(viewport.zoom)
   ) {
-    throw new Error(`Invalid generator document "${generatorId}": viewport must contain numeric x, y, and zoom`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": viewport must contain numeric x, y, and zoom`,
+    );
   }
 }
 
@@ -842,23 +956,33 @@ function validateGeneratorNode(
   node: unknown,
 ): asserts node is TokenGeneratorDocumentNode {
   if (!isRecord(node) || typeof node.id !== "string" || !node.id.trim()) {
-    throw new Error(`Invalid generator document "${generatorId}": every node must have a string id`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": every node must have a string id`,
+    );
   }
   if (typeof node.kind !== "string" || !GENERATOR_NODE_KINDS.has(node.kind)) {
-    throw new Error(`Invalid generator document "${generatorId}": node "${node.id}" has invalid kind`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": node "${node.id}" has invalid kind`,
+    );
   }
   if (typeof node.label !== "string") {
-    throw new Error(`Invalid generator document "${generatorId}": node "${node.id}" label must be a string`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": node "${node.id}" label must be a string`,
+    );
   }
   if (
     !isRecord(node.position) ||
     !Number.isFinite(node.position.x) ||
     !Number.isFinite(node.position.y)
   ) {
-    throw new Error(`Invalid generator document "${generatorId}": node "${node.id}" position must contain numeric x and y`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": node "${node.id}" position must contain numeric x and y`,
+    );
   }
   if (!isRecord(node.data)) {
-    throw new Error(`Invalid generator document "${generatorId}": node "${node.id}" data must be an object`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": node "${node.id}" data must be an object`,
+    );
   }
 }
 
@@ -875,7 +999,9 @@ function validateGeneratorEdgeEndpoint(
     typeof endpoint.port !== "string" ||
     !endpoint.port.trim()
   ) {
-    throw new Error(`Invalid generator document "${generatorId}": edge "${edgeId}" ${endpointName} must contain nodeId and port`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": edge "${edgeId}" ${endpointName} must contain nodeId and port`,
+    );
   }
 }
 
@@ -884,30 +1010,42 @@ function validateGeneratorEdge(
   edge: unknown,
 ): asserts edge is TokenGeneratorEdge {
   if (!isRecord(edge) || typeof edge.id !== "string" || !edge.id.trim()) {
-    throw new Error(`Invalid generator document "${generatorId}": every edge must have a string id`);
+    throw new Error(
+      `Invalid generator document "${generatorId}": every edge must have a string id`,
+    );
   }
   validateGeneratorEdgeEndpoint(generatorId, edge.id, "from", edge.from);
   validateGeneratorEdgeEndpoint(generatorId, edge.id, "to", edge.to);
 }
 
-function normalizeGeneratorDocument(generator: TokenGeneratorDocument): TokenGeneratorDocument {
+function normalizeGeneratorDocument(
+  generator: TokenGeneratorDocument,
+): TokenGeneratorDocument {
   if (!generator || typeof generator !== "object") {
     throw new Error("Invalid generator document: expected an object");
   }
   if (!generator.id || !generator.name || !generator.targetCollectionId) {
-    throw new Error("Invalid generator document: id, name, and targetCollectionId are required");
+    throw new Error(
+      "Invalid generator document: id, name, and targetCollectionId are required",
+    );
   }
   if (!Array.isArray(generator.nodes) || !Array.isArray(generator.edges)) {
-    throw new Error(`Invalid generator document "${generator.id}": nodes and edges must be arrays`);
+    throw new Error(
+      `Invalid generator document "${generator.id}": nodes and edges must be arrays`,
+    );
   }
   if (!generator.viewport) {
-    throw new Error(`Invalid generator document "${generator.id}": viewport is required`);
+    throw new Error(
+      `Invalid generator document "${generator.id}": viewport is required`,
+    );
   }
   validateGeneratorViewport(generator.id, generator.viewport);
   generator.nodes.forEach((node) => validateGeneratorNode(generator.id, node));
   generator.edges.forEach((edge) => validateGeneratorEdge(generator.id, edge));
   if (!generator.createdAt || !generator.updatedAt) {
-    throw new Error(`Invalid generator document "${generator.id}": createdAt and updatedAt are required`);
+    throw new Error(
+      `Invalid generator document "${generator.id}": createdAt and updatedAt are required`,
+    );
   }
   return {
     id: String(generator.id),
@@ -924,6 +1062,8 @@ function normalizeGeneratorDocument(generator: TokenGeneratorDocument): TokenGen
   };
 }
 
-function cloneGenerator(generator: TokenGeneratorDocument): TokenGeneratorDocument {
+function cloneGenerator(
+  generator: TokenGeneratorDocument,
+): TokenGeneratorDocument {
   return structuredClone(generator);
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, Sparkles, X } from "lucide-react";
+import { ExternalLink, GitBranch, Sparkles, X } from "lucide-react";
 import type {
   TokenCollection,
   TokenGeneratorDocument,
@@ -18,15 +18,21 @@ import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { ValuePreview, previewIsValueBearing } from "./ValuePreview";
 
-type BusyState = "preview" | "apply" | null;
+type BusyState = "preview" | "apply" | "open" | null;
 
 interface GeneratorCreatePanelProps {
   serverUrl: string;
   collections: TokenCollection[];
   workingCollectionId: string;
+  initialOutputPrefix?: string | null;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onClose: () => void;
-  onApplied: (result: { generatorId: string; collectionId: string; outputPrefix: string; firstPath?: string }) => void;
+  onApplied: (result: {
+    generatorId: string;
+    collectionId: string;
+    outputPrefix: string;
+    firstPath?: string;
+  }) => void;
   onOpenGenerator: (generatorId: string, collectionId: string) => void;
 }
 
@@ -56,14 +62,14 @@ function parseNumberList(value: string): number[] {
 
 function formatValue(value: unknown): string {
   if (value == null) return "";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
     return String(value);
   }
-  if (
-    typeof value === "object" &&
-    "value" in value &&
-    "unit" in value
-  ) {
+  if (typeof value === "object" && "value" in value && "unit" in value) {
     return `${String((value as { value: unknown }).value)}${String((value as { unit: unknown }).unit)}`;
   }
   return JSON.stringify(value);
@@ -73,51 +79,106 @@ function readCollectionLabel(collection: TokenCollection): string {
   return collection.publishRouting?.collectionName?.trim() || collection.id;
 }
 
-const COLOR_RAMP_DEFAULT = generatorDefaultConfig("colorRamp") as { steps: number[]; lightEnd: number; darkEnd: number };
-const TYPE_SCALE_DEFAULT = generatorDefaultConfig("type") as { ratio: number; unit: string };
-const SHADOW_SCALE_DEFAULT = generatorDefaultConfig("shadow") as { color: string };
-const CUSTOM_SCALE_DEFAULT = generatorDefaultConfig("formula") as { formula: string; roundTo: number; outputType: "number" | "dimension" };
+const COLOR_RAMP_DEFAULT = generatorDefaultConfig("colorRamp") as {
+  steps: number[];
+  lightEnd: number;
+  darkEnd: number;
+};
+const TYPE_SCALE_DEFAULT = generatorDefaultConfig("type") as {
+  ratio: number;
+  unit: string;
+};
+const SHADOW_SCALE_DEFAULT = generatorDefaultConfig("shadow") as {
+  color: string;
+};
+const CUSTOM_SCALE_DEFAULT = generatorDefaultConfig("formula") as {
+  formula: string;
+  roundTo: number;
+  outputType: "number" | "dimension";
+};
 
 export function GeneratorCreatePanel({
   serverUrl,
   collections,
   workingCollectionId,
+  initialOutputPrefix,
   perCollectionFlat,
   onClose,
   onApplied,
   onOpenGenerator,
 }: GeneratorCreatePanelProps) {
   const initialKind: GeneratorPresetKind = "colorRamp";
+  const initialCollectionId = workingCollectionId || collections[0]?.id || "";
   const [kind, setKind] = useState<GeneratorPresetKind>(initialKind);
-  const [targetCollectionId, setTargetCollectionId] = useState(workingCollectionId || collections[0]?.id || "");
-  const [outputPrefix, setOutputPrefix] = useState("color.brand");
+  const [targetCollectionId, setTargetCollectionId] =
+    useState(initialCollectionId);
+  const [outputPrefix, setOutputPrefix] = useState(
+    initialOutputPrefix?.trim() || "color.brand",
+  );
   const [sourceMode, setSourceMode] = useState<GeneratorSourceMode>("literal");
-  const [sourceValue, setSourceValue] = useState(generatorDefaultSourceValue(initialKind));
-  const [sourceCollectionId, setSourceCollectionId] = useState(workingCollectionId || collections[0]?.id || "");
+  const [sourceValue, setSourceValue] = useState(
+    generatorDefaultSourceValue(initialKind),
+  );
+  const [sourceCollectionId, setSourceCollectionId] =
+    useState(initialCollectionId);
   const [sourceTokenPath, setSourceTokenPath] = useState("");
-  const [paletteSteps, setPaletteSteps] = useState(COLOR_RAMP_DEFAULT.steps.join(", "));
-  const [paletteLightEnd, setPaletteLightEnd] = useState(COLOR_RAMP_DEFAULT.lightEnd);
-  const [paletteDarkEnd, setPaletteDarkEnd] = useState(COLOR_RAMP_DEFAULT.darkEnd);
+  const [sourceAdvancedOpen, setSourceAdvancedOpen] = useState(false);
+  const [paletteSteps, setPaletteSteps] = useState(
+    COLOR_RAMP_DEFAULT.steps.join(", "),
+  );
+  const [paletteLightEnd, setPaletteLightEnd] = useState(
+    COLOR_RAMP_DEFAULT.lightEnd,
+  );
+  const [paletteDarkEnd, setPaletteDarkEnd] = useState(
+    COLOR_RAMP_DEFAULT.darkEnd,
+  );
   const [scaleUnit, setScaleUnit] = useState("px");
   const [typeRatio, setTypeRatio] = useState(TYPE_SCALE_DEFAULT.ratio);
   const [shadowColor, setShadowColor] = useState(SHADOW_SCALE_DEFAULT.color);
   const [formula, setFormula] = useState(CUSTOM_SCALE_DEFAULT.formula);
-  const [formulaRoundTo, setFormulaRoundTo] = useState(CUSTOM_SCALE_DEFAULT.roundTo);
-  const [formulaOutputType, setFormulaOutputType] = useState(CUSTOM_SCALE_DEFAULT.outputType);
-  const [preview, setPreview] = useState<TokenGeneratorPreviewResult | null>(null);
-  const [previewPayloadKey, setPreviewPayloadKey] = useState<string | null>(null);
+  const [formulaRoundTo, setFormulaRoundTo] = useState(
+    CUSTOM_SCALE_DEFAULT.roundTo,
+  );
+  const [formulaOutputType, setFormulaOutputType] = useState(
+    CUSTOM_SCALE_DEFAULT.outputType,
+  );
+  const [preview, setPreview] = useState<TokenGeneratorPreviewResult | null>(
+    null,
+  );
+  const [previewPayloadKey, setPreviewPayloadKey] = useState<string | null>(
+    null,
+  );
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
   const latestPayloadKeyRef = useRef("");
   const fallbackCollectionId = collections[0]?.id ?? "";
 
-  const selectedOption = GENERATOR_PRESET_OPTIONS.find((item) => item.id === kind) ?? GENERATOR_PRESET_OPTIONS[0];
-  const targetCollection = collections.find((collection) => collection.id === targetCollectionId);
+  const selectedOption =
+    GENERATOR_PRESET_OPTIONS.find((item) => item.id === kind) ??
+    GENERATOR_PRESET_OPTIONS[0];
+  const targetCollection = collections.find(
+    (collection) => collection.id === targetCollectionId,
+  );
+  const sourceCollection = collections.find(
+    (collection) => collection.id === sourceCollectionId,
+  );
+  const crossCollectionSource =
+    sourceMode === "token" && sourceCollectionId !== targetCollectionId;
+  const modeCompatibility =
+    !crossCollectionSource ||
+    !targetCollection ||
+    !sourceCollection ||
+    targetCollection.modes.every((mode) =>
+      sourceCollection.modes.some(
+        (sourceModeItem) => sourceModeItem.name === mode.name,
+      ),
+    );
   const collectionOptions = useMemo(
-    () => collections.map((collection) => ({
-      id: collection.id,
-      label: readCollectionLabel(collection),
-    })),
+    () =>
+      collections.map((collection) => ({
+        id: collection.id,
+        label: readCollectionLabel(collection),
+      })),
     [collections],
   );
   const sourceTokenOptions = useMemo(() => {
@@ -125,7 +186,8 @@ export function GeneratorCreatePanel({
     return Object.entries(tokens)
       .filter(([, token]) => {
         if (kind === "colorRamp") return token.$type === "color";
-        if (kind === "formula") return token.$type === "number" || token.$type === "dimension";
+        if (kind === "formula")
+          return token.$type === "number" || token.$type === "dimension";
         return token.$type === "dimension" || token.$type === "number";
       })
       .map(([path]) => path)
@@ -146,12 +208,16 @@ export function GeneratorCreatePanel({
       return;
     }
 
-    if (!collections.some((collection) => collection.id === targetCollectionId)) {
+    if (
+      !collections.some((collection) => collection.id === targetCollectionId)
+    ) {
       setTargetCollectionId(fallbackCollectionId);
       setPreview(null);
     }
 
-    if (!collections.some((collection) => collection.id === sourceCollectionId)) {
+    if (
+      !collections.some((collection) => collection.id === sourceCollectionId)
+    ) {
       setSourceCollectionId(fallbackCollectionId);
       setSourceTokenPath("");
       setPreview(null);
@@ -175,12 +241,24 @@ export function GeneratorCreatePanel({
     setPreview(null);
   }, [sourceTokenOptions, sourceTokenPath]);
 
+  useEffect(() => {
+    if (sourceAdvancedOpen || sourceCollectionId === targetCollectionId) {
+      return;
+    }
+    setSourceCollectionId(targetCollectionId);
+    setSourceTokenPath("");
+    setPreview(null);
+  }, [sourceAdvancedOpen, sourceCollectionId, targetCollectionId]);
+
   const previewBlocking = Boolean(
     preview?.blocking ||
-      preview?.outputs.length === 0 ||
-      preview?.outputs.some((output) => output.collision),
+    preview?.outputs.length === 0 ||
+    preview?.outputs.some((output) => output.collision),
   );
-  const modes = targetCollection?.modes.map((mode) => mode.name) ?? preview?.targetModes ?? [];
+  const modes =
+    targetCollection?.modes.map((mode) => mode.name) ??
+    preview?.targetModes ??
+    [];
   const generationConfig = useMemo(() => {
     if (kind === "colorRamp") {
       return {
@@ -194,7 +272,11 @@ export function GeneratorCreatePanel({
       return { ...generatorDefaultConfig("spacing"), unit: scaleUnit };
     }
     if (kind === "type") {
-      return { ...generatorDefaultConfig("type"), ratio: typeRatio, unit: scaleUnit };
+      return {
+        ...generatorDefaultConfig("type"),
+        ratio: typeRatio,
+        unit: scaleUnit,
+      };
     }
     if (kind === "radius") {
       return { ...generatorDefaultConfig("radius"), unit: scaleUnit };
@@ -224,17 +306,24 @@ export function GeneratorCreatePanel({
     typeRatio,
   ]);
 
-  const updateKind = useCallback((nextKind: GeneratorPresetKind) => {
-    const option = GENERATOR_PRESET_OPTIONS.find((item) => item.id === nextKind) ?? GENERATOR_PRESET_OPTIONS[0];
-    setKind(nextKind);
-    setOutputPrefix(option.outputPrefix);
-    setSourceMode(option.sourceMode);
-    setSourceValue(generatorDefaultSourceValue(nextKind));
-    setScaleUnit(nextKind === "type" ? TYPE_SCALE_DEFAULT.unit : "px");
-    setSourceTokenPath("");
-    setPreview(null);
-    setError(null);
-  }, []);
+  const updateKind = useCallback(
+    (nextKind: GeneratorPresetKind) => {
+      const option =
+        GENERATOR_PRESET_OPTIONS.find((item) => item.id === nextKind) ??
+        GENERATOR_PRESET_OPTIONS[0];
+      setKind(nextKind);
+      setOutputPrefix(option.outputPrefix);
+      setSourceMode(option.sourceMode);
+      setSourceValue(generatorDefaultSourceValue(nextKind));
+      setSourceAdvancedOpen(false);
+      setSourceCollectionId(targetCollectionId);
+      setScaleUnit(nextKind === "type" ? TYPE_SCALE_DEFAULT.unit : "px");
+      setSourceTokenPath("");
+      setPreview(null);
+      setError(null);
+    },
+    [targetCollectionId],
+  );
 
   const generatorPayload = useCallback(() => {
     const generatedNodes = buildGeneratorNodesFromStructuredDraft({
@@ -264,7 +353,10 @@ export function GeneratorCreatePanel({
     sourceValue,
     targetCollectionId,
   ]);
-  const currentPayloadKey = useMemo(() => JSON.stringify(generatorPayload()), [generatorPayload]);
+  const currentPayloadKey = useMemo(
+    () => JSON.stringify(generatorPayload()),
+    [generatorPayload],
+  );
 
   useEffect(() => {
     latestPayloadKeyRef.current = currentPayloadKey;
@@ -279,8 +371,16 @@ export function GeneratorCreatePanel({
       setError("Choose an output group.");
       return;
     }
-    if (!SOURCELESS_GENERATOR_PRESETS.has(kind) && sourceMode === "token" && !sourceTokenPath.trim()) {
+    if (
+      !SOURCELESS_GENERATOR_PRESETS.has(kind) &&
+      sourceMode === "token" &&
+      !sourceTokenPath.trim()
+    ) {
       setError("Choose a source token.");
+      return;
+    }
+    if (!modeCompatibility) {
+      setError("Source and target collections need matching mode names.");
       return;
     }
     if (kind === "colorRamp" && parseNumberList(paletteSteps).length === 0) {
@@ -306,7 +406,11 @@ export function GeneratorCreatePanel({
       setPreview(data.preview);
       setPreviewPayloadKey(payloadKey);
     } catch (previewError) {
-      setError(previewError instanceof Error ? previewError.message : String(previewError));
+      setError(
+        previewError instanceof Error
+          ? previewError.message
+          : String(previewError),
+      );
     } finally {
       setBusy(null);
     }
@@ -316,68 +420,113 @@ export function GeneratorCreatePanel({
     outputPrefix,
     paletteSteps,
     serverUrl,
+    modeCompatibility,
     sourceMode,
     sourceTokenPath,
     targetCollectionId,
   ]);
 
   const handleApply = useCallback(async () => {
-    if (!preview || previewBlocking || previewPayloadKey !== currentPayloadKey) return;
+    if (!preview || previewBlocking || previewPayloadKey !== currentPayloadKey)
+      return;
     setBusy("apply");
     setError(null);
-	    try {
+    try {
       const payload = generatorPayload();
-	      const result = await apiFetch<GeneratorApplyResponse>(
-	        `${serverUrl}/api/generators/apply-draft`,
-	        {
-	          method: "POST",
-	          headers: { "Content-Type": "application/json" },
-	          body: JSON.stringify({ ...payload, previewHash: preview.hash }),
-	        },
-	      );
+      const result = await apiFetch<GeneratorApplyResponse>(
+        `${serverUrl}/api/generators/apply-draft`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, previewHash: preview.hash }),
+        },
+      );
       onApplied({
         generatorId: result.generator?.id ?? "",
         collectionId: targetCollectionId,
         outputPrefix: outputPrefix.trim(),
-        firstPath: result.created[0] ?? result.updated[0] ?? result.preview.outputs[0]?.path,
+        firstPath:
+          result.created[0] ??
+          result.updated[0] ??
+          result.preview.outputs[0]?.path,
       });
     } catch (applyError) {
-      setError(applyError instanceof Error ? applyError.message : String(applyError));
+      setError(
+        applyError instanceof Error ? applyError.message : String(applyError),
+      );
     } finally {
       setBusy(null);
     }
-  }, [currentPayloadKey, generatorPayload, onApplied, outputPrefix, preview, previewBlocking, previewPayloadKey, serverUrl, targetCollectionId]);
+  }, [
+    currentPayloadKey,
+    generatorPayload,
+    onApplied,
+    outputPrefix,
+    preview,
+    previewBlocking,
+    previewPayloadKey,
+    serverUrl,
+    targetCollectionId,
+  ]);
 
   const handleOpenGenerator = useCallback(async () => {
-    setBusy("preview");
+    setBusy("open");
     setError(null);
     try {
       const payload = generatorPayload();
-      const created = await apiFetch<GeneratorResponse>(`${serverUrl}/api/generators`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: payload.name,
-          targetCollectionId: payload.targetCollectionId,
-          template: kind,
-          recordHistory: false,
-        }),
-      });
-      const updated = await apiFetch<GeneratorResponse>(
-        `${serverUrl}/api/generators/${encodeURIComponent(created.generator.id)}`,
-	        {
-	          method: "PATCH",
-	          headers: { "Content-Type": "application/json" },
-	          body: JSON.stringify({ ...payload, newGenerator: true }),
-	        },
+      const created = await apiFetch<GeneratorResponse>(
+        `${serverUrl}/api/generators`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
       );
-      onOpenGenerator(updated.generator.id, updated.generator.targetCollectionId);
+      onOpenGenerator(
+        created.generator.id,
+        created.generator.targetCollectionId,
+      );
     } catch (openError) {
-      setError(openError instanceof Error ? openError.message : String(openError));
+      setError(
+        openError instanceof Error ? openError.message : String(openError),
+      );
     } finally {
       setBusy(null);
     }
-  }, [generatorPayload, kind, onOpenGenerator, serverUrl]);
+  }, [generatorPayload, onOpenGenerator, serverUrl]);
+
+  const handleOpenCustomGenerator = useCallback(async () => {
+    if (!targetCollectionId) {
+      setError("Choose a collection first.");
+      return;
+    }
+    setBusy("open");
+    setError(null);
+    try {
+      const created = await apiFetch<GeneratorResponse>(
+        `${serverUrl}/api/generators`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Custom generator",
+            targetCollectionId,
+            template: "blank",
+          }),
+        },
+      );
+      onOpenGenerator(
+        created.generator.id,
+        created.generator.targetCollectionId,
+      );
+    } catch (openError) {
+      setError(
+        openError instanceof Error ? openError.message : String(openError),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }, [onOpenGenerator, serverUrl, targetCollectionId]);
 
   const handleClose = useCallback(() => {
     onClose();
@@ -386,7 +535,11 @@ export function GeneratorCreatePanel({
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
       <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-4 py-3">
-        <Sparkles size={15} className="text-[var(--color-figma-accent)]" aria-hidden />
+        <Sparkles
+          size={15}
+          className="text-[var(--color-figma-accent)]"
+          aria-hidden
+        />
         <h3 className="min-w-0 flex-1 truncate text-body font-semibold text-[var(--color-figma-text)]">
           Create generator
         </h3>
@@ -397,7 +550,7 @@ export function GeneratorCreatePanel({
           className="inline-flex h-7 items-center gap-1 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
         >
           <ExternalLink size={12} aria-hidden />
-          Open in Generators
+          {busy === "open" ? "Opening..." : "Open in Generators"}
         </button>
         <button
           type="button"
@@ -426,6 +579,15 @@ export function GeneratorCreatePanel({
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={handleOpenCustomGenerator}
+          disabled={busy !== null || !targetCollectionId}
+          className="mt-2 inline-flex min-h-7 items-center gap-1.5 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+        >
+          <GitBranch size={13} aria-hidden />
+          Start with blank graph
+        </button>
 
         <div className="mt-4 space-y-3">
           <label className="block">
@@ -435,7 +597,12 @@ export function GeneratorCreatePanel({
             <select
               value={targetCollectionId}
               onChange={(event) => {
-                setTargetCollectionId(event.target.value);
+                const nextCollectionId = event.target.value;
+                setTargetCollectionId(nextCollectionId);
+                if (!sourceAdvancedOpen) {
+                  setSourceCollectionId(nextCollectionId);
+                  setSourceTokenPath("");
+                }
                 setPreview(null);
               }}
               className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
@@ -471,6 +638,9 @@ export function GeneratorCreatePanel({
                     type="button"
                     onClick={() => {
                       setSourceMode(mode);
+                      if (mode === "token" && !sourceAdvancedOpen) {
+                        setSourceCollectionId(targetCollectionId);
+                      }
                       setPreview(null);
                     }}
                     className={`min-h-7 flex-1 rounded px-2 text-secondary font-medium ${
@@ -499,27 +669,7 @@ export function GeneratorCreatePanel({
                   />
                 </label>
               ) : (
-                <div className="grid grid-cols-[120px_1fr] gap-2">
-                  <label className="block">
-                    <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                      Source collection
-                    </span>
-                    <select
-                      value={sourceCollectionId}
-                      onChange={(event) => {
-                        setSourceCollectionId(event.target.value);
-                        setSourceTokenPath("");
-                        setPreview(null);
-                      }}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                    >
-                      {collectionOptions.map((collection) => (
-                        <option key={collection.id} value={collection.id}>
-                          {collection.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <div className="space-y-2">
                   <label className="block">
                     <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
                       Source token
@@ -539,6 +689,52 @@ export function GeneratorCreatePanel({
                       ))}
                     </datalist>
                   </label>
+                  <details
+                    open={sourceAdvancedOpen}
+                    onToggle={(event) => {
+                      const open = event.currentTarget.open;
+                      setSourceAdvancedOpen(open);
+                      if (!open) {
+                        setSourceCollectionId(targetCollectionId);
+                        setSourceTokenPath("");
+                        setPreview(null);
+                      }
+                    }}
+                    className="rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
+                  >
+                    <summary className="cursor-pointer text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+                      Cross-collection source
+                    </summary>
+                    <label className="mt-2 block">
+                      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+                        Source collection
+                      </span>
+                      <select
+                        value={sourceCollectionId}
+                        onChange={(event) => {
+                          setSourceCollectionId(event.target.value);
+                          setSourceTokenPath("");
+                          setPreview(null);
+                        }}
+                        className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+                      >
+                        {collectionOptions.map((collection) => (
+                          <option key={collection.id} value={collection.id}>
+                            {collection.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {crossCollectionSource ? (
+                      <div
+                        className={`mt-2 text-tertiary ${modeCompatibility ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
+                      >
+                        {modeCompatibility
+                          ? "Mode names match the target collection."
+                          : "Mode names must match the target collection before previewing."}
+                      </div>
+                    ) : null}
+                  </details>
                 </div>
               )}
             </div>
@@ -667,7 +863,9 @@ export function GeneratorCreatePanel({
                     <select
                       value={formulaOutputType}
                       onChange={(event) => {
-                        setFormulaOutputType(event.target.value as typeof formulaOutputType);
+                        setFormulaOutputType(
+                          event.target.value as typeof formulaOutputType,
+                        );
                         setPreview(null);
                       }}
                       className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
@@ -694,7 +892,6 @@ export function GeneratorCreatePanel({
               </>
             ) : null}
           </div>
-
         </div>
 
         {error ? (
@@ -716,7 +913,8 @@ export function GeneratorCreatePanel({
           </div>
           {!preview ? (
             <div className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-3 text-secondary text-[var(--color-figma-text-secondary)]">
-              Preview creates a draft generator and shows exactly which tokens will change.
+              Preview creates a draft generator and shows exactly which tokens
+              will change.
             </div>
           ) : (
             <div className="space-y-2">
@@ -725,13 +923,18 @@ export function GeneratorCreatePanel({
                   key={diagnostic.id}
                   className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-text)]"
                 >
-                  <span className="font-semibold capitalize">{diagnostic.severity}</span>
-                  <span className="text-[var(--color-figma-text-secondary)]">: {diagnostic.message}</span>
+                  <span className="font-semibold capitalize">
+                    {diagnostic.severity}
+                  </span>
+                  <span className="text-[var(--color-figma-text-secondary)]">
+                    : {diagnostic.message}
+                  </span>
                 </div>
               ))}
               {preview.outputs.length === 0 ? (
                 <div className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-error)]">
-                  No tokens will be created. Adjust the source or steps and preview again.
+                  No tokens will be created. Adjust the source or steps and
+                  preview again.
                 </div>
               ) : null}
               {preview.outputs.map((output) => (
@@ -755,13 +958,24 @@ export function GeneratorCreatePanel({
                   </div>
                   <div className="mt-1 space-y-1">
                     {modes.map((modeName) => (
-                      <div key={modeName} className="grid grid-cols-[70px_1fr] gap-2 text-tertiary">
-                        <span className="truncate text-[var(--color-figma-text-secondary)]">{modeName}</span>
+                      <div
+                        key={modeName}
+                        className="grid grid-cols-[70px_1fr] gap-2 text-tertiary"
+                      >
+                        <span className="truncate text-[var(--color-figma-text-secondary)]">
+                          {modeName}
+                        </span>
                         <span className="min-w-0 flex items-center gap-1.5 text-[var(--color-figma-text)]">
                           {previewIsValueBearing(output.type) ? (
-                            <ValuePreview type={output.type} value={output.modeValues[modeName]} size={12} />
+                            <ValuePreview
+                              type={output.type}
+                              value={output.modeValues[modeName]}
+                              size={12}
+                            />
                           ) : null}
-                          <span className="truncate">{formatValue(output.modeValues[modeName])}</span>
+                          <span className="truncate">
+                            {formatValue(output.modeValues[modeName])}
+                          </span>
                         </span>
                       </div>
                     ))}
@@ -785,7 +999,12 @@ export function GeneratorCreatePanel({
         <button
           type="button"
           onClick={handleApply}
-          disabled={busy !== null || !preview || previewBlocking || previewPayloadKey !== currentPayloadKey}
+          disabled={
+            busy !== null ||
+            !preview ||
+            previewBlocking ||
+            previewPayloadKey !== currentPayloadKey
+          }
           className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-semibold text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
         >
           {busy === "apply" ? "Applying..." : "Apply"}
