@@ -1038,8 +1038,8 @@ export function TokenDetails({
           </div>
         </div>
       ) : (
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="flex items-start gap-1.5 min-w-0">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex min-w-0 flex-wrap items-start gap-1.5">
             {canRenameInPlace ? (
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 {parentPrefix && (
@@ -1117,33 +1117,35 @@ export function TokenDetails({
                 {tokenPath}
               </span>
             )}
-            <button
-              type="button"
-              onClick={handleCopyPath}
-              title="Copy token path"
-              aria-label="Copy token path"
-              className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-            >
-              {copied ? (
-                <Check size={12} strokeWidth={1.5} aria-hidden />
-              ) : (
-                <Copy size={12} strokeWidth={1.5} aria-hidden />
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={handleCopyPath}
+                title="Copy token path"
+                aria-label="Copy token path"
+                className="shrink-0 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+              >
+                {copied ? (
+                  <Check size={12} strokeWidth={1.5} aria-hidden />
+                ) : (
+                  <Copy size={12} strokeWidth={1.5} aria-hidden />
+                )}
+              </button>
+              {isEditMode && isDirty && (
+                <span
+                  className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
+                  title="Unsaved changes"
+                  aria-label="Unsaved changes"
+                />
               )}
-            </button>
-            {isEditMode && isDirty && (
-              <span
-                className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]"
-                title="Unsaved changes"
-                aria-label="Unsaved changes"
-              />
-            )}
-            {syncChanged && (
-              <span
-                className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)]"
-                title="Not yet synced to Figma"
-                aria-label="Not yet synced to Figma"
-              />
-            )}
+              {syncChanged && (
+                <span
+                  className="shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)]"
+                  title="Not yet synced to Figma"
+                  aria-label="Not yet synced to Figma"
+                />
+              )}
+            </div>
           </div>
           {renameError && (
             <div className="min-w-0">
@@ -1153,7 +1155,7 @@ export function TokenDetails({
             </div>
           )}
           <div className="min-w-0">
-            <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary text-[var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
               {showingExternalCollection
                 ? `Collection: ${ownerCollectionId} · Working in ${currentCollectionId}`
                 : `Collection: ${ownerCollectionId}`}

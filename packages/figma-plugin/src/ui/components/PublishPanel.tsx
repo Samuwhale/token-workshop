@@ -1470,10 +1470,9 @@ function ResolverModePublishCard({
         </div>
       ) : (
         <>
-          <div className="mt-3 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+          <div className="tm-publish-mapping mt-3 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
             <div
-              className="hidden items-center gap-2 bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] md:grid"
-              style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)' }}
+              className="tm-publish-mapping__header items-center bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary font-medium text-[var(--color-figma-text-secondary)]"
             >
               <span>Resolver context</span>
               <span>Collection</span>
@@ -1483,8 +1482,7 @@ function ResolverModePublishCard({
               {rows.map((row) => (
                 <div
                   key={row.key}
-                  className={`grid gap-2 border-b border-[var(--color-figma-border)] px-3 py-2.5 last:border-b-0 ${row.isDirty ? 'bg-[var(--color-figma-accent)]/5' : ''}`}
-                  style={{ gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)' }}
+                  className={`tm-publish-mapping__row border-b border-[var(--color-figma-border)] px-3 py-2.5 last:border-b-0 ${row.isDirty ? 'bg-[var(--color-figma-accent)]/5' : ''}`}
                 >
                   <div className="min-w-0 flex items-center gap-1.5">
                     <div className="truncate text-body font-medium text-[var(--color-figma-text)]" title={row.label}>
@@ -1495,25 +1493,31 @@ function ResolverModePublishCard({
                     )}
                   </div>
 
-                  <input
-                    type="text"
-                    value={row.collectionName}
-                    onChange={(event) => onFieldChange(row.key, 'collectionName', event.target.value)}
-                    placeholder={`Default ${DEFAULT_RESOLVER_COLLECTION_NAME} collection`}
-                    disabled={saving || syncing}
-                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                    aria-label={`Collection for ${row.label}`}
-                  />
+                  <label className="tm-publish-mapping__field">
+                    <span className="tm-publish-mapping__field-label">Collection</span>
+                    <input
+                      type="text"
+                      value={row.collectionName}
+                      onChange={(event) => onFieldChange(row.key, 'collectionName', event.target.value)}
+                      placeholder={`Default ${DEFAULT_RESOLVER_COLLECTION_NAME} collection`}
+                      disabled={saving || syncing}
+                      className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                      aria-label={`Collection for ${row.label}`}
+                    />
+                  </label>
 
-                  <input
-                    type="text"
-                    value={row.modeName}
-                    onChange={(event) => onFieldChange(row.key, 'modeName', event.target.value)}
-                    placeholder="Required mode name"
-                    disabled={saving || syncing}
-                    className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                    aria-label={`Mode for ${row.label}`}
-                  />
+                  <label className="tm-publish-mapping__field">
+                    <span className="tm-publish-mapping__field-label">Mode</span>
+                    <input
+                      type="text"
+                      value={row.modeName}
+                      onChange={(event) => onFieldChange(row.key, 'modeName', event.target.value)}
+                      placeholder="Required mode name"
+                      disabled={saving || syncing}
+                      className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+                      aria-label={`Mode for ${row.label}`}
+                    />
+                  </label>
                 </div>
               ))}
             </div>

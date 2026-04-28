@@ -137,7 +137,7 @@ export function PanelRouter({
   const sideEditorBoundary = useResizableBoundary({
     storageKey: STORAGE_KEYS.SIDE_EDITOR_WIDTH,
     defaultSize: 340,
-    min: 280,
+    min: 240,
     max: 560,
     axis: "x",
     mode: "px",
@@ -1410,7 +1410,7 @@ export function PanelRouter({
             />
             <div
               className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-              style={{ width: sideEditorBoundary.size }}
+              style={{ width: `clamp(240px, 42%, ${sideEditorBoundary.size}px)` }}
             >
               {contextualPanel}
             </div>

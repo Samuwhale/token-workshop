@@ -69,7 +69,7 @@ export function CommitCompareView({
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      <div className="shrink-0 flex flex-wrap items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-body text-[var(--color-figma-accent)] hover:underline shrink-0"
@@ -85,21 +85,21 @@ export function CommitCompareView({
       </div>
 
       {/* Commit A / B info cards */}
-      <div className="shrink-0 grid grid-cols-2 gap-px bg-[var(--color-figma-border)] border-b border-[var(--color-figma-border)]">
+      <div className="shrink-0 grid grid-cols-1 gap-px bg-[var(--color-figma-border)] border-b border-[var(--color-figma-border)] md:grid-cols-2">
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>
             <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{commitA.hash.slice(0, 7)}</span>
           </div>
-          <p className="text-secondary font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitA.message}>{commitA.message}</p>
+          <p className="text-secondary font-medium text-[var(--color-figma-text)] leading-snug break-words" title={commitA.message}>{commitA.message}</p>
           <p className="text-secondary text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitA.date))}</p>
         </div>
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>
             <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)]">{commitB.hash.slice(0, 7)}</span>
           </div>
-          <p className="text-secondary font-medium text-[var(--color-figma-text)] leading-snug truncate" title={commitB.message}>{commitB.message}</p>
+          <p className="text-secondary font-medium text-[var(--color-figma-text)] leading-snug break-words" title={commitB.message}>{commitB.message}</p>
           <p className="text-secondary text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commitB.date))}</p>
         </div>
       </div>

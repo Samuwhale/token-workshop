@@ -3,6 +3,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { dispatchToast } from '../shared/toastBus';
 import { adaptShortcut, getErrorMessage, tokenPathToUrlSegment } from '../shared/utils';
 import { parseInput, validateTokenPath, type ParsedToken } from '../shared/tokenParsers';
+import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { apiFetch } from '../shared/apiFetch';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenMapEntry } from '../../shared/types';
@@ -332,11 +333,10 @@ export function PasteTokensModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50" onKeyDown={handleKeyDown} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="tm-modal-shell" onKeyDown={handleKeyDown} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div
         ref={dialogRef}
-        className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl flex flex-col"
-        style={{ width: 420, maxHeight: '88vh' }}
+        className="tm-modal-panel tm-modal-panel--paste"
         role="dialog"
         aria-modal="true"
         aria-label="Paste tokens"
@@ -392,7 +392,7 @@ export function PasteTokensModal({
 
           {/* Group prefix */}
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <label className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
                 Group prefix
               </label>
@@ -466,8 +466,8 @@ export function PasteTokensModal({
         {effectiveRows.length > 0 && (
           <div className="flex-1 overflow-y-auto border-t border-[var(--color-figma-border)] min-h-0">
             {/* Summary bar */}
-            <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-secondary">
+            <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-secondary">
                 <span className="text-[var(--color-figma-text)] font-medium">{effectiveRows.length} token{effectiveRows.length !== 1 ? 's' : ''}</span>
                 {toCreate.length > 0 && (
                   <span className="text-[var(--color-figma-success)]">+{toCreate.length} new</span>
@@ -500,7 +500,7 @@ export function PasteTokensModal({
             {effectiveRows.map(row => (
               <div
                 key={row.path}
-                className={`flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] ${row.validationError ? 'bg-[var(--color-figma-error)]/5' : row.conflict ? 'bg-[var(--color-figma-warning)]/10' : ''}`}
+                className={`flex flex-wrap items-start gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] ${row.validationError ? 'bg-[var(--color-figma-error)]/5' : row.conflict ? 'bg-[var(--color-figma-warning)]/10' : ''}`}
               >
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
@@ -522,13 +522,15 @@ export function PasteTokensModal({
                     <div className="flex items-center gap-1">
                       {row.$type === 'color' && <ColorSwatch value={row.$value} />}
                       <span className="text-secondary text-[var(--color-figma-text-secondary)] font-mono truncate">
-                        {typeof row.$value === 'string' ? row.$value : JSON.stringify(row.$value)}
+                        {formatTokenValueForDisplay(row.$type, row.$value, {
+                          emptyPlaceholder: '',
+                        })}
                       </span>
                     </div>
                   )}
                 </div>
                 {!row.validationError && row.conflict && (
-                  <label className="flex items-center gap-1 shrink-0 cursor-pointer select-none">
+                  <label className="ml-auto flex items-center gap-1 shrink-0 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={rowOverwrites[row.path] ?? false}
@@ -554,10 +556,10 @@ export function PasteTokensModal({
           <div className="px-3 py-2 text-secondary text-[var(--color-figma-error)] border-t border-[var(--color-figma-border)]">{submitError}</div>
         )}
 
-        <div className="flex gap-2 justify-end px-4 py-3 border-t border-[var(--color-figma-border)]">
+        <div className="flex flex-wrap gap-2 justify-end px-4 py-3 border-t border-[var(--color-figma-border)]">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="min-w-0 flex-1 basis-[120px] px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Cancel
           </button>
@@ -565,7 +567,7 @@ export function PasteTokensModal({
             onClick={handleConfirm}
             disabled={confirmCount === 0 || busy}
             title={confirmCount > 0 ? `${adaptShortcut('⌘')}↵ to confirm` : undefined}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+            className="min-w-0 flex-1 basis-[180px] px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
           >
             {busy
               ? 'Saving…'

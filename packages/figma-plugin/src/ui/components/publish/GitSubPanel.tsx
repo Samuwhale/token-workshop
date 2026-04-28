@@ -58,7 +58,7 @@ function DiffPre({ lines, side, isExpanded }: { lines: DiffLine[]; side: 'ours' 
   const addedBg = side === 'ours' ? 'bg-[var(--color-figma-success)]/25' : 'bg-[var(--color-figma-accent)]/25';
   const addedText = side === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-accent)]';
   return (
-    <pre className={`text-secondary font-mono whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>
+    <pre className={`overflow-x-auto overflow-y-auto text-secondary font-mono whitespace-pre leading-tight${isExpanded ? '' : ' max-h-28'}`}>
       {lines.map((line, idx) => (
         <span
           key={idx}
@@ -345,13 +345,13 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                               </span>
                             </div>
                           )}
-                          <div className="flex">
+                          <div className="flex flex-col md:flex-row">
                             <button
                               onClick={() => git.setConflictChoices(prev => ({
                                 ...prev,
                                 [conflict.file]: { ...prev[conflict.file], [region.index]: 'ours' },
                               }))}
-                              className={`flex-1 text-left px-2 py-1 border-r border-[var(--color-figma-border)] transition-colors ${
+                              className={`min-w-0 flex-1 text-left px-2 py-1 border-b border-[var(--color-figma-border)] transition-colors md:border-b-0 md:border-r ${
                                 choice === 'ours'
                                   ? 'bg-[var(--color-figma-success)]/10'
                                   : 'bg-[var(--color-figma-bg)] opacity-50 hover:opacity-75'
@@ -368,7 +368,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                                   ? <DiffPre lines={diff.aLines} side="ours" isExpanded={isExpanded} />
                                   : <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
                               ) : (
-                                <pre className={`text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.ours || '(empty)'}</pre>
+                                <pre className={`overflow-x-auto overflow-y-auto text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.ours || '(empty)'}</pre>
                               )}
                             </button>
                             <button
@@ -376,7 +376,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                                 ...prev,
                                 [conflict.file]: { ...prev[conflict.file], [region.index]: 'theirs' },
                               }))}
-                              className={`flex-1 text-left px-2 py-1 transition-colors ${
+                              className={`min-w-0 flex-1 text-left px-2 py-1 transition-colors ${
                                 choice === 'theirs'
                                   ? 'bg-[var(--color-figma-accent)]/10'
                                   : 'bg-[var(--color-figma-bg)] opacity-50 hover:opacity-75'
@@ -393,7 +393,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                                   ? <DiffPre lines={diff.bLines} side="theirs" isExpanded={isExpanded} />
                                   : <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] italic">(empty)</span>
                               ) : (
-                                <pre className={`text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all overflow-y-auto leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.theirs || '(empty)'}</pre>
+                                <pre className={`overflow-x-auto overflow-y-auto text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre leading-tight${isExpanded ? '' : ' max-h-28'}`}>{region.theirs || '(empty)'}</pre>
                               )}
                             </button>
                           </div>
