@@ -6,12 +6,14 @@ interface CollectionCreateDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (name: string) => Promise<string>;
+  onCreated?: (collectionId: string) => void;
 }
 
 export function CollectionCreateDialog({
   isOpen,
   onClose,
   onCreate,
+  onCreated,
 }: CollectionCreateDialogProps) {
   const [collectionName, setCollectionName] = useState("");
   const [error, setError] = useState("");
@@ -45,7 +47,8 @@ export function CollectionCreateDialog({
     setPending(true);
     setError("");
     try {
-      await onCreate(trimmedCollectionName);
+      const createdCollectionId = await onCreate(trimmedCollectionName);
+      onCreated?.(createdCollectionId);
       onClose();
     } catch (submitError) {
       setError(
@@ -112,7 +115,7 @@ export function CollectionCreateDialog({
               className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
             />
             <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              Use `/` only if you want to group related collections together.
+              Use `/` only when that name is already part of your system structure.
             </span>
           </label>
 

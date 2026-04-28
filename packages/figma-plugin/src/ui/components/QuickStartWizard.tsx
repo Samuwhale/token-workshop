@@ -160,13 +160,13 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
           value={name}
           onChange={e => { setName(e.target.value); setError(''); }}
           onKeyDown={e => e.key === 'Enter' && handleCreate()}
-          placeholder="primitives or brand/primitives"
+          placeholder="Primitives or Brand/Primitives"
           autoFocus
           className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
         />
         {error && <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{error}</p>}
         <p className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
-          Use <code className="font-mono">/</code> only if you want to group related collections together.
+          Use <code className="font-mono">/</code> only when that name is already part of your system structure.
         </p>
       </div>
 

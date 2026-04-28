@@ -42,6 +42,10 @@ export function useOverlayManager() {
   );
 
   const closeStartHere = useCallback(() => {
+    setStartHereState({ open: false, initialBranch: "root" });
+  }, []);
+
+  const completeStartHere = useCallback(() => {
     lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     setStartHereState({ open: false, initialBranch: "root" });
   }, []);
@@ -75,5 +79,6 @@ export function useOverlayManager() {
     dismissEphemeralOverlays,
     openStartHere,
     closeStartHere,
+    completeStartHere,
   };
 }

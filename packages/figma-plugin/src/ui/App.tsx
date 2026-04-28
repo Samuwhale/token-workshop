@@ -204,6 +204,7 @@ export function App() {
     dismissEphemeralOverlays,
     openStartHere,
     closeStartHere,
+    completeStartHere,
   } = useOverlayManager();
   const [collectionPickerFocusRequestKey, setCollectionPickerFocusRequestKey] = useState(0);
   const recentlyTouched = useRecentlyTouched();
@@ -2062,6 +2063,10 @@ export function App() {
         isOpen={showCollectionCreateDialog}
         onClose={closeCollectionCreateDialog}
         onCreate={createCollectionByName}
+        onCreated={(collectionId) => {
+          setCurrentCollectionId(collectionId);
+          navigateTo("library", "tokens");
+        }}
       />
 
       {/* Command Palette */}
@@ -2125,16 +2130,18 @@ export function App() {
           onClose={closeStartHere}
           onRetryConnection={retryConnection}
           onImportExistingSystem={() => {
+            completeStartHere();
             navigateTo("library", "tokens");
             switchContextualSurface({ surface: "import" });
           }}
           onStartFromSelection={() => {
+            completeStartHere();
             dismissEphemeralOverlays();
             navigateTo("canvas", "inspect");
             setTriggerExtractToken((n) => n + 1);
           }}
           onAuthorFirstToken={() => {
-            closeStartHere();
+            completeStartHere();
             navigateTo("library", "tokens");
             setTokenDetails({
               path: "",
@@ -2144,11 +2151,11 @@ export function App() {
             });
           }}
           onOpenGraph={() => {
-            closeStartHere();
+            completeStartHere();
             navigateTo("library", "graph");
           }}
           onGuidedSetupComplete={() => {
-            closeStartHere();
+            completeStartHere();
             refreshAll();
           }}
           onCollectionCreated={(name) => {

@@ -96,9 +96,10 @@ export function useTokenSearch({
 }: UseTokenSearchParams) {
   const searchRef = useRef<HTMLInputElement>(null);
   const qualifierHintsRef = useRef<HTMLDivElement>(null);
+  const searchStorageKey = STORAGE_KEY_BUILDERS.tokenSearchQuery(collectionId);
 
   const [searchQuery, setSearchQueryState] = useState(() => {
-    return ssGet('token-search', '');
+    return ssGet(searchStorageKey, '');
   });
   const [typeFilter, setTypeFilterState] = useState<string>('');
   const [refFilter, setRefFilterState] = useState<'all' | 'aliases' | 'direct'>(() => {
@@ -107,8 +108,9 @@ export function useTokenSearch({
   });
 
   useEffect(() => {
+    setSearchQueryState(ssGet(searchStorageKey, ''));
     setTypeFilterState(lsGet(STORAGE_KEY_BUILDERS.tokenTypeFilter(collectionId), ''));
-  }, [collectionId]);
+  }, [collectionId, searchStorageKey]);
 
   const [crossCollectionSearch, setCrossCollectionSearchState] = useState(false);
 
@@ -125,8 +127,8 @@ export function useTokenSearch({
   const setSearchQuery = useCallback((v: string) => {
     saveScrollAnchor();
     setSearchQueryState(v);
-    ssSet('token-search', v);
-  }, [saveScrollAnchor]);
+    ssSet(searchStorageKey, v);
+  }, [saveScrollAnchor, searchStorageKey]);
 
   const setTypeFilter = useCallback((v: string) => {
     saveScrollAnchor();
@@ -376,10 +378,25 @@ export function useTokenSearch({
     typeFilter,
   ]);
 
-  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showStarredOnly;
+  const crossCollectionUnsupportedFiltersActive =
+    !crossCollectionSearch &&
+    (showIssuesOnly || showRecentlyTouched || showStarredOnly || inspectMode);
+  const filtersActive =
+    searchQuery !== '' ||
+    typeFilter !== '' ||
+    refFilter !== 'all' ||
+    showDuplicates ||
+    crossCollectionUnsupportedFiltersActive;
 
   // Count of active non-search filters (for compact filter indicator)
-  const activeFilterCount = (typeFilter !== '' ? 1 : 0) + (refFilter !== 'all' ? 1 : 0) + (showDuplicates ? 1 : 0) + (showIssuesOnly ? 1 : 0) + (showRecentlyTouched ? 1 : 0) + (showStarredOnly ? 1 : 0);
+  const activeFilterCount =
+    (typeFilter !== '' ? 1 : 0) +
+    (refFilter !== 'all' ? 1 : 0) +
+    (showDuplicates ? 1 : 0) +
+    (!crossCollectionSearch && showIssuesOnly ? 1 : 0) +
+    (!crossCollectionSearch && showRecentlyTouched ? 1 : 0) +
+    (!crossCollectionSearch && showStarredOnly ? 1 : 0) +
+    (!crossCollectionSearch && inspectMode ? 1 : 0);
 
   // Compute duplicate value info from all tokens in the current collection
   const { duplicateValuePaths, duplicateCounts } = useMemo(() => {

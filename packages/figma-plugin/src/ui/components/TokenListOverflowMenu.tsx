@@ -202,7 +202,7 @@ export function FilterMenu(
               </>
             ) : null}
             <MenuLabel>Show</MenuLabel>
-            {props.lintCount > 0 && (
+            {!props.crossCollectionSearch && props.lintCount > 0 && (
               <MenuItem
                 label="Tokens with issues"
                 checked={props.showIssuesOnly}
@@ -212,7 +212,7 @@ export function FilterMenu(
                 }
               />
             )}
-            {props.recentlyTouchedCount > 0 && (
+            {!props.crossCollectionSearch && props.recentlyTouchedCount > 0 && (
               <MenuItem
                 label="Recently touched"
                 checked={props.showRecentlyTouched}
@@ -222,7 +222,7 @@ export function FilterMenu(
                 }
               />
             )}
-            {props.starredCount > 0 && (
+            {!props.crossCollectionSearch && props.starredCount > 0 && (
               <MenuItem
                 label="Starred"
                 checked={props.showStarredOnly}
@@ -230,16 +230,23 @@ export function FilterMenu(
                 onClick={() => runAndClose(props.onToggleStarredOnly)}
               />
             )}
-            <MenuItem
-              label="Used on selection"
-              checked={props.inspectMode}
-              onClick={() => runAndClose(props.onToggleInspectMode)}
-            />
+            {!props.crossCollectionSearch && (
+              <MenuItem
+                label="Used on selection"
+                checked={props.inspectMode}
+                onClick={() => runAndClose(props.onToggleInspectMode)}
+              />
+            )}
             <MenuItem
               label="Shared values"
               checked={props.showDuplicates}
               onClick={() => runAndClose(props.onToggleDuplicates)}
             />
+            {props.crossCollectionSearch ? (
+              <div className="px-2.5 pt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+                Selection, review, and starred filters stay local to one collection.
+              </div>
+            ) : null}
 
             <div className={MENU_SECTION_BORDER}>
               <MenuLabel>Value Source</MenuLabel>

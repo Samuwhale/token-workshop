@@ -96,6 +96,11 @@ export function ImportPreviewFooter() {
               {newCollectionError}
             </p>
           )}
+          {!newCollectionError && (
+            <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+              Use <code className="font-mono">/</code> only when that name is already part of your system structure.
+            </p>
+          )}
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">

@@ -223,6 +223,7 @@ export const STORAGE_KEYS = {
 /** Dynamic key builders for collection-scoped client view state. */
 export const STORAGE_KEY_BUILDERS = {
   tokenSort:       (collectionId: string) => `token-sort:${collectionId}`,
+  tokenSearchQuery: (collectionId: string) => `token-search:${collectionId}`,
   tokenTypeFilter: (collectionId: string) => `token-type-filter:${collectionId}`,
   tokenViewMode:   (collectionId: string) => `tm_view-mode:${collectionId}`,
   tokenGroupBy: (collectionId: string) => `tm_group-by:${collectionId}`,
