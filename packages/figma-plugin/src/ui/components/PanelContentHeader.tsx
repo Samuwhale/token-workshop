@@ -57,27 +57,32 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
   if (!visibleHandoff && !primaryAction) return null;
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
-      {visibleHandoff && returnFromHandoff && (
-        <button
-          onClick={returnFromHandoff}
-          aria-label={visibleHandoff.returnLabel}
-          className="flex min-w-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-left text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-        >
-          &larr; {visibleHandoff.returnLabel}
-        </button>
-      )}
+    <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
+      <div className="tm-panel-bar">
+        <div className="tm-panel-bar__leading">
+          {visibleHandoff && returnFromHandoff && (
+            <button
+              onClick={returnFromHandoff}
+              aria-label={visibleHandoff.returnLabel}
+              className="flex min-w-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-left text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              <span aria-hidden="true">&larr;</span>
+              <span className="truncate">{visibleHandoff.returnLabel}</span>
+            </button>
+          )}
+        </div>
 
-      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
+        <div className="tm-panel-bar__actions">
         {primaryAction && (
           <button
             onClick={primaryAction.onClick}
             disabled={primaryAction.disabled}
-            className="rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 disabled:opacity-40"
+              className="min-w-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 disabled:opacity-40"
           >
-            {primaryAction.label}
+              <span className="block truncate">{primaryAction.label}</span>
           </button>
         )}
+        </div>
       </div>
     </div>
   );

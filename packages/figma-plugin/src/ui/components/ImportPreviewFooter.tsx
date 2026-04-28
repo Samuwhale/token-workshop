@@ -43,18 +43,17 @@ export function ImportPreviewFooter() {
   // If conflict resolver is active (after user clicked "Review individually" and conflicts were fetched)
   if (conflictPaths !== null && conflictPaths.length > 0) {
     return (
-      <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
         <ImportConflictResolver />
       </div>
     );
   }
 
   return (
-    <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
-      {/* Collection picker */}
+    <div className="flex flex-col gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
       {newCollectionInputVisible ? (
         <div className="flex flex-col gap-1">
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <input
               autoFocus
               type="text"
@@ -76,7 +75,7 @@ export function ImportPreviewFooter() {
                 if (e.key === 'Escape') cancelNewCollection();
               }}
               placeholder="New collection name…"
-              className={`flex-1 rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-accent)]'}`}
+              className={`min-w-0 flex-[999_1_180px] rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-accent)]'}`}
             />
             <button
               onClick={commitNewCollection}
@@ -99,7 +98,7 @@ export function ImportPreviewFooter() {
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <label className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">Into</label>
           <select
             value={targetCollectionId}
@@ -111,7 +110,7 @@ export function ImportPreviewFooter() {
                 setTargetCollectionIdAndPersist(e.target.value);
               }
             }}
-            className="flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+            className="min-w-0 flex-[999_1_180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
           >
             {collectionIds.map((id) => (
               <option key={id} value={id}>{id}</option>
@@ -131,10 +130,9 @@ export function ImportPreviewFooter() {
         </p>
       )}
 
-      {/* Conflict summary */}
       {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null || existingTokenMapError !== null) && (
-        <div className="flex items-center justify-between gap-2 text-secondary">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-secondary">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {existingPathsFetching ? (
               <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens...</span>
             ) : existingTokenMapError !== null ? (
@@ -166,7 +164,6 @@ export function ImportPreviewFooter() {
         </div>
       )}
 
-      {/* Import button — uses bulk overwrite when conflicts exist */}
       <button
         onClick={() => {
           if (hasPreviewConflicts) {
@@ -176,7 +173,7 @@ export function ImportPreviewFooter() {
           }
         }}
         disabled={selectedTokens.size === 0 || importing || checkingConflicts}
-        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+        className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 whitespace-normal leading-tight text-center"
       >
         {checkingConflicts
           ? 'Checking for conflicts...'

@@ -104,11 +104,11 @@ export function HistoryPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0 flex items-center justify-between gap-3 px-3 py-2">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2">
         <div
           role="tablist"
           aria-label="History views"
-          className="inline-flex items-center rounded bg-[var(--color-figma-bg-secondary)] p-0.5"
+          className="inline-flex min-w-0 max-w-full flex-wrap items-center rounded bg-[var(--color-figma-bg-secondary)] p-0.5"
           onKeyDown={(event) => {
             const currentIndex = HISTORY_VIEWS.findIndex(
               (view) => view.id === scope.view,
@@ -165,7 +165,7 @@ export function HistoryPanel({
       </div>
 
       {showSaveInput ? (
-        <div className="shrink-0 flex items-center gap-1.5 px-3 pb-2">
+        <div className="shrink-0 flex flex-wrap items-center gap-1.5 px-3 pb-2">
           <input
             className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)]"
             placeholder="Checkpoint label"

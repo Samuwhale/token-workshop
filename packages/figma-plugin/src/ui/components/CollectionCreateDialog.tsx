@@ -60,13 +60,16 @@ export function CollectionCreateDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)] p-3"
-      onClick={onClose}
+      className="tm-modal-shell"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !pending) {
+          onClose();
+        }
+      }}
       role="presentation"
     >
       <div
-        className="w-full max-w-[320px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
-        onClick={(event) => event.stopPropagation()}
+        className="tm-modal-panel"
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
@@ -82,7 +85,7 @@ export function CollectionCreateDialog({
         aria-modal="true"
         aria-labelledby="new-collection-dialog-title"
       >
-        <div className="border-b border-[var(--color-figma-border)] px-4 py-3">
+        <div className="tm-modal-header border-b border-[var(--color-figma-border)]">
           <h2
             id="new-collection-dialog-title"
             className="text-heading font-semibold text-[var(--color-figma-text)]"
@@ -91,7 +94,7 @@ export function CollectionCreateDialog({
           </h2>
         </div>
 
-        <div className="flex flex-col gap-3 px-4 py-3">
+        <div className="tm-modal-body flex flex-col gap-3 py-3">
           <label className="flex flex-col gap-1">
             <span className="text-secondary text-[var(--color-figma-text-secondary)]">
               Collection name
@@ -116,7 +119,7 @@ export function CollectionCreateDialog({
           {error && <div className="text-secondary text-[var(--color-figma-error)]">{error}</div>}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] px-4 py-3">
+        <div className="tm-modal-footer border-t border-[var(--color-figma-border)] pt-3">
           <button
             type="button"
             onClick={onClose}

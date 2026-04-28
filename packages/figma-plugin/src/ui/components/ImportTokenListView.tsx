@@ -23,7 +23,7 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
   const resolvedIsColor = resolvedValue !== null && /^#[0-9a-fA-F]{3,8}$/.test(resolvedValue);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+    <div className="flex items-start gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
       {token.$type === 'color' && typeof token.$value === 'string' && !isAlias && (
         <div
           className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
@@ -38,9 +38,9 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
         />
       )}
       <div className="flex-1 min-w-0">
-        <div className="text-secondary text-[var(--color-figma-text)] truncate">{token.path}</div>
+        <div className="text-secondary text-[var(--color-figma-text)] break-all">{token.path}</div>
         {isAlias && (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] truncate">
+          <div className="text-secondary text-[var(--color-figma-text-secondary)] break-all">
             → <span className="font-mono">{aliasTarget}</span>
             {isChained && (
               <span className="ml-1 text-[var(--color-figma-text-tertiary,var(--color-figma-text-secondary))]">
@@ -50,7 +50,7 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
           </div>
         )}
         {token._warning && (
-          <div className="text-secondary text-[var(--color-figma-warning)] truncate" title={token._warning}>
+          <div className="text-secondary text-[var(--color-figma-warning)] break-words" title={token._warning}>
             {token._warning}
           </div>
         )}
@@ -121,8 +121,8 @@ export function ImportTokenListView() {
       )}
 
       {/* Toolbar: count + type filter + search */}
-      <div className="flex items-center gap-2">
-        <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">
           {selectedTokens.size} token{selectedTokens.size !== 1 ? 's' : ''}
         </span>
 
@@ -130,7 +130,7 @@ export function ImportTokenListView() {
           <select
             value={typeFilter ?? ''}
             onChange={e => setTypeFilter(e.target.value || null)}
-            className="text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] min-w-0"
+            className="min-w-0 flex-[1_1_120px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
           >
             <option value="">All types</option>
             {types.map(type => (
@@ -147,14 +147,13 @@ export function ImportTokenListView() {
             placeholder="Filter…"
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
-            className="flex-1 min-w-0 px-1.5 py-0.5 text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded focus:outline-none focus:border-[var(--color-figma-accent)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)]"
+            className="min-w-0 flex-[999_1_180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:border-[var(--color-figma-accent)] focus:outline-none"
             aria-label="Filter tokens by name or value"
           />
         )}
       </div>
 
-      {/* Token list */}
-      <div className="rounded border border-[var(--color-figma-border)] overflow-hidden divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
+      <div className="overflow-hidden rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
         {filteredTokens.length === 0 ? (
           <div className="px-3 py-4 text-center text-secondary text-[var(--color-figma-text-secondary)]">
             No tokens match "{searchText}"

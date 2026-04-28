@@ -112,34 +112,32 @@ export function RollbackPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
+      className="tm-modal-shell"
       onMouseDown={(e) => {
         if (!dismissDisabled && e.target === e.currentTarget) onCancel();
       }}
     >
       <div
         ref={dialogRef}
-        className="w-[340px] max-h-[80vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
+        className="tm-modal-panel tm-modal-panel--wide"
         role="dialog"
         aria-modal="true"
         aria-labelledby="rollback-preview-title"
         aria-busy={confirming}
       >
-        {/* Header */}
-        <div className="px-4 pt-4 pb-3 shrink-0 border-b border-[var(--color-figma-border)]">
+        <div className="tm-modal-header border-b border-[var(--color-figma-border)]">
           <h3 id="rollback-preview-title" className="text-heading font-semibold text-[var(--color-figma-text)]">
             Preview rollback
           </h3>
-          <p className="mt-1 text-body text-[var(--color-figma-text-secondary)] leading-relaxed truncate" title={opDescription}>
+          <p className="m-0 text-body text-[var(--color-figma-text-secondary)] leading-relaxed break-words" title={opDescription}>
             {opDescription}
           </p>
         </div>
 
-        {/* Summary bar */}
         {!diffLoading && summary && !noChanges && (
-          <div className="px-4 py-2 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-2">
             <ChangeSummaryBadges {...summary} />
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            <span className="min-w-0 text-secondary text-[var(--color-figma-text-tertiary)]">
               {metadataChanges.length > 0
                 ? `and ${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''} will change`
                 : 'will change'}
@@ -154,8 +152,7 @@ export function RollbackPreviewModal({
           </div>
         )}
 
-        {/* Diff content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2">
+        <div className="tm-modal-body flex-1 space-y-2 px-3 py-3">
           {diffLoading && (
             <div className="flex items-center justify-center h-20 gap-2">
               <Spinner size="sm" />
@@ -209,15 +206,13 @@ export function RollbackPreviewModal({
           )}
         </div>
 
-        {/* Error */}
         {confirmError && (
           <p className="shrink-0 px-4 py-2 text-secondary text-[var(--color-figma-error)] break-words">
             {confirmError}
           </p>
         )}
 
-        {/* Actions */}
-        <div className="px-4 pb-4 pt-3 shrink-0 border-t border-[var(--color-figma-border)] flex gap-2">
+        <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
           <button
             onClick={onCancel}
             disabled={confirming}
@@ -231,7 +226,7 @@ export function RollbackPreviewModal({
             className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {confirming && <Spinner size="sm" className="text-white" />}
-            {confirming ? 'Rolling back…' : 'Roll Back'}
+            {confirming ? 'Rolling back…' : 'Roll back'}
           </button>
         </div>
       </div>

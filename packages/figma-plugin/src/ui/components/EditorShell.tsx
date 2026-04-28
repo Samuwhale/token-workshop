@@ -67,7 +67,7 @@ export function EditorShell({
     >
       <div
         className={joinClasses(
-          "flex items-start gap-2 border-b border-[var(--color-figma-border)] shrink-0",
+          "flex min-w-0 flex-wrap items-start gap-2 border-b border-[var(--color-figma-border)] shrink-0",
           isAuthoringSurface && "tm-authoring-surface__header",
           headerClassName,
         )}
@@ -78,7 +78,7 @@ export function EditorShell({
             onClick={onBack}
             aria-label={backAriaLabel}
             title={backTitle}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] focus-visible:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--color-figma-bg-hover)] focus-visible:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
           >
             <svg
               width="12"
@@ -105,7 +105,7 @@ export function EditorShell({
           {title}
         </div>
         {headerActions && (
-          <div className="flex items-center gap-1 shrink-0">{headerActions}</div>
+          <div className="flex min-w-0 flex-wrap items-center gap-1 shrink-0">{headerActions}</div>
         )}
       </div>
       {afterHeader}

@@ -120,8 +120,8 @@ export function ImportVariablesSummary() {
             key={summary.name}
             className="rounded border border-[var(--color-figma-border)] px-3 py-2"
           >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-[999_1_220px] items-start gap-2">
                 <svg width="10" height="10" viewBox="0 0 16 16" fill="var(--color-figma-success)" aria-hidden="true">
                   <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.5 5.5L7 10 4.5 7.5l1-1L7 8l3.5-3.5 1 1Z" />
                 </svg>
@@ -143,7 +143,7 @@ export function ImportVariablesSummary() {
                   />
                 ) : (
                   <span
-                    className={`truncate cursor-pointer text-body hover:text-[var(--color-figma-accent)] ${
+                    className={`min-w-0 break-words cursor-pointer text-body hover:text-[var(--color-figma-accent)] ${
                       summary.requiresExplicitDestination
                         ? 'text-[var(--color-figma-text-secondary)]'
                         : 'font-medium text-[var(--color-figma-text)]'
@@ -177,7 +177,7 @@ export function ImportVariablesSummary() {
               </span>
             </div>
             {summary.modeCount > 1 && (
-              <div className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+              <div className="mt-1 break-words text-secondary text-[var(--color-figma-text-tertiary)]">
                 {summary.modeNames.join(', ')}
               </div>
             )}
@@ -196,7 +196,7 @@ export function ImportVariablesSummary() {
       </div>
 
       {/* Footer area */}
-      <div className="flex flex-col gap-1.5 pt-2 border-t border-[var(--color-figma-border)]">
+      <div className="flex flex-col gap-2 border-t border-[var(--color-figma-border)] pt-2">
         {checkingVarConflicts && (
           <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
             <Spinner size="xs" className="text-[var(--color-figma-text-secondary)]" />
@@ -205,7 +205,7 @@ export function ImportVariablesSummary() {
         )}
 
         {!checkingVarConflicts && varConflictPreview !== null && (
-          <div className="flex items-center gap-2 text-secondary">
+          <div className="flex flex-wrap items-center gap-2 text-secondary">
             {varConflictPreview.newCount > 0 && (
               <span className="text-[var(--color-figma-success)]">
                 {varConflictPreview.newCount} new
@@ -235,15 +235,15 @@ export function ImportVariablesSummary() {
         )}
 
         {hasConflicts && !importing && !hasBlockingCollisions && (
-          <div className="flex rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <div className="flex flex-wrap gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1">
             {(['merge', 'overwrite', 'skip'] as const).map(s => (
               <button
                 key={s}
                 onClick={() => setStrategy(s)}
-                className={`flex-1 py-1 text-secondary font-medium transition-colors ${
+                className={`flex-1 basis-[96px] rounded px-2 py-1 text-secondary font-medium transition-colors ${
                   strategy === s
                     ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                    : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                    : 'bg-transparent text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
               >
                 {reviewActionCopy[s].label}
@@ -255,7 +255,7 @@ export function ImportVariablesSummary() {
         <button
           onClick={() => handleImportVariables(hasConflicts ? strategy : 'overwrite')}
           disabled={!canImport}
-          className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+          className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 whitespace-normal leading-tight text-center"
         >
           {importing
             ? importProgress

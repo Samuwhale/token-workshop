@@ -218,7 +218,7 @@ export function CollectionTabs({
                       }
                       aria-pressed={settingsActive}
                       title="Collection settings"
-                      className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-colors ${
+                      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors ${
                         settingsActive
                           ? "text-[var(--color-figma-text)]"
                           : "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -245,7 +245,7 @@ export function CollectionTabs({
             aria-haspopup="dialog"
             aria-label="Find collection"
             title="Find collection"
-            className={`inline-flex h-6 w-6 items-center justify-center rounded transition-colors ${
+            className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
               searchMenu.open
                 ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                 : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -355,7 +355,7 @@ export function CollectionTabs({
           onClick={onOpenImport}
           aria-label="Import collections"
           title="Import collections"
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         >
           <Upload size={12} strokeWidth={1.5} aria-hidden />
         </button>
@@ -371,7 +371,7 @@ export function CollectionTabs({
             aria-haspopup="menu"
             aria-label="Add collection"
             title="Add collection"
-            className={`inline-flex h-6 w-6 items-center justify-center rounded transition-colors ${
+            className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
               createMenu.open
                 ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                 : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -429,7 +429,7 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
         aria-selected={selected}
         onClick={onClick}
         title={label}
-        className={`group relative flex min-w-0 max-w-[260px] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
+        className={`group relative flex min-w-0 max-w-[320px] shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-body transition-colors ${
           selected
             ? "text-[var(--color-figma-text)]"
             : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
@@ -441,7 +441,7 @@ const CollectionTab = forwardRef<HTMLButtonElement, CollectionTabProps>(
             aria-hidden
           />
         ) : null}
-        <span className="max-w-[180px] truncate">{label}</span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
         {typeof count === "number" ? (
           <span
             className={`shrink-0 text-secondary tabular-nums ${

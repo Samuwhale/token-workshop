@@ -190,9 +190,9 @@ export function HistoryRecentView({
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><circle cx="12" cy="12" r="3" /></svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-secondary truncate min-w-0 text-[var(--color-figma-text)]">{description}</span>
+                    <div className="text-secondary min-w-0 break-words text-[var(--color-figma-text)]">{description}</div>
                   </div>
-                  <div className="shrink-0 mt-0.5 flex items-center gap-1">
+                  <div className="shrink-0 mt-0.5 flex flex-wrap items-center justify-end gap-1">
                     {executeUndo && (
                       <button
                         onClick={() => handleUndoToEntry(stepsToUndo)}
@@ -219,11 +219,13 @@ export function HistoryRecentView({
                 <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
                   <div className="mt-0.5 shrink-0"><OpIcon type={op.type} /></div>
                   <div className="flex-1 min-w-0">
-                    <span className={`text-secondary truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text)]'}`}>
+                    <div className={`text-secondary min-w-0 break-words ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text)]'}`}>
                       {op.description}
-                    </span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{op.resourceId}</span>
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      <span className="min-w-0 max-w-full truncate font-mono text-secondary text-[var(--color-figma-text-tertiary)]" title={op.resourceId}>
+                        {op.resourceId}
+                      </span>
                       <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {impactLabel}</span>
                       <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
                     </div>
@@ -237,7 +239,7 @@ export function HistoryRecentView({
                       </div>
                     )}
                   </div>
-                  <div className="shrink-0 mt-0.5 flex items-center gap-1">
+                  <div className="shrink-0 mt-0.5 flex flex-wrap items-center justify-end gap-1">
                     {isError ? (
                       <span className="text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning)_12%,transparent)] text-[var(--color-figma-warning)]">Failed</span>
                     ) : op.rolledBack ? (
