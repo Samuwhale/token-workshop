@@ -875,6 +875,12 @@ export function PanelRouter({
         onOpenInHealth: tokenDetails.isCreate
           ? undefined
           : () => openCollectionIssues(tokenDetails.collectionId),
+        onManageCollectionModes: (collectionId: string) => {
+          switchContextualSurface({
+            surface: "collection-details",
+            collection: { collectionId },
+          });
+        },
       }
     : null;
 
@@ -1270,10 +1276,10 @@ export function PanelRouter({
   }
 
   function renderCollectionTabs(
-    section: "tokens" | "health" | "history",
+    section: "tokens" | "graph" | "health" | "history",
   ): ReactNode {
     const allCollectionsScope =
-      section === "tokens"
+      section === "tokens" || section === "graph"
         ? undefined
         : {
             selected:
@@ -1306,6 +1312,8 @@ export function PanelRouter({
     const tabsCurrentId =
       section === "tokens"
         ? currentCollectionId
+        : section === "graph"
+          ? currentCollectionId
         : section === "health"
           ? healthScope.mode === "current"
             ? healthScope.collectionId ?? currentCollectionId
@@ -1581,7 +1589,10 @@ export function PanelRouter({
         </ErrorBoundary>
       </div>
     );
-    return renderLibraryScaffold({ body });
+    return renderLibraryScaffold({
+      body,
+      tabs: renderCollectionTabs("graph"),
+    });
   }
 
   function renderLibraryHealth(): ReactNode {

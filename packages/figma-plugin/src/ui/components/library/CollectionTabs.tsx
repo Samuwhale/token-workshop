@@ -132,6 +132,7 @@ export function CollectionTabs({
 
   const settingsToggle = activeCollectionSettings;
   const settingsTargetId = currentCollectionId ?? null;
+  const canManageCollections = Boolean(settingsToggle);
 
   return (
     <div
@@ -300,30 +301,49 @@ export function CollectionTabs({
                               ? "bg-[var(--color-figma-warning)]"
                               : null;
                         return (
-                          <button
+                          <div
                             key={collectionId}
-                            type="button"
-                            role="menuitem"
-                            onClick={() => handleSelectFromMenu(collectionId)}
-                            className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
+                            className={`mb-0.5 flex items-center gap-1 rounded ${
                               isCurrent
                                 ? "bg-[var(--color-figma-bg-selected)]"
                                 : "hover:bg-[var(--color-figma-bg-hover)]"
                             }`}
                           >
-                            {healthTone ? (
-                              <span
-                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthTone}`}
-                                aria-hidden
-                              />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => handleSelectFromMenu(collectionId)}
+                              className="flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left"
+                            >
+                              {healthTone ? (
+                                <span
+                                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${healthTone}`}
+                                  aria-hidden
+                                />
+                              ) : null}
+                              <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
+                                {displayName}
+                              </span>
+                              <span className="shrink-0 text-secondary tabular-nums text-[var(--color-figma-text-tertiary)]">
+                                {tokenCount}
+                              </span>
+                            </button>
+                            {canManageCollections ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onSelectCollection(collectionId);
+                                  settingsToggle?.onToggle(collectionId);
+                                  searchMenu.close({ restoreFocus: false });
+                                }}
+                                aria-label={`Manage ${displayName}`}
+                                title="Manage collection"
+                                className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                              >
+                                <Settings2 size={11} strokeWidth={1.5} aria-hidden />
+                              </button>
                             ) : null}
-                            <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
-                              {displayName}
-                            </span>
-                            <span className="shrink-0 text-secondary tabular-nums text-[var(--color-figma-text-tertiary)]">
-                              {tokenCount}
-                            </span>
-                          </button>
+                          </div>
                         );
                       })
                     )}

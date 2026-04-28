@@ -2,13 +2,19 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import { GRAPH_TEMPLATES, type GraphTemplate } from './graph-templates';
 import { apiFetch } from '../shared/apiFetch';
+import {
+  buildCollectionModeNames,
+  CollectionAuthoringFields,
+  type CollectionAuthoringDraft,
+  validateCollectionAuthoringDraft,
+} from './CollectionAuthoringFields';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type SetupActionId = 'author-tokens' | 'modes' | 'foundations';
-type WizardView = 'overview' | 'template-picker' | 'modes-inline';
+type SetupActionId = 'author-tokens' | 'foundations';
+type WizardView = 'overview' | 'template-picker';
 type PrereqPhase = 'connect' | 'create-collection' | null;
 type GraphApiTemplate = 'colorRamp' | 'spacing' | 'type' | 'radius' | 'opacity' | 'shadow' | 'zIndex' | 'formula' | 'blank';
 
@@ -45,12 +51,6 @@ const SETUP_ACTIONS: SetupActionDef[] = [
     label: 'Add your first token',
     description: 'Open the token editor and start authoring in this collection.',
     helper: 'Best next step',
-  },
-  {
-    id: 'modes',
-    label: 'Add collection modes',
-    description: 'Create contexts like Light and Dark when this collection needs variants.',
-    helper: 'Optional',
   },
   {
     id: 'foundations',
@@ -115,15 +115,19 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
   serverUrl: string;
   onCreated: (name: string) => void;
 }) {
-  const [name, setName] = useState('primitives');
+  const [draft, setDraft] = useState<CollectionAuthoringDraft>({
+    name: 'primitives',
+    primaryModeName: 'Default',
+    secondaryModeEnabled: false,
+    secondaryModeName: '',
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleCreate = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) { setError('Collection name is required'); return; }
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(trimmed)) {
-      setError('Use letters, numbers, hyphens, or underscores. Use / only to group related collections.');
+    const validationError = validateCollectionAuthoringDraft(draft);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setSaving(true);
@@ -132,9 +136,14 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       await apiFetch(`${serverUrl}/api/collections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: trimmed }),
+        body: JSON.stringify({
+          id: draft.name.trim(),
+          modes: buildCollectionModeNames(draft).map((modeName) => ({
+            name: modeName,
+          })),
+        }),
       });
-      onCreated(trimmed);
+      onCreated(draft.name.trim());
     } catch (err) {
       setError(getErrorMessage(err));
       setSaving(false);
@@ -146,148 +155,43 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
       <div>
         <p className="text-body font-medium text-[var(--color-figma-text)]">Create your first token collection</p>
         <p className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5">
-          Collections are where you organize related tokens and their modes.
+          Collections own their modes, so set up the collection and its first mode together.
         </p>
       </div>
 
-      <div>
-        <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-collection-name">
-          Collection name
-        </label>
-        <input
-          id="wizard-collection-name"
-          type="text"
-          value={name}
-          onChange={e => { setName(e.target.value); setError(''); }}
-          onKeyDown={e => e.key === 'Enter' && handleCreate()}
-          placeholder="Primitives"
-          autoFocus
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
-        />
-        {error && <p className="mt-1 text-secondary text-[var(--color-figma-error)]">{error}</p>}
-        <p className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
-          Start with a simple name. Use <code className="font-mono">/</code> only when your library already groups collections that way.
-        </p>
-      </div>
+      <CollectionAuthoringFields
+        draft={draft}
+        pending={saving}
+        error={error}
+        onNameChange={(value) => {
+          setDraft((current) => ({ ...current, name: value }));
+          setError('');
+        }}
+        onPrimaryModeChange={(value) => {
+          setDraft((current) => ({ ...current, primaryModeName: value }));
+          setError('');
+        }}
+        onSecondaryModeEnabledChange={(enabled) => {
+          setDraft((current) => ({
+            ...current,
+            secondaryModeEnabled: enabled,
+            secondaryModeName: enabled ? current.secondaryModeName : '',
+          }));
+          setError('');
+        }}
+        onSecondaryModeChange={(value) => {
+          setDraft((current) => ({ ...current, secondaryModeName: value }));
+          setError('');
+        }}
+      />
 
       <button
         onClick={handleCreate}
-        disabled={saving || !name.trim()}
+        disabled={saving || !draft.name.trim()}
         className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
       >
         {saving ? 'Creating…' : 'Create Collection'}
       </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Mode Step (inline)
-// ---------------------------------------------------------------------------
-
-function ModeStep({ serverUrl, currentCollectionId, onDone, onSkip }: {
-  serverUrl: string;
-  currentCollectionId: string;
-  onDone: () => void;
-  onSkip: () => void;
-}) {
-  const [lightName, setLightName] = useState('Light');
-  const [darkName, setDarkName] = useState('Dark');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [done, setDone] = useState(false);
-
-  const handleCreate = async () => {
-    if (!currentCollectionId.trim()) { setError('Create a collection first'); return; }
-    if (!lightName.trim() || !darkName.trim()) { setError('Both option names are required'); return; }
-    setSaving(true);
-    setError('');
-    try {
-      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(currentCollectionId)}/modes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: lightName.trim() }),
-      });
-
-      await apiFetch(`${serverUrl}/api/collections/${encodeURIComponent(currentCollectionId)}/modes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: darkName.trim() }),
-      });
-
-      setDone(true);
-      setSaving(false);
-    } catch (err) {
-      setError(getErrorMessage(err));
-      setSaving(false);
-    }
-  };
-
-  if (done) {
-    return (
-      <div className="flex flex-col items-center gap-2 py-4 text-center">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-        <p className="text-body font-medium text-[var(--color-figma-text)]">
-          Added {lightName} / {darkName} to "{currentCollectionId}"
-        </p>
-        <button
-          onClick={onDone}
-          className="px-4 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)]"
-        >
-          Done
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <p className="text-body font-medium text-[var(--color-figma-text)]">Add modes to "{currentCollectionId}"</p>
-        <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
-          Each collection owns its own modes, just like Figma collections.
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-light-option">First mode</label>
-          <input
-            id="wizard-light-option"
-            type="text"
-            value={lightName}
-            onChange={e => setLightName(e.target.value)}
-            placeholder="Light"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-secondary text-[var(--color-figma-text-secondary)] mb-1" htmlFor="wizard-dark-option">Second mode</label>
-          <input
-            id="wizard-dark-option"
-            type="text"
-            value={darkName}
-            onChange={e => setDarkName(e.target.value)}
-            placeholder="Dark"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
-          />
-        </div>
-      </div>
-      {error && <p className="text-secondary text-[var(--color-figma-error)]">{error}</p>}
-      <div className="flex gap-2">
-        <button
-          onClick={onSkip}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
-        >
-          Back
-        </button>
-        <button
-          onClick={handleCreate}
-          disabled={saving}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-        >
-          {saving ? 'Adding...' : 'Add Modes'}
-        </button>
-      </div>
     </div>
   );
 }
@@ -451,14 +355,6 @@ export function QuickStartWizard({
     }
   }, [effectiveCollectionId, onOpenGraph, serverUrl]);
 
-  const handleModesDone = useCallback(() => {
-    setWizardView('overview');
-  }, []);
-
-  const handleModesBack = useCallback(() => {
-    setWizardView('overview');
-  }, []);
-
   const handleActionSelect = useCallback((taskId: SetupActionId) => {
     switch (taskId) {
       case 'author-tokens':
@@ -466,9 +362,6 @@ export function QuickStartWizard({
         break;
       case 'foundations':
         setWizardView('template-picker');
-        break;
-      case 'modes':
-        setWizardView('modes-inline');
         break;
     }
   }, [onAuthorFirstToken]);
@@ -520,9 +413,7 @@ export function QuickStartWizard({
   const showBackButton = wizardView !== 'overview';
   const viewTitle = wizardView === 'template-picker'
     ? 'Choose a template'
-    : wizardView === 'modes-inline'
-      ? 'Add modes'
-      : null;
+    : null;
 
   const mainContent = (
     <>
@@ -575,7 +466,7 @@ export function QuickStartWizard({
                   : 'Choose what to do next.'}
               </p>
               <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
-                Start with authoring. Add modes or templates only when the collection needs them.
+                Start with authoring, or use a starter recipe to generate a foundation set.
               </p>
             </div>
             <SetupActionList
@@ -606,17 +497,6 @@ export function QuickStartWizard({
               </p>
             ) : null}
           </>
-        )}
-
-        {wizardView === 'modes-inline' && (
-          <div className="p-3 flex flex-col gap-2">
-            <ModeStep
-              serverUrl={serverUrl}
-              currentCollectionId={effectiveCollectionId}
-              onDone={handleModesDone}
-              onSkip={handleModesBack}
-            />
-          </div>
         )}
       </div>
     </>

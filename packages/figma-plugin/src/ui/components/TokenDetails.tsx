@@ -101,6 +101,7 @@ interface TokenDetailsProps {
   onEnterEditMode?: () => void;
   onDuplicate?: () => void;
   onOpenInHealth?: () => void;
+  onManageCollectionModes?: (collectionId: string) => void;
   requiresWorkingCollectionForEdit?: boolean;
   onMakeWorkingCollection?: () => void;
 }
@@ -173,6 +174,7 @@ export function TokenDetails({
   onEnterEditMode,
   onDuplicate,
   onOpenInHealth,
+  onManageCollectionModes,
   requiresWorkingCollectionForEdit = false,
   onMakeWorkingCollection,
 }: TokenDetailsProps) {
@@ -367,60 +369,6 @@ export function TokenDetails({
   const activeGraphProvenance = detachedFromGraph ? null : graphProvenance;
   const [graphName, setGraphName] = useState<string | null>(null);
   const [detachingGraphOutput, setDetachingGraphOutput] = useState(false);
-
-  const [addingEditorMode, setAddingEditorMode] = useState(false);
-  const [editorNewModeName, setEditorNewModeName] = useState("");
-  const [editorAddModeSaving, setEditorAddModeSaving] = useState(false);
-
-  const handleAddEditorMode = useCallback(async () => {
-    const name = editorNewModeName.trim();
-    if (!name) {
-      setAddingEditorMode(false);
-      setEditorNewModeName("");
-      return;
-    }
-    const ownerCollection =
-      collections.find((collection) => collection.id === ownerCollectionId) ?? null;
-    if (!ownerCollection) {
-      setError("Could not find the active collection.");
-      return;
-    }
-    if (
-      ownerCollection.modes.some(
-        (mode) => mode.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase(),
-      )
-    ) {
-      setError(`Mode "${name}" already exists.`);
-      return;
-    }
-    setEditorAddModeSaving(true);
-    setError(null);
-    try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(ownerCollectionId)}/modes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        },
-      );
-      setEditorNewModeName("");
-      setAddingEditorMode(false);
-      onRefresh?.();
-      dispatchToast(`Added mode "${name}"`, "success");
-    } catch (err) {
-      setError(getErrorMessage(err, `Failed to add mode "${name}"`));
-    } finally {
-      setEditorAddModeSaving(false);
-    }
-  }, [
-    collections,
-    editorNewModeName,
-    onRefresh,
-    ownerCollectionId,
-    serverUrl,
-    setError,
-  ]);
 
   const initialFieldsSnapshot = initialRef.current;
 
@@ -1704,40 +1652,22 @@ export function TokenDetails({
                     />
                   );
                 })}
-                {isEditMode && addingEditorMode ? (
-                  <div className="tm-token-details__mode-add-input">
-                    <input
-                      type="text"
-                      value={editorNewModeName}
-                      onChange={(e) => setEditorNewModeName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") void handleAddEditorMode();
-                        if (e.key === "Escape") {
-                          setAddingEditorMode(false);
-                          setEditorNewModeName("");
-                        }
-                      }}
-                      onBlur={() => {
-                        if (!editorNewModeName.trim()) {
-                          setAddingEditorMode(false);
-                          setEditorNewModeName("");
-                        }
-                      }}
-                      autoFocus
-                      disabled={editorAddModeSaving}
-                      placeholder="Mode name"
-                      className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none"
-                    />
+                {isEditMode ? (
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                      Modes belong to the collection and apply to every token in it.
+                    </span>
+                    {onManageCollectionModes ? (
+                      <button
+                        type="button"
+                        onClick={() => onManageCollectionModes(ownerCollectionId)}
+                        className="inline-flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:underline"
+                      >
+                        <Plus size={12} strokeWidth={1.5} aria-hidden />
+                        Manage collection modes
+                      </button>
+                    ) : null}
                   </div>
-                ) : isEditMode ? (
-                  <button
-                    type="button"
-                    onClick={() => setAddingEditorMode(true)}
-                    className="tm-token-details__mode-add"
-                  >
-                    <Plus size={12} strokeWidth={1.5} aria-hidden />
-                    Add mode
-                  </button>
                 ) : null}
               </Stack>
             </Surface>
