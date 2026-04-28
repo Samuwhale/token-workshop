@@ -21,5 +21,249 @@
     "id": "88b07275-ee49-451b-bd71-cbfadc64014f",
     "timestamp": "2026-04-28T13:25:39.736Z",
     "rolledBack": false
+  },
+  {
+    "type": "generator-create",
+    "description": "Create generator \"Custom generator\"",
+    "resourceId": "71ca5be1-5c62-41b4-809c-ac88fc3ef13b",
+    "affectedPaths": [],
+    "beforeSnapshot": {},
+    "afterSnapshot": {},
+    "metadata": {
+      "kind": "generator-create",
+      "generatorId": "71ca5be1-5c62-41b4-809c-ac88fc3ef13b",
+      "generatorName": "Custom generator",
+      "targetCollectionId": "-0--color-primitives"
+    },
+    "rollbackSteps": [
+      {
+        "action": "restore-generators",
+        "generators": [
+          {
+            "id": "b164b5ac-6e11-4605-b75c-1841d03c425b",
+            "name": "Color ramp",
+            "targetCollectionId": "-0--color-primitives",
+            "nodes": [
+              {
+                "id": "source",
+                "kind": "literal",
+                "label": "Base color",
+                "position": {
+                  "x": 90,
+                  "y": 150
+                },
+                "data": {
+                  "type": "color",
+                  "value": "#6366f1"
+                }
+              },
+              {
+                "id": "generation",
+                "kind": "colorRamp",
+                "label": "Palette",
+                "position": {
+                  "x": 360,
+                  "y": 140
+                },
+                "data": {
+                  "steps": [
+                    50,
+                    100,
+                    200,
+                    300,
+                    400,
+                    500,
+                    600,
+                    700,
+                    800,
+                    900,
+                    950
+                  ],
+                  "lightEnd": 97,
+                  "darkEnd": 8,
+                  "chromaBoost": 1,
+                  "includeSource": false
+                }
+              },
+              {
+                "id": "output",
+                "kind": "groupOutput",
+                "label": "Output tokens",
+                "position": {
+                  "x": 650,
+                  "y": 150
+                },
+                "data": {
+                  "pathPrefix": "color.brand"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "source-generation",
+                "from": {
+                  "nodeId": "source",
+                  "port": "value"
+                },
+                "to": {
+                  "nodeId": "generation",
+                  "port": "value"
+                }
+              },
+              {
+                "id": "generation-output",
+                "from": {
+                  "nodeId": "generation",
+                  "port": "value"
+                },
+                "to": {
+                  "nodeId": "output",
+                  "port": "value"
+                }
+              }
+            ],
+            "viewport": {
+              "x": 0,
+              "y": 0,
+              "zoom": 1
+            },
+            "createdAt": "2026-04-28T13:25:39.734Z",
+            "updatedAt": "2026-04-28T13:25:39.735Z"
+          }
+        ]
+      }
+    ],
+    "id": "30210ec8-c229-4ff5-8438-be3bd9a754a2",
+    "timestamp": "2026-04-28T22:03:20.875Z",
+    "rolledBack": false
+  },
+  {
+    "type": "generator-create",
+    "description": "Create generator \"Custom generator\"",
+    "resourceId": "98122c7e-6b37-47d9-a0b1-88c9939d8344",
+    "affectedPaths": [],
+    "beforeSnapshot": {},
+    "afterSnapshot": {},
+    "metadata": {
+      "kind": "generator-create",
+      "generatorId": "98122c7e-6b37-47d9-a0b1-88c9939d8344",
+      "generatorName": "Custom generator",
+      "targetCollectionId": "-0--color-primitives"
+    },
+    "rollbackSteps": [
+      {
+        "action": "restore-generators",
+        "generators": [
+          {
+            "id": "b164b5ac-6e11-4605-b75c-1841d03c425b",
+            "name": "Color ramp",
+            "targetCollectionId": "-0--color-primitives",
+            "nodes": [
+              {
+                "id": "source",
+                "kind": "literal",
+                "label": "Base color",
+                "position": {
+                  "x": 90,
+                  "y": 150
+                },
+                "data": {
+                  "type": "color",
+                  "value": "#6366f1"
+                }
+              },
+              {
+                "id": "generation",
+                "kind": "colorRamp",
+                "label": "Palette",
+                "position": {
+                  "x": 360,
+                  "y": 140
+                },
+                "data": {
+                  "steps": [
+                    50,
+                    100,
+                    200,
+                    300,
+                    400,
+                    500,
+                    600,
+                    700,
+                    800,
+                    900,
+                    950
+                  ],
+                  "lightEnd": 97,
+                  "darkEnd": 8,
+                  "chromaBoost": 1,
+                  "includeSource": false
+                }
+              },
+              {
+                "id": "output",
+                "kind": "groupOutput",
+                "label": "Output tokens",
+                "position": {
+                  "x": 650,
+                  "y": 150
+                },
+                "data": {
+                  "pathPrefix": "color.brand"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "source-generation",
+                "from": {
+                  "nodeId": "source",
+                  "port": "value"
+                },
+                "to": {
+                  "nodeId": "generation",
+                  "port": "value"
+                }
+              },
+              {
+                "id": "generation-output",
+                "from": {
+                  "nodeId": "generation",
+                  "port": "value"
+                },
+                "to": {
+                  "nodeId": "output",
+                  "port": "value"
+                }
+              }
+            ],
+            "viewport": {
+              "x": 0,
+              "y": 0,
+              "zoom": 1
+            },
+            "createdAt": "2026-04-28T13:25:39.734Z",
+            "updatedAt": "2026-04-28T13:25:39.735Z"
+          },
+          {
+            "id": "71ca5be1-5c62-41b4-809c-ac88fc3ef13b",
+            "name": "Custom generator",
+            "targetCollectionId": "-0--color-primitives",
+            "nodes": [],
+            "edges": [],
+            "viewport": {
+              "x": 0,
+              "y": 0,
+              "zoom": 1
+            },
+            "createdAt": "2026-04-28T22:03:20.872Z",
+            "updatedAt": "2026-04-28T22:03:20.873Z"
+          }
+        ]
+      }
+    ],
+    "id": "d1e1f60b-77bb-4c92-ab2e-724175c72cb4",
+    "timestamp": "2026-04-28T22:04:05.883Z",
+    "rolledBack": false
   }
 ]

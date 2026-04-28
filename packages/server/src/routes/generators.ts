@@ -2,7 +2,6 @@ import type { FastifyPluginAsync } from "fastify";
 import { BadRequestError, handleRouteError } from "../errors.js";
 import type {
   GeneratorCreateInput,
-  GeneratorDraftInput,
   GeneratorUpdateInput,
   TokenGeneratorService,
 } from "../services/token-generator-service.js";
@@ -18,12 +17,10 @@ interface GeneratorDetachBody {
 
 interface GeneratorApplyBody {
   previewHash?: string;
-  newGenerator?: boolean;
 }
 
 interface GeneratorHistoryBody {
   recordHistory?: boolean;
-  newGenerator?: boolean;
 }
 
 interface GeneratorDeleteQuery {
@@ -114,110 +111,57 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post<{ Body: GeneratorDraftInput }>("/generators/preview-draft", async (request, reply) => {
-    try {
-      const targetCollectionId = String(request.body?.targetCollectionId ?? "").trim();
-      if (!targetCollectionId) {
-        throw new BadRequestError("targetCollectionId is required");
-      }
-      await fastify.collectionService.requireCollectionsExist([targetCollectionId]);
-      const preview = await fastify.tokenLock.withLock(() =>
-        fastify.generatorService.previewDraft(
-          {
-            name: String(request.body?.name ?? "New token generator"),
-            targetCollectionId,
-            nodes: request.body?.nodes ?? [],
-            edges: request.body?.edges ?? [],
-            viewport: request.body?.viewport ?? { x: 0, y: 0, zoom: 1 },
-          },
-          fastify.collectionService,
-          fastify.tokenStore,
-        ),
-      );
-      return { preview };
-    } catch (error) {
-      return handleRouteError(reply, error);
-    }
-  });
-
-  fastify.post<{ Body: GeneratorDraftInput & GeneratorApplyBody }>("/generators/apply-draft", async (request, reply) => {
-    try {
-      const previewHash = String(request.body?.previewHash ?? "").trim();
-      if (!previewHash) {
-        throw new BadRequestError("previewHash is required. Review the generator before applying.");
-      }
-      const targetCollectionId = String(request.body?.targetCollectionId ?? "").trim();
-      if (!targetCollectionId) {
-        throw new BadRequestError("targetCollectionId is required");
-      }
-      await fastify.collectionService.requireCollectionsExist([targetCollectionId]);
-      const result = await fastify.tokenLock.withLock(() =>
-        fastify.generatorService.applyDraft(
-          {
-            name: String(request.body?.name ?? "New token generator"),
-            targetCollectionId,
-            nodes: request.body?.nodes ?? [],
-            edges: request.body?.edges ?? [],
-            viewport: request.body?.viewport ?? { x: 0, y: 0, zoom: 1 },
-          },
-          fastify.collectionService,
-          fastify.tokenStore,
-          fastify.operationLog,
-          { expectedPreviewHash: previewHash },
-        ),
-      );
-      return result;
-    } catch (error) {
-      return handleRouteError(reply, error);
-    }
-  });
-
   fastify.patch<{ Params: GeneratorParams; Body: GeneratorUpdateInput & GeneratorHistoryBody }>(
     "/generators/:id",
     async (request, reply) => {
-	      try {
-	        if (request.body.targetCollectionId) {
-	          await fastify.collectionService.requireCollectionsExist([
-	            request.body.targetCollectionId,
-	          ]);
-	        }
-	        const recordHistory = request.body?.recordHistory !== false;
-	        const beforeGenerators = recordHistory ? await fastify.generatorService.list() : [];
-	        const beforeGenerator = recordHistory
-	          ? await fastify.generatorService.getById(request.params.id)
-	          : undefined;
-	        const generator = await fastify.generatorService.update(
-	          request.params.id,
-	          request.body,
-	          fastify.tokenStore,
-	        );
-	        if (recordHistory) {
-	          const recordsNewGenerator = request.body?.newGenerator === true;
-	          const rollbackGenerators = recordsNewGenerator
-	            ? beforeGenerators.filter((candidate) => candidate.id !== request.params.id)
-	            : beforeGenerators;
-	          try {
-	            await fastify.operationLog.record({
-	              type: recordsNewGenerator ? "generator-create" : "generator-update",
-	              description: `${recordsNewGenerator ? "Create" : "Update"} generator "${generator.name}"`,
-	              resourceId: generator.id,
-	              affectedPaths: [],
-	              beforeSnapshot: {},
-	              afterSnapshot: {},
-	              metadata: {
-	                kind: recordsNewGenerator ? "generator-create" : "generator-update",
-	                generatorId: generator.id,
-	                generatorName: generator.name,
-	                targetCollectionId: generator.targetCollectionId,
-	                previousGeneratorName: recordsNewGenerator ? undefined : beforeGenerator?.name,
-	                previousTargetCollectionId: recordsNewGenerator ? undefined : beforeGenerator?.targetCollectionId,
-	              },
-	              rollbackSteps: [{ action: "restore-generators", generators: rollbackGenerators }],
-	            });
-	          } catch (error) {
-	            await restoreGeneratorsAfterHistoryFailure(fastify.generatorService, beforeGenerators, error);
-	          }
-	        }
+      try {
+        if (request.body.targetCollectionId) {
+          await fastify.collectionService.requireCollectionsExist([
+            request.body.targetCollectionId,
+          ]);
+        }
+        const recordHistory = request.body?.recordHistory !== false;
+        const beforeGenerators = recordHistory
+          ? await fastify.generatorService.list()
+          : [];
+        const beforeGenerator = recordHistory
+          ? await fastify.generatorService.getById(request.params.id)
+          : undefined;
+        const generator = await fastify.generatorService.update(
+          request.params.id,
+          request.body,
+          fastify.tokenStore,
+        );
+        if (recordHistory) {
+          try {
+            await fastify.operationLog.record({
+              type: "generator-update",
+              description: `Update generator "${generator.name}"`,
+              resourceId: generator.id,
+              affectedPaths: [],
+              beforeSnapshot: {},
+              afterSnapshot: {},
+              metadata: {
+                kind: "generator-update",
+                generatorId: generator.id,
+                generatorName: generator.name,
+                targetCollectionId: generator.targetCollectionId,
+                previousGeneratorName: beforeGenerator?.name,
+                previousTargetCollectionId:
+                  beforeGenerator?.targetCollectionId,
+              },
+              rollbackSteps: [
+                { action: "restore-generators", generators: beforeGenerators },
+              ],
+            });
+          } catch (error) {
+            await restoreGeneratorsAfterHistoryFailure(
+              fastify.generatorService,
+              beforeGenerators,
+              error,
+            );
+          }
+        }
         return { generator };
       } catch (error) {
         return handleRouteError(reply, error);
@@ -322,7 +266,6 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
             fastify.operationLog,
             {
               expectedPreviewHash: previewHash,
-              newGenerator: request.body?.newGenerator === true,
             },
           ),
         );

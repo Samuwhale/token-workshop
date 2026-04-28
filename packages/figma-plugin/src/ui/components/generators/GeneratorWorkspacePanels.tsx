@@ -1,9 +1,23 @@
-import { CircleDot, GitBranch, Plus, Search } from "lucide-react";
+import {
+  Circle,
+  Droplet,
+  Hash,
+  Layers,
+  Palette,
+  Plus,
+  Ruler,
+  Search,
+  Sigma,
+  Type,
+  Workflow,
+} from "lucide-react";
 import type {
+  GeneratorPresetKind,
   TokenGeneratorDocument,
   TokenGeneratorDocumentNode,
   TokenGeneratorNodeKind,
 } from "@tokenmanager/core";
+import { readStructuredGeneratorDraft } from "@tokenmanager/core";
 
 export interface GeneratorPaletteItem {
   kind: TokenGeneratorNodeKind;
@@ -26,14 +40,15 @@ export function GeneratorListSidebar({
   onSelect: (generatorId: string) => void;
 }) {
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col overflow-y-auto border-r border-[var(--color-figma-border)] px-3 py-3">
+    <aside className="flex w-[260px] shrink-0 flex-col overflow-y-auto border-r border-[var(--color-figma-border)] px-2 py-2 max-[760px]:w-[220px]">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-primary font-semibold">Generators</h2>
+        <h2 className="px-1 text-primary font-semibold">Generators</h2>
         <button
           type="button"
           onClick={onCreate}
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           title="Create generator"
+          aria-label="Create generator"
         >
           <Plus size={14} />
         </button>
@@ -50,16 +65,16 @@ export function GeneratorListSidebar({
                 : "hover:bg-[var(--color-figma-bg-hover)]"
             }`}
           >
-            <GitBranch
-              size={14}
-              className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
-            />
+            <GeneratorIcon generator={generator} />
             <span className="min-w-0">
               <span className="block truncate text-secondary font-medium">
                 {generator.name}
               </span>
               <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
-                {generator.targetCollectionId}
+                {readGeneratorOutputLabel(generator)}
+              </span>
+              <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                {generator.lastAppliedAt ? "Applied" : "Not applied"}
               </span>
             </span>
           </button>
@@ -72,6 +87,34 @@ export function GeneratorListSidebar({
       </div>
     </aside>
   );
+}
+
+function readGeneratorOutputLabel(generator: TokenGeneratorDocument): string {
+  const structured = readStructuredGeneratorDraft(generator);
+  if (structured?.outputPrefix) return structured.outputPrefix;
+  const output = generator.nodes.find(
+    (node) => node.kind === "groupOutput" || node.kind === "output",
+  );
+  return String(output?.data.pathPrefix ?? output?.data.path ?? "No output");
+}
+
+function GeneratorIcon({ generator }: { generator: TokenGeneratorDocument }) {
+  const kind = readStructuredGeneratorDraft(generator)?.kind;
+  return <GeneratorKindIcon kind={kind} />;
+}
+
+function GeneratorKindIcon({ kind }: { kind?: GeneratorPresetKind }) {
+  const className =
+    "mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]";
+  if (kind === "colorRamp") return <Palette size={14} className={className} />;
+  if (kind === "spacing") return <Ruler size={14} className={className} />;
+  if (kind === "type") return <Type size={14} className={className} />;
+  if (kind === "radius") return <Circle size={14} className={className} />;
+  if (kind === "opacity") return <Droplet size={14} className={className} />;
+  if (kind === "shadow") return <Layers size={14} className={className} />;
+  if (kind === "zIndex") return <Hash size={14} className={className} />;
+  if (kind === "formula") return <Sigma size={14} className={className} />;
+  return <Workflow size={14} className={className} />;
 }
 
 export function NodeLibraryPanel({
@@ -101,7 +144,7 @@ export function NodeLibraryPanel({
           onClick={onToggleAllNodes}
           className="rounded px-2 py-1 text-tertiary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          {allNodesOpen ? "Suggested" : "All nodes"}
+          {allNodesOpen ? "Suggested" : "All steps"}
         </button>
       </div>
       <div className="mb-2 flex items-center gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
@@ -113,7 +156,7 @@ export function NodeLibraryPanel({
           value={paletteQuery}
           onChange={(event) => onPaletteQueryChange(event.target.value)}
           placeholder={
-            allNodesOpen ? "Search all nodes" : "Search suggested nodes"
+            allNodesOpen ? "Search all steps" : "Search suggested steps"
           }
           className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
         />
@@ -141,7 +184,7 @@ export function NodeLibraryPanel({
                     onClick={() => onAddNode(item)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
                   >
-                    <CircleDot
+                    <Plus
                       size={12}
                       className="text-[var(--color-figma-text-secondary)]"
                     />

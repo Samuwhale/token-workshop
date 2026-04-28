@@ -76,7 +76,7 @@ export type GeneratorUpdateInput = Partial<
   >
 >;
 
-export type GeneratorDraftInput = Pick<
+type GeneratorDocumentInput = Pick<
   TokenGeneratorDocument,
   "name" | "targetCollectionId" | "nodes" | "edges" | "viewport"
 >;
@@ -91,7 +91,6 @@ export interface GeneratorApplyResult {
 
 export interface GeneratorApplyOptions {
   expectedPreviewHash?: string;
-  newGenerator?: boolean;
 }
 
 export interface GeneratorStatusItem {
@@ -180,16 +179,29 @@ export class TokenGeneratorService {
 
   async create(input: GeneratorCreateInput): Promise<TokenGeneratorDocument> {
     return this.lock.withLock(async () => {
-      const generator =
-        input.nodes && input.edges && input.viewport
-          ? buildDraftGenerator({
-              name: input.name ?? generatorPresetLabel(input.template),
-              targetCollectionId: input.targetCollectionId,
-              nodes: input.nodes,
-              edges: input.edges,
-              viewport: input.viewport,
-            })
-          : buildTemplateGenerator(input);
+      const hasDocumentPayload =
+        input.nodes !== undefined ||
+        input.edges !== undefined ||
+        input.viewport !== undefined;
+      if (
+        hasDocumentPayload &&
+        (input.nodes === undefined ||
+          input.edges === undefined ||
+          input.viewport === undefined)
+      ) {
+        throw new BadRequestError(
+          "nodes, edges, and viewport are required when creating a generator document.",
+        );
+      }
+      const generator = hasDocumentPayload
+        ? buildGeneratorFromDocumentInput({
+            name: input.name ?? generatorPresetLabel(input.template),
+            targetCollectionId: input.targetCollectionId,
+            nodes: input.nodes ?? [],
+            edges: input.edges ?? [],
+            viewport: input.viewport ?? { x: 0, y: 0, zoom: 1 },
+          })
+        : buildTemplateGenerator(input);
       this.generators.set(generator.id, generator);
       await this.persist();
       return cloneGenerator(generator);
@@ -252,15 +264,6 @@ export class TokenGeneratorService {
   ): Promise<TokenGeneratorPreviewResult> {
     const generator = this.generators.get(id);
     if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
-    return this.buildPreview(generator, collectionService, tokenStore);
-  }
-
-  async previewDraft(
-    input: GeneratorDraftInput,
-    collectionService: CollectionService,
-    tokenStore: TokenStore,
-  ): Promise<TokenGeneratorPreviewResult> {
-    const generator = buildDraftGenerator(input);
     return this.buildPreview(generator, collectionService, tokenStore);
   }
 
@@ -396,11 +399,7 @@ export class TokenGeneratorService {
       const generatorStateBefore = Array.from(this.generators.values()).map(
         cloneGenerator,
       );
-      const rollbackGeneratorState = options.newGenerator
-        ? generatorStateBefore.filter(
-            (candidate) => candidate.id !== generator.id,
-          )
-        : generatorStateBefore;
+      const rollbackGeneratorState = generatorStateBefore;
 
       const tokens = preview.outputs.map((output) => ({
         path: output.path,
@@ -505,36 +504,6 @@ export class TokenGeneratorService {
         throw error;
       }
     });
-  }
-
-  async applyDraft(
-    input: GeneratorDraftInput,
-    collectionService: CollectionService,
-    tokenStore: TokenStore,
-    operationLog: OperationLog,
-    options: GeneratorApplyOptions = {},
-  ): Promise<GeneratorApplyResult & { generator: TokenGeneratorDocument }> {
-    const generator = buildDraftGenerator(input);
-    this.generators.set(generator.id, generator);
-    await this.persist();
-    try {
-      const result = await this.apply(
-        generator.id,
-        collectionService,
-        tokenStore,
-        operationLog,
-        { ...options, newGenerator: true },
-      );
-      const appliedGenerator = this.generators.get(generator.id) ?? generator;
-      return { ...result, generator: cloneGenerator(appliedGenerator) };
-    } catch (error) {
-      const ownedPaths = this.findOwnedTokenPaths(generator.id, tokenStore);
-      if (ownedPaths.length === 0) {
-        this.generators.delete(generator.id);
-        await this.persist();
-      }
-      throw error;
-    }
   }
 
   async detachOutput(
@@ -903,8 +872,8 @@ function buildTemplateGenerator(
   return normalizeGeneratorDocument(base);
 }
 
-function buildDraftGenerator(
-  input: GeneratorDraftInput,
+function buildGeneratorFromDocumentInput(
+  input: GeneratorDocumentInput,
 ): TokenGeneratorDocument {
   const now = new Date().toISOString();
   return normalizeGeneratorDocument({

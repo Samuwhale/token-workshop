@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import {
   Background,
@@ -14,6 +15,8 @@ import {
   ReactFlow,
   type ReactFlowInstance,
   addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
   useEdgesState,
   useNodesState,
   type Connection,
@@ -26,14 +29,14 @@ import {
 import {
   AlertTriangle,
   Check,
-  Database,
   PanelLeft,
   PanelRight,
-  Play,
   Plus,
   Save,
+  Search,
   Sparkles,
   Trash2,
+  Workflow,
 } from "lucide-react";
 import type {
   TokenCollection,
@@ -126,6 +129,7 @@ type GraphFlowNode = Node<
   "graphNode"
 >;
 type GraphFlowEdge = Edge<Record<string, never>>;
+type GeneratorEditorMode = "setup" | "graph";
 
 const PALETTE: GeneratorPaletteItem[] = [
   {
@@ -312,23 +316,23 @@ export function GeneratorsPanel({
   const [lastApply, setLastApply] = useState<GeneratorApplyResponse | null>(
     null,
   );
-  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
-  const [inspectorErrors, setInspectorErrors] = useState<
-    Record<string, string>
-  >({});
+  const [editorMode, setEditorMode] = useState<GeneratorEditorMode>("setup");
   const [activeInitialFocus, setActiveInitialFocus] =
     useState<GeneratorPanelFocus | null>(null);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<
     GraphFlowNode,
     GraphFlowEdge
   > | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState<GraphFlowNode>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<GraphFlowEdge>([]);
+  const [nodes, setNodes] = useNodesState<GraphFlowNode>([]);
+  const [edges, setEdges] = useEdgesState<GraphFlowEdge>([]);
   const previewRef = useRef<TokenGeneratorPreviewResult | null>(null);
+  const autoPreviewRunRef = useRef(0);
+  const latestPreviewSignatureRef = useRef("");
 
   const activeGenerator = useMemo(
     () => generators.find((graph) => graph.id === activeGeneratorId) ?? null,
@@ -361,16 +365,42 @@ export function GeneratorsPanel({
   const graphIssues = useMemo(
     () =>
       activeGenerator
-        ? collectGraphIssues(activeGenerator, inspectorErrors, preview)
+        ? collectGraphIssues(activeGenerator, preview)
         : [],
-    [activeGenerator, inspectorErrors, preview],
+    [activeGenerator, preview],
   );
   const previewHasCollisions =
     preview?.outputs.some((output) => output.collision) ?? false;
   const previewHasNoOutputs = preview ? preview.outputs.length === 0 : false;
-  const inspectorHasErrors = Object.keys(inspectorErrors).length > 0;
-  const reviewPanelOpen =
-    Boolean(preview) && !nodeLibraryOpen && !inspectorOpen;
+  const graphHasErrors = graphIssues.some(
+    (issue) => issue.severity === "error",
+  );
+  const activeGeneratorSignature = useMemo(
+    () =>
+      activeGenerator
+        ? JSON.stringify({
+            id: activeGenerator.id,
+            name: activeGenerator.name,
+            targetCollectionId: activeGenerator.targetCollectionId,
+            nodes: activeGenerator.nodes,
+            edges: activeGenerator.edges,
+            viewport: activeGenerator.viewport,
+            tokenChangeKey,
+          })
+        : "",
+    [activeGenerator, tokenChangeKey],
+  );
+  const activeGeneratorStructureSignature = useMemo(
+    () =>
+      activeGenerator
+        ? JSON.stringify({
+            id: activeGenerator.id,
+            nodes: activeGenerator.nodes,
+            edges: activeGenerator.edges,
+          })
+        : "",
+    [activeGenerator],
+  );
 
   const loadGenerators = useCallback(async () => {
     const data = await apiFetch<GeneratorListResponse>(
@@ -420,10 +450,10 @@ export function GeneratorsPanel({
     setDirty(false);
     setExternalPreviewInvalidated(false);
     if (focus?.nodeId) {
+      setEditorMode("graph");
       setSelectedNodeId(focus.nodeId);
       setInspectorOpen(true);
     }
-    setInspectorErrors({});
     setBusy("preview");
     apiFetch<GeneratorPreviewResponse>(
       `${serverUrl}/api/generators/${encodeURIComponent(initialGenerator.id)}/preview`,
@@ -496,14 +526,35 @@ export function GeneratorsPanel({
       setEdges([]);
       return;
     }
-    setNodes(toFlowNodes(activeGenerator, preview, graphIssues));
+    setNodes(toFlowNodes(activeGenerator, previewRef.current));
     setEdges(toFlowEdges(activeGenerator.edges));
     setSelectedNodeId((current) =>
       current && activeGenerator.nodes.some((node) => node.id === current)
         ? current
         : null,
     );
-  }, [activeGenerator, graphIssues, preview, setEdges, setNodes]);
+  }, [
+    activeGenerator,
+    activeGeneratorStructureSignature,
+    setEdges,
+    setNodes,
+  ]);
+
+  useEffect(() => {
+    if (!activeGenerator) return;
+    setNodes((current) =>
+      current.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          preview: preview ?? undefined,
+          issues: graphIssues.filter(
+            (issue) => issue.nodeId === node.id,
+          ),
+        },
+      })),
+    );
+  }, [activeGenerator, graphIssues, preview, setNodes]);
 
   const patchActiveGraph = useCallback(
     (patch: Partial<TokenGeneratorDocument>) => {
@@ -539,6 +590,29 @@ export function GeneratorsPanel({
     return nextGenerator;
   }, [activeGenerator, edges, nodes, setGenerators]);
 
+  const commitFlowState = useCallback(
+    (nextNodes: GraphFlowNode[], nextEdges: GraphFlowEdge[]) => {
+      if (!activeGenerator) return;
+      const nextGenerator = graphWithFlowState(
+        activeGenerator,
+        nextNodes,
+        nextEdges,
+      );
+      setGenerators((current) =>
+        current.map((graph) =>
+          graph.id === activeGenerator.id
+            ? { ...nextGenerator, updatedAt: new Date().toISOString() }
+            : graph,
+        ),
+      );
+      setDirty(true);
+      setPreview(null);
+      setLastApply(null);
+      setExternalPreviewInvalidated(false);
+    },
+    [activeGenerator],
+  );
+
   const updateStructuredDraft = useCallback(
     (patch: Partial<GeneratorStructuredDraft>) => {
       if (!activeGenerator || !structuredDraft) return;
@@ -559,10 +633,6 @@ export function GeneratorsPanel({
   );
 
   const saveGenerator = useCallback(async () => {
-    if (inspectorHasErrors) {
-      setError("Fix inspector input before saving.");
-      return null;
-    }
     const generator = syncFlowToGenerator();
     if (!generator) return null;
     setBusy("save");
@@ -598,46 +668,71 @@ export function GeneratorsPanel({
     } finally {
       setBusy(null);
     }
-  }, [inspectorHasErrors, serverUrl, syncFlowToGenerator]);
+  }, [serverUrl, syncFlowToGenerator]);
 
-  const previewGenerator = useCallback(async () => {
-    if (inspectorHasErrors) {
-      setError("Fix inspector input before previewing.");
+  useEffect(() => {
+    if (!activeGenerator || createPanelOpen || !activeGeneratorSignature) return;
+    if (
+      preview &&
+      !dirty &&
+      !externalPreviewInvalidated &&
+      latestPreviewSignatureRef.current === activeGeneratorSignature
+    ) {
       return;
     }
-    const saved = dirty ? await saveGenerator() : activeGenerator;
-    if (!saved) return;
-    setBusy("preview");
-    setError(null);
-    setActiveInitialFocus(null);
-    try {
-      const data = await apiFetch<GeneratorPreviewResponse>(
-        `${serverUrl}/api/generators/${encodeURIComponent(saved.id)}/preview`,
-        { method: "POST" },
-      );
-      setPreview(data.preview);
-      setExternalPreviewInvalidated(false);
-    } catch (previewError) {
-      setError(
-        previewError instanceof Error
-          ? previewError.message
-          : String(previewError),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }, [activeGenerator, dirty, inspectorHasErrors, saveGenerator, serverUrl]);
+
+    const runId = autoPreviewRunRef.current + 1;
+    autoPreviewRunRef.current = runId;
+    setExternalPreviewInvalidated(true);
+
+    const timeout = window.setTimeout(async () => {
+      const saved = dirty ? await saveGenerator() : activeGenerator;
+      if (!saved || autoPreviewRunRef.current !== runId) return;
+      setBusy("preview");
+      setError(null);
+      try {
+        const data = await apiFetch<GeneratorPreviewResponse>(
+          `${serverUrl}/api/generators/${encodeURIComponent(saved.id)}/preview`,
+          { method: "POST" },
+        );
+        if (autoPreviewRunRef.current !== runId) return;
+        setPreview(data.preview);
+        latestPreviewSignatureRef.current = activeGeneratorSignature;
+        setExternalPreviewInvalidated(false);
+        setActiveInitialFocus(null);
+      } catch (previewError) {
+        if (autoPreviewRunRef.current !== runId) return;
+        setError(
+          previewError instanceof Error
+            ? previewError.message
+            : String(previewError),
+        );
+      } finally {
+        if (autoPreviewRunRef.current === runId) setBusy(null);
+      }
+    }, dirty ? 500 : 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    activeGenerator,
+    activeGeneratorSignature,
+    createPanelOpen,
+    dirty,
+    externalPreviewInvalidated,
+    preview,
+    saveGenerator,
+    serverUrl,
+  ]);
 
   const applyGenerator = useCallback(async () => {
     if (
-      inspectorHasErrors ||
       !preview ||
       dirty ||
       preview.blocking ||
       preview.outputs.length === 0 ||
       preview.outputs.some((output) => output.collision)
     ) {
-      setError("Review the latest generator changes before applying.");
+      setError("Wait for the latest output preview before applying.");
       return;
     }
     const saved = activeGenerator;
@@ -666,7 +761,6 @@ export function GeneratorsPanel({
   }, [
     activeGenerator,
     dirty,
-    inspectorHasErrors,
     loadGenerators,
     preview,
     serverUrl,
@@ -714,7 +808,7 @@ export function GeneratorsPanel({
       setLastApply(null);
       setExternalPreviewInvalidated(false);
       setDirty(false);
-      setInspectorErrors({});
+      setEditorMode("setup");
     },
     [dirty],
   );
@@ -756,27 +850,6 @@ export function GeneratorsPanel({
     [activeGenerator, edges, nodes, patchActiveGraph, setNodes],
   );
 
-  const handleInspectorValidationChange = useCallback(
-    (nodeId: string, dataKey: string, message: string | null) => {
-      const key = `${nodeId}:${dataKey}`;
-      setInspectorErrors((current) => {
-        if (!message) {
-          if (!(key in current)) return current;
-          const next = { ...current };
-          delete next[key];
-          return next;
-        }
-        return { ...current, [key]: message };
-      });
-      if (message) {
-        setPreview(null);
-        setLastApply(null);
-        setExternalPreviewInvalidated(false);
-      }
-    },
-    [],
-  );
-
   const addPaletteNode = useCallback(
     (
       item: (typeof PALETTE)[number],
@@ -795,28 +868,20 @@ export function GeneratorsPanel({
         position: resolvedPosition,
         data: { ...item.defaults },
       };
-      const currentGenerator = graphWithFlowState(
-        activeGenerator,
-        nodes,
-        edges,
-      );
-      patchActiveGraph({
-        nodes: [...currentGenerator.nodes, graphNode],
-      });
-      setNodes((current) => [
-        ...current,
-        {
+      const flowNode: GraphFlowNode = {
           id,
           type: "graphNode",
           position: resolvedPosition,
           data: { graphNode, preview: preview ?? undefined },
-        },
-      ]);
+      };
+      const nextNodes = [...nodes, flowNode];
+      setNodes(nextNodes);
+      commitFlowState(nextNodes, edges);
       setSelectedNodeId(id);
       setInspectorOpen(true);
       setNodeLibraryOpen(false);
     },
-    [activeGenerator, edges, nodes, patchActiveGraph, preview, setNodes],
+    [activeGenerator, commitFlowState, edges, nodes, preview, setNodes],
   );
 
   const onConnect = useCallback(
@@ -832,71 +897,35 @@ export function GeneratorsPanel({
           port: String(connection.targetHandle ?? "value"),
         },
       };
-      setEdges((current) =>
-        addEdge(
-          {
-            ...connection,
-            id: graphEdge.id,
-          },
-          current,
-        ),
+      const nextEdges = addEdge(
+        {
+          ...connection,
+          id: graphEdge.id,
+        },
+        edges,
       );
-      if (activeGenerator) {
-        const currentGenerator = graphWithFlowState(
-          activeGenerator,
-          nodes,
-          edges,
-        );
-        patchActiveGraph({
-          edges: [
-            ...currentGenerator.edges.filter(
-              (edge) => edge.id !== graphEdge.id,
-            ),
-            graphEdge,
-          ],
-        });
-      }
-      setDirty(true);
-      setPreview(null);
-      setExternalPreviewInvalidated(false);
+      setEdges(nextEdges);
+      commitFlowState(nodes, nextEdges);
     },
-    [activeGenerator, edges, nodes, patchActiveGraph, setEdges],
+    [commitFlowState, edges, nodes, setEdges],
   );
 
   const deleteSelectedNode = useCallback(() => {
     if (!activeGenerator || !selectedNode) return;
-    const currentGenerator = graphWithFlowState(activeGenerator, nodes, edges);
-    patchActiveGraph({
-      nodes: currentGenerator.nodes.filter(
-        (node) => node.id !== selectedNode.id,
-      ),
-      edges: currentGenerator.edges.filter(
-        (edge) =>
-          edge.from.nodeId !== selectedNode.id &&
-          edge.to.nodeId !== selectedNode.id,
-      ),
-    });
-    setNodes((current) =>
-      current.filter((node) => node.id !== selectedNode.id),
+    const nextNodes = nodes.filter((node) => node.id !== selectedNode.id);
+    const nextEdges = edges.filter(
+      (edge) =>
+        edge.source !== selectedNode.id && edge.target !== selectedNode.id,
     );
-    setEdges((current) =>
-      current.filter(
-        (edge) =>
-          edge.source !== selectedNode.id && edge.target !== selectedNode.id,
-      ),
-    );
-    setInspectorErrors((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(
-          ([key]) => !key.startsWith(`${selectedNode.id}:`),
-        ),
-      ),
-    );
+    setNodes(nextNodes);
+    setEdges(nextEdges);
+    commitFlowState(nextNodes, nextEdges);
+    setSelectedNodeId(null);
   }, [
     activeGenerator,
+    commitFlowState,
     edges,
     nodes,
-    patchActiveGraph,
     selectedNode,
     setEdges,
     setNodes,
@@ -917,15 +946,154 @@ export function GeneratorsPanel({
     );
   }, [allPaletteItems, paletteQuery]);
 
+  const statusLabel = graphHasErrors
+    ? "Fix settings"
+    : dirty
+      ? "Unsaved changes"
+      : externalPreviewInvalidated
+        ? "Updating preview"
+        : preview?.blocking || previewHasCollisions || previewHasNoOutputs
+          ? "Preview has issues"
+          : preview
+            ? "Ready to apply"
+            : activeGenerator
+              ? "Preparing preview"
+              : "No generator";
+
+  const renderGraphWorkspace = () => {
+    if (!activeGenerator) return null;
+    return (
+      <div className="flex h-full min-h-0 overflow-x-auto max-[760px]:flex-col max-[760px]:overflow-x-hidden max-[760px]:overflow-y-auto">
+        <section className="relative min-w-[420px] flex-1 max-[760px]:min-h-[360px] max-[760px]:w-full max-[760px]:min-w-0">
+          {graphIssues.length > 0 ? (
+            <div className="absolute left-3 top-3 z-10 flex max-w-[520px] flex-wrap gap-1.5">
+              {graphIssues.slice(0, 4).map((issue) => (
+                <button
+                  key={issue.id}
+                  type="button"
+                  onClick={() => {
+                    if (issue.nodeId) {
+                      setSelectedNodeId(issue.nodeId);
+                      setInspectorOpen(true);
+                    }
+                  }}
+                  className={`rounded-md px-2 py-1 text-tertiary font-medium shadow-sm ${
+                    issue.severity === "error"
+                      ? "bg-[color-mix(in_srgb,var(--color-figma-error)_12%,var(--color-figma-bg))] text-[var(--color-figma-error)]"
+                      : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
+                  }`}
+                >
+                  {issue.message}
+                </button>
+              ))}
+              {graphIssues.length > 4 ? (
+                <span className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-tertiary text-[var(--color-figma-text-secondary)] shadow-sm">
+                  +{graphIssues.length - 4} more
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={NODE_TYPES}
+            onNodesChange={(changes) => {
+              if (hasStructuralNodeChange(changes)) {
+                const nextNodes = applyNodeChanges(changes, nodes);
+                setNodes(nextNodes);
+                commitFlowState(nextNodes, edges);
+                return;
+              }
+              setNodes((current) => applyNodeChanges(changes, current));
+            }}
+            onEdgesChange={(changes) => {
+              if (hasStructuralEdgeChange(changes)) {
+                const nextEdges = applyEdgeChanges(changes, edges);
+                setEdges(nextEdges);
+                commitFlowState(nodes, nextEdges);
+                return;
+              }
+              setEdges((current) => applyEdgeChanges(changes, current));
+            }}
+            onConnect={onConnect}
+            onInit={setFlowInstance}
+            onPaneClick={() => setSelectedNodeId(null)}
+            onNodeClick={(_event, node) => {
+              setSelectedNodeId(node.id);
+              setInspectorOpen(true);
+              setNodeLibraryOpen(false);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "copy";
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              const label = event.dataTransfer.getData(
+                "application/tokenmanager-node",
+              );
+              const item = PALETTE.find(
+                (candidate) => candidate.label === label,
+              );
+              if (!item) return;
+              const position = flowInstance?.screenToFlowPosition({
+                x: event.clientX,
+                y: event.clientY,
+              }) ?? { x: event.clientX, y: event.clientY };
+              addPaletteNode(item, position);
+            }}
+            fitView
+            className="tm-graph"
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background gap={16} size={1} color="var(--color-figma-border)" />
+            <Controls
+              className="tm-graph-controls"
+              showInteractive={false}
+            />
+          </ReactFlow>
+        </section>
+        {nodeLibraryOpen ? (
+          <NodeLibraryPanel
+            allNodesOpen={allNodesOpen}
+            paletteQuery={paletteQuery}
+            paletteItems={filteredPalette}
+            onToggleAllNodes={() => setAllNodesOpen((open) => !open)}
+            onPaletteQueryChange={setPaletteQuery}
+            onAddNode={addPaletteNode}
+          />
+        ) : null}
+        {inspectorOpen && selectedNode ? (
+          <aside className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)] max-[760px]:max-h-[300px] max-[760px]:w-full max-[760px]:border-l-0 max-[760px]:border-t">
+            <section className="p-3">
+              <h2 className="mb-2 text-primary font-semibold">
+                Graph step
+              </h2>
+              <NodeInspector
+                node={selectedNode}
+                collections={collections}
+                perCollectionFlat={perCollectionFlat}
+                defaultCollectionId={activeGenerator.targetCollectionId}
+                onChange={(data) => updateNodeData(selectedNode.id, data)}
+                onDelete={deleteSelectedNode}
+              />
+            </section>
+          </aside>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-full min-h-0 bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]">
-      {leftPanelOpen && (
+      {leftPanelOpen ? (
         <GeneratorListSidebar
           generators={scopedGenerators}
           activeGeneratorId={activeGeneratorId}
           createPanelOpen={createPanelOpen}
           onCreate={() => {
             setCreatePanelOpen(true);
+            setEditorMode("setup");
             setError(null);
           }}
           onSelect={(generatorId) => {
@@ -933,7 +1101,7 @@ export function GeneratorsPanel({
             selectGenerator(generatorId);
           }}
         />
-      )}
+      ) : null}
 
       <main className="flex min-w-0 flex-1 flex-col">
         {createPanelOpen ? (
@@ -943,21 +1111,19 @@ export function GeneratorsPanel({
             workingCollectionId={workingCollectionId}
             perCollectionFlat={perCollectionFlat}
             onClose={() => setCreatePanelOpen(false)}
-            onApplied={({ generatorId, collectionId }) => {
-              void loadGenerators();
-              if (collectionId === workingCollectionId && generatorId) {
-                setActiveGeneratorId(generatorId);
-              }
-              setCreatePanelOpen(false);
-            }}
-            onOpenGenerator={(generatorId, collectionId) => {
-              void loadGenerators();
+            onOpenGenerator={(generatorId, collectionId, initialView) => {
               if (collectionId === workingCollectionId) {
                 setActiveGeneratorId(generatorId);
+                setEditorMode(initialView ?? "setup");
+                void loadGenerators().then(() => {
+                  setActiveGeneratorId(generatorId);
+                  setEditorMode(initialView ?? "setup");
+                });
               } else {
                 setError(
                   `Created in ${collectionId}. Switch collections to edit it.`,
                 );
+                void loadGenerators();
               }
               setCreatePanelOpen(false);
             }}
@@ -965,26 +1131,24 @@ export function GeneratorsPanel({
         ) : (
           <>
             <div className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] px-3">
+              <button
+                type="button"
+                title={leftPanelOpen ? "Hide generator list" : "Show generator list"}
+                aria-label={leftPanelOpen ? "Hide generator list" : "Show generator list"}
+                onClick={() => setLeftPanelOpen((open) => !open)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                <PanelLeft size={14} />
+              </button>
+
               {activeGenerator ? (
                 <>
-                  <button
-                    type="button"
-                    title={
-                      leftPanelOpen
-                        ? "Hide generator list"
-                        : "Show generator list"
-                    }
-                    onClick={() => setLeftPanelOpen((open) => !open)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <PanelLeft size={14} />
-                  </button>
                   <input
                     value={activeGenerator.name}
                     onChange={(event) =>
                       patchActiveGraph({ name: event.target.value })
                     }
-                    className="min-w-[160px] max-w-[300px] rounded-md bg-transparent px-2 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)] max-[760px]:min-w-0 max-[760px]:max-w-[140px]"
+                    className="min-w-[150px] max-w-[300px] rounded-md bg-transparent px-2 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)] max-[760px]:min-w-0 max-[760px]:max-w-[140px]"
                   />
                   <span
                     className="max-w-[220px] truncate rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] max-[760px]:hidden"
@@ -993,53 +1157,78 @@ export function GeneratorsPanel({
                     {targetCollection?.publishRouting?.collectionName?.trim() ||
                       activeGenerator.targetCollectionId}
                   </span>
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                    {inspectorHasErrors
-                      ? "Fix inspector input"
-                      : dirty
-                        ? "Unsaved changes"
-                        : externalPreviewInvalidated
-                          ? "Recheck preview"
-                          : preview?.blocking ||
-                              previewHasCollisions ||
-                              previewHasNoOutputs
-                            ? "Preview has issues"
-                            : preview
-                              ? "Ready to apply"
-                              : "Saved"}
-                  </span>
-                  <div className="ml-auto flex items-center gap-1.5">
+                  <div className="flex rounded-md bg-[var(--color-figma-bg-secondary)] p-0.5">
                     <button
                       type="button"
-                      title={nodeLibraryOpen ? "Hide node library" : "Add step"}
                       onClick={() => {
-                        setNodeLibraryOpen((open) => !open);
+                        setEditorMode("setup");
+                        setNodeLibraryOpen(false);
                         setInspectorOpen(false);
                       }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
+                      aria-pressed={editorMode === "setup"}
+                      className={`min-h-7 rounded px-2 text-secondary font-medium ${
+                        editorMode === "setup"
+                          ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+                          : "text-[var(--color-figma-text-secondary)]"
+                      }`}
                     >
-                      <Plus size={14} />
+                      Outputs
                     </button>
-                    {selectedNode ? (
-                      <button
-                        type="button"
-                        title={
-                          inspectorOpen ? "Hide inspector" : "Show inspector"
-                        }
-                        onClick={() => {
-                          setInspectorOpen((open) => !open);
-                          setNodeLibraryOpen(false);
-                        }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
-                      >
-                        <PanelRight size={14} />
-                      </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorMode("graph")}
+                      aria-pressed={editorMode === "graph"}
+                      className={`min-h-7 rounded px-2 text-secondary font-medium ${
+                        editorMode === "graph"
+                          ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+                          : "text-[var(--color-figma-text-secondary)]"
+                      }`}
+                    >
+                      Graph
+                    </button>
+                  </div>
+                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                    {busy
+                      ? `${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`
+                      : statusLabel}
+                  </span>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    {editorMode === "graph" ? (
+                      <>
+                        <button
+                          type="button"
+                          title={nodeLibraryOpen ? "Hide step library" : "Add step"}
+                          aria-label={nodeLibraryOpen ? "Hide step library" : "Add step"}
+                          onClick={() => {
+                            setNodeLibraryOpen((open) => !open);
+                            setInspectorOpen(false);
+                          }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        {selectedNode ? (
+                          <button
+                            type="button"
+                            title={inspectorOpen ? "Hide settings" : "Show settings"}
+                            aria-label={inspectorOpen ? "Hide settings" : "Show settings"}
+                            onClick={() => {
+                              setInspectorOpen((open) => !open);
+                              setNodeLibraryOpen(false);
+                            }}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
+                          >
+                            <PanelRight size={14} />
+                          </button>
+                        ) : null}
+                      </>
                     ) : null}
                     <button
                       type="button"
                       title="Save generator"
+                      aria-label="Save generator"
                       onClick={saveGenerator}
-                      disabled={!dirty || busy !== null || inspectorHasErrors}
+                      disabled={!dirty || busy !== null}
                       className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-secondary font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
                       <Save size={14} />
@@ -1047,24 +1236,12 @@ export function GeneratorsPanel({
                     </button>
                     <button
                       type="button"
-                      title={dirty ? "Save and review" : "Review"}
-                      onClick={previewGenerator}
-                      disabled={busy !== null || inspectorHasErrors}
-                      className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-secondary font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                    >
-                      <Play size={14} />
-                      <span className="max-[760px]:sr-only">
-                        {dirty ? "Save and review" : "Review"}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
                       title="Apply generator"
+                      aria-label="Apply generator"
                       onClick={applyGenerator}
                       disabled={
                         busy !== null ||
                         dirty ||
-                        inspectorHasErrors ||
                         !preview ||
                         Boolean(preview.blocking) ||
                         previewHasCollisions ||
@@ -1078,6 +1255,7 @@ export function GeneratorsPanel({
                     <button
                       type="button"
                       title="Delete generator"
+                      aria-label="Delete generator"
                       onClick={deleteGenerator}
                       disabled={busy !== null}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
@@ -1088,21 +1266,8 @@ export function GeneratorsPanel({
                 </>
               ) : (
                 <>
-                  <button
-                    type="button"
-                    title={
-                      leftPanelOpen
-                        ? "Hide generator list"
-                        : "Show generator list"
-                    }
-                    onClick={() => setLeftPanelOpen((open) => !open)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <PanelLeft size={14} />
-                  </button>
                   <span className="text-secondary text-[var(--color-figma-text-secondary)]">
-                    Create a generator to manage generated tokens for a
-                    collection.
+                    Create a generator for this collection.
                   </span>
                   <button
                     type="button"
@@ -1116,147 +1281,43 @@ export function GeneratorsPanel({
               )}
             </div>
 
-            {error && (
+            {error ? (
               <div className="flex items-center gap-2 bg-[var(--color-figma-error)]/10 px-3 py-2 text-secondary text-[var(--color-figma-error)]">
                 <AlertTriangle size={14} />
                 {error}
               </div>
-            )}
-            {lastApply && (
+            ) : null}
+            {lastApply ? (
               <div className="flex items-center gap-2 bg-[var(--color-figma-success)]/10 px-3 py-2 text-secondary text-[var(--color-figma-success)]">
                 <Check size={14} />
                 Applied {lastApply.created.length} created,{" "}
                 {lastApply.updated.length} updated, {lastApply.deleted.length}{" "}
                 deleted.
               </div>
-            )}
+            ) : null}
 
             <div className="min-h-0 flex-1">
               {activeGenerator ? (
-                <div className="flex h-full min-h-0 overflow-x-auto max-[760px]:flex-col max-[760px]:overflow-x-hidden max-[760px]:overflow-y-auto">
-                  <aside className="w-[320px] shrink-0 overflow-y-auto border-r border-[var(--color-figma-border)] p-3 max-[760px]:max-h-[45%] max-[760px]:w-full max-[760px]:border-b max-[760px]:border-r-0">
-                    <GeneratorSetupSummary
-                      generator={activeGenerator}
-                      targetCollection={targetCollection}
-                      collections={collections}
-                      preview={preview}
-                      dirty={dirty}
-                      externalPreviewInvalidated={externalPreviewInvalidated}
-                      structuredDraft={structuredDraft}
-                      sourceTokenOptions={
-                        structuredDraft
-                          ? Object.keys(
-                              perCollectionFlat[
-                                structuredDraft.sourceCollectionId ||
-                                  activeGenerator.targetCollectionId
-                              ] ?? {},
-                            ).sort()
-                          : []
-                      }
-                      onChangeStructuredDraft={updateStructuredDraft}
-                    />
-                  </aside>
-                  <section className="relative min-w-[360px] flex-1 max-[760px]:min-h-[320px] max-[760px]:w-full max-[760px]:min-w-0">
-                    {graphIssues.length > 0 ? (
-                      <div className="absolute left-3 top-3 z-10 flex max-w-[520px] flex-wrap gap-1.5">
-                        {graphIssues.slice(0, 4).map((issue) => (
-                          <button
-                            key={issue.id}
-                            type="button"
-                            onClick={() => {
-                              if (issue.nodeId) {
-                                setSelectedNodeId(issue.nodeId);
-                                setInspectorOpen(true);
-                              }
-                            }}
-                            className={`rounded-md px-2 py-1 text-tertiary font-medium shadow-sm ${
-                              issue.severity === "error"
-                                ? "bg-[color-mix(in_srgb,var(--color-figma-error)_12%,var(--color-figma-bg))] text-[var(--color-figma-error)]"
-                                : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]"
-                            }`}
-                          >
-                            {issue.message}
-                          </button>
-                        ))}
-                        {graphIssues.length > 4 ? (
-                          <span className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-tertiary text-[var(--color-figma-text-secondary)] shadow-sm">
-                            +{graphIssues.length - 4} more
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    <ReactFlow
-                      nodes={nodes}
-                      edges={edges}
-                      nodeTypes={NODE_TYPES}
-                      onNodesChange={(changes) => {
-                        onNodesChange(changes);
-                        if (hasStructuralNodeChange(changes)) {
-                          setDirty(true);
-                          setPreview(null);
-                          setLastApply(null);
-                          setExternalPreviewInvalidated(false);
-                        }
-                      }}
-                      onEdgesChange={(changes) => {
-                        onEdgesChange(changes);
-                        if (hasStructuralEdgeChange(changes)) {
-                          setDirty(true);
-                          setPreview(null);
-                          setLastApply(null);
-                          setExternalPreviewInvalidated(false);
-                        }
-                      }}
-                      onConnect={onConnect}
-                      onInit={setFlowInstance}
-                      onPaneClick={() => setSelectedNodeId(null)}
-                      onNodeClick={(_event, node) => {
-                        setSelectedNodeId(node.id);
-                        setInspectorOpen(true);
-                        setNodeLibraryOpen(false);
-                      }}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        event.dataTransfer.dropEffect = "copy";
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        const label = event.dataTransfer.getData(
-                          "application/tokenmanager-node",
-                        );
-                        const item = PALETTE.find(
-                          (candidate) => candidate.label === label,
-                        );
-                        if (!item) return;
-                        const position = flowInstance?.screenToFlowPosition({
-                          x: event.clientX,
-                          y: event.clientY,
-                        }) ?? { x: event.clientX, y: event.clientY };
-                        addPaletteNode(item, position);
-                      }}
-                      fitView
-                      proOptions={{ hideAttribution: true }}
-                    >
-                      <Background
-                        gap={16}
-                        size={1}
-                        color="var(--color-figma-border)"
+                editorMode === "graph" ? (
+                  renderGraphWorkspace()
+                ) : (
+                  <div className="flex h-full min-h-0 overflow-hidden max-[900px]:flex-col max-[900px]:overflow-y-auto">
+                    <aside className="w-[360px] shrink-0 overflow-y-auto border-r border-[var(--color-figma-border)] p-3 max-[900px]:max-h-none max-[900px]:w-full max-[900px]:border-b max-[900px]:border-r-0">
+                      <GeneratorSetupSummary
+                        generator={activeGenerator}
+                        targetCollection={targetCollection}
+                        collections={collections}
+                        perCollectionFlat={perCollectionFlat}
+                        preview={preview}
+                        dirty={dirty}
+                        externalPreviewInvalidated={externalPreviewInvalidated}
+                        structuredDraft={structuredDraft}
+                        graphIssues={graphIssues}
+                        onChangeStructuredDraft={updateStructuredDraft}
+                        onEditGraph={() => setEditorMode("graph")}
                       />
-                      <Controls showInteractive={false} />
-                    </ReactFlow>
-                  </section>
-                  {reviewPanelOpen ? (
-                    <aside className="w-[300px] shrink-0 overflow-y-auto border-l border-[var(--color-figma-border)] p-3 max-[760px]:max-h-[260px] max-[760px]:w-full max-[760px]:border-l-0 max-[760px]:border-t">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
-                          Output preview
-                        </h3>
-                        {targetCollection ? (
-                          <span className="text-tertiary text-[var(--color-figma-text-secondary)]">
-                            {targetCollection.modes.length} modes
-                          </span>
-                        ) : null}
-                      </div>
+                    </aside>
+                    <section className="min-w-0 flex-1 overflow-auto p-3">
                       <PreviewPanel
                         preview={preview}
                         targetCollection={targetCollection}
@@ -1268,57 +1329,28 @@ export function GeneratorsPanel({
                           )
                         }
                       />
-                    </aside>
-                  ) : null}
-                  {nodeLibraryOpen ? (
-                    <NodeLibraryPanel
-                      allNodesOpen={allNodesOpen}
-                      paletteQuery={paletteQuery}
-                      paletteItems={filteredPalette}
-                      onToggleAllNodes={() => setAllNodesOpen((open) => !open)}
-                      onPaletteQueryChange={setPaletteQuery}
-                      onAddNode={addPaletteNode}
-                    />
-                  ) : null}
-                  {inspectorOpen && selectedNode ? (
-                    <aside className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)] max-[760px]:max-h-[260px] max-[760px]:w-full max-[760px]:border-l-0 max-[760px]:border-t">
-                      <section className="p-3">
-                        <h2 className="mb-2 text-primary font-semibold">
-                          Graph node
-                        </h2>
-                        <NodeInspector
-                          node={selectedNode}
-                          collections={collections}
-                          perCollectionFlat={perCollectionFlat}
-                          defaultCollectionId={
-                            activeGenerator.targetCollectionId
-                          }
-                          onChange={(data) =>
-                            updateNodeData(selectedNode.id, data)
-                          }
-                          onValidationChange={(dataKey, message) =>
-                            handleInspectorValidationChange(
-                              selectedNode.id,
-                              dataKey,
-                              message,
-                            )
-                          }
-                          onDelete={deleteSelectedNode}
-                        />
-                      </section>
-                    </aside>
-                  ) : null}
-                </div>
+                    </section>
+                  </div>
+                )
               ) : (
-                <div className="flex h-full items-center justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setCreatePanelOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-secondary font-semibold text-white"
-                  >
-                    <Plus size={14} />
-                    Create generator
-                  </button>
+                <div className="flex h-full items-center justify-center p-6">
+                  <div className="max-w-[320px] text-center">
+                    <h2 className="text-primary font-semibold">
+                      No generators in this collection
+                    </h2>
+                    <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+                      Create a saved generator, inspect its mode values, then
+                      apply the outputs to the collection.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCreatePanelOpen(true)}
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-secondary font-semibold text-white"
+                    >
+                      <Plus size={14} />
+                      Create generator
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1333,22 +1365,26 @@ function GeneratorSetupSummary({
   generator,
   targetCollection,
   collections,
+  perCollectionFlat,
   preview,
   dirty,
   externalPreviewInvalidated,
   structuredDraft,
-  sourceTokenOptions,
+  graphIssues,
   onChangeStructuredDraft,
+  onEditGraph,
 }: {
   generator: TokenGeneratorDocument;
   targetCollection: TokenCollection | undefined;
   collections: TokenCollection[];
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   preview: TokenGeneratorPreviewResult | null;
   dirty: boolean;
   externalPreviewInvalidated: boolean;
   structuredDraft: GeneratorStructuredDraft | null;
-  sourceTokenOptions: string[];
+  graphIssues: GraphIssue[];
   onChangeStructuredDraft: (patch: Partial<GeneratorStructuredDraft>) => void;
+  onEditGraph: () => void;
 }) {
   const outputNodes = generator.nodes.filter(
     (node) => node.kind === "groupOutput" || node.kind === "output",
@@ -1360,18 +1396,28 @@ function GeneratorSetupSummary({
   const status = dirty
     ? "Unsaved changes"
     : externalPreviewInvalidated
-      ? "Review is out of date"
+      ? "Updating preview"
       : preview
-        ? "Reviewed"
-        : "Not reviewed";
+        ? "Preview ready"
+        : "Preparing preview";
 
   return (
     <div className="min-h-0">
       <div className="space-y-3">
         <section className="space-y-2">
-          <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
-            Generator setup
-          </h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
+              Generator setup
+            </h3>
+            <button
+              type="button"
+              onClick={onEditGraph}
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              <Workflow size={13} />
+              Edit graph
+            </button>
+          </div>
           <p className="text-secondary text-[var(--color-figma-text-secondary)]">
             This generator manages generated tokens in{" "}
             {targetCollection?.id ?? generator.targetCollectionId}.
@@ -1397,16 +1443,36 @@ function GeneratorSetupSummary({
               targetCollectionId={generator.targetCollectionId}
               targetCollection={targetCollection}
               collections={collections}
-              sourceTokenOptions={sourceTokenOptions}
+              perCollectionFlat={perCollectionFlat}
               onChange={onChangeStructuredDraft}
             />
           ) : (
             <div className="rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
-              This generator uses a custom graph. Edit steps directly on the
-              canvas, then review the output before applying.
+              This generator uses a custom graph. Inspect the outputs here, or
+              open the graph to change the steps.
             </div>
           )}
         </section>
+
+        {graphIssues.length > 0 ? (
+          <section className="space-y-1">
+            <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
+              Needs attention
+            </h3>
+            {graphIssues.slice(0, 4).map((issue) => (
+              <div
+                key={issue.id}
+                className={`rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary ${
+                  issue.severity === "error"
+                    ? "text-[var(--color-figma-error)]"
+                    : "text-[var(--color-figma-text-secondary)]"
+                }`}
+              >
+                {issue.message}
+              </div>
+            ))}
+          </section>
+        ) : null}
 
         <section className="space-y-2">
           <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
@@ -1441,14 +1507,14 @@ function StructuredGeneratorSetup({
   targetCollectionId,
   targetCollection,
   collections,
-  sourceTokenOptions,
+  perCollectionFlat,
   onChange,
 }: {
   draft: GeneratorStructuredDraft;
   targetCollectionId: string;
   targetCollection: TokenCollection | undefined;
   collections: TokenCollection[];
-  sourceTokenOptions: string[];
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onChange: (patch: Partial<GeneratorStructuredDraft>) => void;
 }) {
   const setConfig = (patch: Record<string, unknown>) =>
@@ -1459,15 +1525,23 @@ function StructuredGeneratorSetup({
   );
   const crossCollectionSource =
     draft.sourceMode === "token" && sourceCollectionId !== targetCollectionId;
+  const sourceTokenEntries = useMemo(
+    () =>
+      Object.entries(perCollectionFlat[sourceCollectionId] ?? {})
+        .filter(([, token]) => generatorAcceptsTokenType(draft.kind, token.$type))
+        .sort(([a], [b]) => a.localeCompare(b)),
+    [draft.kind, perCollectionFlat, sourceCollectionId],
+  );
+  const targetModeNames = targetCollection?.modes.map((mode) => mode.name) ?? [];
+  const sourceModeNames = sourceCollection?.modes.map((mode) => mode.name) ?? [];
+  const missingSourceModes = targetModeNames.filter(
+    (modeName) => !sourceModeNames.includes(modeName),
+  );
   const modeCompatibility =
     !crossCollectionSource ||
     !targetCollection ||
     !sourceCollection ||
-    targetCollection.modes.every((mode) =>
-      sourceCollection.modes.some(
-        (sourceModeItem) => sourceModeItem.name === mode.name,
-      ),
-    );
+    missingSourceModes.length === 0;
   const [crossCollectionOpen, setCrossCollectionOpen] = useState(
     crossCollectionSource,
   );
@@ -1533,13 +1607,14 @@ function StructuredGeneratorSetup({
                       : {}),
                   })
                 }
+                aria-pressed={draft.sourceMode === mode}
                 className={`min-h-7 flex-1 rounded px-2 text-secondary font-medium ${
                   draft.sourceMode === mode
                     ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
                     : "text-[var(--color-figma-text-secondary)]"
                 }`}
               >
-                {mode === "literal" ? "Literal" : "Token"}
+                {mode === "literal" ? "Value" : "Token"}
               </button>
             ))}
           </div>
@@ -1558,24 +1633,13 @@ function StructuredGeneratorSetup({
             </label>
           ) : (
             <div className="space-y-2">
-              <label className="block">
-                <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                  Source token
-                </span>
-                <input
-                  list="generator-setup-token-options"
-                  value={draft.sourceTokenPath}
-                  onChange={(event) =>
-                    onChange({ sourceTokenPath: event.target.value })
-                  }
-                  className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
-                />
-                <datalist id="generator-setup-token-options">
-                  {sourceTokenOptions.map((path) => (
-                    <option key={path} value={path} />
-                  ))}
-                </datalist>
-              </label>
+              <TokenSourcePicker
+                value={draft.sourceTokenPath}
+                entries={sourceTokenEntries}
+                sourceCollectionId={sourceCollectionId}
+                sourceModes={sourceModeNames}
+                onChange={(sourceTokenPath) => onChange({ sourceTokenPath })}
+              />
               <details
                 open={crossCollectionOpen}
                 onToggle={(event) => {
@@ -1619,8 +1683,8 @@ function StructuredGeneratorSetup({
                     className={`mt-2 text-tertiary ${modeCompatibility ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
                   >
                     {modeCompatibility
-                      ? "Mode names match the target collection."
-                      : "Mode names must match the target collection before reviewing."}
+                      ? "Source modes match the target collection."
+                      : `Missing source ${missingSourceModes.length === 1 ? "mode" : "modes"}: ${missingSourceModes.join(", ")}. Add matching modes to the source collection or choose a source from this collection.`}
                   </div>
                 ) : null}
               </details>
@@ -1631,22 +1695,11 @@ function StructuredGeneratorSetup({
 
       {draft.kind === "colorRamp" ? (
         <>
-          <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-              Steps
-            </span>
-            <input
-              value={
-                Array.isArray(draft.config.steps)
-                  ? draft.config.steps.join(", ")
-                  : ""
-              }
-              onChange={(event) =>
-                setConfig({ steps: parseNumberList(event.target.value) })
-              }
-              className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
-            />
-          </label>
+          <NumberStepList
+            label="Steps"
+            values={asNumberArray(draft.config.steps)}
+            onChange={(steps) => setConfig({ steps })}
+          />
           <div className="grid grid-cols-2 gap-2">
             <NumberField
               label="Light end"
@@ -1663,33 +1716,58 @@ function StructuredGeneratorSetup({
       ) : null}
 
       {draft.kind === "spacing" || draft.kind === "radius" ? (
-        <TextField
-          label="Unit"
-          value={draft.config.unit}
-          onChange={(value) => setConfig({ unit: value })}
-        />
-      ) : null}
-      {draft.kind === "type" ? (
-        <div className="grid grid-cols-2 gap-2">
-          <NumberField
-            label="Ratio"
-            value={draft.config.ratio}
-            onChange={(value) => setConfig({ ratio: value })}
-            step="0.01"
-          />
+        <>
           <TextField
             label="Unit"
             value={draft.config.unit}
             onChange={(value) => setConfig({ unit: value })}
           />
-        </div>
+          <NamedNumberStepList
+            label="Steps"
+            values={asNamedNumberSteps(
+              draft.config.steps,
+              draft.kind === "radius" ? "multiplier" : "multiplier",
+            )}
+            valueKey="multiplier"
+            onChange={(steps) => setConfig({ steps })}
+          />
+        </>
+      ) : null}
+      {draft.kind === "type" ? (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <NumberField
+              label="Ratio"
+              value={draft.config.ratio}
+              onChange={(value) => setConfig({ ratio: value })}
+              step="0.01"
+            />
+            <TextField
+              label="Unit"
+              value={draft.config.unit}
+              onChange={(value) => setConfig({ unit: value })}
+            />
+          </div>
+          <NamedNumberStepList
+            label="Steps"
+            values={asNamedNumberSteps(draft.config.steps, "exponent")}
+            valueKey="exponent"
+            onChange={(steps) => setConfig({ steps })}
+          />
+        </>
       ) : null}
       {draft.kind === "shadow" ? (
-        <TextField
-          label="Shadow color"
-          value={draft.config.color}
-          onChange={(value) => setConfig({ color: value })}
-        />
+        <>
+          <TextField
+            label="Shadow color"
+            value={draft.config.color}
+            onChange={(value) => setConfig({ color: value })}
+          />
+          <ShadowStepList
+            values={asRecordArray(draft.config.steps)}
+            onChange={(steps) => setConfig({ steps })}
+          />
+        </>
       ) : null}
       {draft.kind === "formula" ? (
         <>
@@ -1720,10 +1798,464 @@ function StructuredGeneratorSetup({
               onChange={(value) => setConfig({ roundTo: value })}
             />
           </div>
+          <NamedNumberStepList
+            label="Steps"
+            values={asNamedNumberSteps(draft.config.steps, "index")}
+            valueKey="index"
+            optionalValueKey="multiplier"
+            onChange={(steps) => setConfig({ steps })}
+          />
         </>
+      ) : null}
+      {draft.kind === "opacity" || draft.kind === "zIndex" ? (
+        <NamedNumberStepList
+          label="Steps"
+          values={asNamedNumberSteps(draft.config.steps, "value")}
+          valueKey="value"
+          onChange={(steps) => setConfig({ steps })}
+        />
       ) : null}
     </div>
   );
+}
+
+function TokenSourcePicker({
+  value,
+  entries,
+  sourceCollectionId,
+  sourceModes,
+  onChange,
+}: {
+  value: string;
+  entries: Array<[string, TokenMapEntry]>;
+  sourceCollectionId: string;
+  sourceModes: string[];
+  onChange: (value: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const filteredEntries = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return entries.filter(
+      ([path, token]) =>
+        !normalized ||
+        path.toLowerCase().includes(normalized) ||
+        token.$type.toLowerCase().includes(normalized),
+    );
+  }, [entries, query]);
+  const selected = value ? entries.find(([path]) => path === value) : undefined;
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+          Source token
+        </span>
+        <div className="flex items-center gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+          <Search
+            size={14}
+            className="shrink-0 text-[var(--color-figma-text-secondary)]"
+          />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={value || "Search compatible tokens"}
+            className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
+          />
+        </div>
+      </div>
+      {selected ? (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="flex w-full items-center gap-2 rounded-md bg-[var(--color-figma-bg-selected)] px-2 py-1.5 text-left text-secondary"
+          title="Clear source token"
+          aria-label="Clear source token"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{selected[0]}</span>
+            <TokenModeValueCell
+              token={selected[1]}
+              collectionId={sourceCollectionId}
+              modes={sourceModes}
+            />
+          </span>
+        </button>
+      ) : null}
+      <div className="max-h-[180px] overflow-y-auto rounded-md bg-[var(--color-figma-bg-secondary)] p-1">
+        {filteredEntries.slice(0, 40).map(([path, token]) => (
+          <button
+            key={path}
+            type="button"
+            onClick={() => {
+              onChange(path);
+              setQuery("");
+            }}
+            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium">{path}</span>
+              <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                {token.$type}
+              </span>
+              <TokenModeValueCell
+                token={token}
+                collectionId={sourceCollectionId}
+                modes={sourceModes}
+              />
+            </span>
+          </button>
+        ))}
+        {filteredEntries.length === 0 ? (
+          <div className="px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+            No compatible tokens in this collection.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function TokenModeValueCell({
+  token,
+  collectionId,
+  modes,
+}: {
+  token: TokenMapEntry;
+  collectionId: string;
+  modes: string[];
+}) {
+  const modeValues = readTokenModeValues(token, collectionId, modes).slice(0, 3);
+  return (
+    <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[var(--color-figma-text-secondary)]">
+      {modeValues.map(([modeName, value]) => (
+        <span key={modeName} className="flex min-w-0 items-center gap-1">
+          {previewIsValueBearing(token.$type) ? (
+            <ValuePreview type={token.$type} value={value} size={12} />
+          ) : null}
+          <span className="truncate">
+            {modeName}: {formatValue(value)}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function readTokenModeValues(
+  token: TokenMapEntry,
+  collectionId: string,
+  modes: string[],
+): Array<[string, unknown]> {
+  if (modes.length === 0) return [["Value", token.$value]];
+  const collectionModes = token.$extensions?.tokenmanager?.modes?.[collectionId];
+  return modes.map((modeName, index) => [
+    modeName,
+    index === 0 ? token.$value : collectionModes?.[modeName] ?? token.$value,
+  ]);
+}
+
+function NumberStepList({
+  label,
+  values,
+  onChange,
+}: {
+  label: string;
+  values: number[];
+  onChange: (values: number[]) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <StepListHeader label={label} onAdd={() => onChange([...values, 0])} />
+      <div className="space-y-1">
+        {values.map((value, index) => (
+          <StepRow key={index}>
+            <input
+              type="number"
+              value={value}
+              onChange={(event) =>
+                onChange(
+                  values.map((item, itemIndex) =>
+                    itemIndex === index ? Number(event.target.value) : item,
+                  ),
+                )
+              }
+              className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
+            />
+            <RemoveStepButton
+              onClick={() =>
+                onChange(values.filter((_item, itemIndex) => itemIndex !== index))
+              }
+            />
+          </StepRow>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NamedNumberStepList({
+  label,
+  values,
+  valueKey,
+  optionalValueKey,
+  onChange,
+}: {
+  label: string;
+  values: Record<string, unknown>[];
+  valueKey: string;
+  optionalValueKey?: string;
+  onChange: (values: Record<string, unknown>[]) => void;
+}) {
+  const addStep = () =>
+    onChange([
+      ...values,
+      { name: `step-${values.length + 1}`, [valueKey]: 0 },
+    ]);
+  return (
+    <div className="space-y-1.5">
+      <StepListHeader label={label} onAdd={addStep} />
+      <div className="space-y-1">
+        {values.map((step, index) => (
+          <StepRow key={index}>
+            <input
+              value={String(step.name ?? "")}
+              onChange={(event) =>
+                onChange(
+                  values.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? { ...item, name: event.target.value }
+                      : item,
+                  ),
+                )
+              }
+              className="min-w-0 flex-[1.2] bg-transparent text-secondary outline-none"
+              placeholder="name"
+            />
+            <input
+              type="number"
+              value={Number(step[valueKey] ?? 0)}
+              onChange={(event) =>
+                onChange(
+                  values.map((item, itemIndex) =>
+                    itemIndex === index
+                      ? { ...item, [valueKey]: Number(event.target.value) }
+                      : item,
+                  ),
+                )
+              }
+              className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
+              title={valueKey}
+            />
+            {optionalValueKey ? (
+              <input
+                type="number"
+                value={
+                  step[optionalValueKey] == null
+                    ? ""
+                    : String(step[optionalValueKey])
+                }
+                onChange={(event) =>
+                  onChange(
+                    values.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? applyOptionalNumberField(
+                            item,
+                            optionalValueKey,
+                            event.target.value,
+                          )
+                        : item,
+                    ),
+                  )
+                }
+                className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
+                title={optionalValueKey}
+              />
+            ) : null}
+            <RemoveStepButton
+              onClick={() =>
+                onChange(values.filter((_item, itemIndex) => itemIndex !== index))
+              }
+            />
+          </StepRow>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShadowStepList({
+  values,
+  onChange,
+}: {
+  values: Record<string, unknown>[];
+  onChange: (values: Record<string, unknown>[]) => void;
+}) {
+  const fields = ["offsetX", "offsetY", "blur", "spread", "opacity"];
+  return (
+    <div className="space-y-1.5">
+      <StepListHeader
+        label="Steps"
+        onAdd={() =>
+          onChange([
+            ...values,
+            {
+              name: `step-${values.length + 1}`,
+              offsetX: 0,
+              offsetY: 2,
+              blur: 8,
+              spread: 0,
+              opacity: 0.2,
+            },
+          ])
+        }
+      />
+      <div className="space-y-1">
+        {values.map((step, index) => (
+          <div
+            key={index}
+            className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2"
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <input
+                value={String(step.name ?? "")}
+                onChange={(event) =>
+                  onChange(
+                    values.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? { ...item, name: event.target.value }
+                        : item,
+                    ),
+                  )
+                }
+                className="min-w-0 flex-1 bg-transparent text-secondary font-medium outline-none"
+                placeholder="name"
+              />
+              <RemoveStepButton
+                onClick={() =>
+                  onChange(
+                    values.filter((_item, itemIndex) => itemIndex !== index),
+                  )
+                }
+              />
+            </div>
+            <div className="grid grid-cols-5 gap-1">
+              {fields.map((fieldName) => (
+                <input
+                  key={fieldName}
+                  type="number"
+                  value={Number(step[fieldName] ?? 0)}
+                  onChange={(event) =>
+                    onChange(
+                      values.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, [fieldName]: Number(event.target.value) }
+                          : item,
+                      ),
+                    )
+                  }
+                  className="min-w-0 rounded bg-[var(--color-figma-bg)] px-1 py-1 text-tertiary outline-none"
+                  title={fieldName}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepListHeader({
+  label,
+  onAdd,
+}: {
+  label: string;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        title={`Add ${label.toLowerCase()}`}
+        aria-label={`Add ${label.toLowerCase()}`}
+      >
+        <Plus size={13} />
+      </button>
+    </div>
+  );
+}
+
+function StepRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-8 items-center gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1">
+      {children}
+    </div>
+  );
+}
+
+function RemoveStepButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+      title="Remove step"
+      aria-label="Remove step"
+    >
+      <Trash2 size={12} />
+    </button>
+  );
+}
+
+function generatorAcceptsTokenType(
+  kind: GeneratorPresetKind,
+  tokenType?: string,
+): boolean {
+  if (kind === "colorRamp") return tokenType === "color";
+  if (kind === "formula")
+    return tokenType === "number" || tokenType === "dimension";
+  return tokenType === "dimension" || tokenType === "number";
+}
+
+function applyOptionalNumberField(
+  item: Record<string, unknown>,
+  key: string,
+  rawValue: string,
+): Record<string, unknown> {
+  if (rawValue.trim() === "") {
+    const next = { ...item };
+    delete next[key];
+    return next;
+  }
+  return { ...item, [key]: Number(rawValue) };
+}
+
+function asNumberArray(value: unknown): number[] {
+  return Array.isArray(value)
+    ? value.map((item) => Number(item)).filter(Number.isFinite)
+    : [];
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) && value.every((item) => item && typeof item === "object")
+    ? (value as Record<string, unknown>[])
+    : [];
+}
+
+function asNamedNumberSteps(
+  value: unknown,
+  valueKey: string,
+): Record<string, unknown>[] {
+  return asRecordArray(value).map((item) => ({
+    ...item,
+    name: String(item.name ?? ""),
+    [valueKey]: Number(item[valueKey] ?? 0),
+  }));
 }
 
 function TextField({
@@ -1890,7 +2422,6 @@ function NodeInspector({
   perCollectionFlat,
   defaultCollectionId,
   onChange,
-  onValidationChange,
   onDelete,
 }: {
   node: TokenGeneratorDocumentNode;
@@ -1898,7 +2429,6 @@ function NodeInspector({
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   defaultCollectionId: string;
   onChange: (data: Record<string, unknown>) => void;
-  onValidationChange: (dataKey: string, message: string | null) => void;
   onDelete: () => void;
 }) {
   const selectedCollectionId =
@@ -1908,23 +2438,6 @@ function NodeInspector({
   const tokenOptions = Object.keys(
     perCollectionFlat[selectedCollectionId] ?? {},
   ).sort();
-  const jsonField = (key: string, label: string) => (
-    <details className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-      <summary className="cursor-pointer text-secondary font-medium text-[var(--color-figma-text)]">
-        {label}
-      </summary>
-      <div className="mt-2">
-        <JsonDataField
-          nodeId={node.id}
-          dataKey={key}
-          label="Raw JSON"
-          value={node.data[key]}
-          onChange={(value) => onChange({ [key]: value })}
-          onValidationChange={(message) => onValidationChange(key, message)}
-        />
-      </div>
-    </details>
-  );
   const field = (key: string, label: string, type = "text") => (
     <label className="block">
       <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
@@ -2128,7 +2641,12 @@ function NodeInspector({
       {node.kind === "spacingScale" && (
         <>
           {field("unit", "Unit")}
-          {jsonField("steps", "Steps")}
+          <NamedNumberStepList
+            label="Steps"
+            values={asNamedNumberSteps(node.data.steps, "multiplier")}
+            valueKey="multiplier"
+            onChange={(steps) => onChange({ steps })}
+          />
         </>
       )}
       {node.kind === "typeScale" && (
@@ -2137,23 +2655,51 @@ function NodeInspector({
           {field("unit", "Unit")}
           {field("baseStep", "Base step")}
           {field("roundTo", "Round to", "number")}
-          {jsonField("steps", "Steps")}
+          <NamedNumberStepList
+            label="Steps"
+            values={asNamedNumberSteps(node.data.steps, "exponent")}
+            valueKey="exponent"
+            onChange={(steps) => onChange({ steps })}
+          />
         </>
       )}
       {node.kind === "borderRadiusScale" && (
         <>
           {field("unit", "Unit")}
-          {jsonField("steps", "Steps")}
+          <NamedNumberStepList
+            label="Steps"
+            values={asNamedNumberSteps(node.data.steps, "multiplier")}
+            valueKey="multiplier"
+            optionalValueKey="exactValue"
+            onChange={(steps) => onChange({ steps })}
+          />
         </>
       )}
-      {node.kind === "opacityScale" && jsonField("steps", "Steps")}
+      {node.kind === "opacityScale" && (
+        <NamedNumberStepList
+          label="Steps"
+          values={asNamedNumberSteps(node.data.steps, "value")}
+          valueKey="value"
+          onChange={(steps) => onChange({ steps })}
+        />
+      )}
       {node.kind === "shadowScale" && (
         <>
           {field("color", "Color")}
-          {jsonField("steps", "Steps")}
+          <ShadowStepList
+            values={asRecordArray(node.data.steps)}
+            onChange={(steps) => onChange({ steps })}
+          />
         </>
       )}
-      {node.kind === "zIndexScale" && jsonField("steps", "Steps")}
+      {node.kind === "zIndexScale" && (
+        <NamedNumberStepList
+          label="Steps"
+          values={asNamedNumberSteps(node.data.steps, "value")}
+          valueKey="value"
+          onChange={(steps) => onChange({ steps })}
+        />
+      )}
       {node.kind === "customScale" && (
         <>
           <label className="block">
@@ -2172,7 +2718,13 @@ function NodeInspector({
           {field("unit", "Unit")}
           {field("formula", "Formula")}
           {field("roundTo", "Round to", "number")}
-          {jsonField("steps", "Steps")}
+          <NamedNumberStepList
+            label="Steps"
+            values={asNamedNumberSteps(node.data.steps, "index")}
+            valueKey="index"
+            optionalValueKey="multiplier"
+            onChange={(steps) => onChange({ steps })}
+          />
         </>
       )}
       {(node.kind === "output" || node.kind === "groupOutput") &&
@@ -2190,67 +2742,6 @@ function NodeInspector({
       </button>
     </div>
   );
-}
-
-function JsonDataField({
-  nodeId,
-  dataKey,
-  label,
-  value,
-  onChange,
-  onValidationChange,
-}: {
-  nodeId: string;
-  dataKey: string;
-  label: string;
-  value: unknown;
-  onChange: (value: unknown) => void;
-  onValidationChange: (message: string | null) => void;
-}) {
-  const [draft, setDraft] = useState(() => formatJsonDraft(value));
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDraft(formatJsonDraft(value));
-    setError(null);
-    onValidationChange(null);
-  }, [dataKey, nodeId, onValidationChange, value]);
-
-  return (
-    <label className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-        {label}
-      </span>
-      <textarea
-        value={draft}
-        onChange={(event) => {
-          const nextDraft = event.target.value;
-          setDraft(nextDraft);
-          try {
-            onChange(JSON.parse(nextDraft));
-            setError(null);
-            onValidationChange(null);
-          } catch {
-            const message = "Enter valid JSON.";
-            setError(message);
-            onValidationChange(message);
-          }
-        }}
-        rows={6}
-        spellCheck={false}
-        className="min-h-[120px] w-full resize-y rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 font-mono text-[11px] text-[var(--color-figma-text)] outline-none"
-      />
-      {error ? (
-        <span className="mt-1 block text-tertiary text-[var(--color-figma-error)]">
-          {error}
-        </span>
-      ) : null}
-    </label>
-  );
-}
-
-function formatJsonDraft(value: unknown): string {
-  return JSON.stringify(value ?? [], null, 2);
 }
 
 function getNodeInputPorts(node: TokenGeneratorDocumentNode): string[] {
@@ -2304,17 +2795,36 @@ function PreviewPanel({
 }) {
   if (!preview) {
     return (
-      <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-3 text-secondary text-[var(--color-figma-text-secondary)]">
-        Review the generator output before creating or updating tokens in the
-        collection.
+      <div className="flex h-full min-h-[280px] items-center justify-center rounded-md bg-[var(--color-figma-bg-secondary)] p-6 text-center text-secondary text-[var(--color-figma-text-secondary)]">
+        Preview shows the exact tokens and mode values this generator will apply.
       </div>
     );
   }
   const modes =
     targetCollection?.modes.map((mode) => mode.name) ?? preview.targetModes;
   const outputGroups = groupPreviewOutputs(preview.outputs);
+  const focusedDiagnostic = preview.diagnostics.find(
+    (diagnostic) => diagnostic.id === focusedDiagnosticId,
+  );
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
+            Output preview
+          </h3>
+          <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+            {preview.outputs.length} outputs across {modes.length}{" "}
+            {modes.length === 1 ? "mode" : "modes"}
+          </p>
+        </div>
+        <span className="text-tertiary text-[var(--color-figma-text-secondary)]">
+          {new Date(preview.previewedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
       {preview.diagnostics.length > 0 && (
         <div className="space-y-1">
           {preview.diagnostics.map((diagnostic) => (
@@ -2337,11 +2847,11 @@ function PreviewPanel({
           ))}
         </div>
       )}
-      <div className="space-y-2">
+      <div className="space-y-4">
         {preview.outputs.length === 0 ? (
           <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary text-[var(--color-figma-error)]">
-            No tokens will be created. Adjust the generator and review the
-            output again.
+            No tokens will be created. Adjust the generator and wait for the
+            preview to refresh.
           </div>
         ) : null}
         {outputGroups.map((group) => (
@@ -2354,66 +2864,89 @@ function PreviewPanel({
                 {group.outputs.length}
               </span>
             </div>
-            {group.outputs.map((output) => (
-              <div
-                key={output.path}
-                className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2"
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <Database
-                    size={14}
-                    className="text-[var(--color-figma-text-secondary)]"
-                  />
-                  {output.change === "created" ? (
-                    <span className="min-w-0 flex-1 truncate text-secondary font-semibold">
-                      {output.path}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onNavigateToToken(output.path)}
-                      className="min-w-0 flex-1 truncate text-left text-secondary font-semibold hover:underline"
-                    >
-                      {output.path}
-                    </button>
-                  )}
-                  <span
-                    className={`text-tertiary ${output.collision ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)]"}`}
-                  >
-                    {output.collision ? "collision" : output.change}
-                  </span>
-                </div>
-                {output.collision && (
-                  <div className="mb-2 text-tertiary text-[var(--color-figma-error)]">
-                    Manual token collision. Detach or rename before applying.
-                  </div>
-                )}
-                <div className="space-y-1">
-                  {modes.map((modeName) => (
-                    <div
-                      key={modeName}
-                      className="grid grid-cols-[82px_1fr] gap-2 text-tertiary"
-                    >
-                      <span className="truncate text-[var(--color-figma-text-secondary)]">
+            <div className="overflow-x-auto rounded-md bg-[var(--color-figma-bg-secondary)]">
+              <table className="min-w-full border-separate border-spacing-0 text-left text-secondary">
+                <thead>
+                  <tr className="text-tertiary text-[var(--color-figma-text-secondary)]">
+                    <th className="sticky left-0 z-[1] min-w-[200px] bg-[var(--color-figma-bg-secondary)] px-2 py-2 font-medium">
+                      Token
+                    </th>
+                    {modes.map((modeName) => (
+                      <th
+                        key={modeName}
+                        className="min-w-[150px] px-2 py-2 font-medium"
+                      >
                         {modeName}
-                      </span>
-                      <span className="min-w-0 flex items-center gap-1.5">
-                        {previewIsValueBearing(output.type) && (
-                          <ValuePreview
-                            type={output.type}
-                            value={output.modeValues[modeName]}
-                            size={14}
-                          />
+                      </th>
+                    ))}
+                    <th className="min-w-[90px] px-2 py-2 font-medium">
+                      Change
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.outputs.map((output) => (
+                    <tr
+                      key={output.path}
+                      className={
+                        focusedDiagnostic?.nodeId === output.nodeId
+                          ? "ring-1 ring-[var(--color-figma-accent)]"
+                          : ""
+                      }
+                    >
+                      <td className="sticky left-0 z-[1] max-w-[260px] bg-[var(--color-figma-bg-secondary)] px-2 py-2 align-top">
+                        {output.change === "created" ? (
+                          <span className="block truncate font-medium">
+                            {output.path}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onNavigateToToken(output.path)}
+                            className="block max-w-full truncate text-left font-medium hover:underline"
+                          >
+                            {output.path}
+                          </button>
                         )}
-                        <span className="truncate">
-                          {formatValue(output.modeValues[modeName])}
-                        </span>
-                      </span>
-                    </div>
+                        {output.collision ? (
+                          <span className="mt-1 block text-tertiary text-[var(--color-figma-error)]">
+                            Manual token exists
+                          </span>
+                        ) : null}
+                      </td>
+                      {modes.map((modeName) => (
+                        <td
+                          key={modeName}
+                          className="px-2 py-2 align-top text-[var(--color-figma-text)]"
+                        >
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            {previewIsValueBearing(output.type) ? (
+                              <ValuePreview
+                                type={output.type}
+                                value={output.modeValues[modeName]}
+                                size={14}
+                              />
+                            ) : null}
+                            <span className="truncate">
+                              {formatValue(output.modeValues[modeName])}
+                            </span>
+                          </span>
+                        </td>
+                      ))}
+                      <td
+                        className={`px-2 py-2 align-top text-tertiary ${
+                          output.collision
+                            ? "text-[var(--color-figma-error)]"
+                            : "text-[var(--color-figma-text-secondary)]"
+                        }`}
+                      >
+                        {output.collision ? "manual token" : output.change}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </div>
-            ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         ))}
         {preview.outputs.length === 0 && (
@@ -2568,7 +3101,6 @@ function contextualPaletteItems(
 
 function collectGraphIssues(
   generator: TokenGeneratorDocument,
-  inspectorErrors: Record<string, string>,
   preview: TokenGeneratorPreviewResult | null,
 ): GraphIssue[] {
   const issues: GraphIssue[] = [];
@@ -2633,10 +3165,6 @@ function collectGraphIssues(
       });
     }
   }
-  for (const [key, message] of Object.entries(inspectorErrors)) {
-    const nodeId = key.split(":")[0];
-    issues.push({ id: key, nodeId, severity: "error", message });
-  }
   for (const diagnostic of preview?.diagnostics ?? []) {
     issues.push({
       id: diagnostic.id,
@@ -2657,13 +3185,6 @@ function collectGraphIssues(
     });
   }
   return issues;
-}
-
-function parseNumberList(value: string): number[] {
-  return value
-    .split(",")
-    .map((step) => Number(step.trim()))
-    .filter(Number.isFinite);
 }
 
 function nodeSummary(node: TokenGeneratorDocumentNode): string {

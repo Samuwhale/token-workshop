@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, GitBranch, Sparkles, X } from "lucide-react";
-import type {
-  TokenCollection,
-  TokenGeneratorDocument,
-  TokenGeneratorPreviewResult,
-} from "@tokenmanager/core";
+import { useCallback, useMemo, useState } from "react";
+import {
+  Circle,
+  Droplet,
+  Hash,
+  Layers,
+  Palette,
+  Ruler,
+  Search,
+  Sigma,
+  Sparkles,
+  Type,
+  Workflow,
+  X,
+} from "lucide-react";
+import type { TokenCollection, TokenGeneratorDocument } from "@tokenmanager/core";
 import {
   GENERATOR_PRESET_OPTIONS,
   SOURCELESS_GENERATOR_PRESETS,
@@ -18,7 +27,7 @@ import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { ValuePreview, previewIsValueBearing } from "./ValuePreview";
 
-type BusyState = "preview" | "apply" | "open" | null;
+type BusyState = "create" | "custom" | null;
 
 interface GeneratorCreatePanelProps {
   serverUrl: string;
@@ -27,30 +36,15 @@ interface GeneratorCreatePanelProps {
   initialOutputPrefix?: string | null;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onClose: () => void;
-  onApplied: (result: {
-    generatorId: string;
-    collectionId: string;
-    outputPrefix: string;
-    firstPath?: string;
-  }) => void;
-  onOpenGenerator: (generatorId: string, collectionId: string) => void;
+  onOpenGenerator: (
+    generatorId: string,
+    collectionId: string,
+    initialView?: "setup" | "graph",
+  ) => void;
 }
 
 interface GeneratorResponse {
   generator: TokenGeneratorDocument;
-}
-
-interface GeneratorPreviewResponse {
-  preview: TokenGeneratorPreviewResult;
-}
-
-interface GeneratorApplyResponse {
-  preview: TokenGeneratorPreviewResult;
-  generator?: TokenGeneratorDocument;
-  created: string[];
-  updated: string[];
-  deleted: string[];
-  operationId?: string;
 }
 
 function parseNumberList(value: string): number[] {
@@ -58,21 +52,6 @@ function parseNumberList(value: string): number[] {
     .split(",")
     .map((step) => Number(step.trim()))
     .filter(Number.isFinite);
-}
-
-function formatValue(value: unknown): string {
-  if (value == null) return "";
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return String(value);
-  }
-  if (typeof value === "object" && "value" in value && "unit" in value) {
-    return `${String((value as { value: unknown }).value)}${String((value as { unit: unknown }).unit)}`;
-  }
-  return JSON.stringify(value);
 }
 
 function readCollectionLabel(collection: TokenCollection): string {
@@ -91,7 +70,7 @@ const TYPE_SCALE_DEFAULT = generatorDefaultConfig("type") as {
 const SHADOW_SCALE_DEFAULT = generatorDefaultConfig("shadow") as {
   color: string;
 };
-const CUSTOM_SCALE_DEFAULT = generatorDefaultConfig("formula") as {
+const FORMULA_DEFAULT = generatorDefaultConfig("formula") as {
   formula: string;
   roundTo: number;
   outputType: "number" | "dimension";
@@ -104,7 +83,6 @@ export function GeneratorCreatePanel({
   initialOutputPrefix,
   perCollectionFlat,
   onClose,
-  onApplied,
   onOpenGenerator,
 }: GeneratorCreatePanelProps) {
   const initialKind: GeneratorPresetKind = "colorRamp";
@@ -122,6 +100,7 @@ export function GeneratorCreatePanel({
   const [sourceCollectionId, setSourceCollectionId] =
     useState(initialCollectionId);
   const [sourceTokenPath, setSourceTokenPath] = useState("");
+  const [sourceQuery, setSourceQuery] = useState("");
   const [sourceAdvancedOpen, setSourceAdvancedOpen] = useState(false);
   const [paletteSteps, setPaletteSteps] = useState(
     COLOR_RAMP_DEFAULT.steps.join(", "),
@@ -132,26 +111,18 @@ export function GeneratorCreatePanel({
   const [paletteDarkEnd, setPaletteDarkEnd] = useState(
     COLOR_RAMP_DEFAULT.darkEnd,
   );
-  const [scaleUnit, setScaleUnit] = useState("px");
+  const [scaleUnit, setScaleUnit] = useState(readPresetUnit(initialKind));
   const [typeRatio, setTypeRatio] = useState(TYPE_SCALE_DEFAULT.ratio);
   const [shadowColor, setShadowColor] = useState(SHADOW_SCALE_DEFAULT.color);
-  const [formula, setFormula] = useState(CUSTOM_SCALE_DEFAULT.formula);
+  const [formula, setFormula] = useState(FORMULA_DEFAULT.formula);
   const [formulaRoundTo, setFormulaRoundTo] = useState(
-    CUSTOM_SCALE_DEFAULT.roundTo,
+    FORMULA_DEFAULT.roundTo,
   );
-  const [formulaOutputType, setFormulaOutputType] = useState(
-    CUSTOM_SCALE_DEFAULT.outputType,
-  );
-  const [preview, setPreview] = useState<TokenGeneratorPreviewResult | null>(
-    null,
-  );
-  const [previewPayloadKey, setPreviewPayloadKey] = useState<string | null>(
-    null,
-  );
+  const [formulaOutputType, setFormulaOutputType] = useState<
+    "number" | "dimension"
+  >(FORMULA_DEFAULT.outputType);
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
-  const latestPayloadKeyRef = useRef("");
-  const fallbackCollectionId = collections[0]?.id ?? "";
 
   const selectedOption =
     GENERATOR_PRESET_OPTIONS.find((item) => item.id === kind) ??
@@ -162,17 +133,6 @@ export function GeneratorCreatePanel({
   const sourceCollection = collections.find(
     (collection) => collection.id === sourceCollectionId,
   );
-  const crossCollectionSource =
-    sourceMode === "token" && sourceCollectionId !== targetCollectionId;
-  const modeCompatibility =
-    !crossCollectionSource ||
-    !targetCollection ||
-    !sourceCollection ||
-    targetCollection.modes.every((mode) =>
-      sourceCollection.modes.some(
-        (sourceModeItem) => sourceModeItem.name === mode.name,
-      ),
-    );
   const collectionOptions = useMemo(
     () =>
       collections.map((collection) => ({
@@ -181,84 +141,35 @@ export function GeneratorCreatePanel({
       })),
     [collections],
   );
-  const sourceTokenOptions = useMemo(() => {
-    const tokens = perCollectionFlat[sourceCollectionId] ?? {};
-    return Object.entries(tokens)
-      .filter(([, token]) => {
-        if (kind === "colorRamp") return token.$type === "color";
-        if (kind === "formula")
-          return token.$type === "number" || token.$type === "dimension";
-        return token.$type === "dimension" || token.$type === "number";
-      })
-      .map(([path]) => path)
-      .sort((a, b) => a.localeCompare(b));
-  }, [kind, perCollectionFlat, sourceCollectionId]);
-
-  useEffect(() => {
-    if (collections.length === 0) {
-      if (targetCollectionId) {
-        setTargetCollectionId("");
-      }
-      if (sourceCollectionId) {
-        setSourceCollectionId("");
-      }
-      if (sourceTokenPath) {
-        setSourceTokenPath("");
-      }
-      return;
-    }
-
-    if (
-      !collections.some((collection) => collection.id === targetCollectionId)
-    ) {
-      setTargetCollectionId(fallbackCollectionId);
-      setPreview(null);
-    }
-
-    if (
-      !collections.some((collection) => collection.id === sourceCollectionId)
-    ) {
-      setSourceCollectionId(fallbackCollectionId);
-      setSourceTokenPath("");
-      setPreview(null);
-    }
-  }, [
-    collections,
-    fallbackCollectionId,
-    sourceCollectionId,
-    sourceTokenPath,
-    targetCollectionId,
-  ]);
-
-  useEffect(() => {
-    if (!sourceTokenPath) {
-      return;
-    }
-    if (sourceTokenOptions.includes(sourceTokenPath)) {
-      return;
-    }
-    setSourceTokenPath("");
-    setPreview(null);
-  }, [sourceTokenOptions, sourceTokenPath]);
-
-  useEffect(() => {
-    if (sourceAdvancedOpen || sourceCollectionId === targetCollectionId) {
-      return;
-    }
-    setSourceCollectionId(targetCollectionId);
-    setSourceTokenPath("");
-    setPreview(null);
-  }, [sourceAdvancedOpen, sourceCollectionId, targetCollectionId]);
-
-  const previewBlocking = Boolean(
-    preview?.blocking ||
-    preview?.outputs.length === 0 ||
-    preview?.outputs.some((output) => output.collision),
+  const crossCollectionSource =
+    sourceMode === "token" && sourceCollectionId !== targetCollectionId;
+  const targetModes = targetCollection?.modes.map((mode) => mode.name) ?? [];
+  const sourceModes = sourceCollection?.modes.map((mode) => mode.name) ?? [];
+  const missingSourceModes = targetModes.filter(
+    (modeName) => !sourceModes.includes(modeName),
   );
-  const modes =
-    targetCollection?.modes.map((mode) => mode.name) ??
-    preview?.targetModes ??
-    [];
+  const modeCompatibility =
+    !crossCollectionSource || missingSourceModes.length === 0;
+  const compatibleSourceTokenEntries = useMemo(
+    () =>
+      Object.entries(perCollectionFlat[sourceCollectionId] ?? {})
+        .filter(([, token]) => generatorAcceptsTokenType(kind, token.$type))
+        .sort(([a], [b]) => a.localeCompare(b)),
+    [kind, perCollectionFlat, sourceCollectionId],
+  );
+  const sourceTokenOptions = useMemo(() => {
+    const normalizedQuery = sourceQuery.trim().toLowerCase();
+    return compatibleSourceTokenEntries.filter(
+      ([path, token]) =>
+        !normalizedQuery ||
+        path.toLowerCase().includes(normalizedQuery) ||
+        token.$type.toLowerCase().includes(normalizedQuery),
+    );
+  }, [compatibleSourceTokenEntries, sourceQuery]);
+  const selectedSourceToken = sourceTokenPath
+    ? compatibleSourceTokenEntries.find(([path]) => path === sourceTokenPath)
+    : undefined;
+
   const generationConfig = useMemo(() => {
     if (kind === "colorRamp") {
       return {
@@ -315,54 +226,18 @@ export function GeneratorCreatePanel({
       setOutputPrefix(option.outputPrefix);
       setSourceMode(option.sourceMode);
       setSourceValue(generatorDefaultSourceValue(nextKind));
-      setSourceAdvancedOpen(false);
+      setScaleUnit(readPresetUnit(nextKind));
+      setTypeRatio(readPresetRatio(generatorDefaultConfig(nextKind)));
       setSourceCollectionId(targetCollectionId);
-      setScaleUnit(nextKind === "type" ? TYPE_SCALE_DEFAULT.unit : "px");
       setSourceTokenPath("");
-      setPreview(null);
+      setSourceQuery("");
+      setSourceAdvancedOpen(false);
       setError(null);
     },
     [targetCollectionId],
   );
 
-  const generatorPayload = useCallback(() => {
-    const generatedNodes = buildGeneratorNodesFromStructuredDraft({
-      kind,
-      sourceMode,
-      sourceValue,
-      sourceCollectionId,
-      sourceTokenPath,
-      outputPrefix: outputPrefix.trim(),
-      config: generationConfig,
-    });
-    return {
-      name: `${selectedOption.label} generator`,
-      targetCollectionId,
-      nodes: generatedNodes.nodes,
-      edges: generatedNodes.edges,
-      viewport: { x: 0, y: 0, zoom: 1 },
-    };
-  }, [
-    generationConfig,
-    kind,
-    outputPrefix,
-    selectedOption.label,
-    sourceCollectionId,
-    sourceMode,
-    sourceTokenPath,
-    sourceValue,
-    targetCollectionId,
-  ]);
-  const currentPayloadKey = useMemo(
-    () => JSON.stringify(generatorPayload()),
-    [generatorPayload],
-  );
-
-  useEffect(() => {
-    latestPayloadKeyRef.current = currentPayloadKey;
-  }, [currentPayloadKey]);
-
-  const handlePreview = useCallback(async () => {
+  const createGenerator = useCallback(async () => {
     if (!targetCollectionId) {
       setError("Choose a collection first.");
       return;
@@ -379,128 +254,87 @@ export function GeneratorCreatePanel({
       setError("Choose a source token.");
       return;
     }
+    if (
+      !SOURCELESS_GENERATOR_PRESETS.has(kind) &&
+      sourceMode === "token" &&
+      !selectedSourceToken
+    ) {
+      setError("Choose a compatible source token.");
+      return;
+    }
     if (!modeCompatibility) {
-      setError("Source and target collections need matching mode names.");
+      setError(
+        `Source collection is missing ${missingSourceModes.join(", ")}. Add matching modes to the source collection or choose a source from this collection.`,
+      );
       return;
     }
     if (kind === "colorRamp" && parseNumberList(paletteSteps).length === 0) {
       setError("Add at least one numeric palette step.");
       return;
     }
-    setBusy("preview");
-    setError(null);
-    try {
-      const payload = generatorPayload();
-      const payloadKey = JSON.stringify(payload);
-      const data = await apiFetch<GeneratorPreviewResponse>(
-        `${serverUrl}/api/generators/preview-draft`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-      if (payloadKey !== latestPayloadKeyRef.current) {
-        return;
-      }
-      setPreview(data.preview);
-      setPreviewPayloadKey(payloadKey);
-    } catch (previewError) {
-      setError(
-        previewError instanceof Error
-          ? previewError.message
-          : String(previewError),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }, [
-    generatorPayload,
-    kind,
-    outputPrefix,
-    paletteSteps,
-    serverUrl,
-    modeCompatibility,
-    sourceMode,
-    sourceTokenPath,
-    targetCollectionId,
-  ]);
 
-  const handleApply = useCallback(async () => {
-    if (!preview || previewBlocking || previewPayloadKey !== currentPayloadKey)
-      return;
-    setBusy("apply");
+    const generatedNodes = buildGeneratorNodesFromStructuredDraft({
+      kind,
+      sourceMode,
+      sourceValue,
+      sourceCollectionId,
+      sourceTokenPath,
+      outputPrefix: outputPrefix.trim(),
+      config: generationConfig,
+    });
+    setBusy("create");
     setError(null);
     try {
-      const payload = generatorPayload();
-      const result = await apiFetch<GeneratorApplyResponse>(
-        `${serverUrl}/api/generators/apply-draft`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, previewHash: preview.hash }),
-        },
-      );
-      onApplied({
-        generatorId: result.generator?.id ?? "",
-        collectionId: targetCollectionId,
-        outputPrefix: outputPrefix.trim(),
-        firstPath:
-          result.created[0] ??
-          result.updated[0] ??
-          result.preview.outputs[0]?.path,
-      });
-    } catch (applyError) {
-      setError(
-        applyError instanceof Error ? applyError.message : String(applyError),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }, [
-    currentPayloadKey,
-    generatorPayload,
-    onApplied,
-    outputPrefix,
-    preview,
-    previewBlocking,
-    previewPayloadKey,
-    serverUrl,
-    targetCollectionId,
-  ]);
-
-  const handleOpenGenerator = useCallback(async () => {
-    setBusy("open");
-    setError(null);
-    try {
-      const payload = generatorPayload();
       const created = await apiFetch<GeneratorResponse>(
         `${serverUrl}/api/generators`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            name: `${selectedOption.label} generator`,
+            targetCollectionId,
+            nodes: generatedNodes.nodes,
+            edges: generatedNodes.edges,
+            viewport: { x: 0, y: 0, zoom: 1 },
+          }),
         },
       );
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
+        "graph",
       );
-    } catch (openError) {
+    } catch (createError) {
       setError(
-        openError instanceof Error ? openError.message : String(openError),
+        createError instanceof Error ? createError.message : String(createError),
       );
     } finally {
       setBusy(null);
     }
-  }, [generatorPayload, onOpenGenerator, serverUrl]);
+  }, [
+    generationConfig,
+    kind,
+    missingSourceModes,
+    modeCompatibility,
+    onOpenGenerator,
+    outputPrefix,
+    paletteSteps,
+    selectedOption.label,
+    serverUrl,
+    sourceCollectionId,
+    sourceMode,
+    sourceTokenPath,
+    sourceValue,
+    targetCollectionId,
+    selectedSourceToken,
+  ]);
 
-  const handleOpenCustomGenerator = useCallback(async () => {
+  const createBlankGenerator = useCallback(async () => {
     if (!targetCollectionId) {
       setError("Choose a collection first.");
       return;
     }
-    setBusy("open");
+    setBusy("custom");
     setError(null);
     try {
       const created = await apiFetch<GeneratorResponse>(
@@ -519,18 +353,14 @@ export function GeneratorCreatePanel({
         created.generator.id,
         created.generator.targetCollectionId,
       );
-    } catch (openError) {
+    } catch (createError) {
       setError(
-        openError instanceof Error ? openError.message : String(openError),
+        createError instanceof Error ? createError.message : String(createError),
       );
     } finally {
       setBusy(null);
     }
   }, [onOpenGenerator, serverUrl, targetCollectionId]);
-
-  const handleClose = useCallback(() => {
-    onClose();
-  }, [onClose]);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
@@ -545,16 +375,7 @@ export function GeneratorCreatePanel({
         </h3>
         <button
           type="button"
-          onClick={handleOpenGenerator}
-          disabled={busy !== null || !targetCollectionId}
-          className="inline-flex h-7 items-center gap-1 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-        >
-          <ExternalLink size={12} aria-hidden />
-          {busy === "open" ? "Opening..." : "Open in Generators"}
-        </button>
-        <button
-          type="button"
-          onClick={handleClose}
+          onClick={onClose}
           className="flex h-7 w-7 items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           aria-label="Close"
         >
@@ -563,33 +384,54 @@ export function GeneratorCreatePanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        <div className="grid grid-cols-2 gap-1.5">
-          {GENERATOR_PRESET_OPTIONS.map((option) => (
+        <div className="grid gap-4 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="space-y-1">
+            {GENERATOR_PRESET_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => updateKind(option.id)}
+                className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors ${
+                  option.id === kind
+                    ? "bg-[var(--color-figma-bg-selected)]"
+                    : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-secondary font-semibold text-[var(--color-figma-text)]">
+                    {option.label}
+                  </span>
+                  <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                    {presetSourceLabel(option.id)}
+                    {" -> "}
+                    {option.outputPrefix}
+                  </span>
+                </span>
+                <PresetIcon kind={option.id} />
+              </button>
+            ))}
             <button
-              key={option.id}
               type="button"
-              onClick={() => updateKind(option.id)}
-              className={`rounded px-2 py-1.5 text-left text-secondary font-medium transition-colors ${
-                option.id === kind
-                  ? "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
-                  : "bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-              }`}
+              onClick={createBlankGenerator}
+              disabled={busy !== null || !targetCollectionId}
+              className="mt-2 flex w-full items-start justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
             >
-              {option.label}
+              <span className="min-w-0">
+                <span className="block truncate text-secondary font-semibold text-[var(--color-figma-text)]">
+                  Custom generator
+                </span>
+                <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                  Start with an empty graph
+                </span>
+              </span>
+              <Workflow
+                size={13}
+                className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
+              />
             </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={handleOpenCustomGenerator}
-          disabled={busy !== null || !targetCollectionId}
-          className="mt-2 inline-flex min-h-7 items-center gap-1.5 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-        >
-          <GitBranch size={13} aria-hidden />
-          Start with blank graph
-        </button>
+          </div>
 
-        <div className="mt-4 space-y-3">
+          <div className="space-y-3">
           <label className="block">
             <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
               Collection
@@ -603,7 +445,6 @@ export function GeneratorCreatePanel({
                   setSourceCollectionId(nextCollectionId);
                   setSourceTokenPath("");
                 }
-                setPreview(null);
               }}
               className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
             >
@@ -615,16 +456,15 @@ export function GeneratorCreatePanel({
             </select>
           </label>
 
+          <ModeSummary modes={targetModes} />
+
           <label className="block">
             <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
               Output group
             </span>
             <input
               value={outputPrefix}
-              onChange={(event) => {
-                setOutputPrefix(event.target.value);
-                setPreview(null);
-              }}
+              onChange={(event) => setOutputPrefix(event.target.value)}
               className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
             />
           </label>
@@ -641,15 +481,15 @@ export function GeneratorCreatePanel({
                       if (mode === "token" && !sourceAdvancedOpen) {
                         setSourceCollectionId(targetCollectionId);
                       }
-                      setPreview(null);
                     }}
+                    aria-pressed={sourceMode === mode}
                     className={`min-h-7 flex-1 rounded px-2 text-secondary font-medium ${
                       sourceMode === mode
                         ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
                         : "text-[var(--color-figma-text-secondary)]"
                     }`}
                   >
-                    {mode === "literal" ? "Literal" : "Token"}
+                    {mode === "literal" ? "Value" : "Token"}
                   </button>
                 ))}
               </div>
@@ -661,34 +501,93 @@ export function GeneratorCreatePanel({
                   </span>
                   <input
                     value={sourceValue}
-                    onChange={(event) => {
-                      setSourceValue(event.target.value);
-                      setPreview(null);
-                    }}
+                    onChange={(event) => setSourceValue(event.target.value)}
                     className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
                   />
                 </label>
               ) : (
                 <div className="space-y-2">
-                  <label className="block">
+                  <div>
                     <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
                       Source token
                     </span>
-                    <input
-                      list="generate-token-source-options"
-                      value={sourceTokenPath}
-                      onChange={(event) => {
-                        setSourceTokenPath(event.target.value);
-                        setPreview(null);
-                      }}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                    />
-                    <datalist id="generate-token-source-options">
-                      {sourceTokenOptions.map((path) => (
-                        <option key={path} value={path} />
-                      ))}
-                    </datalist>
-                  </label>
+                    <div className="flex items-center gap-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+                      <Search
+                        size={14}
+                        className="text-[var(--color-figma-text-secondary)]"
+                      />
+                      <input
+                        value={sourceQuery}
+                        onChange={(event) => setSourceQuery(event.target.value)}
+                        placeholder={sourceTokenPath || "Search compatible tokens"}
+                        className="min-w-0 flex-1 bg-transparent text-secondary text-[var(--color-figma-text)] outline-none"
+                      />
+                    </div>
+                  </div>
+                  {selectedSourceToken ? (
+                    <button
+                      type="button"
+                      onClick={() => setSourceTokenPath("")}
+                      className="flex w-full items-start gap-2 rounded bg-[var(--color-figma-bg-selected)] px-2 py-1.5 text-left text-secondary"
+                      title="Clear source token"
+                      aria-label="Clear source token"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">
+                          {selectedSourceToken[0]}
+                        </span>
+                        <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                          {selectedSourceToken[1].$type}
+                        </span>
+                        <TokenModePreview
+                          token={selectedSourceToken[1]}
+                          collectionId={sourceCollectionId}
+                          modes={sourceModes}
+                        />
+                      </span>
+                      <X
+                        size={13}
+                        className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
+                        aria-hidden
+                      />
+                    </button>
+                  ) : null}
+                  <div className="max-h-[180px] overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] p-1">
+                    {sourceTokenOptions.slice(0, 40).map(([path, token]) => (
+                      <button
+                        key={path}
+                        type="button"
+                        onClick={() => {
+                          setSourceTokenPath(path);
+                          setSourceQuery("");
+                        }}
+                        className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)] ${
+                          path === sourceTokenPath
+                            ? "bg-[var(--color-figma-bg-selected)]"
+                            : ""
+                        }`}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">
+                            {path}
+                          </span>
+                          <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                            {token.$type}
+                          </span>
+                          <TokenModePreview
+                            token={token}
+                            collectionId={sourceCollectionId}
+                            modes={sourceModes}
+                          />
+                        </span>
+                      </button>
+                    ))}
+                    {sourceTokenOptions.length === 0 ? (
+                      <div className="px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+                        No compatible tokens in this collection.
+                      </div>
+                    ) : null}
+                  </div>
                   <details
                     open={sourceAdvancedOpen}
                     onToggle={(event) => {
@@ -697,7 +596,6 @@ export function GeneratorCreatePanel({
                       if (!open) {
                         setSourceCollectionId(targetCollectionId);
                         setSourceTokenPath("");
-                        setPreview(null);
                       }
                     }}
                     className="rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
@@ -714,7 +612,6 @@ export function GeneratorCreatePanel({
                         onChange={(event) => {
                           setSourceCollectionId(event.target.value);
                           setSourceTokenPath("");
-                          setPreview(null);
                         }}
                         className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
                       >
@@ -730,8 +627,8 @@ export function GeneratorCreatePanel({
                         className={`mt-2 text-tertiary ${modeCompatibility ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
                       >
                         {modeCompatibility
-                          ? "Mode names match the target collection."
-                          : "Mode names must match the target collection before previewing."}
+                          ? "Source modes match the target collection."
+                          : `Missing source ${missingSourceModes.length === 1 ? "mode" : "modes"}: ${missingSourceModes.join(", ")}. Add matching modes to the source collection or choose a source from this collection.`}
                       </div>
                     ) : null}
                   </details>
@@ -740,157 +637,79 @@ export function GeneratorCreatePanel({
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            {kind === "colorRamp" ? (
-              <>
-                <label className="block">
-                  <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                    Steps
-                  </span>
-                  <input
-                    value={paletteSteps}
-                    onChange={(event) => {
-                      setPaletteSteps(event.target.value);
-                      setPreview(null);
-                    }}
-                    className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block">
-                    <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                      Light end
-                    </span>
-                    <input
-                      type="number"
-                      value={paletteLightEnd}
-                      onChange={(event) => {
-                        setPaletteLightEnd(Number(event.target.value));
-                        setPreview(null);
-                      }}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                      Dark end
-                    </span>
-                    <input
-                      type="number"
-                      value={paletteDarkEnd}
-                      onChange={(event) => {
-                        setPaletteDarkEnd(Number(event.target.value));
-                        setPreview(null);
-                      }}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                    />
-                  </label>
-                </div>
-              </>
-            ) : null}
-
-            {kind === "spacing" || kind === "type" || kind === "radius" ? (
-              <div className={kind === "type" ? "grid grid-cols-2 gap-2" : ""}>
-                {kind === "type" ? (
-                  <label className="block">
-                    <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                      Ratio
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={typeRatio}
-                      onChange={(event) => {
-                        setTypeRatio(Number(event.target.value));
-                        setPreview(null);
-                      }}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                    />
-                  </label>
-                ) : null}
-                <label className="block">
-                  <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                    Unit
-                  </span>
-                  <input
-                    value={scaleUnit}
-                    onChange={(event) => {
-                      setScaleUnit(event.target.value);
-                      setPreview(null);
-                    }}
-                    className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                  />
-                </label>
-              </div>
-            ) : null}
-
-            {kind === "shadow" ? (
-              <label className="block">
-                <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                  Shadow color
-                </span>
-                <input
-                  value={shadowColor}
-                  onChange={(event) => {
-                    setShadowColor(event.target.value);
-                    setPreview(null);
-                  }}
-                  className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+          {kind === "colorRamp" ? (
+            <>
+              <TextInput
+                label="Steps"
+                value={paletteSteps}
+                onChange={setPaletteSteps}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <NumberInput
+                  label="Light end"
+                  value={paletteLightEnd}
+                  onChange={setPaletteLightEnd}
                 />
-              </label>
-            ) : null}
+                <NumberInput
+                  label="Dark end"
+                  value={paletteDarkEnd}
+                  onChange={setPaletteDarkEnd}
+                />
+              </div>
+            </>
+          ) : null}
 
-            {kind === "formula" ? (
-              <>
+          {kind === "spacing" || kind === "type" || kind === "radius" ? (
+            <div className={kind === "type" ? "grid grid-cols-2 gap-2" : ""}>
+              {kind === "type" ? (
+                <NumberInput
+                  label="Ratio"
+                  value={typeRatio}
+                  step="0.01"
+                  onChange={setTypeRatio}
+                />
+              ) : null}
+              <TextInput label="Unit" value={scaleUnit} onChange={setScaleUnit} />
+            </div>
+          ) : null}
+
+          {kind === "shadow" ? (
+            <TextInput
+              label="Shadow color"
+              value={shadowColor}
+              onChange={setShadowColor}
+            />
+          ) : null}
+
+          {kind === "formula" ? (
+            <>
+              <TextInput label="Formula" value={formula} onChange={setFormula} />
+              <div className="grid grid-cols-2 gap-2">
                 <label className="block">
                   <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                    Formula
+                    Output type
                   </span>
-                  <input
-                    value={formula}
-                    onChange={(event) => {
-                      setFormula(event.target.value);
-                      setPreview(null);
-                    }}
+                  <select
+                    value={formulaOutputType}
+                    onChange={(event) =>
+                      setFormulaOutputType(
+                        event.target.value as typeof formulaOutputType,
+                      )
+                    }
                     className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                  />
+                  >
+                    <option value="number">Number</option>
+                    <option value="dimension">Dimension</option>
+                  </select>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block">
-                    <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                      Output type
-                    </span>
-                    <select
-                      value={formulaOutputType}
-                      onChange={(event) => {
-                        setFormulaOutputType(
-                          event.target.value as typeof formulaOutputType,
-                        );
-                        setPreview(null);
-                      }}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                    >
-                      <option value="number">Number</option>
-                      <option value="dimension">Dimension</option>
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                      Round to
-                    </span>
-                    <input
-                      type="number"
-                      value={formulaRoundTo}
-                      onChange={(event) => {
-                        setFormulaRoundTo(Number(event.target.value));
-                        setPreview(null);
-                      }}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-                    />
-                  </label>
-                </div>
-              </>
-            ) : null}
+                <NumberInput
+                  label="Round to"
+                  value={formulaRoundTo}
+                  onChange={setFormulaRoundTo}
+                />
+              </div>
+            </>
+          ) : null}
           </div>
         </div>
 
@@ -899,117 +718,192 @@ export function GeneratorCreatePanel({
             {error}
           </div>
         ) : null}
-
-        <div className="mt-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <h4 className="text-secondary font-semibold text-[var(--color-figma-text)]">
-              Preview
-            </h4>
-            {preview ? (
-              <span className="text-tertiary text-[var(--color-figma-text-secondary)]">
-                {preview.outputs.length} outputs
-              </span>
-            ) : null}
-          </div>
-          {!preview ? (
-            <div className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-3 text-secondary text-[var(--color-figma-text-secondary)]">
-              Preview creates a draft generator and shows exactly which tokens
-              will change.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {preview.diagnostics.map((diagnostic) => (
-                <div
-                  key={diagnostic.id}
-                  className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-text)]"
-                >
-                  <span className="font-semibold capitalize">
-                    {diagnostic.severity}
-                  </span>
-                  <span className="text-[var(--color-figma-text-secondary)]">
-                    : {diagnostic.message}
-                  </span>
-                </div>
-              ))}
-              {preview.outputs.length === 0 ? (
-                <div className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-error)]">
-                  No tokens will be created. Adjust the source or steps and
-                  preview again.
-                </div>
-              ) : null}
-              {preview.outputs.map((output) => (
-                <div
-                  key={`${output.nodeId}-${output.path}`}
-                  className="rounded bg-[var(--color-figma-bg-secondary)] px-3 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate text-secondary font-medium text-[var(--color-figma-text)]">
-                      {output.path}
-                    </span>
-                    <span
-                      className={`text-tertiary ${
-                        output.collision
-                          ? "text-[var(--color-figma-error)]"
-                          : "text-[var(--color-figma-text-secondary)]"
-                      }`}
-                    >
-                      {output.collision ? "collision" : output.change}
-                    </span>
-                  </div>
-                  <div className="mt-1 space-y-1">
-                    {modes.map((modeName) => (
-                      <div
-                        key={modeName}
-                        className="grid grid-cols-[70px_1fr] gap-2 text-tertiary"
-                      >
-                        <span className="truncate text-[var(--color-figma-text-secondary)]">
-                          {modeName}
-                        </span>
-                        <span className="min-w-0 flex items-center gap-1.5 text-[var(--color-figma-text)]">
-                          {previewIsValueBearing(output.type) ? (
-                            <ValuePreview
-                              type={output.type}
-                              value={output.modeValues[modeName]}
-                              size={12}
-                            />
-                          ) : null}
-                          <span className="truncate">
-                            {formatValue(output.modeValues[modeName])}
-                          </span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] px-4 py-3">
         <button
           type="button"
-          onClick={handlePreview}
-          disabled={busy !== null || !targetCollectionId}
-          className="rounded px-3 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+          onClick={onClose}
+          className="rounded px-3 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          {busy === "preview" ? "Previewing..." : "Preview"}
+          Cancel
         </button>
         <button
           type="button"
-          onClick={handleApply}
-          disabled={
-            busy !== null ||
-            !preview ||
-            previewBlocking ||
-            previewPayloadKey !== currentPayloadKey
-          }
+          onClick={createGenerator}
+          disabled={busy !== null || !targetCollectionId}
           className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-semibold text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
         >
-          {busy === "apply" ? "Applying..." : "Apply"}
+          {busy ? "Creating..." : "Create generator"}
         </button>
       </div>
     </div>
   );
+}
+
+function readPresetUnit(kind: GeneratorPresetKind): string {
+  const config = generatorDefaultConfig(kind) as { unit?: unknown };
+  return typeof config.unit === "string" ? config.unit : "px";
+}
+
+function PresetIcon({ kind }: { kind: GeneratorPresetKind }) {
+  const className =
+    "mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]";
+  if (kind === "colorRamp") return <Palette size={13} className={className} />;
+  if (kind === "spacing") return <Ruler size={13} className={className} />;
+  if (kind === "type") return <Type size={13} className={className} />;
+  if (kind === "radius") return <Circle size={13} className={className} />;
+  if (kind === "opacity") return <Droplet size={13} className={className} />;
+  if (kind === "shadow") return <Layers size={13} className={className} />;
+  if (kind === "zIndex") return <Hash size={13} className={className} />;
+  if (kind === "formula") return <Sigma size={13} className={className} />;
+  return <Workflow size={13} className={className} />;
+}
+
+function readPresetRatio(config: unknown): number {
+  const ratio = (config as { ratio?: unknown }).ratio;
+  return typeof ratio === "number" ? ratio : 1.25;
+}
+
+function readTokenModeValues(
+  token: TokenMapEntry,
+  collectionId: string,
+  modes: string[],
+): Array<[string, unknown]> {
+  if (modes.length === 0) return [["Value", token.$value]];
+  const collectionModes = token.$extensions?.tokenmanager?.modes?.[collectionId];
+  return modes.map((modeName, index) => [
+    modeName,
+    index === 0 ? token.$value : collectionModes?.[modeName] ?? token.$value,
+  ]);
+}
+
+function TokenModePreview({
+  token,
+  collectionId,
+  modes,
+}: {
+  token: TokenMapEntry;
+  collectionId: string;
+  modes: string[];
+}) {
+  const values = readTokenModeValues(token, collectionId, modes).slice(0, 3);
+  return (
+    <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[var(--color-figma-text-secondary)]">
+      {values.map(([modeName, value]) => (
+        <span key={modeName} className="flex min-w-0 items-center gap-1">
+          {previewIsValueBearing(token.$type) ? (
+            <ValuePreview type={token.$type} value={value} size={12} />
+          ) : null}
+          <span className="truncate">
+            {modeName}: {formatCompactValue(value)}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function formatCompactValue(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
+  if (typeof value === "object" && "value" in value && "unit" in value) {
+    return `${String((value as { value: unknown }).value)}${String((value as { unit: unknown }).unit)}`;
+  }
+  return JSON.stringify(value);
+}
+
+function ModeSummary({ modes }: { modes: string[] }) {
+  return (
+    <div>
+      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        Modes
+      </span>
+      <div className="flex flex-wrap gap-1 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+        {modes.length > 0 ? (
+          modes.map((mode) => (
+            <span
+              key={mode}
+              className="rounded bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-tertiary text-[var(--color-figma-text-secondary)]"
+            >
+              {mode}
+            </span>
+          ))
+        ) : (
+          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+            No modes
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TextInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+      />
+    </label>
+  );
+}
+
+function NumberInput({
+  label,
+  value,
+  onChange,
+  step,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  step?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        {label}
+      </span>
+      <input
+        type="number"
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+      />
+    </label>
+  );
+}
+
+function presetSourceLabel(kind: GeneratorPresetKind): string {
+  if (SOURCELESS_GENERATOR_PRESETS.has(kind)) return "No source token";
+  if (kind === "colorRamp") return "Color source";
+  if (kind === "formula") return "Number source";
+  return "Dimension source";
+}
+
+function generatorAcceptsTokenType(
+  kind: GeneratorPresetKind,
+  tokenType?: string,
+): boolean {
+  if (kind === "colorRamp") return tokenType === "color";
+  if (kind === "formula")
+    return tokenType === "number" || tokenType === "dimension";
+  return tokenType === "dimension" || tokenType === "number";
 }

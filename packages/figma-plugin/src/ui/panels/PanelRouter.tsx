@@ -941,16 +941,6 @@ export function PanelRouter({
                 setGeneratorCreateOutputPrefix(null);
                 switchContextualSurface({ surface: null });
               }}
-              onApplied={({ collectionId, firstPath, outputPrefix }) => {
-                setCurrentCollectionId(collectionId);
-                if (firstPath) {
-                  setHighlightedToken(firstPath);
-                }
-                setPendingGeneratorOutputGroup(outputPrefix);
-                setGeneratorCreateOutputPrefix(null);
-                switchContextualSurface({ surface: null });
-                refreshAll();
-              }}
               onOpenGenerator={(generatorId, collectionId) => {
                 setCurrentCollectionId(collectionId);
                 setPendingGeneratorDocumentId(generatorId);

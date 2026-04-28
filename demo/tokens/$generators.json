@@ -90,6 +90,34 @@
       },
       "createdAt": "2026-04-28T13:25:39.734Z",
       "updatedAt": "2026-04-28T13:25:39.735Z"
+    },
+    {
+      "id": "71ca5be1-5c62-41b4-809c-ac88fc3ef13b",
+      "name": "Custom generator",
+      "targetCollectionId": "-0--color-primitives",
+      "nodes": [],
+      "edges": [],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 1
+      },
+      "createdAt": "2026-04-28T22:03:20.872Z",
+      "updatedAt": "2026-04-28T22:03:20.873Z"
+    },
+    {
+      "id": "98122c7e-6b37-47d9-a0b1-88c9939d8344",
+      "name": "Custom generator",
+      "targetCollectionId": "-0--color-primitives",
+      "nodes": [],
+      "edges": [],
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 1
+      },
+      "createdAt": "2026-04-28T22:04:05.881Z",
+      "updatedAt": "2026-04-28T22:04:05.881Z"
     }
   ]
 }
