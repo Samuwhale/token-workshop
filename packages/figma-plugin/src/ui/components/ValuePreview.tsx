@@ -1,5 +1,11 @@
 import { isWideGamutColor, swatchBgColor, getSrgbFallback } from '../shared/colorUtils';
 import {
+  buildGradientCss,
+  formatBorderSummary,
+  formatShadowSummary,
+  getTypographyFontFamily,
+} from '../shared/compositeTokenUtils';
+import {
   formatUnitTokenValue,
   readDimensionTokenValue,
   readDurationTokenValue,
@@ -161,9 +167,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   // ── Typography (canvas, wide) ─────────────────────────────────────────────
   if (type === 'typography' && typeof value === 'object' && value !== null) {
     // DTCG allows fontFamily to be either a string or an array of fallbacks.
-    const fontFamily = Array.isArray(value.fontFamily)
-      ? value.fontFamily.map((f: unknown) => String(f)).join(', ')
-      : (value.fontFamily || 'inherit');
+    const fontFamily = getTypographyFontFamily(value) || 'inherit';
     const fontWeight = value.fontWeight || 400;
     const fontSize = readDimensionTokenValue(value.fontSize);
     const rawSize = fontSize?.value ?? 0;
@@ -235,7 +239,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
         <div
           className="shrink-0 flex items-center justify-center"
           style={squareStyle}
-          title={realTitle}
+          title={formatShadowSummary(value) || realTitle}
         >
           <div
             className={BOX_CLS}
@@ -398,7 +402,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
       <div
         className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden`}
         style={wideStyle}
-        title={label}
+        title={formatBorderSummary(value) || label}
       >
         <div style={{ width: '80%', borderBottom: `${previewWidth}px ${styleStr} ${colorStr}` }} />
       </div>
@@ -579,29 +583,4 @@ function renderBezierCurve(width: number, height: number, x1: number, y1: number
       />
     </svg>
   );
-}
-
-function buildGradientCss(value: any): string | null {
-  if (typeof value === 'string' && value.includes('gradient')) return value;
-
-  // Bare array of stops from imported token files.
-  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && value[0] && 'color' in value[0]) {
-    const sorted = [...(value as Array<{ color: string; position?: number }>)]
-      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-    const stops = sorted.map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`).join(', ');
-    return `linear-gradient(to right, ${stops})`;
-  }
-
-  if (!value || typeof value !== 'object') return null;
-  const v = value as { type?: string; stops?: Array<{ color: string; position?: number }> };
-  if (!Array.isArray(v.stops) || v.stops.length === 0) return null;
-  const sorted = [...v.stops].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-  const stops = sorted.map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`).join(', ');
-  const gradType = v.type || 'linear';
-
-  if (gradType === 'radial') return `radial-gradient(circle, ${stops})`;
-  if (gradType === 'angular' || gradType === 'conic') return `conic-gradient(${stops})`;
-  // CSS has no native "diamond" gradient; fall back to a 45° linear as a best-effort hint.
-  if (gradType === 'diamond') return `linear-gradient(45deg, ${stops})`;
-  return `linear-gradient(to right, ${stops})`;
 }

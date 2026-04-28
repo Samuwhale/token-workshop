@@ -1,68 +1,31 @@
 import { swatchBgColor } from '../shared/colorUtils';
-import { formatUnitTokenValue } from '../shared/tokenValueParsing';
+import {
+  buildBoxShadowCss,
+  buildGradientCss,
+  formatDimensionCss,
+  formatDurationCss,
+  getTypographyFontFamily,
+} from '../shared/compositeTokenUtils';
 
 const COMPLEX_PREVIEW_TYPES = new Set(['typography', 'shadow', 'gradient', 'border', 'cubicBezier', 'transition', 'composition']);
 export { COMPLEX_PREVIEW_TYPES };
 
-function dimensionToCss(val: any, fallback: string): string {
-  if (typeof val === 'string') return val;
-  if (
-    typeof val === 'number' ||
-    (typeof val === 'object' && val !== null && 'value' in val)
-  ) {
-    return formatUnitTokenValue(val, { type: 'dimension' });
-  }
-  return fallback;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
-function durationToCss(val: any, fallback: string): string {
-  if (typeof val === 'string') return val;
-  if (
-    typeof val === 'number' ||
-    (typeof val === 'object' && val !== null && 'value' in val)
-  ) {
-    return formatUnitTokenValue(val, { type: 'duration' });
-  }
-  return fallback;
-}
-
-function buildBoxShadowCss(value: any): string | null {
-  const shadows = Array.isArray(value) ? value : [value];
-  const parts = shadows
-    .filter((s): s is Record<string, any> => s !== null && typeof s === 'object')
-    .map(s => {
-      const { color = '#00000040', offsetX, offsetY, blur, spread, type } = s;
-      const ox = dimensionToCss(offsetX, '0px');
-      const oy = dimensionToCss(offsetY, '4px');
-      const b = dimensionToCss(blur, '8px');
-      const sp = dimensionToCss(spread, '0px');
-      const inset = type === 'innerShadow' ? 'inset ' : '';
-      return `${inset}${ox} ${oy} ${b} ${sp} ${color}`;
-    });
-  return parts.length > 0 ? parts.join(', ') : null;
-}
-
-function buildGradientCss(value: any): string | null {
-  if (typeof value === 'string' && value.includes('gradient')) return value;
-  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && 'color' in value[0]) {
-    const stops = (value as Array<{ color: string; position?: number }>)
-      .map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`)
-      .join(', ');
-    return `linear-gradient(to right, ${stops})`;
-  }
-  return null;
-}
-
-function TypographyPreview({ value }: { value: Record<string, any> }) {
-  const fontFamily = value.fontFamily || 'inherit';
-  const fontWeight = value.fontWeight || 400;
-  const fontSize = dimensionToCss(value.fontSize, '16px');
+function TypographyPreview({ value }: { value: Record<string, unknown> }) {
+  const fontFamily = getTypographyFontFamily(value) || 'inherit';
+  const fontWeight = typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string'
+    ? value.fontWeight
+    : 400;
+  const fontSize = formatDimensionCss(value.fontSize, '16px');
   const lineHeight = value.lineHeight
     ? (typeof value.lineHeight === 'number' && value.lineHeight <= 4
         ? String(value.lineHeight)
-        : dimensionToCss(value.lineHeight, 'normal'))
+        : formatDimensionCss(value.lineHeight, 'normal'))
     : 'normal';
-  const letterSpacing = value.letterSpacing ? dimensionToCss(value.letterSpacing, 'normal') : 'normal';
+  const letterSpacing = value.letterSpacing ? formatDimensionCss(value.letterSpacing, 'normal') : 'normal';
 
   const props = [fontFamily, `${fontSize}/${lineHeight}`, `wt ${fontWeight}`];
   if (value.fontStyle) props.push(value.fontStyle);
@@ -77,9 +40,9 @@ function TypographyPreview({ value }: { value: Record<string, any> }) {
           fontSize,
           lineHeight,
           letterSpacing,
-          fontStyle: value.fontStyle || 'normal',
-          textDecoration: value.textDecoration || 'none',
-          textTransform: value.textTransform || 'none',
+          fontStyle: typeof value.fontStyle === 'string' ? value.fontStyle : 'normal',
+          textDecoration: typeof value.textDecoration === 'string' ? value.textDecoration : 'none',
+          textTransform: typeof value.textTransform === 'string' ? value.textTransform : 'none',
           maxHeight: '3.5em',
         }}
       >
@@ -92,7 +55,7 @@ function TypographyPreview({ value }: { value: Record<string, any> }) {
   );
 }
 
-function ShadowPreview({ value }: { value: any }) {
+function ShadowPreview({ value }: { value: unknown }) {
   const css = buildBoxShadowCss(value);
   if (!css) return null;
   return (
@@ -105,7 +68,7 @@ function ShadowPreview({ value }: { value: any }) {
   );
 }
 
-function GradientPreview({ value }: { value: any }) {
+function GradientPreview({ value }: { value: unknown }) {
   const css = buildGradientCss(value);
   if (!css) return null;
   return (
@@ -164,9 +127,9 @@ function CubicBezierPreview({ value }: { value: number[] }) {
   );
 }
 
-function TransitionPreview({ value }: { value: Record<string, any> }) {
-  const dur = value.duration ? durationToCss(value.duration, '300ms') : '300ms';
-  const delay = value.delay ? durationToCss(value.delay, '0ms') : '0ms';
+function TransitionPreview({ value }: { value: Record<string, unknown> }) {
+  const dur = value.duration ? formatDurationCss(value.duration, '300ms') : '300ms';
+  const delay = value.delay ? formatDurationCss(value.delay, '0ms') : '0ms';
   const easing = Array.isArray(value.timingFunction)
     ? `cubic-bezier(${value.timingFunction.join(', ')})`
     : typeof value.timingFunction === 'string' ? value.timingFunction : 'ease';
@@ -193,7 +156,7 @@ function TransitionPreview({ value }: { value: Record<string, any> }) {
   );
 }
 
-function CompositionPreview({ value }: { value: Record<string, any> }) {
+function CompositionPreview({ value }: { value: Record<string, unknown> }) {
   const entries = Object.entries(value).filter(([k]) => !k.startsWith('$'));
   return (
     <div className="text-secondary space-y-0.5">
@@ -217,9 +180,9 @@ function CompositionPreview({ value }: { value: Record<string, any> }) {
   );
 }
 
-function BorderPreview({ value }: { value: Record<string, any> }) {
+function BorderPreview({ value }: { value: Record<string, unknown> }) {
   const colorStr = typeof value.color === 'string' ? swatchBgColor(value.color) : 'var(--color-figma-text)';
-  const widthStr = dimensionToCss(value.width, '1px');
+  const widthStr = formatDimensionCss(value.width, '1px');
   const styleStr = typeof value.style === 'string' ? value.style : 'solid';
   const border = `${widthStr} ${styleStr} ${colorStr}`;
 
@@ -242,8 +205,8 @@ function BorderPreview({ value }: { value: Record<string, any> }) {
   );
 }
 
-export function ComplexTypePreviewCard({ type, value }: { type: string; value: any }) {
-  if (typeof value !== 'object' || value === null) {
+export function ComplexTypePreviewCard({ type, value }: { type: string; value: unknown }) {
+  if (!isRecord(value)) {
     // Gradient can be a CSS string
     if (type === 'gradient' && typeof value === 'string') {
       return (
