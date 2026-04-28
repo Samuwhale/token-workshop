@@ -153,7 +153,6 @@ export interface SyncWorkspaceController {
 }
 
 export interface CollectionStructureWorkspaceController {
-  onCreateCollectionByName: (name: string) => Promise<string>;
   onRename: (
     oldName: string,
     newName: string,

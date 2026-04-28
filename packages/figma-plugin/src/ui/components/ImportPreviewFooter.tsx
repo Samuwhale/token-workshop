@@ -37,10 +37,12 @@ export function ImportPreviewFooter() {
     clearConflictState,
   } = useImportReviewContext();
 
+  const selectedCount = selectedTokens.size;
   const hasPreviewConflicts = conflictPaths === null && (previewOverwriteCount ?? 0) > 0;
   const previewConflictCount = previewOverwriteCount ?? 0;
+  const importDisabled = selectedCount === 0 || importing || checkingConflicts;
 
-  // If conflict resolver is active (after user clicked "Review individually" and conflicts were fetched)
+  // Once conflicts have been fetched, swap the footer for the resolver flow.
   if (conflictPaths !== null && conflictPaths.length > 0) {
     return (
       <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
@@ -163,21 +165,15 @@ export function ImportPreviewFooter() {
               onClick={handleImportStyles}
               className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
             >
-              Review individually&hellip;
+              Open conflict review&hellip;
             </button>
           )}
         </div>
       )}
 
       <button
-        onClick={() => {
-          if (hasPreviewConflicts) {
-            handleImportStyles();
-          } else {
-            handleImportStyles();
-          }
-        }}
-        disabled={selectedTokens.size === 0 || importing || checkingConflicts}
+        onClick={handleImportStyles}
+        disabled={importDisabled}
         className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 whitespace-normal leading-tight text-center"
       >
         {checkingConflicts
@@ -188,14 +184,14 @@ export function ImportPreviewFooter() {
               : 'Importing...'
             : hasPreviewConflicts
               ? `Review ${previewConflictCount} conflict${previewConflictCount === 1 ? "" : "s"} before import`
-              : `Import ${selectedTokens.size} token${selectedTokens.size !== 1 ? 's' : ''}`}
+              : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
       </button>
 
       {hasPreviewConflicts && (
         <button
           type="button"
           onClick={() => executeImport("overwrite")}
-          disabled={selectedTokens.size === 0 || importing || checkingConflicts}
+          disabled={importDisabled}
           className="w-full rounded px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40"
         >
           Replace {previewConflictCount} existing token{previewConflictCount === 1 ? "" : "s"}

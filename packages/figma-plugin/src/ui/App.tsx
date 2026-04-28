@@ -1583,7 +1583,6 @@ export function App() {
       publishApplying,
     },
     collectionStructure: {
-      onCreateCollectionByName: createCollectionByName,
       onRename: renameCollection,
       onDuplicate: handleDuplicateCollection,
       onDelete: startDelete,

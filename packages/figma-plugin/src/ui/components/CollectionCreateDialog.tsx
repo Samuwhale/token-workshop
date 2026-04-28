@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
-const COLLECTION_PATH_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+import { COLLECTION_NAME_RE } from "../shared/utils";
 
 export interface CreateCollectionRequest {
   name: string;
@@ -50,7 +49,7 @@ export function CollectionCreateDialog({
       setError("Collection name is required");
       return;
     }
-    if (!COLLECTION_PATH_RE.test(trimmedCollectionName)) {
+    if (!COLLECTION_NAME_RE.test(trimmedCollectionName)) {
       setError("Use letters, numbers, - and _. Use / to group related collections.");
       return;
     }
@@ -143,7 +142,7 @@ export function CollectionCreateDialog({
                 setCollectionName(event.target.value);
                 setError("");
               }}
-              placeholder="primitives or brand/primitives"
+              placeholder="primitives"
               disabled={pending}
               className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
             />
