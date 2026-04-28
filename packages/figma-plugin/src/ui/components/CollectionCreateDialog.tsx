@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Button } from "../primitives/Button";
 import {
   buildCollectionModeNames,
   CollectionAuthoringFields,
@@ -110,7 +111,7 @@ export function CollectionCreateDialog({
           </h2>
         </div>
 
-        <div className="tm-modal-body flex flex-col gap-3 py-3">
+        <div className="tm-modal-body py-3">
           <p className="text-secondary text-[var(--color-figma-text-secondary)]">
             Collections hold related tokens and their modes. Name the collection, then add the mode contexts this collection should support.
           </p>
@@ -150,21 +151,23 @@ export function CollectionCreateDialog({
         </div>
 
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)] pt-3">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="rounded px-2 py-1 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            variant="secondary"
+            className="w-full bg-[var(--color-figma-bg-secondary)]"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => void handleSubmit()}
             disabled={pending || !draft.name.trim()}
-            className="rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            variant="primary"
+            className="w-full"
           >
             {pending ? "Creating…" : "Create collection"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

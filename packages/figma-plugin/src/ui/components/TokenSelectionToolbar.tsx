@@ -112,33 +112,48 @@ export function TokenSelectionToolbar({
   );
 
   return (
-    <div className="flex flex-col gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-        <input
-          type="checkbox"
-          checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every(p => selectedPaths.has(p))}
-          ref={el => { if (el) el.indeterminate = selectedPaths.size > 0 && selectedPaths.size < displayedLeafPaths.size; }}
-          onChange={onSelectAll}
-          aria-label="Toggle select all"
-          className="shrink-0 accent-[var(--color-figma-accent)]"
-        />
-        <span className="shrink-0 min-w-[3ch] text-secondary tabular-nums text-[var(--color-figma-text-secondary)]">
-          {selectedPaths.size}/{displayedLeafPaths.size}
-        </span>
-        {searchQuery ? (
-          <span className="min-w-0 truncate text-secondary text-[var(--color-figma-text-secondary)]" title={`matching "${searchQuery}"`}>
-            matching &ldquo;{searchQuery}&rdquo;
-          </span>
-        ) : null}
-        {selectedPaths.size === 1 && !searchQuery ? (
-          <span className="min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]">
-            Shift-click to add a range
-          </span>
-        ) : null}
-      </div>
+    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      <div className="tm-responsive-toolbar px-3 py-2">
+        <div className="tm-responsive-toolbar__row">
+          <div className="tm-responsive-toolbar__leading">
+            <input
+              type="checkbox"
+              checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every(p => selectedPaths.has(p))}
+              ref={el => { if (el) el.indeterminate = selectedPaths.size > 0 && selectedPaths.size < displayedLeafPaths.size; }}
+              onChange={onSelectAll}
+              aria-label="Toggle select all"
+              className="shrink-0 accent-[var(--color-figma-accent)]"
+            />
+            <span className="shrink-0 min-w-[3ch] text-secondary tabular-nums text-[var(--color-figma-text-secondary)]">
+              {selectedPaths.size}/{displayedLeafPaths.size}
+            </span>
+            {searchQuery ? (
+              <span className="min-w-0 truncate text-secondary text-[var(--color-figma-text-secondary)]" title={`matching "${searchQuery}"`}>
+                matching &ldquo;{searchQuery}&rdquo;
+              </span>
+            ) : null}
+            {selectedPaths.size === 1 && !searchQuery ? (
+              <span className="min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                Shift-click to add a range
+              </span>
+            ) : null}
+          </div>
+          <div className="tm-responsive-toolbar__actions">
+            <button
+              onClick={onClearSelection}
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              aria-label="Clear selection"
+              title="Clear selection"
+            >
+              <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M2 2l6 6M8 2l-6 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-1">
-        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
+        <div className="tm-responsive-toolbar__row">
+          <div className="tm-responsive-toolbar__actions">
           {hasSelection && (
             <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
               {(close) => (
@@ -248,17 +263,8 @@ export function TokenSelectionToolbar({
               Delete
             </button>
           )}
+          </div>
         </div>
-
-        <button
-          onClick={onClearSelection}
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          aria-label="Clear selection"
-        >
-          <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-            <path d="M2 2l6 6M8 2l-6 6" />
-          </svg>
-        </button>
       </div>
     </div>
   );

@@ -170,7 +170,9 @@ export function TokenDetailsModeRow({
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
-        <span>{aliasMode ? "Direct value" : "Reference"}</span>
+        <span className="tm-token-mode-row__action-label">
+          {aliasMode ? "Direct value" : "Reference"}
+        </span>
       </button>
       {allowCopyFromPrevious && onCopyFromPrevious ? (
         <button
@@ -181,7 +183,7 @@ export function TokenDetailsModeRow({
           aria-label="Copy from previous mode"
         >
           <Copy size={12} strokeWidth={1.5} aria-hidden />
-          <span>Previous</span>
+          <span className="tm-token-mode-row__action-label">Previous</span>
         </button>
       ) : null}
       {allowCopyToAll && onCopyToAll ? (
@@ -193,7 +195,7 @@ export function TokenDetailsModeRow({
           aria-label="Copy to all other modes"
         >
           <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-          <span>All modes</span>
+          <span className="tm-token-mode-row__action-label">All modes</span>
         </button>
       ) : null}
     </div>

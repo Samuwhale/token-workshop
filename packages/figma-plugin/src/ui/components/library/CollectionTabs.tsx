@@ -187,7 +187,8 @@ export function CollectionTabs({
       </div>
 
       {(showSearch || showImportButton || showCreateButton || showSettingsButton) ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-1">
+        <div className="tm-responsive-toolbar">
+          <div className="tm-responsive-toolbar__row">
           {showSettingsButton ? (
             <button
               type="button"
@@ -206,10 +207,10 @@ export function CollectionTabs({
               }`}
             >
               <Settings2 size={11} strokeWidth={1.5} aria-hidden />
-              <span>Settings</span>
+              <span className="truncate">Settings</span>
             </button>
           ) : null}
-          <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-1">
+          <div className="tm-responsive-toolbar__actions">
           {showSearch ? (
             <div className="relative shrink-0">
               <button
@@ -220,13 +221,14 @@ export function CollectionTabs({
                 aria-haspopup="dialog"
                 aria-label="Find collection"
                 title="Find collection"
-                className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
+                className={`inline-flex h-7 items-center gap-1 rounded px-2 transition-colors ${
                   searchMenu.open
                     ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                     : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                 }`}
               >
                 <Search size={12} strokeWidth={1.5} aria-hidden />
+                <span className="truncate">Find</span>
               </button>
 
               {searchMenu.open ? (
@@ -347,6 +349,7 @@ export function CollectionTabs({
             <button
               type="button"
               onClick={onOpenImport}
+              title="Import collections"
               className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
             >
               <Upload size={12} strokeWidth={1.5} aria-hidden />
@@ -358,11 +361,13 @@ export function CollectionTabs({
             <button
               type="button"
               onClick={onOpenCreateCollection}
+              title="Create collection"
               className="inline-flex h-7 shrink-0 items-center rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
             >
               New collection
             </button>
           ) : null}
+        </div>
         </div>
         </div>
       ) : null}
