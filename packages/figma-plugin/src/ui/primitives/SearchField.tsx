@@ -61,7 +61,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
           disabled={disabled}
           {...rest}
           className={cx(
-            "w-full rounded border border-transparent bg-[var(--color-figma-bg)] text-body text-[color:var(--color-figma-text)] outline-none transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--color-figma-bg)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] disabled:opacity-40",
+            "w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body text-[color:var(--color-figma-text)] outline-none transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)] focus-visible:border-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-bg)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40",
             SIZE_CLASS[size],
             className,
           )}
@@ -72,7 +72,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
             aria-label="Clear search"
             onClick={onClear}
             disabled={disabled}
-            className="absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40"
+            className="absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <X size={12} strokeWidth={1.5} aria-hidden="true" />
           </button>

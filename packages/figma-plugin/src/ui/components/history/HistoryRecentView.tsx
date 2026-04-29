@@ -191,6 +191,7 @@ export function HistoryRecentView({
             title={filterTokenPath || searchQuery || collectionFilter ? 'No results' : 'No recent activity'}
             description={filterTokenPath || searchQuery || collectionFilter ? 'Try a different search or clear filters.' : 'Make an edit to see changes here.'}
             secondaryAction={filterTokenPath || searchQuery || collectionFilter ? { label: 'Clear filters', onClick: () => { setSearchQuery(''); onClearFilter?.(); } } : undefined}
+            align="start"
           />
         ) : (
           <>

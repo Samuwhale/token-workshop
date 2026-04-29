@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
+import { Button } from '../primitives';
 
 export type FeedbackPlaceholderVariant = 'empty' | 'no-results' | 'error' | 'disconnected';
 export type FeedbackPlaceholderSize = 'full' | 'section';
+export type FeedbackPlaceholderAlign = 'center' | 'start';
 
 type FeedbackPlaceholderActionTone = 'primary' | 'secondary';
 
@@ -25,6 +27,7 @@ interface FeedbackPlaceholderProps {
   secondaryAction?: FeedbackPlaceholderAction;
   children?: ReactNode;
   className?: string;
+  align?: FeedbackPlaceholderAlign;
 }
 
 const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
@@ -34,14 +37,14 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   description: string;
 }> = {
   full: {
-    container: 'flex h-full w-full flex-1 flex-col items-center justify-center px-3 py-3 text-center',
-    content: 'flex w-full max-w-[360px] min-w-0 flex-col items-center gap-2',
+    container: 'flex h-full w-full flex-1 flex-col justify-center px-3 py-3',
+    content: 'flex w-full max-w-[360px] min-w-0 flex-col gap-2',
     title: 'text-body font-medium',
     description: 'text-body leading-[var(--leading-body)]',
   },
   section: {
-    container: 'flex w-full flex-col items-center justify-center px-3 py-2 text-center',
-    content: 'flex w-full max-w-[340px] min-w-0 flex-col items-center gap-1.5',
+    container: 'flex w-full flex-col justify-center px-3 py-2',
+    content: 'flex w-full max-w-[340px] min-w-0 flex-col gap-1.5',
     title: 'text-secondary font-medium',
     description: 'text-body leading-[var(--leading-body)]',
   },
@@ -99,34 +102,31 @@ function defaultIcon(variant: FeedbackPlaceholderVariant): ReactNode {
   }
 }
 
-function actionButtonClass(tone: FeedbackPlaceholderActionTone): string {
-  if (tone === 'primary') {
-    return 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40';
-  }
-  return 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40';
-}
-
 function FeedbackActionButton({
   action,
   defaultTone,
+  align,
 }: {
   action: FeedbackPlaceholderAction;
   defaultTone: FeedbackPlaceholderActionTone;
+  align: FeedbackPlaceholderAlign;
 }) {
   const tone = action.tone ?? defaultTone;
   return (
-    <button
+    <Button
       type={action.type ?? 'button'}
       onClick={action.onClick}
       disabled={action.disabled}
       title={action.title}
+      variant={tone === 'primary' ? 'primary' : 'secondary'}
+      size="sm"
       className={joinClasses(
-        'min-h-7 rounded-md px-2.5 py-1 text-secondary font-medium transition-colors',
-        actionButtonClass(tone),
+        align === 'start' ? 'justify-start' : '',
+        tone === 'secondary' ? 'bg-[var(--color-figma-bg-secondary)]' : '',
       )}
     >
       {action.label}
-    </button>
+    </Button>
   );
 }
 
@@ -141,6 +141,7 @@ export function FeedbackPlaceholder({
   secondaryAction,
   children,
   className,
+  align = 'center',
 }: FeedbackPlaceholderProps) {
   const sizeStyles = SIZE_STYLES[size];
   const iconColor = VARIANT_ICON_COLOR[variant];
@@ -151,8 +152,19 @@ export function FeedbackPlaceholder({
   ].filter((action): action is FeedbackPlaceholderAction => action !== undefined);
 
   return (
-    <div className={joinClasses(sizeStyles.container, className)}>
-      <div className={sizeStyles.content}>
+    <div
+      className={joinClasses(
+        sizeStyles.container,
+        align === 'center' ? 'items-center text-center' : 'items-start text-left',
+        className,
+      )}
+    >
+      <div
+        className={joinClasses(
+          sizeStyles.content,
+          align === 'center' ? 'items-center' : 'items-start',
+        )}
+      >
         {iconNode !== null ? (
           <div className={iconColor}>
             {iconNode}
@@ -168,12 +180,18 @@ export function FeedbackPlaceholder({
         </div>
         {children}
         {resolvedActions.length > 0 ? (
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div
+            className={joinClasses(
+              'flex flex-wrap items-center gap-2',
+              align === 'center' ? 'justify-center' : 'justify-start',
+            )}
+          >
             {resolvedActions.map((action, index) => (
               <FeedbackActionButton
                 key={`${action.label}-${index}`}
                 action={action}
                 defaultTone={action.tone ?? (index === resolvedActions.length - 1 ? 'primary' : 'secondary')}
+                align={align}
               />
             ))}
           </div>

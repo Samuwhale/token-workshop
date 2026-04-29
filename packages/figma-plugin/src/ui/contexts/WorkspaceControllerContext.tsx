@@ -165,7 +165,7 @@ export interface CollectionStructureWorkspaceController {
   editingMetadataCollectionId: string | null;
   metadataDescription: string;
   setMetadataDescription: (value: string) => void;
-  onMetadataSave: () => void;
+  onMetadataSave: () => void | Promise<void>;
   deletingCollectionId: string | null;
   onDeleteConfirm: () => void | Promise<void>;
   onDeleteCancel: () => void;

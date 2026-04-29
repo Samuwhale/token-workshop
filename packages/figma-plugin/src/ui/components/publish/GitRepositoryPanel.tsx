@@ -62,6 +62,7 @@ export function GitRepositoryPanel({
         variant="disconnected"
         title="Connect to the token server"
         description="Connect to save and share versions."
+        align="start"
       />
     );
   }

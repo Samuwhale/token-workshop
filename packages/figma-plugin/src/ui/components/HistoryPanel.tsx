@@ -111,6 +111,7 @@ export function HistoryPanel({
         variant="disconnected"
         title="Not connected"
         description="Connect to the token server to view history."
+        align="start"
       />
     );
   }

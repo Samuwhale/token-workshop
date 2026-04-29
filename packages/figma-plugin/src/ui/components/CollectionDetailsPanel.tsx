@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { apiFetch } from "../shared/apiFetch";
 import { getCollectionDisplayName } from "../shared/libraryCollections";
-import { ActionRow, IconButton, TextInput } from "../primitives";
+import { ActionRow, Button, IconButton, TextInput } from "../primitives";
 import {
   CollectionMergeInline,
   CollectionDeleteDialog,
@@ -37,7 +37,7 @@ interface CollectionDetailsPanelProps {
   editingMetadataCollectionId?: string | null;
   metadataDescription?: string;
   setMetadataDescription?: (value: string) => void;
-  onMetadataSave?: () => void;
+  onMetadataSave?: () => void | Promise<void>;
   deletingCollectionId?: string | null;
   onDeleteConfirm?: () => void | Promise<void>;
   onDeleteCancel?: () => void;
@@ -260,19 +260,12 @@ function ModeRow({
 
   return (
     <div className="tm-collection-details__mode-row group">
-      <button
-        type="button"
-        onDoubleClick={() => {
-          if (connected) {
-            setRenameValue(modeName);
-            setRenaming(true);
-          }
-        }}
+      <div
         className="tm-collection-details__mode-name text-left text-body text-[color:var(--color-figma-text)]"
-        title={connected ? "Double-click to rename" : modeName}
+        title={modeName}
       >
         {modeName}
-      </button>
+      </div>
       {connected ? (
         <div className="tm-collection-details__mode-actions">
           <IconButton
@@ -434,14 +427,16 @@ function ModesSection({
               ) : null}
             </div>
           ) : (
-            <button
+            <Button
               type="button"
               onClick={() => setAdding(true)}
-              className="mt-1 flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-body text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+              variant="ghost"
+              size="sm"
+              className="mt-1 w-full justify-start"
             >
               <Plus size={11} strokeWidth={1.8} aria-hidden />
               Add mode
-            </button>
+            </Button>
           )
         ) : null}
       </div>
@@ -507,11 +502,13 @@ export function CollectionDetailsPanel({
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState("");
+  const [metadataSaving, setMetadataSaving] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setRenaming(false);
     setRenameError("");
+    setMetadataSaving(false);
   }, [collection?.id]);
 
   useLayoutEffect(() => {
@@ -623,6 +620,17 @@ export function CollectionDetailsPanel({
     editingMetadataCollectionId === collection.id ? metadataDescription : savedDescription;
   const descriptionDirty =
     editingMetadataCollectionId === collection.id && metadataDescription !== savedDescription;
+  const saveDescription = useCallback(async () => {
+    if (!descriptionDirty || !onMetadataSave) {
+      return;
+    }
+    setMetadataSaving(true);
+    try {
+      await onMetadataSave();
+    } finally {
+      setMetadataSaving(false);
+    }
+  }, [descriptionDirty, onMetadataSave]);
 
   const canMerge =
     !!onMerge && collectionIds.some((collectionId) => collectionId !== collection.id);
@@ -680,9 +688,8 @@ export function CollectionDetailsPanel({
               <div className="tm-collection-details__header">
                 {renaming ? (
                   <div className="tm-collection-details__heading">
-                    <input
+                    <TextInput
                       ref={renameInputRef}
-                      type="text"
                       value={renameValue}
                       onChange={(e) => {
                         setRenameValue(e.target.value);
@@ -693,7 +700,7 @@ export function CollectionDetailsPanel({
                         if (e.key === "Escape") cancelRename();
                       }}
                       onBlur={() => void confirmRename()}
-                      className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-[color:var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                      className="w-full text-[17px] font-semibold tracking-tight"
                     />
                     {renameError ? (
                       <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{renameError}</p>
@@ -701,25 +708,52 @@ export function CollectionDetailsPanel({
                   </div>
                 ) : (
                   <div className="tm-collection-details__heading">
-                    <h2
-                      className="tm-collection-details__title"
-                      onDoubleClick={onRename ? startRename : undefined}
-                      title={onRename ? "Double-click to rename" : undefined}
-                    >
-                      {displayName}
-                    </h2>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <h2 className="tm-collection-details__title">{displayName}</h2>
+                      {onRename ? (
+                        <Button
+                          type="button"
+                          onClick={startRename}
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0"
+                        >
+                          <Pencil size={11} strokeWidth={1.75} aria-hidden />
+                          Rename
+                        </Button>
+                      ) : null}
+                    </div>
 
-                    {/* Inline description — auto-save on blur, no separate button */}
                     <textarea
                       value={currentDescription}
                       onChange={(e) => setMetadataDescription?.(e.target.value)}
-                      onBlur={() => {
-                        if (descriptionDirty) void onMetadataSave?.();
-                      }}
                       rows={2}
                       placeholder="Add a description…"
-                      className="w-full resize-none bg-transparent p-0 text-body leading-[1.5] text-[color:var(--color-figma-text-secondary)] outline-none placeholder:text-[color:var(--color-figma-text-tertiary)]"
+                      aria-label="Collection description"
+                      className="w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-body leading-[1.5] text-[color:var(--color-figma-text-secondary)] outline-none placeholder:text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                     />
+                    {descriptionDirty || metadataSaving ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => void saveDescription()}
+                          variant="primary"
+                          size="sm"
+                          disabled={metadataSaving}
+                        >
+                          {metadataSaving ? "Saving…" : "Save description"}
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => setMetadataDescription?.(savedDescription)}
+                          variant="ghost"
+                          size="sm"
+                          disabled={metadataSaving || !descriptionDirty}
+                        >
+                          Revert
+                        </Button>
+                      </div>
+                    ) : null}
 
                     {showRawId ? (
                       <div className="tm-collection-details__raw-id text-secondary text-[color:var(--color-figma-text-tertiary)]">

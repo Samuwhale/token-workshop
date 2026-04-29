@@ -104,13 +104,14 @@ export function HistorySavedView({
             {['w-3/4', 'w-1/2', 'w-2/3'].map((w, i) => <SkeletonTimelineRow key={i} titleWidth={w} />)}
           </div>
         ) : error ? (
-          <FeedbackPlaceholder variant="error" title="Failed to load checkpoints" description={error} primaryAction={{ label: 'Retry', onClick: fetchSnapshots }} />
+          <FeedbackPlaceholder variant="error" title="Failed to load checkpoints" description={error} primaryAction={{ label: 'Retry', onClick: fetchSnapshots }} align="start" />
         ) : filteredSnapshots.length === 0 ? (
           <FeedbackPlaceholder
             variant="empty"
             size="section"
             title={snapshots.length === 0 ? 'No checkpoints yet' : 'No matches'}
             description={snapshots.length === 0 ? 'Save a checkpoint before large changes to restore later.' : 'Try a different search.'}
+            align="start"
           />
         ) : (
           filteredSnapshots.map(snapshot => (

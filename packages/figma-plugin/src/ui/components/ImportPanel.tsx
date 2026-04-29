@@ -87,6 +87,7 @@ function ImportPanelRoot({
           variant="disconnected"
           title="Connect to the token server"
           description="Import requires an active server connection."
+          align="start"
         />
       </SecondaryPanel>
     );
@@ -114,6 +115,7 @@ function ImportPanelRoot({
           size="section"
           title="Import failed"
           description={error}
+          align="start"
         />
       )}
 
