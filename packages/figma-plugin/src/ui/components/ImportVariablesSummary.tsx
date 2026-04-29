@@ -132,7 +132,9 @@ export function ImportVariablesSummary() {
                       }}
                       title="Rename destination collection"
                     >
-                      <span className="truncate">{summary.destinationName}</span>
+                      <span className="block min-w-0 [overflow-wrap:anywhere]">
+                        {summary.destinationName}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -142,7 +144,7 @@ export function ImportVariablesSummary() {
               </span>
             </div>
             {summary.modeCount > 1 && (
-              <div className="mt-1 break-words text-secondary text-[var(--color-figma-text-tertiary)]">
+              <div className="mt-1 [overflow-wrap:anywhere] text-secondary text-[var(--color-figma-text-tertiary)]">
                 {summary.modeNames.join(', ')}
               </div>
             )}

@@ -18,8 +18,8 @@ export function ImportSourceHome() {
   const validationIsError = fileImportValidation && (fileImportValidation.status === 'error' || fileImportValidation.status === 'unsupported');
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
+    <div className="tm-import-home">
+      <div className="tm-import-home__section">
         <div className="text-body font-medium text-[var(--color-figma-text)]">
           Bring tokens into this library
         </div>
@@ -28,14 +28,14 @@ export function ImportSourceHome() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
           From this Figma file
         </div>
         <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
           Keep existing collection and mode structure when importing variables.
         </div>
-        <div className="flex gap-2">
+        <div className="tm-import-home__actions">
           <button
             onClick={handleReadVariables}
             className="flex-1 flex items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-body font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
@@ -61,7 +61,7 @@ export function ImportSourceHome() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
           From a file
         </div>
@@ -73,7 +73,7 @@ export function ImportSourceHome() {
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className={`flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed py-6 transition-colors cursor-pointer ${
+          className={`tm-import-home__dropzone flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${
             isDragging
               ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
               : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)]'

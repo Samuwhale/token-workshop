@@ -149,9 +149,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   return (
     <>
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-end px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
-          <PanelHelpIcon panelKey="export" title="Export" expanded={help.expanded} onToggle={help.toggle} />
+      <div className="tm-secondary-panel h-full">
+        <div className="tm-secondary-panel__header">
+          <div className="tm-secondary-panel__header-copy">
+            <h2 className="tm-secondary-panel__title">Export files</h2>
+            <p className="tm-secondary-panel__description">
+              Generate platform token files for apps, web, and developer handoff.
+            </p>
+          </div>
+          <div className="tm-secondary-panel__actions">
+            <PanelHelpIcon panelKey="export" title="Export" expanded={help.expanded} onToggle={help.toggle} />
+          </div>
         </div>
         {help.expanded && (
           <PanelHelpBanner
@@ -160,7 +168,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             onDismiss={help.dismiss}
           />
         )}
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
+        <div className="tm-secondary-panel__body gap-4">
           {error && (
             <InlineBanner variant="error">
               {error}

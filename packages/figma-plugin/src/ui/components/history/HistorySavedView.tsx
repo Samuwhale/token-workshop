@@ -76,8 +76,8 @@ export function HistorySavedView({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <div className="flex items-center gap-1 flex-1 min-w-0">
+      <div className="shrink-0 flex items-center gap-2 px-3 py-1.5">
+        <div className="tm-panel-search flex-1">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
@@ -87,7 +87,7 @@ export function HistorySavedView({
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search checkpoints…"
             aria-label="Search checkpoints"
-            className="flex-1 min-w-0 bg-transparent text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="tm-panel-search__input text-secondary"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors" aria-label="Clear search">

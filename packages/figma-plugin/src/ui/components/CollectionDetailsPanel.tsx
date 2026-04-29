@@ -259,7 +259,7 @@ function ModeRow({
   }
 
   return (
-    <div className="group flex items-center gap-2 rounded px-2 py-1 transition-colors hover:bg-[var(--color-figma-bg-hover)]">
+    <div className="tm-collection-details__mode-row group">
       <button
         type="button"
         onDoubleClick={() => {
@@ -268,13 +268,13 @@ function ModeRow({
             setRenaming(true);
           }
         }}
-        className="min-w-0 flex-1 truncate text-left text-body text-[var(--color-figma-text)]"
+        className="tm-collection-details__mode-name text-left text-body text-[var(--color-figma-text)]"
         title={connected ? "Double-click to rename" : modeName}
       >
         {modeName}
       </button>
       {connected && allModeNames.length > 1 ? (
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="tm-collection-details__mode-actions">
           <IconButton
             size="sm"
             onClick={() => {
@@ -589,7 +589,7 @@ export function CollectionDetailsPanel({
 
   if (!collection) {
     return (
-      <div className={shellClass}>
+      <div className={`${shellClass} tm-collection-details`}>
         <div className={contentClass}>
           {showCloseButton ? (
             <div className="flex justify-end px-2 pt-2">
@@ -633,7 +633,7 @@ export function CollectionDetailsPanel({
     onMergeConfirm
   ) {
     return (
-      <div className={shellClass}>
+      <div className={`${shellClass} tm-collection-details`}>
         <div className={contentClass}>
           <CollectionMergeInline
             collectionIds={collectionIds}
@@ -660,7 +660,7 @@ export function CollectionDetailsPanel({
 
   return (
     <>
-      <div className={shellClass}>
+      <div className={`${shellClass} tm-collection-details`}>
         <div className={contentClass}>
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             <div className="px-4 pb-3 pt-4">
@@ -674,9 +674,9 @@ export function CollectionDetailsPanel({
                   {returnLabel}
                 </button>
               ) : null}
-              <div className="flex min-w-0 items-start gap-2">
+              <div className="tm-collection-details__header">
                 {renaming ? (
-                  <div className="min-w-0 flex-1">
+                  <div className="tm-collection-details__heading">
                     <input
                       ref={renameInputRef}
                       type="text"
@@ -697,13 +697,38 @@ export function CollectionDetailsPanel({
                     ) : null}
                   </div>
                 ) : (
-                  <h2
-                    className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-tight text-[var(--color-figma-text)]"
-                    onDoubleClick={onRename ? startRename : undefined}
-                    title={onRename ? "Double-click to rename" : undefined}
-                  >
-                    {displayName}
-                  </h2>
+                  <div className="tm-collection-details__heading">
+                    <h2
+                      className="tm-collection-details__title"
+                      onDoubleClick={onRename ? startRename : undefined}
+                      title={onRename ? "Double-click to rename" : undefined}
+                    >
+                      {displayName}
+                    </h2>
+
+                    {/* Inline description — auto-save on blur, no separate button */}
+                    <textarea
+                      value={currentDescription}
+                      onChange={(e) => setMetadataDescription?.(e.target.value)}
+                      onBlur={() => {
+                        if (descriptionDirty) void onMetadataSave?.();
+                      }}
+                      rows={2}
+                      placeholder="Add a description…"
+                      className="w-full resize-none bg-transparent p-0 text-body leading-[1.5] text-[var(--color-figma-text-secondary)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                    />
+
+                    {showRawId ? (
+                      <div className="tm-collection-details__raw-id text-secondary text-[var(--color-figma-text-tertiary)]">
+                        ID <span className="font-mono">{collection.id}</span>
+                      </div>
+                    ) : null}
+
+                    <div className="tm-collection-details__stats">
+                      <Stat value={tokenCount} label={tokenCount === 1 ? "token" : "tokens"} />
+                      <Stat value={modeCount} label={modeCount === 1 ? "mode" : "modes"} />
+                    </div>
+                  </div>
                 )}
                 {showCloseButton && !returnLabel ? (
                   <IconButton
@@ -715,30 +740,6 @@ export function CollectionDetailsPanel({
                     <X size={12} strokeWidth={2} aria-hidden />
                   </IconButton>
                 ) : null}
-              </div>
-
-              {/* Inline description — auto-save on blur, no separate button */}
-              <textarea
-                value={currentDescription}
-                onChange={(e) => setMetadataDescription?.(e.target.value)}
-                onBlur={() => {
-                  if (descriptionDirty) void onMetadataSave?.();
-                }}
-                rows={2}
-                placeholder="Add a description…"
-                className="mt-2 w-full resize-none bg-transparent p-0 text-body leading-[1.5] text-[var(--color-figma-text-secondary)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
-              />
-
-              {showRawId ? (
-                <div className="mt-2 truncate text-secondary text-[var(--color-figma-text-tertiary)]">
-                  ID <span className="font-mono">{collection.id}</span>
-                </div>
-              ) : null}
-
-              {/* Stats row */}
-              <div className="mt-3 flex items-start gap-5">
-                <Stat value={tokenCount} label={tokenCount === 1 ? "token" : "tokens"} />
-                <Stat value={modeCount} label={modeCount === 1 ? "mode" : "modes"} />
               </div>
             </div>
 

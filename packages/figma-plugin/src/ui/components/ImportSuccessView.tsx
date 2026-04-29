@@ -70,7 +70,7 @@ export function ImportSuccessView() {
       ) : null}
 
       {hasFailedWrites && (
-        <div className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+        <div className="w-full max-w-[560px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-2 text-secondary">
               <span className="text-[var(--color-figma-success)] font-medium">{succeededImportCount} ok</span>
@@ -96,7 +96,7 @@ export function ImportSuccessView() {
                 </div>
                 <ul className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] space-y-0.5">
                   {group.paths.slice(0, 3).map(path => (
-                    <li key={`${group.collectionId}:${path}`} className="font-mono truncate" title={path}>{path}</li>
+                    <li key={`${group.collectionId}:${path}`} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
                   ))}
                   {group.paths.length > 3 && <li className="italic">...{group.paths.length - 3} more</li>}
                 </ul>
@@ -105,7 +105,7 @@ export function ImportSuccessView() {
           ) : (
             <ul className="text-secondary text-[var(--color-figma-text-secondary)] space-y-0.5">
               {failedImportPaths.slice(0, 5).map(path => (
-                <li key={path} className="font-mono truncate" title={path}>{path}</li>
+                <li key={path} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
               ))}
               {failedImportPaths.length > 5 && <li className="italic">...{failedImportPaths.length - 5} more</li>}
             </ul>

@@ -142,14 +142,16 @@ export function ImportTokenListView() {
         )}
 
         {tokens.length > 10 && (
-          <input
-            type="search"
-            placeholder="Filter…"
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            className="min-w-0 flex-[999_1_180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:border-[var(--color-figma-accent)] focus:outline-none"
-            aria-label="Filter tokens by name or value"
-          />
+          <div className="tm-panel-search min-w-0 flex-[999_1_180px]">
+            <input
+              type="search"
+              placeholder="Filter by name or value"
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              className="tm-panel-search__input"
+              aria-label="Filter tokens by name or value"
+            />
+          </div>
         )}
       </div>
 

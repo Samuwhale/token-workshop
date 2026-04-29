@@ -116,7 +116,7 @@ export function HistoryPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 pb-1 pt-2">
         <div
           role="tablist"
           aria-label="History views"
@@ -177,9 +177,9 @@ export function HistoryPanel({
       </div>
 
       {showSaveInput ? (
-        <div className="shrink-0 flex flex-wrap items-center gap-1.5 px-3 pb-2">
+        <div className="tm-panel-inline-form shrink-0 px-3 pb-2">
           <input
-            className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)]"
+            className="tm-panel-inline-form__field min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)]"
             placeholder="Checkpoint label"
             value={saveLabel}
             onChange={(event) => setSaveLabel(event.target.value)}
@@ -195,22 +195,24 @@ export function HistoryPanel({
             }}
             autoFocus
           />
-          <button
-            onClick={() => void handleSaveSnapshot()}
-            disabled={saving}
-            className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
-          <button
-            onClick={() => {
-              setShowSaveInput(false);
-              setSaveLabel("");
-            }}
-            className="shrink-0 rounded px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)]"
-          >
-            Cancel
-          </button>
+          <div className="tm-panel-inline-form__actions">
+            <button
+              onClick={() => void handleSaveSnapshot()}
+              disabled={saving}
+              className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => {
+                setShowSaveInput(false);
+                setSaveLabel("");
+              }}
+              className="shrink-0 rounded px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)]"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       ) : null}
 

@@ -67,12 +67,15 @@ function ImportPanelRoot({
 
   if (!connected) {
     return (
-      <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-body font-medium text-[var(--color-figma-text)]">
-              Import tokens
-            </div>
+      <div className="tm-secondary-panel relative h-full">
+        <div className="tm-secondary-panel__header">
+          <div className="tm-secondary-panel__header-copy">
+            <h2 className="tm-secondary-panel__title">Import tokens</h2>
+            <p className="tm-secondary-panel__description">
+              Bring in variables, styles, or token files.
+            </p>
+          </div>
+          <div className="tm-secondary-panel__actions">
             <button
               type="button"
               onClick={onClose}
@@ -94,19 +97,17 @@ function ImportPanelRoot({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-body font-medium text-[var(--color-figma-text)]">
-              Import tokens
-            </div>
-            {showHome ? (
-              <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-                Bring in variables, styles, or token files.
-              </div>
-            ) : null}
-          </div>
+    <div className="tm-secondary-panel relative h-full">
+      <div className="tm-secondary-panel__header">
+        <div className="tm-secondary-panel__header-copy">
+          <h2 className="tm-secondary-panel__title">Import tokens</h2>
+          {showHome ? (
+            <p className="tm-secondary-panel__description">
+              Bring in variables, styles, or token files.
+            </p>
+          ) : null}
+        </div>
+        <div className="tm-secondary-panel__actions">
           <button
             type="button"
             onClick={onClose}
@@ -116,7 +117,7 @@ function ImportPanelRoot({
           </button>
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+      <div className="tm-secondary-panel__body">
         {error && (
           <FeedbackPlaceholder
             variant="error"

@@ -147,7 +147,7 @@ export function HistoryRecentView({
       )}
 
       <div className="shrink-0 flex items-center gap-2 px-3 py-1.5">
-        <div className="flex items-center gap-1 flex-1 min-w-0 rounded bg-[var(--color-figma-bg-secondary)] px-2">
+        <div className="tm-panel-search flex-1">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
@@ -157,7 +157,7 @@ export function HistoryRecentView({
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search activity"
             aria-label="Search activity"
-            className="flex-1 min-w-0 bg-transparent py-1 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="tm-panel-search__input py-1 text-secondary"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors" aria-label="Clear search">
