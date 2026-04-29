@@ -125,14 +125,14 @@ html.figma-light {
   --color-figma-text-secondary: #666666;
   --color-figma-text-tertiary: #737373;
   --color-figma-border: #e0e0e0;
-  --color-figma-accent: #0c8ce9;
-  --color-figma-accent-hover: #0a7dd4;
+  --color-figma-accent: #006fbd;
+  --color-figma-accent-hover: #005fa8;
   --color-figma-action-bg: #006fbd;
   --color-figma-action-bg-hover: #005fa8;
   --color-figma-text-onbrand: #ffffff;
-  --color-figma-success: #14ae5c;
-  --color-figma-warning: #f2a20d;
-  --color-figma-error: #f24822;
+  --color-figma-success: #0b7a3b;
+  --color-figma-warning: #9a6200;
+  --color-figma-error: #b83118;
 
   --color-figma-managed: #a86b1f;
 
