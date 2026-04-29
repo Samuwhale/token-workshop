@@ -251,11 +251,15 @@ export function CollectionTabs({
                   ) : null}
                 </div>
 
-                <div className="min-h-0 overflow-y-auto">
+                <div
+                  className="min-h-0 overflow-y-auto"
+                  role="radiogroup"
+                  aria-label="Collections"
+                >
                   {allCollectionsScope ? (
                     <button
                       type="button"
-                      role="menuitemradio"
+                      role="radio"
                       aria-checked={allCollectionsScope.selected}
                       onClick={handleSelectAll}
                       className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
@@ -307,7 +311,7 @@ export function CollectionTabs({
                         <button
                           key={collectionId}
                           type="button"
-                          role="menuitemradio"
+                          role="radio"
                           aria-checked={isCurrent}
                           onClick={() => handleSelectCollection(collectionId)}
                           className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
@@ -359,7 +363,7 @@ export function CollectionTabs({
                     : "Manage collection"
                 }
                 aria-pressed={activeCollectionSettings?.open === true}
-                className={`tm-collection-toolbar__action inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+                className={`tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors ${
                   activeCollectionSettings?.open === true
                     ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                     : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
@@ -377,7 +381,7 @@ export function CollectionTabs({
                 type="button"
                 onClick={onOpenCreateCollection}
                 title="Create collection"
-                className="tm-collection-toolbar__action tm-collection-toolbar__action--primary inline-flex h-7 shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                className="tm-collection-toolbar__action tm-collection-toolbar__action--primary inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
               >
                 <Plus size={12} strokeWidth={1.7} aria-hidden />
                 <span className="tm-toolbar-action__label">New collection</span>
@@ -389,7 +393,7 @@ export function CollectionTabs({
                 type="button"
                 onClick={onOpenImport}
                 title="Import collections"
-                className="tm-collection-toolbar__action inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
                 <Upload size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">

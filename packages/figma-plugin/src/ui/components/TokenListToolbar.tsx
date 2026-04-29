@@ -460,7 +460,9 @@ export function TokenListToolbar({
                         <span className="font-mono font-semibold text-[var(--color-figma-accent)]">
                           {hint.label}
                         </span>
-                        <span className="truncate">{hint.desc}</span>
+                        <span className="min-w-0 flex-1 whitespace-normal break-words leading-tight">
+                          {hint.desc}
+                        </span>
                       </button>
                     ))}
                   </div>

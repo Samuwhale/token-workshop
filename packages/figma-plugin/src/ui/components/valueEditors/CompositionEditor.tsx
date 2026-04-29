@@ -69,7 +69,7 @@ function CompositionPropertyEditor({
 
   if (propType === 'color') {
     return (
-      <Stack direction="row" gap={2} align="center" className="flex-1">
+      <Stack direction="row" gap={2} align="center" wrap className="flex-1">
         {!isAlias && typeof value === 'string' && value && !value.startsWith('{') && (
           <ColorSwatchButton
             color={value}
@@ -113,7 +113,7 @@ function CompositionPropertyEditor({
 
   if (propType === 'number') {
     return (
-      <Stack direction="row" gap={2} align="center" className="flex-1">
+      <Stack direction="row" gap={2} align="center" wrap className="flex-1">
         <input
           type="range"
           min="0"
@@ -161,7 +161,7 @@ function CompositionPropertyEditor({
       );
     }
     return (
-      <Stack direction="row" gap={2} align="center" className="flex-1">
+      <Stack direction="row" gap={2} align="center" wrap className="flex-1">
         <button
           type="button"
           onClick={() => onChange(!value)}

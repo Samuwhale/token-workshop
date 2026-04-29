@@ -117,64 +117,68 @@ export function HistoryPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 pb-1 pt-2">
-        <div
-          role="tablist"
-          aria-label="History views"
-          className="inline-flex min-w-0 max-w-full flex-wrap items-center rounded bg-[var(--color-figma-bg-secondary)] p-0.5"
-          onKeyDown={(event) => {
-            const currentIndex = HISTORY_VIEWS.findIndex((view) => view.id === scope.view);
-            if (event.key === "ArrowRight") {
-              event.preventDefault();
-              const next = HISTORY_VIEWS[(currentIndex + 1) % HISTORY_VIEWS.length];
-              handleViewChange(next.id);
-              document.getElementById(`history-tab-${next.id}`)?.focus();
-            } else if (event.key === "ArrowLeft") {
-              event.preventDefault();
-              const next =
-                HISTORY_VIEWS[
-                  (currentIndex - 1 + HISTORY_VIEWS.length) % HISTORY_VIEWS.length
-                ];
-              handleViewChange(next.id);
-              document.getElementById(`history-tab-${next.id}`)?.focus();
-            }
-          }}
-        >
-          {HISTORY_VIEWS.map((view) => (
-            <button
-              key={view.id}
-              role="tab"
-              id={`history-tab-${view.id}`}
-              aria-selected={scope.view === view.id}
-              aria-controls={`history-tabpanel-${view.id}`}
-              tabIndex={scope.view === view.id ? 0 : -1}
-              onClick={() => handleViewChange(view.id)}
-              className={`rounded px-2.5 py-1 text-secondary font-medium transition-colors ${
-                scope.view === view.id
-                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-              }`}
-            >
-              {view.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {!showSaveInput ? (
-            <Button
-              onClick={() => {
-                const lastOp = recentOperations?.[0];
-                setSaveLabel(defaultSnapshotLabel(lastOp?.description));
-                setShowSaveInput(true);
+      <div className="shrink-0 px-3 pb-1 pt-2">
+        <div className="tm-responsive-toolbar">
+          <div className="tm-responsive-toolbar__row">
+            <div
+              role="tablist"
+              aria-label="History views"
+              className="tm-responsive-toolbar__leading inline-flex min-w-0 max-w-full flex-wrap items-center rounded bg-[var(--color-figma-bg-secondary)] p-0.5"
+              onKeyDown={(event) => {
+                const currentIndex = HISTORY_VIEWS.findIndex((view) => view.id === scope.view);
+                if (event.key === "ArrowRight") {
+                  event.preventDefault();
+                  const next = HISTORY_VIEWS[(currentIndex + 1) % HISTORY_VIEWS.length];
+                  handleViewChange(next.id);
+                  document.getElementById(`history-tab-${next.id}`)?.focus();
+                } else if (event.key === "ArrowLeft") {
+                  event.preventDefault();
+                  const next =
+                    HISTORY_VIEWS[
+                      (currentIndex - 1 + HISTORY_VIEWS.length) % HISTORY_VIEWS.length
+                    ];
+                  handleViewChange(next.id);
+                  document.getElementById(`history-tab-${next.id}`)?.focus();
+                }
               }}
-              variant="ghost"
-              size="sm"
-              className="px-1.5 text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
             >
-              Save checkpoint
-            </Button>
-          ) : null}
+              {HISTORY_VIEWS.map((view) => (
+                <button
+                  key={view.id}
+                  role="tab"
+                  id={`history-tab-${view.id}`}
+                  aria-selected={scope.view === view.id}
+                  aria-controls={`history-tabpanel-${view.id}`}
+                  tabIndex={scope.view === view.id ? 0 : -1}
+                  onClick={() => handleViewChange(view.id)}
+                  className={`rounded px-2.5 py-1 text-secondary font-medium transition-colors ${
+                    scope.view === view.id
+                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
+                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  }`}
+                >
+                  {view.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="tm-responsive-toolbar__actions">
+              {!showSaveInput ? (
+                <Button
+                  onClick={() => {
+                    const lastOp = recentOperations?.[0];
+                    setSaveLabel(defaultSnapshotLabel(lastOp?.description));
+                    setShowSaveInput(true);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="px-1.5 text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                >
+                  Save checkpoint
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
 

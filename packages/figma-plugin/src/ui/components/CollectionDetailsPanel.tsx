@@ -292,6 +292,7 @@ function ModeRow({
             onClick={() => void handleReorder(-1)}
             disabled={!canMoveUp || saving}
             aria-label="Move up"
+            title="Move mode up"
           >
             <ArrowUp size={10} strokeWidth={2} aria-hidden />
           </IconButton>
@@ -300,6 +301,7 @@ function ModeRow({
             onClick={() => void handleReorder(1)}
             disabled={!canMoveDown || saving}
             aria-label="Move down"
+            title="Move mode down"
           >
             <ArrowDown size={10} strokeWidth={2} aria-hidden />
           </IconButton>
@@ -309,6 +311,7 @@ function ModeRow({
             onClick={() => setConfirmingDelete(true)}
             disabled={allModeNames.length <= 1 || saving}
             aria-label="Delete mode"
+            title="Delete mode"
           >
             <X size={10} strokeWidth={2} aria-hidden />
           </IconButton>

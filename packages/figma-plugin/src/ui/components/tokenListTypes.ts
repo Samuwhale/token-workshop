@@ -38,11 +38,11 @@ export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 
 /** Width of the trailing add-mode slot in the header (matches header + button). */
 export const ADD_MODE_SLOT_PX = 28;
-export const TOKEN_COLUMN_MIN_PX = 144;
+export const TOKEN_COLUMN_MIN_PX = 128;
 
 /** Default / min / max widths for individual mode columns (px). */
-export const DEFAULT_MODE_COL_PX = 132;
-export const MIN_MODE_COL_PX = 88;
+export const DEFAULT_MODE_COL_PX = 120;
+export const MIN_MODE_COL_PX = 72;
 export const MAX_MODE_COL_PX = 480;
 
 /** Shared by the table header and every row so columns always align. */

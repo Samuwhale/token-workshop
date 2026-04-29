@@ -158,7 +158,7 @@ export const SubPropInput = memo(function SubPropInput({
         }}
         onBlur={() => setTimeout(() => setShowAC(false), 150)}
         placeholder={placeholder}
-        className={`${AUTHORING.input} min-w-[96px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
+        className={`${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
       />
       <button
         type="button"
@@ -236,7 +236,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         type="number"
         value={dim.value ?? 0}
         onChange={e => onChange({ ...dim, value: parseFloat(e.target.value) || 0 })}
-        className={`${AUTHORING.input} min-w-[96px] flex-1`}
+        className={`${AUTHORING.input} min-w-[72px] flex-1`}
         placeholder={placeholder}
         onKeyDown={e => {
           if (e.key === '{') {
@@ -248,7 +248,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
       <select
         value={dim.unit ?? units[0]}
         onChange={e => onChange({ ...dim, unit: e.target.value })}
-        className={`${AUTHORING.input} w-[72px] shrink-0`}
+        className={`${AUTHORING.input} w-[64px] shrink-0`}
       >
         {units.map(u => <option key={u} value={u}>{u}</option>)}
       </select>
@@ -305,7 +305,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           }}
           onBlur={() => setTimeout(() => setShowAC(false), 150)}
           placeholder="Inter"
-          className={`${AUTHORING.input} min-w-[96px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
+          className={`${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
         />
         {isAliasVal && (
           <button
@@ -338,7 +338,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
   // Literal mode — use font picker with a way to switch to alias
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1">
-      <div className="min-w-[120px] flex-1">
+      <div className="min-w-[96px] flex-1">
         <FontFamilyPicker
           value={typeof value === 'string' ? value : ''}
           onChange={v => {
