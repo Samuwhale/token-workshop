@@ -1075,24 +1075,9 @@ export function GeneratorsPanel({
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      const graphEdge: TokenGeneratorEdge = {
-        id: `${connection.source}-${connection.sourceHandle ?? "value"}-${connection.target}-${connection.targetHandle ?? "value"}`,
-        from: {
-          nodeId: String(connection.source),
-          port: String(connection.sourceHandle ?? "value"),
-        },
-        to: {
-          nodeId: String(connection.target),
-          port: String(connection.targetHandle ?? "value"),
-        },
-      };
-      const nextEdges = addEdge(
-        {
-          ...connection,
-          id: graphEdge.id,
-        },
-        edges,
-      );
+      const flowEdge = createFlowEdgeFromConnection(connection);
+      if (!flowEdge) return;
+      const nextEdges = addSingleInputEdge(edges, flowEdge);
       setEdges(nextEdges);
       commitFlowState(nodes, nextEdges);
     },
@@ -1164,16 +1149,13 @@ export function GeneratorsPanel({
     const sourcePort = sourcePorts.includes("steps") ? "steps" : "value";
     const nextEdges =
       sourceNode && sourcePorts.length > 0
-        ? addEdge(
-            {
-              id: `${sourceNode.id}-${sourcePort}-${id}-value`,
-              source: sourceNode.id,
-              sourceHandle: sourcePort,
-              target: id,
-              targetHandle: "value",
-            },
-            edges,
-          )
+        ? addSingleInputEdge(edges, {
+            id: `${sourceNode.id}-${sourcePort}-${id}-value`,
+            source: sourceNode.id,
+            sourceHandle: sourcePort,
+            target: id,
+            targetHandle: "value",
+          })
         : edges;
     const nextNodes = [...nodes, flowNode];
     setNodes(nextNodes);
@@ -3378,6 +3360,34 @@ function toFlowEdges(edges: TokenGeneratorEdge[]): GraphFlowEdge[] {
   }));
 }
 
+function createFlowEdgeFromConnection(
+  connection: Connection,
+): GraphFlowEdge | null {
+  if (!connection.source || !connection.target) return null;
+  const sourceHandle = connection.sourceHandle ?? "value";
+  const targetHandle = connection.targetHandle ?? "value";
+  return {
+    id: `${connection.source}-${sourceHandle}-${connection.target}-${targetHandle}`,
+    source: connection.source,
+    sourceHandle,
+    target: connection.target,
+    targetHandle,
+  };
+}
+
+function addSingleInputEdge(
+  edges: GraphFlowEdge[],
+  edge: GraphFlowEdge,
+): GraphFlowEdge[] {
+  const targetHandle = edge.targetHandle ?? "value";
+  const edgesWithoutExistingInput = edges.filter(
+    (existingEdge) =>
+      existingEdge.target !== edge.target ||
+      (existingEdge.targetHandle ?? "value") !== targetHandle,
+  );
+  return addEdge(edge, edgesWithoutExistingInput);
+}
+
 function hasStructuralNodeChange(
   changes: NodeChange<GraphFlowNode>[],
 ): boolean {
@@ -3449,7 +3459,8 @@ function collectGraphIssues(
   preview: TokenGeneratorPreviewResult | null,
 ): GraphIssue[] {
   const issues: GraphIssue[] = [];
-  const nodeIds = new Set(generator.nodes.map((node) => node.id));
+  const nodeById = new Map(generator.nodes.map((node) => [node.id, node]));
+  const incomingEdgesByPort = new Map<string, TokenGeneratorEdge[]>();
   for (const node of generator.nodes) {
     if (node.kind === "tokenInput" && !String(node.data.path ?? "").trim()) {
       issues.push({
@@ -3502,13 +3513,50 @@ function collectGraphIssues(
     }
   }
   for (const edge of generator.edges) {
-    if (!nodeIds.has(edge.from.nodeId) || !nodeIds.has(edge.to.nodeId)) {
+    const sourceNode = nodeById.get(edge.from.nodeId);
+    const targetNode = nodeById.get(edge.to.nodeId);
+    if (!sourceNode || !targetNode) {
       issues.push({
         id: `${edge.id}-missing-node`,
         severity: "error",
         message: "Connection references a missing step",
       });
+      continue;
     }
+    const sourcePorts = getNodeOutputPorts(sourceNode);
+    const targetPorts = getNodeInputPorts(targetNode);
+    if (!sourcePorts.includes(edge.from.port)) {
+      issues.push({
+        id: `${edge.id}-source-port`,
+        nodeId: sourceNode.id,
+        severity: "error",
+        message: "Connection starts from an unavailable output",
+      });
+    }
+    if (!targetPorts.includes(edge.to.port)) {
+      issues.push({
+        id: `${edge.id}-target-port`,
+        nodeId: targetNode.id,
+        severity: "error",
+        message: "Connection targets an unavailable input",
+      });
+      continue;
+    }
+    const portKey = `${targetNode.id}:${edge.to.port}`;
+    incomingEdgesByPort.set(portKey, [
+      ...(incomingEdgesByPort.get(portKey) ?? []),
+      edge,
+    ]);
+  }
+  for (const incomingEdges of incomingEdgesByPort.values()) {
+    if (incomingEdges.length <= 1) continue;
+    const [{ to }] = incomingEdges;
+    issues.push({
+      id: `${to.nodeId}-${to.port}-multiple-inputs`,
+      nodeId: to.nodeId,
+      severity: "error",
+      message: "Input has multiple connections. Reconnect it to choose one source.",
+    });
   }
   for (const diagnostic of preview?.diagnostics ?? []) {
     issues.push({
