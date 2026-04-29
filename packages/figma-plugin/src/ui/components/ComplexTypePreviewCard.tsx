@@ -5,20 +5,18 @@ import {
   formatDimensionCss,
   formatDurationCss,
   getTypographyFontFamily,
+  isTokenObjectValue,
+  readCssFontWeight,
+  readCubicBezierValue,
+  type CubicBezierTuple,
 } from '../shared/compositeTokenUtils';
 
 const COMPLEX_PREVIEW_TYPES = new Set(['typography', 'shadow', 'gradient', 'border', 'cubicBezier', 'transition', 'composition']);
 export { COMPLEX_PREVIEW_TYPES };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function TypographyPreview({ value }: { value: Record<string, unknown> }) {
   const fontFamily = getTypographyFontFamily(value) || 'inherit';
-  const fontWeight = typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string'
-    ? value.fontWeight
-    : 400;
+  const fontWeight = readCssFontWeight(value.fontWeight);
   const fontSize = formatDimensionCss(value.fontSize, '16px');
   const lineHeight = value.lineHeight
     ? (typeof value.lineHeight === 'number' && value.lineHeight <= 4
@@ -79,8 +77,8 @@ function GradientPreview({ value }: { value: unknown }) {
   );
 }
 
-function CubicBezierPreview({ value }: { value: number[] }) {
-  const [x1, y1, x2, y2] = value.map(Number);
+function CubicBezierPreview({ value }: { value: CubicBezierTuple }) {
+  const [x1, y1, x2, y2] = value;
   const w = 200;
   const h = 120;
   const pad = 16;
@@ -133,6 +131,7 @@ function TransitionPreview({ value }: { value: Record<string, unknown> }) {
   const easing = Array.isArray(value.timingFunction)
     ? `cubic-bezier(${value.timingFunction.join(', ')})`
     : typeof value.timingFunction === 'string' ? value.timingFunction : 'ease';
+  const timingFunction = readCubicBezierValue(value.timingFunction);
   return (
     <div className="text-secondary text-[color:var(--color-figma-text-secondary)] space-y-1">
       <div className="flex items-center gap-2">
@@ -149,8 +148,8 @@ function TransitionPreview({ value }: { value: Record<string, unknown> }) {
         <span className="text-[color:var(--color-figma-text-tertiary)]">Easing</span>
         <span className="text-[color:var(--color-figma-text)]">{easing}</span>
       </div>
-      {Array.isArray(value.timingFunction) && value.timingFunction.length === 4 && (
-        <CubicBezierPreview value={value.timingFunction} />
+      {timingFunction && (
+        <CubicBezierPreview value={timingFunction} />
       )}
     </div>
   );
@@ -206,7 +205,7 @@ function BorderPreview({ value }: { value: Record<string, unknown> }) {
 }
 
 export function ComplexTypePreviewCard({ type, value }: { type: string; value: unknown }) {
-  if (!isRecord(value)) {
+  if (!isTokenObjectValue(value)) {
     // Gradient can be a CSS string
     if (type === 'gradient' && typeof value === 'string') {
       return (
@@ -225,7 +224,10 @@ export function ComplexTypePreviewCard({ type, value }: { type: string; value: u
   else if (type === 'shadow') content = <ShadowPreview value={value} />;
   else if (type === 'gradient') content = <GradientPreview value={value} />;
   else if (type === 'border') content = <BorderPreview value={value} />;
-  else if (type === 'cubicBezier' && Array.isArray(value) && value.length === 4) content = <CubicBezierPreview value={value} />;
+  else if (type === 'cubicBezier') {
+    const bezier = readCubicBezierValue(value);
+    content = bezier ? <CubicBezierPreview value={bezier} /> : null;
+  }
   else if (type === 'transition') content = <TransitionPreview value={value} />;
   else if (type === 'composition') content = <CompositionPreview value={value} />;
 

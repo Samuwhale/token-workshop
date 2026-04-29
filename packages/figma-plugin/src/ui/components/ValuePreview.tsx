@@ -4,6 +4,9 @@ import {
   formatBorderSummary,
   formatShadowSummary,
   getTypographyFontFamily,
+  isTokenObjectValue,
+  readCssFontWeight,
+  readCubicBezierValue,
 } from '../shared/compositeTokenUtils';
 import {
   formatUnitTokenValue,
@@ -38,7 +41,7 @@ import {
  */
 interface ValuePreviewProps {
   type?: string;
-  value?: any;
+  value?: unknown;
   /** Preview height in px. Default 24 (inspector/panel size); token row cells pass 16. */
   size?: number;
 }
@@ -64,14 +67,14 @@ export function previewIsValueBearing(type?: string): boolean {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function dimensionLabel(val: any): string {
+function dimensionLabel(val: unknown): string {
   if (val === null || val === undefined) {
     return '';
   }
   return formatUnitTokenValue(val, { type: 'dimension' });
 }
 
-function durationLabel(val: any): string {
+function durationLabel(val: unknown): string {
   if (val === null || val === undefined) {
     return '';
   }
@@ -165,18 +168,18 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   }
 
   // ── Typography (canvas, wide) ─────────────────────────────────────────────
-  if (type === 'typography' && typeof value === 'object' && value !== null) {
+  if (type === 'typography' && isTokenObjectValue(value)) {
     // DTCG allows fontFamily to be either a string or an array of fallbacks.
     const fontFamily = getTypographyFontFamily(value) || 'inherit';
-    const fontWeight = value.fontWeight || 400;
+    const fontWeight = readCssFontWeight(value.fontWeight);
     const fontSize = readDimensionTokenValue(value.fontSize);
     const rawSize = fontSize?.value ?? 0;
     // log-ish scale so 8/16/24/48 render visibly different while fitting the box
     const scaledFontSize = rawSize > 0
       ? Math.min(size - 2, Math.max(8, Math.round(7 + Math.log2(Math.max(rawSize, 1)) * 1.3)))
       : Math.max(8, size - 4);
-    const fontStyle = value.fontStyle || 'normal';
-    const textDecoration = value.textDecoration || 'none';
+    const fontStyle = typeof value.fontStyle === 'string' ? value.fontStyle : 'normal';
+    const textDecoration = typeof value.textDecoration === 'string' ? value.textDecoration : 'none';
     const sizeStr = dimensionLabel(value.fontSize);
     const lhStr = value.lineHeight ? dimensionLabel(value.lineHeight) : '';
     const titleParts = [fontFamily, sizeStr, lhStr ? `/${lhStr}` : '', `wt ${fontWeight}`];
@@ -201,9 +204,9 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   }
 
   // ── Shadow (canvas, square) — offsets/blur/spread scaled to fit preview ──
-  if (type === 'shadow' && typeof value === 'object' && value !== null) {
+  if (type === 'shadow' && isTokenObjectValue(value)) {
     const shadows = Array.isArray(value) ? value : [value];
-    const objs = shadows.filter((s): s is Record<string, any> => s !== null && typeof s === 'object');
+    const objs = shadows.filter(isTokenObjectValue);
     if (objs.length > 0) {
       // Scale so the largest magnitude fits within ~40% of the preview height
       const magnitudes: number[] = [];
@@ -387,8 +390,8 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   }
 
   // ── Border (canvas, wide) — line drawn in real color/style/width ─────────
-  if (type === 'border' && typeof value === 'object' && value !== null) {
-    const { color: borderColor, width: borderWidth, style: borderStyle } = value as Record<string, any>;
+  if (type === 'border' && isTokenObjectValue(value)) {
+    const { color: borderColor, width: borderWidth, style: borderStyle } = value;
     const colorStr = typeof borderColor === 'string' ? swatchBgColor(borderColor) : 'var(--color-figma-text)';
     const parsedWidth = readDimensionTokenValue(borderWidth);
     const bwNum =
@@ -410,10 +413,19 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   }
 
   // ── Cubic Bezier (indicator, unboxed curve) ──────────────────────────────
-  if (type === 'cubicBezier' && Array.isArray(value) && value.length === 4) {
-    const [x1, y1, x2, y2] = value.map(Number);
+  if (type === 'cubicBezier') {
+    const bezier = readCubicBezierValue(value);
+    if (!bezier) {
+      return (
+        <InvalidMeasurePreview
+          size={size}
+          title={Array.isArray(value) ? `Invalid cubic-bezier(${value.join(', ')})` : String(value ?? '')}
+        />
+      );
+    }
+    const [x1, y1, x2, y2] = bezier;
     return (
-      <div className="shrink-0" style={squareStyle} title={`cubic-bezier(${value.join(', ')})`}>
+      <div className="shrink-0" style={squareStyle} title={`cubic-bezier(${bezier.join(', ')})`}>
         {renderBezierCurve(size, size, x1, y1, x2, y2)}
       </div>
     );
@@ -443,13 +455,10 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   }
 
   // ── Transition (wide indicator) — bezier shape + duration/delay in title ─
-  if (type === 'transition' && typeof value === 'object' && value !== null) {
-    const v = value as { duration?: any; delay?: any; timingFunction?: number[] };
-    const tf = Array.isArray(v.timingFunction) && v.timingFunction.length === 4
-      ? v.timingFunction.map(Number)
-      : [0.25, 0.1, 0.25, 1];
-    const durLabel = v.duration ? durationLabel(v.duration) : '';
-    const delayLabel = v.delay ? durationLabel(v.delay) : '';
+  if (type === 'transition' && isTokenObjectValue(value)) {
+    const tf = readCubicBezierValue(value.timingFunction) ?? [0.25, 0.1, 0.25, 1];
+    const durLabel = value.duration ? durationLabel(value.duration) : '';
+    const delayLabel = value.delay ? durationLabel(value.delay) : '';
     const title = [
       durLabel || 'no duration',
       delayLabel && delayLabel !== '0ms' ? `delay ${delayLabel}` : '',
@@ -464,7 +473,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   }
 
   // ── Composition (indicator, unboxed {n} glyph) ───────────────────────────
-  if (type === 'composition' && typeof value === 'object' && value !== null) {
+  if (type === 'composition' && isTokenObjectValue(value)) {
     const count = Object.keys(value).filter(k => !k.startsWith('$')).length;
     return (
       <div

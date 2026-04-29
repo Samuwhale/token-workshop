@@ -11,8 +11,29 @@ interface GradientStop {
   position?: number;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export type TokenObjectValue = Record<string, unknown>;
+
+export type CubicBezierTuple = [number, number, number, number];
+
+export function isTokenObjectValue(value: unknown): value is TokenObjectValue {
   return typeof value === 'object' && value !== null;
+}
+
+export function readCssFontWeight(value: unknown, fallback: string | number = 400): string | number {
+  return typeof value === 'number' || typeof value === 'string'
+    ? value
+    : fallback;
+}
+
+export function readCubicBezierValue(value: unknown): CubicBezierTuple | null {
+  if (!Array.isArray(value) || value.length !== 4) {
+    return null;
+  }
+
+  const points = value.map(Number);
+  return points.every(Number.isFinite)
+    ? points as CubicBezierTuple
+    : null;
 }
 
 function truncateLabel(value: string, maxLength = 40): string {
@@ -22,13 +43,13 @@ function truncateLabel(value: string, maxLength = 40): string {
 function normalizeGradientStops(value: unknown): GradientStop[] {
   const source = Array.isArray(value)
     ? value
-    : isRecord(value) && Array.isArray(value.stops)
+    : isTokenObjectValue(value) && Array.isArray(value.stops)
       ? value.stops
       : [];
 
   const stops = source
     .filter((stop): stop is GradientStop => (
-      isRecord(stop) &&
+      isTokenObjectValue(stop) &&
       typeof stop.color === 'string' &&
       (stop.position === undefined || typeof stop.position === 'number')
     ));
@@ -40,7 +61,7 @@ function normalizeGradientStops(value: unknown): GradientStop[] {
 
 function normalizeShadowLayers(value: unknown): ShadowTokenValue[] {
   const source = Array.isArray(value) ? value : [value];
-  return source.filter((layer): layer is ShadowTokenValue => isRecord(layer));
+  return source.filter((layer): layer is ShadowTokenValue => isTokenObjectValue(layer));
 }
 
 export function formatDimensionCss(value: unknown, fallback: string): string {
@@ -76,9 +97,9 @@ export function buildGradientCss(value: unknown): string | null {
     .join(', ');
 
   const gradientType =
-    isRecord(value) && typeof value.type === 'string'
+    isTokenObjectValue(value) && typeof value.type === 'string'
       ? value.type
-      : isRecord(value) && typeof value.gradientType === 'string'
+      : isTokenObjectValue(value) && typeof value.gradientType === 'string'
         ? value.gradientType
         : 'linear';
 
@@ -107,7 +128,7 @@ export function formatGradientSummary(value: unknown): string {
     return '—';
   }
 
-  if (!isRecord(value)) {
+  if (!isTokenObjectValue(value)) {
     return `${stops.length} stops`;
   }
 
@@ -153,7 +174,7 @@ export function formatShadowSummary(value: unknown): string {
 }
 
 export function formatBorderSummary(value: unknown): string {
-  if (!isRecord(value)) {
+  if (!isTokenObjectValue(value)) {
     return '—';
   }
 
@@ -164,7 +185,7 @@ export function formatBorderSummary(value: unknown): string {
 }
 
 export function getTypographyFontFamily(value: unknown): string {
-  if (!isRecord(value)) {
+  if (!isTokenObjectValue(value)) {
     return '';
   }
 

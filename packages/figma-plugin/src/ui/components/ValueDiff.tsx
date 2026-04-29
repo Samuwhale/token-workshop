@@ -9,6 +9,8 @@ import {
   formatGradientSummary,
   formatShadowSummary,
   getTypographyFontFamily,
+  isTokenObjectValue,
+  readCssFontWeight,
 } from "../shared/compositeTokenUtils";
 import {
   readDimensionTokenValue,
@@ -51,10 +53,6 @@ function parseNumericValue(value: unknown): number {
   }
   return 0;
 }
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function ShadowPreviewSwatch({ value }: { value: unknown }) {
   const css = buildBoxShadowCss(value);
   if (!css) return null;
@@ -68,7 +66,7 @@ function ShadowPreviewSwatch({ value }: { value: unknown }) {
 }
 
 function BorderPreviewSwatch({ value }: { value: unknown }) {
-  if (!isRecord(value)) return null;
+  if (!isTokenObjectValue(value)) return null;
   const w = formatDimensionCss(value.width, '1px');
   const style = typeof value.style === 'string' ? value.style : 'solid';
   const color = typeof value.color === 'string' ? value.color : '#000';
@@ -94,12 +92,9 @@ function GradientPreviewSwatch({ value }: { value: unknown }) {
 }
 
 function TypoPreviewSwatch({ value }: { value: unknown }) {
-  if (!isRecord(value)) return null;
+  if (!isTokenObjectValue(value)) return null;
   const fontFamily = getTypographyFontFamily(value) || 'inherit';
-  const fontWeight =
-    typeof value.fontWeight === 'number' || typeof value.fontWeight === 'string'
-      ? value.fontWeight
-      : 400;
+  const fontWeight = readCssFontWeight(value.fontWeight);
   return (
     <div
       className="w-6 h-4 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
