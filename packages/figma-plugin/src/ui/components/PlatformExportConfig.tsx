@@ -33,6 +33,18 @@ interface PlatformExportConfigProps {
   savePresetInputRef: RefObject<HTMLInputElement>;
 }
 
+function splitPreviewPath(path: string): { fileName: string; directory: string | null } {
+  const normalized = path.replace(/\\/g, '/');
+  const lastSlash = normalized.lastIndexOf('/');
+  if (lastSlash < 0) {
+    return { fileName: normalized, directory: null };
+  }
+  return {
+    fileName: normalized.slice(lastSlash + 1),
+    directory: normalized.slice(0, lastSlash) || null,
+  };
+}
+
 export function PlatformExportConfig({
   platformConfig,
   diffState,
@@ -657,10 +669,12 @@ export function PlatformExportConfig({
 
             {/* File tabs */}
             <div className="flex gap-0.5 overflow-x-auto pb-1 mb-1 scrollbar-thin">
-              {results.map((file, i) => (
+              {results.map((file, i) => {
+                const { fileName, directory } = splitPreviewPath(file.path);
+                return (
                 <div
-                  key={i}
-                  className={`group flex items-center rounded-t-md border border-b-0 shrink-0 overflow-hidden transition-colors ${
+                  key={file.path}
+                  className={`group flex items-stretch rounded-t-md border border-b-0 shrink-0 overflow-hidden transition-colors ${
                     i === previewFileIndex
                       ? 'bg-[var(--color-figma-bg)] border-[var(--color-figma-border)]'
                       : 'bg-transparent border-transparent hover:bg-[var(--color-figma-bg-hover)]'
@@ -669,7 +683,7 @@ export function PlatformExportConfig({
                   <button
                     onClick={() => setPreviewFileIndex(i)}
                     title={file.path}
-                    className={`flex items-center gap-1.5 px-2 py-1.5 text-secondary font-mono min-w-0 transition-colors ${
+                    className={`flex min-w-[172px] flex-col items-start gap-0.5 px-2 py-1.5 text-secondary min-w-0 transition-colors ${
                       i === previewFileIndex
                         ? 'text-[var(--color-figma-text)]'
                         : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
@@ -678,11 +692,22 @@ export function PlatformExportConfig({
                     <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium font-sans shrink-0">
                       {file.platform}
                     </span>
-                    <span className="truncate max-w-[140px]">{file.path}</span>
+                    <span className="block max-w-[220px] text-left font-mono leading-snug [overflow-wrap:anywhere]">
+                      {fileName}
+                    </span>
+                    {directory ? (
+                      <span className="block max-w-[220px] text-left text-[var(--font-size-xs)] leading-snug text-[var(--color-figma-text-tertiary)] [overflow-wrap:anywhere]">
+                        {directory}
+                      </span>
+                    ) : null}
                   </button>
                   <button
                     onClick={() => handleCopyFile(file)}
-                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] shrink-0"
+                    className={`px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] shrink-0 transition-colors ${
+                      i === previewFileIndex
+                        ? 'opacity-100'
+                        : 'opacity-70 group-hover:opacity-100 group-focus-within:opacity-100'
+                    }`}
                     title={`Copy ${file.path} to clipboard`}
                     aria-label={`Copy ${file.path}`}
                   >
@@ -698,7 +723,7 @@ export function PlatformExportConfig({
                     )}
                   </button>
                 </div>
-              ))}
+              )})}
             </div>
 
             {/* Code preview */}

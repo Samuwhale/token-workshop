@@ -44,7 +44,7 @@ export function UnsavedChangesDialog({
     >
       <div
         ref={dialogRef}
-        className="tm-modal-panel"
+        className="tm-modal-panel tm-modal-panel--dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="unsaved-changes-title"

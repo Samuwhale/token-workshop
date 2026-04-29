@@ -1089,10 +1089,10 @@ export function TokenDetails({
     <div className="tm-token-details__header-title">
       <div className="tm-token-details__header-mainline">
         <span
-          className={`tm-token-details__header-path ${LONG_TEXT_CLASSES.path}`}
+          className="tm-token-details__header-name"
           title={isCreateMode ? "New token" : tokenPath}
         >
-          {isCreateMode ? "New token" : tokenPath}
+          {isCreateMode ? "New token" : leafName}
         </span>
         <span
           className={`tm-token-details__status-dot ${
@@ -1107,6 +1107,14 @@ export function TokenDetails({
           aria-hidden
         />
       </div>
+      {!isCreateMode && (
+        <span
+          className={`tm-token-details__header-full-path ${LONG_TEXT_CLASSES.pathSecondary}`}
+          title={tokenPath}
+        >
+          {tokenPath}
+        </span>
+      )}
       <div className="tm-token-details__header-context">
         {contextLabel ? (
           <>
@@ -1215,35 +1223,33 @@ export function TokenDetails({
 
   const footer = (
     <div className={AUTHORING_SURFACE_CLASSES.footer}>
-      {(footerNote || (isCreateMode && onSaveAndCreateAnother)) && (
-        <div
-          className={`${AUTHORING_SURFACE_CLASSES.footerMeta} flex flex-col gap-1.5`}
+      <div
+        className={`${AUTHORING_SURFACE_CLASSES.footerMeta} flex flex-col gap-1.5`}
+      >
+        <span
+          className={
+            footerNote && (duplicatePath || saveBlockReason)
+              ? "text-[var(--color-figma-error)]"
+              : undefined
+          }
         >
-          <span
-            className={
-              footerNote && (duplicatePath || saveBlockReason)
-                ? "text-[var(--color-figma-error)]"
-                : undefined
-            }
+          {footerNote || " "}
+        </span>
+        {isCreateMode && onSaveAndCreateAnother && (
+          <button
+            type="button"
+            onClick={() => handleSave(false, true)}
+            disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
+            title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
+            className="self-start text-secondary font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
           >
-            {footerNote || " "}
-          </span>
-          {isCreateMode && onSaveAndCreateAnother && (
-            <button
-              type="button"
-              onClick={() => handleSave(false, true)}
-              disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
-              title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-              className="self-start text-secondary font-medium text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
-            >
-              Create another{" "}
-              <span className="opacity-60">
-                {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)}
-              </span>
-            </button>
-          )}
-        </div>
-      )}
+            Create another{" "}
+            <span className="opacity-60">
+              {adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)}
+            </span>
+          </button>
+        )}
+      </div>
       <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
         <div
           className={`flex flex-wrap items-center gap-2 ${AUTHORING_SURFACE_CLASSES.footerSecondary}`}

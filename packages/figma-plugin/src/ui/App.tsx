@@ -1881,7 +1881,7 @@ export function App() {
                         />
                       )}
                       <span className="shrink-0">{workspaceIcon(item.id)}</span>
-                      <span className="truncate">{item.label}</span>
+                      <span className="tm-sidebar-nav__label">{item.label}</span>
                       {showCanvasSelectionAdornment && (
                         <span
                           className={`ml-auto shrink-0 text-secondary ${
@@ -1941,7 +1941,7 @@ export function App() {
                                     : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                                 }`}
                               >
-                                <span className="min-w-0 flex-1 truncate">{section.label}</span>
+                                <span className="tm-sidebar-nav__sub-label min-w-0 flex-1">{section.label}</span>
                                 {showReviewBadge ? (
                                   <span
                                     aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
@@ -2014,38 +2014,44 @@ export function App() {
             </>
           ) : (
             <>
-              <div className="flex items-center gap-0.5">
+              <div className="flex flex-col gap-0.5">
                 <button
                   onClick={toggleNotifications}
-                  className={`relative flex h-7 w-7 items-center justify-center rounded-md outline-none transition-colors ${
+                  className={`tm-sidebar-utility-button relative ${
                     notificationsOpen
                       ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
                       : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   }`}
                   aria-label="Notifications"
+                  title={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`}
                 >
-                  <Bell size={14} strokeWidth={1.5} aria-hidden />
+                  <Bell size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
+                  <span className="tm-sidebar-utility-button__label">Notifications</span>
                   {notificationCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
                   )}
                 </button>
                 <button
                   onClick={() => toggleSecondarySurface("settings")}
-                  className={`flex h-7 w-7 items-center justify-center rounded-md outline-none transition-colors ${
+                  className={`tm-sidebar-utility-button ${
                     activeSecondarySurface === "settings"
                       ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
                       : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                   }`}
                   aria-label="Settings"
+                  title="Settings"
                 >
-                  <Settings size={14} strokeWidth={1.5} aria-hidden />
+                  <Settings size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
+                  <span className="tm-sidebar-utility-button__label">Settings</span>
                 </button>
-                <div className="mx-0.5 h-3.5 w-px bg-[var(--color-figma-border)]" />
-                <button onClick={executeUndo} disabled={!canUndo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
-                  <Undo2 size={13} strokeWidth={1.5} aria-hidden />
+                <div className="my-1 h-px w-full bg-[var(--color-figma-border)]" />
+                <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+                  <Undo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
+                  <span className="tm-sidebar-utility-button__label">Undo</span>
                 </button>
-                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
-                  <Redo2 size={13} strokeWidth={1.5} aria-hidden />
+                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="tm-sidebar-utility-button text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+                  <Redo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
+                  <span className="tm-sidebar-utility-button__label">Redo</span>
                 </button>
               </div>
             </>
@@ -2134,10 +2140,10 @@ export function App() {
               onClick={() => setResponsiveSidebarFlyout(null)}
             />
             <div
-              className="absolute left-10 z-30 w-[184px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
+              className="tm-sidebar-flyout absolute left-10 z-30 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
               style={{ top: responsiveSidebarFlyout.top }}
             >
-              <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+              <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
                 {item.label}
               </div>
               {sections.map((section) => {
@@ -2162,7 +2168,7 @@ export function App() {
                         : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
                     }`}
                   >
-                    <span className="min-w-0 flex-1 truncate">{section.label}</span>
+                    <span className="tm-sidebar-flyout__label min-w-0 flex-1">{section.label}</span>
                     {showReviewBadge ? (
                       <span
                         aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}

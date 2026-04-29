@@ -1,5 +1,4 @@
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -4467,97 +4466,185 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
   const hasErrors =
     issues.some((issue) => issue.severity === "error") ||
     diagnostics.some((diagnostic) => diagnostic.severity === "error");
+  const hasWarnings = !hasErrors && (issues.length > 0 || diagnostics.length > 0);
+  const nodeStateClass = selected
+    ? "tm-graph-node--selected"
+    : hasErrors
+      ? "tm-graph-node--error"
+      : hasWarnings
+        ? "tm-graph-node--warning"
+        : "";
+  const summary = nodeSummary(graphNode);
+  const statusMessage = issues[0]?.message ?? diagnostics[0]?.message;
+  const nodeStyle: CSSProperties & { "--tm-graph-node-accent": string } = {
+    minBlockSize: graphNodeMinBlockSize(inputPorts.length, outputPorts.length),
+    "--tm-graph-node-accent": graphNodeAccent(graphNode),
+  };
 
   return (
     <div
-      className={`tm-graph-node relative min-w-[220px] rounded-lg border bg-[var(--color-figma-bg)] px-5 py-2 shadow-sm ${
-        selected
-          ? "border-[var(--color-figma-accent)]"
-          : hasErrors
-            ? "border-[var(--color-figma-error)]"
-            : issues.length > 0 || diagnostics.length > 0
-              ? "border-[var(--color-figma-warning)]"
-              : "border-[var(--color-figma-border)]"
-      }`}
+      className={`tm-graph-node ${nodeStateClass}`.trim()}
+      style={nodeStyle}
     >
       {inputPorts.map((port, index) => (
-        <Fragment key={`in-${port.id}`}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id={port.id}
-            style={portHandleStyle(inputPorts.length, index)}
-          />
-          <div
-            className="pointer-events-none absolute left-2 max-w-[92px] truncate text-[var(--font-size-xs)] leading-none text-[var(--color-figma-text-secondary)]"
-            style={portLabelStyle(inputPorts.length, index, "input")}
-            title={formatPortLabel(port)}
-          >
-            {formatPortLabel(port)}
-          </div>
-        </Fragment>
+        <Handle
+          key={`in-${port.id}`}
+          type="target"
+          position={Position.Left}
+          id={port.id}
+          className="tm-graph-node__handle"
+          style={portHandleStyle(inputPorts.length, index)}
+        />
       ))}
       {outputPorts.map((port, index) => (
-        <Fragment key={`out-${port.id}`}>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id={port.id}
-            style={portHandleStyle(outputPorts.length, index)}
-          />
-          <div
-            className="pointer-events-none absolute right-2 max-w-[92px] truncate text-right text-[var(--font-size-xs)] leading-none text-[var(--color-figma-text-secondary)]"
-            style={portLabelStyle(outputPorts.length, index, "output")}
-            title={formatPortLabel(port)}
-          >
-            {formatPortLabel(port)}
-          </div>
-        </Fragment>
+        <Handle
+          key={`out-${port.id}`}
+          type="source"
+          position={Position.Right}
+          id={port.id}
+          className="tm-graph-node__handle"
+          style={portHandleStyle(outputPorts.length, index)}
+        />
       ))}
-      <div className="mx-8 flex items-center justify-between gap-2">
-        <div className="truncate text-secondary font-semibold">
-          {graphNode.label}
-        </div>
-        {(diagnostics.length > 0 || issues.length > 0) && (
-          <AlertTriangle
-            size={14}
-            className={
-              hasErrors
-                ? "text-[var(--color-figma-error)]"
-                : "text-[var(--color-figma-warning)]"
-            }
-          />
-        )}
-      </div>
-      <div className="mx-8 mt-1 text-tertiary text-[var(--color-figma-text-secondary)]">
-        {nodeSummary(graphNode)}
-      </div>
-      {issues.length > 0 ? (
-        <div
-          className={`mx-8 mt-2 text-tertiary ${hasErrors ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-warning)]"}`}
-        >
-          {issues[0].message}
-        </div>
-      ) : null}
-      {relatedOutputs.length > 0 && (
-        <div className="mx-8 mt-2 space-y-1 text-tertiary">
-          {relatedOutputs.slice(0, 3).map((output) => (
-            <div
-              key={output.path}
-              className="truncate text-[var(--color-figma-text-secondary)]"
-            >
-              {output.path}
+      <PortLabelColumn ports={inputPorts} side="input" />
+      <PortLabelColumn ports={outputPorts} side="output" />
+      <div className="tm-graph-node__content">
+        <div className="tm-graph-node__header">
+          <div className="tm-graph-node__heading">
+            <div className="tm-graph-node__title" title={graphNode.label}>
+              {graphNode.label}
             </div>
-          ))}
-          {relatedOutputs.length > 3 && (
-            <div className="text-[var(--color-figma-text-secondary)]">
-              +{relatedOutputs.length - 3} more
+            <div className="tm-graph-node__kind">
+              {formatNodeKind(graphNode.kind)}
             </div>
+          </div>
+          {(diagnostics.length > 0 || issues.length > 0) && (
+            <AlertTriangle
+              size={14}
+              className={
+                hasErrors
+                  ? "text-[var(--color-figma-error)]"
+                  : "text-[var(--color-figma-warning)]"
+              }
+            />
           )}
         </div>
-      )}
+        <div className="tm-graph-node__summary" title={summary}>
+          {summary}
+        </div>
+        {statusMessage ? (
+          <div
+            className={`tm-graph-node__status ${hasErrors ? "tm-graph-node__status--error" : "tm-graph-node__status--warning"}`}
+            title={statusMessage}
+          >
+            {statusMessage}
+          </div>
+        ) : null}
+        {relatedOutputs.length > 0 && (
+          <div className="tm-graph-node__outputs">
+            {relatedOutputs.slice(0, 3).map((output) => (
+              <div
+                key={output.path}
+                className="tm-graph-node__output-path"
+                title={output.path}
+              >
+                {output.path}
+              </div>
+            ))}
+            {relatedOutputs.length > 3 && (
+              <div className="tm-graph-node__output-more">
+                +{relatedOutputs.length - 3} more
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
+}
+
+function PortLabelColumn({
+  ports,
+  side,
+}: {
+  ports: TokenGeneratorPortDescriptor[];
+  side: "input" | "output";
+}) {
+  if (ports.length === 0) return null;
+  return (
+    <div
+      className={`tm-graph-node__ports tm-graph-node__ports--${side}`}
+      aria-hidden="true"
+    >
+      {ports.map((port, index) => (
+        <div
+          key={port.id}
+          className="tm-graph-node__port-label"
+          style={portLabelStyle(ports.length, index)}
+          title={formatPortLabel(port)}
+        >
+          <span className="tm-graph-node__port-name">{port.label}</span>
+          <span className="tm-graph-node__port-meta">
+            {formatPortMeta(port)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function graphNodeMinBlockSize(inputCount: number, outputCount: number): number {
+  const portCount = Math.max(inputCount, outputCount, 1);
+  return Math.max(116, 64 + portCount * 30);
+}
+
+function graphNodeAccent(node: TokenGeneratorDocumentNode): string {
+  switch (node.kind) {
+    case "color":
+    case "colorRamp":
+      return "var(--color-token-family-color)";
+    case "spacingScale":
+    case "borderRadiusScale":
+    case "customScale":
+      return "var(--color-token-family-size)";
+    case "typeScale":
+      return "var(--color-token-family-type)";
+    case "opacityScale":
+    case "shadowScale":
+      return "var(--color-token-family-effect)";
+    case "output":
+    case "groupOutput":
+      return "var(--color-figma-accent)";
+    default:
+      return "var(--color-figma-text-tertiary)";
+  }
+}
+
+function formatNodeKind(kind: TokenGeneratorDocumentNode["kind"]): string {
+  switch (kind) {
+    case "tokenInput":
+      return "Token input";
+    case "groupOutput":
+      return "Group output";
+    case "colorRamp":
+      return "Color ramp";
+    case "spacingScale":
+      return "Spacing scale";
+    case "typeScale":
+      return "Type scale";
+    case "borderRadiusScale":
+      return "Radius scale";
+    case "opacityScale":
+      return "Opacity scale";
+    case "shadowScale":
+      return "Shadow scale";
+    case "zIndexScale":
+      return "Z-index scale";
+    case "customScale":
+      return "Custom scale";
+    default:
+      return kind.charAt(0).toUpperCase() + kind.slice(1);
+  }
 }
 
 function NodeInspector({
@@ -4908,31 +4995,25 @@ function portHandleStyle(total: number, index: number): CSSProperties {
     total <= 1 ? "50%" : `${Math.round(((index + 1) / (total + 1)) * 100)}%`;
   return {
     top: verticalPosition,
-    width: 10,
-    height: 10,
-    border: "1px solid var(--color-figma-bg)",
-    background: "var(--color-figma-accent)",
-    cursor: "crosshair",
-    zIndex: 2,
   };
 }
 
-function portLabelStyle(
-  total: number,
-  index: number,
-  side: "input" | "output",
-): CSSProperties {
+function portLabelStyle(total: number, index: number): CSSProperties {
   const verticalPosition =
     total <= 1 ? "50%" : `${Math.round(((index + 1) / (total + 1)) * 100)}%`;
   return {
     top: verticalPosition,
-    transform: `translateY(-50%) translateX(${side === "input" ? "8px" : "-8px"})`,
   };
 }
 
 function formatPortLabel(port: TokenGeneratorPortDescriptor): string {
+  return `${port.label} · ${formatPortMeta(port)}`;
+}
+
+function formatPortMeta(port: TokenGeneratorPortDescriptor): string {
   const shape = port.shape === "list" ? "list" : "value";
-  return `${port.label} · ${port.type === "any" ? shape : port.type}`;
+  if (port.type === "any") return shape;
+  return port.shape === "list" ? `${port.type} list` : port.type;
 }
 
 function PreviewPanel({

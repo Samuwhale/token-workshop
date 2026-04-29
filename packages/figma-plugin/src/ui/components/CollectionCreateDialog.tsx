@@ -86,7 +86,7 @@ export function CollectionCreateDialog({
       role="presentation"
     >
       <div
-        className="tm-modal-panel"
+        className="tm-modal-panel tm-modal-panel--dialog"
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();

@@ -1086,9 +1086,9 @@ export function PublishPanel({
 
           {/* ── Publish target ──────────────────────────────────────── */}
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">Target</span>
-              <span className="text-secondary font-medium text-[var(--color-figma-text)]">
+            <div className="flex flex-wrap items-start gap-1.5">
+              <span className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">Target</span>
+              <span className="min-w-0 flex-[1_1_220px] text-secondary font-medium text-[var(--color-figma-text)] [overflow-wrap:anywhere]">
                 {resolvedCollectionName} / {resolvedModeName}
               </span>
               <button
@@ -1524,7 +1524,7 @@ function ResolverModePublishCard({
                   className={`tm-publish-mapping__row border-b border-[var(--color-figma-border)] px-1 py-2.5 last:border-b-0 ${row.isDirty ? 'bg-[var(--color-figma-accent)]/5' : ''}`}
                 >
                   <div className="min-w-0 flex items-center gap-1.5">
-                    <div className="truncate text-body font-medium text-[var(--color-figma-text)]" title={row.label}>
+                    <div className="tm-publish-mapping__resolver-label text-body font-medium text-[var(--color-figma-text)]" title={row.label}>
                       {row.label}
                     </div>
                     {row.isDirty && (
@@ -1645,7 +1645,7 @@ function PublishAllPreviewModal({
             Review changes
           </h3>
           {hasAnyChanges && (
-            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+            <p className="text-secondary text-[var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
               {[
                 totalPush > 0 ? `↑ ${totalPush} to update in Figma` : null,
                 totalPull > 0 ? `↓ ${totalPull} to update locally` : null,

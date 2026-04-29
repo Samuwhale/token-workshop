@@ -119,7 +119,7 @@ export function ValueCell({
 
   const derivationMarker = isDerivation ? (
     <span
-      className="shrink-0 text-[var(--color-figma-text-secondary)]"
+      className="tm-value-cell__prefix text-[var(--color-figma-text-secondary)]"
       title={derivationLabel}
       aria-label={derivationLabel}
     >
@@ -217,7 +217,7 @@ export function ValueCell({
         <>
           {derivationMarker}
           <span
-            className="shrink-0 text-[var(--color-figma-warning)]"
+            className="tm-value-cell__status text-[var(--color-figma-warning)]"
             aria-label="Broken reference"
           >
             <AlertTriangle size={10} strokeWidth={2} aria-hidden />
@@ -240,7 +240,7 @@ export function ValueCell({
                   e.stopPropagation();
                   onNavigateToAlias(resolvedAliasPath, sourceTokenPath);
                 }}
-                className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] cursor-pointer rounded"
+                className="tm-value-cell__nav text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] cursor-pointer rounded"
                 aria-label={`Go to alias target ${resolvedAliasPath}`}
                 title={`Go to ${resolvedAliasPath}`}
               >
@@ -248,7 +248,7 @@ export function ValueCell({
               </button>
             ) : (
               <span
-                className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+                className="tm-value-cell__nav text-[var(--color-figma-text-tertiary)]"
                 aria-label="Aliased value"
               >
                 <Link2 size={10} strokeWidth={2} aria-hidden />
@@ -256,7 +256,7 @@ export function ValueCell({
             )
           )}
           {previewIsValueBearing(value.$type) && (
-            <span className="shrink-0">
+            <span className="tm-value-cell__preview">
               <ValuePreview type={value.$type} value={value.$value} size={16} />
             </span>
           )}
@@ -290,7 +290,7 @@ export function ValueCell({
         <>
           {derivationMarker}
           {previewIsValueBearing(value.$type) && (
-            <span className="shrink-0">
+            <span className="tm-value-cell__preview">
               <ValuePreview type={value.$type} value={value.$value} size={16} />
             </span>
           )}
