@@ -51,16 +51,16 @@ export function CanvasRepairPanel({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
-        <div className="text-secondary font-medium text-[var(--color-figma-text)]">
+        <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
           Repair broken bindings
         </div>
         {hasRepairWork ? (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {staleEntries.length} stale path{staleEntries.length === 1 ? "" : "s"} detected
             {suggestedCount > 0 && ` · ${suggestedCount} suggested`}
           </div>
         ) : (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Broken token paths will appear here when a selection or sync result needs repair.
           </div>
         )}
@@ -79,10 +79,10 @@ export function CanvasRepairPanel({
         ) : (
           <div className="flex h-full items-center justify-center px-6 text-center">
             <div className="max-w-[240px]">
-              <div className="text-body font-medium text-[var(--color-figma-text)]">
+              <div className="text-body font-medium text-[color:var(--color-figma-text)]">
                 Nothing to repair right now
               </div>
-              <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+              <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 When a layer still points to a token path that no longer exists, you can remap it here instead of fixing bindings one by one.
               </p>
             </div>

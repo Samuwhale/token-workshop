@@ -53,13 +53,13 @@ export function UnsavedChangesDialog({
         <div className="tm-modal-header">
           <h3
             id="unsaved-changes-title"
-            className="text-heading font-semibold text-[var(--color-figma-text)]"
+            className="text-heading font-semibold text-[color:var(--color-figma-text)]"
           >
             Unsaved changes
           </h3>
           <p
             id="unsaved-changes-description"
-            className="mt-1.5 text-body leading-relaxed text-[var(--color-figma-text-secondary)]"
+            className="mt-1.5 text-body leading-relaxed text-[color:var(--color-figma-text-secondary)]"
           >
             Your edits have not been saved and will be lost if you leave.
           </p>
@@ -82,10 +82,10 @@ export function UnsavedChangesDialog({
             onClick={onDiscard}
             disabled={controlsDisabled}
             variant="secondary"
-            className="w-full border-[var(--color-figma-error)]/25 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+            className="w-full border-[var(--color-figma-error)]/25 text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-error)]"
           >
             {busyAction === "discard" && (
-              <Spinner size="sm" className="text-[var(--color-figma-error)]" />
+              <Spinner size="sm" className="text-[color:var(--color-figma-error)]" />
             )}
             {busyAction === "discard" ? "Discarding…" : "Discard changes"}
           </Button>

@@ -103,7 +103,7 @@ export function SetExtensionsAction({
       }
     >
       <div className={AUTHORING_SURFACE_CLASSES.bodyStack}>
-        <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
           Merged into $extensions. Values parsed as JSON.
         </span>
 
@@ -127,7 +127,7 @@ export function SetExtensionsAction({
               <button
                 type="button"
                 onClick={() => removeRow(row.id)}
-                className="shrink-0 p-1.5 rounded-md text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                className="shrink-0 p-1.5 rounded-md text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                 aria-label="Remove row"
               >
                 <X size={12} aria-hidden="true" />
@@ -139,7 +139,7 @@ export function SetExtensionsAction({
         <button
           type="button"
           onClick={addRow}
-          className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left"
+          className="text-secondary text-[color:var(--color-figma-accent)] hover:underline text-left"
         >
           Add extension key
         </button>

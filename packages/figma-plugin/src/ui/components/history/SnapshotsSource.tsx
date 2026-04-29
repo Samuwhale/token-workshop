@@ -291,7 +291,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
           <button
-            className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
             onClick={() => { setShowPairDiff(false); setPairChanges(null); setPairWorkspaceDiffs([]); setPairCompareError(null); }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -299,11 +299,11 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
             </svg>
             Back
           </button>
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">/</span>
-          <span className="text-secondary text-[var(--color-figma-text)] truncate flex-1 min-w-0" title={`${pairA.label} → ${pairB.label}`}>
-            <span className="text-[var(--color-figma-accent)]">{pairA.label}</span>
-            <span className="mx-1 text-[var(--color-figma-text-tertiary)]">→</span>
-            <span className="text-[var(--color-figma-success)]">{pairB.label}</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">/</span>
+          <span className="text-secondary text-[color:var(--color-figma-text)] truncate flex-1 min-w-0" title={`${pairA.label} → ${pairB.label}`}>
+            <span className="text-[color:var(--color-figma-accent)]">{pairA.label}</span>
+            <span className="mx-1 text-[color:var(--color-figma-text-tertiary)]">→</span>
+            <span className="text-[color:var(--color-figma-success)]">{pairB.label}</span>
           </span>
         </div>
 
@@ -311,14 +311,14 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {!pairDiffLoading && displayChanges && (
           <div className="flex items-center gap-3 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
             {noChanges ? (
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {filterTokenPath ? 'This token was unchanged between these snapshots.' : 'No differences between these snapshots.'}
               </span>
             ) : (
               <>
                 {displayChanges.length > 0 ? <ChangeSummaryBadges {...summary} /> : null}
                 {workspaceSummary ? (
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">{workspaceSummary}</span>
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">{workspaceSummary}</span>
                 ) : null}
               </>
             )}
@@ -329,22 +329,22 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2">
           {pairDiffLoading && (
             <div className="flex items-center justify-center h-24">
-              <span className="text-body text-[var(--color-figma-text-secondary)] animate-pulse">Loading comparison…</span>
+              <span className="text-body text-[color:var(--color-figma-text-secondary)] animate-pulse">Loading comparison…</span>
             </div>
           )}
           {!pairDiffLoading && noChanges && (
             <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-success)]" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              <p className="text-body text-[var(--color-figma-text-secondary)]">
+              <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                 {filterTokenPath ? 'This token was unchanged between these snapshots.' : 'No differences between these snapshots.'}
               </p>
             </div>
           )}
           {!pairDiffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
             <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
-              <p className="text-body text-[var(--color-figma-text-secondary)]">
+              <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                 No token differences. {workspaceSummary} are included in this snapshot comparison.
               </p>
             </div>
@@ -360,7 +360,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
 
         {pairCompareError && (
           <div className="shrink-0 px-3 pb-2">
-            <p className="text-secondary text-[var(--color-figma-error)]">{pairCompareError}</p>
+            <p className="text-secondary text-[color:var(--color-figma-error)]">{pairCompareError}</p>
           </div>
         )}
       </div>
@@ -384,7 +384,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] shrink-0">
           <button
-            className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
             onClick={() => { if (onBack) { onBack(); } else { setComparing(null); setChanges(null); setWorkspaceDiffs([]); setSingleCompareError(null); } }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -392,8 +392,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
             </svg>
             Back
           </button>
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">/</span>
-          <span className="text-secondary text-[var(--color-figma-text)] truncate flex-1 min-w-0" title={snapshot?.label ?? initialComparingLabel}>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">/</span>
+          <span className="text-secondary text-[color:var(--color-figma-text)] truncate flex-1 min-w-0" title={snapshot?.label ?? initialComparingLabel}>
             {snapshot?.label ?? initialComparingLabel ?? 'Compare'}
           </span>
         </div>
@@ -402,14 +402,14 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {!diffLoading && displayChanges && (
           <div className="flex items-center gap-3 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
             {noChanges ? (
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
               </span>
             ) : (
               <>
                 {displayChanges.length > 0 ? <ChangeSummaryBadges {...summary} /> : null}
                 {workspaceSummary ? (
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">{workspaceSummary}</span>
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">{workspaceSummary}</span>
                 ) : null}
               </>
             )}
@@ -420,22 +420,22 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2">
           {diffLoading && (
             <div className="flex items-center justify-center h-24">
-              <span className="text-body text-[var(--color-figma-text-secondary)] animate-pulse">Loading comparison…</span>
+              <span className="text-body text-[color:var(--color-figma-text-secondary)] animate-pulse">Loading comparison…</span>
             </div>
           )}
           {!diffLoading && noChanges && (
             <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)]" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-success)]" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              <p className="text-body text-[var(--color-figma-text-secondary)]">
+              <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                 {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
               </p>
             </div>
           )}
           {!diffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
             <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
-              <p className="text-body text-[var(--color-figma-text-secondary)]">
+              <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                 No token differences. {workspaceSummary} are included in this snapshot.
               </p>
             </div>
@@ -452,13 +452,13 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {/* Actions */}
         <div className="shrink-0 border-t border-[var(--color-figma-border)] p-3 flex gap-2">
           <button
-            className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-body font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-body font-medium text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onClick={handleKeepChanges}
           >
             Keep changes
           </button>
           <button
-            className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+            className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
             onClick={() => setShowRestoreConfirm(true)}
             disabled={reverting || diffLoading}
           >
@@ -468,7 +468,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
 
         {singleCompareError && (
           <div className="shrink-0 px-3 pb-2">
-            <p className="text-secondary text-[var(--color-figma-error)]">{singleCompareError}</p>
+            <p className="text-secondary text-[color:var(--color-figma-error)]">{singleCompareError}</p>
           </div>
         )}
 
@@ -512,7 +512,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {!showLabelInput ? (
           <div className="flex items-center gap-2">
             <button
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
               onClick={() => { setLabelInput(defaultSnapshotLabel()); setShowLabelInput(true); }}
               disabled={saving}
             >
@@ -533,8 +533,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                 }}
                 className={`shrink-0 flex items-center gap-1 px-2 py-2 rounded text-body font-medium border transition-colors ${
                   pairCompareMode
-                    ? 'border-[var(--color-figma-accent)] bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)]'
-                    : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                    ? 'border-[var(--color-figma-accent)] bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)]'
+                    : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
                 title={pairCompareMode ? 'Exit compare mode' : 'Compare two snapshots'}
               >
@@ -548,7 +548,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         ) : (
           <div className="flex flex-col gap-2">
             <input
-              className="w-full px-2 py-1.5 text-body rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1.5 text-body rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
               placeholder="Snapshot label"
               value={labelInput}
               onChange={e => setLabelInput(e.target.value)}
@@ -558,13 +558,13 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
             />
             <div className="flex gap-2">
               <button
-                className="flex-1 px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-body text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="flex-1 px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-body text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 onClick={() => { setShowLabelInput(false); setLabelInput(''); }}
               >
                 Cancel
               </button>
               <button
-                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -575,38 +575,38 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         )}
 
         {successMsg && (
-          <p className="mt-2 text-secondary text-[var(--color-figma-success)] text-center">{successMsg}</p>
+          <p className="mt-2 text-secondary text-[color:var(--color-figma-success)] text-center">{successMsg}</p>
         )}
         {listError && (
-          <p className="mt-2 text-secondary text-[var(--color-figma-error)]">{listError}</p>
+          <p className="mt-2 text-secondary text-[color:var(--color-figma-error)]">{listError}</p>
         )}
       </div>
 
       {/* Compare mode banner */}
       {pairCompareMode && (
         <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-[color-mix(in_srgb,var(--color-figma-accent)_6%,transparent)] border-b border-[var(--color-figma-border)]">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-accent)]" aria-hidden="true">
             <path d="M18 20V10M12 20V4M6 20v-6" />
           </svg>
           {!pairA ? (
-            <span className="flex-1 text-secondary text-[var(--color-figma-text-secondary)]">
-              Click <span className="font-semibold text-[var(--color-figma-accent)]">Set A</span> on a snapshot to start comparing
+            <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              Click <span className="font-semibold text-[color:var(--color-figma-accent)]">Set A</span> on a snapshot to start comparing
             </span>
           ) : !pairB ? (
-            <span className="flex-1 text-secondary text-[var(--color-figma-text-secondary)]">
-              <span className="font-medium text-[var(--color-figma-text)]">{pairA.label}</span> selected as A — click <span className="font-semibold text-[var(--color-figma-success)]">Set B</span>
+            <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              <span className="font-medium text-[color:var(--color-figma-text)]">{pairA.label}</span> selected as A — click <span className="font-semibold text-[color:var(--color-figma-success)]">Set B</span>
             </span>
           ) : (
-            <span className="flex-1 text-secondary text-[var(--color-figma-text-secondary)] truncate min-w-0">
-              <span className="text-[var(--color-figma-accent)]">{pairA.label}</span>
+            <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)] truncate min-w-0">
+              <span className="text-[color:var(--color-figma-accent)]">{pairA.label}</span>
               <span className="mx-1">→</span>
-              <span className="text-[var(--color-figma-success)]">{pairB.label}</span>
+              <span className="text-[color:var(--color-figma-success)]">{pairB.label}</span>
             </span>
           )}
           {pairA && pairB && (
             <button
               onClick={() => handlePairCompare(pairA, pairB)}
-              className="shrink-0 text-secondary font-medium px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+              className="shrink-0 text-secondary font-medium px-2 py-0.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors"
             >
               View diff
             </button>
@@ -618,18 +618,18 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
       <div className="flex-1 overflow-y-auto min-h-0">
         {loading && (
           <div className="flex items-center justify-center h-24">
-            <span className="text-body text-[var(--color-figma-text-secondary)] animate-pulse">Loading…</span>
+            <span className="text-body text-[color:var(--color-figma-text-secondary)] animate-pulse">Loading…</span>
           </div>
         )}
 
         {!loading && snapshots.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-3 py-3 text-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
               <polyline points="17 21 17 13 7 13 7 21" />
               <polyline points="7 3 7 8 15 8" />
             </svg>
-            <p className="text-body text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
               Save your current workspace before making changes. Come back to compare or restore collections, modes, resolvers, and generators anytime.
             </p>
           </div>
@@ -643,10 +643,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               return (
                 <li key={s.id} className={`group flex items-start gap-2 px-3 py-2.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] last:border-0 ${isA ? 'bg-[color-mix(in_srgb,var(--color-figma-accent)_6%,transparent)]' : isB ? 'bg-[color-mix(in_srgb,var(--color-figma-success)_6%,transparent)]' : ''}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-body font-medium text-[var(--color-figma-text)] truncate" title={s.label}>
+                    <p className="text-body font-medium text-[color:var(--color-figma-text)] truncate" title={s.label}>
                       {s.label}
                     </p>
-                    <p className="text-secondary text-[var(--color-figma-text-tertiary)] mt-0.5">
+                    <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] mt-0.5">
                       {formatRelativeTime(new Date(s.timestamp))}{ticker >= 0 ? '' : ''} · {s.tokenCount} tokens · {s.collectionStorageCount} {s.collectionStorageCount === 1 ? 'collection file' : 'collection files'}
                       {(s.collectionCount + s.resolverCount + s.generatorCount) > 0 ? ` · ${[
                         s.collectionCount > 0 ? `${s.collectionCount} ${s.collectionCount === 1 ? 'collection' : 'collections'}` : '',
@@ -661,10 +661,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                         <button
                           className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${
                             isA
-                              ? 'border-[var(--color-figma-accent)] bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)]'
+                              ? 'border-[var(--color-figma-accent)] bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)]'
                               : isB
-                              ? 'border-transparent text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed'
-                              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_6%,transparent)]'
+                              ? 'border-transparent text-[color:var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed'
+                              : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_6%,transparent)]'
                           }`}
                           onClick={() => {
                             if (isB) return;
@@ -679,10 +679,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                         <button
                           className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${
                             isB
-                              ? 'border-[var(--color-figma-success)] bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[var(--color-figma-success)]'
+                              ? 'border-[var(--color-figma-success)] bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[color:var(--color-figma-success)]'
                               : isA
-                              ? 'border-transparent text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed'
-                              : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-success)] hover:text-[var(--color-figma-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_6%,transparent)]'
+                              ? 'border-transparent text-[color:var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed'
+                              : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-success)] hover:text-[color:var(--color-figma-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_6%,transparent)]'
                           }`}
                           onClick={() => {
                             if (isA) return;
@@ -698,14 +698,14 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                     ) : (
                       <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center gap-1">
                         <button
-                          className="px-2 py-1 rounded text-secondary font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors"
+                          className="px-2 py-1 rounded text-secondary font-medium border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-secondary)] transition-colors"
                           onClick={() => handleCompare(s.id)}
                           title="Compare with current state"
                         >
                           Compare
                         </button>
                         <button
-                          className="px-1.5 py-1 rounded text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
+                          className="px-1.5 py-1 rounded text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                           onClick={() => setDeleteConfirm(s.id)}
                           title="Delete snapshot"
                           aria-label="Delete snapshot"

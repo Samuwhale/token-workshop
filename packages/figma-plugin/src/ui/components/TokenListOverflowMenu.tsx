@@ -82,8 +82,8 @@ function MenuItem({
       disabled={disabled}
       className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary transition-colors disabled:opacity-40 ${
         danger
-          ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
-          : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+          ? "text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+          : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
       }`}
     >
       <span className="w-3 shrink-0 text-center">
@@ -93,12 +93,12 @@ function MenuItem({
         {label}
       </span>
       {suffix && (
-        <span className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+        <span className="shrink-0 text-[color:var(--color-figma-text-tertiary)]">
           {suffix}
         </span>
       )}
       {shortcut && (
-        <span className="shrink-0 font-mono text-secondary text-[var(--color-figma-text-tertiary)]">
+        <span className="shrink-0 font-mono text-secondary text-[color:var(--color-figma-text-tertiary)]">
           {shortcut}
         </span>
       )}
@@ -108,7 +108,7 @@ function MenuItem({
 
 function MenuLabel({ children }: { children: string }) {
   return (
-    <div className="px-2.5 pt-1.5 pb-0.5 text-secondary font-semibold text-[var(--color-figma-text-tertiary)]">
+    <div className="px-2.5 pt-1.5 pb-0.5 text-secondary font-semibold text-[color:var(--color-figma-text-tertiary)]">
       {children}
     </div>
   );
@@ -163,15 +163,15 @@ export function FilterMenu(
         aria-label="Filter options"
         className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
           open || props.activeCount > 0
-            ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]"
+            : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
         }`}
         title="Filter options"
       >
         <Filter size={12} strokeWidth={1.5} aria-hidden />
         <span className="tm-token-toolbar__button-label">Filters</span>
         {props.activeCount > 0 && (
-          <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-1 text-[var(--font-size-xs)] font-semibold leading-none text-white">
+          <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-action-bg)] px-1 text-[var(--font-size-xs)] font-semibold leading-none text-[color:var(--color-figma-text-onbrand)]">
             {props.activeCount}
           </span>
         )}
@@ -255,7 +255,7 @@ export function FilterMenu(
               onClick={() => runAndClose(props.onToggleDuplicates)}
             />
             {props.crossCollectionSearch ? (
-              <div className="px-2.5 pt-1 text-secondary text-[var(--color-figma-text-tertiary)]">
+              <div className="px-2.5 pt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                 Selection, review, and starred filters stay local to one collection.
               </div>
             ) : null}

@@ -9,13 +9,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT_CLASS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50",
+    "bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50",
   secondary:
-    "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50",
+    "bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50",
   ghost:
-    "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50",
+    "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50",
   danger:
-    "bg-[var(--color-figma-error)] text-[var(--color-figma-text-onbrand)] hover:opacity-90 disabled:opacity-50",
+    "bg-[var(--color-figma-error)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 disabled:opacity-50",
 };
 
 const SIZE_CLASS: Record<NonNullable<ButtonProps["size"]>, string> = {

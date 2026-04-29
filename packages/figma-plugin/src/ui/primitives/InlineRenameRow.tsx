@@ -52,7 +52,7 @@ export function InlineRenameRow({
           onKeyDown={handleKeyDown}
           aria-label={ariaLabel}
           className={joinClasses(
-            "tm-inline-rename-row__input rounded border bg-[var(--color-figma-bg)] px-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]",
+            "tm-inline-rename-row__input rounded border bg-[var(--color-figma-bg)] px-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]",
             error
               ? "border-[var(--color-figma-error)]"
               : "border-[var(--color-figma-border)]",
@@ -64,14 +64,14 @@ export function InlineRenameRow({
             type="button"
             onClick={onConfirm}
             disabled={confirmDisabled}
-            className="rounded bg-[var(--color-figma-accent)] px-1.5 py-0.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            className="rounded bg-[var(--color-figma-action-bg)] px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
           >
             {confirmLabel}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             {cancelLabel}
           </button>

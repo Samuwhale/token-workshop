@@ -331,10 +331,10 @@ export function FormulaInput({
       >
         {segments.map((seg, i) => {
           if (seg.type === 'ref-valid') {
-            return <span key={i} className="text-[var(--color-figma-accent)]">{seg.text}</span>;
+            return <span key={i} className="text-[color:var(--color-figma-accent)]">{seg.text}</span>;
           }
           if (seg.type === 'ref-invalid') {
-            return <span key={i} className="text-[var(--color-figma-error)] underline decoration-wavy decoration-[var(--color-figma-error)]">{seg.text}</span>;
+            return <span key={i} className="text-[color:var(--color-figma-error)] underline decoration-wavy decoration-[var(--color-figma-error)]">{seg.text}</span>;
           }
           return <span key={i} className="text-transparent">{seg.text}</span>;
         })}
@@ -368,7 +368,7 @@ export function FormulaInput({
           ref={listRef}
           className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
         >
-          <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+          <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
             Token references
           </div>
           {acEntries.map((candidate, idx) => {
@@ -394,11 +394,11 @@ export function FormulaInput({
               )}
 
               {/* Path */}
-              <span className="flex-1 min-w-0 text-secondary text-[var(--color-figma-text)] truncate font-mono">{path}</span>
+              <span className="flex-1 min-w-0 text-secondary text-[color:var(--color-figma-text)] truncate font-mono">{path}</span>
 
               {/* Value preview */}
               {formatValueShort(entry.$value) && (
-                <span className="min-w-0 max-w-[40%] truncate text-secondary text-[var(--color-figma-text-secondary)]">
+                <span className="min-w-0 max-w-[40%] truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
                   {formatValueShort(entry.$value)}
                 </span>
               )}
@@ -411,7 +411,7 @@ export function FormulaInput({
               {/* Set name */}
               {candidate.isAmbiguousPath && candidate.collectionId && (
                 <span
-                  className="min-w-0 max-w-[30%] truncate text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]"
+                  className="min-w-0 max-w-[30%] truncate text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]"
                   title={candidate.collectionId}
                 >
                   {candidate.collectionId}
@@ -426,18 +426,18 @@ export function FormulaInput({
       {/* Operator hints bar */}
       {showOperatorHints && !showAutocomplete && (
         <div className="absolute z-40 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg px-1 py-1 flex items-center gap-0.5 flex-wrap">
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)] mr-1">Operators:</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] mr-1">Operators:</span>
           {OPERATORS.map(({ op, label }) => (
             <button
               key={op}
               onMouseDown={e => { e.preventDefault(); insertOperator(op); }}
               title={label}
-              className="px-1.5 py-0.5 rounded text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+              className="px-1.5 py-0.5 rounded text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors"
             >
               {op}
             </button>
           ))}
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)] ml-1">Type <kbd className="px-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">{'{'}</kbd> for token ref</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] ml-1">Type <kbd className="px-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">{'{'}</kbd> for token ref</span>
         </div>
       )}
     </div>

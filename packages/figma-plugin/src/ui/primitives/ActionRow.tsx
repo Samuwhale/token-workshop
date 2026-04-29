@@ -10,8 +10,8 @@ interface ActionRowProps {
 export function ActionRow({ onClick, disabled, tone = "default", children }: ActionRowProps) {
   const toneClass =
     tone === "danger"
-      ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
-      : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]";
+      ? "text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+      : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]";
   return (
     <button
       type="button"

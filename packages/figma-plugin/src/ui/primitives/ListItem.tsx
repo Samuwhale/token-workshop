@@ -27,8 +27,8 @@ export function ListItem({
 }: ListItemProps) {
   const isButton = onClick !== undefined;
   const stateClass = selected
-    ? "bg-[var(--surface-selected)] text-[var(--color-figma-text)]"
-    : "text-[var(--color-figma-text)]";
+    ? "bg-[var(--surface-selected)] text-[color:var(--color-figma-text)]"
+    : "text-[color:var(--color-figma-text)]";
   const hoverClass =
     isButton && !selected ? "hover:bg-[var(--surface-hover)]" : "";
   const baseClass = `flex min-w-0 gap-2 rounded-[var(--radius-lg)] px-1.5 py-1 text-left text-body transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${allowWrap ? "items-start" : "items-center"} ${stateClass} ${hoverClass} ${className}`;
@@ -48,7 +48,7 @@ export function ListItem({
       </span>
       {trailing ? (
         <span
-          className={`ml-auto flex shrink-0 items-center text-[var(--color-figma-text-tertiary)] ${
+          className={`ml-auto flex shrink-0 items-center text-[color:var(--color-figma-text-tertiary)] ${
             allowWrap ? "pt-0.5" : ""
           }`}
         >

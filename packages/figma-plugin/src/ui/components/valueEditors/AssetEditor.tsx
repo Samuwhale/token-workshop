@@ -49,7 +49,7 @@ export const AssetEditor = memo(function AssetEditor({ value, onChange }: { valu
         {isDataUri && (
           <button
             onClick={() => onChange('')}
-            className="shrink-0 px-2 py-1 rounded text-secondary bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="shrink-0 px-2 py-1 rounded text-secondary bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
             title="Clear data URI"
           >
             Clear
@@ -70,10 +70,10 @@ export const AssetEditor = memo(function AssetEditor({ value, onChange }: { valu
             />
           ) : (
             <div className="flex flex-col items-center gap-1 p-3">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
               </svg>
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">Unable to load image</span>
+              <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">Unable to load image</span>
             </div>
           )}
           {isDataUri && !loadError && (
@@ -94,10 +94,10 @@ export const AssetEditor = memo(function AssetEditor({ value, onChange }: { valu
             : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]'
         }`}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+        <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
           {dragging ? 'Drop image here' : 'Drag & drop or click to upload'}
         </span>
         <input

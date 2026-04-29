@@ -242,12 +242,12 @@ export function DerivationEditor({
     <Collapsible open={open} onToggle={() => setOpen(v => !v)} label={label}>
       <div className="mt-2 flex flex-col gap-2 pl-3">
         {kinds.length === 0 && (
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
             Modifiers are not available for this token type.
           </p>
         )}
         {kinds.length > 0 && derivationOps.length === 0 && (
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
             No modifiers yet.
           </p>
         )}
@@ -271,7 +271,7 @@ export function DerivationEditor({
           <button
             type="button"
             onClick={addRow}
-            className="self-start flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:underline"
+            className="self-start flex items-center gap-1 text-secondary text-[color:var(--color-figma-accent)] hover:underline"
           >
             <Plus size={10} strokeWidth={2} aria-hidden />
             Add modifier
@@ -280,7 +280,7 @@ export function DerivationEditor({
         {baseHex && previewHex && derivationOps.length > 0 && (
           <div className="flex items-center gap-2 mt-1">
             <div className="flex-1 h-5 rounded border border-[var(--color-figma-border)]" style={{ backgroundColor: baseHex }} title={`Base: ${baseHex}`} />
-            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-figma-text-tertiary)] shrink-0" aria-hidden><path d="M2 6h8M7 3l3 3-3 3"/></svg>
+            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[color:var(--color-figma-text-tertiary)] shrink-0" aria-hidden><path d="M2 6h8M7 3l3 3-3 3"/></svg>
             <div className="flex-1 h-5 rounded border border-[var(--color-figma-border)]" style={{ backgroundColor: previewHex }} title={`Modified: ${previewHex}`} />
           </div>
         )}
@@ -324,7 +324,7 @@ function DerivationOpRow({
             type="button"
             onClick={onMoveUp}
             disabled={!canMoveUp}
-            className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:hover:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+            className="p-0.5 rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:hover:text-[color:var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
             aria-label="Move modifier up"
           >
             <ArrowUp size={10} strokeWidth={2} aria-hidden />
@@ -333,7 +333,7 @@ function DerivationOpRow({
             type="button"
             onClick={onMoveDown}
             disabled={!canMoveDown}
-            className="p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:hover:text-[var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
+            className="p-0.5 rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:hover:text-[color:var(--color-figma-text-tertiary)] disabled:hover:bg-transparent"
             aria-label="Move modifier down"
           >
             <ArrowDown size={10} strokeWidth={2} aria-hidden />
@@ -348,7 +348,7 @@ function DerivationOpRow({
           // op shape is incompatible with every other op shape.
           onChange(() => defaultOpForKind(newKind, sourceType, sourceValue));
         }}
-        className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+        className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
       >
         {kinds.map((k) => (
           <option key={k} value={k}>{KIND_LABELS[k]}</option>
@@ -358,7 +358,7 @@ function DerivationOpRow({
       <button
         type="button"
         onClick={onRemove}
-        className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="shrink-0 p-0.5 rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
         aria-label="Remove modifier"
       >
         <X size={10} strokeWidth={2} aria-hidden />
@@ -389,7 +389,7 @@ function DerivationOpParams({
             aria-label={`${KIND_LABELS[op.kind]} amount`}
             className="flex-1"
           />
-          <span className="text-secondary tabular-nums text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{op.amount}</span>
+          <span className="text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)] w-8 text-right shrink-0">{op.amount}</span>
         </>
       );
     case 'alpha':
@@ -403,7 +403,7 @@ function DerivationOpParams({
             aria-label="Alpha amount"
             className="flex-1"
           />
-          <span className="text-secondary tabular-nums text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(op.amount * 100)}%</span>
+          <span className="text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(op.amount * 100)}%</span>
         </>
       );
     case 'mix': {
@@ -426,7 +426,7 @@ function DerivationOpParams({
             onChange={(e) => onChange((m) => ({ ...m, with: e.target.value } as DerivationOp))}
             placeholder="#hex or {token.path}"
             aria-label="Mix with"
-            className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+            className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
           />
           <input
             type="range"
@@ -436,14 +436,14 @@ function DerivationOpParams({
             aria-label="Mix ratio"
             className="flex-1"
           />
-          <span className="text-secondary tabular-nums text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(op.ratio * 100)}%</span>
+          <span className="text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(op.ratio * 100)}%</span>
         </>
       );
     }
     case 'invertLightness':
       return (
         <>
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">chroma</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">chroma</span>
           <input
             type="range"
             min={0} max={2} step={0.05}
@@ -452,7 +452,7 @@ function DerivationOpParams({
             aria-label="Chroma boost"
             className="flex-1"
           />
-          <span className="text-secondary tabular-nums text-[var(--color-figma-text-secondary)] w-10 text-right shrink-0">{(op.chromaBoost ?? 1).toFixed(2)}×</span>
+          <span className="text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)] w-10 text-right shrink-0">{(op.chromaBoost ?? 1).toFixed(2)}×</span>
         </>
       );
     case 'scaleBy':
@@ -464,9 +464,9 @@ function DerivationOpParams({
             step={0.1}
             onChange={(e) => onChange(() => ({ kind: 'scaleBy', factor: Number(e.target.value) }))}
             aria-label="Scale factor"
-            className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+            className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
           />
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">×</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] shrink-0">×</span>
         </>
       );
     case 'add': {
@@ -492,7 +492,7 @@ function DerivationOpParams({
               });
             }}
             aria-label="Add delta"
-            className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+            className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
           />
           {isObject && (
             <select
@@ -516,7 +516,7 @@ function DerivationOpParams({
                 });
               }}
               aria-label="Add delta unit"
-              className="shrink-0 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+              className="shrink-0 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
             >
               {unitOptions.map((unit) => (
                 <option key={unit} value={unit}>

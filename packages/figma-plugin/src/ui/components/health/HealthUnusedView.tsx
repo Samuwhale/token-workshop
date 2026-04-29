@@ -38,7 +38,7 @@ export function HealthUnusedView({
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
             <Spinner size="sm" />
-            <p className="text-body text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
               Scanning Figma usage to find unused tokens.
             </p>
           </div>

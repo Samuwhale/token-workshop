@@ -249,7 +249,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
   return (
     <div className="overflow-hidden rounded border border-[var(--color-figma-border)]">
       <div className="flex items-center justify-between bg-[var(--color-figma-bg-secondary)] px-3 py-2">
-        <span className="text-body font-medium text-[var(--color-figma-text)]">Lint rules</span>
+        <span className="text-body font-medium text-[color:var(--color-figma-text)]">Lint rules</span>
         <button
           onClick={async () => {
             const updated = await onReset();
@@ -258,7 +258,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
             }
           }}
           disabled={saving}
-          className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+          className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
           title="Reset to defaults"
         >
           Reset defaults
@@ -266,7 +266,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
       </div>
 
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
-        <div className="mb-2 text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="mb-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {presetBaseId
             ? `Base preset: ${LINT_PRESETS.find(preset => preset.id === presetBaseId)?.label ?? 'Custom'}`
             : 'Base preset: Custom'}
@@ -289,14 +289,14 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   }}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-body font-medium text-[var(--color-figma-text)]">{preset.label}</span>
+                    <span className="text-body font-medium text-[color:var(--color-figma-text)]">{preset.label}</span>
                     {isActive && (
-                      <span className="text-secondary font-medium text-[var(--color-figma-accent)]">
+                      <span className="text-secondary font-medium text-[color:var(--color-figma-accent)]">
                         Active
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">{preset.description}</p>
+                  <p className="mt-1 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">{preset.description}</p>
                 </button>
                 {hoveredPreset === preset.id && (
                   <div className="absolute left-0 top-full z-10 mt-1 w-56 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 shadow-md pointer-events-none">
@@ -309,7 +309,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                               className="h-1.5 w-1.5 shrink-0 rounded-full"
                               style={{ backgroundColor: SEVERITY_COLORS[presetRule.severity ?? 'warning'] }}
                             />
-                            <span className="text-secondary text-[var(--color-figma-text)]">{rule.label}</span>
+                            <span className="text-secondary text-[color:var(--color-figma-text)]">{rule.label}</span>
                           </div>
                         ) : null;
                       })}
@@ -358,9 +358,9 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                   className="min-w-0 flex-1 text-left"
                   title={rule.description}
                 >
-                  <span className="text-body font-medium text-[var(--color-figma-text)]">{rule.label}</span>
-                  <p className="mt-1 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">{rule.description}</p>
-                  <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+                  <span className="text-body font-medium text-[color:var(--color-figma-text)]">{rule.label}</span>
+                  <p className="mt-1 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">{rule.description}</p>
+                  <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
                     {describeCoverage(ruleConfig, collectionIds.length)}
                     {(ruleConfig.excludePaths?.length ?? 0) > 0 ? ` · ${ruleConfig.excludePaths!.length} token-group exception${ruleConfig.excludePaths!.length === 1 ? '' : 's'}` : ''}
                     {(Object.keys(ruleConfig.collectionOverrides ?? {}).length) > 0 ? ` · ${Object.keys(ruleConfig.collectionOverrides ?? {}).length} collection exception${Object.keys(ruleConfig.collectionOverrides ?? {}).length === 1 ? '' : 's'}` : ''}
@@ -375,14 +375,14 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                     }}
                     disabled={saving || !ruleConfig.enabled}
                     aria-label="Rule severity"
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] disabled:opacity-40"
+                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] disabled:opacity-40"
                     style={{ color: ruleConfig.enabled ? SEVERITY_COLORS[ruleConfig.severity ?? 'warning'] : undefined }}
                   >
                     {SEVERITIES.map(severity => (
                       <option key={severity} value={severity}>{severity}</option>
                     ))}
                   </select>
-                  <span className="max-w-[120px] text-right text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
+                  <span className="max-w-[120px] text-right text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
                     {SEVERITY_HELP[ruleConfig.severity ?? 'warning']}
                   </span>
                 </div>
@@ -395,7 +395,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                       <div className="space-y-1.5">
                         {rule.options!.map(option => (
                           <label key={option.key} className="flex items-center gap-2">
-                            <span className="w-28 shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">{option.label}</span>
+                            <span className="w-28 shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">{option.label}</span>
                             <input
                               type={option.type === 'number' ? 'number' : 'text'}
                               value={String(ruleConfig.options?.[option.key] ?? option.placeholder ?? '')}
@@ -410,7 +410,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                               }}
                               disabled={saving}
                               placeholder={option.placeholder}
-                              className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-secondary text-[var(--color-figma-text)] disabled:opacity-50"
+                              className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-secondary text-[color:var(--color-figma-text)] disabled:opacity-50"
                               {...(option.type === 'number' ? { min: 1, max: 100 } : {})}
                             />
                           </label>
@@ -427,7 +427,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                             key={path}
                             onClick={() => handleRemovePathException(rule.id, ruleConfig, path)}
                             disabled={saving}
-                            className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] disabled:opacity-40"
+                            className="inline-flex items-center gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text)] transition-colors hover:border-[var(--color-figma-error)] hover:text-[color:var(--color-figma-error)] disabled:opacity-40"
                             title={`Remove ${path} exception`}
                           >
                             <span>{path}</span>
@@ -436,7 +436,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         ))}
                       </div>
                     ) : (
-                      <p className="text-secondary text-[var(--color-figma-text-secondary)]">No token-group exceptions.</p>
+                      <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">No token-group exceptions.</p>
                     )}
 
                     <div className="mt-2 flex items-center gap-2">
@@ -445,7 +445,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         onChange={event => setPathPickerValues(current => ({ ...current, [rule.id]: event.target.value }))}
                         disabled={saving || pathChoices.length === 0}
                         aria-label="Token group"
-                        className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-secondary text-[var(--color-figma-text)] disabled:opacity-40"
+                        className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-secondary text-[color:var(--color-figma-text)] disabled:opacity-40"
                       >
                         <option value="">Pick a token group…</option>
                         {pathChoices.map(option => (
@@ -457,7 +457,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                       <button
                         onClick={() => handleAddPathException(rule.id, ruleConfig)}
                         disabled={saving || !pathPickerValues[rule.id]}
-                        className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:opacity-40"
+                        className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] disabled:opacity-40"
                       >
                         Add exception
                       </button>
@@ -486,7 +486,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         })}
                       </div>
                     ) : (
-                      <p className="text-secondary text-[var(--color-figma-text-secondary)]">No collection exceptions.</p>
+                      <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">No collection exceptions.</p>
                     )}
 
                     <div className="mt-2 flex items-center gap-2">
@@ -495,7 +495,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         onChange={event => setCollectionPickerValues(current => ({ ...current, [rule.id]: event.target.value }))}
                         disabled={saving || availableCollectionChoices.length === 0}
                         aria-label="Token collection"
-                        className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-secondary text-[var(--color-figma-text)] disabled:opacity-40"
+                        className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-1 text-secondary text-[color:var(--color-figma-text)] disabled:opacity-40"
                       >
                         <option value="">Pick a collection…</option>
                         {availableCollectionChoices.map(collectionId => (
@@ -505,7 +505,7 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                       <button
                         onClick={() => handleAddCollectionException(rule.id, ruleConfig)}
                         disabled={saving || !collectionPickerValues[rule.id]}
-                        className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] disabled:opacity-40"
+                        className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] disabled:opacity-40"
                       >
                         Add collection
                       </button>
@@ -514,18 +514,18 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                     {selectedCollectionName && selectedCollectionOverride && (
                       <div className="mt-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="block text-secondary font-medium text-[var(--color-figma-text)]">{selectedCollectionName}</span>
+                          <span className="block text-secondary font-medium text-[color:var(--color-figma-text)]">{selectedCollectionName}</span>
                           <button
                             onClick={() => handleRemoveCollectionException(rule.id, ruleConfig, selectedCollectionName)}
                             disabled={saving}
-                            className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-error)] disabled:opacity-40"
+                            className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-error)] disabled:opacity-40"
                           >
                             Remove
                           </button>
                         </div>
 
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="text-secondary text-[var(--color-figma-text-secondary)]">Enabled</span>
+                          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">Enabled</span>
                           <button
                             onClick={() => handleCollectionExceptionChange(rule.id, ruleConfig, selectedCollectionName, { enabled: !(selectedCollectionOverride.enabled ?? ruleConfig.enabled) })}
                             disabled={saving}
@@ -543,14 +543,14 @@ export function LintConfigPanel({ config, saving, onUpdateRule, onApplyConfig, o
                         </div>
 
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="w-28 shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">Severity</span>
+                          <span className="w-28 shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Severity</span>
                           <select
                             value={selectedCollectionOverride.severity ?? ruleConfig.severity ?? 'warning'}
                             onChange={async event => {
                               await handleCollectionExceptionChange(rule.id, ruleConfig, selectedCollectionName, { severity: event.target.value as Severity });
                             }}
                             disabled={saving || !(selectedCollectionOverride.enabled ?? ruleConfig.enabled)}
-                            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 text-secondary text-[var(--color-figma-text)] disabled:opacity-40"
+                            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 text-secondary text-[color:var(--color-figma-text)] disabled:opacity-40"
                             style={{ color: SEVERITY_COLORS[selectedCollectionOverride.severity ?? ruleConfig.severity ?? 'warning'] }}
                           >
                             {SEVERITIES.map(severity => (

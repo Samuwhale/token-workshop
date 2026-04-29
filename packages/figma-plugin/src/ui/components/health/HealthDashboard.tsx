@@ -43,9 +43,9 @@ function StatusIcon({ status }: { status: HealthStatus }) {
 }
 
 function statusColor(status: HealthStatus): string {
-  if (status === "critical") return "text-[var(--color-figma-error)]";
-  if (status === "warning") return "text-[var(--color-figma-warning)]";
-  return "text-[var(--color-figma-success)]";
+  if (status === "critical") return "text-[color:var(--color-figma-error)]";
+  if (status === "warning") return "text-[color:var(--color-figma-warning)]";
+  return "text-[color:var(--color-figma-success)]";
 }
 
 function statusTone(status: HealthStatus): "success" | "warning" | "danger" | "neutral" {
@@ -76,10 +76,10 @@ function ReviewSection({
   return (
     <section>
       <div className="mb-1.5 px-1">
-        <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+        <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
           {title}
         </h3>
-        <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {description}
         </p>
       </div>
@@ -125,7 +125,7 @@ export function HealthDashboard({
   if (!connected) {
     return (
       <div className="flex h-full items-center justify-center px-4 text-center">
-        <p className="text-body text-[var(--color-figma-text-secondary)]">
+        <p className="text-body text-[color:var(--color-figma-text-secondary)]">
           Connect to check review items.
         </p>
       </div>
@@ -230,15 +230,15 @@ export function HealthDashboard({
           <StatusIcon status={overallStatus} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
+          <h2 className="text-body font-semibold text-[color:var(--color-figma-text)]">
             {statusTitle}
           </h2>
-          <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {statusDetail}
           </p>
         </div>
         {validationLastRefreshed && !validationLoading && !validationError ? (
-          <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
+          <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
             {formatCheckedAt(validationLastRefreshed)}
           </span>
         ) : null}

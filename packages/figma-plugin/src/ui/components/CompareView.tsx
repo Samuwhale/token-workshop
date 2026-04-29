@@ -222,7 +222,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
 
   if (tokens.length === 0) {
     return (
-      <div className="px-3 py-2 text-secondary text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+      <div className="px-3 py-2 text-secondary text-[color:var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
         No token data for selected paths.
         <button onClick={onClose} className="ml-2 underline">Close</button>
       </div>
@@ -233,16 +233,16 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-body font-semibold text-[var(--color-figma-text)]">Compare tokens</span>
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">Compare tokens</span>
           <button
             onClick={onClose}
-            className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
           >
             Close
           </button>
         </div>
-        <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-          <span className="font-medium text-[var(--color-figma-text)]">{tokens[0].name}</span> selected — click additional tokens to compare side by side.
+        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+          <span className="font-medium text-[color:var(--color-figma-text)]">{tokens[0].name}</span> selected — click additional tokens to compare side by side.
         </p>
       </div>
     );
@@ -253,16 +253,16 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <span className="text-body font-semibold text-[var(--color-figma-text)]">
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">
             Compare {tokens.length} tokens
           </span>
           {allSameType && (
-            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)]">
               {tokens[0].type}
             </span>
           )}
           {!anyDiff && (
-            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
+            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-success)]">
               All identical
             </span>
           )}
@@ -273,8 +273,8 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
             disabled={!anyDiff}
             className={`text-secondary px-2 py-0.5 rounded transition-colors ${
               showDiffsOnly
-                ? 'bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/30'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/30'
+                : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
             } disabled:opacity-40 disabled:cursor-not-allowed`}
             title={anyDiff ? 'Show only rows where values differ' : 'No differences to filter'}
           >
@@ -282,21 +282,21 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
           </button>
           <button
             onClick={handleCopy}
-            className="text-secondary px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="text-secondary px-2 py-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             title="Copy comparison as tab-separated table"
           >
             {copied ? 'Copied!' : 'Copy table'}
           </button>
           <button
             onClick={handleExportCsv}
-            className="text-secondary px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="text-secondary px-2 py-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             title="Download comparison as CSV"
           >
             Export CSV
           </button>
           <button
             onClick={onClose}
-            className="text-secondary px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="text-secondary px-2 py-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Close
           </button>
@@ -308,18 +308,18 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
         <table className="w-full text-secondary border-collapse">
           <thead>
             <tr className="bg-[var(--color-figma-bg-secondary)]">
-              <th className="text-left px-3 py-1.5 font-medium text-[var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg-secondary)] z-[5] min-w-[80px]">
+              <th className="text-left px-3 py-1.5 font-medium text-[color:var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg-secondary)] z-[5] min-w-[80px]">
                 Property
               </th>
               {tokens.map(t => (
                 <th
                   key={t.path}
-                  className="text-left px-3 py-1.5 font-medium text-[var(--color-figma-text)] border-b border-r border-[var(--color-figma-border)] min-w-[120px] max-w-[200px]"
+                  className="text-left px-3 py-1.5 font-medium text-[color:var(--color-figma-text)] border-b border-r border-[var(--color-figma-border)] min-w-[120px] max-w-[200px]"
                   title={t.path}
                 >
                   <div className="truncate">{t.name}</div>
                   {t.path !== t.name && (
-                    <div className="truncate text-secondary text-[var(--color-figma-text-tertiary)] font-normal">{t.path}</div>
+                    <div className="truncate text-secondary text-[color:var(--color-figma-text-tertiary)] font-normal">{t.path}</div>
                   )}
                 </th>
               ))}
@@ -329,12 +329,12 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
             {/* Type row */}
             {!allSameType && (
               <tr className={rowDiffs['$type'] !== false ? 'bg-[var(--color-figma-warning)]/8' : ''}>
-                <td className="px-3 py-1.5 font-medium text-[var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
+                <td className="px-3 py-1.5 font-medium text-[color:var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
                   type
                 </td>
                 {tokens.map(t => (
                   <td key={t.path} className="px-3 py-1.5 border-b border-r border-[var(--color-figma-border)]">
-                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)]">
                       {t.type}
                     </span>
                   </td>
@@ -345,11 +345,11 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
             {/* Alias row */}
             {tokens.some(t => t.isAlias) && (!showDiffsOnly || aliasDiffers) && (
               <tr>
-                <td className="px-3 py-1.5 font-medium text-[var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
+                <td className="px-3 py-1.5 font-medium text-[color:var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
                   alias
                 </td>
                 {tokens.map(t => (
-                  <td key={t.path} className="px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] italic">
+                  <td key={t.path} className="px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] italic">
                     {t.isAlias ? `{${t.aliasRef}}` : '—'}
                   </td>
                 ))}
@@ -362,14 +362,14 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
                 const isDiff = rowDiffs[key];
                 return (
                   <tr key={key} className={isDiff ? 'bg-[var(--color-figma-warning)]/8' : ''}>
-                    <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${isDiff ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
+                    <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${isDiff ? 'text-[color:var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
                       {key}
-                      {isDiff && <span className="ml-1 text-[var(--color-figma-warning)]">*</span>}
+                      {isDiff && <span className="ml-1 text-[color:var(--color-figma-warning)]">*</span>}
                     </td>
                     {tokens.map(t => {
                       const val = fmtProp(t.resolvedValue, key);
                       return (
-                        <td key={t.path} className={`px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] font-mono ${isDiff ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                        <td key={t.path} className={`px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] font-mono ${isDiff ? 'text-[color:var(--color-figma-text)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
                           {key === 'color' ? (
                             <span className="flex items-center gap-1">
                               <ColorSwatch value={val} />
@@ -386,15 +386,15 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
               })
             ) : (!showDiffsOnly || rowDiffs['$value']) ? (
               <tr className={rowDiffs['$value'] ? 'bg-[var(--color-figma-warning)]/8' : ''}>
-                <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${rowDiffs['$value'] ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
+                <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${rowDiffs['$value'] ? 'text-[color:var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
                   value
-                  {rowDiffs['$value'] && <span className="ml-1 text-[var(--color-figma-warning)]">*</span>}
+                  {rowDiffs['$value'] && <span className="ml-1 text-[color:var(--color-figma-warning)]">*</span>}
                 </td>
                 {tokens.map(t => {
                   const formatted = formatTokenValueForDisplay(t.type, t.resolvedValue);
                   const isColor = t.type === 'color' && typeof t.resolvedValue === 'string';
                   return (
-                    <td key={t.path} className={`px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] font-mono ${rowDiffs['$value'] ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                    <td key={t.path} className={`px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] font-mono ${rowDiffs['$value'] ? 'text-[color:var(--color-figma-text)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
                       <span className="flex items-center gap-1">
                         {isColor && <ColorSwatch value={t.resolvedValue as string} />}
                         {formatted}
@@ -411,14 +411,14 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
               return entry?.$scopes && entry.$scopes.length > 0;
             }) && (!showDiffsOnly || scopesDiffer) && (
               <tr>
-                <td className="px-3 py-1.5 font-medium text-[var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
+                <td className="px-3 py-1.5 font-medium text-[color:var(--color-figma-text-secondary)] border-b border-r border-[var(--color-figma-border)] sticky left-0 bg-[var(--color-figma-bg)] z-[5]">
                   scopes
                 </td>
                 {tokens.map(t => {
                   const entry = allTokensFlat[t.path];
                   const scopes = entry?.$scopes;
                   return (
-                    <td key={t.path} className="px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]">
+                    <td key={t.path} className="px-3 py-1.5 border-b border-r border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)]">
                       {scopes && scopes.length > 0 ? scopes.join(', ') : '—'}
                     </td>
                   );
@@ -536,10 +536,10 @@ function CrossCollectionMode({
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-body font-semibold text-[var(--color-figma-text)]">Compare across modes</span>
-          <button onClick={onClose} className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">Close</button>
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">Compare across modes</span>
+          <button onClick={onClose} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">Close</button>
         </div>
-        <p className="text-secondary text-[var(--color-figma-text-secondary)]">No modes found. Add modes in the Modes workspace to compare across options.</p>
+        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">No modes found. Add modes in the Modes workspace to compare across options.</p>
       </div>
     );
   }
@@ -549,27 +549,27 @@ function CrossCollectionMode({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] sticky top-0 z-10">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-body font-semibold text-[var(--color-figma-text)] truncate" title={tokenPath}>
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)] truncate" title={tokenPath}>
             {tokenName}
           </span>
           {tokenType && (
-            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0">
+            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)] shrink-0">
               {tokenType}
             </span>
           )}
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">across modes</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] shrink-0">across modes</span>
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
           <button
             onClick={handleCopyTsv}
-            className="text-secondary px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="text-secondary px-2 py-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             title="Copy as tab-separated table"
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>
           <button
             onClick={onClose}
-            className="text-secondary px-2 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="text-secondary px-2 py-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Close
           </button>
@@ -585,14 +585,14 @@ function CrossCollectionMode({
         return (
           <div key={collection.id}>
             <div className="flex items-center gap-2 px-3 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-              <span className="text-secondary font-semibold text-[var(--color-figma-text)]">
+              <span className="text-secondary font-semibold text-[color:var(--color-figma-text)]">
                 {collection.id}
               </span>
               {stats.allSame && !stats.anyMissing && (
-                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">Identical</span>
+                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-success)]">Identical</span>
               )}
               {stats.anyMissing && (
-                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">Some missing</span>
+                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)]">Some missing</span>
               )}
             </div>
 
@@ -603,18 +603,18 @@ function CrossCollectionMode({
                   const isColor = tokenType === 'color' && typeof r.resolvedValue === 'string';
                   return (
                     <tr key={r.optionName} className="border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]">
-                      <td className="px-3 py-1.5 text-[var(--color-figma-text-secondary)] w-1/3 max-w-[120px]">
+                      <td className="px-3 py-1.5 text-[color:var(--color-figma-text-secondary)] w-1/3 max-w-[120px]">
                         {r.optionName}
                       </td>
-                      <td className="px-3 py-1.5 font-mono text-[var(--color-figma-text)]">
+                      <td className="px-3 py-1.5 font-mono text-[color:var(--color-figma-text)]">
                         {r.missing ? (
-                          <span className="italic text-[var(--color-figma-text-tertiary)]">(not set)</span>
+                          <span className="italic text-[color:var(--color-figma-text-tertiary)]">(not set)</span>
                         ) : (
                           <span className="flex items-center gap-1.5">
                             {isColor && <ColorSwatch value={r.resolvedValue as string} />}
                             <span className="truncate" title={formatted}>{formatted}</span>
                             {r.isAliasToken && r.aliasRef && (
-                              <span className="text-[var(--color-figma-text-tertiary)] italic shrink-0">
+                              <span className="text-[color:var(--color-figma-text-tertiary)] italic shrink-0">
                                 ← {`{${r.aliasRef}}`}
                               </span>
                             )}
@@ -810,12 +810,12 @@ function ModePairsMode({
       {/* Mode variant selectors */}
       <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-secondary text-[var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
           <select
             value={optionKeyA}
             onChange={e => setOptionKeyA(e.target.value)}
             aria-label="Compare option A"
-            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select an option…</option>
             {flatOptions.map(o => (
@@ -824,12 +824,12 @@ function ModePairsMode({
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-secondary text-[var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
           <select
             value={optionKeyB}
             onChange={e => setOptionKeyB(e.target.value)}
             aria-label="Compare option B"
-            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select an option…</option>
             {flatOptions.map(o => (
@@ -842,7 +842,7 @@ function ModePairsMode({
       {/* Results */}
       {!canCompare ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)] text-center px-4">
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center px-4">
             {flatOptions.length < 2
               ? 'You need at least two options to compare.'
               : 'Select two different options above to see how they differ.'}
@@ -850,7 +850,7 @@ function ModePairsMode({
         </div>
       ) : diffs.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)] text-center px-4">
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center px-4">
             These modes produce identical resolved values.
           </p>
         </div>
@@ -864,16 +864,16 @@ function ModePairsMode({
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Filter by token path…"
               aria-label="Filter by token path"
-              className="w-full px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
             />
             <div className="flex items-center gap-2">
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {filteredDiffs.length === diffs.length
                   ? `${diffs.length} differing token${diffs.length !== 1 ? 's' : ''}`
                   : `${filteredDiffs.length} of ${diffs.length}`}
               </span>
               {(missingInA.length > 0 || missingInB.length > 0) && (
-                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                   {missingInA.length + missingInB.length} unresolved diff{missingInA.length + missingInB.length === 1 ? '' : 's'}
                 </span>
               )}
@@ -881,14 +881,14 @@ function ModePairsMode({
                 <button
                   onClick={handleCopy}
                   title="Copy diff as tab-separated text"
-                  className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy'}</span>
                 </button>
                 <button
                   onClick={handleExportCsv}
                   title="Export diff as CSV"
-                  className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   CSV
                 </button>
@@ -897,8 +897,8 @@ function ModePairsMode({
                   onClick={() => setTypeFilter('all')}
                   className={`px-1.5 py-0.5 rounded text-secondary transition-colors ${
                     typeFilter === 'all'
-                      ? 'bg-[var(--color-figma-accent)] text-white'
-                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                      ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                      : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
                 >
                   All
@@ -909,8 +909,8 @@ function ModePairsMode({
                     onClick={() => setTypeFilter(t)}
                     className={`px-1.5 py-0.5 rounded text-secondary capitalize transition-colors ${
                       typeFilter === t
-                        ? 'bg-[var(--color-figma-accent)] text-white'
-                        : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                        ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                        : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                     }`}
                   >
                     {t}
@@ -939,29 +939,29 @@ function ModePairsMode({
                 >
                   <div className="flex items-baseline gap-1 mb-1.5">
                     {par && (
-                      <span className="text-secondary text-[var(--color-figma-text-tertiary)] truncate">{par}.</span>
+                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] truncate">{par}.</span>
                     )}
-                    <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{leaf}</span>
-                    <span className="ml-auto text-[var(--font-size-xs)] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-secondary font-medium text-[color:var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{leaf}</span>
+                    <span className="ml-auto text-[var(--font-size-xs)] text-[color:var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
                       {diff.type}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
                       {hexA && <ColorSwatch value={hexA} />}
-                      <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate" title={fmtA}>
-                        {absentInA ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtA}
+                      <span className="text-secondary font-mono text-[color:var(--color-figma-text-secondary)] truncate" title={fmtA}>
+                        {absentInA ? <em className="not-italic text-[color:var(--color-figma-text-tertiary)]">absent</em> : fmtA}
                       </span>
                     </div>
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-text-tertiary)]">
                       <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
                       {hexB && <ColorSwatch value={hexB} />}
-                      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={fmtB}>
-                        {absentInB ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtB}
+                      <span className="text-secondary font-mono text-[color:var(--color-figma-text)] truncate" title={fmtB}>
+                        {absentInB ? <em className="not-italic text-[color:var(--color-figma-text-tertiary)]">absent</em> : fmtB}
                       </span>
                     </div>
                   </div>
@@ -970,7 +970,7 @@ function ModePairsMode({
                       {!absentInA && onEditToken && diff.collectionA && (
                         <button
                           onClick={() => onEditToken(diff.collectionA!, diff.path)}
-                          className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                           title={`Edit token in ${diff.collectionA}`}
                         >
                           Edit A
@@ -979,7 +979,7 @@ function ModePairsMode({
                       {!absentInB && onEditToken && diff.collectionB && (
                         <button
                           onClick={() => onEditToken(diff.collectionB!, diff.path)}
-                          className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                           title={`Edit token in ${diff.collectionB}`}
                         >
                           Edit B
@@ -1175,39 +1175,39 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
       {/* Collection selectors */}
       <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-secondary text-[var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
           <select
             value={collectionA}
             onChange={e => setCollectionA(e.target.value)}
-            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select a collection…</option>
             {collectionIds.map((collectionId) => (
               <option key={collectionId} value={collectionId}>{collectionId}</option>
             ))}
           </select>
-          {loadingA && <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Loading…</span>}
+          {loadingA && <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Loading…</span>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-secondary text-[var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
           <select
             value={collectionB}
             onChange={e => setCollectionB(e.target.value)}
-            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
+            className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
             <option value="">Select a collection…</option>
             {collectionIds.map((collectionId) => (
               <option key={collectionId} value={collectionId}>{collectionId}</option>
             ))}
           </select>
-          {loadingB && <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Loading…</span>}
+          {loadingB && <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Loading…</span>}
         </div>
       </div>
 
       {/* Results */}
       {!canCompare ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)] text-center px-4">
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center px-4">
             {collectionIds.length < 2
               ? 'At least two collections are needed to compare.'
               : 'Select two different collections to compare.'}
@@ -1215,11 +1215,11 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
         </div>
       ) : (loadingA || loadingB) ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">Loading…</p>
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Loading…</p>
         </div>
       ) : diffs.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)] text-center px-4">
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center px-4">
             These collections are identical.
           </p>
         </div>
@@ -1233,7 +1233,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Filter by token path…"
               aria-label="Filter by token path"
-              className="w-full px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-tertiary)] outline-none focus-visible:border-[var(--color-figma-accent)]"
             />
             <div className="flex items-center gap-1 flex-wrap">
               {/* Status filter pills */}
@@ -1243,8 +1243,8 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                   onClick={() => setStatusFilter(id)}
                   className={`px-1.5 py-0.5 rounded text-secondary transition-colors ${
                     statusFilter === id
-                      ? 'bg-[var(--color-figma-accent)] text-white'
-                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                      ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                      : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
                 >
                   {label}
@@ -1254,14 +1254,14 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                 <button
                   onClick={handleCopy}
                   title="Copy diff as tab-separated text"
-                  className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy'}</span>
                 </button>
                 <button
                   onClick={handleExportCsv}
                   title="Export diff as CSV"
-                  className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   CSV
                 </button>
@@ -1273,8 +1273,8 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                 onClick={() => setTypeFilter('all')}
                 className={`px-1.5 py-0.5 rounded text-secondary transition-colors ${
                   typeFilter === 'all'
-                    ? 'bg-[var(--color-figma-accent)] text-white'
-                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                    ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                    : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
               >
                 All types
@@ -1285,8 +1285,8 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                   onClick={() => setTypeFilter(t)}
                   className={`px-1.5 py-0.5 rounded text-secondary capitalize transition-colors ${
                     typeFilter === t
-                      ? 'bg-[var(--color-figma-accent)] text-white'
-                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                      ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                      : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
                 >
                   {t}
@@ -1297,7 +1297,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                   onClick={() => handleCopyMissing('A')}
                   disabled={bulkCreating !== null}
                   title={`Copy ${onlyInB.length} token${onlyInB.length !== 1 ? 's' : ''} from B into A`}
-                  className="ml-auto px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
+                  className="ml-auto px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
                 >
                   {bulkCreating === 'A' ? 'Copying…' : `+ ${onlyInB.length} missing in A`}
                 </button>
@@ -1307,17 +1307,17 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                   onClick={() => handleCopyMissing('B')}
                   disabled={bulkCreating !== null}
                   title={`Copy ${onlyInA.length} token${onlyInA.length !== 1 ? 's' : ''} from A into B`}
-                  className={`px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors ${!serverUrl || onlyInB.length > 0 ? '' : 'ml-auto'}`}
+                  className={`px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors ${!serverUrl || onlyInB.length > 0 ? '' : 'ml-auto'}`}
                 >
                   {bulkCreating === 'B' ? 'Copying…' : `+ ${onlyInA.length} missing in B`}
                 </button>
               )}
               {bulkResult && (
-                <span className="text-secondary text-[var(--color-figma-text-secondary)]">{bulkResult}</span>
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">{bulkResult}</span>
               )}
             </div>
             {filteredDiffs.length !== diffs.length && (
-              <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+              <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Showing {filteredDiffs.length} of {diffs.length} differences
               </p>
             )}
@@ -1333,10 +1333,10 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
               const fmtB = diff.valueB !== undefined ? formatTokenValueForDisplay(diff.type, diff.valueB) : null;
               const par = nodeParentPath(diff.path, diff.name);
               const statusColor = diff.status === 'only-a'
-                ? 'bg-[var(--color-figma-diff-a)]/10 text-[var(--color-figma-diff-a)]'
+                ? 'bg-[var(--color-figma-diff-a)]/10 text-[color:var(--color-figma-diff-a)]'
                 : diff.status === 'only-b'
-                ? 'bg-[var(--color-figma-diff-b)]/10 text-[var(--color-figma-diff-b)]'
-                : 'bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]';
+                ? 'bg-[var(--color-figma-diff-b)]/10 text-[color:var(--color-figma-diff-b)]'
+                : 'bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-warning)]';
               const statusLabel = diff.status === 'only-a' ? 'only A' : diff.status === 'only-b' ? 'only B' : 'changed';
               return (
                 <div
@@ -1345,32 +1345,32 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                 >
                   <div className="flex items-baseline gap-1 mb-1.5">
                     {par && (
-                      <span className="text-secondary text-[var(--color-figma-text-tertiary)] truncate">{par}.</span>
+                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] truncate">{par}.</span>
                     )}
-                    <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{diff.name}</span>
+                    <span className="text-secondary font-medium text-[color:var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{diff.name}</span>
                     <span className={`ml-auto text-[var(--font-size-xs)] shrink-0 px-1 py-0.5 rounded ${statusColor}`}>
                       {statusLabel}
                     </span>
-                    <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
                       {diff.type}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded ${diff.status === 'only-b' ? 'opacity-40' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
-                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
                       {hexA && <ColorSwatch value={hexA} />}
-                      <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate">
-                        {fmtA ?? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em>}
+                      <span className="text-secondary font-mono text-[color:var(--color-figma-text-secondary)] truncate">
+                        {fmtA ?? <em className="not-italic text-[color:var(--color-figma-text-tertiary)]">absent</em>}
                       </span>
                     </div>
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-text-tertiary)]">
                       <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                     <div className={`flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded ${diff.status === 'only-a' ? 'opacity-40' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
-                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
                       {hexB && <ColorSwatch value={hexB} />}
-                      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate">
-                        {fmtB ?? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em>}
+                      <span className="text-secondary font-mono text-[color:var(--color-figma-text)] truncate">
+                        {fmtB ?? <em className="not-italic text-[color:var(--color-figma-text-tertiary)]">absent</em>}
                       </span>
                     </div>
                   </div>
@@ -1379,7 +1379,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                     {diff.status === 'only-b' && onCreateToken && (
                       <button
                         onClick={() => onCreateToken(diff.path, collectionA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
-                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
                         title={`Create token in ${collectionA} (copy B's value)`}
                       >
                         + Create in A
@@ -1388,7 +1388,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                     {diff.status === 'only-a' && onCreateToken && (
                       <button
                         onClick={() => onCreateToken(diff.path, collectionB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
-                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
                         title={`Create token in ${collectionB} (copy A's value)`}
                       >
                         + Create in B
@@ -1397,7 +1397,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                     {diff.status !== 'only-b' && onEditToken && (
                       <button
                         onClick={() => onEditToken(collectionA, diff.path)}
-                        className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                        className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                         title={`Edit in ${collectionA}`}
                       >
                         Edit A
@@ -1406,7 +1406,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                     {diff.status !== 'only-a' && onEditToken && (
                       <button
                         onClick={() => onEditToken(collectionB, diff.path)}
-                        className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                        className="px-1.5 py-0.5 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                         title={`Edit in ${collectionB}`}
                       >
                         Edit B
@@ -1488,15 +1488,15 @@ export function CompareView({
     <div className="flex flex-col h-full overflow-hidden">
       {/* Mode selector */}
       <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-        <span className="text-secondary text-[var(--color-figma-text-secondary)] mr-1">Compare:</span>
+        <span className="text-secondary text-[color:var(--color-figma-text-secondary)] mr-1">Compare:</span>
         {MODES.map(m => (
           <button
             key={m.id}
             onClick={() => onModeChange(m.id)}
             className={`px-2 py-0.5 rounded text-secondary font-medium transition-colors ${
               mode === m.id
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
             }`}
           >
             {m.label}
@@ -1509,12 +1509,12 @@ export function CompareView({
         {mode === 'tokens' && (
           tokenPaths.size < 2 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
-              <p className="text-body text-[var(--color-figma-text-secondary)]">
+              <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                 Select 2 or more tokens in the Tokens tab and click <strong>Compare</strong> to see a side-by-side value comparison.
               </p>
               <button
                 onClick={onGoToTokens}
-                className="px-3 py-1 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                className="px-3 py-1 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 transition-opacity"
               >
                 Go to Tokens
               </button>
@@ -1532,17 +1532,17 @@ export function CompareView({
           tokenPath === '' || collections.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 px-3 text-center">
               {collections.length === 0 ? (
-                <p className="text-body text-[var(--color-figma-text-secondary)]">
+                <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                   No modes are configured. Set up modes first.
                 </p>
               ) : (
-                <p className="text-body text-[var(--color-figma-text-secondary)]">
+                <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                   Right-click any token in the Tokens tab and choose <strong>Compare across modes</strong> to see how its value changes across each option.
                 </p>
               )}
               <button
                 onClick={onGoToTokens}
-                className="px-3 py-1 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                className="px-3 py-1 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 transition-opacity"
               >
                 Go to Tokens
               </button>

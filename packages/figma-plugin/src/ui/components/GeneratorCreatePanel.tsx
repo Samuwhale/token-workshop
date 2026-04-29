@@ -391,10 +391,10 @@ export function GeneratorCreatePanel({
       <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-4 py-3">
         <Sparkles
           size={15}
-          className="text-[var(--color-figma-accent)]"
+          className="text-[color:var(--color-figma-accent)]"
           aria-hidden
         />
-        <h3 className="min-w-0 flex-1 truncate text-body font-semibold text-[var(--color-figma-text)]">
+        <h3 className="min-w-0 flex-1 truncate text-body font-semibold text-[color:var(--color-figma-text)]">
           Create generator
         </h3>
         <IconButton
@@ -409,10 +409,10 @@ export function GeneratorCreatePanel({
         <div className="grid gap-4 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
           <div className="space-y-2">
             <div className="px-1">
-              <h4 className="text-body font-semibold text-[var(--color-figma-text)]">
+              <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
                 Preset
               </h4>
-              <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+              <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Choose the pattern that matches the token group you want.
               </p>
             </div>
@@ -429,10 +429,10 @@ export function GeneratorCreatePanel({
                   }`}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-secondary font-semibold text-[var(--color-figma-text)]">
+                    <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
                       {option.label}
                     </span>
-                    <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                    <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                       {presetSourceLabel(option.id)}
                       {" -> "}
                       {option.outputPrefix}
@@ -449,31 +449,31 @@ export function GeneratorCreatePanel({
               className="mt-2 flex w-full items-start justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
             >
               <span className="min-w-0">
-                <span className="block truncate text-secondary font-semibold text-[var(--color-figma-text)]">
+                <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
                   Custom generator
                 </span>
-                <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                   Start with an empty graph
                 </span>
               </span>
               <Workflow
                 size={13}
-                className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
+                className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
               />
             </button>
           </div>
 
           <div className="space-y-3">
             <div>
-              <h4 className="text-body font-semibold text-[var(--color-figma-text)]">
+              <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
                 Setup
               </h4>
-              <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+              <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Pick where the generated tokens live and what they come from.
               </p>
             </div>
             <label className="block">
-              <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+              <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                 Collection
               </span>
               <select
@@ -486,7 +486,7 @@ export function GeneratorCreatePanel({
                     setSourceTokenPath("");
                   }
                 }}
-                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
               >
                 {collectionOptions.map((collection) => (
                   <option key={collection.id} value={collection.id}>
@@ -545,19 +545,19 @@ export function GeneratorCreatePanel({
               ) : (
                 <div className="space-y-2">
                   <div>
-                    <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+                    <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                       Source token
                     </span>
                     <div className="flex items-center gap-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
                       <Search
                         size={14}
-                        className="text-[var(--color-figma-text-secondary)]"
+                        className="text-[color:var(--color-figma-text-secondary)]"
                       />
                       <input
                         value={sourceQuery}
                         onChange={(event) => setSourceQuery(event.target.value)}
                         placeholder={sourceTokenPath || "Search compatible tokens"}
-                        className="min-w-0 flex-1 bg-transparent text-secondary text-[var(--color-figma-text)] outline-none"
+                        className="min-w-0 flex-1 bg-transparent text-secondary text-[color:var(--color-figma-text)] outline-none"
                       />
                     </div>
                   </div>
@@ -573,7 +573,7 @@ export function GeneratorCreatePanel({
                         <span className="block truncate font-medium">
                           {selectedSourceToken[0]}
                         </span>
-                        <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                        <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                           {selectedSourceToken[1].$type}
                         </span>
                         <TokenModePreview
@@ -584,7 +584,7 @@ export function GeneratorCreatePanel({
                       </span>
                       <X
                         size={13}
-                        className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
+                        className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
                         aria-hidden
                       />
                     </button>
@@ -608,7 +608,7 @@ export function GeneratorCreatePanel({
                           <span className="block truncate font-medium">
                             {path}
                           </span>
-                          <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                          <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                             {token.$type}
                           </span>
                           <TokenModePreview
@@ -620,7 +620,7 @@ export function GeneratorCreatePanel({
                       </button>
                     ))}
                     {sourceTokenOptions.length === 0 ? (
-                      <div className="px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+                      <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
                         No compatible tokens in this collection.
                       </div>
                     ) : null}
@@ -637,11 +637,11 @@ export function GeneratorCreatePanel({
                     }}
                     className="rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
                   >
-                    <summary className="cursor-pointer text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+                    <summary className="cursor-pointer text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
                       Cross-collection source
                     </summary>
                     <label className="mt-2 block">
-                      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+                      <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                         Source collection
                       </span>
                       <select
@@ -650,7 +650,7 @@ export function GeneratorCreatePanel({
                           setSourceCollectionId(event.target.value);
                           setSourceTokenPath("");
                         }}
-                        className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+                        className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
                       >
                         {collectionOptions.map((collection) => (
                           <option key={collection.id} value={collection.id}>
@@ -661,7 +661,7 @@ export function GeneratorCreatePanel({
                     </label>
                     {crossCollectionSource ? (
                       <div
-                        className={`mt-2 text-tertiary ${modeCompatibility ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
+                        className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-error)]"}`}
                       >
                         {modeCompatibility
                           ? "Source modes match the target collection."
@@ -730,7 +730,7 @@ export function GeneratorCreatePanel({
               />
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
-                  <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+                  <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                     Output type
                   </span>
                   <select
@@ -740,7 +740,7 @@ export function GeneratorCreatePanel({
                         event.target.value as typeof formulaOutputType,
                       )
                     }
-                    className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+                    className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
                   >
                     <option value="number">Number</option>
                     <option value="dimension">Dimension</option>
@@ -758,7 +758,7 @@ export function GeneratorCreatePanel({
         </div>
 
         {error ? (
-          <div className="mt-4 rounded bg-[color-mix(in_srgb,var(--color-figma-error)_10%,transparent)] px-3 py-2 text-secondary text-[var(--color-figma-error)]">
+          <div className="mt-4 rounded bg-[color-mix(in_srgb,var(--color-figma-error)_10%,transparent)] px-3 py-2 text-secondary text-[color:var(--color-figma-error)]">
             {error}
           </div>
         ) : null}
@@ -801,7 +801,7 @@ function readPresetUnit(kind: GeneratorPresetKind): string {
 
 function PresetIcon({ kind }: { kind: GeneratorPresetKind }) {
   const className =
-    "mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]";
+    "mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]";
   if (kind === "colorRamp") return <Palette size={13} className={className} />;
   if (kind === "spacing") return <Ruler size={13} className={className} />;
   if (kind === "type") return <Type size={13} className={className} />;
@@ -842,7 +842,7 @@ function TokenModePreview({
 }) {
   const values = readTokenModeValues(token, collectionId, modes).slice(0, 3);
   return (
-    <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[var(--color-figma-text-secondary)]">
+    <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[color:var(--color-figma-text-secondary)]">
       {values.map(([modeName, value]) => (
         <span key={modeName} className="flex min-w-0 items-center gap-1">
           {previewIsValueBearing(token.$type) ? (
@@ -871,7 +871,7 @@ function formatCompactValue(value: unknown): string {
 function ModeSummary({ modes }: { modes: string[] }) {
   return (
     <div>
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+      <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
         Modes
       </span>
       <div className="flex flex-wrap gap-1 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
@@ -879,13 +879,13 @@ function ModeSummary({ modes }: { modes: string[] }) {
           modes.map((mode) => (
             <span
               key={mode}
-              className="rounded bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-tertiary text-[var(--color-figma-text-secondary)]"
+              className="rounded bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-tertiary text-[color:var(--color-figma-text-secondary)]"
             >
               {mode}
             </span>
           ))
         ) : (
-          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             No modes
           </span>
         )}

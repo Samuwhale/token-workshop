@@ -97,7 +97,7 @@ function InvalidMeasurePreview({
   const glyph = Math.max(8, Math.round(size * 0.6));
   return (
     <div
-      className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]"
+      className="shrink-0 flex items-center justify-center text-[color:var(--color-figma-text-tertiary)]"
       style={{ width: size, height: size }}
       title={title}
     >
@@ -131,7 +131,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const glyph = Math.round(size * 0.75);
     return (
       <div
-        className="shrink-0 flex items-center justify-center text-[var(--color-figma-warning)]"
+        className="shrink-0 flex items-center justify-center text-[color:var(--color-figma-warning)]"
         style={squareStyle}
         title={`Unresolved reference: ${value}`}
       >
@@ -156,7 +156,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
           title={value + (wg ? `\nsRGB fallback: ${fallback}` : '')}
         />
         {wg && (
-          <span className="px-1 py-px rounded text-[var(--font-size-xs)] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30 shrink-0" title={`Wide-gamut · sRGB fallback: ${fallback}`}>
+          <span className="px-1 py-px rounded text-[var(--font-size-xs)] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30 shrink-0" title={`Wide-gamut · sRGB fallback: ${fallback}`}>
             P3
           </span>
         )}
@@ -183,7 +183,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     if (fontStyle !== 'normal') titleParts.push(fontStyle);
     return (
       <div
-        className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[var(--color-figma-text)]`}
+        className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[color:var(--color-figma-text)]`}
         title={titleParts.filter(Boolean).join(' ')}
         style={{
           ...wideStyle,
@@ -262,7 +262,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     if (fam) {
       return (
         <div
-          className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[var(--color-figma-text)]`}
+          className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[color:var(--color-figma-text)]`}
           title={fam}
           style={{ ...wideStyle, fontFamily: fam, fontSize: '11px', lineHeight: 1 }}
         >
@@ -277,7 +277,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const w = typeof value === 'number' ? value : parseInt(String(value), 10) || 400;
     return (
       <div
-        className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[var(--color-figma-text)]`}
+        className={`${BOX_CLS} shrink-0 flex items-center justify-center overflow-hidden text-[color:var(--color-figma-text)]`}
         title={String(w)}
         style={{ ...wideStyle, fontWeight: w, fontSize: '11px', lineHeight: 1 }}
       >
@@ -468,7 +468,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const count = Object.keys(value).filter(k => !k.startsWith('$')).length;
     return (
       <div
-        className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-secondary)] font-mono"
+        className="shrink-0 flex items-center justify-center text-[color:var(--color-figma-text-secondary)] font-mono"
         style={squareStyle}
         title={`${count} propert${count === 1 ? 'y' : 'ies'}`}
       >
@@ -485,7 +485,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const glyph = Math.round(size * 0.8);
     return (
       <div
-        className={`shrink-0 flex items-center justify-center ${boolVal ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
+        className={`shrink-0 flex items-center justify-center ${boolVal ? 'text-[color:var(--color-figma-success)]' : 'text-[color:var(--color-figma-text-tertiary)]'}`}
         style={squareStyle}
         title={String(boolVal)}
       >
@@ -502,7 +502,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
   if (type === 'string' && typeof value === 'string') {
     return (
       <div
-        className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]"
+        className="shrink-0 flex items-center justify-center text-[color:var(--color-figma-text-tertiary)]"
         style={squareStyle}
         title={value}
       >
@@ -545,7 +545,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const label = type.length <= 4 ? type : type.slice(0, 3);
     return (
       <div
-        className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)] font-mono"
+        className="shrink-0 flex items-center justify-center text-[color:var(--color-figma-text-tertiary)] font-mono"
         style={squareStyle}
         title={`Unknown type: ${type}`}
       >

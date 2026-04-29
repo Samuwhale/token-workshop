@@ -34,7 +34,7 @@ interface RecentActionsSourceProps {
   onServerRedo?: (opId: string) => void;
 }
 
-const OP_ICON_CLASS = 'shrink-0 text-[var(--color-figma-text-tertiary)]';
+const OP_ICON_CLASS = 'shrink-0 text-[color:var(--color-figma-text-tertiary)]';
 const OP_ICON_SIZE = 10;
 const OP_ICON_SW = 2;
 
@@ -59,7 +59,7 @@ export function OpIcon({ type }: { type: string }) {
     return <List size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type.includes('error')) {
-    return <AlertTriangle size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className="shrink-0 text-[var(--color-figma-warning)]" aria-hidden />;
+    return <AlertTriangle size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className="shrink-0 text-[color:var(--color-figma-warning)]" aria-hidden />;
   }
   if (type.includes('run')) {
     return <Play size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
@@ -131,11 +131,11 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
     <div className="flex-1 overflow-y-auto">
       {isEmpty && (
         <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-40" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)] opacity-40" aria-hidden="true">
             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
           </svg>
-          <p className="text-body text-[var(--color-figma-text-secondary)]">No recent actions yet.</p>
-          <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          <p className="text-body text-[color:var(--color-figma-text-secondary)]">No recent actions yet.</p>
+          <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
             Edits, renames, and bulk operations will appear here.
           </p>
         </div>
@@ -150,15 +150,15 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
           >
             <svg
               width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-              className={`shrink-0 text-[var(--color-figma-text-tertiary)] transition-transform ${localOpen ? 'rotate-90' : ''}`}
+              className={`shrink-0 text-[color:var(--color-figma-text-tertiary)] transition-transform ${localOpen ? 'rotate-90' : ''}`}
               aria-hidden="true"
             >
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
-            <span className="text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary font-semibold uppercase tracking-wider text-[color:var(--color-figma-text-secondary)]">
               This session
             </span>
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
               ({undoDescriptions.length})
             </span>
           </button>
@@ -166,23 +166,23 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
             <div className="pb-1">
               {[...undoDescriptions].reverse().map((desc, i) => (
                 <div key={i} className="flex items-center gap-2 px-3 py-1.5 group">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
                     <circle cx="12" cy="12" r="3" />
                   </svg>
-                  <span className="flex-1 text-secondary text-[var(--color-figma-text)] truncate min-w-0">
+                  <span className="flex-1 text-secondary text-[color:var(--color-figma-text)] truncate min-w-0">
                     {desc}
                   </span>
                   {i === 0 && (
-                    <span className="shrink-0 text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] font-medium">
+                    <span className="shrink-0 text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)] font-medium">
                       Undo available
                     </span>
                   )}
-                  <span className="shrink-0 text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                  <span className="shrink-0 text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-tertiary)]">
                     Local
                   </span>
                 </div>
               ))}
-              <p className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] italic">
+              <p className="px-3 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)] italic">
                 Local actions are undoable with ⌘Z but lost on refresh.
               </p>
             </div>
@@ -199,15 +199,15 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
           >
             <svg
               width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-              className={`shrink-0 text-[var(--color-figma-text-tertiary)] transition-transform ${serverOpen ? 'rotate-90' : ''}`}
+              className={`shrink-0 text-[color:var(--color-figma-text-tertiary)] transition-transform ${serverOpen ? 'rotate-90' : ''}`}
               aria-hidden="true"
             >
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
-            <span className="text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+            <span className="text-secondary font-semibold uppercase tracking-wider text-[color:var(--color-figma-text-secondary)]">
               Server operations
             </span>
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
               ({filteredOperations.length}{filteredOperations.length !== recentOperations.length ? `/${recentOperations.length}` : ''}{total != null && total > recentOperations.length ? ` of ${total}` : ''})
             </span>
           </button>
@@ -219,7 +219,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                   <svg
                     width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none"
+                    className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[color:var(--color-figma-text-tertiary)] pointer-events-none"
                     aria-hidden="true"
                   >
                     <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -229,14 +229,14 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                     value={searchPath}
                     onChange={e => setSearchPath(e.target.value)}
                     placeholder="Search by path…"
-                    className="w-full pl-5 pr-1.5 py-1 text-secondary bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
+                    className="w-full pl-5 pr-1.5 py-1 text-secondary bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
                   />
                 </div>
                 {opTypes.length > 1 && (
                   <select
                     value={filterType}
                     onChange={e => setFilterType(e.target.value)}
-                    className="shrink-0 py-1 pl-1.5 pr-4 text-secondary bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] appearance-none"
+                    className="shrink-0 py-1 pl-1.5 pr-4 text-secondary bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[color:var(--color-figma-text)] focus:focus-visible:border-[var(--color-figma-accent)] appearance-none"
                     style={{ backgroundImage: 'none' }}
                     aria-label="Filter by operation type"
                   >
@@ -249,7 +249,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                 {(filterType || searchPath) && (
                   <button
                     onClick={() => { setFilterType(''); setSearchPath(''); }}
-                    className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+                    className="shrink-0 text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] transition-colors"
                     title="Clear filters"
                     aria-label="Clear filters"
                   >
@@ -260,7 +260,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                 )}
               </div>
               {filteredOperations.length === 0 && (
-                <p className="px-3 py-2 text-secondary text-[var(--color-figma-text-tertiary)] italic">
+                <p className="px-3 py-2 text-secondary text-[color:var(--color-figma-text-tertiary)] italic">
                   No changes match the current filters.
                 </p>
               )}
@@ -271,18 +271,18 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-secondary truncate min-w-0 ${op.rolledBack ? 'text-[var(--color-figma-text-tertiary)] line-through' : 'text-[var(--color-figma-text)]'}`}>
+                      <span className={`text-secondary truncate min-w-0 ${op.rolledBack ? 'text-[color:var(--color-figma-text-tertiary)] line-through' : 'text-[color:var(--color-figma-text)]'}`}>
                         {op.description}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                         {op.resourceId}
                       </span>
-                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                         · {op.affectedPaths.length} path{op.affectedPaths.length !== 1 ? 's' : ''}
                       </span>
-                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                         · {formatRelativeTime(new Date(op.timestamp))}
                       </span>
                     </div>
@@ -290,7 +290,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                   <div className="shrink-0 mt-0.5 flex items-center gap-1">
                     {op.rolledBack ? (
                       <>
-                        <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]">
+                        <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-tertiary)]">
                           Rolled back
                         </span>
                         {redoableOpIds?.has(op.id) && onServerRedo && (
@@ -298,7 +298,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                             onClick={() => handleRedo(op.id)}
                             disabled={redoing !== null || rollingBack !== null}
                             title="Redo this operation (⌘Y)"
-                            className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                            className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                           >
                             {redoing === op.id ? (
                               <span className="flex items-center gap-1">
@@ -313,7 +313,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                       <button
                         onClick={() => setConfirmOp(op)}
                         disabled={rollingBack !== null}
-                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                       >
                         {rollingBack === op.id ? (
                           <span className="flex items-center gap-1">
@@ -330,13 +330,13 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                 <div className="px-3 py-1.5">
                   <button
                     onClick={onLoadMore}
-                    className="w-full text-secondary py-1 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    className="w-full text-secondary py-1 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   >
                     Load more{total != null ? ` (${total - recentOperations.length} remaining)` : ''}
                   </button>
                 </div>
               )}
-              <p className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] italic">
+              <p className="px-3 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)] italic">
                 Recent changes stay here across sessions. Roll back any time.
               </p>
             </div>
@@ -346,22 +346,22 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
 
       {/* Link to git history */}
       <div className="px-3 py-3 space-y-1.5">
-        <p className="text-secondary font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+        <p className="text-secondary font-semibold uppercase tracking-wider text-[color:var(--color-figma-text-secondary)]">
           Full history
         </p>
-        <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-relaxed">
+        <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-relaxed">
           For complete version history with per-token diffs, switch to Git Commits or Snapshots.
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => onSwitchTab('commits')}
-            className="text-secondary px-2 py-1 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            className="text-secondary px-2 py-1 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
           >
             Git Commits →
           </button>
           <button
             onClick={() => onSwitchTab('snapshots')}
-            className="text-secondary px-2 py-1 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            className="text-secondary px-2 py-1 rounded font-medium transition-colors bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
           >
             Snapshots →
           </button>

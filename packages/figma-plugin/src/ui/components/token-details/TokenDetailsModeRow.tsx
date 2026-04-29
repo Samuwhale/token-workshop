@@ -252,7 +252,7 @@ export function TokenDetailsModeRow({
                 }}
                 autoFocus={autoFocus}
                 placeholder="Search tokens…"
-                className="tm-token-mode-row__alias-input w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                className="tm-token-mode-row__alias-input w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]"
               />
               {autocompleteOpen && (
                 <AliasAutocomplete
@@ -296,18 +296,18 @@ export function TokenDetailsModeRow({
                     <button
                       type="button"
                       onClick={() => onNavigateToToken(readOnly.aliasTargetPath!)}
-                      className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[var(--color-figma-accent)] hover:underline"
+                      className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[color:var(--color-figma-accent)] hover:underline"
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
                       <Link2 size={10} strokeWidth={1.5} aria-hidden />
                       <span className="min-w-0 break-all">{readOnly.aliasTargetPath}</span>
                     </button>
                   ) : (
-                    <span className="break-all font-mono text-body text-[var(--color-figma-accent)]">
+                    <span className="break-all font-mono text-body text-[color:var(--color-figma-accent)]">
                       {readOnly.aliasTargetPath}
                     </span>
                   )}
-                  <div className="whitespace-pre-wrap break-words text-secondary text-[var(--color-figma-text-secondary)]">
+                  <div className="whitespace-pre-wrap break-words text-secondary text-[color:var(--color-figma-text-secondary)]">
                     {readOnly.isUnresolvedAlias
                       ? "Reference not found"
                       : readOnly.displayValue}
@@ -315,7 +315,7 @@ export function TokenDetailsModeRow({
                 </div>
               ) : (
                 <span
-                  className="whitespace-pre-wrap break-words font-mono text-body text-[var(--color-figma-text)]"
+                  className="whitespace-pre-wrap break-words font-mono text-body text-[color:var(--color-figma-text)]"
                   title={readOnly.displayValue}
                 >
                   {readOnly.displayValue}

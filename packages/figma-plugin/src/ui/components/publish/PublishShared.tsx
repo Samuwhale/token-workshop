@@ -88,7 +88,7 @@ export function ValueCell({
   const showSwatch = (type === "color" || isHexColor(v)) && isHexColor(v);
   return (
     <div className="flex min-w-[140px] flex-1 flex-col gap-0.5">
-      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
         {label}
       </span>
       <div className="flex min-w-0 items-start gap-1">
@@ -113,10 +113,10 @@ export function TokenChangeRow({
 }) {
   const statusColor =
     change.status === "added"
-      ? "text-[var(--color-figma-success)]"
+      ? "text-[color:var(--color-figma-success)]"
       : change.status === "removed"
-        ? "text-[var(--color-figma-error)]"
-        : "text-[var(--color-figma-warning)]";
+        ? "text-[color:var(--color-figma-error)]"
+        : "text-[color:var(--color-figma-warning)]";
   const statusChar =
     change.status === "added"
       ? "+"
@@ -147,7 +147,7 @@ export function TokenChangeRow({
       {change.status === "modified" && (
         <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-secondary font-mono">
           <div className="flex min-w-0 items-start gap-1">
-            <span className="text-[var(--color-figma-error)] shrink-0 w-3">
+            <span className="text-[color:var(--color-figma-error)] shrink-0 w-3">
               &minus;
             </span>
             {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
@@ -159,7 +159,7 @@ export function TokenChangeRow({
             </span>
           </div>
           <div className="flex min-w-0 items-start gap-1">
-            <span className="text-[var(--color-figma-success)] shrink-0 w-3">
+            <span className="text-[color:var(--color-figma-success)] shrink-0 w-3">
               +
             </span>
             {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
@@ -264,7 +264,7 @@ export function FileTokenDiffList({
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
+      <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-secondary text-[color:var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
         <label className="flex items-center gap-1.5 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -322,7 +322,7 @@ export function FileTokenDiffList({
                     height="8"
                     viewBox="0 0 8 8"
                     fill="currentColor"
-                    className={`transition-transform ${isExpanded ? "rotate-90" : ""} text-[var(--color-figma-text-tertiary)]`}
+                    className={`transition-transform ${isExpanded ? "rotate-90" : ""} text-[color:var(--color-figma-text-tertiary)]`}
                   >
                     <path d="M2 1l4 3-4 3V1z" />
                   </svg>
@@ -348,12 +348,12 @@ export function FileTokenDiffList({
                 <span
                   className={`text-secondary font-mono font-bold w-3 flex-shrink-0 ${
                     change.status === "M"
-                      ? "text-[var(--color-figma-warning)]"
+                      ? "text-[color:var(--color-figma-warning)]"
                       : change.status === "A"
-                        ? "text-[var(--color-figma-success)]"
+                        ? "text-[color:var(--color-figma-success)]"
                         : change.status === "D"
-                          ? "text-[var(--color-figma-error)]"
-                          : "text-[var(--color-figma-text-secondary)]"
+                          ? "text-[color:var(--color-figma-error)]"
+                          : "text-[color:var(--color-figma-text-secondary)]"
                   }`}
                 >
                   {change.status}
@@ -361,7 +361,7 @@ export function FileTokenDiffList({
                 <button
                   type="button"
                   onClick={() => hasTokenChanges && toggleExpand(change.file)}
-                  className="min-w-0 flex-1 text-left text-secondary text-[var(--color-figma-text)] [overflow-wrap:anywhere]"
+                  className="min-w-0 flex-1 text-left text-secondary text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
                   disabled={!hasTokenChanges}
                 >
                   {change.file}
@@ -372,17 +372,17 @@ export function FileTokenDiffList({
                   hasTokenChanges && (
                     <span className="flex gap-1.5 text-secondary font-mono shrink-0 ml-auto">
                       {fileCounts.added > 0 && (
-                        <span className="text-[var(--color-figma-success)]">
+                        <span className="text-[color:var(--color-figma-success)]">
                           +{fileCounts.added}
                         </span>
                       )}
                       {fileCounts.modified > 0 && (
-                        <span className="text-[var(--color-figma-warning)]">
+                        <span className="text-[color:var(--color-figma-warning)]">
                           ~{fileCounts.modified}
                         </span>
                       )}
                       {fileCounts.removed > 0 && (
-                        <span className="text-[var(--color-figma-error)]">
+                        <span className="text-[color:var(--color-figma-error)]">
                           &minus;{fileCounts.removed}
                         </span>
                       )}
@@ -393,7 +393,7 @@ export function FileTokenDiffList({
                   !tokenPreviewLoading &&
                   !hasTokenChanges &&
                   change.status !== "D" && (
-                    <span className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">
+                    <span className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-tertiary)] shrink-0 ml-auto">
                       <svg
                         width="8"
                         height="8"
@@ -403,7 +403,7 @@ export function FileTokenDiffList({
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-[var(--color-figma-success)]"
+                        className="text-[color:var(--color-figma-success)]"
                         aria-hidden="true"
                       >
                         <path d="M20 6L9 17l-5-5" />
@@ -431,19 +431,19 @@ export function FileTokenDiffList({
         (previewCounts.added > 0 ||
           previewCounts.modified > 0 ||
           previewCounts.removed > 0) && (
-          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {previewCounts.added > 0 && (
-              <span className="text-[var(--color-figma-success)]">
+              <span className="text-[color:var(--color-figma-success)]">
                 +{previewCounts.added} added
               </span>
             )}
             {previewCounts.modified > 0 && (
-              <span className="text-[var(--color-figma-warning)]">
+              <span className="text-[color:var(--color-figma-warning)]">
                 ~{previewCounts.modified} modified
               </span>
             )}
             {previewCounts.removed > 0 && (
-              <span className="text-[var(--color-figma-error)]">
+              <span className="text-[color:var(--color-figma-error)]">
                 &minus;{previewCounts.removed} removed
               </span>
             )}
@@ -489,7 +489,7 @@ export function SyncDiffSummary({
 
   if (sections.length === 0) {
     return (
-      <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)]">
+      <p className="mt-1.5 text-body text-[color:var(--color-figma-text-secondary)]">
         No changes to apply (all skipped).
       </p>
     );
@@ -499,7 +499,7 @@ export function SyncDiffSummary({
     <div className="mt-2">
       {sections.map((section) => (
         <div key={section.label} className="mb-2">
-          <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] mb-1">
+          <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)] mb-1">
             {section.arrow} {section.label} ({section.items.length})
           </div>
           <div className="max-h-36 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
@@ -529,7 +529,7 @@ export function SyncDiffSummary({
                   {r.cat === "conflict" && (
                     <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-secondary font-mono">
                       <div className="flex min-w-0 items-start gap-1">
-                        <span className="text-[var(--color-figma-error)] shrink-0 w-3">
+                        <span className="text-[color:var(--color-figma-error)] shrink-0 w-3">
                           &minus;
                         </span>
                         {isColor && isHexColor(beforeVal) && (
@@ -543,7 +543,7 @@ export function SyncDiffSummary({
                         </span>
                       </div>
                       <div className="flex min-w-0 items-start gap-1">
-                        <span className="text-[var(--color-figma-success)] shrink-0 w-3">
+                        <span className="text-[color:var(--color-figma-success)] shrink-0 w-3">
                           +
                         </span>
                         {isColor && isHexColor(afterVal) && (
@@ -580,7 +580,7 @@ export function SyncDiffSummary({
         </div>
       ))}
       {skipCount > 0 && (
-        <p className="text-secondary text-[var(--color-figma-text-tertiary)]">
+        <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
           {skipCount} item{skipCount !== 1 ? "s" : ""} skipped.
         </p>
       )}
@@ -621,7 +621,7 @@ export function VarDiffRowItem({
           ) : null}
         </div>
         {reviewOnly ? (
-          <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          <span className="shrink-0 rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
             Review only
           </span>
         ) : (
@@ -630,7 +630,7 @@ export function VarDiffRowItem({
             onChange={(e) =>
               onChange(e.target.value as "push" | "pull" | "skip")
             }
-            className="text-secondary border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
+            className="text-secondary border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
           >
             <option value="push">{"\u2191"} Update Figma</option>
             <option value="pull">{"\u2193"} Update local</option>
@@ -650,7 +650,7 @@ export function VarDiffRowItem({
             height="8"
             viewBox="0 0 8 8"
             fill="none"
-            className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+            className="shrink-0 text-[color:var(--color-figma-text-tertiary)]"
             aria-hidden="true"
           >
             <path

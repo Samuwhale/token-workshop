@@ -48,10 +48,10 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
 };
 
 const VARIANT_ICON_COLOR: Record<FeedbackPlaceholderVariant, string> = {
-  empty: 'text-[var(--color-figma-text-secondary)]',
-  'no-results': 'text-[var(--color-figma-text-secondary)]',
-  error: 'text-[var(--color-figma-error)]',
-  disconnected: 'text-[var(--color-figma-text-secondary)]',
+  empty: 'text-[color:var(--color-figma-text-secondary)]',
+  'no-results': 'text-[color:var(--color-figma-text-secondary)]',
+  error: 'text-[color:var(--color-figma-error)]',
+  disconnected: 'text-[color:var(--color-figma-text-secondary)]',
 };
 
 function joinClasses(...values: Array<string | false | null | undefined>): string {
@@ -101,9 +101,9 @@ function defaultIcon(variant: FeedbackPlaceholderVariant): ReactNode {
 
 function actionButtonClass(tone: FeedbackPlaceholderActionTone): string {
   if (tone === 'primary') {
-    return 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40';
+    return 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40';
   }
-  return 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40';
+  return 'border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40';
 }
 
 function FeedbackActionButton({
@@ -159,9 +159,9 @@ export function FeedbackPlaceholder({
           </div>
         ) : null}
         <div className="min-w-0 break-words">
-          <h3 className={joinClasses(sizeStyles.title, 'text-[var(--color-figma-text)]')}>{title}</h3>
+          <h3 className={joinClasses(sizeStyles.title, 'text-[color:var(--color-figma-text)]')}>{title}</h3>
           {description ? (
-            <div className={joinClasses('mt-0.5', sizeStyles.description, 'text-[var(--color-figma-text-secondary)]')}>
+            <div className={joinClasses('mt-0.5', sizeStyles.description, 'text-[color:var(--color-figma-text-secondary)]')}>
               {description}
             </div>
           ) : null}

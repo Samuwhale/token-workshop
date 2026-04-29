@@ -403,7 +403,7 @@ export const TokenGroupNode = memo(
             ) : (
               isCategoryHeader ? (
                 <span
-                  className="flex-1 text-body font-medium text-[var(--color-figma-text-secondary)]"
+                  className="flex-1 text-body font-medium text-[color:var(--color-figma-text-secondary)]"
                   title={node.path}
                 >
                   {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
@@ -411,7 +411,7 @@ export const TokenGroupNode = memo(
               ) : (
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span
-                    className="tm-token-tree-row__name truncate text-body font-medium text-[var(--color-figma-text)]"
+                    className="tm-token-tree-row__name truncate text-body font-medium text-[color:var(--color-figma-text)]"
                     title={node.path}
                   >
                     {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
@@ -430,7 +430,7 @@ export const TokenGroupNode = memo(
                   collectionCoverageSummary.total > 0 &&
                   collectionCoverageSummary.totalMissing > 0 && (
                     <span
-                      className="tm-token-tree-row__summary shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
+                      className="tm-token-tree-row__summary shrink-0 text-micro font-normal text-[color:var(--color-figma-text-tertiary)]"
                       title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
                     >
                       {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
@@ -449,7 +449,7 @@ export const TokenGroupNode = memo(
                     aria-label="Group actions"
                     aria-haspopup="menu"
                     aria-expanded={!!groupMenuPos}
-                    className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
                   </button>
@@ -706,17 +706,17 @@ export const TokenGroupNode = memo(
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+            <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
               Group metadata
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-secondary text-[var(--color-figma-text-secondary)] w-16 shrink-0">
+              <label className="text-secondary text-[color:var(--color-figma-text-secondary)] w-16 shrink-0">
                 $type
               </label>
               <select
                 value={groupMetaType}
                 onChange={(e) => setGroupMetaType(e.target.value)}
-                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
               >
                 <option value="">(none)</option>
                 <option value="color">color</option>
@@ -736,7 +736,7 @@ export const TokenGroupNode = memo(
               </select>
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-secondary text-[var(--color-figma-text-secondary)] w-16 shrink-0">
+              <label className="text-secondary text-[color:var(--color-figma-text-secondary)] w-16 shrink-0">
                 $description
               </label>
               <input
@@ -744,7 +744,7 @@ export const TokenGroupNode = memo(
                 value={groupMetaDescription}
                 onChange={(e) => setGroupMetaDescription(e.target.value)}
                 placeholder="Optional description…"
-                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
+                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)]"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -757,14 +757,14 @@ export const TokenGroupNode = memo(
             <div className="flex gap-1 justify-end">
               <button
                 onClick={() => setEditingGroupMeta(false)}
-                className="px-2 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                className="px-2 py-1 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveGroupMeta}
                 disabled={groupMetaSaving}
-                className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:opacity-90 disabled:opacity-40"
+                className="px-2 py-1 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-secondary font-medium hover:opacity-90 disabled:opacity-40"
               >
                 {groupMetaSaving ? "Saving…" : "Save"}
               </button>

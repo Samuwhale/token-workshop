@@ -79,7 +79,7 @@ export function HistorySavedView({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="shrink-0 flex items-center gap-2 px-3 py-1.5">
         <div className="tm-panel-search flex-1">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
           <input
@@ -91,7 +91,7 @@ export function HistorySavedView({
             className="tm-panel-search__input text-secondary"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="shrink-0 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors" aria-label="Clear search">
+            <button onClick={() => setSearchQuery('')} className="shrink-0 text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] transition-colors" aria-label="Clear search">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           )}
@@ -120,7 +120,7 @@ export function HistorySavedView({
               className="w-full text-left flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
             >
               <div className="mt-0.5 shrink-0">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
                   <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
                 </svg>
               </div>
@@ -129,11 +129,11 @@ export function HistorySavedView({
                   {snapshot.label}
                 </span>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
-                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
+                  <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
+                  <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
                 </div>
               </div>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[color:var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
             </button>
           ))
         )}

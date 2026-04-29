@@ -45,11 +45,11 @@ export const VALUE_FORMAT_HINTS: Record<string, string> = {
 export const InheritedBadge = memo(function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
   return (
     <span className="inline-flex items-center gap-0.5 ml-1">
-      <span className="text-secondary text-[var(--color-figma-text-tertiary)] italic">inherited</span>
+      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] italic">inherited</span>
       <button
         type="button"
         onClick={onOverride}
-        className="text-secondary text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+        className="text-secondary text-[color:var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
         title={`Override ${propKey}`}
       >override</button>
     </span>
@@ -61,7 +61,7 @@ export const RevertBadge = memo(function RevertBadge({ propKey, onRevert }: { pr
     <button
       type="button"
       onClick={onRevert}
-      className="ml-1 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+      className="ml-1 text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
       title={`Revert ${propKey} to inherited value`}
     >revert</button>
   );
@@ -167,8 +167,8 @@ export const SubPropInput = memo(function SubPropInput({
         aria-label={isAliasVal ? 'Clear reference' : 'Reference a token'}
         className={`${REFERENCE_BUTTON_CLASS} ${
           isAliasVal
-            ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]'
-            : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+            ? 'text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-error)]'
+            : 'text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
         }`}
       >
         <Link2 size={12} strokeWidth={1.8} aria-hidden />
@@ -256,7 +256,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         type="button"
         onClick={() => onChange('{')}
         title="Reference a token"
-        className={`${REFERENCE_BUTTON_CLASS} text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
+        className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
       >
         <Link2 size={12} strokeWidth={1.8} aria-hidden />
       </button>
@@ -313,7 +313,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
             onClick={() => { onChange(''); setShowAC(false); }}
             title="Clear reference — use direct value"
             aria-label="Clear reference"
-            className={`${REFERENCE_BUTTON_CLASS} text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]`}
+            className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-error)]`}
           >
             <Link2 size={12} strokeWidth={1.8} aria-hidden />
           </button>
@@ -355,7 +355,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
         type="button"
         onClick={() => { onChange('{'); setShowAC(true); }}
         title="Reference a token"
-        className={`${REFERENCE_BUTTON_CLASS} text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]`}
+        className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
       >
         <Link2 size={12} strokeWidth={1.8} aria-hidden />
       </button>

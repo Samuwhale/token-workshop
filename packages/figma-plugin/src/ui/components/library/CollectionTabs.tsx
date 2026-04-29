@@ -182,8 +182,8 @@ export function CollectionTabs({
               aria-expanded={switcherOpen}
               className={`tm-collection-toolbar__trigger flex h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left transition-colors ${
                 switcherOpen
-                  ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                  : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                  ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
+                  : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
               }`}
             >
               <span className="tm-collection-toolbar__summary min-w-0 flex-1">
@@ -191,7 +191,7 @@ export function CollectionTabs({
                   {currentDisplayName}
                 </span>
                 {currentMeta ? (
-                  <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                  <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
                     {currentMeta}
                   </span>
                 ) : null}
@@ -199,7 +199,7 @@ export function CollectionTabs({
               <ChevronDown
                 size={12}
                 strokeWidth={1.5}
-                className="shrink-0 text-[var(--color-figma-text-tertiary)]"
+                className="shrink-0 text-[color:var(--color-figma-text-tertiary)]"
                 aria-hidden
               />
             </button>
@@ -247,11 +247,11 @@ export function CollectionTabs({
                       onClick={handleSelectAll}
                       className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
                         allCollectionsScope.selected
-                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                          : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                          ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                          : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                       }`}
                     >
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[var(--color-figma-accent)]">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-accent)]">
                         {allCollectionsScope.selected ? (
                           <Check size={12} strokeWidth={1.7} aria-hidden />
                         ) : null}
@@ -269,7 +269,7 @@ export function CollectionTabs({
                   ) : null}
 
                   {hasNoMatches ? (
-                    <div className="px-2 py-3 text-secondary text-[var(--color-figma-text-tertiary)]">
+                    <div className="px-2 py-3 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                       No collections match "{query.trim()}".
                     </div>
                   ) : (
@@ -299,11 +299,11 @@ export function CollectionTabs({
                           onClick={() => handleSelectCollection(collectionId)}
                           className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
                             isCurrent
-                              ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                              : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                              ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                              : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                           }`}
                         >
-                          <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[var(--color-figma-accent)]">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-accent)]">
                             {isCurrent ? (
                               <Check size={12} strokeWidth={1.7} aria-hidden />
                             ) : healthTone ? (
@@ -348,8 +348,8 @@ export function CollectionTabs({
                 aria-pressed={activeCollectionSettings?.open === true}
                 className={`tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors ${
                   activeCollectionSettings?.open === true
-                    ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
+                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                 }`}
               >
                 <Settings2 size={12} strokeWidth={1.5} aria-hidden />
@@ -364,7 +364,7 @@ export function CollectionTabs({
                 type="button"
                 onClick={onOpenCreateCollection}
                 title="Create collection"
-                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
               >
                 <Plus size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
@@ -378,7 +378,7 @@ export function CollectionTabs({
                 type="button"
                 onClick={onOpenImport}
                 title="Import collections"
-                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
               >
                 <Upload size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">

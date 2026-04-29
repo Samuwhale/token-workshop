@@ -97,13 +97,13 @@ export function Tooltip({ label, shortcut, className = '', hidden = false, posit
             opacity-0 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100
             transition-opacity duration-100
             bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]
-            text-[var(--color-figma-text)] text-secondary
+            text-[color:var(--color-figma-text)] text-secondary
             rounded px-1.5 py-0.5 shadow-md
             flex items-center gap-1.5`}
         >
           <span className="break-words">{label}</span>
           {shortcut && (
-            <kbd className="text-[var(--color-figma-text-secondary)] font-mono not-italic shrink-0">{shortcut}</kbd>
+            <kbd className="text-[color:var(--color-figma-text-secondary)] font-mono not-italic shrink-0">{shortcut}</kbd>
           )}
         </div>
       )}

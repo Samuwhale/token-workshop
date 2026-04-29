@@ -97,32 +97,32 @@ export function TableCreateForm({
               label: "Restore",
               onClick: onRestoreDraft,
               className:
-                "bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]",
+                "bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)]",
             }}
             onDismiss={onDismissDraft}
             dismissLabel="Discard"
             dismissMode="text"
-            dismissClassName="border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            dismissClassName="border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
-            <span className="block text-[var(--color-figma-text)]">
+            <span className="block text-[color:var(--color-figma-text)]">
               You have unsaved bulk-create data. Restore it?
             </span>
           </InlineBanner>
         )}
         {/* Collection indicator */}
         <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-          <Folder aria-hidden="true" size={12} className="shrink-0 text-[var(--color-figma-text-secondary)]" />
-          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <Folder aria-hidden="true" size={12} className="shrink-0 text-[color:var(--color-figma-text-secondary)]" />
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Bulk create in:
           </span>
-          <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate">
+          <span className="text-secondary font-medium text-[color:var(--color-figma-text)] truncate">
             {collectionId}
           </span>
         </div>
         {/* Group picker */}
         <div>
           <label
-            className="block text-secondary text-[var(--color-figma-text-tertiary)] mb-0.5"
+            className="block text-secondary text-[color:var(--color-figma-text-tertiary)] mb-0.5"
             htmlFor="table-create-group"
           >
             Group
@@ -135,7 +135,7 @@ export function TableCreateForm({
             value={tableGroup}
             onChange={(e) => onSetTableGroup(e.target.value)}
             aria-label="Token group for bulk create"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
           />
           <datalist id="table-create-groups-list">
             {allGroupPaths.map((g) => (
@@ -146,7 +146,7 @@ export function TableCreateForm({
         {/* Smart name suggestions for table create */}
         {tableSuggestions.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)] self-center mr-0.5">
+            <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] self-center mr-0.5">
               Suggest:
             </span>
             {tableSuggestions.map((s) => {
@@ -159,7 +159,7 @@ export function TableCreateForm({
                   type="button"
                   title={s.source}
                   onClick={() => addSuggestedName(leafName)}
-                  className="px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
+                  className="px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors cursor-pointer"
                 >
                   {s.label}
                 </button>
@@ -176,13 +176,13 @@ export function TableCreateForm({
               gridTemplateColumns: "minmax(0,1fr) 76px minmax(0,1fr) 18px",
             }}
           >
-            <span className="text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
               Name
             </span>
-            <span className="text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
               Type
             </span>
-            <span className="text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
               Value
             </span>
             <span />
@@ -210,13 +210,13 @@ export function TableCreateForm({
                   }}
                   aria-label={`Token ${idx + 1} name`}
                   autoFocus={idx === 0}
-                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
+                  className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
                 />
                 <TypePicker
                   value={row.type}
                   onChange={(v) => onUpdateRow(row.id, "type", v)}
                   ariaLabel={`Token ${idx + 1} type`}
-                  className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                 />
                 <input
                   type="text"
@@ -242,14 +242,14 @@ export function TableCreateForm({
                       onCreateAll();
                   }}
                   aria-label={`Token ${idx + 1} value`}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                 />
                 <button
                   type="button"
                   onClick={() => onRemoveRow(row.id)}
                   tabIndex={-1}
                   aria-label={`Remove row ${idx + 1}`}
-                  className="w-[18px] h-[18px] flex items-center justify-center rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="w-[18px] h-[18px] flex items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   <X size={12} aria-hidden="true" />
                 </button>
@@ -264,7 +264,7 @@ export function TableCreateForm({
           <button
             type="button"
             onClick={() => onAddRow()}
-            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors inline-flex items-center justify-center gap-1"
+            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors inline-flex items-center justify-center gap-1"
           >
             <Plus size={12} aria-hidden="true" />
             Add Row
@@ -288,7 +288,7 @@ export function TableCreateForm({
                 ? "Enter at least one token name"
                 : "Create all tokens (Ctrl+Enter)"
             }
-            className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
           >
             {busy
               ? "Creating\u2026"
@@ -296,7 +296,7 @@ export function TableCreateForm({
           </button>
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
+            className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>

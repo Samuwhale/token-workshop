@@ -78,7 +78,7 @@ export function ExportPreviewModal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-[var(--color-figma-accent)]"
+                className="text-[color:var(--color-figma-accent)]"
                 aria-hidden="true"
               >
                 <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
@@ -137,7 +137,7 @@ export function ExportPreviewModal({
                 onClick={() => onFileSelect(i)}
                 className={`tm-modal-tab ${i === fileIndex ? "tm-modal-tab--active" : ""}`}
               >
-                <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[var(--font-size-xs)] font-medium uppercase font-sans text-[var(--color-figma-accent)]">
+                <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[var(--font-size-xs)] font-medium uppercase font-sans text-[color:var(--color-figma-accent)]">
                   {file.platform}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -146,7 +146,7 @@ export function ExportPreviewModal({
                   </span>
                   {directory ? (
                     <span
-                      className="tm-modal-tab__meta pt-0.5 text-[var(--font-size-xs)] text-[var(--color-figma-text-tertiary)]"
+                      className="tm-modal-tab__meta pt-0.5 text-[var(--font-size-xs)] text-[color:var(--color-figma-text-tertiary)]"
                       title={directory}
                     >
                       {directory}
@@ -168,10 +168,10 @@ export function ExportPreviewModal({
                     key={lineIdx}
                     className="hover:bg-[var(--color-figma-bg-hover)]/50"
                   >
-                    <td className="px-2 py-0 text-secondary font-mono text-[var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
+                    <td className="px-2 py-0 text-secondary font-mono text-[color:var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
                       {lineIdx + 1}
                     </td>
-                    <td className="px-3 py-0 text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre">
+                    <td className="px-3 py-0 text-secondary font-mono text-[color:var(--color-figma-text)] whitespace-pre">
                       {line || "\u00A0"}
                     </td>
                   </tr>
@@ -182,14 +182,14 @@ export function ExportPreviewModal({
         </div>
 
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] pt-2.5">
-          <span className="min-w-0 flex-1 self-center text-secondary text-[var(--color-figma-text-tertiary)]">
+          <span className="min-w-0 flex-1 self-center text-secondary text-[color:var(--color-figma-text-tertiary)]">
             {lines.length} line{lines.length !== 1 ? "s" : ""}
           </span>
           <div className="flex min-w-0 flex-[2] flex-wrap items-stretch justify-end gap-2">
             <button
               type="button"
               onClick={() => activeFile && onCopyFile(activeFile)}
-              className="flex min-w-[140px] flex-1 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className="flex min-w-[140px] flex-1 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
               title={`Copy ${activeFile?.path}`}
             >
               {activeFile && copiedFile === exportFileId(activeFile) ? (
@@ -232,7 +232,7 @@ export function ExportPreviewModal({
             <button
               type="button"
               onClick={() => activeFile && onDownloadFile(activeFile)}
-              className="flex min-w-[140px] flex-1 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className="flex min-w-[140px] flex-1 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
               title={`Download ${activeFile?.path}`}
             >
               <svg
@@ -256,7 +256,7 @@ export function ExportPreviewModal({
               type="button"
               onClick={onDownloadZip}
               disabled={zipProgress !== null}
-              className="flex min-w-[160px] flex-1 basis-full items-center justify-center gap-1 rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+              className="flex min-w-[160px] flex-1 basis-full items-center justify-center gap-1 rounded bg-[var(--color-figma-action-bg)] px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
               title={`Download all ${results.length} files as ${(zipFilename || "tokens").replace(/\.zip$/i, "")}.zip${nestByPlatform ? " (nested by platform)" : ""}`}
             >
               {zipProgress !== null ? (

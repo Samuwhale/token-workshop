@@ -164,7 +164,7 @@ export function HealthIssuesView({
             {tokenPathFilter && (
               <button
                 onClick={() => setTokenPathFilter(null)}
-                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
               >
                 Clear filter
               </button>
@@ -179,7 +179,7 @@ export function HealthIssuesView({
                   className={`text-secondary px-1.5 py-0.5 rounded transition-colors ${
                     isActive
                       ? `${severityStyles(filterSeverity).pill} font-medium`
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                   }`}
                 >
                   {f}
@@ -190,7 +190,7 @@ export function HealthIssuesView({
               <button
                 ref={exportMenu.triggerRef}
                 onClick={exportMenu.toggle}
-                className="text-secondary px-1.5 py-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                className="text-secondary px-1.5 py-0.5 rounded text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] transition-colors"
                 aria-haspopup="true"
                 aria-expanded={exportMenu.open}
                 aria-label="Export"
@@ -203,13 +203,13 @@ export function HealthIssuesView({
                   className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
                   role="menu"
                 >
-                  <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                  <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                     Copy as Markdown
                   </button>
-                  <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                  <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                     Export JSON
                   </button>
-                  <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                  <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                     Export CSV
                   </button>
                 </div>
@@ -219,7 +219,7 @@ export function HealthIssuesView({
         }
       />
       {tokenPathFilter && (
-        <div className="shrink-0 break-all px-3 pb-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="shrink-0 break-all px-3 pb-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {tokenPathFilter}
         </div>
       )}
@@ -227,7 +227,7 @@ export function HealthIssuesView({
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         {filteredIssues.length === 0 ? (
           <div className="px-3 py-12 text-center">
-            <p className="text-body text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
               {activeIssues.length === 0
                 ? "No issues found"
                 : tokenPathFilter
@@ -244,10 +244,10 @@ export function HealthIssuesView({
 
             const severityColor =
               group.severity === "error"
-                ? "text-[var(--color-figma-error)]"
+                ? "text-[color:var(--color-figma-error)]"
                 : group.severity === "warning"
-                  ? "text-[var(--color-figma-warning)]"
-                  : "text-[var(--color-figma-text-secondary)]";
+                  ? "text-[color:var(--color-figma-warning)]"
+                  : "text-[color:var(--color-figma-text-secondary)]";
 
             return (
               <div key={group.rule}>
@@ -273,7 +273,7 @@ export function HealthIssuesView({
                   <span className={`text-secondary font-medium flex-1 text-left truncate ${severityColor}`}>
                     {group.label}
                   </span>
-                  <span className="text-secondary text-[var(--color-figma-text-tertiary)] tabular-nums shrink-0">
+                  <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] tabular-nums shrink-0">
                     {group.issues.length}
                   </span>
                 </button>
@@ -320,7 +320,7 @@ export function HealthIssuesView({
                             [group.rule]: visibleLimit + Math.min(remainingCount, ISSUES_PER_PAGE),
                           }))
                         }
-                        className="w-full px-3 py-1.5 text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center border-b border-[var(--color-figma-border)]"
+                        className="w-full px-3 py-1.5 text-secondary text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center border-b border-[var(--color-figma-border)]"
                       >
                         Show {Math.min(remainingCount, ISSUES_PER_PAGE)} more
                         {remainingCount > ISSUES_PER_PAGE ? ` of ${remainingCount} remaining` : ""}
@@ -346,7 +346,7 @@ function lastRefreshedLabel(date: Date | null) {
   else if (diffMin === 1) text = "1 min ago";
   else if (diffMin < 60) text = `${diffMin} min ago`;
   else text = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  return <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Updated {text}</span>;
+  return <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Updated {text}</span>;
 }
 
 function IssueRow({
@@ -387,14 +387,14 @@ function IssueRow({
     >
       <div className="min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="min-w-0 break-all text-secondary font-mono font-medium text-[var(--color-figma-text)]">
+          <span className="min-w-0 break-all text-secondary font-mono font-medium text-[color:var(--color-figma-text)]">
             {issue.path}
           </span>
-          <span className="text-secondary text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)] opacity-60 shrink-0">
             {issue.collectionId}
           </span>
         </div>
-        <div className="mt-0.5 break-words text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="mt-0.5 break-words text-secondary text-[color:var(--color-figma-text-secondary)]">
           {issue.message}
         </div>
       </div>
@@ -409,8 +409,8 @@ function IssueRow({
             disabled={fixing}
             className={`text-secondary shrink-0 disabled:opacity-40 disabled:cursor-wait hover:underline ${
               issue.suggestedFix === "delete-token"
-                ? "text-[var(--color-figma-error)]"
-                : "text-[var(--color-figma-accent)]"
+                ? "text-[color:var(--color-figma-error)]"
+                : "text-[color:var(--color-figma-accent)]"
             }`}
           >
             {fixing ? <Spinner size="xs" /> : fixLabelText}
@@ -423,7 +423,7 @@ function IssueRow({
               event.stopPropagation();
               onViewInGenerator();
             }}
-            className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
+            className="text-secondary shrink-0 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline"
           >
             Open generator
           </button>
@@ -435,7 +435,7 @@ function IssueRow({
               event.stopPropagation();
               onOpen();
             }}
-            className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
+            className="text-secondary shrink-0 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline"
           >
             Open
           </button>
@@ -448,7 +448,7 @@ function IssueRow({
               event.stopPropagation();
               overflowMenu.toggle();
             }}
-            className="text-secondary rounded px-1 py-0.5 text-[var(--color-figma-text-tertiary)] opacity-0 transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+            className="text-secondary rounded px-1 py-0.5 text-[color:var(--color-figma-text-tertiary)] opacity-0 transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-secondary)] group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
             aria-haspopup="true"
             aria-expanded={overflowMenu.open}
             aria-label="More actions"
@@ -466,7 +466,7 @@ function IssueRow({
               <button
                 role="menuitem"
                 onClick={() => { onIgnore(); overflowMenu.close(); }}
-                className="w-full text-left px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Hide this issue
               </button>

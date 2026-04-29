@@ -29,12 +29,12 @@ export function FieldBlock({
 }) {
   return (
     <div className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+      <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
         {label}
       </span>
       {children}
       {error ? (
-        <span className="mt-1 block text-tertiary text-[var(--color-figma-error)]">
+        <span className="mt-1 block text-tertiary text-[color:var(--color-figma-error)]">
           {error}
         </span>
       ) : null}
@@ -88,7 +88,7 @@ export function GeneratorPathField({
         className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
       />
       {text.trim() && !error ? (
-        <div className="mt-1 truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+        <div className="mt-1 truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
           {series ? `${text}.<step>` : text}
         </div>
       ) : null}
@@ -427,10 +427,10 @@ function TokenPickerContent({
   return (
     <span className="min-w-0 flex-1">
       <span className="block truncate font-medium">{path}</span>
-      <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+      <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
         {token.$type}
       </span>
-      <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[var(--color-figma-text-secondary)]">
+      <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[color:var(--color-figma-text-secondary)]">
         {values.map(([modeName, modeValue]) => (
           <span key={modeName} className="flex min-w-0 items-center gap-1">
             {previewIsValueBearing(token.$type) ? (
@@ -476,7 +476,7 @@ export function NumberStepTable({
               onRemove={() => onChange(removeAt(values, index))}
             />
             {pathPrefix ? (
-              <div className="col-span-2 truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+              <div className="col-span-2 truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                 {pathPrefix}.{value}
               </div>
             ) : null}
@@ -547,7 +547,7 @@ export function NamedNumberStepTable({
                 />
               ) : null}
               {pathPrefix || error ? (
-                <div className={`truncate text-tertiary ${error ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)]"}`}>
+                <div className={`truncate text-tertiary ${error ? "text-[color:var(--color-figma-error)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
                   {error ?? `${pathPrefix}.${name}`}
                 </div>
               ) : null}
@@ -616,7 +616,7 @@ export function ShadowStepTable({
                 ))}
               </div>
               {pathPrefix || error ? (
-                <div className={`truncate text-tertiary ${error ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)]"}`}>
+                <div className={`truncate text-tertiary ${error ? "text-[color:var(--color-figma-error)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
                   {error ?? `${pathPrefix}.${name}`}
                 </div>
               ) : null}
@@ -766,13 +766,13 @@ function ListValueControl({
 function StepTableHeader({ label, onAdd }: { label: string; onAdd: () => void }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+      <span className="text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
         {label}
       </span>
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         title={`Add ${label.toLowerCase()}`}
         aria-label={`Add ${label.toLowerCase()}`}
       >
@@ -833,7 +833,7 @@ function IconStepButton({
       aria-label={title}
       disabled={disabled}
       onClick={onClick}
-      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:pointer-events-none disabled:opacity-35"
+      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:pointer-events-none disabled:opacity-35"
     >
       {children}
     </button>

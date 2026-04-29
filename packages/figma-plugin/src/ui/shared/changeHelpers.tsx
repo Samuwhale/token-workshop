@@ -88,7 +88,7 @@ export function CollapsibleChangeSection({ title, open, onToggle, badge, childre
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${open ? 'rotate-90' : ''}`}>
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
-        <span className="text-body font-semibold text-[var(--color-figma-text)]">{title}</span>
+        <span className="text-body font-semibold text-[color:var(--color-figma-text)]">{title}</span>
         {badge}
       </button>
       {open && <div className="border-t border-[var(--color-figma-border)]">{children}</div>}
@@ -103,7 +103,7 @@ export function ChangeSummaryBadges({ added, modified, removed }: { added: numbe
       {modified > 0 && <span style={{ color: 'var(--color-figma-warning)' }}>~{modified}</span>}
       {removed > 0 && <span style={{ color: 'var(--color-figma-error)' }}>-{removed}</span>}
       {added === 0 && modified === 0 && removed === 0 && (
-        <span className="text-[var(--color-figma-text-tertiary)]">no token changes</span>
+        <span className="text-[color:var(--color-figma-text-tertiary)]">no token changes</span>
       )}
     </span>
   );

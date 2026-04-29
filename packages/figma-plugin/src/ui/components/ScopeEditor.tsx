@@ -49,7 +49,7 @@ export function ScopeEditor({
 
   if (available.length === 0) {
     return (
-      <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+      <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
         This type doesn't map to any Figma field
       </p>
     );
@@ -68,7 +68,7 @@ export function ScopeEditor({
       {(!compact || selectedScopes.length > 0) && (
         <div className="flex items-center justify-between">
           {!compact && (
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
               Empty = any compatible field
             </span>
           )}
@@ -77,7 +77,7 @@ export function ScopeEditor({
               type="button"
               onClick={() => onChange([])}
               disabled={disabled}
-              className="text-secondary text-[var(--color-figma-accent)] ml-auto hover:underline"
+              className="text-secondary text-[color:var(--color-figma-accent)] ml-auto hover:underline"
             >
               Clear all
             </button>
@@ -104,11 +104,11 @@ export function ScopeEditor({
               className="mt-0.5 accent-[var(--color-figma-accent)]"
             />
             <div className="min-w-0">
-              <div className="text-body text-[var(--color-figma-text)]">
+              <div className="text-body text-[color:var(--color-figma-text)]">
                 {scope.label}
               </div>
               {showDescriptions ? (
-                <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {scope.description}
                 </div>
               ) : null}

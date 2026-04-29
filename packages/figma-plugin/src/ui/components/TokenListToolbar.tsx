@@ -37,7 +37,7 @@ interface QualifierHint {
 
 function MenuSectionLabel({ children }: { children: string }) {
   return (
-    <div className="px-2.5 pt-1 pb-0.5 text-secondary font-semibold text-[var(--color-figma-text-tertiary)]">
+    <div className="px-2.5 pt-1 pb-0.5 text-secondary font-semibold text-[color:var(--color-figma-text-tertiary)]">
       {children}
     </div>
   );
@@ -73,7 +73,7 @@ const RESULT_OPTIONS: SegmentedOption<"grouped" | "flat">[] = [
 ];
 
 const TOOLBAR_BUTTON_CLASS =
-  "inline-flex min-h-[26px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors";
+  "inline-flex min-h-7 items-center gap-1 rounded px-2 text-secondary font-medium transition-colors";
 
 type SearchResultPresentation = "grouped" | "flat";
 
@@ -295,7 +295,7 @@ export function TokenListToolbar({
 
             {zoomRootPath ? (
               <span
-                className="tm-token-toolbar__scope inline-flex min-w-0 shrink items-start gap-1 text-secondary text-[var(--color-figma-text-tertiary)]"
+                className="tm-token-toolbar__scope inline-flex min-w-0 shrink items-start gap-1 text-secondary text-[color:var(--color-figma-text-tertiary)]"
                 title={`Scoped to ${zoomRootPath}`}
               >
                 <ChevronRight size={10} strokeWidth={1.5} aria-hidden />
@@ -430,11 +430,11 @@ export function TokenListToolbar({
                         }}
                         className={`flex w-full items-center gap-2 px-2 py-1 text-left text-secondary ${
                           index === hintIndex
-                            ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                            : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                            ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
+                            : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                         } ${hint.kind === "replacement" ? "" : "cursor-default"}`}
                       >
-                        <span className="font-mono font-semibold text-[var(--color-figma-accent)]">
+                        <span className="font-mono font-semibold text-[color:var(--color-figma-accent)]">
                           {hint.label}
                         </span>
                         <span className="min-w-0 flex-1 whitespace-normal break-words leading-tight">
@@ -473,8 +473,8 @@ export function TokenListToolbar({
                   title="Sort and group"
                   className={`${TOOLBAR_BUTTON_CLASS} ${
                     sortMenu.open || sortActive
-                      ? "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]"
+                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   }`}
                 >
                   <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
@@ -517,7 +517,7 @@ export function TokenListToolbar({
                       disabled={!connected}
                       title="New token"
                       aria-label="New token"
-                      className="tm-token-toolbar__split-button-primary inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-accent)] px-2 text-secondary font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      className="tm-token-toolbar__split-button-primary inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-action-bg)] px-2 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
                     >
                       <Plus size={12} strokeWidth={2} aria-hidden />
                       <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
@@ -533,7 +533,7 @@ export function TokenListToolbar({
                       aria-haspopup="menu"
                       aria-label="More create actions"
                       title="More create actions"
-                      className="tm-token-toolbar__split-button-toggle inline-flex min-h-[26px] w-6 items-center justify-center border-l border-white/25 bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      className="tm-token-toolbar__split-button-toggle inline-flex min-h-7 w-7 items-center justify-center border-l border-white/25 bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
                     >
                       <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                     </button>
@@ -548,7 +548,7 @@ export function TokenListToolbar({
                     aria-haspopup="menu"
                     aria-label="Create"
                     title="Create"
-                    className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`}
+                    className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40`}
                   >
                     <Plus size={12} strokeWidth={2} aria-hidden />
                     <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
@@ -570,7 +570,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateAction(handleOpenNewGroupDialog)}
                       disabled={!connected}
-                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
                       New group
                     </button>
@@ -579,7 +579,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateAction(openTableCreate)}
                       disabled={!connected}
-                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
                       Token table
                     </button>
@@ -589,7 +589,7 @@ export function TokenListToolbar({
                         role="menuitem"
                         onClick={() => runCreateAction(onShowPasteModal)}
                         disabled={!connected}
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                       >
                         Paste JSON
                       </button>
@@ -606,7 +606,7 @@ export function TokenListToolbar({
                             )
                           }
                           disabled={!connected}
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40"
+                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40"
                         >
                           Generator…
                         </button>
@@ -629,8 +629,8 @@ export function TokenListToolbar({
                   title="More actions"
                   className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
                     actionsMenu.open
-                      ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
+                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   } disabled:opacity-40`}
                 >
                   <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
@@ -655,7 +655,7 @@ export function TokenListToolbar({
                             onClick={() =>
                               runMenuAction(() => setViewMode(option.value))
                             }
-                            className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                            className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                           >
                             <span className="w-3 shrink-0 text-center">
                               {viewMode === option.value ? (
@@ -691,7 +691,7 @@ export function TokenListToolbar({
                                 : overflowMenuProps!.onExpandAll,
                             )
                           }
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                         >
                           {overflowMenuProps!.allGroupsExpanded
                             ? "Collapse all groups"
@@ -716,7 +716,7 @@ export function TokenListToolbar({
                             type="button"
                             role="menuitem"
                             onClick={() => runMenuAction(onSelectTokens)}
-                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                           >
                             Select tokens
                           </button>
@@ -726,7 +726,7 @@ export function TokenListToolbar({
                             type="button"
                             role="menuitem"
                             onClick={() => runMenuAction(onBulkEdit)}
-                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                           >
                             Bulk edit
                           </button>
@@ -737,7 +737,7 @@ export function TokenListToolbar({
                             role="menuitem"
                             onClick={() => runMenuAction(onFindReplace)}
                             disabled={!connected}
-                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                           >
                             Find and replace
                           </button>
@@ -765,8 +765,8 @@ export function TokenListToolbar({
                 }
                 className={`inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-secondary transition-colors ${
                   inspectMode
-                    ? "bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]"
-                    : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                    ? "bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-accent)]"
+                    : "bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
                 }`}
               >
                 <Target size={10} strokeWidth={1.5} aria-hidden />

@@ -324,7 +324,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           <select
             value={multiModeDimId ?? ""}
             onChange={(e) => setMultiModeDimId(e.target.value)}
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           >
             {collections.map((collection) => (
               <option key={collection.id} value={collection.id}>
@@ -333,7 +333,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             ))}
           </select>
         ) : (
-          <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
             Token
           </span>
         )}
@@ -366,7 +366,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             setAddModeMenuOpen(true);
           }}
           disabled={!connected}
-          className="w-full flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
+          className="w-full flex items-center justify-center text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
           title="Add mode"
           aria-label="Add mode"
           aria-haspopup="menu"
@@ -398,9 +398,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 autoFocus
                 disabled={addingModeSaving}
                 placeholder="Mode name"
-                className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[var(--color-figma-text)] outline-none"
+                className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[color:var(--color-figma-text)] outline-none"
               />
-              <p className="mt-1 px-0.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+              <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                 Name the context this collection needs, such as Desktop, Marketing, or Dark.
               </p>
             </div>
@@ -460,7 +460,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                         setSearchQuery("");
                         setTypeFilter(matchingType);
                       }}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors"
                     >
                       Filter by type: {matchingType}{" "}
                       <span aria-hidden="true">&rarr;</span>
@@ -478,7 +478,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       <div>
         {crossCollectionSections.map(([collectionId, collectionResults]) => (
           <div key={collectionId}>
-            <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] sticky top-0 z-10">
+            <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] sticky top-0 z-10">
               {collectionId}{" "}
               <span className="font-normal opacity-60">
                 ({collectionResults.length})
@@ -499,7 +499,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                     />
                   )}
                 <span
-                  className="flex-1 min-w-0 font-mono text-secondary text-[var(--color-figma-text)] truncate"
+                  className="flex-1 min-w-0 font-mono text-secondary text-[color:var(--color-figma-text)] truncate"
                   title={r.path}
                 >
                   {highlightMatch(
@@ -518,9 +518,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         ))}
         {(crossCollectionError || crossCollectionTotal > crossCollectionResults.length) && (
           <div className="px-3 py-2 flex items-center justify-between gap-3">
-            <div className="min-w-0 text-secondary text-[var(--color-figma-text-secondary)]">
+            <div className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
               {crossCollectionError ? (
-                <span className="text-[var(--color-figma-error)]">
+                <span className="text-[color:var(--color-figma-error)]">
                   {crossCollectionError}
                 </span>
               ) : (
@@ -528,7 +528,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               )}
             </div>
             <button
-              className="shrink-0 text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+              className="shrink-0 text-secondary text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50"
               disabled={crossCollectionLoading}
               onClick={() => {
                 if (crossCollectionError) {
@@ -705,7 +705,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               <button
                 onClick={handleZoomUpOneLevel}
                 disabled={!zoomParentPath}
-                className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:cursor-default disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:cursor-default disabled:opacity-40"
                 title={
                   zoomParentPath
                     ? "Move up one group"
@@ -730,7 +730,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               </button>
               <button
                 onClick={handleZoomOut}
-                className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                 title="Clear the scoped branch (Esc)"
               >
                 <X size={10} strokeWidth={2} aria-hidden />
@@ -745,7 +745,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                     {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
                     {i < zoomBreadcrumb.length - 1 ? (
                       <button
-                        className="truncate text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline max-w-[200px]"
+                        className="truncate text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline max-w-[200px]"
                         title={seg.path}
                         onClick={() => handleZoomToAncestor(seg.path)}
                       >
@@ -753,7 +753,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                       </button>
                     ) : (
                       <span
-                        className="truncate font-medium text-[var(--color-figma-text)] max-w-[200px]"
+                        className="truncate font-medium text-[color:var(--color-figma-text)] max-w-[200px]"
                         title={seg.path}
                       >
                         {seg.name}
@@ -765,14 +765,14 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             </div>
             {zoomSiblingBranches.length > 0 && (
               <div className="mt-1 flex items-center gap-1 overflow-x-auto">
-                <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
+                <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   Other branches
                 </span>
                 {zoomSiblingBranches.map((branch) => (
                   <button
                     key={branch.path}
                     onClick={() => handleZoomToAncestor(branch.path)}
-                    className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
+                    className="shrink-0 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline"
                     title={`Scope to ${branch.path}`}
                   >
                     {branch.name}
@@ -782,7 +782,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             )}
           </div>
         ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
-          <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] group/breadcrumb">
+          <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] text-secondary text-[color:var(--color-figma-text-secondary)] group/breadcrumb">
             <svg
               width="10"
               height="10"
@@ -803,7 +803,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
                 {i < breadcrumbSegments.length - 1 ? (
                   <button
-                    className="hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[200px]"
+                    className="hover:text-[color:var(--color-figma-text)] hover:underline truncate max-w-[200px]"
                     title={`Jump to ${seg.path}`}
                     onClick={() => handleJumpToGroup(seg.path)}
                   >
@@ -811,7 +811,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   </button>
                 ) : (
                   <span
-                    className="font-medium text-[var(--color-figma-text)] truncate max-w-[200px]"
+                    className="font-medium text-[color:var(--color-figma-text)] truncate max-w-[200px]"
                     title={seg.path}
                   >
                     {seg.name}
@@ -820,7 +820,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               </span>
             ))}
             <button
-              className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
+              className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] shrink-0"
               title="Collapse and jump to group"
               onClick={() =>
                 handleCollapseBelow(

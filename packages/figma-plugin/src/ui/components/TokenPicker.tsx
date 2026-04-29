@@ -254,19 +254,19 @@ export function TokenPickerDropdown({
           }}
           placeholder={placeholder}
           aria-label="Search tokens"
-          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-secondary)]/50"
         />
       </div>
 
       {/* Results */}
       <div ref={listRef} className="overflow-y-auto min-h-0 max-h-[min(208px,50vh)]">
         {entries.length === 0 && (
-          <div className="py-3 px-3 text-body text-[var(--color-figma-text-secondary)] text-center">
+          <div className="py-3 px-3 text-body text-[color:var(--color-figma-text-secondary)] text-center">
             No matching tokens
           </div>
         )}
         {hasRecent && !query.trim() && (
-          <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+          <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
             Recent
           </div>
         )}
@@ -296,14 +296,14 @@ export function TokenPickerDropdown({
                   <div className="h-4 w-4" />
                 )}
                 <span
-                  className={`min-w-0 text-body text-[var(--color-figma-text)] truncate ${
+                  className={`min-w-0 text-body text-[color:var(--color-figma-text)] truncate ${
                     entry.$lifecycle === 'deprecated' ? 'line-through' : ''
                   }`}
                 >
                   {path}
                 </span>
                 <div />
-                <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                   {previewValue ? (
                     <span
                       className="min-w-0 truncate"
@@ -318,18 +318,18 @@ export function TokenPickerDropdown({
                     {entry.$type}
                   </span>
                   {entry.$lifecycle === 'draft' && (
-                    <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[var(--color-figma-warning)]">
+                    <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-warning)]">
                       draft
                     </span>
                   )}
                   {entry.$lifecycle === 'deprecated' && (
-                    <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-secondary)]">
+                    <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-secondary)]">
                       deprecated
                     </span>
                   )}
                   {candidate.isAmbiguousPath && candidate.collectionId && (
                     <span
-                      className="min-w-0 truncate text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]"
+                      className="min-w-0 truncate text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]"
                       title={candidate.collectionId}
                     >
                       {candidate.collectionId}
@@ -341,7 +341,7 @@ export function TokenPickerDropdown({
           );
         })}
         {totalCount > MAX_RESULTS && (
-          <div className="px-2 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)] text-center">
+          <div className="px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)] text-center">
             Showing {MAX_RESULTS} of {totalCount} — refine your search
           </div>
         )}
@@ -437,7 +437,7 @@ export function TokenPickerField({
       {/* Label row */}
       {label && !compact && (
         <div className="flex items-center gap-1.5">
-          <label className="flex-1 text-body text-[var(--color-figma-text-secondary)]">
+          <label className="flex-1 text-body text-[color:var(--color-figma-text-secondary)]">
             {label}
           </label>
         </div>
@@ -455,13 +455,13 @@ export function TokenPickerField({
             />
           )}
           <span
-            className="min-w-0 flex-1 text-body font-mono text-[var(--color-figma-accent)] truncate cursor-default"
+            className="min-w-0 flex-1 text-body font-mono text-[color:var(--color-figma-accent)] truncate cursor-default"
             title={value}
           >
             {value}
           </span>
           {linkedValueStr && (
-            <span className="min-w-0 max-w-[40%] truncate text-secondary text-[var(--color-figma-text-secondary)] font-mono">
+            <span className="min-w-0 max-w-[40%] truncate text-secondary text-[color:var(--color-figma-text-secondary)] font-mono">
               {linkedValueStr}
             </span>
           )}
@@ -471,7 +471,7 @@ export function TokenPickerField({
             onClick={() => setOpen(o => !o)}
             title="Change linked token"
             aria-label="Change linked token"
-            className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+            className="p-1 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
@@ -484,7 +484,7 @@ export function TokenPickerField({
             onClick={onClear}
             title="Unlink token"
             aria-label="Unlink token"
-            className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+            className="p-1 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -496,7 +496,7 @@ export function TokenPickerField({
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
-          className={`flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left ${
+          className={`flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors text-left ${
             compact ? 'text-secondary' : 'text-body'
           }`}
         >

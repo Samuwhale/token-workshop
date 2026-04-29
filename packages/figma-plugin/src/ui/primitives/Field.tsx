@@ -34,17 +34,17 @@ export function Field({ label, help, error, children, htmlFor, className = "" }:
     <div className={`flex min-w-0 flex-col gap-1 ${className}`}>
       <label
         htmlFor={controlId}
-        className="text-secondary font-medium text-[var(--color-figma-text-secondary)]"
+        className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
       >
         {label}
       </label>
       {control}
       {error ? (
-        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-error)]">
+        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-error)]">
           {error}
         </p>
       ) : help ? (
-        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
           {help}
         </p>
       ) : null}

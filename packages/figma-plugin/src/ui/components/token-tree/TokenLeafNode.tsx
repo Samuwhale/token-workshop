@@ -908,15 +908,15 @@ export const TokenLeafNode = memo(
                   )}
                   {ancestorPathLabel && (
                     <span
-                      className="tm-token-tree-row__context shrink min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
+                      className="tm-token-tree-row__context shrink min-w-0 truncate text-secondary text-[color:var(--color-figma-text-tertiary)]"
                       title={`In ${ancestorPathLabel}`}
                     >
                       {ancestorPathLabel}
-                      <span aria-hidden="true" className="mx-1 text-[var(--color-figma-text-tertiary)]/60">/</span>
+                      <span aria-hidden="true" className="mx-1 text-[color:var(--color-figma-text-tertiary)]/60">/</span>
                     </span>
                   )}
                   <span
-                    className="tm-token-tree-row__name min-w-0 truncate text-body text-[var(--color-figma-text)]"
+                    className="tm-token-tree-row__name min-w-0 truncate text-body text-[color:var(--color-figma-text)]"
                     title={formatDisplayPath(node.path, node.name)}
                   >
                     {highlightMatch(
@@ -941,7 +941,7 @@ export const TokenLeafNode = memo(
             <div className="flex items-center gap-1 shrink-0">
               {isFavorite && (
                 <span
-                  className="shrink-0 text-[var(--color-figma-warning)]"
+                  className="shrink-0 text-[color:var(--color-figma-warning)]"
                   title="Favorited"
                   aria-label="Favorited"
                 >
@@ -1018,7 +1018,7 @@ export const TokenLeafNode = memo(
                   aria-label="More token actions"
                   aria-haspopup="menu"
                   aria-expanded={!!contextMenuPos}
-                  className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  className="p-1 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <circle cx="5" cy="12" r="2" />
@@ -1301,7 +1301,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onToggleStar(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-[var(--color-figma-warning)]" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-[color:var(--color-figma-warning)]" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                       <span className="flex-1">{isFavorite ? "Remove favorite" : "Add to favorites"}</span>
                     </button>
                   )}
@@ -1319,14 +1319,14 @@ export const TokenLeafNode = memo(
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
-                <span className="text-body font-medium text-[var(--color-figma-text)]">
+                <span className="text-body font-medium text-[color:var(--color-figma-text)]">
                   {refsPopover.refs.length === 0
                     ? "No references"
                     : `${refsPopover.refs.length} reference${refsPopover.refs.length !== 1 ? "s" : ""}`}
                 </span>
                 <button
                   onClick={() => setRefsPopover(null)}
-                  className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)]"
+                  className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-tertiary)]"
                   aria-label="Close"
                 >
                   <svg
@@ -1344,7 +1344,7 @@ export const TokenLeafNode = memo(
                 </button>
               </div>
               {refsPopover.refs.length === 0 ? (
-                <div className="px-3 py-3 text-body text-[var(--color-figma-text-tertiary)] text-center">
+                <div className="px-3 py-3 text-body text-[color:var(--color-figma-text-tertiary)] text-center">
                   No tokens reference this one
                 </div>
               ) : (
@@ -1360,12 +1360,12 @@ export const TokenLeafNode = memo(
                           onNavigateToAlias?.(refPath, node.path);
                         }}
                       >
-                        <span className="text-body text-[var(--color-figma-text)] truncate flex-1 min-w-0">
+                        <span className="text-body text-[color:var(--color-figma-text)] truncate flex-1 min-w-0">
                           {refPath}
                         </span>
                         {collectionLabel && collectionLabel !== collectionId && (
                           <span
-                            className={`shrink-0 ${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] px-1 py-px bg-[var(--color-figma-bg-secondary)] rounded`}
+                            className={`shrink-0 ${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-tertiary)] px-1 py-px bg-[var(--color-figma-bg-secondary)] rounded`}
                           >
                             {collectionLabel}
                           </span>
@@ -1514,7 +1514,7 @@ export const TokenLeafNode = memo(
                         stroke="currentColor"
                         strokeWidth="1.5"
                         strokeLinecap="round"
-                        className="text-[var(--color-figma-text-tertiary)]"
+                        className="text-[color:var(--color-figma-text-tertiary)]"
                         aria-hidden="true"
                       >
                         <path d="M4 0v4M1 4l3 4 3-4" />
@@ -1525,7 +1525,7 @@ export const TokenLeafNode = memo(
                   {/* Token path — clickable to navigate */}
                   {!isFirst ? (
                     <button
-                      className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[var(--color-figma-error)]" : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline"}`}
+                      className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[color:var(--color-figma-error)]" : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:underline"}`}
                       onClick={() =>
                         !step.isError &&
                         onNavigateToAlias?.(step.path, node.path)
@@ -1539,7 +1539,7 @@ export const TokenLeafNode = memo(
                       {step.path}
                     </button>
                   ) : (
-                    <span className="text-secondary font-mono text-[var(--color-figma-accent)] shrink-0">
+                    <span className="text-secondary font-mono text-[color:var(--color-figma-accent)] shrink-0">
                       {step.path}
                     </span>
                   )}
@@ -1547,7 +1547,7 @@ export const TokenLeafNode = memo(
                   {/* Collection context */}
                   {step.collectionId && (
                     <span
-                      className={`${BADGE_TEXT_CLASS} text-[var(--color-figma-text-tertiary)] shrink-0`}
+                      className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-tertiary)] shrink-0`}
                     >
                       {step.collectionId}
                     </span>
@@ -1561,7 +1561,7 @@ export const TokenLeafNode = memo(
                         value={step.value}
                         size={12}
                       />
-                      <span className="text-secondary font-mono text-[var(--color-figma-text)] font-medium">
+                      <span className="text-secondary font-mono text-[color:var(--color-figma-text)] font-medium">
                         {formatValue(step.$type, step.value)}
                       </span>
                     </span>
@@ -1570,7 +1570,7 @@ export const TokenLeafNode = memo(
                   {/* Error indicator */}
                   {step.isError && (
                     <span
-                      className={`${BADGE_TEXT_CLASS} text-[var(--color-figma-error)] italic`}
+                      className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-error)] italic`}
                     >
                       {step.errorMsg}
                     </span>

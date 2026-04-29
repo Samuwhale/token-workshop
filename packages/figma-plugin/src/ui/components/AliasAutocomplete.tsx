@@ -150,7 +150,7 @@ export function AliasAutocomplete({
 
   if (entries.length === 0) {
     return (
-      <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-2 px-3 text-secondary text-[var(--color-figma-text-secondary)]">
+      <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-2 px-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
         No matching tokens with a unique path
       </div>
     );
@@ -162,7 +162,7 @@ export function AliasAutocomplete({
       className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
     >
       {hasRecent && !query.trim() && (
-        <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+        <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
           Recent
         </div>
       )}
@@ -188,9 +188,9 @@ export function AliasAutocomplete({
             ) : (
               <div className="h-3 w-3" />
             )}
-            <span className={`min-w-0 text-secondary text-[var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
+            <span className={`min-w-0 text-secondary text-[color:var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
             <div />
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
               {previewValue ? (
                 <span
                   className="min-w-0 truncate"
@@ -206,10 +206,10 @@ export function AliasAutocomplete({
                 {entry.$type}
               </span>
               {entry.$lifecycle === 'draft' && (
-                <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[var(--color-figma-warning)]">draft</span>
+                <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-warning)]">draft</span>
               )}
               {entry.$lifecycle === 'deprecated' && (
-                <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-secondary)]">deprecated</span>
+                <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-secondary)]">deprecated</span>
               )}
             </div>
           </div>
@@ -217,7 +217,7 @@ export function AliasAutocomplete({
         );
       })}
       {totalCount > MAX_RESULTS && (
-        <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
+        <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
           Showing {MAX_RESULTS} of {totalCount} matches — refine your search
         </div>
       )}

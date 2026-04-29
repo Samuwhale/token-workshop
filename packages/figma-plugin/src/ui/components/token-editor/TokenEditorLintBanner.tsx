@@ -18,10 +18,10 @@ export function TokenEditorLintBanner({
 
   const toneClass =
     lintTone === "error"
-      ? "text-[var(--color-figma-error)]"
+      ? "text-[color:var(--color-figma-error)]"
       : lintTone === "warning"
-        ? "text-[var(--color-figma-warning)]"
-        : "text-[var(--color-figma-text-secondary)]";
+        ? "text-[color:var(--color-figma-warning)]"
+        : "text-[color:var(--color-figma-text-secondary)]";
 
   const Icon = lintTone === "info" ? Info : AlertTriangle;
 
@@ -46,11 +46,11 @@ export function TokenEditorLintBanner({
                 : "ring-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40"
           }`}
         >
-          <div className="text-secondary text-[var(--color-figma-text)]">
+          <div className="text-secondary text-[color:var(--color-figma-text)]">
             {violation.message}
           </div>
           {violation.suggestion && (
-            <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+            <div className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
               {violation.suggestion}
             </div>
           )}

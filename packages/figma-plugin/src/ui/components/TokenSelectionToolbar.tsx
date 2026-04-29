@@ -34,7 +34,7 @@ export interface TokenSelectionToolbarProps {
 }
 
 const menuItemClass =
-  'w-full flex items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40';
+  'w-full flex items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40';
 const menuSeparator = 'border-t border-[var(--color-figma-border)] my-1';
 const menuPanel = FLOATING_MENU_WIDE_CLASS;
 
@@ -67,7 +67,7 @@ function ToolbarDropdown({
         size="sm"
         className={
           open
-            ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
+            ? 'bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]'
             : ''
         }
       >
@@ -139,16 +139,16 @@ export function TokenSelectionToolbar({
               aria-label="Toggle select all"
               className="shrink-0 accent-[var(--color-figma-accent)]"
             />
-            <span className="shrink-0 min-w-[3ch] text-secondary tabular-nums text-[var(--color-figma-text-secondary)]">
+            <span className="shrink-0 min-w-[3ch] text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)]">
               {selectedPaths.size}/{displayedLeafPaths.size}
             </span>
             {searchQuery ? (
-              <span className="min-w-0 truncate text-secondary text-[var(--color-figma-text-secondary)]" title={`matching "${searchQuery}"`}>
+              <span className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]" title={`matching "${searchQuery}"`}>
                 matching &ldquo;{searchQuery}&rdquo;
               </span>
             ) : null}
             {selectedPaths.size === 1 && !searchQuery ? (
-              <span className="min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+              <span className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
                 Shift-click to add a range
               </span>
             ) : null}
@@ -276,7 +276,7 @@ export function TokenSelectionToolbar({
               disabled={!!operationLoading}
               variant="ghost"
               size="md"
-              className="text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+              className="text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-error)]"
             >
               Delete
             </Button>

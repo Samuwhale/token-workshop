@@ -151,7 +151,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
             type="button"
             onClick={() => setFormatMenuOpen(v => !v)}
             title={`Format: ${format.toUpperCase()} — click to change`}
-            className="flex min-h-[28px] items-center rounded border border-[var(--color-figma-border)] px-1.5 py-1 text-secondary font-medium uppercase text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            className="flex min-h-[28px] items-center rounded border border-[var(--color-figma-border)] px-1.5 py-1 text-secondary font-medium uppercase text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
           >
             {format}
           </button>
@@ -167,8 +167,8 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
                   onClick={() => selectFormat(f)}
                   className={`w-full text-left px-2 py-1 text-secondary font-medium uppercase transition-colors ${
                     f === format
-                      ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
-                      : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                      ? 'text-[color:var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+                      : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
                 >
                   {f}
@@ -185,10 +185,10 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
           className={[
             'shrink-0 flex min-h-[28px] min-w-[28px] items-center justify-center rounded border transition-colors',
             eyedropperState === 'success'
-              ? 'text-[var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+              ? 'text-[color:var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
               : eyedropperState === 'waiting'
-              ? 'text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
-              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',
+              ? 'text-[color:var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
+              : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',
           ].join(' ')}
           aria-label="Sample color from Figma selection"
         >

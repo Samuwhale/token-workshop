@@ -42,7 +42,7 @@ export function DisclosureRow({
         onClick={onToggle}
         disabled={disabled}
         aria-expanded={open}
-        className="flex min-w-0 flex-1 items-start gap-1.5 rounded py-1 text-left text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] disabled:opacity-50"
+        className="flex min-w-0 flex-1 items-start gap-1.5 rounded py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
       >
         <ChevronRight
           size={12}
@@ -53,7 +53,7 @@ export function DisclosureRow({
         <span className="shrink-0 pt-px font-medium">{title}</span>
         {!open && summary ? (
           <span
-            className="min-w-0 whitespace-normal break-words leading-[var(--leading-body)] text-[var(--color-figma-text-tertiary)] [overflow-wrap:anywhere]"
+            className="min-w-0 whitespace-normal break-words leading-[var(--leading-body)] text-[color:var(--color-figma-text-tertiary)] [overflow-wrap:anywhere]"
             title={summaryTitle}
           >
             {summary}
@@ -88,7 +88,7 @@ export function CheckboxRow({
         className={cx(
           "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border transition-colors",
           checked
-            ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)]"
+            ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]"
             : "border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]",
         )}
       >
@@ -102,18 +102,18 @@ export function CheckboxRow({
         className="sr-only"
       />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="min-w-0 text-body font-medium leading-[var(--leading-tight)] text-[var(--color-figma-text)] whitespace-normal break-words [overflow-wrap:anywhere]">
+        <span className="min-w-0 text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)] whitespace-normal break-words [overflow-wrap:anywhere]">
           {title}
         </span>
         {description ? (
-          <span className="min-w-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)] whitespace-normal break-words [overflow-wrap:anywhere]">
+          <span className="min-w-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)] whitespace-normal break-words [overflow-wrap:anywhere]">
             {description}
           </span>
         ) : null}
         {children}
       </span>
       {meta ? (
-        <span className="max-w-[42%] shrink-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+        <span className="max-w-[42%] shrink-0 truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
           {meta}
         </span>
       ) : null}

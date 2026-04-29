@@ -19,8 +19,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
 ) {
   const toneClass =
     tone === "danger"
-      ? "text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
-      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]";
+      ? "text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-error)]"
+      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]";
   return (
     <button
       ref={ref}

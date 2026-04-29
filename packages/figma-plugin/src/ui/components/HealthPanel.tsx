@@ -511,7 +511,7 @@ export function HealthPanel({
               {meta}
             </span>
           </span>
-          <span className="shrink-0 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+          <span className="shrink-0 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
             Review
           </span>
         </button>
@@ -524,16 +524,16 @@ export function HealthPanel({
         style={{ scrollbarWidth: "thin" }}
       >
         <div className="mb-5">
-          <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
+          <h2 className="text-body font-semibold text-[color:var(--color-figma-text)]">
             {allScopeStatusTitle}
           </h2>
-          <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {allScopeStatusDetail}
           </p>
         </div>
 
         {libraryReviewErrors.length > 0 ? (
-          <div className="mb-4 text-secondary text-[var(--color-figma-error)]">
+          <div className="mb-4 text-secondary text-[color:var(--color-figma-error)]">
             Some review checks failed. {libraryReviewErrors.join(" ")}
           </div>
         ) : null}
@@ -542,10 +542,10 @@ export function HealthPanel({
           <div className="flex flex-col gap-4">
             <section>
               <div className="mb-1.5 px-1">
-                <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+                <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
                   Fix next
                 </h3>
-                <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                   Collections with errors or actionable warnings.
                 </p>
               </div>
@@ -562,10 +562,10 @@ export function HealthPanel({
             {cleanupCollections.length > 0 ? (
               <section>
                 <div className="mb-1.5 px-1">
-                  <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+                  <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
                     Clean up
                   </h3>
-                  <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                  <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                     Library hygiene after blockers are clear.
                   </p>
                 </div>
@@ -578,7 +578,7 @@ export function HealthPanel({
             ) : null}
           </div>
         ) : (
-          <p className="text-body text-[var(--color-figma-text-secondary)]">
+          <p className="text-body text-[color:var(--color-figma-text-secondary)]">
             {collectionSummariesPending
               ? "Checking…"
               : libraryReviewErrors.length > 0
@@ -593,10 +593,10 @@ export function HealthPanel({
             onClick={openRulesView}
             className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
-            <span className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+            <span className="shrink-0 text-[color:var(--color-figma-text-tertiary)]">
               <SlidersHorizontal size={14} strokeWidth={2.25} aria-hidden />
             </span>
-            <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
+            <span className="min-w-0 flex-1 truncate text-body text-[color:var(--color-figma-text)]">
               Rules
             </span>
           </button>

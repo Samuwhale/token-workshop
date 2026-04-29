@@ -30,7 +30,7 @@ export function HealthAliasOpportunitiesView({
       <div className="flex-1 overflow-y-auto px-3" style={{ scrollbarWidth: "thin" }}>
         {aliasOpportunityGroups.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-body text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
               No suggested aliases found
             </p>
           </div>
@@ -50,20 +50,20 @@ export function HealthAliasOpportunitiesView({
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-secondary font-medium font-mono text-[var(--color-figma-text)]">
+                    <span className="text-secondary font-medium font-mono text-[color:var(--color-figma-text)]">
                       {group.valueLabel}
                     </span>
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                    <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                       {group.typeLabel} · {group.tokens.length} tokens
                     </span>
                   </div>
-                  <div className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                  <div className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                     Promote to{" "}
-                    <span className="font-mono text-[var(--color-figma-text)]">
+                    <span className="font-mono text-[color:var(--color-figma-text)]">
                       {group.suggestedPrimitivePath}
                     </span>
                     {" "}in{" "}
-                    <span className="font-mono text-[var(--color-figma-text)]">
+                    <span className="font-mono text-[color:var(--color-figma-text)]">
                       {group.suggestedPrimitiveCollectionId}
                     </span>
                   </div>
@@ -71,7 +71,7 @@ export function HealthAliasOpportunitiesView({
                 <button
                   onClick={() => onPromote(group)}
                   disabled={isPromoting}
-                  className="shrink-0 rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                  className="shrink-0 rounded bg-[var(--color-figma-action-bg)] px-2 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
                 >
                   {isPromoting ? <Spinner size="xs" /> : "Promote"}
                 </button>

@@ -72,11 +72,11 @@ const ACTION_BUTTON_BASE_CLASS =
 
 const ACTION_BUTTON_TONE_CLASS = {
   default:
-    'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/10 hover:text-[var(--color-figma-text)]',
+    'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/10 hover:text-[color:var(--color-figma-text)]',
   primary:
-    'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
+    'border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
   danger:
-    'border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20',
+    'border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20',
 } as const;
 
 interface PropertyActionButtonProps {
@@ -162,18 +162,18 @@ export function PropertyRow({
         ? 'border-[var(--color-figma-accent)]/20 bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
         : 'border-transparent hover:border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]';
   const statusBadgeClass = bindingFromProp === prop
-    ? 'bg-[var(--color-figma-accent)]/12 text-[var(--color-figma-accent)]'
+    ? 'bg-[var(--color-figma-accent)]/12 text-[color:var(--color-figma-accent)]'
     : creatingFromProp === prop
-      ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
+      ? 'bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]'
       : lastBoundProp === prop
-        ? 'bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)]'
+        ? 'bg-[var(--color-figma-success)]/12 text-[color:var(--color-figma-success)]'
         : isBroken
-          ? 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]'
+          ? 'bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)]'
           : isBound
-            ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
+            ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]'
             : isMixed
-              ? 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]'
-              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]';
+              ? 'bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)]'
+              : 'bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)]';
   const statusLabel = bindingFromProp === prop
     ? 'Picking'
     : creatingFromProp === prop
@@ -352,19 +352,19 @@ export function PropertyRow({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <span className="text-secondary text-[var(--color-figma-text)] font-medium truncate block">
+                <span className="text-secondary text-[color:var(--color-figma-text)] font-medium truncate block">
                   {PROPERTY_LABELS[prop]}
                 </span>
                 {isBound ? (
-                  <span className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] truncate block" title={resolvedDisplay ?? undefined}>
+                  <span className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] truncate block" title={resolvedDisplay ?? undefined}>
                     {resolvedDisplay ?? formatCurrentValue(prop, value)}
                   </span>
                 ) : isMixed ? (
-                  <span className="mt-0.5 text-secondary text-[var(--color-figma-warning)] block">
+                  <span className="mt-0.5 text-secondary text-[color:var(--color-figma-warning)] block">
                     Different bindings across {rootNodes.length} selected {rootNodes.length === 1 ? 'layer' : 'layers'}
                   </span>
                 ) : (
-                  <span className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] truncate block">
+                  <span className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] truncate block">
                     {formatCurrentValue(prop, value)}
                   </span>
                 )}
@@ -377,7 +377,7 @@ export function PropertyRow({
             </div>
             {isBound && (
               <div className="flex items-center gap-1 mt-1">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isBroken ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-accent)]'}`} aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isBroken ? 'text-[color:var(--color-figma-warning)]' : 'text-[color:var(--color-figma-accent)]'}`} aria-hidden="true">
                   {isBroken ? (
                     <>
                       <circle cx="12" cy="12" r="10" />
@@ -393,14 +393,14 @@ export function PropertyRow({
                 {onNavigateToToken && !isBroken ? (
                   <button
                     onClick={() => onNavigateToToken(binding as string)}
-                    className="text-secondary text-[var(--color-figma-accent)] font-mono truncate hover:underline text-left"
+                    className="text-secondary text-[color:var(--color-figma-accent)] font-mono truncate hover:underline text-left"
                     title={`Go to ${binding as string}`}
                   >
                     {binding as string}
                   </button>
                 ) : (
                   <span
-                    className={`text-secondary font-mono truncate ${isBroken ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-accent)]'}`}
+                    className={`text-secondary font-mono truncate ${isBroken ? 'text-[color:var(--color-figma-warning)]' : 'text-[color:var(--color-figma-accent)]'}`}
                     title={isBroken ? `Missing token: ${binding as string}` : (binding as string)}
                   >
                     {binding as string}
@@ -507,7 +507,7 @@ export function PropertyRow({
         const mixedValues = getMixedBindingValues(rootNodes, prop);
         return (
           <div className="mx-2 mb-1 px-2">
-            <span className="text-secondary text-[var(--color-figma-warning)] font-medium block mb-1">
+            <span className="text-secondary text-[color:var(--color-figma-warning)] font-medium block mb-1">
               Distinct bindings across {rootNodes.length} layers
             </span>
             <div className="flex flex-col divide-y divide-[var(--color-figma-border)]/30">
@@ -524,10 +524,10 @@ export function PropertyRow({
                     ) : (
                       <div className="w-3 h-3 shrink-0" />
                     )}
-                    <span className={`text-secondary font-mono truncate flex-1 ${b ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] italic'}`}>
+                    <span className={`text-secondary font-mono truncate flex-1 ${b ? 'text-[color:var(--color-figma-text)]' : 'text-[color:var(--color-figma-text-secondary)] italic'}`}>
                       {b ?? 'unbound'}
                     </span>
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
+                    <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">
                       {count} {count === 1 ? 'layer' : 'layers'}
                     </span>
                   </div>
@@ -549,12 +549,12 @@ export function PropertyRow({
       {bindingFromProp === prop && (
         <div className="mx-2 mb-1.5">
           <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50">
-            <span className="text-secondary text-[var(--color-figma-accent)] font-medium flex-1">
+            <span className="text-secondary text-[color:var(--color-figma-accent)] font-medium flex-1">
               {isBound ? 'Remap' : 'Bind'} {PROPERTY_LABELS[prop]}
             </span>
             <button
               onClick={onCancelBind}
-              className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               title="Cancel"
               aria-label="Cancel"
             >
@@ -568,7 +568,7 @@ export function PropertyRow({
               {swatchColor && (
                 <div className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: swatchColor }} />
               )}
-              <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1" title={binding as string}>{binding as string}</span>
+              <span className="text-secondary font-mono text-[color:var(--color-figma-text)] truncate flex-1" title={binding as string}>{binding as string}</span>
             </div>
           )}
           <div className="px-2 py-1.5 flex flex-col gap-1">
@@ -591,10 +591,10 @@ export function PropertyRow({
               aria-controls="bind-candidates-listbox"
               aria-activedescendant={bindSelectedIndex >= 0 ? `bind-option-${[...recentBindCandidates, ...mainBindCandidates][bindSelectedIndex]?.[0]}` : undefined}
               aria-label="Search token candidates"
-              className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {bindCandidates.length === 0 && recentBindCandidates.length === 0 ? (
-              <div className="text-secondary text-[var(--color-figma-text-secondary)] py-1 text-center">
+              <div className="text-secondary text-[color:var(--color-figma-text-secondary)] py-1 text-center">
                 {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in this collection`}
               </div>
             ) : (
@@ -602,7 +602,7 @@ export function PropertyRow({
                 {/* Recently used section */}
                 {recentBindCandidates.length > 0 && (
                   <>
-                    <div className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] font-medium px-1.5 pt-0.5 pb-0.5">
+                    <div className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] font-medium px-1.5 pt-0.5 pb-0.5">
                       Recently used
                     </div>
                     {recentBindCandidates.map(([path, entry], idx) => {
@@ -628,15 +628,15 @@ export function PropertyRow({
                               <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
                             </div>
                           )}
-                          <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>{path}</span>
-                          {isCurrent && <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
-                          {resolvedValueDisplay && !isCurrent && <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">{resolvedValueDisplay}</span>}
-                          <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
+                          <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[color:var(--color-figma-accent)]' : 'text-[color:var(--color-figma-text)] group-hover/item:text-[color:var(--color-figma-accent)]'}`}>{path}</span>
+                          {isCurrent && <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
+                          {resolvedValueDisplay && !isCurrent && <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0 font-mono">{resolvedValueDisplay}</span>}
+                          <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
                         </button>
                       );
                     })}
                     {mainBindCandidates.length > 0 && (
-                      <div className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                      <div className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
                         {showSuggestedDivider ? 'Suggested' : 'All tokens'}
                       </div>
                     )}
@@ -657,12 +657,12 @@ export function PropertyRow({
                   return (
                     <div key={path}>
                       {showSuggestedHeader && (
-                        <div className="text-[var(--font-size-xs)] text-[var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5">
+                        <div className="text-[var(--font-size-xs)] text-[color:var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5">
                           Suggested
                         </div>
                       )}
                       {showOthersHeader && (
-                        <div className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                        <div className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
                           All tokens
                         </div>
                       )}
@@ -683,18 +683,18 @@ export function PropertyRow({
                             <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
                           </div>
                         )}
-                        <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
+                        <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[color:var(--color-figma-accent)]' : 'text-[color:var(--color-figma-text)] group-hover/item:text-[color:var(--color-figma-accent)]'}`}>
                           {path}
                         </span>
                         {isCurrent && (
-                          <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
+                          <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
                         )}
                         {resolvedValueDisplay && !isCurrent && (
-                          <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
+                          <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0 font-mono">
                             {resolvedValueDisplay}
                           </span>
                         )}
-                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0">
+                        <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
                           {entry.$type}
                         </span>
                       </button>
@@ -704,7 +704,7 @@ export function PropertyRow({
                 {bindHasMore && (
                   <button
                     onClick={() => setBindShowAll(true)}
-                    className="w-full text-secondary text-[var(--color-figma-accent)] text-center py-1 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                    className="w-full text-secondary text-[color:var(--color-figma-accent)] text-center py-1 border-t border-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                   >
                     Show all {bindTotalCount} tokens
                   </button>
@@ -719,12 +719,12 @@ export function PropertyRow({
       {creatingFromProp === prop && (
         <div className="mx-2 mb-1.5">
           <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50">
-            <span className="text-secondary text-[var(--color-figma-text)] font-medium flex-1">
+            <span className="text-secondary text-[color:var(--color-figma-text)] font-medium flex-1">
               Create token from {PROPERTY_LABELS[prop]}
             </span>
             <button
               onClick={onCancelCreate}
-              className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               title="Cancel"
               aria-label="Cancel"
             >
@@ -735,7 +735,7 @@ export function PropertyRow({
           </div>
           <div className="px-2 py-1.5 flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
+              <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">Value:</span>
               {(prop === 'fill' || prop === 'stroke') &&
                typeof value === 'string' &&
                value.startsWith('#') && (
@@ -744,12 +744,12 @@ export function PropertyRow({
                   style={{ backgroundColor: value }}
                 />
               )}
-              <span className="text-secondary text-[var(--color-figma-text)] font-mono truncate">
+              <span className="text-secondary text-[color:var(--color-figma-text)] font-mono truncate">
                 {formatTokenValuePreview(prop, value)}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <label className="text-secondary text-[var(--color-figma-text-secondary)]">Token path (collection: {currentCollectionId})</label>
+              <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Token path (collection: {currentCollectionId})</label>
               <input
                 ref={nameInputRef}
                 value={newTokenName}
@@ -759,33 +759,33 @@ export function PropertyRow({
                   if (e.key === 'Escape') onCancelCreate();
                 }}
                 placeholder="group.token-name"
-                className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               />
               {conflictExists && (
                 <div className="flex items-center gap-1 text-secondary">
-                  <span className="text-[var(--color-figma-text-secondary)]">Token already exists.</span>
+                  <span className="text-[color:var(--color-figma-text-secondary)]">Token already exists.</span>
                   <button
                     onClick={handleOverwriteToken}
                     disabled={creating}
-                    className="text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+                    className="text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50"
                   >
                     Overwrite?
                   </button>
                 </div>
               )}
-              {!conflictExists && createError && <div className="text-secondary text-[var(--color-figma-error)]">{createError}</div>}
+              {!conflictExists && createError && <div className="text-secondary text-[color:var(--color-figma-error)]">{createError}</div>}
             </div>
             <div className="flex gap-1.5 justify-end">
               <button
                 onClick={onCancelCreate}
-                className="px-2 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="px-2 py-1 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateToken}
                 disabled={!newTokenName.trim() || creating}
-                className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                className="px-2 py-1 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-secondary font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
               >
                 {creating ? 'Creating…' : 'Create & bind'}
               </button>

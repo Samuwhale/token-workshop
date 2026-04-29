@@ -117,8 +117,8 @@ export function SetValueAction({
               title={mode === 'literal' ? 'Switch to JSON mode' : 'Switch to literal mode'}
               className={`shrink-0 px-2 rounded-md border text-body font-mono ${
                 mode === 'json'
-                  ? 'bg-[var(--color-figma-accent)] text-white border-transparent'
-                  : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:text-[var(--color-figma-text)]'
+                  ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] border-transparent'
+                  : 'bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:text-[color:var(--color-figma-text)]'
               }`}
             >
               {'{}'}

@@ -241,12 +241,12 @@ export function RemapBindingsPanel({
     >
       {!embedded && (
         <div className="mb-1 flex items-center justify-between">
-          <span className="text-body font-semibold text-[var(--color-figma-text)]">
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">
             Remap Bindings
           </span>
           <button
             onClick={onClose}
-            className="rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             title="Close"
             aria-label="Close"
           >
@@ -265,7 +265,7 @@ export function RemapBindingsPanel({
         </div>
       )}
 
-      <p className="mb-1.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
+      <p className="mb-1.5 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
         Find and replace token paths. The left side can search both live tokens
         and stale paths seen in the current bindings or the latest sync result.
       </p>
@@ -295,7 +295,7 @@ export function RemapBindingsPanel({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="shrink-0 text-[var(--color-figma-text-secondary)]"
+              className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
               aria-hidden="true"
             >
               <path d="M5 12h14M12 5l7 7-7 7" />
@@ -316,7 +316,7 @@ export function RemapBindingsPanel({
             />
             {row.suggested && row.to.trim().length > 0 && (
               <span
-                className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]"
+                className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]"
                 title="Suggested by value match — review before remapping"
               >
                 Suggested
@@ -327,7 +327,7 @@ export function RemapBindingsPanel({
                 onClick={() =>
                   updateRows(remapRows.filter((_, rowIdx) => rowIdx !== idx))
                 }
-                className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error)]"
+                className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-error)]"
                 title="Remove row"
                 aria-label="Remove row"
               >
@@ -353,7 +353,7 @@ export function RemapBindingsPanel({
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => updateRows([...remapRows, createEmptyRemapRow()])}
-          className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+          className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
         >
           + Add row
         </button>
@@ -366,7 +366,7 @@ export function RemapBindingsPanel({
                 return currentScope === "selection" ? "page" : "selection";
               })
             }
-            className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)]"
+            className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)]"
             title="Toggle scope between selection and entire page"
           >
             {remapScope === "selection" ? "Selection" : "Page"}
@@ -374,7 +374,7 @@ export function RemapBindingsPanel({
           <button
             onClick={handleRemap}
             disabled={remapDisabled}
-            className="rounded bg-[var(--color-figma-accent)] px-2 py-0.5 text-secondary text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="rounded bg-[var(--color-figma-action-bg)] px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
           >
             {remapRunning ? "Remapping…" : "Remap"}
           </button>

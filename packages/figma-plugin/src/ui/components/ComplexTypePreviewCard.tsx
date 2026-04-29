@@ -33,7 +33,7 @@ function TypographyPreview({ value }: { value: Record<string, unknown> }) {
   return (
     <div>
       <div
-        className="text-[var(--color-figma-text)] overflow-hidden mb-1"
+        className="text-[color:var(--color-figma-text)] overflow-hidden mb-1"
         style={{
           fontFamily,
           fontWeight,
@@ -48,7 +48,7 @@ function TypographyPreview({ value }: { value: Record<string, unknown> }) {
       >
         The quick brown fox jumps over the lazy dog
       </div>
-      <div className="text-secondary text-[var(--color-figma-text-tertiary)] truncate">
+      <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] truncate">
         {props.join(' · ')}
       </div>
     </div>
@@ -120,7 +120,7 @@ function CubicBezierPreview({ value }: { value: number[] }) {
         <circle cx={sx} cy={sy} r="3" fill="var(--color-figma-text-secondary)" />
         <circle cx={ex} cy={ey} r="3" fill="var(--color-figma-text-secondary)" />
       </svg>
-      <div className="text-secondary text-[var(--color-figma-text-tertiary)] mt-0.5">
+      <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] mt-0.5">
         cubic-bezier({value.join(', ')})
       </div>
     </div>
@@ -134,20 +134,20 @@ function TransitionPreview({ value }: { value: Record<string, unknown> }) {
     ? `cubic-bezier(${value.timingFunction.join(', ')})`
     : typeof value.timingFunction === 'string' ? value.timingFunction : 'ease';
   return (
-    <div className="text-secondary text-[var(--color-figma-text-secondary)] space-y-1">
+    <div className="text-secondary text-[color:var(--color-figma-text-secondary)] space-y-1">
       <div className="flex items-center gap-2">
-        <span className="text-[var(--color-figma-text-tertiary)]">Duration</span>
-        <span className="text-[var(--color-figma-text)]">{dur}</span>
+        <span className="text-[color:var(--color-figma-text-tertiary)]">Duration</span>
+        <span className="text-[color:var(--color-figma-text)]">{dur}</span>
       </div>
       {delay !== '0ms' && delay !== '0s' && (
         <div className="flex items-center gap-2">
-          <span className="text-[var(--color-figma-text-tertiary)]">Delay</span>
-          <span className="text-[var(--color-figma-text)]">{delay}</span>
+          <span className="text-[color:var(--color-figma-text-tertiary)]">Delay</span>
+          <span className="text-[color:var(--color-figma-text)]">{delay}</span>
         </div>
       )}
       <div className="flex items-center gap-2">
-        <span className="text-[var(--color-figma-text-tertiary)]">Easing</span>
-        <span className="text-[var(--color-figma-text)]">{easing}</span>
+        <span className="text-[color:var(--color-figma-text-tertiary)]">Easing</span>
+        <span className="text-[color:var(--color-figma-text)]">{easing}</span>
       </div>
       {Array.isArray(value.timingFunction) && value.timingFunction.length === 4 && (
         <CubicBezierPreview value={value.timingFunction} />
@@ -163,13 +163,13 @@ function CompositionPreview({ value }: { value: Record<string, unknown> }) {
       {entries.map(([key, val]) => (
         <div key={key} className="flex items-center gap-2">
           <span
-            className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]"
+            className="text-[color:var(--color-figma-text-tertiary)] truncate max-w-[80px]"
             title={key}
           >
             {key}
           </span>
           <span
-            className="text-[var(--color-figma-text)] truncate"
+            className="text-[color:var(--color-figma-text)] truncate"
             title={typeof val === 'object' ? JSON.stringify(val) : String(val)}
           >
             {typeof val === 'object' ? JSON.stringify(val) : String(val)}
@@ -192,7 +192,7 @@ function BorderPreview({ value }: { value: Record<string, unknown> }) {
         className="w-20 h-14 rounded-lg bg-[var(--color-figma-bg)]"
         style={{ border }}
       />
-      <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+      <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
         {widthStr} {styleStr}
         {typeof value.color === 'string' && (
           <div className="flex items-center gap-1 mt-0.5">

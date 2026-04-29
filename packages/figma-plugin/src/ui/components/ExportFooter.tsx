@@ -53,7 +53,7 @@ export function ExportFooter({
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
       {results.length > 0 && (
-        <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
+        <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-tight">
           {resultSummaryParts.join(' · ')}
         </div>
       )}
@@ -63,7 +63,7 @@ export function ExportFooter({
           <button
             onClick={() => handleExport(true)}
             disabled={exportDisabled}
-            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-body font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-2 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
             title={hasResolvedZeroChanges
               ? 'No changed tokens to export'
               : 'Re-fetch tokens from the server and regenerate all platform files'}
@@ -80,7 +80,7 @@ export function ExportFooter({
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={handleCopyAllPlatformResults}
-              className="flex-1 basis-[140px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-secondary font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] transition-colors"
+              className="flex-1 basis-[140px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] text-secondary font-medium hover:text-[color:var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] transition-colors"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="9" y="9" width="13" height="13" rx="2" />
@@ -91,7 +91,7 @@ export function ExportFooter({
             <button
               onClick={handleDownloadZip}
               disabled={zipProgress !== null}
-              className="relative flex-1 basis-[180px] flex items-center justify-center gap-1.5 overflow-hidden rounded-md border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] disabled:opacity-60"
+              className="relative flex-1 basis-[180px] flex items-center justify-center gap-1.5 overflow-hidden rounded-md border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] disabled:opacity-60"
               title={zipProgress !== null ? `Building ZIP… ${zipProgress}%` : `Download all ${results.length} file${results.length !== 1 ? 's' : ''} as a ZIP archive`}
             >
               {zipProgress !== null && (
@@ -124,14 +124,14 @@ export function ExportFooter({
       {results.length === 0 && (
         <>
           {selected.size > 0 && !(selectedCollections !== null && selectedCollections.size === 0) && !changesOnlyNeedsBaseline && (
-            <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
+            <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-tight">
               {pendingSummaryParts.join(' · ')}
             </div>
           )}
           <button
             onClick={() => handleExport(true)}
             disabled={exportDisabled}
-            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-body font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 whitespace-normal leading-tight text-center"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-2 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40 whitespace-normal leading-tight text-center"
           >
             {exporting ? (
               <>
@@ -153,22 +153,22 @@ export function ExportFooter({
               : `Export ${selected.size} platform${selected.size !== 1 ? 's' : ''}`}
           </button>
           {selected.size === 0 && (
-            <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
+            <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-tight">
               Select at least one platform in the list above.
             </p>
           )}
           {selectedCollections !== null && selectedCollections.size === 0 && (
-            <p className="text-secondary text-[var(--color-figma-warning)] leading-tight">
+            <p className="text-secondary text-[color:var(--color-figma-warning)] leading-tight">
               No collections selected — open Collections above to choose which collections to include.
             </p>
           )}
           {changesOnlyNeedsBaseline && (
-            <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
+            <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-tight">
               Changes-only without git requires a baseline — open Scope above to set one.
             </p>
           )}
           {hasResolvedZeroChanges && isGitRepo !== false && (
-            <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
+            <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-tight">
               No uncommitted token changes to export right now.
             </p>
           )}

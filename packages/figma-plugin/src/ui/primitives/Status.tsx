@@ -30,11 +30,11 @@ export interface StatusRowProps extends Omit<HTMLAttributes<HTMLElement>, "title
 }
 
 const TONE_CLASS: Record<StatusTone, string> = {
-  neutral: "text-[var(--color-figma-text-secondary)]",
-  info: "text-[var(--color-figma-accent)]",
-  success: "text-[var(--color-figma-success)]",
-  warning: "text-[var(--color-figma-warning)]",
-  danger: "text-[var(--color-figma-error)]",
+  neutral: "text-[color:var(--color-figma-text-secondary)]",
+  info: "text-[color:var(--color-figma-accent)]",
+  success: "text-[color:var(--color-figma-success)]",
+  warning: "text-[color:var(--color-figma-warning)]",
+  danger: "text-[color:var(--color-figma-error)]",
 };
 
 function defaultIcon(tone: StatusTone) {
@@ -68,12 +68,12 @@ export function StatusBanner({
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {title ? (
-          <div className="text-body font-medium leading-[var(--leading-tight)] text-[var(--color-figma-text)]">
+          <div className="text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]">
             {title}
           </div>
         ) : null}
         {children ? (
-          <div className="text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
             {children}
           </div>
         ) : null}
@@ -106,11 +106,11 @@ export function StatusRow({
         {icon ?? defaultIcon(tone)}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-body font-medium leading-[var(--leading-tight)] text-[var(--color-figma-text)] whitespace-normal break-words [overflow-wrap:anywhere]">
+        <span className="block text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)] whitespace-normal break-words [overflow-wrap:anywhere]">
           {label}
         </span>
         {description ? (
-          <span className="block text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)] whitespace-normal break-words [overflow-wrap:anywhere]">
+          <span className="block text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)] whitespace-normal break-words [overflow-wrap:anywhere]">
             {description}
           </span>
         ) : null}

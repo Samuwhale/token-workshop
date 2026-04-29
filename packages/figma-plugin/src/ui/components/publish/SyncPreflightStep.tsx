@@ -88,7 +88,7 @@ function ClusterGroup({
 
   return (
     <div className={`rounded-md border p-3 ${toneClasses}`}>
-      <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+      <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
         {title}
       </div>
 
@@ -102,15 +102,15 @@ function ClusterGroup({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-body font-semibold text-[var(--color-figma-text)]">{cluster.label}</span>
+                    <span className="text-body font-semibold text-[color:var(--color-figma-text)]">{cluster.label}</span>
                     {cluster.affectedCount !== undefined && (
-                      <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                      <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                         {cluster.affectedCount} affected
                       </span>
                     )}
                   </div>
                   {cluster.detail && (
-                    <p className="mt-1 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
+                    <p className="mt-1 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
                       {cluster.detail}
                     </p>
                   )}
@@ -120,7 +120,7 @@ function ClusterGroup({
                   <button
                     onClick={() => action(cluster)}
                     disabled={isBusy}
-                    className="shrink-0 rounded-md bg-[var(--color-figma-accent)]/8 px-2 py-1 text-secondary font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/15 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="shrink-0 rounded-md bg-[var(--color-figma-accent)]/8 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/15 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isBusy ? 'Working…' : cluster.recommendedActionLabel}
                   </button>
@@ -128,8 +128,8 @@ function ClusterGroup({
               </div>
 
               {!action && cluster.recommendedActionLabel && (
-                <div className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
-                  Next: <span className="font-medium text-[var(--color-figma-text)]">{cluster.recommendedActionLabel}</span>
+                <div className="mt-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Next: <span className="font-medium text-[color:var(--color-figma-text)]">{cluster.recommendedActionLabel}</span>
                 </div>
               )}
             </div>

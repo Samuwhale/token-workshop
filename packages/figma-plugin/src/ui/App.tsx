@@ -101,7 +101,7 @@ function formatCount(
 }
 
 const SIDEBAR_HOVER_CLASSES =
-  "hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]";
+  "hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]";
 const RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH = 640;
 
 const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
@@ -111,9 +111,9 @@ const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
 };
 
 const SYNC_ADORNMENT_TEXT: Record<"accent" | "warning" | "error", string> = {
-  accent: "text-[var(--color-figma-accent)]",
-  warning: "text-[var(--color-figma-warning)]",
-  error: "text-[var(--color-figma-error)]",
+  accent: "text-[color:var(--color-figma-accent)]",
+  warning: "text-[color:var(--color-figma-warning)]",
+  error: "text-[color:var(--color-figma-error)]",
 };
 
 export function App() {
@@ -1787,7 +1787,7 @@ export function App() {
                 })();
                 const publishIsIdle =
                   item.id === "publish" && !isWorkspaceActive && syncAdornment === null;
-                const inactiveTextClass = `${publishIsIdle ? "text-[var(--color-figma-text-tertiary)]" : "text-[var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
+                const inactiveTextClass = `${publishIsIdle ? "text-[color:var(--color-figma-text-tertiary)]" : "text-[color:var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
 
                 if (sidebarCollapsed) {
                   const tooltipLabel = requiresSetup
@@ -1825,9 +1825,9 @@ export function App() {
                         aria-label={item.label}
                         className={`relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
-                            ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-accent)]"
+                            ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-accent)]"
                             : requiresSetup
-                              ? "text-[var(--color-figma-text-tertiary)] opacity-60"
+                              ? "text-[color:var(--color-figma-text-tertiary)] opacity-60"
                               : inactiveTextClass
                         }`}
                       >
@@ -1861,11 +1861,11 @@ export function App() {
                     <button
                       onClick={() => handleSidebarItemClick(item)}
                       title={requiresSetup ? "Set up a collection first" : undefined}
-                      className={`relative flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
+                      className={`relative flex min-h-7 w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
                         isWorkspaceActive
-                          ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                          ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
                           : requiresSetup
-                            ? "text-[var(--color-figma-text-tertiary)] opacity-60"
+                            ? "text-[color:var(--color-figma-text-tertiary)] opacity-60"
                             : inactiveTextClass
                       }`}
                     >
@@ -1886,8 +1886,8 @@ export function App() {
                         <span
                           className={`ml-auto shrink-0 text-secondary ${
                             canvasHasBrokenBindings
-                              ? "text-[var(--color-figma-warning)]"
-                              : "text-[var(--color-figma-text-secondary)]"
+                              ? "text-[color:var(--color-figma-warning)]"
+                              : "text-[color:var(--color-figma-text-secondary)]"
                           }`}
                           title={
                             canvasHasBrokenBindings
@@ -1935,17 +1935,17 @@ export function App() {
                                 key={section.id}
                                 onClick={() => handleSubTabClick(section)}
                                 tabIndex={isSectionExpanded ? 0 : -1}
-                                className={`flex w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
+                                className={`flex min-h-7 w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
                                   activeSubTab === section.subTab && isWorkspaceActive
-                                    ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                                    : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                                    ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
+                                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                                 }`}
                               >
                                 <span className="tm-sidebar-nav__sub-label min-w-0 flex-1">{section.label}</span>
                                 {showReviewBadge ? (
                                   <span
                                     aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
-                                    className="shrink-0 tabular-nums text-secondary font-medium text-[var(--color-figma-warning)]"
+                                    className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-warning)]"
                                   >
                                     {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
                                   </span>
@@ -1973,14 +1973,14 @@ export function App() {
                     onClick={toggleNotifications}
                     className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
                       notificationsOpen
-                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                        ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                     }`}
                     aria-label="Notifications"
                   >
                     <Bell size={14} strokeWidth={1.5} aria-hidden />
                     {notificationCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
+                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-action-bg)] text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-onbrand)]">{notificationCount > 9 ? "9+" : notificationCount}</span>
                     )}
                   </button>
                 </Tooltip>
@@ -1989,8 +1989,8 @@ export function App() {
                     onClick={() => toggleSecondarySurface("settings")}
                     className={`flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
                       activeSecondarySurface === "settings"
-                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                        ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                     }`}
                     aria-label="Settings"
                   >
@@ -2001,12 +2001,12 @@ export function App() {
               <div className="my-1 w-5 border-t border-[var(--color-figma-border)]" />
               <div className="flex flex-col items-center gap-0.5">
                 <Tooltip label={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"} position="right">
-                  <button onClick={executeUndo} disabled={!canUndo} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo">
+                  <button onClick={executeUndo} disabled={!canUndo} className="flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo">
                     <Undo2 size={13} strokeWidth={1.5} aria-hidden />
                   </button>
                 </Tooltip>
                 <Tooltip label={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"} position="right">
-                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo">
+                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo">
                     <Redo2 size={13} strokeWidth={1.5} aria-hidden />
                   </button>
                 </Tooltip>
@@ -2019,8 +2019,8 @@ export function App() {
                   onClick={toggleNotifications}
                   className={`tm-sidebar-utility-button relative ${
                     notificationsOpen
-                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   }`}
                   aria-label="Notifications"
                   title={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`}
@@ -2028,15 +2028,15 @@ export function App() {
                   <Bell size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Notifications</span>
                   {notificationCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-action-bg)] text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-onbrand)]">{notificationCount > 9 ? "9+" : notificationCount}</span>
                   )}
                 </button>
                 <button
                   onClick={() => toggleSecondarySurface("settings")}
                   className={`tm-sidebar-utility-button ${
                     activeSecondarySurface === "settings"
-                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   }`}
                   aria-label="Settings"
                   title="Settings"
@@ -2045,11 +2045,11 @@ export function App() {
                   <span className="tm-sidebar-utility-button__label">Settings</span>
                 </button>
                 <div className="my-1 h-px w-full bg-[var(--color-figma-border)]" />
-                <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+                <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
                   <Undo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Undo</span>
                 </button>
-                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="tm-sidebar-utility-button text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
                   <Redo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Redo</span>
                 </button>
@@ -2058,13 +2058,13 @@ export function App() {
           )}
           {!connected && !sidebarCollapsed && (
             <div className="mt-1 rounded-md bg-[var(--color-figma-error)]/8 px-2.5 py-1.5">
-              <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+              <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {checking ? "Connecting…" : "Server offline"}
               </div>
               {!checking && (
                 <button
                   onClick={retryConnection}
-                  className="mt-1 text-secondary text-[var(--color-figma-accent)] hover:underline"
+                  className="mt-1 text-secondary text-[color:var(--color-figma-accent)] hover:underline"
                 >
                   Retry connection
                 </button>
@@ -2085,7 +2085,7 @@ export function App() {
                   onClick={() => openResponsiveSidebarFlyout(activeWorkspace.id, window.innerHeight - 224)}
                   aria-label="Open workspace sections"
                   aria-expanded={responsiveSidebarFlyout?.itemId === activeWorkspace.id}
-                  className="mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
+                  className="mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-secondary)]"
                 >
                   <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
                 </button>
@@ -2098,7 +2098,7 @@ export function App() {
                 <button
                   onClick={toggleSidebarCollapsed}
                   aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  className={`flex h-7 items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto w-7' : 'w-full'}`}
+                  className={`flex h-7 items-center justify-center rounded-md text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto w-7' : 'w-full'}`}
                 >
                   {sidebarCollapsed ? (
                     <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
@@ -2143,7 +2143,7 @@ export function App() {
               className="tm-sidebar-flyout absolute left-10 z-30 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
               style={{ top: responsiveSidebarFlyout.top }}
             >
-              <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+              <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
                 {item.label}
               </div>
               {sections.map((section) => {
@@ -2164,15 +2164,15 @@ export function App() {
                     }}
                     className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-secondary outline-none transition-colors ${
                       isSectionActive
-                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
-                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                        ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
+                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                     }`}
                   >
                     <span className="tm-sidebar-flyout__label min-w-0 flex-1">{section.label}</span>
                     {showReviewBadge ? (
                       <span
                         aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
-                        className="shrink-0 tabular-nums text-secondary font-medium text-[var(--color-figma-warning)]"
+                        className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-warning)]"
                       >
                         {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
                       </span>

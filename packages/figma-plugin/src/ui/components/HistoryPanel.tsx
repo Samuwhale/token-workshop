@@ -153,8 +153,8 @@ export function HistoryPanel({
                   onClick={() => handleViewChange(view.id)}
                   className={`rounded px-2.5 py-1 text-secondary font-medium transition-colors ${
                     scope.view === view.id
-                      ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                      : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   }`}
                 >
                   {view.label}
@@ -172,7 +172,7 @@ export function HistoryPanel({
                   }}
                   variant="ghost"
                   size="sm"
-                  className="px-1.5 text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+                  className="px-1.5 text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)]"
                 >
                   Save checkpoint
                 </Button>
@@ -225,7 +225,7 @@ export function HistoryPanel({
       ) : null}
 
       <div className="shrink-0 px-3 pb-2">
-        <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
           {scopeLabel}
           {tokenScopeLabel ? ` ${tokenScopeLabel}` : ""}
         </p>

@@ -299,7 +299,7 @@ export function ExtractTokensPanel({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[var(--color-figma-warning)] shrink-0"
+              className="text-[color:var(--color-figma-warning)] shrink-0"
               aria-hidden="true"
             >
               <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -314,39 +314,39 @@ export function ExtractTokensPanel({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[var(--color-figma-success)] shrink-0"
+              className="text-[color:var(--color-figma-success)] shrink-0"
               aria-hidden="true"
             >
               <path d="M20 6L9 17l-5-5" />
             </svg>
           )}
-          <span className="text-body font-medium text-[var(--color-figma-text)]">
+          <span className="text-body font-medium text-[color:var(--color-figma-text)]">
             {hasFailures
               ? `Created ${createdCount} of ${createdCount + failures.length} token${createdCount + failures.length !== 1 ? "s" : ""}`
               : `Created ${createdCount} token${createdCount !== 1 ? "s" : ""} from selection`}
           </span>
         </div>
         {bindToLayers && boundCount > 0 && (
-          <p className="text-secondary text-[var(--color-figma-text-secondary)] mb-2 ml-5">
+          <p className="text-secondary text-[color:var(--color-figma-text-secondary)] mb-2 ml-5">
             Bound to {boundCount} layer{boundCount !== 1 ? "s" : ""}
           </p>
         )}
         {hasFailures && (
           <div className="ml-5 mt-2 mb-2">
-            <p className="text-secondary text-[var(--color-figma-error)] font-medium mb-1">
+            <p className="text-secondary text-[color:var(--color-figma-error)] font-medium mb-1">
               {failures.length} failed:
             </p>
             <ul className="space-y-0.5">
               {failures.map((f, i) => (
                 <li
                   key={i}
-                  className="text-secondary text-[var(--color-figma-text-secondary)]"
+                  className="text-secondary text-[color:var(--color-figma-text-secondary)]"
                 >
-                  <span className="font-mono text-[var(--color-figma-text)]">
+                  <span className="font-mono text-[color:var(--color-figma-text)]">
                     {f.name}
                   </span>
                   {" — "}
-                  <span className="text-[var(--color-figma-error)]">
+                  <span className="text-[color:var(--color-figma-error)]">
                     {f.error}
                   </span>
                 </li>
@@ -356,7 +356,7 @@ export function ExtractTokensPanel({
         )}
         <button
           onClick={onClose}
-          className="text-secondary text-[var(--color-figma-accent)] hover:underline ml-5"
+          className="text-secondary text-[color:var(--color-figma-accent)] hover:underline ml-5"
         >
           Done
         </button>
@@ -371,12 +371,12 @@ export function ExtractTokensPanel({
     >
       {!embedded && (
         <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 shrink-0">
-          <span className="flex-1 text-secondary font-medium text-[var(--color-figma-text)]">
+          <span className="flex-1 text-secondary font-medium text-[color:var(--color-figma-text)]">
             Extract Tokens
           </span>
           <button
             onClick={onClose}
-            className="rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             title="Close"
             aria-label="Close"
           >
@@ -398,7 +398,7 @@ export function ExtractTokensPanel({
       {/* Loading state */}
       {loading && (
         <div className="px-3 py-4 text-center">
-          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Reading selection...
           </span>
         </div>
@@ -406,12 +406,12 @@ export function ExtractTokensPanel({
 
       {!loading && tokens === null && error && (
         <div className="px-3 py-4 text-center">
-          <p className="text-secondary text-[var(--color-figma-error)] mb-2">
+          <p className="text-secondary text-[color:var(--color-figma-error)] mb-2">
             {error}
           </p>
           <button
             onClick={onClose}
-            className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+            className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
           >
             Close
           </button>
@@ -421,14 +421,14 @@ export function ExtractTokensPanel({
       {/* Empty state */}
       {tokens && tokens.length === 0 && (
         <div className="px-3 py-4 text-center">
-          <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {propertyFilter?.length
               ? `No ${propertyFilterLabel ?? "matching"} properties found.`
               : "Nothing to extract."}
           </p>
           <button
             onClick={onClose}
-            className="mt-2 text-secondary text-[var(--color-figma-accent)] hover:underline"
+            className="mt-2 text-secondary text-[color:var(--color-figma-accent)] hover:underline"
           >
             Close
           </button>
@@ -440,7 +440,7 @@ export function ExtractTokensPanel({
         <>
           {/* Select all */}
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
-            <label className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] cursor-pointer">
+            <label className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedCount === tokens.length}
@@ -450,7 +450,7 @@ export function ExtractTokensPanel({
               {selectedCount}/{tokens.length} selected
             </label>
             {conflictCount > 0 && (
-              <span className="text-secondary text-[var(--color-figma-warning)]">
+              <span className="text-secondary text-[color:var(--color-figma-warning)]">
                 {conflictCount} will overwrite
               </span>
             )}
@@ -458,7 +458,7 @@ export function ExtractTokensPanel({
 
           {/* Batch prefix bar */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 shrink-0">
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">
+            <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">
               Prefix:
             </span>
             <input
@@ -469,18 +469,18 @@ export function ExtractTokensPanel({
                 if (e.key === "Enter") applyPrefix();
               }}
               placeholder="e.g. color.brand"
-              className="flex-1 min-w-0 text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+              className="flex-1 min-w-0 text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             <button
               onClick={applyPrefix}
               disabled={selectedCount === 0}
-              className="text-secondary px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
+              className="text-secondary px-2 py-0.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
             >
               Apply
             </button>
             <button
               onClick={resetNames}
-              className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
+              className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] shrink-0"
               title="Reset all names to suggested"
             >
               Reset
@@ -514,12 +514,12 @@ export function ExtractTokensPanel({
                         type="text"
                         value={name}
                         onChange={(e) => updateName(idx, e.target.value)}
-                        className="flex-1 min-w-0 text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                        className="flex-1 min-w-0 text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                         disabled={!isSelected}
                       />
                       {isConflict && isSelected && (
                         <span
-                          className="text-[var(--font-size-xs)] text-[var(--color-figma-warning)] shrink-0"
+                          className="text-[var(--font-size-xs)] text-[color:var(--color-figma-warning)] shrink-0"
                           title="Token already exists — will overwrite"
                         >
                           overwrite
@@ -539,10 +539,10 @@ export function ExtractTokensPanel({
                             style={{ backgroundColor: token.value }}
                           />
                         )}
-                      <span className="text-[var(--color-figma-text-secondary)] truncate">
+                      <span className="text-[color:var(--color-figma-text-secondary)] truncate">
                         {formatValuePreview(token)}
                       </span>
-                      <span className="text-[var(--color-figma-text-secondary)] opacity-60 truncate ml-auto shrink-0">
+                      <span className="text-[color:var(--color-figma-text-secondary)] opacity-60 truncate ml-auto shrink-0">
                         {token.layerName}
                         {(token.layerCount ?? 1) > 1 &&
                           ` +${(token.layerCount ?? 1) - 1}`}
@@ -556,14 +556,14 @@ export function ExtractTokensPanel({
 
           {/* Error */}
           {error && (
-            <div className="px-3 py-1.5 text-secondary text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5 border-t border-[var(--color-figma-border)] shrink-0">
+            <div className="px-3 py-1.5 text-secondary text-[color:var(--color-figma-error)] bg-[var(--color-figma-error)]/5 border-t border-[var(--color-figma-border)] shrink-0">
               {error}
             </div>
           )}
 
           {/* Footer */}
           <div className="flex flex-col gap-1.5 px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
-            <label className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] cursor-pointer select-none">
+            <label className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={bindToLayers}
@@ -576,21 +576,21 @@ export function ExtractTokensPanel({
             <div className="flex items-center gap-2">
               <button
                 onClick={onClose}
-                className="text-secondary px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors"
+                className="text-secondary px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors"
                 disabled={creating}
               >
                 Cancel
               </button>
               <div className="flex-1" />
               {progress && (
-                <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                   {progress.current}/{progress.total}
                 </span>
               )}
               <button
                 onClick={handleCreate}
                 disabled={selectedCount === 0 || creating || !connected}
-                className="text-secondary px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="text-secondary px-3 py-1 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {creating
                   ? "Creating..."

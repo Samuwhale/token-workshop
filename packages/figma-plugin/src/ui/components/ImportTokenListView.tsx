@@ -38,19 +38,19 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
         />
       )}
       <div className="flex-1 min-w-0">
-        <div className="text-secondary text-[var(--color-figma-text)] break-all">{token.path}</div>
+        <div className="text-secondary text-[color:var(--color-figma-text)] break-all">{token.path}</div>
         {isAlias && (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] break-all">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)] break-all">
             → <span className="font-mono">{aliasTarget}</span>
             {isChained && (
-              <span className="ml-1 text-[var(--color-figma-text-tertiary,var(--color-figma-text-secondary))]">
+              <span className="ml-1 text-[color:var(--color-figma-text-tertiary,var(--color-figma-text-secondary))]">
                 → <span className="font-mono">{resolvedValue}</span>
               </span>
             )}
           </div>
         )}
         {token._warning && (
-          <div className="text-secondary text-[var(--color-figma-warning)] break-words" title={token._warning}>
+          <div className="text-secondary text-[color:var(--color-figma-warning)] break-words" title={token._warning}>
             {token._warning}
           </div>
         )}
@@ -100,7 +100,7 @@ export function ImportTokenListView() {
     <>
       <button
         onClick={handleBack}
-        className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors self-start"
+        className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors self-start"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 2L3 5l3 3" />
@@ -109,20 +109,20 @@ export function ImportTokenListView() {
       </button>
 
       {skippedCount > 0 && (
-        <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-          <span className="text-[var(--color-figma-warning)]">{skippedCount} skipped</span> during parse
+        <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+          <span className="text-[color:var(--color-figma-warning)]">{skippedCount} skipped</span> during parse
         </div>
       )}
 
       {tokens.some(t => t._warning?.startsWith('Duplicate path')) && (
-        <div className="px-2 py-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 text-secondary text-[var(--color-figma-warning)]">
+        <div className="px-2 py-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 text-secondary text-[color:var(--color-figma-warning)]">
           Duplicate paths found — only the last per path will be saved.
         </div>
       )}
 
       {/* Toolbar: count + type filter + search */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">
+        <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {selectedTokens.size} token{selectedTokens.size !== 1 ? 's' : ''}
         </span>
 
@@ -130,7 +130,7 @@ export function ImportTokenListView() {
           <select
             value={typeFilter ?? ''}
             onChange={e => setTypeFilter(e.target.value || null)}
-            className="min-w-0 flex-[1_1_120px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary text-[var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
+            className="min-w-0 flex-[1_1_120px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary text-[color:var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
           >
             <option value="">All types</option>
             {types.map(type => (
@@ -157,7 +157,7 @@ export function ImportTokenListView() {
 
       <div className="overflow-hidden rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
         {filteredTokens.length === 0 ? (
-          <div className="px-3 py-4 text-center text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="px-3 py-4 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
             No tokens match "{searchText}"
           </div>
         ) : (

@@ -5,7 +5,7 @@ export function KeyboardShortcutsPanel() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-        <h2 className="text-body font-medium text-[var(--color-figma-text)]">
+        <h2 className="text-body font-medium text-[color:var(--color-figma-text)]">
           Keyboard shortcuts
         </h2>
       </div>
@@ -13,7 +13,7 @@ export function KeyboardShortcutsPanel() {
       <div className="flex-1 overflow-y-auto py-1">
         {SHORTCUT_SECTIONS.map((section) => (
           <div key={section.header}>
-            <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+            <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
               {section.header}
             </div>
             {section.shortcuts.map(
@@ -22,25 +22,25 @@ export function KeyboardShortcutsPanel() {
                   key={description}
                   className="flex items-center justify-between px-3 py-1"
                 >
-                  <span className="pr-3 text-body text-[var(--color-figma-text)]">
+                  <span className="pr-3 text-body text-[color:var(--color-figma-text)]">
                     {description}
                   </span>
                   <div className="flex shrink-0 items-center gap-1">
                     {qualifier ? (
-                      <code className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 font-mono text-secondary text-[var(--color-figma-text-secondary)]">
+                      <code className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 font-mono text-secondary text-[color:var(--color-figma-text-secondary)]">
                         {mac}
                       </code>
                     ) : (
-                      <kbd className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 font-sans text-secondary text-[var(--color-figma-text-secondary)]">
+                      <kbd className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 font-sans text-secondary text-[color:var(--color-figma-text-secondary)]">
                         {adaptShortcut(mac)}
                       </kbd>
                     )}
                     {altMac && (
                       <>
-                        <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                        <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                           /
                         </span>
-                        <kbd className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 font-sans text-secondary text-[var(--color-figma-text-secondary)]">
+                        <kbd className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 font-sans text-secondary text-[color:var(--color-figma-text-secondary)]">
                           {adaptShortcut(altMac)}
                         </kbd>
                       </>

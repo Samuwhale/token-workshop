@@ -39,13 +39,13 @@ export function Section({
           <div className="tm-section__copy flex min-w-0 flex-1 flex-col gap-1">
             {title ? (
               <h3
-                className={`m-0 font-semibold leading-[var(--leading-tight)] text-[var(--color-figma-text)] ${TITLE_SIZE[emphasis]}`}
+                className={`m-0 font-semibold leading-[var(--leading-tight)] text-[color:var(--color-figma-text)] ${TITLE_SIZE[emphasis]}`}
               >
                 {title}
               </h3>
             ) : null}
             {description ? (
-              <p className="m-0 min-w-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+              <p className="m-0 min-w-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
                 {description}
               </p>
             ) : null}

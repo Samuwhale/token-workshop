@@ -2053,7 +2053,7 @@ export function TokenList({
       </div>
       {/* Operation loading indicator */}
       {operationLoading && (
-        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-secondary text-[color:var(--color-figma-text-secondary)]">
           <Spinner size="xs" />
           <span>{operationLoading}</span>
         </div>

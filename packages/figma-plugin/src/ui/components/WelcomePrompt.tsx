@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { NoticeBanner } from "../shared/noticeSystem";
 import { QuickStartWizard } from "./QuickStartWizard";
 
@@ -74,8 +75,8 @@ function ActionRow({
         className={[
           "mt-0.5 shrink-0",
           emphasized
-            ? "text-[var(--color-figma-accent)]"
-            : "text-[var(--color-figma-text-secondary)]",
+            ? "text-[color:var(--color-figma-accent)]"
+            : "text-[color:var(--color-figma-text-secondary)]",
         ].join(" ")}
       >
         {icon}
@@ -85,13 +86,13 @@ function ActionRow({
           className={[
             "text-body font-medium block",
             emphasized
-              ? "text-[var(--color-figma-accent)]"
-              : "text-[var(--color-figma-text)]",
+              ? "text-[color:var(--color-figma-accent)]"
+              : "text-[color:var(--color-figma-text)]",
           ].join(" ")}
         >
           {title}
         </span>
-        <span className="mt-0.5 text-secondary leading-relaxed text-[var(--color-figma-text-secondary)] block">
+        <span className="mt-0.5 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)] block">
           {description}
         </span>
       </span>
@@ -104,7 +105,7 @@ function ActionRow({
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="shrink-0 mt-0.5 text-[var(--color-figma-text-tertiary)]"
+        className="shrink-0 mt-0.5 text-[color:var(--color-figma-text-tertiary)]"
         aria-hidden="true"
       >
         <path d="M9 6l6 6-6 6" />
@@ -129,6 +130,8 @@ export function WelcomePrompt({
   onCollectionCreated,
 }: WelcomePromptProps) {
   const [branch, setBranch] = useState<StartHereBranch>(initialBranch);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
 
   useEffect(() => {
     setBranch(initialBranch);
@@ -214,7 +217,22 @@ export function WelcomePrompt({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)]">
-      <div className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="dialog" aria-modal="true" aria-labelledby="welcome-dialog-title">
+      <div
+        ref={dialogRef}
+        className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+          }
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-dialog-title"
+        aria-describedby={
+          branchCopy.description ? "welcome-dialog-description" : undefined
+        }
+      >
         <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -222,7 +240,7 @@ export function WelcomePrompt({
                 <button
                   type="button"
                   onClick={() => setBranch("root")}
-                  className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                   aria-label="Go back"
                 >
                   <svg
@@ -238,14 +256,17 @@ export function WelcomePrompt({
                   </svg>
                 </button>
               )}
-              <h2 id="welcome-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">
+              <h2
+                id="welcome-dialog-title"
+                className="text-heading font-semibold text-[color:var(--color-figma-text)]"
+              >
                 {branchTitle}
               </h2>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               aria-label="Close"
             >
               <svg
@@ -262,7 +283,10 @@ export function WelcomePrompt({
             </button>
           </div>
           {branchCopy.description ? (
-            <p className="mt-1.5 max-w-[28ch] text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
+            <p
+              id="welcome-dialog-description"
+              className="mt-1.5 max-w-[28ch] text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]"
+            >
               {branchCopy.description}
             </p>
           ) : null}
@@ -301,13 +325,13 @@ export function WelcomePrompt({
                 embedded
                 onBack={() => setBranch("root")}
                 onClose={onClose}
-              onComplete={onGuidedSetupComplete}
-              onCollectionCreated={onCollectionCreated}
-              onRetryConnection={onRetryConnection}
-              onAuthorFirstToken={onAuthorFirstToken}
-            />
-          </div>
-        )}
+                onComplete={onGuidedSetupComplete}
+                onCollectionCreated={onCollectionCreated}
+                onRetryConnection={onRetryConnection}
+                onAuthorFirstToken={onAuthorFirstToken}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

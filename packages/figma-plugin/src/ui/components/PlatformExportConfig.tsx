@@ -64,25 +64,25 @@ function ExportPreviewFileTab({
         title={file.path}
         className={`flex min-w-[172px] flex-col items-start gap-0.5 px-2 py-1.5 text-secondary transition-colors ${
           selected
-            ? 'text-[var(--color-figma-text)]'
-            : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
+            ? 'text-[color:var(--color-figma-text)]'
+            : 'text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)]'
         }`}
       >
-        <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 font-sans text-[var(--font-size-xs)] font-medium text-[var(--color-figma-accent)]">
+        <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 font-sans text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-accent)]">
           {file.platform}
         </span>
         <span className="block max-w-[220px] text-left font-mono leading-snug [overflow-wrap:anywhere]">
           {fileName}
         </span>
         {directory ? (
-          <span className="block max-w-[220px] text-left text-[var(--font-size-xs)] leading-snug text-[var(--color-figma-text-tertiary)] [overflow-wrap:anywhere]">
+          <span className="block max-w-[220px] text-left text-[var(--font-size-xs)] leading-snug text-[color:var(--color-figma-text-tertiary)] [overflow-wrap:anywhere]">
             {directory}
           </span>
         ) : null}
       </button>
       <button
         onClick={onCopy}
-        className={`shrink-0 px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)] ${
+        className={`shrink-0 px-1.5 py-1.5 text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-accent)] ${
           selected
             ? 'opacity-100'
             : 'opacity-70 group-hover:opacity-100 group-focus-within:opacity-100'
@@ -191,10 +191,10 @@ export function PlatformExportConfig({
       <div>
         <div className="flex items-center justify-between mb-2">
           <div>
-            <div className="text-body text-[var(--color-figma-text)] font-semibold">
+            <div className="text-body text-[color:var(--color-figma-text)] font-semibold">
               Target platforms
             </div>
-            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
               Choose the files this export should generate.
             </div>
           </div>
@@ -206,7 +206,7 @@ export function PlatformExportConfig({
                 setSelected(new Set(PLATFORMS.map(p => p.id)));
               }
             }}
-            className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
           >
             {selected.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
           </button>
@@ -223,7 +223,7 @@ export function PlatformExportConfig({
                 description={platform.description}
               >
                 {isSelected ? (
-                  <span className="block min-w-0 break-all font-mono text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-tertiary)]">
+                  <span className="block min-w-0 break-all font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-tertiary)]">
                     {platform.example}
                   </span>
                 ) : null}
@@ -248,7 +248,7 @@ export function PlatformExportConfig({
                 setPresetName('');
                 setTimeout(() => savePresetInputRef.current?.focus(), 0);
               }}
-              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
             >
               Save current
             </button>
@@ -269,18 +269,18 @@ export function PlatformExportConfig({
                     if (e.key === 'Escape') { setShowSavePreset(false); setPresetName(''); }
                   }}
                   placeholder="Preset name…"
-                  className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                  className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[color:var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]"
                 />
                 <button
                   onClick={onSavePreset}
                   disabled={!presetName.trim()}
-                  className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] text-secondary font-medium disabled:opacity-40 hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                  className="px-2 py-1 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-secondary font-medium disabled:opacity-40 hover:bg-[var(--color-figma-action-bg-hover)] transition-colors"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => { setShowSavePreset(false); setPresetName(''); }}
-                  className="px-1.5 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="px-1.5 py-1 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   aria-label="Cancel"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -292,7 +292,7 @@ export function PlatformExportConfig({
             )}
 
             {presets.length === 0 && !showSavePreset && (
-              <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-relaxed">
+              <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-relaxed">
                 Save the current setup when you have a repeat export.
               </div>
             )}
@@ -304,14 +304,14 @@ export function PlatformExportConfig({
                     <button
                       onClick={() => onLoadPreset(preset)}
                       title={`Load full preset "${preset.name}" — replaces current platform selection and all filters`}
-                      className="min-w-0 flex-1 truncate px-1 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] transition-colors"
+                      className="min-w-0 flex-1 truncate px-1 py-1 text-left text-secondary text-[color:var(--color-figma-text)] hover:text-[color:var(--color-figma-accent)] transition-colors"
                     >
                       {preset.name}
                     </button>
                     <button
                       onClick={() => onLoadPresetFiltersOnly(preset)}
                       title="Apply collections, types, and path prefix from this preset — keeps the current platform selection"
-                      className="px-1.5 py-1 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                      className="px-1.5 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)] transition-colors"
                       aria-label={`Apply filters only from preset ${preset.name}`}
                     >
                       Filters
@@ -319,7 +319,7 @@ export function PlatformExportConfig({
                     <button
                       onClick={() => onDeletePreset(preset.id)}
                       title="Delete preset"
-                      className="px-1.5 py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] transition-colors"
+                      className="px-1.5 py-1 text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-error)] transition-colors"
                       aria-label={`Delete preset ${preset.name}`}
                     >
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -346,7 +346,7 @@ export function PlatformExportConfig({
             action={cssSelectorOpen && cssSelector !== ':root' ? (
               <button
                 onClick={() => setCssSelector(':root')}
-                className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Reset
               </button>
@@ -361,9 +361,9 @@ export function PlatformExportConfig({
                 onChange={e => setCssSelector(e.target.value)}
                 placeholder=":root"
                 spellCheck={false}
-                className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+                className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body font-mono text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)]"
               />
-              <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-relaxed">
+              <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-relaxed">
                 Wrap CSS variables with a custom selector — e.g. <span className="font-mono">.light</span>, <span className="font-mono">[data-theme="dark"]</span>, or <span className="font-mono">:root .brand</span>
               </div>
             </div>
@@ -380,7 +380,7 @@ export function PlatformExportConfig({
               selectedCollections === null
                 ? 'All collections'
                 : selectedCollections.size === 0
-                  ? <span className="text-[var(--color-figma-warning)]">None selected</span>
+                  ? <span className="text-[color:var(--color-figma-warning)]">None selected</span>
                   : `${selectedCollections.size} of ${collectionIds.length}`
             }
             open={collectionsOpen}
@@ -394,7 +394,7 @@ export function PlatformExportConfig({
                     setSelectedCollections(null);
                   }
                 }}
-                className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 {selectedCollections === null
                   ? `Deselect all`
@@ -431,7 +431,7 @@ export function PlatformExportConfig({
             selectedTypes === null || selectedTypes.size === ALL_TOKEN_TYPES.length
               ? 'All types'
               : selectedTypes.size === 0
-                ? <span className="text-[var(--color-figma-warning)]">None selected</span>
+                ? <span className="text-[color:var(--color-figma-warning)]">None selected</span>
                 : `${selectedTypes.size} of ${ALL_TOKEN_TYPES.length}`
           }
           open={typesOpen}
@@ -443,7 +443,7 @@ export function PlatformExportConfig({
           action={typesOpen && selectedTypes !== null && selectedTypes.size < ALL_TOKEN_TYPES.length ? (
             <button
               onClick={() => setSelectedTypes(null)}
-              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
               All types
             </button>
@@ -464,8 +464,8 @@ export function PlatformExportConfig({
                   })}
                   className={`px-2 py-0.5 rounded text-secondary font-mono transition-colors border ${
                     isChecked
-                      ? 'bg-[var(--color-figma-accent)]/10 border-[var(--color-figma-accent)] text-[var(--color-figma-accent)]'
-                      : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-text-tertiary)]'
+                      ? 'bg-[var(--color-figma-accent)]/10 border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)]'
+                      : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-text-tertiary)]'
                   }`}
                 >
                   {type}
@@ -486,7 +486,7 @@ export function PlatformExportConfig({
           action={pathPrefixOpen && pathPrefix ? (
             <button
               onClick={() => setPathPrefix('')}
-              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
               Clear
             </button>
@@ -501,9 +501,9 @@ export function PlatformExportConfig({
               onChange={e => setPathPrefix(e.target.value)}
               placeholder="e.g. color or spacing.scale"
               spellCheck={false}
-              className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body font-mono text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+              className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body font-mono text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)]"
             />
-            <div className="mt-1 text-secondary text-[var(--color-figma-text-tertiary)] leading-relaxed">
+            <div className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)] leading-relaxed">
               Export only tokens under this path — e.g. <span className="font-mono">color</span> or <span className="font-mono">spacing.scale</span>
             </div>
           </>
@@ -542,8 +542,8 @@ export function PlatformExportConfig({
               <div className="mt-2 pl-6">
                 {isGitRepo === false ? (
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-start gap-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-text-tertiary)] shrink-0 mt-px">
+                    <div className="flex items-start gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[color:var(--color-figma-text-tertiary)] shrink-0 mt-px">
                         <circle cx="12" cy="12" r="10" />
                         <polyline points="12 6 12 12 16 14" />
                       </svg>
@@ -551,12 +551,12 @@ export function PlatformExportConfig({
                     </div>
                     {lastExportTimestamp === null ? (
                       <div className="flex flex-col gap-1.5">
-                        <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                           Set a baseline to track changes. Future exports will include only tokens from files modified after that point.
                         </span>
                         <button
                           onClick={handleSetBaseline}
-                          className="self-start px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                          className="self-start px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors"
                         >
                           Set baseline now
                         </button>
@@ -564,12 +564,12 @@ export function PlatformExportConfig({
                     ) : (
                       <div className="flex items-center gap-2 flex-1">
                         {diffLoading ? (
-                          <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+                          <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                             <Spinner size="sm" />
                             Checking for changes…
                           </div>
                         ) : diffError ? (
-                          <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-error)]">
+                          <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-error)]">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <circle cx="12" cy="12" r="10" />
                               <line x1="15" y1="9" x2="9" y2="15" />
@@ -580,19 +580,19 @@ export function PlatformExportConfig({
                         ) : diffPaths !== null ? (
                           <div className="flex items-center gap-2 flex-wrap flex-1">
                             {diffPaths.length === 0 ? (
-                              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                              <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                                 No changes since {new Date(lastExportTimestamp).toLocaleString()}
                               </span>
                             ) : (
-                              <span className="text-secondary text-[var(--color-figma-text)]">
-                                <span className="font-medium text-[var(--color-figma-accent)]">{diffPaths.length}</span>
+                              <span className="text-secondary text-[color:var(--color-figma-text)]">
+                                <span className="font-medium text-[color:var(--color-figma-accent)]">{diffPaths.length}</span>
                                 {' '}token{diffPaths.length !== 1 ? 's' : ''} modified since {new Date(lastExportTimestamp).toLocaleString()}
                               </span>
                             )}
                             <button
                               onClick={() => fetchDiffSince(lastExportTimestamp)}
                               title="Re-check for changes"
-                              className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors flex items-center gap-1"
+                              className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)] transition-colors flex items-center gap-1"
                             >
                               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <polyline points="23 4 23 10 17 10" />
@@ -603,13 +603,13 @@ export function PlatformExportConfig({
                             <button
                               onClick={handleSetBaseline}
                               title="Reset baseline to now"
-                              className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                              className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)] transition-colors"
                             >
                               Reset baseline
                             </button>
                           </div>
                         ) : (
-                          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Fetching changes…</span>
+                          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Fetching changes…</span>
                         )}
                       </div>
                     )}
@@ -617,12 +617,12 @@ export function PlatformExportConfig({
                 ) : (
                   <div className="flex items-center gap-2">
                     {diffLoading ? (
-                      <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+                      <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                         <Spinner size="sm" />
                         Checking for changes…
                       </div>
                     ) : diffError ? (
-                      <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-error)]">
+                      <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-error)]">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <circle cx="12" cy="12" r="10" />
                           <line x1="15" y1="9" x2="9" y2="15" />
@@ -633,17 +633,17 @@ export function PlatformExportConfig({
                     ) : diffPaths !== null ? (
                       <div className="flex items-center gap-2 flex-1">
                         {diffPaths.length === 0 ? (
-                          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">No uncommitted changes detected</span>
+                          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">No uncommitted changes detected</span>
                         ) : (
-                          <span className="text-secondary text-[var(--color-figma-text)]">
-                            <span className="font-medium text-[var(--color-figma-accent)]">{diffPaths.length}</span>
+                          <span className="text-secondary text-[color:var(--color-figma-text)]">
+                            <span className="font-medium text-[color:var(--color-figma-accent)]">{diffPaths.length}</span>
                             {' '}token{diffPaths.length !== 1 ? 's' : ''} changed
                           </span>
                         )}
                         <button
                           onClick={fetchDiff}
                           title="Re-check for changes"
-                          className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors flex items-center gap-1"
+                          className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)] transition-colors flex items-center gap-1"
                         >
                           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <polyline points="23 4 23 10 17 10" />
@@ -653,7 +653,7 @@ export function PlatformExportConfig({
                         </button>
                       </div>
                     ) : (
-                      <span className="text-secondary text-[var(--color-figma-text-tertiary)]">Fetching changes…</span>
+                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Fetching changes…</span>
                     )}
                   </div>
                 )}
@@ -666,21 +666,21 @@ export function PlatformExportConfig({
       {/* ZIP Options (shown after first export) */}
       {results.length > 0 && (
         <div>
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] font-medium mb-2">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)] font-medium mb-2">
             ZIP Options
           </div>
           <div className="flex flex-col gap-2 mb-3">
             <div className="flex items-center gap-2">
-              <label className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Filename</label>
+              <label className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">Filename</label>
               <div className="flex items-center flex-1 min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
                 <input
                   type="text"
                   value={zipFilename}
                   onChange={(e) => setZipFilename(e.target.value)}
                   placeholder="tokens"
-                  className="flex-1 min-w-0 px-2 py-1 bg-transparent text-secondary text-[var(--color-figma-text)] font-mono outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+                  className="flex-1 min-w-0 px-2 py-1 bg-transparent text-secondary text-[color:var(--color-figma-text)] font-mono outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
                 />
-                <span className="text-secondary text-[var(--color-figma-text-tertiary)] pr-2 shrink-0">.zip</span>
+                <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] pr-2 shrink-0">.zip</span>
               </div>
             </div>
             <CheckboxRow
@@ -701,7 +701,7 @@ export function PlatformExportConfig({
         return (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">
+              <div className="text-secondary text-[color:var(--color-figma-text-secondary)] font-medium">
                 Preview
               </div>
               <div className="flex items-center gap-2">
@@ -709,7 +709,7 @@ export function PlatformExportConfig({
                   onClick={() => handleExport()}
                   disabled={selected.size === 0 || !connected || exporting}
                   title="Re-run export with current settings"
-                  className="flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent-hover)] transition-colors disabled:opacity-40"
                 >
                   {exporting ? (
                     <Spinner size="sm" />
@@ -721,7 +721,7 @@ export function PlatformExportConfig({
                   )}
                   Refresh
                 </button>
-                <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {results.length} file{results.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -748,10 +748,10 @@ export function PlatformExportConfig({
                   <tbody>
                     {lines.map((line, lineIdx) => (
                       <tr key={lineIdx} className="hover:bg-[var(--color-figma-bg-hover)]/50">
-                        <td className="px-2 py-0 text-secondary font-mono text-[var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
+                        <td className="px-2 py-0 text-secondary font-mono text-[color:var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
                           {lineIdx + 1}
                         </td>
-                        <td className="px-3 py-0 text-secondary font-mono text-[var(--color-figma-text)] whitespace-pre break-all">
+                        <td className="px-3 py-0 text-secondary font-mono text-[color:var(--color-figma-text)] whitespace-pre break-all">
                           {line || '\u00A0'}
                         </td>
                       </tr>
@@ -761,13 +761,13 @@ export function PlatformExportConfig({
               </div>
 
               <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {lines.length} line{lines.length !== 1 ? 's' : ''}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleDownloadFile(activeFile)}
-                    className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                    className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
                     title="Download file"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -779,7 +779,7 @@ export function PlatformExportConfig({
                   </button>
                   <button
                     onClick={() => handleCopyFile(activeFile)}
-                    className="flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent-hover)] transition-colors"
                     title="Copy to clipboard"
                   >
                     {copiedFile === exportFileId(activeFile) ? (

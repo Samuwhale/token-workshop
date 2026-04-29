@@ -131,8 +131,8 @@ export function FindReplaceAction({
               title={useRegex ? 'Regex mode on' : 'Regex mode off'}
               className={`absolute right-1.5 top-1/2 -translate-y-1/2 px-1 py-0.5 rounded text-[11px] font-mono leading-none transition-colors ${
                 useRegex
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
+                  ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                  : 'text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)]'
               }`}
             >
               .*
@@ -170,8 +170,8 @@ export function FindReplaceAction({
                 {visibleRenames.map(r => (
                   <div key={r.oldPath} className="flex flex-wrap items-center gap-1">
                     <PreviewPath path={r.oldPath} />
-                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                    <PreviewPath path={r.newPath} className="!text-[var(--color-figma-text)]" />
+                    <span className="text-[color:var(--color-figma-text-tertiary)] shrink-0">→</span>
+                    <PreviewPath path={r.newPath} className="!text-[color:var(--color-figma-text)]" />
                   </div>
                 ))}
               </PreviewCard>

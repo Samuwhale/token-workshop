@@ -280,7 +280,7 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToCol
         onClick={toggleAliasMode}
         title={aliasMode ? 'Switch to raw color' : 'Switch to reference mode'}
         aria-label={aliasMode ? 'Switch to raw color' : 'Switch to reference mode'}
-        className={`p-1.5 rounded border transition-colors shrink-0 ${aliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+        className={`p-1.5 rounded border transition-colors shrink-0 ${aliasMode ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
       >
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
@@ -292,7 +292,7 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToCol
           onClick={onRemove}
           title="Remove color stop"
           aria-label="Remove color stop"
-          className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+          className="p-1.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
         >
           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M18 6L6 18M6 6l12 12"/>
@@ -333,7 +333,7 @@ export const GradientEditor = memo(function GradientEditor({ value, onChange, al
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2 items-center">
-        <div className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Type</div>
+        <div className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">Type</div>
         <select
           value={gradientType}
           onChange={e => onChange({ ...value, type: e.target.value })}
@@ -351,7 +351,7 @@ export const GradientEditor = memo(function GradientEditor({ value, onChange, al
         onMove={(idx, newPos) => updateStop(idx, { position: newPos })}
         onAdd={addStop}
       />
-      <div className="text-secondary text-[var(--color-figma-text-secondary)]">Stops</div>
+      <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">Stops</div>
       {stops.map((stop, idx) => (
         <GradientStopRow
           key={idx}
@@ -368,7 +368,7 @@ export const GradientEditor = memo(function GradientEditor({ value, onChange, al
       <button
         type="button"
         onClick={() => addStop()}
-        className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left"
+        className="text-secondary text-[color:var(--color-figma-accent)] hover:underline text-left"
       >
         + Add stop
       </button>

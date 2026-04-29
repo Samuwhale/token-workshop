@@ -80,9 +80,9 @@ export function ConfirmModal({
         aria-busy={busy}
       >
         <div className="tm-modal-header">
-          <h3 id="confirm-modal-title" className="text-heading font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <h3 id="confirm-modal-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">{title}</h3>
           {description && (
-            <p className="text-body leading-relaxed text-[var(--color-figma-text-secondary)] break-words">
+            <p className="text-body leading-relaxed text-[color:var(--color-figma-text-secondary)] break-words">
               {description}
             </p>
           )}
@@ -90,7 +90,7 @@ export function ConfirmModal({
         <div className="tm-modal-body">
           {children}
         {error && (
-            <p role="alert" className="pb-3 text-secondary text-[var(--color-figma-error)] break-words">{error}</p>
+            <p role="alert" className="pb-3 text-secondary text-[color:var(--color-figma-error)] break-words">{error}</p>
         )}
         </div>
         <div className="tm-modal-footer">

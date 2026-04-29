@@ -67,7 +67,7 @@ export function SelectionInspectorBanners({
             onClick: () => onOpenRepair?.(),
           }}
         >
-          <span className="text-secondary font-medium text-[var(--color-figma-text)]">
+          <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">
             {staleBindingCount} broken binding{staleBindingCount === 1 ? "" : "s"}
           </span>
         </InlineBanner>
@@ -84,27 +84,27 @@ export function SelectionInspectorBanners({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="shrink-0 text-[var(--color-figma-accent)]"
+            className="shrink-0 text-[color:var(--color-figma-accent)]"
             aria-hidden="true"
           >
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" />
             <circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
           </svg>
-          <span className="flex-1 text-secondary text-[var(--color-figma-text)]">
+          <span className="flex-1 text-secondary text-[color:var(--color-figma-text)]">
             Apply <strong>{PROPERTY_LABELS[peerSuggestion.property]}</strong> to{" "}
             {peerSuggestion.peerIds.length} sibling
             {peerSuggestion.peerIds.length !== 1 ? "s" : ""}?
           </span>
           <button
             onClick={onApplyPeerSuggestion}
-            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
             Apply
           </button>
           <button
             onClick={onDismissPeerSuggestion}
-            className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             title="Dismiss"
             aria-label="Dismiss"
           >
@@ -134,21 +134,21 @@ export function SelectionInspectorBanners({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="mt-px shrink-0 text-[var(--color-figma-accent)]"
+            className="mt-px shrink-0 text-[color:var(--color-figma-accent)]"
             aria-hidden="true"
           >
             <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
             <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
           </svg>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-secondary leading-snug text-[var(--color-figma-text)]">
+            <span className="text-secondary leading-snug text-[color:var(--color-figma-text)]">
               Apply{" "}
               <strong className="font-mono">
                 {propTypeSuggestion.tokenPath}
               </strong>{" "}
               to all <strong>{propTypeSuggestion.tokenType}</strong> properties?
             </span>
-            <span className="truncate text-secondary text-[var(--color-figma-text-secondary)]">
+            <span className="truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
               {propTypeSuggestion.targetProps
                 .map((prop) => PROPERTY_LABELS[prop])
                 .join(", ")}
@@ -156,13 +156,13 @@ export function SelectionInspectorBanners({
           </div>
           <button
             onClick={onApplyPropTypeSuggestion}
-            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
             Apply to all
           </button>
           <button
             onClick={onDismissPropTypeSuggestion}
-            className="shrink-0 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             title="Dismiss"
             aria-label="Dismiss"
           >
@@ -194,16 +194,16 @@ export function SelectionInspectorBanners({
                   label: "Next layer →",
                   onClick: onSelectNextSibling,
                   className:
-                    "bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20",
+                    "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20",
                 }
           }
         >
           <div className="flex items-center gap-2">
-            <span className="text-secondary font-medium text-[var(--color-figma-text)]">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">
               All properties bound
             </span>
             {noMoreSiblings ? (
-              <span className="text-secondary italic text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary italic text-[color:var(--color-figma-text-secondary)]">
                 No more layers
               </span>
             ) : null}
@@ -218,7 +218,7 @@ export function SelectionInspectorBanners({
           size="sm"
           className="border-b-0 border-t"
         >
-          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Applying… {applyProgress.processed}/{applyProgress.total} layers
           </span>
         </InlineBanner>
@@ -239,7 +239,7 @@ export function SelectionInspectorBanners({
                     onDismissCreatedToken();
                   },
                   className:
-                    "bg-transparent text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10",
+                    "bg-transparent text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10",
                 }
               : undefined
           }
@@ -247,7 +247,7 @@ export function SelectionInspectorBanners({
           dismissMode="icon"
         >
           <span
-            className="block truncate font-mono text-secondary text-[var(--color-figma-text)]"
+            className="block truncate font-mono text-secondary text-[color:var(--color-figma-text)]"
             title={createdTokenPath}
           >
             {createdTokenPath}

@@ -46,13 +46,13 @@ export const NumberEditor = memo(function NumberEditor({ value, onChange, allTok
           type="button"
           onClick={toggleFormulaMode}
           title={formulaMode ? 'Switch to literal value' : 'Enter expression'}
-          className={`shrink-0 px-1.5 py-1 rounded text-secondary font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+          className={`shrink-0 px-1.5 py-1 rounded text-secondary font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)]'}`}
         >
           fx
         </button>
       </div>
       {formulaMode && formulaStr && (
-        <div className={`px-2 py-1 rounded text-secondary font-mono ${preview?.error ? 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>
+        <div className={`px-2 py-1 rounded text-secondary font-mono ${preview?.error ? 'text-[color:var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>
           {preview?.error ? preview.error : `= ${preview?.result}`}
         </div>
       )}

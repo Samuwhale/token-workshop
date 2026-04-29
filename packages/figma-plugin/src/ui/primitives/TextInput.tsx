@@ -24,7 +24,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
       type={rest.type ?? "text"}
       aria-invalid={invalid || undefined}
       {...rest}
-      className={`w-full rounded bg-[var(--color-figma-bg)] text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${sizeClass} ${stateClass} ${className}`}
+      className={`w-full rounded bg-[var(--color-figma-bg)] text-body text-[color:var(--color-figma-text)] outline-none placeholder:text-[color:var(--color-figma-text-tertiary)] ${sizeClass} ${stateClass} ${className}`}
     />
   );
   if (!invalid) return input;
@@ -39,7 +39,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-[var(--color-figma-error)]"
+        className="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-[color:var(--color-figma-error)]"
       >
         <circle cx="12" cy="12" r="10" />
         <path d="M12 8v4M12 16h.01" />

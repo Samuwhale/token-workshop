@@ -78,18 +78,18 @@ function DeepBindPanel({
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-[var(--color-figma-accent)] shrink-0"
+          className="text-[color:var(--color-figma-accent)] shrink-0"
           aria-hidden="true"
         >
           <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
-        <span className="text-secondary text-[var(--color-figma-accent)] font-medium flex-1 truncate">
+        <span className="text-secondary text-[color:var(--color-figma-accent)] font-medium flex-1 truncate">
           {currentBinding ? 'Remap' : 'Bind'} on {childNode.name}
         </span>
         <button
           onClick={onClose}
-          className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           title="Cancel"
           aria-label="Cancel"
         >
@@ -139,10 +139,10 @@ function DeepBindPanel({
           placeholder="Search tokens\u2026"
           aria-autocomplete="list"
           aria-label="Search token candidates"
-          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
         />
         {candidates.length === 0 ? (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] py-1 text-center">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)] py-1 text-center">
             {query
               ? "No matching tokens"
               : `No ${compatibleTypes.join(" or ")} tokens`}
@@ -185,16 +185,16 @@ function DeepBindPanel({
                     </div>
                   )}
                   <span
-                    className={`text-secondary font-mono truncate flex-1 ${isSelected ? "text-[var(--color-figma-accent)]" : "text-[var(--color-figma-text)]"}`}
+                    className={`text-secondary font-mono truncate flex-1 ${isSelected ? "text-[color:var(--color-figma-accent)]" : "text-[color:var(--color-figma-text)]"}`}
                   >
                     {path}
                   </span>
                   {isCurrent && (
-                    <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
+                    <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
                       current
                     </span>
                   )}
-                  <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0">
+                  <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
                     {entry.$type}
                   </span>
                 </button>
@@ -203,14 +203,14 @@ function DeepBindPanel({
           </div>
         )}
         {hiddenByScope > 0 && (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {ignoreScope ? (
               <>
                 Showing all{" "}
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(false)}
-                  className="text-[var(--color-figma-accent)] hover:underline"
+                  className="text-[color:var(--color-figma-accent)] hover:underline"
                 >
                   Restrict
                 </button>
@@ -221,7 +221,7 @@ function DeepBindPanel({
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(true)}
-                  className="text-[var(--color-figma-accent)] hover:underline"
+                  className="text-[color:var(--color-figma-accent)] hover:underline"
                 >
                   Show all
                 </button>
@@ -251,7 +251,7 @@ export function DeepInspectSection({
       <div
         className={`${showHeader ? "mt-1 border-t border-[var(--color-figma-border)]/50 pt-1" : ""} px-3 py-2 text-center`}
       >
-        <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
           No nested bindings.
         </p>
       </div>
@@ -276,7 +276,7 @@ export function DeepInspectSection({
       }
     >
       {showHeader && (
-        <div className="flex items-center gap-1 px-2 py-1 text-secondary font-semibold uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+        <div className="flex items-center gap-1 px-2 py-1 text-secondary font-semibold uppercase tracking-wide text-[color:var(--color-figma-text-secondary)]">
           <svg
             width="9"
             height="9"
@@ -316,18 +316,18 @@ export function DeepInspectSection({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-[var(--color-figma-text-secondary)] shrink-0"
+                className="text-[color:var(--color-figma-text-secondary)] shrink-0"
                 aria-hidden="true"
               >
                 <rect x="3" y="3" width="18" height="18" rx="2" />
               </svg>
               <span
-                className="text-secondary font-medium text-[var(--color-figma-text)] truncate flex-1"
+                className="text-secondary font-medium text-[color:var(--color-figma-text)] truncate flex-1"
                 title={child.name}
               >
                 {child.name}
               </span>
-              <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0 uppercase tracking-wide">
+              <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0 uppercase tracking-wide">
                 {child.type}
               </span>
               {onSelectNode && (
@@ -335,7 +335,7 @@ export function DeepInspectSection({
                   onClick={() => onSelectNode(child.id)}
                   title="Select layer in Figma"
                   aria-label={`Select ${child.name} in Figma`}
-                  className="opacity-40 group-hover/layer:opacity-100 pointer-events-none group-hover/layer:pointer-events-auto transition-opacity p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0"
+                  className="opacity-40 group-hover/layer:opacity-100 pointer-events-none group-hover/layer:pointer-events-auto transition-opacity p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0"
                 >
                   <Crosshair size={8} strokeWidth={2} aria-hidden />
                 </button>
@@ -368,7 +368,7 @@ export function DeepInspectSection({
                       ) : (
                         <div className="w-2.5 h-2.5 shrink-0" />
                       )}
-                      <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] w-[60px] shrink-0 truncate">
+                      <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] w-[60px] shrink-0 truncate">
                         {PROPERTY_LABELS[prop]}
                       </span>
                       <svg
@@ -380,14 +380,14 @@ export function DeepInspectSection({
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-[var(--color-figma-accent)] shrink-0"
+                        className="text-[color:var(--color-figma-accent)] shrink-0"
                         aria-hidden="true"
                       >
                         <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                         <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                       </svg>
                       <span
-                        className="text-[var(--font-size-xs)] text-[var(--color-figma-accent)] font-mono truncate flex-1"
+                        className="text-[var(--font-size-xs)] text-[color:var(--color-figma-accent)] font-mono truncate flex-1"
                         title={tokenPath}
                       >
                         {tokenPath}
@@ -399,7 +399,7 @@ export function DeepInspectSection({
                             onClick={() => onNavigateToToken(tokenPath)}
                             title="Go to token"
                             aria-label="Go to token"
-                            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
                             <svg
                               width="8"
@@ -423,7 +423,7 @@ export function DeepInspectSection({
                             }
                             title="Remap"
                             aria-label="Remap binding"
-                            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
                             <svg
                               width="8"
@@ -448,7 +448,7 @@ export function DeepInspectSection({
                             }
                             title="Remove binding"
                             aria-label="Remove binding"
-                            className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors"
+                            className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] transition-colors"
                           >
                             <svg
                               width="8"

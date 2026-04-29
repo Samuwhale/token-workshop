@@ -57,7 +57,7 @@ export function GeneratorListSidebar({
         <button
           type="button"
           onClick={onCreate}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           title="Create generator"
           aria-label="Create generator"
         >
@@ -81,17 +81,17 @@ export function GeneratorListSidebar({
               <span className="block truncate text-secondary font-medium">
                 {generator.name}
               </span>
-              <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                 {readGeneratorOutputLabel(generator)}
               </span>
-              <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                 {generator.lastAppliedAt ? "Applied" : "Not applied"}
               </span>
             </span>
           </button>
         ))}
         {generators.length === 0 ? (
-          <div className="p-2 text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="p-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
             Create generated tokens for this collection.
           </div>
         ) : null}
@@ -116,7 +116,7 @@ function GeneratorIcon({ generator }: { generator: TokenGeneratorDocument }) {
 
 function GeneratorKindIcon({ kind }: { kind?: GeneratorPresetKind }) {
   const className =
-    "mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]";
+    "mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]";
   if (kind === "colorRamp") return <Palette size={14} className={className} />;
   if (kind === "spacing") return <Ruler size={14} className={className} />;
   if (kind === "type") return <Type size={14} className={className} />;
@@ -164,7 +164,7 @@ export function NodeLibraryPanel({
         <button
           type="button"
           onClick={onToggleAllNodes}
-          className="rounded px-2 py-1 text-tertiary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          className="rounded px-2 py-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         >
           {allNodesOpen ? "Suggested" : "All steps"}
         </button>
@@ -172,7 +172,7 @@ export function NodeLibraryPanel({
       <div className="mb-2 flex items-center gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
         <Search
           size={14}
-          className="text-[var(--color-figma-text-secondary)]"
+          className="text-[color:var(--color-figma-text-secondary)]"
         />
         <input
           value={paletteQuery}
@@ -187,7 +187,7 @@ export function NodeLibraryPanel({
         {Object.entries(groupBy(paletteItems, (item) => item.category)).map(
           ([category, items]) => (
             <div key={category}>
-              <div className="mb-1 px-1 text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+              <div className="mb-1 px-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                 {category}
               </div>
               <div className="space-y-1">
@@ -208,12 +208,12 @@ export function NodeLibraryPanel({
                   >
                     <Plus
                       size={12}
-                      className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
+                      className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
                     />
                     <span className="min-w-0">
                       <span className="block truncate">{item.label}</span>
                       {item.description ? (
-                        <span className="block text-tertiary text-[var(--color-figma-text-secondary)]">
+                        <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
                           {item.description}
                         </span>
                       ) : null}

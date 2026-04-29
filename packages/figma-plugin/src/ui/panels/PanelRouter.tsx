@@ -8,7 +8,15 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
 import { resolveCollectionIdForPath } from "@tokenmanager/core";
@@ -79,16 +87,20 @@ import { getMostRelevantImportDestinationCollection } from "../shared/navigation
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
 import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
-import {
-  GeneratorsPanel,
-  type GeneratorPanelFocus,
-} from "../components/generators/GeneratorsPanel";
+import type { GeneratorPanelFocus } from "../components/generators/GeneratorsPanel";
 import { GeneratorCreatePanel } from "../components/GeneratorCreatePanel";
 
 const DEFAULT_CREATE_TYPE = "color";
 const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
 const CONTEXTUAL_PANEL_MIN_WIDTH = 280;
 const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 520;
+const LazyGeneratorsPanel = lazy(() =>
+  import("../components/generators/GeneratorsPanel").then(
+    ({ GeneratorsPanel }) => ({
+      default: GeneratorsPanel,
+    }),
+  ),
+);
 
 interface ContextualPanelLayout {
   renderAsOverlay: boolean;
@@ -1451,15 +1463,15 @@ export function PanelRouter({
               <AlertCircle
                 size={10}
                 strokeWidth={2}
-                className="shrink-0 text-[var(--color-figma-error)]"
+                className="shrink-0 text-[color:var(--color-figma-error)]"
                 aria-hidden
               />
-              <span className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-secondary text-[var(--color-figma-text-secondary)]">
+              <span className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Failed to load tokens: {fetchError || tokensError}
               </span>
               <button
                 onClick={refreshTokens}
-                className="shrink-0 rounded border border-[var(--color-figma-error)]/40 px-2 py-0.5 text-secondary text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
+                className="shrink-0 rounded border border-[var(--color-figma-error)]/40 px-2 py-0.5 text-secondary text-[color:var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
               >
                 Retry
               </button>
@@ -1649,17 +1661,17 @@ export function PanelRouter({
     const ruleMeta = getRuleLabel(selectedIssue.rule);
     return (
       <div className="flex h-full flex-col overflow-y-auto px-4 py-4">
-        <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+        <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
           {ruleMeta.label}
         </h3>
-        <p className="mt-1 break-all font-mono text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="mt-1 break-all font-mono text-secondary text-[color:var(--color-figma-text-secondary)]">
           {selectedIssue.path}
         </p>
-        <p className="mt-3 text-body leading-[1.45] text-[var(--color-figma-text-secondary)]">
+        <p className="mt-3 text-body leading-[1.45] text-[color:var(--color-figma-text-secondary)]">
           {selectedIssue.message}
         </p>
         {ruleMeta.tip ? (
-          <p className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="mt-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {ruleMeta.tip}
           </p>
         ) : null}
@@ -1674,7 +1686,7 @@ export function PanelRouter({
               returnLabel: "Back to Review",
             })
           }
-          className="mt-4 self-start rounded-md bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          className="mt-4 self-start rounded-md bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
         >
           Open token
         </button>
@@ -1689,30 +1701,38 @@ export function PanelRouter({
           panelName="Generators"
           onReset={() => navigateTo("library", "tokens")}
         >
-          <GeneratorsPanel
-            serverUrl={serverUrl}
-            collections={collections}
-            workingCollectionId={currentCollectionId}
-            perCollectionFlat={perCollectionFlat}
-            tokenChangeKey={controller.tokenChangeKey}
-            initialGeneratorId={pendingGeneratorDocumentId}
-            initialView={pendingGeneratorInitialView}
-            initialFocus={pendingGeneratorFocus}
-            onInitialGeneratorHandled={() => {
-              setPendingGeneratorDocumentId(null);
-              setPendingGeneratorFocus(null);
-              setPendingGeneratorInitialView(null);
-            }}
-            onNavigateToToken={(path, collectionId) => {
-              openTokenInContext({
-                path,
-                collectionId,
-                mode: "inspect",
-                origin: "generators",
-                returnLabel: "Back to generators",
-              });
-            }}
-          />
+          <Suspense
+            fallback={
+              <div className="flex h-full items-center justify-center text-secondary text-[color:var(--color-figma-text-secondary)]">
+                Loading generators...
+              </div>
+            }
+          >
+            <LazyGeneratorsPanel
+              serverUrl={serverUrl}
+              collections={collections}
+              workingCollectionId={currentCollectionId}
+              perCollectionFlat={perCollectionFlat}
+              tokenChangeKey={controller.tokenChangeKey}
+              initialGeneratorId={pendingGeneratorDocumentId}
+              initialView={pendingGeneratorInitialView}
+              initialFocus={pendingGeneratorFocus}
+              onInitialGeneratorHandled={() => {
+                setPendingGeneratorDocumentId(null);
+                setPendingGeneratorFocus(null);
+                setPendingGeneratorInitialView(null);
+              }}
+              onNavigateToToken={(path, collectionId) => {
+                openTokenInContext({
+                  path,
+                  collectionId,
+                  mode: "inspect",
+                  origin: "generators",
+                  returnLabel: "Back to generators",
+                });
+              }}
+            />
+          </Suspense>
         </ErrorBoundary>
       </div>
     );

@@ -80,7 +80,7 @@ export function ImportVariablesSummary() {
     <div className="flex flex-col gap-3">
       <button
         onClick={handleBack}
-        className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors self-start"
+        className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors self-start"
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 2L3 5l3 3" />
@@ -100,7 +100,7 @@ export function ImportVariablesSummary() {
                   <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.5 5.5L7 10 4.5 7.5l1-1L7 8l3.5-3.5 1 1Z" />
                 </svg>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+                  <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
                     Destination collection
                   </div>
                   {editingCollection === summary.name ? (
@@ -117,12 +117,12 @@ export function ImportVariablesSummary() {
                       }}
                       onBlur={() => setEditingCollection(null)}
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingCollection(null); }}
-                      className="flex-1 min-w-0 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-body font-medium text-[var(--color-figma-text)] outline-none"
+                      className="flex-1 min-w-0 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-2 py-1 text-body font-medium text-[color:var(--color-figma-text)] outline-none"
                     />
                   ) : (
                     <button
                       type="button"
-                      className="flex min-h-[30px] w-full min-w-0 items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-left text-body text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      className="flex min-h-[30px] w-full min-w-0 items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-left text-body text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                       onClick={() => {
                         setEditingCollection(summary.name);
                       }}
@@ -135,12 +135,12 @@ export function ImportVariablesSummary() {
                   )}
                 </div>
               </div>
-              <span className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">
+              <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {summary.tokenCount} tokens
               </span>
             </div>
             {summary.modeCount > 1 && (
-              <div className="mt-1 [overflow-wrap:anywhere] text-secondary text-[var(--color-figma-text-tertiary)]">
+              <div className="mt-1 [overflow-wrap:anywhere] text-secondary text-[color:var(--color-figma-text-tertiary)]">
                 {summary.modeNames.join(', ')}
               </div>
             )}
@@ -151,8 +151,8 @@ export function ImportVariablesSummary() {
       {/* Footer area */}
       <div className="flex flex-col gap-2 border-t border-[var(--color-figma-border)] pt-2">
         {checkingVarConflicts && (
-          <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
-            <Spinner size="xs" className="text-[var(--color-figma-text-secondary)]" />
+          <div className="flex items-center gap-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            <Spinner size="xs" className="text-[color:var(--color-figma-text-secondary)]" />
             Checking for conflicts...
           </div>
         )}
@@ -160,14 +160,14 @@ export function ImportVariablesSummary() {
         {!checkingVarConflicts && varConflictPreview !== null && (
           <div className="flex flex-wrap items-center gap-2 text-secondary">
             {varConflictPreview.newCount > 0 && (
-              <span className="text-[var(--color-figma-success)]">
+              <span className="text-[color:var(--color-figma-success)]">
                 {varConflictPreview.newCount} new
               </span>
             )}
             {varConflictPreview.overwriteCount > 0 && (
               <>
-                {varConflictPreview.newCount > 0 && <span className="text-[var(--color-figma-border)]">&middot;</span>}
-                <span className="text-[var(--color-figma-warning)]">
+                {varConflictPreview.newCount > 0 && <span className="text-[color:var(--color-figma-border)]">&middot;</span>}
+                <span className="text-[color:var(--color-figma-warning)]">
                   {varConflictPreview.overwriteCount} conflict{varConflictPreview.overwriteCount !== 1 ? 's' : ''}
                 </span>
               </>
@@ -176,7 +176,7 @@ export function ImportVariablesSummary() {
         )}
 
         {hasBlockingCollisions && !importing && (
-          <div className="text-secondary text-[var(--color-figma-error)]">
+          <div className="text-secondary text-[color:var(--color-figma-error)]">
             {ambiguousCollectionImportCount} duplicate destination path{ambiguousCollectionImportCount !== 1 ? 's' : ''} — rename a collection above.
           </div>
         )}
@@ -189,8 +189,8 @@ export function ImportVariablesSummary() {
                 onClick={() => setStrategy(s)}
                 className={`flex-1 basis-[96px] rounded px-2 py-1 text-secondary font-medium transition-colors ${
                   strategy === s
-                    ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                    : 'bg-transparent text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                    ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]'
+                    : 'bg-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
               >
                 {reviewActionCopy[s].label}
@@ -202,7 +202,7 @@ export function ImportVariablesSummary() {
         <button
           onClick={() => handleImportVariables(hasConflicts ? strategy : 'overwrite')}
           disabled={!canImport}
-          className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 whitespace-normal leading-tight text-center"
+          className="w-full rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-opacity hover:opacity-90 disabled:opacity-40 whitespace-normal leading-tight text-center"
         >
           {importing
             ? importProgress

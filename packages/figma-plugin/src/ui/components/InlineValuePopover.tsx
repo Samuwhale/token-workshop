@@ -122,10 +122,10 @@ export function InlineValuePopover({
       {/* Header */}
       <div className="flex flex-wrap items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 shrink-0">
         <div className="min-w-0 flex-1">
-          <div className="text-body font-medium text-[var(--color-figma-text)] truncate" title={tokenPath}>
+          <div className="text-body font-medium text-[color:var(--color-figma-text)] truncate" title={tokenPath}>
             {tokenName}
           </div>
-          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
             {modeLabel ? (
               <span className="min-w-0 truncate" title={`Mode: ${modeLabel}`}>
                 {modeLabel}
@@ -139,7 +139,7 @@ export function InlineValuePopover({
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
           aria-label="Close"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -170,7 +170,7 @@ export function InlineValuePopover({
         <button
           type="button"
           onClick={onOpenFullEditor}
-          className="min-w-0 text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)] hover:underline"
+          className="min-w-0 text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-accent)] hover:underline"
         >
           Open token details →
         </button>
@@ -178,14 +178,14 @@ export function InlineValuePopover({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-[26px] items-center justify-center rounded px-2 py-1 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="inline-flex min-h-[26px] items-center justify-center rounded px-2 py-1 text-body text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="inline-flex min-h-[26px] items-center justify-center rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+            className="inline-flex min-h-[26px] items-center justify-center rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)]"
           >
             Save
           </button>

@@ -177,7 +177,7 @@ export function TokenListFilteredEmptyState({
   onInsertSearchQualifier,
 }: FilteredEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-3 text-[var(--color-figma-text-secondary)]">
+    <div className="flex flex-col items-center justify-center py-3 text-[color:var(--color-figma-text-secondary)]">
       <FeedbackPlaceholder
         variant="no-results"
         size="section"
@@ -297,7 +297,7 @@ export function TokenListFilteredEmptyState({
                 <button
                   key={index}
                   onClick={suggestion.action}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded text-secondary text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-accent)] transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded text-secondary text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-accent)] transition-colors"
                 >
                   {suggestion.icon === "create" && (
                     <svg

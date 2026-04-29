@@ -90,7 +90,7 @@ function syncFromEntries(
   }
 }
 
-const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40';
+const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-secondary)]/40';
 
 interface JsonErrorInfo {
   message: string;
@@ -237,15 +237,15 @@ function ExtensionsEditor({
       <button
         type="button"
         onClick={onToggleExtensions}
-        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-secondary text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-secondary text-[color:var(--color-figma-text-secondary)] font-medium"
       >
         <span className="flex items-center gap-1.5">
           Extensions
           {hasCustom && (
-            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium">custom</span>
+            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium">custom</span>
           )}
           {extensionsJsonError && (
-            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] text-[var(--font-size-xs)] font-medium">invalid</span>
+            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-error)]/15 text-[color:var(--color-figma-error)] text-[var(--font-size-xs)] font-medium">invalid</span>
           )}
         </span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showExtensions ? 'rotate-180' : ''}`}>
@@ -255,7 +255,7 @@ function ExtensionsEditor({
       {showExtensions && (
         <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           <div className="flex items-center justify-between">
-            <p className="text-body leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+            <p className="text-body leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
               Additional token fields. TokenManager and Figma scope fields are managed above.
             </p>
             <button
@@ -263,7 +263,7 @@ function ExtensionsEditor({
               onClick={rawMode ? switchToStructured : switchToRaw}
               disabled={rawMode && !canSwitchToStructured}
               title={rawMode ? 'Switch to structured editor' : 'Edit as JSON'}
-              className="ml-2 flex min-h-7 shrink-0 items-center rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+              className="ml-2 flex min-h-7 shrink-0 items-center rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
             >
               {rawMode ? (
                 <span className="flex items-center gap-1">
@@ -294,18 +294,18 @@ function ExtensionsEditor({
                 placeholder={'{\n  "my.tool": { "category": "brand" }\n}'}
                 rows={5}
                 spellCheck={false}
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-secondary font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[color:var(--color-figma-text)] text-secondary font-mono outline-none resize-y min-h-[72px] placeholder:text-[color:var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus-visible:border-[var(--color-figma-accent)]'}`}
               />
               {extensionsJsonError && (
                 <div className="flex flex-col gap-0.5">
-                  <p className="text-secondary text-[var(--color-figma-error)] flex items-start gap-1">
+                  <p className="text-secondary text-[color:var(--color-figma-error)] flex items-start gap-1">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 mt-[1px]"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     <span>{extensionsJsonError}</span>
                   </p>
                   {jsonErrorInfo?.errorLine !== undefined && jsonErrorInfo.col !== undefined && (
                     <div className="font-mono text-secondary bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1.5 py-1 overflow-x-auto">
-                      <div className="text-[var(--color-figma-text)] whitespace-pre">{jsonErrorInfo.errorLine}</div>
-                      <div className="text-[var(--color-figma-error)] whitespace-pre" aria-hidden="true">{' '.repeat(Math.max(0, jsonErrorInfo.col - 1))}^</div>
+                      <div className="text-[color:var(--color-figma-text)] whitespace-pre">{jsonErrorInfo.errorLine}</div>
+                      <div className="text-[color:var(--color-figma-error)] whitespace-pre" aria-hidden="true">{' '.repeat(Math.max(0, jsonErrorInfo.col - 1))}^</div>
                     </div>
                   )}
                 </div>
@@ -314,7 +314,7 @@ function ExtensionsEditor({
           ) : (
             <>
               {entries.length === 0 && (
-                <p className="text-secondary text-[var(--color-figma-text-secondary)] italic">No custom extensions. Click + to add one.</p>
+                <p className="text-secondary text-[color:var(--color-figma-text-secondary)] italic">No custom extensions. Click + to add one.</p>
               )}
               {entries.map((entry, idx) => {
                 const isObjectValue = entry.value.trim().startsWith('{') || entry.value.trim().startsWith('[');
@@ -350,7 +350,7 @@ function ExtensionsEditor({
                       onClick={() => removeEntry(idx)}
                       title="Remove entry"
                       aria-label="Remove entry"
-                      className="p-1 mt-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+                      className="p-1 mt-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
                     >
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                         <path d="M18 6L6 18M6 6l12 12"/>
@@ -362,13 +362,13 @@ function ExtensionsEditor({
               <button
                 type="button"
                 onClick={addEntry}
-                className="self-start flex items-center gap-1 px-2 py-1 rounded text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+                className="self-start flex items-center gap-1 px-2 py-1 rounded text-secondary text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                 Add extension
               </button>
               {extensionsJsonError && (
-                <p className="text-secondary text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+                <p className="text-secondary text-[color:var(--color-figma-error)]">{extensionsJsonError}</p>
               )}
             </>
           )}

@@ -45,13 +45,13 @@ export const LineHeightEditor = memo(function LineHeightEditor({ value, onChange
             {LINE_HEIGHT_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
           </select>
         ) : (
-          <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 w-16 text-center">unitless</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0 w-16 text-center">unitless</span>
         )}
       </div>
       <button
         type="button"
         onClick={toggleMode}
-        className="text-secondary text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer self-start"
+        className="text-secondary text-[color:var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer self-start"
       >
         Switch to {isDimension ? 'unitless' : 'dimension'}
       </button>

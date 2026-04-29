@@ -45,13 +45,13 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
             onFocus={() => { setBgQuery(''); setBgSearchOpen(true); }}
             onBlur={() => setTimeout(() => setBgSearchOpen(false), 150)}
             placeholder="Background color token…"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]"
           />
           {bgTokenPath && !bgSearchOpen && (
             <button
               type="button"
               onClick={() => { setBgTokenPath(''); setBgQuery(''); }}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)]"
               aria-label="Clear background token"
             >
               <X size={8} strokeWidth={2.5} aria-hidden />
@@ -80,8 +80,8 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
                 </div>
               )}
               <div>
-                <div className="text-title font-semibold tabular-nums text-[var(--color-figma-text)]">{ratio.toFixed(2)}:1</div>
-                <div className="text-secondary text-[var(--color-figma-text-secondary)]">Contrast ratio</div>
+                <div className="text-title font-semibold tabular-nums text-[color:var(--color-figma-text)]">{ratio.toFixed(2)}:1</div>
+                <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">Contrast ratio</div>
               </div>
             </div>
             <div className="tm-token-details__contrast-grid">
@@ -107,7 +107,7 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToCollect
             </div>
           </div>
         ) : bgTokenPath ? (
-          <div className="text-secondary text-[var(--color-figma-text-tertiary)]">Could not resolve color values.</div>
+          <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Could not resolve color values.</div>
         ) : null}
       </div>
     </Collapsible>

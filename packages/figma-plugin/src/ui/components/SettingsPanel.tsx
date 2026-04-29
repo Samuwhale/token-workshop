@@ -78,7 +78,7 @@ function Section({
         className="flex w-full items-center justify-between rounded px-1 py-1.5 text-left outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)]"
       >
         <div className="flex items-center gap-2">
-          <span className="text-body font-semibold text-[var(--color-figma-text)]">
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">
             {title}
           </span>
           {suffix}
@@ -88,7 +88,7 @@ function Section({
           height="8"
           viewBox="0 0 8 8"
           fill="currentColor"
-          className={`text-[var(--color-figma-text-secondary)] transition-transform ${open ? "rotate-90" : ""}`}
+          className={`text-[color:var(--color-figma-text-secondary)] transition-transform ${open ? "rotate-90" : ""}`}
           aria-hidden="true"
         >
           <path d="M2 1l4 3-4 3V1z" />
@@ -114,7 +114,7 @@ function Toggle({
 }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-3 py-1 group">
-      <span className="text-body text-[var(--color-figma-text)]">
+      <span className="text-body text-[color:var(--color-figma-text)]">
         {label}
       </span>
       <button
@@ -147,7 +147,7 @@ function SettingRow({
         align === "start" ? "items-start" : "items-center"
       }`}
     >
-      <span className="min-w-[8rem] flex-1 text-body text-[var(--color-figma-text)]">
+      <span className="min-w-[8rem] flex-1 text-body text-[color:var(--color-figma-text)]">
         {label}
       </span>
       <div className="min-w-0 shrink-0 max-[380px]:w-full max-[380px]:shrink">
@@ -562,7 +562,7 @@ export function SettingsPanel({
   // ---- Connection status suffix for section header ----
   const serverStatusSuffix = (
     <span
-      className={`flex items-center gap-1 text-secondary font-medium normal-case tracking-normal ${connected ? "text-[var(--color-figma-success)]" : checking ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
+      className={`flex items-center gap-1 text-secondary font-medium normal-case tracking-normal ${connected ? "text-[color:var(--color-figma-success)]" : checking ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-error)]"}`}
     >
       <span
         className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? "bg-[var(--color-figma-success)]" : checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
@@ -576,7 +576,7 @@ export function SettingsPanel({
       <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] px-2 py-1.5">
         <button
           onClick={onClose}
-          className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+          className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
           aria-label="Back"
         >
           <svg
@@ -594,7 +594,7 @@ export function SettingsPanel({
           </svg>
           Back
         </button>
-        <span className="text-secondary font-medium text-[var(--color-figma-text)] ml-1">
+        <span className="text-secondary font-medium text-[color:var(--color-figma-text)] ml-1">
           Settings
         </span>
       </div>
@@ -629,7 +629,7 @@ export function SettingsPanel({
                 className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
                 style={{ backgroundColor: "#3B82F6" }}
               />
-              <span className="truncate select-all font-mono text-secondary text-[var(--color-figma-text)]">
+              <span className="truncate select-all font-mono text-secondary text-[color:var(--color-figma-text)]">
                 {formatHexAs("#3B82F6", colorFormat)}
               </span>
             </div>
@@ -654,7 +654,7 @@ export function SettingsPanel({
                 {contrastBg && (
                   <button
                     onClick={() => handleContrastBgChange("")}
-                    className="text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    className="text-secondary text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent-hover)] transition-colors"
                   >
                     Clear
                   </button>
@@ -672,7 +672,7 @@ export function SettingsPanel({
                   onChange={(e) => handleContrastBgChange(e.target.value)}
                   placeholder="#ffffff"
                   aria-label="Contrast background hex value"
-                  className="w-20 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                  className="w-20 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
                 />
               </div>
             </SettingRow>
@@ -691,7 +691,7 @@ export function SettingsPanel({
                   );
                   setUndoMaxHistory(v);
                 }}
-                className="w-16 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-right text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                className="w-16 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-right text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
             </SettingRow>
           </div>
@@ -715,10 +715,10 @@ export function SettingsPanel({
               }}
               placeholder="http://localhost:9400"
               aria-label="Server URL"
-              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {connectResult === "ok" && (
-              <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-success)]">
+              <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-success)]">
                 <svg
                   width="10"
                   height="10"
@@ -736,7 +736,7 @@ export function SettingsPanel({
               </div>
             )}
             {connectResult === "fail" && (
-              <div className="text-secondary text-[var(--color-figma-error)]">
+              <div className="text-secondary text-[color:var(--color-figma-error)]">
                 <div className="mb-0.5 flex items-center gap-1.5 font-medium">
                   <svg
                     width="10"
@@ -753,7 +753,7 @@ export function SettingsPanel({
                   </svg>
                   Cannot reach server
                 </div>
-                <ul className="list-inside list-disc space-y-0.5 leading-relaxed text-[var(--color-figma-text-secondary)]">
+                <ul className="list-inside list-disc space-y-0.5 leading-relaxed text-[color:var(--color-figma-text-secondary)]">
                   <li>
                     Run <span className="font-mono">npm start</span> in the
                     TokenManager directory
@@ -774,7 +774,7 @@ export function SettingsPanel({
                 }}
                 disabled={checking}
                 title="Reset server URL to http://localhost:9400"
-                className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
               >
                 Reset to default
               </button>
@@ -785,7 +785,7 @@ export function SettingsPanel({
                   setConnectResult(ok ? "ok" : "fail");
                 }}
                 disabled={checking}
-                className="min-w-0 flex-[1.4_1_180px] rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                className="min-w-0 flex-[1.4_1_180px] rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-opacity hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
               >
                 {checking ? "Connecting..." : "Connect"}
               </button>
@@ -794,7 +794,7 @@ export function SettingsPanel({
 
           <Section title="Export defaults" defaultOpen={false}>
             <div>
-              <span className="text-body text-[var(--color-figma-text)] mb-1 block">
+              <span className="text-body text-[color:var(--color-figma-text)] mb-1 block">
                 Default platforms
               </span>
               <div className="flex flex-wrap gap-1">
@@ -804,8 +804,8 @@ export function SettingsPanel({
                     onClick={() => handleExportPlatformToggle(platform.id)}
                     className={`rounded border px-2 py-1 text-secondary font-medium transition-colors ${
                       exportPlatforms.has(platform.id)
-                        ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-white"
-                        : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                        ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]"
+                        : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
                     }`}
                     title={platform.description}
                   >
@@ -815,7 +815,7 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <span className="text-body text-[var(--color-figma-text)] mb-1 block">
+              <span className="text-body text-[color:var(--color-figma-text)] mb-1 block">
                 CSS selector
               </span>
               <input
@@ -824,7 +824,7 @@ export function SettingsPanel({
                 onChange={(e) => handleCssSelectorChange(e.target.value)}
                 placeholder=":root"
                 aria-label="CSS selector"
-                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
               />
             </div>
           </Section>
@@ -832,7 +832,7 @@ export function SettingsPanel({
           <Section title="Help" defaultOpen={false}>
             <button
               onClick={handleOpenDocumentation}
-              className="self-start rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+              className="self-start rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)]"
             >
               Open documentation
             </button>
@@ -842,13 +842,13 @@ export function SettingsPanel({
           <div className="flex flex-wrap gap-1.5 border-t border-[var(--color-figma-border)] pt-2">
             <button
               onClick={onRestartGuidedSetup}
-              className="rounded px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className="rounded px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
             >
               Re-run setup
             </button>
             <button
               onClick={handleExportSettings}
-              className="rounded px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              className="rounded px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
             >
               Export backup
             </button>
@@ -859,7 +859,7 @@ export function SettingsPanel({
                 importFileRef.current?.click();
               }}
               disabled={importLoading}
-              className="rounded px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-60"
+              className="rounded px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-60"
             >
               {importLoading ? "Parsing" : "Import backup"}
             </button>
@@ -877,7 +877,7 @@ export function SettingsPanel({
             />
           </div>
           {importSuccess && (
-            <div className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-success)]">
+            <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-success)]">
               <svg
                 width="10"
                 height="10"
@@ -895,20 +895,20 @@ export function SettingsPanel({
             </div>
           )}
           {importError && (
-            <p className="text-secondary text-[var(--color-figma-error)]">
+            <p className="text-secondary text-[color:var(--color-figma-error)]">
               {importError}
             </p>
           )}
           {pendingImport && (
             <div className="border-t border-[var(--color-figma-border)] pt-2">
               <div className="flex items-center justify-between py-1">
-                <span className="text-secondary font-medium text-[var(--color-figma-text)]">
+                <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">
                   Preview changes ({pendingImport.diff.length}{" "}
                   setting{pendingImport.diff.length !== 1 ? "s" : ""})
                 </span>
                 <button
                   onClick={() => setPendingImport(null)}
-                  className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                  className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
                   aria-label="Dismiss preview"
                 >
                   ✕
@@ -922,12 +922,12 @@ export function SettingsPanel({
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`text-secondary font-medium ${entry.status === "added" ? "text-[var(--color-figma-success)]" : "text-[var(--color-figma-accent)]"}`}
+                        className={`text-secondary font-medium ${entry.status === "added" ? "text-[color:var(--color-figma-success)]" : "text-[color:var(--color-figma-accent)]"}`}
                       >
                         {entry.status === "added" ? "New" : "Changed"}
                       </span>
                       <span
-                        className="min-w-0 break-words text-secondary font-medium text-[var(--color-figma-text)] [overflow-wrap:anywhere]"
+                        className="min-w-0 break-words text-secondary font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
                         title={entry.label}
                       >
                         {entry.label}
@@ -936,20 +936,20 @@ export function SettingsPanel({
                     {entry.status === "changed" &&
                       entry.oldValue !== null && (
                         <span
-                          className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]"
+                          className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
                           title={entry.oldValue}
                         >
-                          <span className="text-[var(--color-figma-error)]">
+                          <span className="text-[color:var(--color-figma-error)]">
                             -
                           </span>{" "}
                           {entry.oldValue}
                         </span>
                       )}
                     <span
-                      className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]"
+                      className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
                       title={entry.newValue}
                     >
-                      <span className="text-[var(--color-figma-success)]">
+                      <span className="text-[color:var(--color-figma-success)]">
                         +
                       </span>{" "}
                       {entry.newValue}
@@ -967,21 +967,21 @@ export function SettingsPanel({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="mt-px shrink-0 text-[var(--color-figma-warning)]"
+                  className="mt-px shrink-0 text-[color:var(--color-figma-warning)]"
                   aria-hidden="true"
                 >
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                <p className="text-secondary leading-snug text-[var(--color-figma-text-secondary)]">
+                <p className="text-secondary leading-snug text-[color:var(--color-figma-text-secondary)]">
                   This will reload the plugin. Unsaved edits will be lost.
                 </p>
               </div>
               <div className="flex gap-2 border-t border-[var(--color-figma-border)] pt-2">
                 <button
                   onClick={() => setPendingImport(null)}
-                  className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                  className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
                 >
                   Cancel
                 </button>
@@ -1003,15 +1003,15 @@ export function SettingsPanel({
                   setShowClearConfirm(true);
                   setClearConfirmText("");
                 }}
-                className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
+                className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
               >
                 Delete workspace data
               </button>
             ) : (
               <div className="flex flex-col gap-2">
-                <p className="text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]">
+                <p className="text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
                   Type{" "}
-                  <span className="font-mono font-bold text-[var(--color-figma-error)]">
+                  <span className="font-mono font-bold text-[color:var(--color-figma-error)]">
                     DELETE
                   </span>{" "}
                   to permanently remove all workspace data.
@@ -1023,7 +1023,7 @@ export function SettingsPanel({
                   placeholder="DELETE"
                   autoFocus
                   aria-label="Type DELETE to confirm"
-                  className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+                  className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-body text-[color:var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
                 />
                 <div className="flex gap-2">
                   <button
@@ -1031,7 +1031,7 @@ export function SettingsPanel({
                       setShowClearConfirm(false);
                       setClearConfirmText("");
                     }}
-                    className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+                    className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
                   >
                     Cancel
                   </button>

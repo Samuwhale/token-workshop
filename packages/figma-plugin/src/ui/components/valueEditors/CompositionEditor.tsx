@@ -156,8 +156,8 @@ function CompositionPropertyEditor({
           onClick={() => onChange(!value)}
           className={`px-2 py-1 rounded text-secondary font-medium border ${
             value
-              ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] border-[var(--color-figma-accent)]/40'
-              : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)]'
+              ? 'bg-[var(--color-figma-accent)]/20 text-[color:var(--color-figma-accent)] border-[var(--color-figma-accent)]/40'
+              : 'bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] border-[var(--color-figma-border)]'
           }`}
         >
           {value ? 'true' : 'false'}
@@ -165,7 +165,7 @@ function CompositionPropertyEditor({
         <button
           type="button"
           onClick={() => onChange('{')}
-          className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]"
+          className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)]"
           title="Use token reference"
         >{'{…}'}</button>
       </Stack>
@@ -208,8 +208,8 @@ function CompositionPreview({ val }: { val: CompositionEditorValue }) {
 
   if (!visible) return (
     <Stack gap={1}>
-      <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Preview</span>
-      <p className="text-secondary text-[var(--color-figma-text-tertiary)] italic m-0">Hidden (visible = false)</p>
+      <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">Preview</span>
+      <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] italic m-0">Hidden (visible = false)</p>
     </Stack>
   );
 
@@ -232,7 +232,7 @@ function CompositionPreview({ val }: { val: CompositionEditorValue }) {
   const hasRefs = Object.keys(val).some(k => isAliasValue(val[k]));
   return (
     <Stack gap={1}>
-      <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Preview</span>
+      <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">Preview</span>
       <div className="flex items-center justify-center p-2 rounded bg-[var(--color-figma-bg)] border border-dashed border-[var(--color-figma-border)]">
         <div
           style={{
@@ -262,7 +262,7 @@ function CompositionPreview({ val }: { val: CompositionEditorValue }) {
         </div>
       </div>
       {hasRefs ? (
-        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
           Token references shown with fallback values
         </p>
       ) : null}
@@ -316,12 +316,12 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
   return (
     <Stack gap={3}>
       {usedProps.length === 0 && (
-        <p className="text-secondary text-[var(--color-figma-text-secondary)]">No properties yet — add one below.</p>
+        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">No properties yet — add one below.</p>
       )}
       {usedProps.map(prop => (
         <div key={prop} className="flex flex-col gap-1">
           <div className="flex items-center gap-1">
-            <span className={`text-secondary shrink-0 font-medium ${isInherited(prop) ? 'text-[var(--color-figma-text-tertiary)] italic' : 'text-[var(--color-figma-text-secondary)]'}`} title={prop}>
+            <span className={`text-secondary shrink-0 font-medium ${isInherited(prop) ? 'text-[color:var(--color-figma-text-tertiary)] italic' : 'text-[color:var(--color-figma-text-secondary)]'}`} title={prop}>
               {getPropertyLabel(prop)}
               {isInherited(prop) && <span className="text-secondary ml-0.5">(inherited)</span>}
             </span>
@@ -330,7 +330,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
               type="button"
               onClick={() => remove(prop)}
               title={isInherited(prop) ? `Override ${prop}` : `Remove ${prop}`}
-              className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+              className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
             >
               <X size={8} strokeWidth={2} aria-hidden />
             </button>
@@ -358,7 +358,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
           <button
             type="button"
             onClick={addProp}
-            className="px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
+            className="px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/20 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
           >+ Add</button>
         </Stack>
       )}

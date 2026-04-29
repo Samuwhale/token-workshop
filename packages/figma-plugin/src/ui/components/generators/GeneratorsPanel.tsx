@@ -1907,6 +1907,16 @@ export function GeneratorsPanel({
     panelWidth,
   ]);
 
+  useEffect(() => {
+    if (editorMode !== "graph" || !inspectorOpen || graphMenu) return;
+    const closeInspectorOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      setInspectorOpen(false);
+    };
+    window.addEventListener("keydown", closeInspectorOnEscape);
+    return () => window.removeEventListener("keydown", closeInspectorOnEscape);
+  }, [editorMode, graphMenu, inspectorOpen]);
+
   const renderGraphWorkspace = () => {
     if (!activeGenerator) return null;
     return (
@@ -2077,7 +2087,6 @@ export function GeneratorsPanel({
             onNodeClick={(_event, node) => {
               setSelectedNodeId(node.id);
               setSelectedEdgeId(null);
-              setInspectorOpen(false);
               setGraphMenu(null);
               setNodeLibraryOpen(false);
             }}
@@ -2201,7 +2210,7 @@ export function GeneratorsPanel({
         ) : null}
         {inspectorOpen && selectedNode ? (
           compactGenerators ? (
-            <GeneratorOverlayPanel
+            <GeneratorDockedPanel
               title="Graph step"
               onClose={() => setInspectorOpen(false)}
             >
@@ -2215,7 +2224,7 @@ export function GeneratorsPanel({
                   onDelete={deleteSelectedNode}
                 />
               </section>
-            </GeneratorOverlayPanel>
+            </GeneratorDockedPanel>
           ) : (
             <aside className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)]">
               <section className="p-3">
@@ -2348,7 +2357,7 @@ export function GeneratorsPanel({
           onClick={() => setActionsMenuOpen(false)}
         />
         <div className="absolute right-0 top-9 z-30 min-w-[176px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg">
-          <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {statusLabel}
           </div>
           <ActionRow
@@ -2396,7 +2405,7 @@ export function GeneratorsPanel({
   return (
     <div
       ref={panelRef}
-      className="relative flex h-full min-h-0 bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+      className="relative flex h-full min-h-0 bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)]"
     >
       {leftPanelOpen && !compactGenerators ? (
         <GeneratorListSidebar
@@ -2491,7 +2500,7 @@ export function GeneratorsPanel({
                         className="min-w-[150px] max-w-[300px] rounded-md bg-transparent px-2 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)] max-[760px]:min-w-0 max-[760px]:max-w-[140px]"
                       />
                       <span
-                        className="max-w-[220px] truncate text-secondary text-[var(--color-figma-text-secondary)] max-[760px]:hidden"
+                        className="max-w-[220px] truncate text-secondary text-[color:var(--color-figma-text-secondary)] max-[760px]:hidden"
                         title={activeGenerator.targetCollectionId}
                       >
                         {targetCollection?.publishRouting?.collectionName?.trim() ||
@@ -2518,7 +2527,7 @@ export function GeneratorsPanel({
                     busy ? (
                       <span
                         id="generator-status-label"
-                        className="text-secondary text-[var(--color-figma-text-secondary)]"
+                        className="text-secondary text-[color:var(--color-figma-text-secondary)]"
                       >
                         {`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
                       </span>
@@ -2527,7 +2536,7 @@ export function GeneratorsPanel({
                         id="generator-status-label"
                         type="button"
                         onClick={focusFirstGraphIssue}
-                        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+                        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
                       >
                         <AlertTriangle size={13} />
                         {statusLabel}
@@ -2535,7 +2544,7 @@ export function GeneratorsPanel({
                     ) : (
                       <span
                         id="generator-status-label"
-                        className="text-secondary text-[var(--color-figma-text-secondary)]"
+                        className="text-secondary text-[color:var(--color-figma-text-secondary)]"
                       >
                         {statusLabel}
                       </span>
@@ -2543,7 +2552,7 @@ export function GeneratorsPanel({
                   ) : busy ? (
                     <span
                       id="generator-status-label"
-                      className="max-w-[104px] truncate text-secondary text-[var(--color-figma-text-secondary)]"
+                      className="max-w-[104px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
                       title={`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
                     >
                       {`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
@@ -2553,7 +2562,7 @@ export function GeneratorsPanel({
                       id="generator-status-label"
                       type="button"
                       onClick={focusFirstGraphIssue}
-                      className="inline-flex h-7 max-w-[118px] items-center gap-1.5 rounded-md px-2 text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+                      className="inline-flex h-7 max-w-[118px] items-center gap-1.5 rounded-md px-2 text-secondary font-medium text-[color:var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
                       title={statusLabel}
                     >
                       <AlertTriangle size={13} />
@@ -2564,7 +2573,7 @@ export function GeneratorsPanel({
                   ) : (
                     <span
                       id="generator-status-label"
-                      className="max-w-[112px] truncate text-secondary text-[var(--color-figma-text-secondary)]"
+                      className="max-w-[112px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
                       title={statusLabel}
                     >
                       {statusLabel}
@@ -2724,7 +2733,7 @@ export function GeneratorsPanel({
                 </>
               ) : (
                 <>
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                     Create a generator for this collection.
                   </span>
                   <Button
@@ -2741,13 +2750,13 @@ export function GeneratorsPanel({
             </div>
 
             {error ? (
-              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[var(--color-figma-error)]">
+              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-error)]">
                 <AlertTriangle size={14} />
                 {error}
               </div>
             ) : null}
             {lastApply ? (
-              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[var(--color-figma-success)]">
+              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-success)]">
                 <Check size={14} />
                 Applied {lastApply.created.length} created,{" "}
                 {lastApply.updated.length} updated, {lastApply.deleted.length}{" "}
@@ -2768,7 +2777,7 @@ export function GeneratorsPanel({
                     <h2 className="text-primary font-semibold">
                       No generators in this collection
                     </h2>
-                    <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+                    <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
                       Create a generator, preview outputs, then apply them.
                     </p>
                     <Button
@@ -2873,12 +2882,12 @@ function GraphIssueCallout({
           size={14}
           className={
             primaryIssue.severity === "error"
-              ? "mt-0.5 shrink-0 text-[var(--color-figma-error)]"
-              : "mt-0.5 shrink-0 text-[var(--color-figma-warning)]"
+              ? "mt-0.5 shrink-0 text-[color:var(--color-figma-error)]"
+              : "mt-0.5 shrink-0 text-[color:var(--color-figma-warning)]"
           }
         />
         <div className="min-w-0 flex-1">
-          <div className="text-secondary font-semibold text-[var(--color-figma-text)]">
+          <div className="text-secondary font-semibold text-[color:var(--color-figma-text)]">
             {issueCountLabel}
           </div>
           <button
@@ -2886,8 +2895,8 @@ function GraphIssueCallout({
             onClick={() => onFocusIssue(primaryIssue)}
             className={`mt-0.5 block max-w-full truncate text-left text-secondary hover:underline ${
               primaryIssue.severity === "error"
-                ? "text-[var(--color-figma-error)]"
-                : "text-[var(--color-figma-text-secondary)]"
+                ? "text-[color:var(--color-figma-error)]"
+                : "text-[color:var(--color-figma-text-secondary)]"
             }`}
             title={primaryIssue.message}
           >
@@ -2954,10 +2963,10 @@ function GeneratorDeleteDialog({
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-4">
       <section className="w-full max-w-[360px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
-        <h2 className="text-primary font-semibold text-[var(--color-figma-text)]">
+        <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
           {title}
         </h2>
-        <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {description}
         </p>
         <div className="mt-3 flex justify-end gap-2">
@@ -3056,7 +3065,7 @@ function GraphContextMenu({
       >
         {showAddSearch ? (
           <div className="mb-1 flex items-center gap-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-            <Search size={13} className="text-[var(--color-figma-text-secondary)]" />
+            <Search size={13} className="text-[color:var(--color-figma-text-secondary)]" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -3216,7 +3225,7 @@ function GraphContextMenu({
               </GraphMenuAction>
             ))}
             {addCandidates.length === 0 ? (
-              <div className="px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+              <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 No compatible steps.
               </div>
             ) : null}
@@ -3236,7 +3245,7 @@ function GraphMenuGroup({
 }) {
   return (
     <div className="py-1">
-      <div className="px-2 py-1 text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+      <div className="px-2 py-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
         {title}
       </div>
       {children}
@@ -3262,8 +3271,8 @@ function GraphMenuAction({
       onClick={onClick}
       className={`block w-full rounded px-2 py-1.5 text-left text-secondary disabled:pointer-events-none disabled:opacity-40 ${
         tone === "danger"
-          ? "text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
-          : "text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+          ? "text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+          : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
       }`}
     >
       {children}
@@ -3585,6 +3594,35 @@ function GeneratorOverlayPanel({
   );
 }
 
+function GeneratorDockedPanel({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex justify-end p-2">
+      <aside
+        className="pointer-events-auto flex h-full flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
+        style={{ width: "min(360px, calc(100% - 56px))" }}
+        onClick={(event) => event.stopPropagation()}
+        onContextMenu={(event) => event.stopPropagation()}
+      >
+        <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-3">
+          <h2 className="min-w-0 truncate text-primary font-semibold">{title}</h2>
+          <IconButton title="Close" aria-label="Close" onClick={onClose}>
+            <X size={14} />
+          </IconButton>
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      </aside>
+    </div>
+  );
+}
+
 function GeneratorSetupSummary({
   generator,
   targetCollection,
@@ -3635,13 +3673,13 @@ function GeneratorSetupSummary({
         {showHeader ? (
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
+              <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
                 Generator setup
               </h3>
               <button
                 type="button"
                 onClick={onEditGraph}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 <Workflow size={13} />
                 Edit graph
@@ -3673,7 +3711,7 @@ function GeneratorSetupSummary({
               onChange={onChangeStructuredDraft}
             />
           ) : (
-            <div className="py-1.5 text-secondary text-[var(--color-figma-text-secondary)]">
+            <div className="py-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
               Custom graph. Edit the graph to change the steps.
             </div>
           )}
@@ -3681,7 +3719,7 @@ function GeneratorSetupSummary({
 
         {graphIssues.length > 0 ? (
           <section className="space-y-1">
-            <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
+            <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
               Needs attention
             </h3>
             {graphIssues.map((issue) => (
@@ -3691,8 +3729,8 @@ function GeneratorSetupSummary({
                 onClick={() => onFocusGraphIssue(issue)}
                 className={`block w-full rounded px-1 py-1.5 text-secondary ${
                   issue.severity === "error"
-                    ? "text-[var(--color-figma-error)]"
-                    : "text-[var(--color-figma-text-secondary)]"
+                    ? "text-[color:var(--color-figma-error)]"
+                    : "text-[color:var(--color-figma-text-secondary)]"
                 } text-left hover:bg-[var(--color-figma-bg-hover)]`}
               >
                 {issue.message}
@@ -3702,7 +3740,7 @@ function GeneratorSetupSummary({
         ) : null}
 
         <section className="space-y-2">
-          <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
+          <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
             Outputs
           </h3>
           {outputNodes.length > 0 ? (
@@ -3710,7 +3748,7 @@ function GeneratorSetupSummary({
               {outputNodes.map((node) => (
                 <div
                   key={node.id}
-                  className="py-1.5 text-secondary text-[var(--color-figma-text)]"
+                  className="py-1.5 text-secondary text-[color:var(--color-figma-text)]"
                 >
                   {String(
                     node.data.pathPrefix ?? node.data.path ?? "Untitled output",
@@ -3728,7 +3766,7 @@ function GeneratorSetupSummary({
                   message: "Add an output step",
                 })
               }
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               <Plus size={13} />
               Add output step
@@ -3796,7 +3834,7 @@ function StructuredGeneratorSetup({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
           Preset
         </span>
         <select
@@ -3892,11 +3930,11 @@ function StructuredGeneratorSetup({
                 }}
                 className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5"
               >
-                <summary className="cursor-pointer text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+                <summary className="cursor-pointer text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
                   Cross-collection source
                 </summary>
                 <label className="mt-2 block">
-                  <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+                  <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                     Source collection
                   </span>
                   <select
@@ -3919,7 +3957,7 @@ function StructuredGeneratorSetup({
                 </label>
                 {crossCollectionSource ? (
                   <div
-                    className={`mt-2 text-tertiary ${modeCompatibility ? "text-[var(--color-figma-text-secondary)]" : "text-[var(--color-figma-error)]"}`}
+                    className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-error)]"}`}
                   >
                     {modeCompatibility
                       ? "Source modes match the target collection."
@@ -4100,7 +4138,7 @@ function StructuredGeneratorSetup({
           />
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+              <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                 Output type
               </span>
               <select
@@ -4171,13 +4209,13 @@ function TokenSourcePicker({
   return (
     <div className="space-y-2">
       <div>
-        <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
           Source token
         </span>
         <div className="flex items-center gap-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
           <Search
             size={14}
-            className="shrink-0 text-[var(--color-figma-text-secondary)]"
+            className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
           />
           <input
             value={query}
@@ -4218,7 +4256,7 @@ function TokenSourcePicker({
           >
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{path}</span>
-              <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
                 {token.$type}
               </span>
               <TokenModeValueCell
@@ -4230,7 +4268,7 @@ function TokenSourcePicker({
           </button>
         ))}
         {filteredEntries.length === 0 ? (
-          <div className="px-2 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
             No compatible tokens in this collection.
           </div>
         ) : null}
@@ -4250,7 +4288,7 @@ function TokenModeValueCell({
 }) {
   const modeValues = readTokenModeValues(token, collectionId, modes).slice(0, 3);
   return (
-    <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[var(--color-figma-text-secondary)]">
+    <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[color:var(--color-figma-text-secondary)]">
       {modeValues.map(([modeName, value]) => (
         <span key={modeName} className="flex min-w-0 items-center gap-1">
           {previewIsValueBearing(token.$type) ? (
@@ -4258,7 +4296,7 @@ function TokenModeValueCell({
           ) : null}
           <span
             className={`truncate ${
-              value == null ? "text-[var(--color-figma-text-tertiary)]" : ""
+              value == null ? "text-[color:var(--color-figma-text-tertiary)]" : ""
             }`}
           >
             {modeName}: {value == null ? "No value" : formatValue(value)}
@@ -4347,11 +4385,11 @@ function pathToCollectionIdMap(
 function SummaryMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 items-baseline gap-1.5">
-      <div className="text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+      <div className="text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
         {label}
       </div>
       <div
-        className="max-w-[160px] truncate text-secondary font-semibold text-[var(--color-figma-text)]"
+        className="max-w-[160px] truncate text-secondary font-semibold text-[color:var(--color-figma-text)]"
         title={value}
       >
         {value}
@@ -4895,7 +4933,7 @@ function NodeInspector({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+        <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
           Name
         </span>
         <input
@@ -4908,7 +4946,7 @@ function NodeInspector({
       {node.kind === "tokenInput" && (
         <>
           <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+            <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
               Collection
             </span>
             <select
@@ -4953,7 +4991,7 @@ function NodeInspector({
       {node.kind === "literal" && (
         <>
           <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+            <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
               Type
             </span>
             <select
@@ -5026,7 +5064,7 @@ function NodeInspector({
       {node.kind === "math" && (
         <>
           <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+            <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
               Operation
             </span>
             <select
@@ -5055,7 +5093,7 @@ function NodeInspector({
       {node.kind === "color" && (
         <>
           <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+            <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
               Operation
             </span>
             <select
@@ -5239,7 +5277,7 @@ function NodeInspector({
       {node.kind === "customScale" && (
         <>
           <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+            <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
               Output type
             </span>
             <select
@@ -5296,7 +5334,7 @@ function NodeInspector({
       <button
         type="button"
         onClick={onDelete}
-        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
       >
         <Trash2 size={14} />
         Delete node
@@ -5321,7 +5359,7 @@ function NodeInspectorNote({ node }: { node: TokenGeneratorDocumentNode }) {
   const note = nodeInspectorNote(node);
   if (!note) return null;
   return (
-    <p className="m-0 rounded-md bg-[var(--surface-muted)] px-2 py-1.5 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+    <p className="m-0 rounded-md bg-[var(--surface-muted)] px-2 py-1.5 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
       {note}
     </p>
   );
@@ -5380,7 +5418,7 @@ function PreviewPanel({
 }) {
   if (!preview) {
     return (
-      <div className="flex h-full min-h-[280px] items-center justify-center rounded-md bg-[var(--color-figma-bg-secondary)] p-6 text-center text-secondary text-[var(--color-figma-text-secondary)]">
+      <div className="flex h-full min-h-[280px] items-center justify-center rounded-md bg-[var(--color-figma-bg-secondary)] p-6 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
         Preview shows the exact tokens and mode values this generator will apply.
       </div>
     );
@@ -5395,15 +5433,15 @@ function PreviewPanel({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
+          <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
             Output preview
           </h3>
-          <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {preview.outputs.length} outputs across {modes.length}{" "}
             {modes.length === 1 ? "mode" : "modes"}
           </p>
         </div>
-        <span className="text-tertiary text-[var(--color-figma-text-secondary)]">
+        <span className="text-tertiary text-[color:var(--color-figma-text-secondary)]">
           {new Date(preview.previewedAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -5424,7 +5462,7 @@ function PreviewPanel({
               <span className="font-medium capitalize">
                 {diagnostic.severity}
               </span>
-              <span className="text-[var(--color-figma-text-secondary)]">
+              <span className="text-[color:var(--color-figma-text-secondary)]">
                 {" "}
                 - {diagnostic.message}
               </span>
@@ -5434,7 +5472,7 @@ function PreviewPanel({
       )}
       <div className="space-y-4">
         {preview.outputs.length === 0 ? (
-          <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary text-[var(--color-figma-error)]">
+          <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary text-[color:var(--color-figma-error)]">
             No tokens will be created. Adjust the generator and wait for the
             preview to refresh.
           </div>
@@ -5442,17 +5480,17 @@ function PreviewPanel({
         {outputGroups.map((group) => (
           <section key={group.id} className="space-y-1.5">
             <div className="flex items-center justify-between px-0.5">
-              <h3 className="text-secondary font-semibold text-[var(--color-figma-text)]">
+              <h3 className="text-secondary font-semibold text-[color:var(--color-figma-text)]">
                 {group.label}
               </h3>
-              <span className="text-tertiary text-[var(--color-figma-text-secondary)]">
+              <span className="text-tertiary text-[color:var(--color-figma-text-secondary)]">
                 {group.outputs.length}
               </span>
             </div>
             <div className="overflow-x-auto rounded-md bg-[var(--color-figma-bg-secondary)]">
               <table className="min-w-full border-separate border-spacing-0 text-left text-secondary">
                 <thead>
-                  <tr className="text-tertiary text-[var(--color-figma-text-secondary)]">
+                  <tr className="text-tertiary text-[color:var(--color-figma-text-secondary)]">
                     <th className="sticky left-0 z-[1] min-w-[200px] bg-[var(--color-figma-bg-secondary)] px-2 py-2 font-medium">
                       Token
                     </th>
@@ -5494,7 +5532,7 @@ function PreviewPanel({
                           </button>
                         )}
                         {output.collision ? (
-                          <span className="mt-1 block text-tertiary text-[var(--color-figma-error)]">
+                          <span className="mt-1 block text-tertiary text-[color:var(--color-figma-error)]">
                             Manual token exists
                           </span>
                         ) : null}
@@ -5502,7 +5540,7 @@ function PreviewPanel({
                       {modes.map((modeName) => (
                         <td
                           key={modeName}
-                          className="px-2 py-2 align-top text-[var(--color-figma-text)]"
+                          className="px-2 py-2 align-top text-[color:var(--color-figma-text)]"
                         >
                           <span className="flex min-w-0 items-center gap-1.5">
                             {previewIsValueBearing(output.type) ? (
@@ -5521,8 +5559,8 @@ function PreviewPanel({
                       <td
                         className={`px-2 py-2 align-top text-tertiary ${
                           output.collision
-                            ? "text-[var(--color-figma-error)]"
-                            : "text-[var(--color-figma-text-secondary)]"
+                            ? "text-[color:var(--color-figma-error)]"
+                            : "text-[color:var(--color-figma-text-secondary)]"
                         }`}
                       >
                         {output.collision ? "manual token" : output.change}
@@ -5535,7 +5573,7 @@ function PreviewPanel({
           </section>
         ))}
         {preview.outputs.length === 0 && (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             No outputs yet. Add an output node and connect a value.
           </div>
         )}

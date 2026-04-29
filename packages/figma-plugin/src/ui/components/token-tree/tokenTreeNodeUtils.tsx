@@ -18,13 +18,13 @@ function getRowMetadataToneClass(
 ): string {
   switch (tone) {
     case "accent":
-      return "text-[var(--color-figma-accent)]";
+      return "text-[color:var(--color-figma-accent)]";
     case "warning":
-      return "text-[var(--color-figma-managed)]";
+      return "text-[color:var(--color-figma-managed)]";
     case "danger":
-      return "text-[var(--color-figma-error)]";
+      return "text-[color:var(--color-figma-error)]";
     default:
-      return "text-[var(--color-figma-text-secondary)]";
+      return "text-[color:var(--color-figma-text-secondary)]";
   }
 }
 
@@ -63,7 +63,7 @@ export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
         {index > 0 && (
           <span
             aria-hidden="true"
-            className="text-[var(--color-figma-text-tertiary)]/60"
+            className="text-[color:var(--color-figma-text-tertiary)]/60"
           >
             ·
           </span>
@@ -71,7 +71,7 @@ export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
         <span
           className={`truncate ${
             isStatus
-              ? `text-[var(--color-figma-text-tertiary)] ${segment.onClick ? "cursor-pointer hover:underline hover:text-[var(--color-figma-text-secondary)]" : ""}`
+              ? `text-[color:var(--color-figma-text-tertiary)] ${segment.onClick ? "cursor-pointer hover:underline hover:text-[color:var(--color-figma-text-secondary)]" : ""}`
               : `${getRowMetadataToneClass(segment.tone)} ${segment.onClick ? "cursor-pointer hover:underline" : ""}`
           }`}
           title={segment.title ?? segment.label}

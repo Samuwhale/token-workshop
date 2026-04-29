@@ -285,7 +285,7 @@ export function AdjustColorsAction({
             </PreviewCard>
           )}
           {colorCount > 0 && colorCount < selectedEntries.length && hasAnyOp && (
-            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+            <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
               Applies to {colorCount} color token{colorCount === 1 ? '' : 's'} — {selectedEntries.length - colorCount} non-color skipped
             </div>
           )}
@@ -313,15 +313,15 @@ export function AdjustColorsAction({
                 <button
                   type="button"
                   onClick={() => setCompositeSubPropKey('')}
-                  className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+                  className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)] transition-colors shrink-0"
                 >
                   Clear
                 </button>
               )}
             </div>
             {compositeSubPropKey && compositeSubPropTargets.length > 0 && (
-              <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
-                Adjustments will also target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}
+              <div className="text-secondary text-[color:var(--color-figma-text-secondary)] leading-snug">
+                Adjustments will also target <span className="font-mono text-[color:var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}
               </div>
             )}
           </div>

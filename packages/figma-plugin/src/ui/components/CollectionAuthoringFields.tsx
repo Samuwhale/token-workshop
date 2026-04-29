@@ -3,7 +3,7 @@ import type { Ref } from "react";
 import { COLLECTION_NAME_RE } from "../shared/utils";
 
 const COLLECTION_INPUT_CLASS =
-  "rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60";
+  "rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60";
 
 export interface CollectionAuthoringDraft {
   name: string;
@@ -74,7 +74,7 @@ export function CollectionAuthoringFields({
   return (
     <div className="flex flex-col gap-3">
       <label className="flex flex-col gap-1">
-        <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+        <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
           Collection name
         </span>
         <input
@@ -86,21 +86,21 @@ export function CollectionAuthoringFields({
           disabled={pending}
           className={COLLECTION_INPUT_CLASS}
         />
-        <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
           Keep this simple. Use `/` only when your library already groups collections that way.
         </span>
       </label>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Modes
           </span>
           <button
             type="button"
             onClick={onAddMode}
             disabled={pending}
-            className="inline-flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-secondary text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50"
           >
             <Plus size={12} strokeWidth={1.5} aria-hidden />
             Add mode
@@ -110,7 +110,7 @@ export function CollectionAuthoringFields({
         <div className="flex flex-col gap-2">
           {draft.modeNames.map((modeName, index) => (
             <label className="flex flex-col gap-1">
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+              <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {`Mode ${index + 1}`}
               </span>
               <div className="flex items-center gap-2">
@@ -128,7 +128,7 @@ export function CollectionAuthoringFields({
                     onClick={() => onRemoveMode(index)}
                     disabled={pending}
                     aria-label={`Remove mode ${index + 1}`}
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
                   >
                     <X size={12} strokeWidth={1.5} aria-hidden />
                   </button>
@@ -138,13 +138,13 @@ export function CollectionAuthoringFields({
           ))}
         </div>
 
-        <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
           Modes are equal contexts for every token in the collection. Add only the ones you need right now, like Default and Dark.
         </span>
       </div>
 
       {error ? (
-        <div className="text-secondary text-[var(--color-figma-error)]">
+        <div className="text-secondary text-[color:var(--color-figma-error)]">
           {error}
         </div>
       ) : null}

@@ -67,7 +67,7 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
               aria-label={visibleHandoff.returnLabel}
               variant="ghost"
               size="sm"
-              className="min-w-0 justify-start px-1.5 text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
+              className="min-w-0 justify-start px-1.5 text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)]"
             >
               <span aria-hidden="true">&larr;</span>
               <span className="truncate">{visibleHandoff.returnLabel}</span>

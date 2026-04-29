@@ -112,7 +112,7 @@ export function SetAliasAction({
               <button
                 type="button"
                 onClick={() => { setAliasInput(''); setAliasRef(''); setShowAutocomplete(false); }}
-                className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+                className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)] transition-colors shrink-0"
               >
                 Clear
               </button>
@@ -136,8 +136,8 @@ export function SetAliasAction({
         </div>
 
         {aliasActive && !showAutocomplete && (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
-            Will set <span className="font-mono text-[var(--color-figma-text)] break-all">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)] leading-snug">
+            Will set <span className="font-mono text-[color:var(--color-figma-text)] break-all">{aliasRef}</span> on {selectedEntries.length} token{selectedEntries.length === 1 ? '' : 's'}
           </div>
         )}
 
@@ -148,7 +148,7 @@ export function SetAliasAction({
                 <PreviewPath path={path} />
                 <div className="flex flex-wrap items-center gap-1">
                   <span className={LONG_TEXT_CLASSES.monoSecondary}>{formatBatchValue(from)}</span>
-                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span className="text-[color:var(--color-figma-text-tertiary)] shrink-0">→</span>
                   <span className={`${LONG_TEXT_CLASSES.monoPrimary} font-medium`}>{aliasRef}</span>
                 </div>
               </div>

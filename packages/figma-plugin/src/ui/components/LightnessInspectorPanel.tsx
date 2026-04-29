@@ -31,10 +31,10 @@ export function LightnessInspectorPanel({
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button
         onClick={() => setShowScaleInspector((v) => !v)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-secondary text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-secondary text-[color:var(--color-figma-text-secondary)] font-medium"
       >
         <span className="text-left">
-          <span className="text-[var(--color-figma-text)]">
+          <span className="text-[color:var(--color-figma-text)]">
             Color Scale Lightness ({colorScales.length} scale
             {colorScales.length !== 1 ? "s" : ""})
           </span>
@@ -94,10 +94,10 @@ export function LightnessInspectorPanel({
             return (
               <div key={`${collectionId}:${parent}`}>
                 <div className="mb-2">
-                  <div className="text-secondary font-medium text-[var(--color-figma-text)]">
+                  <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
                     {parent}
                   </div>
-                  <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+                  <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                     {collectionId}
                   </div>
                 </div>
@@ -146,7 +146,7 @@ export function LightnessInspectorPanel({
                           onClick={() => onNavigateToToken(p.path, collectionId)}
                           title={`Go to ${p.path} in ${collectionId}`}
                           aria-label={`Go to ${p.path} in ${collectionId}`}
-                          className="absolute h-4 -translate-x-1/2 -translate-y-1/2 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 text-[var(--font-size-xs)] font-medium leading-none text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
+                          className="absolute h-4 -translate-x-1/2 -translate-y-1/2 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 text-[var(--font-size-xs)] font-medium leading-none text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                           style={{
                             left: Math.min(Math.max(p.x + 14, 16), W - 16),
                             top: Math.max(p.y - 8, 8),
@@ -157,7 +157,7 @@ export function LightnessInspectorPanel({
                       ))}
                 </div>
                 {pts.some((p) => p.isAnom) && (
-                  <div className="text-secondary text-[var(--color-figma-warning)] mt-1 flex items-start gap-1">
+                  <div className="text-secondary text-[color:var(--color-figma-warning)] mt-1 flex items-start gap-1">
                     <svg
                       width="8"
                       height="8"

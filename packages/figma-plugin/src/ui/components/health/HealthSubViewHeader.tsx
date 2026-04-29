@@ -21,17 +21,17 @@ export function HealthSubViewHeader({
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex min-h-6 items-center gap-1 rounded px-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            className="inline-flex min-h-6 items-center gap-1 rounded px-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
             aria-label="Back to Review"
           >
             <ArrowLeft size={12} strokeWidth={1.6} aria-hidden />
             <span>Review</span>
           </button>
-          <span className="tm-panel-bar__title text-body font-semibold text-[var(--color-figma-text)]">
+          <span className="tm-panel-bar__title text-body font-semibold text-[color:var(--color-figma-text)]">
             {title}
           </span>
           {count != null ? (
-            <span className="tm-panel-bar__meta text-secondary text-[var(--color-figma-text-tertiary)]">
+            <span className="tm-panel-bar__meta text-secondary text-[color:var(--color-figma-text-tertiary)]">
               {count}
             </span>
           ) : null}

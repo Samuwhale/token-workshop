@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { Button } from "../primitives/Button";
 import {
   buildCollectionModeNames,
@@ -25,28 +26,31 @@ export function CollectionCreateDialog({
   onCreate,
   onCreated,
 }: CollectionCreateDialogProps) {
+  if (!isOpen) return null;
+
+  return (
+    <CollectionCreateDialogContent
+      onClose={onClose}
+      onCreate={onCreate}
+      onCreated={onCreated}
+    />
+  );
+}
+
+function CollectionCreateDialogContent({
+  onClose,
+  onCreate,
+  onCreated,
+}: Omit<CollectionCreateDialogProps, "isOpen">) {
   const [draft, setDraft] = useState<CollectionAuthoringDraft>({
     name: "",
     modeNames: ["Default"],
   });
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setDraft({
-      name: "",
-      modeNames: ["Default"],
-    });
-    setError("");
-    setPending(false);
-    window.requestAnimationFrame(() => {
-      nameInputRef.current?.focus();
-    });
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+  useFocusTrap(dialogRef, { initialFocusRef: nameInputRef });
 
   const handleSubmit = async () => {
     const validationError = validateCollectionAuthoringDraft(draft);
@@ -86,6 +90,7 @@ export function CollectionCreateDialog({
       role="presentation"
     >
       <div
+        ref={dialogRef}
         className="tm-modal-panel tm-modal-panel--dialog"
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -101,18 +106,22 @@ export function CollectionCreateDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-collection-dialog-title"
+        aria-describedby="new-collection-dialog-description"
       >
         <div className="tm-modal-header border-b border-[var(--color-figma-border)]">
           <h2
             id="new-collection-dialog-title"
-            className="text-heading font-semibold text-[var(--color-figma-text)]"
+            className="text-heading font-semibold text-[color:var(--color-figma-text)]"
           >
             New collection
           </h2>
         </div>
 
         <div className="tm-modal-body py-3">
-          <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <p
+            id="new-collection-dialog-description"
+            className="text-secondary text-[color:var(--color-figma-text-secondary)]"
+          >
             Collections group related tokens and all of their modes. Start with the collection name, then add the mode contexts it should support.
           </p>
           <CollectionAuthoringFields

@@ -227,13 +227,13 @@ export function NotificationsPanel({
     <div className="flex h-full flex-col overflow-hidden">
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-body font-medium text-[var(--color-figma-text)]">
+          <h2 className="text-body font-medium text-[color:var(--color-figma-text)]">
             Notifications
           </h2>
           {history.length > 0 && (
             <button
               onClick={onClear}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
               Clear inbox
             </button>
@@ -291,11 +291,11 @@ function NotificationCard({
     >
       <div className="flex min-w-0 flex-col gap-2">
         <div className="min-w-0">
-          <p className="text-body leading-snug text-[var(--color-figma-text)] break-words">
+          <p className="text-body leading-snug text-[color:var(--color-figma-text)] break-words">
             {item.message}
           </p>
           <span
-            className="mt-0.5 block text-secondary text-[var(--color-figma-text-tertiary)]"
+            className="mt-0.5 block text-secondary text-[color:var(--color-figma-text-tertiary)]"
             title={formatTime(item.latestTimestamp)}
           >
             {timeAgo(item.latestTimestamp)}
@@ -304,7 +304,7 @@ function NotificationCard({
         {item.destination && item.actionLabel && (
           <button
             onClick={() => onOpen(item.destination)}
-            className="inline-flex min-h-[26px] self-start items-center justify-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            className="inline-flex min-h-[26px] self-start items-center justify-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
           >
             {item.actionLabel}
           </button>

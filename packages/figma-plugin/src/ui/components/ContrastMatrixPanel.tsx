@@ -395,9 +395,9 @@ export function ContrastMatrixPanel({
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
       <button
         onClick={() => setShowContrastMatrix((v) => !v)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-secondary text-[var(--color-figma-text-secondary)] font-medium"
+        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-secondary text-[color:var(--color-figma-text-secondary)] font-medium"
       >
-        <span className="text-[var(--color-figma-text)] text-left">
+        <span className="text-[color:var(--color-figma-text)] text-left">
             Contrast Matrix ({contrastGroupFilter === "all"
               ? sourceTokens.length
               : displayTokens.length}{" "}
@@ -427,7 +427,7 @@ export function ContrastMatrixPanel({
                   setContrastPage(0);
                   setContrastModeFilter(null);
                 }}
-                className={`flex items-center gap-1.5 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastMultiMode ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                className={`flex items-center gap-1.5 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastMultiMode ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 title="Check contrast across multiple mode options simultaneously — shows worst-case ratio"
               >
                 <svg
@@ -455,7 +455,7 @@ export function ContrastMatrixPanel({
                         className="flex items-center gap-1 flex-wrap"
                       >
                         {collections.length > 1 && (
-                          <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
+                          <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]">
                             {collection.id}:
                           </span>
                         )}
@@ -479,7 +479,7 @@ export function ContrastMatrixPanel({
                                     return next;
                                   });
                                 }}
-                                className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${isActive ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                                className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${isActive ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                               >
                                 {opt.name}
                               </button>
@@ -494,7 +494,7 @@ export function ContrastMatrixPanel({
             </div>
           )}
           {contrastMultiMode && multiModeColorTokens === null && (
-            <div className="text-secondary text-[var(--color-figma-text-secondary)] px-1 mb-2">
+            <div className="text-secondary text-[color:var(--color-figma-text-secondary)] px-1 mb-2">
               Resolving collection modes…
             </div>
           )}
@@ -504,7 +504,7 @@ export function ContrastMatrixPanel({
                 setContrastFailuresOnly((v) => !v);
                 setContrastPage(0);
               }}
-              className={`flex items-center gap-1 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastFailuresOnly ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+              className={`flex items-center gap-1 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastFailuresOnly ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
             >
               <svg
                 width="8"
@@ -578,7 +578,7 @@ export function ContrastMatrixPanel({
                   setTimeout(() => setContrastCopied(false), 2000);
                 });
               }}
-              className="flex items-center gap-1 px-2 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="flex items-center gap-1 px-2 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               <svg
                 width="8"
@@ -600,7 +600,7 @@ export function ContrastMatrixPanel({
           {availableGroups.length > 1 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 px-1">
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
+                <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]">
                   Group:
                 </span>
                 <button
@@ -608,7 +608,7 @@ export function ContrastMatrixPanel({
                     setContrastGroupFilter("all");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === "all" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === "all" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   All
                 </button>
@@ -619,14 +619,14 @@ export function ContrastMatrixPanel({
                       setContrastGroupFilter(g);
                       setContrastPage(0);
                     }}
-                    className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === g ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                    className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === g ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                   >
                     {g}
                   </button>
                 ))}
               </div>
               <div className="flex items-center gap-1 ml-auto">
-                <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
+                <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]">
                   Sort:
                 </span>
                 <button
@@ -634,7 +634,7 @@ export function ContrastMatrixPanel({
                     setContrastSortMode("luminance");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "luminance" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "luminance" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   Luminance
                 </button>
@@ -643,7 +643,7 @@ export function ContrastMatrixPanel({
                     setContrastSortMode("failures");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "failures" ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "failures" ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   Most failures
                 </button>
@@ -652,7 +652,7 @@ export function ContrastMatrixPanel({
           )}
           {contrastFailuresOnly ? (
             allFailingPairs.length === 0 ? (
-              <div className="text-secondary text-[var(--color-figma-text-secondary)] text-center py-4">
+              <div className="text-secondary text-[color:var(--color-figma-text-secondary)] text-center py-4">
                 All pairs pass AA (4.5:1+)
               </div>
             ) : (
@@ -661,7 +661,7 @@ export function ContrastMatrixPanel({
                 aria-label="Failing color contrast pairs"
               >
                 <thead>
-                  <tr className="text-[var(--color-figma-text-secondary)]">
+                  <tr className="text-[color:var(--color-figma-text-secondary)]">
                     <th
                       scope="col"
                       className="px-1 py-0.5 text-left font-normal"
@@ -722,7 +722,7 @@ export function ContrastMatrixPanel({
                                   style={{ background: fg.hex }}
                                 />
                                 <span
-                                  className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]"
+                                  className="text-[color:var(--color-figma-text-secondary)] truncate max-w-[80px]"
                                   title={getTokenTitle(fg)}
                                 >
                                   {getTokenLabel(fg)}
@@ -731,7 +731,7 @@ export function ContrastMatrixPanel({
                               {canNavigateToToken(fg) && (
                                 <button
                                   onClick={() => navigateToToken(fg)}
-                                  className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                                  className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                                   title={`Go to ${getTokenTitle(fg)}`}
                                 >
                                   Go
@@ -746,7 +746,7 @@ export function ContrastMatrixPanel({
                                 style={{ background: bg.hex }}
                               />
                               <span
-                                className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]"
+                                className="text-[color:var(--color-figma-text-secondary)] truncate max-w-[80px]"
                                 title={getTokenTitle(bg)}
                               >
                                 {getTokenLabel(bg)}
@@ -754,12 +754,12 @@ export function ContrastMatrixPanel({
                             </div>
                           </td>
                           <td className="px-1 py-0.5 text-right">
-                            <span className="text-[var(--color-figma-error)]">
+                            <span className="text-[color:var(--color-figma-error)]">
                               {ratio.toFixed(1)}:1
                             </span>
                           </td>
                           {isMultiMode && (
-                            <td className="px-1 py-0.5 text-right text-[var(--color-figma-text-secondary)]">
+                            <td className="px-1 py-0.5 text-right text-[color:var(--color-figma-text-secondary)]">
                               {failingModeCount}/{totalModeCount}
                             </td>
                           )}
@@ -774,20 +774,20 @@ export function ContrastMatrixPanel({
                                   style={{ background: suggestedFix.hex }}
                                 />
                                 <span
-                                  className="text-[var(--color-figma-text-secondary)] truncate max-w-[80px]"
+                                  className="text-[color:var(--color-figma-text-secondary)] truncate max-w-[80px]"
                                   title={getTokenTitle(suggestedFix)}
                                 >
                                   {getTokenLabel(suggestedFix)}
                                 </span>
                                 {fixRatio !== null && (
-                                  <span className="text-[var(--color-figma-success)] shrink-0">
+                                  <span className="text-[color:var(--color-figma-success)] shrink-0">
                                     {fixRatio.toFixed(1)}:1
                                   </span>
                                 )}
                                 {canNavigateToToken(suggestedFix) && (
                                   <button
                                     onClick={() => navigateToToken(suggestedFix)}
-                                    className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                                    className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                                     title={`Go to ${getTokenTitle(suggestedFix)}`}
                                   >
                                     Go
@@ -795,7 +795,7 @@ export function ContrastMatrixPanel({
                                 )}
                               </div>
                             ) : (
-                              <span className="text-[var(--color-figma-text-secondary)] opacity-40">
+                              <span className="text-[color:var(--color-figma-text-secondary)] opacity-40">
                                 —
                               </span>
                             )}
@@ -811,7 +811,7 @@ export function ContrastMatrixPanel({
             <>
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                     Tokens {pageStart + 1}–
                     {Math.min(
                       pageStart + CONTRAST_PAGE_SIZE,
@@ -832,7 +832,7 @@ export function ContrastMatrixPanel({
                       <button
                         key={i}
                         onClick={() => setContrastPage(i)}
-                        className={`px-1.5 py-0.5 text-secondary rounded border ${i === contrastPage ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                        className={`px-1.5 py-0.5 text-secondary rounded border ${i === contrastPage ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                         aria-label={`Page ${i + 1}`}
                       >
                         {i + 1}
@@ -859,7 +859,7 @@ export function ContrastMatrixPanel({
                   <tr>
                     <th
                       scope="col"
-                      className="px-1 py-0.5 text-left text-[var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]"
+                      className="px-1 py-0.5 text-left text-[color:var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]"
                     >
                       FG \ BG
                     </th>
@@ -893,7 +893,7 @@ export function ContrastMatrixPanel({
                             aria-hidden="true"
                           />
                           <span
-                            className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]"
+                            className="text-[color:var(--color-figma-text-secondary)] truncate max-w-[60px]"
                             title={getTokenTitle(fg)}
                           >
                             {getTokenLabel(fg)}
@@ -930,12 +930,12 @@ export function ContrastMatrixPanel({
                             <span
                               className={
                                 aaa
-                                  ? "text-[var(--color-figma-success)]"
+                                  ? "text-[color:var(--color-figma-success)]"
                                   : aa
                                     ? partialFail
-                                      ? "text-[var(--color-figma-warning)]"
-                                      : "text-[var(--color-figma-warning)]"
-                                    : "text-[var(--color-figma-error)]"
+                                      ? "text-[color:var(--color-figma-warning)]"
+                                      : "text-[color:var(--color-figma-warning)]"
+                                    : "text-[color:var(--color-figma-error)]"
                               }
                               aria-hidden="true"
                             >
@@ -945,7 +945,7 @@ export function ContrastMatrixPanel({
                               !aaa &&
                               failingModeCount > 0 &&
                               totalModeCount > 0 && (
-                                <span className="block text-[var(--font-size-xs)] leading-none mt-0.5 text-[var(--color-figma-text-secondary)]">
+                                <span className="block text-[var(--font-size-xs)] leading-none mt-0.5 text-[color:var(--color-figma-text-secondary)]">
                                   {failingModeCount}/{totalModeCount}
                                 </span>
                               )}
@@ -956,7 +956,7 @@ export function ContrastMatrixPanel({
                   ))}
                 </tbody>
               </table>
-              <div className="flex gap-3 mt-2 px-1 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
+              <div className="flex gap-3 mt-2 px-1 text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]">
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded bg-[var(--color-figma-success)]/20 border border-[var(--color-figma-success)]/40" />
                   AAA (≥7:1)
@@ -977,7 +977,7 @@ export function ContrastMatrixPanel({
                 </span>
               </div>
               {isMultiMode && (
-                <p className="mt-1 px-1 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
+                <p className="mt-1 px-1 text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]">
                   Ratio shown is the worst case across selected modes. Hover a
                   cell to see the per-mode breakdown.
                 </p>

@@ -29,7 +29,7 @@ export function Collapsible({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] flex items-center gap-1 transition-colors"
+        className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] flex items-center gap-1 transition-colors"
       >
         <ChevronRight
           size={10}

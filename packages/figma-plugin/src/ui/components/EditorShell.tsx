@@ -79,7 +79,7 @@ export function EditorShell({
             aria-label={backAriaLabel}
             title={backTitle}
             size="md"
-            className="text-[var(--color-figma-text-secondary)] focus-visible:bg-[var(--color-figma-bg-hover)]"
+            className="text-[color:var(--color-figma-text-secondary)] focus-visible:bg-[var(--color-figma-bg-hover)]"
           >
             <svg
               width="12"

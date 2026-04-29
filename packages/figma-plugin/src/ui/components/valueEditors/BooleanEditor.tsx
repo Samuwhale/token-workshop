@@ -9,7 +9,7 @@ export const BooleanEditor = memo(function BooleanEditor({ value, onChange }: { 
       >
         <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${value ? 'translate-x-4' : 'translate-x-0'}`} />
       </button>
-      <span className="text-body text-[var(--color-figma-text)]">{value ? 'true' : 'false'}</span>
+      <span className="text-body text-[color:var(--color-figma-text)]">{value ? 'true' : 'false'}</span>
     </div>
   );
 });

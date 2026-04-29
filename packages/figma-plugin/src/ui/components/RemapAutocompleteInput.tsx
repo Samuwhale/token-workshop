@@ -123,7 +123,7 @@ export function RemapAutocompleteInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         aria-label="Remap token target"
-        className="w-full px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)]"
+        className="w-full px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary font-mono focus-visible:border-[var(--color-figma-accent)]"
       />
       {showDropdown && (
         <div
@@ -156,16 +156,16 @@ export function RemapAutocompleteInput({
                     <div className="w-1 h-1 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
                   </div>
                 )}
-                <span className="flex-1 text-secondary font-mono text-[var(--color-figma-text)] truncate">{path}</span>
+                <span className="flex-1 text-secondary font-mono text-[color:var(--color-figma-text)] truncate">{path}</span>
                 {preview ? (
                   <span
-                    className="max-w-[100px] shrink-0 truncate text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]"
+                    className="max-w-[100px] shrink-0 truncate text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]"
                     title={preview}
                   >
                     {preview}
                   </span>
                 ) : null}
-                <span className="shrink-0 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
+                <span className="shrink-0 text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]">
                   {entry?.$type ?? "stale"}
                 </span>
               </button>

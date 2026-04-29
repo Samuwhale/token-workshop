@@ -162,7 +162,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
         />
         {/* Small chevron indicator */}
         <svg
-          className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-figma-text-secondary)]"
+          className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[color:var(--color-figma-text-secondary)]"
           width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
         >
           <path d="M1 2.5l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -183,10 +183,10 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
               aria-selected={i === highlightIdx}
               className={`w-full text-left px-2 py-1.5 text-body flex items-center gap-2 cursor-pointer transition-colors ${
                 i === highlightIdx
-                  ? 'bg-[var(--color-figma-accent)] text-white'
+                  ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
                   : family === value
-                    ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-text)]'
-                    : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                    ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text)]'
+                    : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
               }`}
               onMouseEnter={() => setHighlightIdx(i)}
               onMouseDown={e => {
@@ -210,7 +210,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
             </button>
           ))}
           {filtered.length >= MAX_VISIBLE && (
-            <div className="px-2 py-1 text-secondary text-[var(--color-figma-text-tertiary)] text-center">
+            <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)] text-center">
               Type to narrow results…
             </div>
           )}
@@ -219,10 +219,10 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
 
       {open && query.trim() && filtered.length === 0 && (
         <div className="absolute z-50 left-0 right-0 mt-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg p-2">
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] mb-1">No matching fonts</div>
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)] mb-1">No matching fonts</div>
           <button
             type="button"
-            className="w-full text-left px-2 py-1 text-body rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+            className="w-full text-left px-2 py-1 text-body rounded hover:bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
             onMouseDown={e => {
               e.preventDefault();
               selectFont(query.trim());

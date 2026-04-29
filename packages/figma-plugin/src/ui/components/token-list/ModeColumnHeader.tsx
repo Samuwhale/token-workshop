@@ -213,7 +213,7 @@ export function ModeColumnHeader({
           }}
           onBlur={() => void handleRename()}
           disabled={busy}
-          className="block w-full px-1.5 py-1 text-body font-medium bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] border border-[var(--color-figma-accent)] rounded-sm outline-none"
+          className="block w-full px-1.5 py-1 text-body font-medium bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] border border-[var(--color-figma-accent)] rounded-sm outline-none"
         />
       ) : (
         <button
@@ -223,7 +223,7 @@ export function ModeColumnHeader({
           disabled={!connected}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          className="tm-mode-column-header__label block w-full rounded-sm px-1.5 py-1 text-body font-medium text-left text-[var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[var(--color-figma-text-secondary)]"
+          className="tm-mode-column-header__label block w-full rounded-sm px-1.5 py-1 text-body font-medium text-left text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[color:var(--color-figma-text-secondary)]"
           title={modeName}
         >
           {modeName}
@@ -241,7 +241,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               setRenaming(true);
             }}
-            className="block w-full px-3 py-1 text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
           >
             Rename
           </button>
@@ -252,7 +252,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               void handleReorder(-1);
             }}
-            className="block w-full px-3 py-1 text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
+            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
           >
             Move left
           </button>
@@ -263,7 +263,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               void handleReorder(1);
             }}
-            className="block w-full px-3 py-1 text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
+            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
           >
             Move right
           </button>
@@ -275,7 +275,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               setConfirmDelete(true);
             }}
-            className="block w-full px-3 py-1 text-left text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:hover:bg-transparent"
+            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:hover:bg-transparent"
           >
             Delete mode
           </button>
@@ -290,7 +290,7 @@ export function ModeColumnHeader({
           onConfirm={handleDelete}
           onCancel={() => setConfirmDelete(false)}
         >
-          <p className="font-mono text-body text-[var(--color-figma-text)] [overflow-wrap:anywhere]">
+          <p className="font-mono text-body text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]">
             {modeName}
           </p>
         </ConfirmModal>

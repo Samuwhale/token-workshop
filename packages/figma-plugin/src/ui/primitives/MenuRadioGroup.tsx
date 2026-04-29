@@ -17,7 +17,7 @@ export function MenuRadioGroup<T extends string>({
 }: MenuRadioGroupProps<T>) {
   return (
     <div className="px-2.5 py-1">
-      <div className="mb-1 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+      <div className="mb-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
         {label}
       </div>
       <div className="flex flex-wrap gap-1">
@@ -33,10 +33,10 @@ export function MenuRadioGroup<T extends string>({
                 onChange(opt.value);
                 onSelect?.();
               }}
-              className={`inline-flex h-[22px] items-center rounded px-2 text-secondary transition-colors ${
+              className={`inline-flex min-h-7 items-center rounded px-2 text-secondary transition-colors ${
                 selected
-                  ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]"
-                  : "bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                  : "bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
               }`}
             >
               {opt.label}

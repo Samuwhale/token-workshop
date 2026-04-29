@@ -455,7 +455,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
       >
         {/* Search input */}
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--color-figma-border)]">
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[color:var(--color-figma-text-secondary)] shrink-0">
             <circle cx="6" cy="6" r="4" />
             <path d="M9 9l3 3" />
           </svg>
@@ -470,16 +470,16 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               : 'Search expert actions… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
-            className="min-w-0 flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-subheading text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+            className="min-w-0 flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-subheading text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {isTokenMode && (
-            <span className="text-secondary font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
               TOKENS
             </span>
           )}
           {isTokenMode && (
             <button
-              className={`text-secondary w-5 h-5 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
+              className={`text-secondary w-5 h-5 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
               onClick={() => setShowHelp(v => !v)}
               title="Filter syntax help (press ? when input is empty)"
               aria-label="Toggle filter syntax help"
@@ -489,19 +489,19 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             </button>
           )}
           {copiedLabel ? (
-            <span className="text-secondary font-medium text-[var(--color-figma-success)] bg-[var(--color-figma-success)]/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-success)] bg-[var(--color-figma-success)]/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
               <svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5"/></svg>
               Copied {copiedLabel}
             </span>
           ) : (
-            <kbd className="text-secondary text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
+            <kbd className="text-secondary text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
               ESC
             </kbd>
           )}
         </div>
 
         {!isTokenMode && !query.trim() && (
-          <div className="px-3 py-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+          <div className="px-3 py-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
             Power-user actions live here. Use the workspace tabs and Utilities menu for regular navigation.
           </div>
         )}
@@ -509,11 +509,11 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
         {/* Qualifier hint chips — persistent reference row */}
         {isTokenMode && (
           <div className="px-3 py-1 flex gap-1.5 flex-wrap items-center">
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
+            <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
             {(showAllQualifiers ? QUERY_QUALIFIERS : QUERY_QUALIFIERS.slice(0, 6)).map(q => (
               <button
                 key={q.qualifier}
-                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
+                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
                 onClick={() => setQuery('>' + q.qualifier + (q.qualifier.endsWith(':') ? '' : ' '))}
                 title={q.desc}
               >
@@ -521,7 +521,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               </button>
             ))}
             <button
-              className="text-secondary px-1.5 py-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-60 hover:opacity-100"
+              className="text-secondary px-1.5 py-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-60 hover:opacity-100"
               onClick={() => setShowAllQualifiers(v => !v)}
               title={showAllQualifiers ? 'Show fewer qualifiers' : `Show all ${QUERY_QUALIFIERS.length} qualifiers`}
             >
@@ -531,8 +531,8 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               <button
                 className={`ml-auto text-secondary px-1.5 py-0.5 rounded border transition-colors shrink-0 font-medium ${
                   searchAllCollections
-                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]'
-                    : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]'
+                    : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
                 onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
                 title={searchAllCollections ? 'Searching across collections — click to search only the working collection' : 'Search across all token collections'}
@@ -547,9 +547,9 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
         {isTokenMode && showHelp && (
           <div className="bg-[var(--color-figma-bg-secondary)]/40 px-3 py-2 overflow-y-auto" style={{ maxHeight: 'min(220px, 40vh)' }}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-secondary font-semibold text-[var(--color-figma-text-secondary)]">Filter syntax</span>
+              <span className="text-secondary font-semibold text-[color:var(--color-figma-text-secondary)]">Filter syntax</span>
               <button
-                className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] opacity-60 hover:opacity-100 transition-opacity"
+                className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] opacity-60 hover:opacity-100 transition-opacity"
                 onClick={() => setShowHelp(false)}
               >
                 close
@@ -557,7 +557,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             </div>
             {/* Group: type & value */}
             <div className="mb-2">
-              <div className="mb-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] opacity-60">Type &amp; content</div>
+              <div className="mb-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] opacity-60">Type &amp; content</div>
               {[
                 { qual: 'type:color', desc: 'Filter by token type (color, dimension, number, string…)', insert: '>type:' },
                 { qual: 'value:#ff0000', desc: 'Tokens whose value contains the given string', insert: '>value:' },
@@ -569,14 +569,14 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                 >
-                  <code className="text-secondary text-[var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)]">{desc}</span>
+                  <code className="text-secondary text-[color:var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)]">{desc}</span>
                 </button>
               ))}
             </div>
             {/* Group: path & name */}
             <div className="mb-2">
-              <div className="mb-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] opacity-60">Path &amp; name</div>
+              <div className="mb-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] opacity-60">Path &amp; name</div>
               {[
                 { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
                 { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
@@ -588,14 +588,14 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                 >
-                  <code className="text-secondary text-[var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)]">{desc}</span>
+                  <code className="text-secondary text-[color:var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)]">{desc}</span>
                 </button>
               ))}
             </div>
             {/* Group: has: */}
             <div className="mb-1.5">
-              <div className="mb-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] opacity-60">Presence filters (has:)</div>
+              <div className="mb-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] opacity-60">Presence filters (has:)</div>
               <div className="grid grid-cols-2 gap-x-3">
                 {[
                   { val: 'alias', desc: 'Reference tokens only' },
@@ -611,13 +611,13 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     onMouseDown={e => e.preventDefault()}
                     onClick={() => { setQuery(`>has:${val} `); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                   >
-                    <code className="text-secondary text-[var(--color-figma-accent)] font-mono shrink-0">has:{val}</code>
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)] group-hover/row:text-[var(--color-figma-text)] truncate">{desc}</span>
+                    <code className="text-secondary text-[color:var(--color-figma-accent)] font-mono shrink-0">has:{val}</code>
+                    <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)] truncate">{desc}</span>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="mt-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
+            <div className="mt-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
               Combine qualifiers: <code className="font-mono">type:color has:alias path:brand</code>
             </div>
           </div>
@@ -626,13 +626,13 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
         {/* Qualifier value autocomplete chips */}
         {qualifierCompletions.length > 0 && (
           <div className="px-3 py-1 flex gap-1.5 flex-wrap items-center">
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">
+            <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">
               {activeQualifier?.qualifier}:
             </span>
             {qualifierCompletions.map(val => (
               <button
                 key={val}
-                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors shrink-0 font-mono"
+                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors shrink-0 font-mono"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => applyCompletion(val)}
                 title={`Filter: ${activeQualifier?.qualifier}:${val}`}
@@ -649,18 +649,18 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
           {isTokenMode && (
             <>
               {(hasQualifiers || parsedTokenQuery.text || isGroupQuery) && (filteredTokens.length > 0 || filteredGroups.length > 0) && (
-                <div className="px-3 py-1 text-secondary text-[var(--color-figma-text-tertiary)] flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                <div className="px-3 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)] flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                   <span className="whitespace-nowrap">
                     {isGroupQuery
                       ? <>{totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''} matched</>
                       : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
                     }
                   </span>
-                  {searchAllCollections && <span className="whitespace-nowrap text-[var(--color-figma-accent)] opacity-70">across all collections</span>}
+                  {searchAllCollections && <span className="whitespace-nowrap text-[color:var(--color-figma-accent)] opacity-70">across all collections</span>}
                 </div>
               )}
               {filteredTokens.length === 0 && filteredGroups.length === 0 && (
-                <div className="px-3 py-6 text-center text-body text-[var(--color-figma-text-secondary)]">
+                <div className="px-3 py-6 text-center text-body text-[color:var(--color-figma-text-secondary)]">
                   {tokenQuery
                     ? `No tokens or groups match "${tokenQuery}"${!searchAllCollections && allCollectionTokens ? ' in this collection' : ''}`
                     : <>
@@ -670,7 +670,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                             {['type:', 'has:alias', 'value:', 'path:', 'name:'].map(q => (
                               <button
                                 key={q}
-                                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors font-mono"
+                                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors font-mono"
                                 onClick={() => { setQuery('>' + q); setTimeout(() => inputRef.current?.focus(), 0); }}
                               >
                                 {q}
@@ -678,7 +678,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                             ))}
                           </div>
                           <button
-                            className="text-secondary text-[var(--color-figma-accent)] hover:underline opacity-70 hover:opacity-100"
+                            className="text-secondary text-[color:var(--color-figma-accent)] hover:underline opacity-70 hover:opacity-100"
                             onClick={() => setShowHelp(true)}
                           >
                             see all filters
@@ -689,7 +689,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   {tokenQuery && !searchAllCollections && allCollectionTokens && (
                     <div className="mt-1.5">
                       <button
-                        className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+                        className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
                         onClick={() => { setSearchAllSets(true); setVisibleCount(100); }}
                       >
                         Search all collections
@@ -700,7 +700,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               )}
               {/* Group results */}
               {filteredGroups.length > 0 && !isGroupQuery && (
-                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
                   Groups
                 </div>
               )}
@@ -712,18 +712,18 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     role="option"
                     aria-selected={flatIdx === activeIdx}
                     data-palette-item
-                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]' : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                     onMouseEnter={() => setActiveIdx(flatIdx)}
                     onClick={() => executeGroup(group)}
                   >
-                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                       group
                     </span>
                     <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                       <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
                     </svg>
                     <span className="text-body font-mono truncate min-w-0 flex-1">{group.path}</span>
-                    <span className={`text-secondary shrink-0 whitespace-nowrap ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-secondary shrink-0 whitespace-nowrap ${flatIdx === activeIdx ? 'text-white/60' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
                       {group.childCount} token{group.childCount !== 1 ? 's' : ''}
                     </span>
                   </button>
@@ -731,15 +731,15 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               })}
               {/* Token results */}
               {filteredTokens.length > 0 && filteredGroups.length > 0 && !isGroupQuery && (
-                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+                <div className="px-3 pt-1.5 pb-0.5 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
                   Tokens
                 </div>
               )}
               {filteredTokens.map((token, idx) => {
                 const flatIdx = filteredGroups.length + idx; // tokens come after groups
                 const isActive = flatIdx === activeIdx;
-                const actionBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`;
-                const deleteBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-[var(--color-figma-error)] hover:text-[var(--color-figma-error)] focus:text-[var(--color-figma-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)]'}`;
+                const actionBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]'}`;
+                const deleteBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-[color:var(--color-figma-error)] hover:text-[color:var(--color-figma-error)] focus:text-[color:var(--color-figma-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)]'}`;
                 return (
                 <div
                   key={tokenEntryKey(token)}
@@ -749,11 +749,11 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   <button
                     role="option"
                     aria-selected={isActive}
-                    className={`min-w-0 flex-1 text-left pl-3 pr-2 py-1.5 flex items-center gap-2 ${isActive ? 'text-white' : 'text-[var(--color-figma-text)]'}`}
+                    className={`min-w-0 flex-1 text-left pl-3 pr-2 py-1.5 flex items-center gap-2 ${isActive ? 'text-white' : 'text-[color:var(--color-figma-text)]'}`}
                     onMouseEnter={() => setActiveIdx(flatIdx)}
                     onClick={() => executeToken(token)}
                   >
-                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                       {token.type}
                     </span>
                     {token.type === 'color' && typeof token.value === 'string' && token.value ? (
@@ -763,13 +763,13 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                         title={token.value}
                       />
                     ) : token.value != null && token.value !== '' && token.type !== 'color' ? (
-                      <span className={`text-secondary shrink-0 font-mono ${isActive ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`} title={token.value}>
+                      <span className={`text-secondary shrink-0 font-mono ${isActive ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`} title={token.value}>
                         {token.value.length > 20 ? token.value.slice(0, 20) + '…' : token.value}
                       </span>
                     ) : null}
                     <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
                     {searchAllCollections && token.collectionLabel && (
-                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium max-w-[40%] truncate ${isActive ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium max-w-[40%] truncate ${isActive ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                         {token.collectionLabel}
                       </span>
                     )}
@@ -891,11 +891,11 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                 if (total <= shown) return null;
                 return (
                   <div className="px-3 py-2 flex items-center justify-between border-t border-[var(--color-figma-border)]">
-                    <span className="text-secondary text-[var(--color-figma-text-secondary)]">
+                    <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                       {shown} of {total} shown
                     </span>
                     <button
-                      className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+                      className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
                       onClick={() => setVisibleCount(c => c + 100)}
                     >
                       Load 100 more
@@ -909,7 +909,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
           {/* Starred tokens quick-access (no query) */}
           {noQueryStarredTokens.length > 0 && (
             <div>
-              <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)] flex items-center gap-1.5">
+              <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)] flex items-center gap-1.5">
                 <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                 Starred
               </div>
@@ -921,11 +921,11 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     role="option"
                     aria-selected={flatIdx === activeIdx}
                     data-palette-item
-                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]' : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                     onMouseEnter={() => setActiveIdx(flatIdx)}
                     onClick={() => executeToken(token)}
                   >
-                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                       {token.type}
                     </span>
                     {token.type === 'color' && token.value ? (
@@ -933,7 +933,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     ) : null}
                     <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
                     {searchAllCollections && token.collectionLabel && (
-                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                         {token.collectionLabel}
                       </span>
                     )}
@@ -946,7 +946,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
           {/* Recently edited tokens quick-access (no query) */}
           {noQueryRecentTokens.length > 0 && (
             <div>
-              <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)] flex items-center gap-1.5">
+              <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)] flex items-center gap-1.5">
                 <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Recently Edited
               </div>
@@ -958,11 +958,11 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     role="option"
                     aria-selected={flatIdx === activeIdx}
                     data-palette-item
-                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]' : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                     onMouseEnter={() => setActiveIdx(flatIdx)}
                     onClick={() => executeToken(token)}
                   >
-                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                       {token.type}
                     </span>
                     {token.type === 'color' && token.value ? (
@@ -970,7 +970,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     ) : null}
                     <span className="text-body font-mono truncate min-w-0 flex-1">{token.path}</span>
                     {searchAllCollections && token.collectionLabel && (
-                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-secondary px-1 py-0.5 rounded shrink-0 font-medium ${flatIdx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                         {token.collectionLabel}
                       </span>
                     )}
@@ -985,7 +985,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             let runningIdx = noQueryStarredTokens.length + noQueryRecentTokens.length;
             return sections.map(section => (
               <div key={section.header}>
-                <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[var(--color-figma-text-tertiary)]">
+                <div className="px-3 pt-2 pb-0.5 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
                   {section.header}
                 </div>
                 {section.items.map(cmd => {
@@ -996,26 +996,26 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                       role="option"
                       aria-selected={flatIdx === activeIdx}
                       data-palette-item
-                      className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                      className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${flatIdx === activeIdx ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]' : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                       onMouseEnter={() => setActiveIdx(flatIdx)}
                       onClick={() => executeCommand(cmd)}
                     >
                       <div className="flex min-w-0 flex-1 flex-col gap-0">
                         <span className="text-body font-medium">{cmd.label}</span>
                         {cmd.description && (
-                          <span title={cmd.description} className={`text-secondary truncate ${flatIdx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                          <span title={cmd.description} className={`text-secondary truncate ${flatIdx === activeIdx ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
                             {cmd.description}
                           </span>
                         )}
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         {section.header === 'Recently used' && cmd.category && (
-                          <span className={`text-secondary ${flatIdx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
+                          <span className={`text-secondary ${flatIdx === activeIdx ? 'text-white/60' : 'text-[color:var(--color-figma-text-tertiary)]'}`}>
                             {cmd.category}
                           </span>
                         )}
                         {cmd.shortcut && (
-                          <kbd className={`text-secondary border rounded px-1 py-0.5 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                          <kbd className={`text-secondary border rounded px-1 py-0.5 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                             {cmd.shortcut}
                           </kbd>
                         )}
@@ -1031,7 +1031,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
           {!isTokenMode && !sections && (
             <>
               {filteredCommands.length === 0 && (
-                <div className="px-3 py-6 text-center text-body text-[var(--color-figma-text-secondary)]">
+                <div className="px-3 py-6 text-center text-body text-[color:var(--color-figma-text-secondary)]">
                   <div>No commands match &ldquo;{query}&rdquo;</div>
                   <div className="mt-1 text-secondary opacity-70">Try <kbd className="font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1">&gt;</kbd> to search tokens by path</div>
                 </div>
@@ -1042,26 +1042,26 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   role="option"
                   aria-selected={idx === activeIdx}
                   data-palette-item
-                  className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]' : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   onMouseEnter={() => setActiveIdx(idx)}
                   onClick={() => executeCommand(cmd)}
                 >
                   <div className="flex-1 flex flex-col gap-0 min-w-0">
                     <span className="text-body font-medium">{cmd.label}</span>
                     {cmd.description && (
-                      <span title={cmd.description} className={`text-secondary truncate ${idx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                      <span title={cmd.description} className={`text-secondary truncate ${idx === activeIdx ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
                         {cmd.description}
                       </span>
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {cmd.category && (
-                      <span className={`text-secondary ${idx === activeIdx ? 'text-white/60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
+                      <span className={`text-secondary ${idx === activeIdx ? 'text-white/60' : 'text-[color:var(--color-figma-text-tertiary)]'}`}>
                         {cmd.category}
                       </span>
                     )}
                     {cmd.shortcut && (
-                      <kbd className={`text-secondary border rounded px-1 py-0.5 ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <kbd className={`text-secondary border rounded px-1 py-0.5 ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
                         {cmd.shortcut}
                       </kbd>
                     )}
@@ -1073,14 +1073,14 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
         </div>
 
         {/* Footer hints */}
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex flex-wrap gap-x-3 gap-y-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex flex-wrap gap-x-3 gap-y-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {isTokenMode ? (
             <>
               <span className="whitespace-nowrap">↑↓ navigate</span>
               <span className="whitespace-nowrap">↵ go to token/group</span>
               {searchAllCollections
-                ? <span className="whitespace-nowrap text-[var(--color-figma-accent)] opacity-80">searching all collections</span>
-                : <button className="min-w-0 truncate opacity-60 hover:opacity-100 hover:text-[var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
+                ? <span className="whitespace-nowrap text-[color:var(--color-figma-accent)] opacity-80">searching all collections</span>
+                : <button className="min-w-0 truncate opacity-60 hover:opacity-100 hover:text-[color:var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
               }
               <span className="whitespace-nowrap">ESC close</span>
             </>

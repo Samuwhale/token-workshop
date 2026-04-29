@@ -35,28 +35,28 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-body font-medium text-[var(--color-figma-text)]">
+        <p className="text-body font-medium text-[color:var(--color-figma-text)]">
           Connect your token library
         </p>
-        <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           Start TokenManager in the folder that contains your tokens, then come back here:
         </p>
       </div>
 
       <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5">
-        <code className="text-body font-mono text-[var(--color-figma-accent)]">token-manager start</code>
+        <code className="text-body font-mono text-[color:var(--color-figma-accent)]">token-manager start</code>
       </div>
 
-      <div className="flex items-center gap-2 text-secondary text-[var(--color-figma-text-secondary)]">
+      <div className="flex items-center gap-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
         <span className="shrink-0">Looking for:</span>
-        <code className="font-mono px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)]">{serverUrl}</code>
+        <code className="font-mono px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)]">{serverUrl}</code>
       </div>
 
       <div className="flex gap-2">
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
         >
           Close
         </button>
@@ -64,7 +64,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
           type="button"
           onClick={() => onRetry?.()}
           disabled={checking}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-60"
+          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-60"
         >
           {checking ? "Checking…" : "Retry Connection"}
         </button>
@@ -115,10 +115,10 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="text-body font-medium text-[var(--color-figma-text)]">
+        <p className="text-body font-medium text-[color:var(--color-figma-text)]">
           Create your first token collection
         </p>
-        <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           Collections own their modes, so set up the collection and the mode contexts it needs together.
         </p>
       </div>
@@ -160,7 +160,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
         type="button"
         onClick={handleCreate}
         disabled={saving || !draft.name.trim()}
-        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
       >
         {saving ? "Creating…" : "Create Collection"}
       </button>
@@ -181,14 +181,14 @@ function QuickStartShell({
     <>
       {!embedded ? (
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <div className="text-heading font-semibold text-[var(--color-figma-text)]">
+          <div className="text-heading font-semibold text-[color:var(--color-figma-text)]">
             {QUICK_START_TITLE}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded p-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -280,12 +280,12 @@ export function QuickStartWizard({
     <QuickStartShell embedded={embedded} onClose={onClose}>
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 pb-3 pt-4">
-          <p className="text-body font-medium text-[var(--color-figma-text)]">
+          <p className="text-body font-medium text-[color:var(--color-figma-text)]">
             {effectiveCollectionId
               ? `"${effectiveCollectionId}" is ready. Create your first token next.`
               : "Create your first token next."}
           </p>
-          <p className="mt-1 text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             Start by authoring one real token in the collection. You can add generators later.
           </p>
         </div>
@@ -294,7 +294,7 @@ export function QuickStartWizard({
             type="button"
             onClick={() => onAuthorFirstToken?.()}
             disabled={!connected}
-            className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
           >
             Create first token
           </button>
@@ -304,7 +304,7 @@ export function QuickStartWizard({
             <button
               type="button"
               onClick={onBack}
-              className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+              className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
             >
               Back
             </button>
@@ -314,7 +314,7 @@ export function QuickStartWizard({
           <button
             type="button"
             onClick={onComplete}
-            className="text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)]"
+            className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
           >
             Done for now
           </button>

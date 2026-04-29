@@ -42,13 +42,13 @@ export function HealthHiddenView({
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         {keys.length === 0 ? (
           <div className="px-3 py-12 text-center">
-            <p className="text-body text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
               No hidden issues
             </p>
           </div>
         ) : (
           <div className="px-3 py-1.5">
-            <p className="text-secondary text-[var(--color-figma-text-secondary)] mb-3">
+            <p className="text-secondary text-[color:var(--color-figma-text-secondary)] mb-3">
               These issues are hidden from Review. Click <strong>Show again</strong> to restore.
             </p>
             {keys.map(({ key, parsed }) => {
@@ -57,21 +57,21 @@ export function HealthHiddenView({
                 <div key={key} className="group flex items-center gap-2 py-1.5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
-                      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate">
+                      <span className="text-secondary font-mono text-[color:var(--color-figma-text)] truncate">
                         {path}
                       </span>
-                      <span className="text-secondary text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">
+                      <span className="text-secondary text-[color:var(--color-figma-text-secondary)] opacity-60 shrink-0">
                         {collectionId}
                       </span>
                     </div>
-                    <div className="text-secondary text-[var(--color-figma-text-secondary)] opacity-70">
+                    <div className="text-secondary text-[color:var(--color-figma-text-secondary)] opacity-70">
                       {getRuleLabel(rule).label}
                     </div>
                   </div>
                   <button
                     onClick={() => onUnsuppress(key)}
                     disabled={suppressingKey === key}
-                    className="shrink-0 text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 disabled:opacity-40 disabled:cursor-wait"
+                    className="shrink-0 text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 disabled:opacity-40 disabled:cursor-wait"
                   >
                     {suppressingKey === key ? "…" : "Show again"}
                   </button>

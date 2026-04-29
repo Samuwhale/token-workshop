@@ -53,10 +53,12 @@
   --color-figma-bg-selected: #0d99ff1f;
   --color-figma-text: #ffffff;
   --color-figma-text-secondary: #b3b3b3;
-  --color-figma-text-tertiary: #8a8a8a;
+  --color-figma-text-tertiary: #949494;
   --color-figma-border: #4d4d4d;
   --color-figma-accent: #0d99ff;
   --color-figma-accent-hover: #0b87e0;
+  --color-figma-action-bg: #006fbd;
+  --color-figma-action-bg-hover: #005fa8;
   --color-figma-text-onbrand: #ffffff;
   --color-figma-success: #14ae5c;
   --color-figma-warning: #f2a20d;
@@ -121,10 +123,12 @@ html.figma-light {
   --color-figma-bg-selected: #0d99ff1f;
   --color-figma-text: #1e1e1e;
   --color-figma-text-secondary: #666666;
-  --color-figma-text-tertiary: #8c8c8c;
+  --color-figma-text-tertiary: #737373;
   --color-figma-border: #e0e0e0;
   --color-figma-accent: #0c8ce9;
   --color-figma-accent-hover: #0a7dd4;
+  --color-figma-action-bg: #006fbd;
+  --color-figma-action-bg-hover: #005fa8;
   --color-figma-text-onbrand: #ffffff;
   --color-figma-success: #14ae5c;
   --color-figma-warning: #f2a20d;
@@ -165,6 +169,17 @@ html.figma-light ::-webkit-scrollbar-thumb {
 }
 html.figma-light ::-webkit-scrollbar-thumb:hover {
   background: #999999;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
 }
 
 html,
@@ -233,6 +248,26 @@ a[role="menuitem"] {
 ):focus-visible {
   outline: 1.5px solid var(--color-figma-accent);
   outline-offset: -1px;
+}
+
+@media (pointer: coarse), (max-width: 520px) {
+  :where(
+    button,
+    a[href],
+    input,
+    textarea,
+    select,
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="menuitemcheckbox"],
+    [role="slider"],
+    [role="combobox"]
+  ) {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
 }
 
 /* Scrollbar styling */
@@ -1247,8 +1282,15 @@ a[role="menuitem"] {
 }
 
 .tm-token-toolbar__split-button-toggle {
-  flex: 0 0 24px;
-  min-inline-size: 24px;
+  flex: 0 0 28px;
+  min-inline-size: 28px;
+}
+
+@media (pointer: coarse), (max-width: 520px) {
+  .tm-token-toolbar__split-button-toggle {
+    flex-basis: 44px;
+    min-inline-size: 44px;
+  }
 }
 
 @container (max-width: 1040px) {
@@ -1786,12 +1828,12 @@ a[role="menuitem"] {
 
 .tm-token-details__primary-button {
   border: 0;
-  background: var(--color-figma-accent);
-  color: #fff;
+  background: var(--color-figma-action-bg);
+  color: var(--color-figma-text-onbrand);
 }
 
 .tm-token-details__primary-button:hover {
-  background: var(--color-figma-accent-hover);
+  background: var(--color-figma-action-bg-hover);
 }
 
 .tm-token-details__primary-button--warning {

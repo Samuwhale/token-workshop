@@ -156,7 +156,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
                   type="button"
                   onClick={() => update('fontWeight', '{')}
                   title="Reference a token"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                 >
                   <Link2 size={12} strokeWidth={1.8} aria-hidden />
                 </button>
@@ -187,13 +187,13 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
         </Field>
       </Stack>
       <Stack gap={1}>
-        <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Preview</span>
+        <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">Preview</span>
         <div
           className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 overflow-hidden"
           style={previewStyle}
         >
           <div
-            className="text-[var(--color-figma-text)] break-words"
+            className="text-[color:var(--color-figma-text)] break-words"
             style={previewStyle}
           >
             {sampleText}

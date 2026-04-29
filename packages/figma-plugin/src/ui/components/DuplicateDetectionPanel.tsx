@@ -153,12 +153,12 @@ export function DuplicateDetectionPanel({
   };
 
   const btnBase = 'text-secondary px-2 py-1 rounded transition-colors';
-  const btnAccent = `${btnBase} bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`;
+  const btnAccent = `${btnBase} bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40`;
 
   const content = (
     <div className={embedded ? 'h-full overflow-y-auto' : ''}>
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-[var(--color-figma-border)]">
-        <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
           {configuredCount}/{lintDuplicateGroups.length} selected · {aliasCount} aliases
         </div>
         <button
@@ -191,10 +191,10 @@ export function DuplicateDetectionPanel({
               {group.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: group.colorHex }} />}
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-1.5 flex-wrap">
-                  <span className="text-secondary font-medium text-[var(--color-figma-text)]">
+                  <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">
                     {group.tokens.length} matching {group.typeLabel}
                   </span>
-                  <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate">
+                  <span className="text-secondary font-mono text-[color:var(--color-figma-text-secondary)] truncate">
                     {truncateValue(group.valueLabel)}
                   </span>
                 </div>
@@ -229,19 +229,19 @@ export function DuplicateDetectionPanel({
                             {isSelected && <span className="w-[7px] h-[7px] rounded-full bg-[var(--color-figma-accent)]" />}
                           </span>
                           {token.colorHex && <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: token.colorHex }} />}
-                          <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1">{token.path}</span>
-                          <span className="text-secondary text-[var(--color-figma-text-tertiary)] shrink-0">{token.collectionId}</span>
+                          <span className="text-secondary font-mono text-[color:var(--color-figma-text)] truncate flex-1">{token.path}</span>
+                          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] shrink-0">{token.collectionId}</span>
                           {onNavigateToToken && (
                             <button
                               onClick={(e) => { e.preventDefault(); onNavigateToToken(token.path, token.collectionId); }}
-                              className="text-secondary shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:underline"
+                              className="text-secondary shrink-0 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline"
                             >
                               Open
                             </button>
                           )}
                         </div>
                         {diffLabels.length > 0 && (
-                          <p className="mt-0.5 pl-5 text-secondary text-[var(--color-figma-text-tertiary)]">
+                          <p className="mt-0.5 pl-5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                             Differs: {diffLabels.join(', ')}
                           </p>
                         )}
@@ -252,8 +252,8 @@ export function DuplicateDetectionPanel({
 
                 {keep && (
                   <div className="flex items-center justify-between gap-2 pt-1">
-                    <p className="text-secondary text-[var(--color-figma-text-secondary)] min-w-0">
-                      Keep <span className="font-mono text-[var(--color-figma-text)]">{keep.path}</span>, alias {others.length} to it
+                    <p className="text-secondary text-[color:var(--color-figma-text-secondary)] min-w-0">
+                      Keep <span className="font-mono text-[color:var(--color-figma-text)]">{keep.path}</span>, alias {others.length} to it
                     </p>
                     <button
                       disabled={isResolving}
@@ -287,12 +287,12 @@ export function DuplicateDetectionPanel({
         className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
       >
         <span className="flex items-center gap-2">
-          <span className="text-body font-semibold text-[var(--color-figma-text)]">Duplicates</span>
-          <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">Duplicates</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
             {lintDuplicateGroups.length} group{lintDuplicateGroups.length !== 1 ? 's' : ''} · {totalDuplicateAliases} alias{totalDuplicateAliases !== 1 ? 'es' : ''}
           </span>
         </span>
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[var(--color-figma-text-secondary)] ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform text-[color:var(--color-figma-text-secondary)] ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
       </button>
       {showDuplicates && content}
     </div>

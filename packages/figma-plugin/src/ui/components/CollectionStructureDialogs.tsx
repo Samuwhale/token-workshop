@@ -113,39 +113,39 @@ function CollectionPreflightCard({
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           {label ? (
-            <div className="mb-1 text-secondary text-[var(--color-figma-text-secondary)]">
+            <div className="mb-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
               {label}
             </div>
           ) : null}
-          <div className="truncate text-body text-[var(--color-figma-text)]">
+          <div className="truncate text-body text-[color:var(--color-figma-text)]">
             {displayName}
           </div>
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {impact.tokenCount} token{impact.tokenCount === 1 ? "" : "s"}
           </div>
         </div>
       </div>
       {impact.metadata.description ? (
-        <p className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="mt-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {impact.metadata.description}
         </p>
       ) : null}
       {!hasDependencies ? (
-        <div className="mt-2 text-secondary text-[var(--color-figma-text-secondary)]">
+        <div className="mt-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
           No linked resolver or generator dependencies detected.
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           {impact.resolverRefs.length > 0 ? (
             <div className="flex flex-col gap-1">
-              <div className="text-secondary font-medium text-[var(--color-figma-text)]">
+              <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
                 Resolver refs ({impact.resolverRefs.length})
               </div>
               <div className="flex flex-wrap gap-1">
                 {impact.resolverRefs.map((resolver) => (
                   <span
                     key={resolver.name}
-                    className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)]"
+                    className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]"
                   >
                     {resolver.name}
                   </span>
@@ -155,14 +155,14 @@ function CollectionPreflightCard({
           ) : null}
           {generatorRefs.length > 0 ? (
             <div className="flex flex-col gap-1">
-              <div className="text-secondary font-medium text-[var(--color-figma-text)]">
+              <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
                 Generator refs ({generatorRefs.length})
               </div>
               <div className="flex flex-wrap gap-1">
                 {generatorRefs.map((generator) => (
                   <span
                     key={generator.generatorId}
-                    className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)]"
+                    className="rounded border border-[var(--color-figma-border)] px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]"
                   >
                     {generator.generatorName}
                   </span>
@@ -241,7 +241,7 @@ function StructuralPreflightSummary({
 }) {
   if (loading) {
     return (
-      <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[var(--color-figma-text-secondary)]">
+      <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
         Checking what this affects…
       </div>
     );
@@ -249,7 +249,7 @@ function StructuralPreflightSummary({
 
   if (error) {
     return (
-      <div className="rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 px-3 py-2 text-secondary text-[var(--color-figma-error)]">
+      <div className="rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 px-3 py-2 text-secondary text-[color:var(--color-figma-error)]">
         {error}
       </div>
     );
@@ -263,14 +263,14 @@ function StructuralPreflightSummary({
     <div className="flex flex-col gap-3">
       {preflight.blockers.length > 0 ? (
         <div className="rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 p-3">
-          <div className="text-secondary font-medium text-[var(--color-figma-error)]">
+          <div className="text-secondary font-medium text-[color:var(--color-figma-error)]">
             Blocking dependencies
           </div>
           <div className="mt-1 flex flex-col gap-1">
             {preflight.blockers.map((blocker) => (
               <div
                 key={blocker.id}
-                className="text-secondary text-[var(--color-figma-error)]"
+                className="text-secondary text-[color:var(--color-figma-error)]"
               >
                 {blocker.message}
               </div>
@@ -280,14 +280,14 @@ function StructuralPreflightSummary({
       ) : null}
       {preflight.warnings.length > 0 ? (
         <div className="rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/10 p-3">
-          <div className="text-secondary font-medium text-[var(--color-figma-warning)]">
+          <div className="text-secondary font-medium text-[color:var(--color-figma-warning)]">
             Warnings
           </div>
           <div className="mt-1 flex flex-col gap-1">
             {preflight.warnings.map((warning, index) => (
               <div
                 key={`${index}-${warning}`}
-                className="text-secondary text-[var(--color-figma-warning)]"
+                className="text-secondary text-[color:var(--color-figma-warning)]"
               >
                 {warning}
               </div>
@@ -342,12 +342,12 @@ export function CollectionDeleteDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-heading font-semibold text-[var(--color-figma-text)]">
+          <span className="text-heading font-semibold text-[color:var(--color-figma-text)]">
             Delete &ldquo;{deletingName}&rdquo;?
           </span>
           <button
             onClick={onCancel}
-            className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded p-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             aria-label="Close"
           >
             <svg
@@ -364,7 +364,7 @@ export function CollectionDeleteDialog({
           </button>
         </div>
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
-          <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Review linked previews and managed-token ownership before the
             collection is removed.
           </p>
@@ -379,7 +379,7 @@ export function CollectionDeleteDialog({
         <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
           <button
             onClick={onCancel}
-            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-body text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
@@ -453,20 +453,20 @@ export function CollectionMergeInline({
   return (
     <>
       <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
-        <span className="text-heading font-semibold text-[var(--color-figma-text)]">
+        <span className="text-heading font-semibold text-[color:var(--color-figma-text)]">
           Copy tokens from &ldquo;{mergingName}&rdquo; into&hellip;
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
         <div className="flex flex-col gap-1">
-          <label className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Target collection
           </label>
           <select
             value={mergeTargetCollectionId}
             onChange={(event) => onTargetChange(event.target.value)}
             aria-label="Merge target collection"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
           >
             {collectionIds
               .filter((collectionId) => collectionId !== mergingCollectionId)
@@ -486,11 +486,11 @@ export function CollectionMergeInline({
           collectionDisplayNames={collectionDisplayNames}
         />
         {!mergeChecked ? (
-          <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Tokens from{" "}
-            <span className="font-medium text-[var(--color-figma-text)]">{mergingName}</span>{" "}
+            <span className="font-medium text-[color:var(--color-figma-text)]">{mergingName}</span>{" "}
             will be added to{" "}
-            <span className="font-medium text-[var(--color-figma-text)]">
+            <span className="font-medium text-[color:var(--color-figma-text)]">
               {targetName}
             </span>
             . The source collection stays in place. Conflicts where the target
@@ -499,13 +499,13 @@ export function CollectionMergeInline({
           </p>
         ) : null}
         {mergeChecked && mergeConflicts.length === 0 ? (
-          <p className="text-secondary text-[var(--color-figma-success)]">
+          <p className="text-secondary text-[color:var(--color-figma-success)]">
             No conflicts — all tokens can be merged cleanly.
           </p>
         ) : null}
         {mergeChecked && mergeConflicts.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+            <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
               Resolve {mergeConflicts.length} conflict
               {mergeConflicts.length !== 1 ? "s" : ""} before merging.
             </p>
@@ -515,15 +515,15 @@ export function CollectionMergeInline({
                   key={conflict.path}
                   className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2"
                 >
-                  <div className="break-all font-mono text-secondary text-[var(--color-figma-text)]">
+                  <div className="break-all font-mono text-secondary text-[color:var(--color-figma-text)]">
                     {conflict.path}
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <label
                       className={`rounded border px-2 py-1 text-secondary ${
                         mergeResolutions[conflict.path] === "source"
-                          ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                          : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"
+                          ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]"
+                          : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)]"
                       }`}
                     >
                       <input
@@ -548,8 +548,8 @@ export function CollectionMergeInline({
                     <label
                       className={`rounded border px-2 py-1 text-secondary ${
                         mergeResolutions[conflict.path] === "target"
-                          ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]"
-                          : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]"
+                          ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]"
+                          : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)]"
                       }`}
                     >
                       <input
@@ -581,7 +581,7 @@ export function CollectionMergeInline({
       <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
         <button
           onClick={onClose}
-          className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-body text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         >
           Cancel
         </button>
@@ -591,7 +591,7 @@ export function CollectionMergeInline({
             disabled={
               mergeLoading || !mergeTargetCollectionId || hasBlockingPreflight
             }
-            className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="flex-1 rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
           >
             {mergeLoading ? "Checking…" : "Check conflicts"}
           </button>
@@ -599,7 +599,7 @@ export function CollectionMergeInline({
           <button
             onClick={onConfirm}
             disabled={mergeLoading || hasBlockingPreflight}
-            className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="flex-1 rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
           >
             {mergeLoading ? "Copying…" : "Copy tokens"}
           </button>
@@ -647,12 +647,12 @@ export function CollectionSplitDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <span className="text-heading font-semibold text-[var(--color-figma-text)]">
+          <span className="text-heading font-semibold text-[color:var(--color-figma-text)]">
             Split &ldquo;{splittingName}&rdquo;
           </span>
           <button
             onClick={onClose}
-            className="rounded p-1 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="rounded p-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             aria-label="Close"
           >
             <svg
@@ -678,12 +678,12 @@ export function CollectionSplitDialog({
             collectionDisplayNames={collectionDisplayNames}
           />
           {effectiveSplitPreview.length === 0 ? (
-            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+            <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
               No top-level groups found in this collection to split.
             </p>
           ) : (
             <>
-              <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+              <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Creates {effectiveSplitPreview.length} new collection
                 {effectiveSplitPreview.length !== 1 ? "s" : ""} from top-level
                 groups:
@@ -694,10 +694,10 @@ export function CollectionSplitDialog({
                     key={preview.key}
                     className="flex items-center justify-between rounded bg-[var(--color-figma-bg-hover)] px-2 py-1"
                   >
-                    <span className="min-w-0 flex-1 truncate font-mono text-body text-[var(--color-figma-text)]">
+                    <span className="min-w-0 flex-1 truncate font-mono text-body text-[color:var(--color-figma-text)]">
                       {preview.newCollectionId}
                     </span>
-                    <span className="ml-2 shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">
+                    <span className="ml-2 shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
                       {preview.count} token{preview.count === 1 ? "" : "s"}
                     </span>
                   </div>
@@ -706,7 +706,7 @@ export function CollectionSplitDialog({
               {effectiveSplitPreview.some((preview) =>
                 collectionIds.includes(preview.newCollectionId),
               ) ? (
-                <p className="text-secondary text-[var(--color-figma-warning)]">
+                <p className="text-secondary text-[color:var(--color-figma-warning)]">
                   Some collections already exist and will be skipped.
                 </p>
               ) : null}
@@ -717,7 +717,7 @@ export function CollectionSplitDialog({
                   onChange={(event) => onSetDeleteOriginal(event.target.checked)}
                   className="h-3 w-3 rounded"
                 />
-                <span className="text-body text-[var(--color-figma-text)]">
+                <span className="text-body text-[color:var(--color-figma-text)]">
                   Delete &ldquo;{splittingName}&rdquo; after split
                 </span>
               </label>
@@ -727,7 +727,7 @@ export function CollectionSplitDialog({
         <div className="flex gap-2 border-t border-[var(--color-figma-border)] p-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            className="flex-1 rounded bg-[var(--color-figma-bg)] px-3 py-1.5 text-body text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
             Cancel
           </button>
@@ -738,7 +738,7 @@ export function CollectionSplitDialog({
               effectiveSplitPreview.length === 0 ||
               hasBlockingPreflight
             }
-            className="flex-1 rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            className="flex-1 rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
           >
             {splitLoading ? "Splitting…" : "Split"}
           </button>

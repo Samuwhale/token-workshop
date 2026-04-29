@@ -34,33 +34,33 @@ export function HealthRulesView({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1 rounded px-1.5 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
           aria-label="Back to Review"
         >
           <ArrowLeft size={12} strokeWidth={2} aria-hidden />
           <span>Review</span>
         </button>
-        <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
+        <h2 className="text-body font-semibold text-[color:var(--color-figma-text)]">
           Rules
         </h2>
       </div>
 
       {!connected ? (
-        <p className="text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
           Connect to the server to manage rules.
         </p>
       ) : loading && !config ? (
-        <p className="animate-pulse text-secondary text-[var(--color-figma-text-secondary)]">
+        <p className="animate-pulse text-secondary text-[color:var(--color-figma-text-secondary)]">
           Loading rules…
         </p>
       ) : !config ? (
-        <p className="text-secondary text-[var(--color-figma-error)]">
+        <p className="text-secondary text-[color:var(--color-figma-error)]">
           {error ?? "Rules are unavailable right now."}
         </p>
       ) : (
         <>
           {error ? (
-            <p className="mb-3 text-secondary text-[var(--color-figma-error)]">
+            <p className="mb-3 text-secondary text-[color:var(--color-figma-error)]">
               {error}
             </p>
           ) : null}

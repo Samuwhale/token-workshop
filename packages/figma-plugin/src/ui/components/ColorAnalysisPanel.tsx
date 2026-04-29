@@ -111,11 +111,11 @@ export function ColorAnalysisPanel({
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
         <button
           onClick={onClose}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
         >
           &larr; Back
         </button>
-        <span className="ml-auto text-body font-medium text-[var(--color-figma-text)]">
+        <span className="ml-auto text-body font-medium text-[color:var(--color-figma-text)]">
           Color analysis
         </span>
       </div>
@@ -126,7 +126,7 @@ export function ColorAnalysisPanel({
       >
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-            <p className="text-body text-[var(--color-figma-text-secondary)]">
+            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
               Add at least 2 color tokens to use contrast checking, or create
               numeric color scales (3+ steps) for lightness analysis.
             </p>

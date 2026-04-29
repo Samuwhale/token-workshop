@@ -128,11 +128,11 @@ export function ChangeTypeAction({
         />
 
         {newType && typeChangeInfo && !showConfirm && typeChangeInfo.currentTypes.length > 0 && (
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
-            {currentTypeLabels} → <span className="text-[var(--color-figma-text)] font-medium">{newTypeLabel}</span>
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)] leading-snug">
+            {currentTypeLabels} → <span className="text-[color:var(--color-figma-text)] font-medium">{newTypeLabel}</span>
             {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
             {hasIncompatible && (
-              <span className="text-[var(--color-figma-error)]">
+              <span className="text-[color:var(--color-figma-error)]">
                 {' '}— {typeChangeInfo.incompatible.length} with incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}
               </span>
             )}
@@ -145,7 +145,7 @@ export function ChangeTypeAction({
               ? 'border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/8'
               : 'border-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/8'
           }`}>
-            <p className="text-secondary text-[var(--color-figma-text)] leading-snug">
+            <p className="text-secondary text-[color:var(--color-figma-text)] leading-snug">
               Change type of <strong>{typeChangeInfo.count}</strong> token{typeChangeInfo.count === 1 ? '' : 's'}
               {typeChangeInfo.currentTypes.length > 0 && (
                 <> from <strong>{currentTypeLabels}</strong></>
@@ -153,7 +153,7 @@ export function ChangeTypeAction({
             </p>
             {hasIncompatible ? (
               <div className="space-y-0.5">
-                <p className="text-secondary text-[var(--color-figma-error)] leading-snug font-medium">
+                <p className="text-secondary text-[color:var(--color-figma-error)] leading-snug font-medium">
                   {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}:
                 </p>
                 {(expanded ? typeChangeInfo.incompatible : typeChangeInfo.incompatible.slice(0, PREVIEW_MAX)).map(({ path, error }) => (
@@ -165,22 +165,22 @@ export function ChangeTypeAction({
                   </div>
                 ))}
                 {typeChangeInfo.incompatible.length > PREVIEW_MAX && (
-                  <button type="button" onClick={() => setExpanded(v => !v)} className="text-secondary text-[var(--color-figma-accent)] hover:underline text-left">
+                  <button type="button" onClick={() => setExpanded(v => !v)} className="text-secondary text-[color:var(--color-figma-accent)] hover:underline text-left">
                     {expanded ? 'Show less' : `and ${typeChangeInfo.incompatible.length - PREVIEW_MAX} more…`}
                   </button>
                 )}
-                <p className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
+                <p className="text-secondary text-[color:var(--color-figma-text-secondary)] leading-snug">
                   Change is blocked until these values are updated or removed from selection.
                 </p>
               </div>
             ) : (
-              <p className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
+              <p className="text-secondary text-[color:var(--color-figma-text-secondary)] leading-snug">
                 May break alias references depending on the current type.
               </p>
             )}
             <button
               onClick={() => setShowConfirm(false)}
-              className="text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline"
+              className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)] underline"
             >
               Cancel
             </button>

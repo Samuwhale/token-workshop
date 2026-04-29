@@ -73,7 +73,7 @@ function applyAlpha(hex6: string, alpha: number): string {
   return hex6.slice(0, 7) + a;
 }
 
-const inputClass = 'w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)] text-center tabular-nums';
+const inputClass = 'w-full px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-secondary focus-visible:border-[var(--color-figma-accent)] text-center tabular-nums';
 
 // ---------------------------------------------------------------------------
 // Canvas drawing helpers
@@ -204,7 +204,7 @@ function ChannelInput({
   const display = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toString();
   return (
     <div className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
-      <label className="text-secondary text-[var(--color-figma-text-secondary)]">{label}</label>
+      <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">{label}</label>
       <input
         type="text"
         value={display}
@@ -545,7 +545,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <ChannelInput label="B" value={p3.b} min={0} max={1} step={0.01} decimals={3} onChange={v => updateFromP3(p3.r, p3.g, v)} />
             </div>
             {!inGamut && (
-              <div className="text-secondary text-[var(--color-figma-warning)] flex items-center gap-1">
+              <div className="text-secondary text-[color:var(--color-figma-warning)] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] inline-block" />
                 Outside sRGB gamut (clamped)
               </div>
@@ -581,7 +581,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <ChannelInput label="H" value={oH} min={0} max={360} step={1} decimals={1} onChange={H => updateFromOklch(oL, oC, H)} />
             </div>
             {!inSrgb && (
-              <div className="text-secondary text-[var(--color-figma-warning)] flex items-center gap-1">
+              <div className="text-secondary text-[color:var(--color-figma-warning)] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] inline-block" />
                 Outside sRGB gamut (clamped for preview)
               </div>
@@ -707,8 +707,8 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             onClick={() => setSpace(s)}
             className={`flex-1 py-0.5 rounded text-center uppercase font-medium transition-colors ${
               space === s
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
             }`}
           >
             {s}
@@ -742,7 +742,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
         const level = ratio === null ? null : ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA18' : 'Fail';
         return (
           <div className="border-t border-[var(--color-figma-border)] pt-2 flex items-center gap-2">
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] shrink-0">Contrast</span>
+            <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">Contrast</span>
             <button
               type="button"
               title={contrastBg ? `Background: ${contrastBg} (click to change)` : 'Pick a background color'}
@@ -772,19 +772,19 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             {contrastBg && ratio !== null ? (
               <>
                 <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[var(--font-size-xs)] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
-                <span className="text-secondary text-[var(--color-figma-text)] tabular-nums font-medium">{ratio.toFixed(1)}:1</span>
+                <span className="text-secondary text-[color:var(--color-figma-text)] tabular-nums font-medium">{ratio.toFixed(1)}:1</span>
                 <span className={`text-secondary font-bold px-1 py-0.5 rounded ${
-                  level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :
-                  level === 'AA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :
-                  level === 'AA18' ? 'bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]' :
-                  'bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]'
+                  level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-success)]' :
+                  level === 'AA' ? 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-success)]' :
+                  level === 'AA18' ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-warning)]' :
+                  'bg-[var(--color-figma-error)]/20 text-[color:var(--color-figma-error)]'
                 }`}>
                   {level === 'AA18' ? 'AA 18+' : level}
                 </span>
                 <button
                   type="button"
                   onClick={() => { setContrastBg(''); lsSet(STORAGE_KEYS.CONTRAST_BG, ''); }}
-                  className="ml-auto w-4 h-4 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
+                  className="ml-auto w-4 h-4 flex items-center justify-center text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] shrink-0"
                   aria-label="Clear contrast background"
                 >
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
@@ -793,7 +793,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                 </button>
               </>
             ) : !contrastBg ? (
-              <span className="text-secondary text-[var(--color-figma-text-secondary)]">Pick bg</span>
+              <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">Pick bg</span>
             ) : null}
           </div>
         );
@@ -801,14 +801,14 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
       {/* Color harmonies */}
       <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
-        <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Harmonies</div>
+        <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">Harmonies</div>
         {[
           { label: 'Comp', swatches: [hex6, harmonyComplement], baseIndex: 0 },
           { label: 'Triad', swatches: [hex6, harmonyTriadic1, harmonyTriadic2], baseIndex: 0 },
           { label: 'Analog', swatches: [harmonyAnalogous1, hex6, harmonyAnalogous2], baseIndex: 1 },
         ].map(({ label, swatches, baseIndex }) => (
           <div key={label} className="flex items-center gap-2">
-            <span className="text-secondary text-[var(--color-figma-text-secondary)] w-10 shrink-0">{label}</span>
+            <span className="text-secondary text-[color:var(--color-figma-text-secondary)] w-10 shrink-0">{label}</span>
             <div className="flex gap-1">
               {swatches.map((swatchHex, i) => (
                 <button
@@ -833,7 +833,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       {/* Alpha numeric + eyedropper row */}
       <div className="flex gap-1.5 items-end">
         <div className="flex flex-col items-center gap-0.5 w-14">
-          <label className="text-secondary text-[var(--color-figma-text-secondary)]">Alpha</label>
+          <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Alpha</label>
           <input
             type="text"
             value={alphaInput}
@@ -879,10 +879,10 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           className={[
             'ml-auto flex items-center gap-1 px-2 py-1 rounded text-secondary border transition-colors',
             eyedropperState === 'success'
-              ? 'text-[var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+              ? 'text-[color:var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
               : eyedropperState === 'waiting'
-              ? 'text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
-              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',
+              ? 'text-[color:var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
+              : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',
           ].join(' ')}
         >
           {eyedropperState === 'success' ? (
@@ -904,7 +904,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       {/* Recent colors */}
       {recentColors.length > 0 && (
         <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
-          <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Recent</div>
+          <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">Recent</div>
           <div className="flex gap-1 flex-wrap">
             {recentColors.map((c, i) => (
               <button
@@ -930,7 +930,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           <button
             type="button"
             onClick={() => setShowTokens(!showTokens)}
-            className="flex items-center gap-1 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
           >
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={showTokens ? 'rotate-90' : ''}>
               <path d="M2 1l4 3-4 3V1z" />
@@ -963,7 +963,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                   />
                 ))}
                 {filteredTokens.length === 0 && (
-                  <span className="text-secondary text-[var(--color-figma-text-secondary)]">No matches</span>
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">No matches</span>
                 )}
               </div>
             </div>

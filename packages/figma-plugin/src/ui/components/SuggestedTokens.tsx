@@ -86,15 +86,15 @@ export function SuggestedTokens({
         >
           <svg
             width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-            className={`text-[var(--color-figma-text-secondary)] transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`}
+            className={`text-[color:var(--color-figma-text-secondary)] transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`}
             aria-hidden="true"
           >
             <path d="M2 1l4 3-4 3V1z" />
           </svg>
-          <span className="text-secondary font-semibold uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+          <span className="text-secondary font-semibold uppercase tracking-wide text-[color:var(--color-figma-text-secondary)]">
             {title}
           </span>
-          <span className="text-secondary bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
+          <span className="text-secondary bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
             {filteredSuggestions.length}
           </span>
         </button>
@@ -106,7 +106,7 @@ export function SuggestedTokens({
             <div className="flex items-center justify-end px-1.5 pt-1 pb-0.5">
               <button
                 onClick={() => onApplyBatch?.(strongBatch)}
-                className="text-secondary text-[var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
                 title={`Apply ${strongBatch.length} best matches across properties`}
               >
                 Apply all ({strongBatch.length})
@@ -117,7 +117,7 @@ export function SuggestedTokens({
             <div key={group.confidence}>
               {/* Group header — only when multiple groups are visible */}
               {visibleGroups.length > 1 && (
-                <div className={`text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 ${
+                <div className={`text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 ${
                   groupIdx > 0 ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
                 }`}>
                   {CONFIDENCE_LABELS[group.confidence]}
@@ -148,7 +148,7 @@ export function SuggestedTokens({
                       />
                     ) : (
                       <div className="w-3 h-3 rounded-sm bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center">
-                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] font-bold leading-none">
+                        <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] font-bold leading-none">
                           {s.entry.$type.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -158,28 +158,28 @@ export function SuggestedTokens({
                     <div className="flex-1 min-w-0">
                       <button
                         onClick={() => onNavigateToToken?.(s.path)}
-                        className="block text-secondary text-[var(--color-figma-text)] truncate font-mono w-full text-left hover:underline"
+                        className="block text-secondary text-[color:var(--color-figma-text)] truncate font-mono w-full text-left hover:underline"
                         title={`${s.path} — ${valueStr}`}
                       >
                         {s.path}
                       </button>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
+                        <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)]">
                           {propLabel}
                         </span>
-                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
+                        <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] opacity-50">·</span>
                         <span className={`text-[var(--font-size-xs)] ${
                           s.confidence === 'strong'
-                            ? 'text-[var(--color-figma-accent)]'
-                            : 'text-[var(--color-figma-text-secondary)]'
+                            ? 'text-[color:var(--color-figma-accent)]'
+                            : 'text-[color:var(--color-figma-text-secondary)]'
                         }`}>
                           {s.reason}
                         </span>
                         {valueStr && (
                           <>
-                            <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
+                            <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] opacity-50">·</span>
                             <span
-                              className="min-w-0 max-w-[40%] text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] font-mono truncate"
+                              className="min-w-0 max-w-[40%] text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] font-mono truncate"
                               title={valueStr}
                             >
                               {valueStr}
@@ -192,7 +192,7 @@ export function SuggestedTokens({
                     {/* Apply button — always faintly visible, full opacity on hover */}
                     <button
                       onClick={() => onApply(s.path, s.bestProperty)}
-                      className="shrink-0 opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
+                      className="shrink-0 opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
                       title={`Apply "${s.path}" to ${propLabel}`}
                       aria-label={`Apply ${s.path} to ${propLabel}`}
                     >
@@ -211,7 +211,7 @@ export function SuggestedTokens({
                 setShowAll(true);
                 lsSet(LS_SHOW_ALL_KEY, 'true');
               }}
-              className="w-full text-secondary text-[var(--color-figma-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+              className="w-full text-secondary text-[color:var(--color-figma-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
             >
               Show {weakGroup!.items.length} more
             </button>
@@ -222,7 +222,7 @@ export function SuggestedTokens({
                 setShowAll(false);
                 lsSet(LS_SHOW_ALL_KEY, 'false');
               }}
-              className="w-full text-secondary text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full text-secondary text-[color:var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Hide weak
             </button>
@@ -234,7 +234,7 @@ export function SuggestedTokens({
                 setShowScopeHidden(true);
                 lsSet(LS_SHOW_SCOPE_HIDDEN_KEY, 'true');
               }}
-              className="w-full text-secondary text-[var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full text-secondary text-[color:var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               title="These tokens would match, but their applicability excludes the target field."
             >
               {scopeHiddenCount === 1
@@ -248,7 +248,7 @@ export function SuggestedTokens({
                 setShowScopeHidden(false);
                 lsSet(LS_SHOW_SCOPE_HIDDEN_KEY, 'false');
               }}
-              className="w-full text-secondary text-[var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full text-secondary text-[color:var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Hide scope-restricted
             </button>

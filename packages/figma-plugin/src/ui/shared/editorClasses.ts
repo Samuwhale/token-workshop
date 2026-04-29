@@ -9,19 +9,19 @@ export const AUTHORING = {
   // --- Controls ---
   /** Width-free input base — use when the parent controls width (e.g. flex-1, w-16) */
   inputBase:
-    'min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
+    'min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
   input:
-    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
+    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
   inputMono:
-    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]',
+    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]',
   /** Width-free mono input base — use when the parent controls width */
   inputMonoBase:
-    'min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]',
+    'min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]',
   select:
-    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
+    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
 
   // --- Labels ---
-  label: 'text-secondary font-medium text-[var(--color-figma-text-secondary)]',
+  label: 'text-secondary font-medium text-[color:var(--color-figma-text-secondary)]',
 
   // --- Layout ---
   fieldStack: 'flex flex-col gap-1',
@@ -31,31 +31,31 @@ export const AUTHORING = {
 
   // --- Title blocks ---
   titleBlock: 'flex flex-col gap-1',
-  title: 'text-body font-semibold text-[var(--color-figma-text)]',
-  description: 'text-secondary leading-relaxed text-[var(--color-figma-text-secondary)]',
+  title: 'text-body font-semibold text-[color:var(--color-figma-text)]',
+  description: 'text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]',
 
   // --- Summary cards ---
   summaryCard:
     'flex flex-col gap-1.5 pl-3 py-0.5 min-w-0',
   summaryRow:
-    'flex flex-wrap items-start gap-x-2 gap-y-1 text-secondary text-[var(--color-figma-text-secondary)]',
+    'flex flex-wrap items-start gap-x-2 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]',
   summaryLabel:
-    'shrink-0 font-medium text-[var(--color-figma-text-secondary)]',
+    'shrink-0 font-medium text-[color:var(--color-figma-text-secondary)]',
   summaryValue: LONG_TEXT_CLASSES.textPrimary,
   summaryMono: LONG_TEXT_CLASSES.monoPrimary,
 
   // --- Footer buttons ---
   footerBtnSecondary:
-    'px-3 py-1.5 rounded-md text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors',
+    'px-3 py-1.5 rounded-md text-body text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] transition-colors',
   footerBtnPrimary:
-    'w-full px-3 py-1.5 rounded-md bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors',
+    'w-full px-3 py-1.5 rounded-md bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50 transition-colors',
 
   // --- Feedback ---
-  error: 'text-secondary text-[var(--color-figma-error)] break-words',
+  error: 'text-secondary text-[color:var(--color-figma-error)] break-words',
 
   // --- Footer links ---
   footerLink:
-    'text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors',
+    'text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors',
 
   // --- Preview ---
   /** Compact preview container for before/after grids and similar lists */

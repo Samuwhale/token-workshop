@@ -207,8 +207,8 @@ export function ScaleNumbersAction({
                 title={op.charAt(0).toUpperCase() + op.slice(1)}
                 className={`w-6 h-6 text-body font-medium transition-colors ${
                   opMode === op
-                    ? 'bg-[var(--color-figma-accent)] text-white'
-                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))] hover:text-[var(--color-figma-text)]'
+                    ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+                    : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))] hover:text-[color:var(--color-figma-text)]'
                 }${i > 0 ? ' border-l border-[var(--color-figma-border)]' : ''}`}
               >
                 {sym}
@@ -226,7 +226,7 @@ export function ScaleNumbersAction({
             aria-label="Transform operand"
           />
           {operand !== '' && !transformActive && !isNaN(parseFloat(operand)) && (
-            <span className="text-secondary text-[var(--color-figma-error)]">cannot be 0</span>
+            <span className="text-secondary text-[color:var(--color-figma-error)]">cannot be 0</span>
           )}
         </div>
 
@@ -236,7 +236,7 @@ export function ScaleNumbersAction({
             expanded={expandedPreviews['skipped']}
             onToggleExpand={() => togglePreview('skipped')}
           >
-            <span className="text-secondary text-[var(--color-figma-warning)] leading-tight font-medium">
+            <span className="text-secondary text-[color:var(--color-figma-warning)] leading-tight font-medium">
               {skippedAliasTokens.length === numericCount
                 ? 'All numeric tokens use reference values and cannot be transformed:'
                 : `${skippedAliasTokens.length} token${skippedAliasTokens.length === 1 ? '' : 's'} will be skipped (reference values):`}
@@ -262,7 +262,7 @@ export function ScaleNumbersAction({
         )}
 
         {numericCount > 0 && numericCount < selectedEntries.length && transformActive && (
-          <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
             Applies to {numericCount} numeric token{numericCount === 1 ? '' : 's'} — {selectedEntries.length - numericCount} non-numeric skipped
           </div>
         )}
@@ -289,15 +289,15 @@ export function ScaleNumbersAction({
                 <button
                   type="button"
                   onClick={() => setCompositeSubPropKey('')}
-                  className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+                  className="h-6 px-2 rounded border border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)] transition-colors shrink-0"
                 >
                   Clear
                 </button>
               )}
             </div>
             {compositeSubPropKey && compositeSubPropTargets.length > 0 && (
-              <div className="text-secondary text-[var(--color-figma-text-secondary)] leading-snug">
-                Transform will also target <span className="font-mono text-[var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}
+              <div className="text-secondary text-[color:var(--color-figma-text-secondary)] leading-snug">
+                Transform will also target <span className="font-mono text-[color:var(--color-figma-text)]">.{compositeSubPropName}</span> on {compositeSubPropTargets.length} {compositeSubPropType} token{compositeSubPropTargets.length !== 1 ? 's' : ''}
               </div>
             )}
           </div>

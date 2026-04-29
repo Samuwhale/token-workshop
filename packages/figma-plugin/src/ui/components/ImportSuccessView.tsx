@@ -46,7 +46,7 @@ export function ImportSuccessView() {
       </div>
 
       {lastImportReviewSummary && (
-        <div className="text-secondary text-[var(--color-figma-text-secondary)] text-center">
+        <div className="text-secondary text-[color:var(--color-figma-text-secondary)] text-center">
           {lastImportReviewSummary.destinationLabel}
           {" — "}
           {[
@@ -60,10 +60,10 @@ export function ImportSuccessView() {
 
       {nextStepRecommendations.length > 0 ? (
         <div className="flex flex-col items-center gap-1 text-center">
-          <div className="text-secondary font-medium text-[var(--color-figma-text)]">
+          <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
             Next step
           </div>
-          <div className="text-secondary text-[var(--color-figma-text-secondary)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {nextStepRecommendations[0]?.rationale}
           </div>
         </div>
@@ -73,15 +73,15 @@ export function ImportSuccessView() {
         <div className="w-full max-w-[560px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-2 text-secondary">
-              <span className="text-[var(--color-figma-success)] font-medium">{succeededImportCount} ok</span>
-              <span className="text-[var(--color-figma-error)] font-medium">{failedImportPaths.length} failed</span>
+              <span className="text-[color:var(--color-figma-success)] font-medium">{succeededImportCount} ok</span>
+              <span className="text-[color:var(--color-figma-error)] font-medium">{failedImportPaths.length} failed</span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleCopyFailedPaths} className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
+              <button onClick={handleCopyFailedPaths} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">
                 {copyFeedback ? "Copied" : "Copy"}
               </button>
               {failedImportBatches.length > 0 && (
-                <button onClick={handleRetryFailed} disabled={retrying} className="text-secondary text-[var(--color-figma-accent)] hover:underline disabled:opacity-50">
+                <button onClick={handleRetryFailed} disabled={retrying} className="text-secondary text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50">
                   {retrying ? "Retrying..." : "Retry"}
                 </button>
               )}
@@ -91,10 +91,10 @@ export function ImportSuccessView() {
             failedImportGroups.map(group => (
               <div key={group.collectionId} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-secondary font-medium text-[var(--color-figma-text)]">{group.collectionId}</span>
-                  <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{group.paths.length}</span>
+                  <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">{group.collectionId}</span>
+                  <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">{group.paths.length}</span>
                 </div>
-                <ul className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)] space-y-0.5">
+                <ul className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] space-y-0.5">
                   {group.paths.slice(0, 3).map(path => (
                     <li key={`${group.collectionId}:${path}`} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
                   ))}
@@ -103,7 +103,7 @@ export function ImportSuccessView() {
               </div>
             ))
           ) : (
-            <ul className="text-secondary text-[var(--color-figma-text-secondary)] space-y-0.5">
+            <ul className="text-secondary text-[color:var(--color-figma-text-secondary)] space-y-0.5">
               {failedImportPaths.slice(0, 5).map(path => (
                 <li key={path} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
               ))}
@@ -120,19 +120,19 @@ export function ImportSuccessView() {
             onClick={() => openImportNextStep(recommendation)}
             className={
               index === 0
-                ? "rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-medium text-white hover:opacity-90"
-                : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                ? "rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] hover:opacity-90"
+                : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
             }
             title={recommendation.rationale}
           >
             {index === 0 ? `Review in ${recommendation.label}` : recommendation.label}
           </button>
         ))}
-        <button onClick={clearSuccessState} className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]">
+        <button onClick={clearSuccessState} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">
           Import more
         </button>
         {lastImport && (
-          <button onClick={handleUndoImport} disabled={undoing} className="text-secondary text-[var(--color-figma-error)] hover:underline disabled:opacity-50">
+          <button onClick={handleUndoImport} disabled={undoing} className="text-secondary text-[color:var(--color-figma-error)] hover:underline disabled:opacity-50">
             {undoing ? "Undoing..." : "Undo"}
           </button>
         )}

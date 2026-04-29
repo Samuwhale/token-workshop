@@ -77,13 +77,13 @@ export type MenuPosition = { x: number; y: number };
 export const MENU_SURFACE_CLASS =
   "fixed z-50 min-w-[192px] max-w-[min(320px,calc(100vw-16px))] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 shadow-lg";
 export const MENU_ITEM_CLASS =
-  "w-full flex items-center gap-2 px-2.5 py-1.5 text-body text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors";
+  "w-full flex items-center gap-2 px-2.5 py-1.5 text-body text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors";
 export const MENU_DANGER_ITEM_CLASS =
-  "w-full flex items-center gap-2 px-2.5 py-1.5 text-body text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors";
+  "w-full flex items-center gap-2 px-2.5 py-1.5 text-body text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors";
 export const MENU_SEPARATOR_CLASS =
   "h-px mx-2 my-1 bg-[var(--color-figma-border)]";
 export const MENU_SHORTCUT_CLASS =
-  "ml-auto text-secondary text-[var(--color-figma-text-tertiary)]";
+  "ml-auto text-secondary text-[color:var(--color-figma-text-tertiary)]";
 
 type ContextMenuControllerOptions = {
   isOpen: boolean;
@@ -259,7 +259,7 @@ export function TokenRowBrowseMetaBadge({
         onClick={meta.onClick}
         disabled={!meta.interactive}
         title={meta.title}
-        className={`${className} ${meta.interactive ? "transition-colors hover:text-[var(--color-figma-accent)]" : "cursor-default"}`}
+        className={`${className} ${meta.interactive ? "transition-colors hover:text-[color:var(--color-figma-accent)]" : "cursor-default"}`}
       >
         {content}
       </button>
@@ -272,7 +272,7 @@ export function TokenRowBrowseMetaBadge({
         type="button"
         onClick={meta.onClick}
         title={meta.title}
-        className={`${className} transition-colors hover:text-[var(--color-figma-accent)]`}
+        className={`${className} transition-colors hover:text-[color:var(--color-figma-accent)]`}
       >
         {content}
       </button>
@@ -320,10 +320,10 @@ export function getTokenRowStatus(props: {
         .join("\n"),
       toneClass:
         worst === "error"
-          ? "text-[var(--color-figma-error)]"
+          ? "text-[color:var(--color-figma-error)]"
           : worst === "warning"
-            ? "text-[var(--color-figma-warning)]"
-            : "text-[var(--color-figma-text-tertiary)]",
+            ? "text-[color:var(--color-figma-warning)]"
+            : "text-[color:var(--color-figma-text-tertiary)]",
       lintSeverity: worst,
     };
   }
@@ -332,7 +332,7 @@ export function getTokenRowStatus(props: {
       kind: "applied",
       label: quickBound,
       title: `Bound to ${quickBound}`,
-      toneClass: "text-[var(--color-figma-success)]",
+      toneClass: "text-[color:var(--color-figma-success)]",
     };
   }
   if (syncChanged) {
@@ -340,7 +340,7 @@ export function getTokenRowStatus(props: {
       kind: "sync",
       label: "Unpublished",
       title: "Changed since last publish",
-      toneClass: "text-[var(--color-figma-warning)]",
+      toneClass: "text-[color:var(--color-figma-warning)]",
     };
   }
   if (duplicateCount > 1) {
@@ -348,7 +348,7 @@ export function getTokenRowStatus(props: {
       kind: "duplicate",
       label: `${duplicateCount} same`,
       title: `${duplicateCount} tokens share this value`,
-      toneClass: "text-[var(--color-figma-accent)]",
+      toneClass: "text-[color:var(--color-figma-accent)]",
     };
   }
   return null;
@@ -366,8 +366,8 @@ export function getBrowseMetaForReference(
     expandedLabel: aliasPath,
     title: `Alias reference: ${aliasPath}`,
     toneClass: expanded
-      ? "text-[var(--color-figma-accent)]"
-      : "text-[var(--color-figma-text-secondary)]",
+      ? "text-[color:var(--color-figma-accent)]"
+      : "text-[color:var(--color-figma-text-secondary)]",
     interactive,
     onClick,
   };
@@ -392,8 +392,8 @@ export function getBrowseMetaForDerivation(
     expandedLabel: sourceToken,
     title: `Modified from ${sourceToken}`,
     toneClass: expanded
-      ? "text-[var(--color-figma-accent)]"
-      : "text-[var(--color-figma-text-secondary)]",
+      ? "text-[color:var(--color-figma-accent)]"
+      : "text-[color:var(--color-figma-text-secondary)]",
     interactive,
     onClick,
   };
