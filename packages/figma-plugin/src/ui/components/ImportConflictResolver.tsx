@@ -100,9 +100,9 @@ export function ImportConflictResolver() {
               title={`${d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}${hasActiveFilter ? ' visible' : ' all'}`}
               className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
                 d === 'accept'
-                  ? 'text-[color:var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10'
+                  ? 'text-[color:var(--color-figma-text-success)] hover:bg-[var(--color-figma-success)]/10'
                   : d === 'merge'
-                    ? 'text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10'
+                    ? 'text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10'
                     : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
               }`}
             >
@@ -131,7 +131,7 @@ export function ImportConflictResolver() {
             onClick={() => setShowFilters(v => !v)}
             className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
               showFilters || hasActiveFilter
-                ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]'
+                ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
                 : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
             }`}
           >
@@ -200,9 +200,9 @@ export function ImportConflictResolver() {
                         } ${
                           decision === d
                             ? d === 'accept'
-                              ? 'bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-success)]'
+                              ? 'bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-text-success)]'
                               : d === 'merge'
-                                ? 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-accent)]'
+                                ? 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)]'
                                 : 'bg-[var(--color-figma-border)]/30 text-[color:var(--color-figma-text-secondary)]'
                             : 'bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)]'
                         }`}

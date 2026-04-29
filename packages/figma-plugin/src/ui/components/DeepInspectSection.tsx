@@ -78,13 +78,13 @@ function DeepBindPanel({
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-[color:var(--color-figma-accent)] shrink-0"
+          className="text-[color:var(--color-figma-text-accent)] shrink-0"
           aria-hidden="true"
         >
           <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
         </svg>
-        <span className="text-secondary text-[color:var(--color-figma-accent)] font-medium flex-1 truncate">
+        <span className="text-secondary text-[color:var(--color-figma-text-accent)] font-medium flex-1 truncate">
           {currentBinding ? 'Remap' : 'Bind'} on {childNode.name}
         </span>
         <button
@@ -185,7 +185,7 @@ function DeepBindPanel({
                     </div>
                   )}
                   <span
-                    className={`text-secondary font-mono truncate flex-1 ${isSelected ? "text-[color:var(--color-figma-accent)]" : "text-[color:var(--color-figma-text)]"}`}
+                    className={`text-secondary font-mono truncate flex-1 ${isSelected ? "text-[color:var(--color-figma-text-accent)]" : "text-[color:var(--color-figma-text)]"}`}
                   >
                     {path}
                   </span>
@@ -210,7 +210,7 @@ function DeepBindPanel({
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(false)}
-                  className="text-[color:var(--color-figma-accent)] hover:underline"
+                  className="text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
                   Restrict
                 </button>
@@ -221,7 +221,7 @@ function DeepBindPanel({
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(true)}
-                  className="text-[color:var(--color-figma-accent)] hover:underline"
+                  className="text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
                   Show all
                 </button>
@@ -335,7 +335,7 @@ export function DeepInspectSection({
                   onClick={() => onSelectNode(child.id)}
                   title="Select layer in Figma"
                   aria-label={`Select ${child.name} in Figma`}
-                  className="opacity-40 group-hover/layer:opacity-100 pointer-events-none group-hover/layer:pointer-events-auto transition-opacity p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0"
+                  className="opacity-40 group-hover/layer:opacity-100 pointer-events-none group-hover/layer:pointer-events-auto transition-opacity p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0"
                 >
                   <Crosshair size={8} strokeWidth={2} aria-hidden />
                 </button>
@@ -380,14 +380,14 @@ export function DeepInspectSection({
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-[color:var(--color-figma-accent)] shrink-0"
+                        className="text-[color:var(--color-figma-text-accent)] shrink-0"
                         aria-hidden="true"
                       >
                         <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                         <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                       </svg>
                       <span
-                        className="text-[var(--font-size-xs)] text-[color:var(--color-figma-accent)] font-mono truncate flex-1"
+                        className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-accent)] font-mono truncate flex-1"
                         title={tokenPath}
                       >
                         {tokenPath}
@@ -399,7 +399,7 @@ export function DeepInspectSection({
                             onClick={() => onNavigateToToken(tokenPath)}
                             title="Go to token"
                             aria-label="Go to token"
-                            className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
                             <svg
                               width="8"
@@ -423,7 +423,7 @@ export function DeepInspectSection({
                             }
                             title="Remap"
                             aria-label="Remap binding"
-                            className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
                             <svg
                               width="8"
@@ -448,7 +448,7 @@ export function DeepInspectSection({
                             }
                             title="Remove binding"
                             aria-label="Remove binding"
-                            className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] transition-colors"
+                            className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-error)] transition-colors"
                           >
                             <svg
                               width="8"

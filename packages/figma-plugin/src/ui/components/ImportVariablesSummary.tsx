@@ -160,14 +160,14 @@ export function ImportVariablesSummary() {
         {!checkingVarConflicts && varConflictPreview !== null && (
           <div className="flex flex-wrap items-center gap-2 text-secondary">
             {varConflictPreview.newCount > 0 && (
-              <span className="text-[color:var(--color-figma-success)]">
+              <span className="text-[color:var(--color-figma-text-success)]">
                 {varConflictPreview.newCount} new
               </span>
             )}
             {varConflictPreview.overwriteCount > 0 && (
               <>
                 {varConflictPreview.newCount > 0 && <span className="text-[color:var(--color-figma-border)]">&middot;</span>}
-                <span className="text-[color:var(--color-figma-warning)]">
+                <span className="text-[color:var(--color-figma-text-warning)]">
                   {varConflictPreview.overwriteCount} conflict{varConflictPreview.overwriteCount !== 1 ? 's' : ''}
                 </span>
               </>
@@ -176,7 +176,7 @@ export function ImportVariablesSummary() {
         )}
 
         {hasBlockingCollisions && !importing && (
-          <div className="text-secondary text-[color:var(--color-figma-error)]">
+          <div className="text-secondary text-[color:var(--color-figma-text-error)]">
             {ambiguousCollectionImportCount} duplicate destination path{ambiguousCollectionImportCount !== 1 ? 's' : ''} — rename a collection above.
           </div>
         )}
@@ -189,7 +189,7 @@ export function ImportVariablesSummary() {
                 onClick={() => setStrategy(s)}
                 className={`flex-1 basis-[96px] rounded px-2 py-1 text-secondary font-medium transition-colors ${
                   strategy === s
-                    ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]'
+                    ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
                     : 'bg-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
               >

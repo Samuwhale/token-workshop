@@ -226,7 +226,7 @@ export function ScaleNumbersAction({
             aria-label="Transform operand"
           />
           {operand !== '' && !transformActive && !isNaN(parseFloat(operand)) && (
-            <span className="text-secondary text-[color:var(--color-figma-error)]">cannot be 0</span>
+            <span className="text-secondary text-[color:var(--color-figma-text-error)]">cannot be 0</span>
           )}
         </div>
 
@@ -236,7 +236,7 @@ export function ScaleNumbersAction({
             expanded={expandedPreviews['skipped']}
             onToggleExpand={() => togglePreview('skipped')}
           >
-            <span className="text-secondary text-[color:var(--color-figma-warning)] leading-tight font-medium">
+            <span className="text-secondary text-[color:var(--color-figma-text-warning)] leading-tight font-medium">
               {skippedAliasTokens.length === numericCount
                 ? 'All numeric tokens use reference values and cannot be transformed:'
                 : `${skippedAliasTokens.length} token${skippedAliasTokens.length === 1 ? '' : 's'} will be skipped (reference values):`}

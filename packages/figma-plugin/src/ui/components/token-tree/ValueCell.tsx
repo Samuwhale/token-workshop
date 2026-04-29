@@ -187,7 +187,7 @@ export function ValueCell({
         canCreate ? (
           <button
             type="button"
-            className="text-body text-[color:var(--color-figma-text-tertiary)] cursor-pointer hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            className="text-body text-[color:var(--color-figma-text-tertiary)] cursor-pointer hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               openQuickEdit();
@@ -199,7 +199,7 @@ export function ValueCell({
         ) : onEdit ? (
           <button
             type="button"
-            className="text-body text-[color:var(--color-figma-text-tertiary)] cursor-pointer hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            className="text-body text-[color:var(--color-figma-text-tertiary)] cursor-pointer hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
@@ -217,7 +217,7 @@ export function ValueCell({
         <>
           {derivationMarker}
           <span
-            className="tm-value-cell__status text-[color:var(--color-figma-warning)]"
+            className="tm-value-cell__status text-[color:var(--color-figma-text-warning)]"
             aria-label="Broken reference"
           >
             <AlertTriangle size={10} strokeWidth={2} aria-hidden />
@@ -225,8 +225,8 @@ export function ValueCell({
           {renderValueText(displayVal, "Reference not found", {
             primaryMonospace: true,
             primaryClassName:
-              "font-mono italic text-[color:var(--color-figma-warning)]",
-            secondaryClassName: "text-[color:var(--color-figma-warning)]/80",
+              "font-mono italic text-[color:var(--color-figma-text-warning)]",
+            secondaryClassName: "text-[color:var(--color-figma-text-warning)]/80",
           })}
         </>
       ) : isResolvedAlias ? (
@@ -240,7 +240,7 @@ export function ValueCell({
                   e.stopPropagation();
                   onNavigateToAlias(resolvedAliasPath, sourceTokenPath);
                 }}
-                className="tm-value-cell__nav text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)] cursor-pointer rounded"
+                className="tm-value-cell__nav text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)] cursor-pointer rounded"
                 aria-label={`Go to alias target ${resolvedAliasPath}`}
                 title={`Go to ${resolvedAliasPath}`}
               >

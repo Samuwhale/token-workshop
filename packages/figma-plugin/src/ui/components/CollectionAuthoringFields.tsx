@@ -100,7 +100,7 @@ export function CollectionAuthoringFields({
             type="button"
             onClick={onAddMode}
             disabled={pending}
-            className="inline-flex items-center gap-1 text-secondary text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
           >
             <Plus size={12} strokeWidth={1.5} aria-hidden />
             Add mode
@@ -144,7 +144,7 @@ export function CollectionAuthoringFields({
       </div>
 
       {error ? (
-        <div className="text-secondary text-[color:var(--color-figma-error)]">
+        <div className="text-secondary text-[color:var(--color-figma-text-error)]">
           {error}
         </div>
       ) : null}

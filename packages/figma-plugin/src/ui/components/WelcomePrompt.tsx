@@ -75,7 +75,7 @@ function ActionRow({
         className={[
           "mt-0.5 shrink-0",
           emphasized
-            ? "text-[color:var(--color-figma-accent)]"
+            ? "text-[color:var(--color-figma-text-accent)]"
             : "text-[color:var(--color-figma-text-secondary)]",
         ].join(" ")}
       >
@@ -86,7 +86,7 @@ function ActionRow({
           className={[
             "text-body font-medium block",
             emphasized
-              ? "text-[color:var(--color-figma-accent)]"
+              ? "text-[color:var(--color-figma-text-accent)]"
               : "text-[color:var(--color-figma-text)]",
           ].join(" ")}
         >

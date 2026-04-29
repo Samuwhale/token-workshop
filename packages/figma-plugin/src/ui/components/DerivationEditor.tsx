@@ -271,7 +271,7 @@ export function DerivationEditor({
           <button
             type="button"
             onClick={addRow}
-            className="self-start flex items-center gap-1 text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+            className="self-start flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
           >
             <Plus size={10} strokeWidth={2} aria-hidden />
             Add modifier
@@ -358,7 +358,7 @@ function DerivationOpRow({
       <button
         type="button"
         onClick={onRemove}
-        className="shrink-0 p-0.5 rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="shrink-0 p-0.5 rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-bg-hover)]"
         aria-label="Remove modifier"
       >
         <X size={10} strokeWidth={2} aria-hidden />

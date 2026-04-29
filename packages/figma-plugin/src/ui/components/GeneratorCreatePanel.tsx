@@ -41,6 +41,7 @@ import {
 } from "./generators/GeneratorFieldControls";
 
 type BusyState = "create" | "custom" | null;
+type CreateStartMode = "preset" | "graph";
 
 interface GeneratorCreatePanelProps {
   serverUrl: string;
@@ -85,6 +86,16 @@ const SOURCE_MODE_OPTIONS: Array<{ value: GeneratorSourceMode; label: string }> 
   { value: "literal", label: "Value" },
   { value: "token", label: "Token" },
 ];
+const PRESET_GROUPS: Array<{
+  label: string;
+  ids: GeneratorPresetKind[];
+}> = [
+  { label: "Color", ids: ["colorRamp"] },
+  { label: "Size", ids: ["spacing", "radius"] },
+  { label: "Type", ids: ["type"] },
+  { label: "Effects", ids: ["opacity", "shadow"] },
+  { label: "Numbers", ids: ["zIndex", "formula"] },
+];
 
 export function GeneratorCreatePanel({
   serverUrl,
@@ -97,6 +108,7 @@ export function GeneratorCreatePanel({
 }: GeneratorCreatePanelProps) {
   const initialKind: GeneratorPresetKind = "colorRamp";
   const initialCollectionId = workingCollectionId || collections[0]?.id || "";
+  const [startMode, setStartMode] = useState<CreateStartMode>("preset");
   const [kind, setKind] = useState<GeneratorPresetKind>(initialKind);
   const [targetCollectionId, setTargetCollectionId] =
     useState(initialCollectionId);
@@ -316,6 +328,7 @@ export function GeneratorCreatePanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: `${selectedOption.label} generator`,
+            authoringMode: "preset",
             targetCollectionId,
             nodes: generatedNodes.nodes,
             edges: generatedNodes.edges,
@@ -326,7 +339,7 @@ export function GeneratorCreatePanel({
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
-        "graph",
+        "setup",
       );
     } catch (createError) {
       setError(
@@ -353,7 +366,7 @@ export function GeneratorCreatePanel({
     selectedSourceToken,
   ]);
 
-  const createBlankGenerator = useCallback(async () => {
+  const createGraphGenerator = useCallback(async (template?: GeneratorPresetKind) => {
     if (!targetCollectionId) {
       setError("Choose a collection first.");
       return;
@@ -361,21 +374,43 @@ export function GeneratorCreatePanel({
     setBusy("custom");
     setError(null);
     try {
+      const option = template
+        ? GENERATOR_PRESET_OPTIONS.find((item) => item.id === template)
+        : null;
+      const templateDraft = option
+        ? buildGeneratorNodesFromStructuredDraft({
+            kind: option.id,
+            sourceMode: option.sourceMode,
+            sourceValue: generatorDefaultSourceValue(option.id),
+            sourceCollectionId: targetCollectionId,
+            sourceTokenPath: "",
+            outputPrefix: option.outputPrefix,
+            config: generatorDefaultConfig(option.id),
+          })
+        : null;
       const created = await apiFetch<GeneratorResponse>(
         `${serverUrl}/api/generators`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: "Custom generator",
+            name: option ? `${option.label} graph` : "Custom graph",
+            authoringMode: "graph",
             targetCollectionId,
-            template: "blank",
+            ...(templateDraft
+              ? {
+                  nodes: templateDraft.nodes,
+                  edges: templateDraft.edges,
+                  viewport: { x: 0, y: 0, zoom: 1 },
+                }
+              : { template: "blank" }),
           }),
         },
       );
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
+        "graph",
       );
     } catch (createError) {
       setError(
@@ -391,7 +426,7 @@ export function GeneratorCreatePanel({
       <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-4 py-3">
         <Sparkles
           size={15}
-          className="text-[color:var(--color-figma-accent)]"
+          className="text-[color:var(--color-figma-text-accent)]"
           aria-hidden
         />
         <h3 className="min-w-0 flex-1 truncate text-body font-semibold text-[color:var(--color-figma-text)]">
@@ -406,61 +441,105 @@ export function GeneratorCreatePanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div className="mb-4 grid gap-2 min-[720px]:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setStartMode("preset")}
+            className={`flex items-start gap-3 rounded-md px-3 py-3 text-left transition-colors ${
+              startMode === "preset"
+                ? "bg-[var(--color-figma-bg-selected)]"
+                : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            }`}
+          >
+            <Sparkles
+              size={15}
+              className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
+            />
+            <span className="min-w-0">
+              <span className="block text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                Start from preset
+              </span>
+              <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                Configure a ready-made token group.
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStartMode("graph")}
+            className={`flex items-start gap-3 rounded-md px-3 py-3 text-left transition-colors ${
+              startMode === "graph"
+                ? "bg-[var(--color-figma-bg-selected)]"
+                : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            }`}
+          >
+            <Workflow
+              size={15}
+              className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
+            />
+            <span className="min-w-0">
+              <span className="block text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                Start with graph
+              </span>
+              <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                Build directly with nodes and connections.
+              </span>
+            </span>
+          </button>
+        </div>
+
+        {startMode === "preset" ? (
         <div className="grid gap-4 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
           <div className="space-y-2">
             <div className="px-1">
               <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                Preset
+                Presets
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Choose the pattern that matches the token group you want.
               </p>
             </div>
-            <div className="space-y-1">
-              {GENERATOR_PRESET_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => updateKind(option.id)}
-                  className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors ${
-                    option.id === kind
-                      ? "bg-[var(--color-figma-bg-selected)]"
-                      : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  }`}
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                      {option.label}
-                    </span>
-                    <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                      {presetSourceLabel(option.id)}
-                      {" -> "}
-                      {option.outputPrefix}
-                    </span>
-                  </span>
-                  <PresetIcon kind={option.id} />
-                </button>
+            <div className="space-y-3">
+              {PRESET_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <div className="mb-1 px-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+                    {group.label}
+                  </div>
+                  <div className="space-y-1">
+                    {group.ids.map((id) => {
+                      const option = GENERATOR_PRESET_OPTIONS.find(
+                        (candidate) => candidate.id === id,
+                      );
+                      if (!option) return null;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => updateKind(option.id)}
+                          className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors ${
+                            option.id === kind
+                              ? "bg-[var(--color-figma-bg-selected)]"
+                              : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                              {option.label}
+                            </span>
+                            <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                              {presetSourceLabel(option.id)}
+                              {" -> "}
+                              {option.outputPrefix}
+                            </span>
+                          </span>
+                          <PresetIcon kind={option.id} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={createBlankGenerator}
-              disabled={busy !== null || !targetCollectionId}
-              className="mt-2 flex w-full items-start justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-            >
-              <span className="min-w-0">
-                <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                  Custom generator
-                </span>
-                <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                  Start with an empty graph
-                </span>
-              </span>
-              <Workflow
-                size={13}
-                className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
-              />
-            </button>
           </div>
 
           <div className="space-y-3">
@@ -495,8 +574,6 @@ export function GeneratorCreatePanel({
                 ))}
               </select>
             </label>
-
-            <ModeSummary modes={targetModes} />
 
             <GeneratorPathField
               label="Output group"
@@ -661,7 +738,7 @@ export function GeneratorCreatePanel({
                     </label>
                     {crossCollectionSource ? (
                       <div
-                        className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-error)]"}`}
+                        className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-text-error)]"}`}
                       >
                         {modeCompatibility
                           ? "Source modes match the target collection."
@@ -756,9 +833,90 @@ export function GeneratorCreatePanel({
           ) : null}
           </div>
         </div>
+        ) : (
+          <div className="grid gap-4 min-[760px]:grid-cols-[280px_minmax(0,1fr)]">
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
+                  Graph target
+                </h4>
+                <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Choose where this graph will write generated tokens.
+                </p>
+              </div>
+              <label className="block">
+                <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+                  Collection
+                </span>
+                <select
+                  value={targetCollectionId}
+                  onChange={(event) => setTargetCollectionId(event.target.value)}
+                  className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
+                >
+                  {collectionOptions.map((collection) => (
+                    <option key={collection.id} value={collection.id}>
+                      {collection.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
+                  Graph start
+                </h4>
+                <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Start empty or use a graph-native template.
+                </p>
+              </div>
+              <div className="grid gap-2 min-[720px]:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => createGraphGenerator()}
+                  disabled={busy !== null || !targetCollectionId}
+                  className="flex min-h-[72px] items-start justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-3 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                      Blank graph
+                    </span>
+                    <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                      Add each node yourself.
+                    </span>
+                  </span>
+                  <Workflow
+                    size={14}
+                    className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
+                  />
+                </button>
+                {GENERATOR_PRESET_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => createGraphGenerator(option.id)}
+                    disabled={busy !== null || !targetCollectionId}
+                    className="flex min-h-[72px] items-start justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-3 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                        {option.label}
+                      </span>
+                      <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                        Template graph for {option.outputPrefix}.
+                      </span>
+                    </span>
+                    <PresetIcon kind={option.id} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {error ? (
-          <div className="mt-4 rounded bg-[color-mix(in_srgb,var(--color-figma-error)_10%,transparent)] px-3 py-2 text-secondary text-[color:var(--color-figma-error)]">
+          <div className="mt-4 rounded bg-[color-mix(in_srgb,var(--color-figma-error)_10%,transparent)] px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
             {error}
           </div>
         ) : null}
@@ -772,14 +930,16 @@ export function GeneratorCreatePanel({
         >
           Cancel
         </Button>
-        <Button
-          onClick={createGenerator}
-          disabled={busy !== null || !targetCollectionId}
-          variant="primary"
-          size="sm"
-        >
-          {busy ? "Creating..." : "Create generator"}
-        </Button>
+        {startMode === "preset" ? (
+          <Button
+            onClick={createGenerator}
+            disabled={busy !== null || !targetCollectionId}
+            variant="primary"
+            size="sm"
+          >
+            {busy ? "Creating..." : "Create preset generator"}
+          </Button>
+        ) : null}
       </div>
     </div>
   );
@@ -866,32 +1026,6 @@ function formatCompactValue(value: unknown): string {
     return `${String((value as { value: unknown }).value)}${String((value as { unit: unknown }).unit)}`;
   }
   return JSON.stringify(value);
-}
-
-function ModeSummary({ modes }: { modes: string[] }) {
-  return (
-    <div>
-      <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-        Modes
-      </span>
-      <div className="flex flex-wrap gap-1 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
-        {modes.length > 0 ? (
-          modes.map((mode) => (
-            <span
-              key={mode}
-              className="rounded bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-tertiary text-[color:var(--color-figma-text-secondary)]"
-            >
-              {mode}
-            </span>
-          ))
-        ) : (
-          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            No modes
-          </span>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function presetSourceLabel(kind: GeneratorPresetKind): string {

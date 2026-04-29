@@ -833,7 +833,7 @@ export function SelectionInspector({
             {totalBindings}/{workflowSummary.visiblePropertyCount} bound
           </span>
           {mixedBindings > 0 && (
-            <span className="text-secondary text-[color:var(--color-figma-warning)] shrink-0">
+            <span className="text-secondary text-[color:var(--color-figma-text-warning)] shrink-0">
               {mixedBindings} mixed
             </span>
           )}
@@ -896,7 +896,7 @@ export function SelectionInspector({
                   setShowSelectionActions(false);
                   setShowClearConfirm(true);
                 }}
-                className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-error)]"
+                className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-error)]"
                 title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
               >
                 Remove bindings
@@ -923,7 +923,7 @@ export function SelectionInspector({
           aria-label="Toggle property filters"
           className={`shrink-0 rounded p-1 transition-colors ${
             showFilterPanel || propFilterMode !== "all"
-              ? "text-[color:var(--color-figma-accent)]"
+              ? "text-[color:var(--color-figma-text-accent)]"
               : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
           }`}
         >
@@ -933,7 +933,7 @@ export function SelectionInspector({
           onClick={handleToggleDeepInspect}
           className={`shrink-0 rounded px-1.5 py-0.5 text-secondary transition-colors ${
             deepInspect
-              ? "bg-[var(--color-figma-accent)]/20 font-medium text-[color:var(--color-figma-accent)]"
+              ? "bg-[var(--color-figma-accent)]/20 font-medium text-[color:var(--color-figma-text-accent)]"
               : "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
           }`}
           title={deepInspect ? "Hide nested layers" : "Show nested layers"}
@@ -950,7 +950,7 @@ export function SelectionInspector({
               onClick={() => setPropFilterMode(propFilterMode === mode ? "all" : mode)}
               className={`rounded px-1.5 py-0.5 text-secondary transition-colors ${
                 propFilterMode === mode
-                  ? "bg-[var(--color-figma-accent)]/20 font-medium text-[color:var(--color-figma-accent)]"
+                  ? "bg-[var(--color-figma-accent)]/20 font-medium text-[color:var(--color-figma-text-accent)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
               }`}
             >
@@ -962,7 +962,7 @@ export function SelectionInspector({
               onClick={() => setPropFilterMode(propFilterMode === "mixed" ? "all" : "mixed")}
               className={`rounded px-1.5 py-0.5 text-secondary transition-colors ${
                 propFilterMode === "mixed"
-                  ? "bg-[var(--color-figma-warning)]/20 font-medium text-[color:var(--color-figma-warning)]"
+                  ? "bg-[var(--color-figma-warning)]/20 font-medium text-[color:var(--color-figma-text-warning)]"
                   : "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
               }`}
             >
@@ -972,7 +972,7 @@ export function SelectionInspector({
           {isFilterActive && (
             <button
               onClick={clearPropFilters}
-              className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+              className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
             >
               Clear
             </button>
@@ -1142,7 +1142,7 @@ export function SelectionInspector({
               <div className="flex items-center justify-end border-t border-[var(--color-figma-border)] px-3 py-1.5">
                 <button
                   onClick={openExtract}
-                  className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                  className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                 >
                   Extract {unboundWithValueCount} unbound
                 </button>

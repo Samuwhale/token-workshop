@@ -51,7 +51,7 @@ export const AUTHORING = {
     'w-full px-3 py-1.5 rounded-md bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50 transition-colors',
 
   // --- Feedback ---
-  error: 'text-secondary text-[color:var(--color-figma-error)] break-words',
+  error: 'text-secondary text-[color:var(--color-figma-text-error)] break-words',
 
   // --- Footer links ---
   footerLink:

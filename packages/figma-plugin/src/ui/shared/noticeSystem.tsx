@@ -16,27 +16,27 @@ export type NoticeSeverity =
 /* ------------------------------------------------------------------ */
 
 const BANNER_TONE: Record<NoticeSeverity, string> = {
-  error:   'text-[color:var(--color-figma-error)]',
-  warning: 'text-[color:var(--color-figma-warning)]',
-  stale:   'text-[color:var(--color-figma-warning)]',
+  error:   'text-[color:var(--color-figma-text-error)]',
+  warning: 'text-[color:var(--color-figma-text-warning)]',
+  stale:   'text-[color:var(--color-figma-text-warning)]',
   info:    'text-[color:var(--color-figma-text-secondary)]',
-  success: 'text-[color:var(--color-figma-success)]',
+  success: 'text-[color:var(--color-figma-text-success)]',
 };
 
 const PILL_TONE: Record<NoticeSeverity, string> = {
-  error:   'text-[color:var(--color-figma-error)]',
-  warning: 'text-[color:var(--color-figma-warning)]',
-  stale:   'text-[color:var(--color-figma-warning)]',
+  error:   'text-[color:var(--color-figma-text-error)]',
+  warning: 'text-[color:var(--color-figma-text-warning)]',
+  stale:   'text-[color:var(--color-figma-text-warning)]',
   info:    'text-[color:var(--color-figma-text-secondary)]',
-  success: 'text-[color:var(--color-figma-success)]',
+  success: 'text-[color:var(--color-figma-text-success)]',
 };
 
 const FIELD_TONE: Record<NoticeSeverity, string> = {
-  error:   'text-[color:var(--color-figma-error)]',
-  warning: 'text-[color:var(--color-figma-warning)]',
-  stale:   'text-[color:var(--color-figma-warning)]',
+  error:   'text-[color:var(--color-figma-text-error)]',
+  warning: 'text-[color:var(--color-figma-text-warning)]',
+  stale:   'text-[color:var(--color-figma-text-warning)]',
   info:    'text-[color:var(--color-figma-text-tertiary)]',
-  success: 'text-[color:var(--color-figma-success)]',
+  success: 'text-[color:var(--color-figma-text-success)]',
 };
 
 const FIELD_BORDER_TONE: Record<NoticeSeverity, string> = {
@@ -48,11 +48,11 @@ const FIELD_BORDER_TONE: Record<NoticeSeverity, string> = {
 };
 
 const ICON_TONE: Record<NoticeSeverity, string> = {
-  error: 'text-[color:var(--color-figma-error)]',
-  warning: 'text-[color:var(--color-figma-warning)]',
-  stale: 'text-[color:var(--color-figma-warning)]',
+  error: 'text-[color:var(--color-figma-text-error)]',
+  warning: 'text-[color:var(--color-figma-text-warning)]',
+  stale: 'text-[color:var(--color-figma-text-warning)]',
   info: 'text-[color:var(--color-figma-text-secondary)]',
-  success: 'text-[color:var(--color-figma-success)]',
+  success: 'text-[color:var(--color-figma-text-success)]',
 };
 
 export function severityStyles(severity: NoticeSeverity) {
@@ -211,14 +211,14 @@ export interface NoticeCountBadgeProps {
 
 export function NoticeCountBadge({ severity, count, title, className }: NoticeCountBadgeProps) {
   const tone = severity === 'error'
-    ? 'bg-[var(--color-figma-error)]/15 text-[color:var(--color-figma-error)]'
+    ? 'bg-[var(--color-figma-error)]/15 text-[color:var(--color-figma-text-error)]'
     : severity === 'warning'
-    ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-warning)]'
+    ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-text-warning)]'
     : severity === 'stale'
-    ? 'bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)]'
+    ? 'bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)]'
     : severity === 'info'
     ? 'bg-[var(--color-figma-text-tertiary)]/20 text-[color:var(--color-figma-text-tertiary)]'
-    : 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-success)]';
+    : 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-text-success)]';
 
   return (
     <span
@@ -270,9 +270,9 @@ export function NoticeInlineAlert({ severity, children, onDismiss, className }: 
     : 'border-transparent';
 
   const textTone = severity === 'error'
-    ? 'text-[color:var(--color-figma-error)]'
+    ? 'text-[color:var(--color-figma-text-error)]'
     : severity === 'warning'
-    ? 'text-[color:var(--color-figma-warning)]'
+    ? 'text-[color:var(--color-figma-text-warning)]'
     : 'text-[color:var(--color-figma-text-secondary)]';
 
   return (

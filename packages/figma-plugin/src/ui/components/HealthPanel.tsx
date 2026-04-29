@@ -533,7 +533,7 @@ export function HealthPanel({
         </div>
 
         {libraryReviewErrors.length > 0 ? (
-          <div className="mb-4 text-secondary text-[color:var(--color-figma-error)]">
+          <div className="mb-4 text-secondary text-[color:var(--color-figma-text-error)]">
             Some review checks failed. {libraryReviewErrors.join(" ")}
           </div>
         ) : null}

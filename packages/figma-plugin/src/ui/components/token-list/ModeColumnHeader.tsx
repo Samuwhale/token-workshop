@@ -275,7 +275,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               setConfirmDelete(true);
             }}
-            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:hover:bg-transparent"
+            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:hover:bg-transparent"
           >
             Delete mode
           </button>

@@ -49,7 +49,7 @@ export const InheritedBadge = memo(function InheritedBadge({ propKey, onOverride
       <button
         type="button"
         onClick={onOverride}
-        className="text-secondary text-[color:var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+        className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
         title={`Override ${propKey}`}
       >override</button>
     </span>
@@ -61,7 +61,7 @@ export const RevertBadge = memo(function RevertBadge({ propKey, onRevert }: { pr
     <button
       type="button"
       onClick={onRevert}
-      className="ml-1 text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+      className="ml-1 text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
       title={`Revert ${propKey} to inherited value`}
     >revert</button>
   );
@@ -167,7 +167,7 @@ export const SubPropInput = memo(function SubPropInput({
         aria-label={isAliasVal ? 'Clear reference' : 'Reference a token'}
         className={`${REFERENCE_BUTTON_CLASS} ${
           isAliasVal
-            ? 'text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-error)]'
+            ? 'text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-error)]'
             : 'text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
         }`}
       >
@@ -313,7 +313,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
             onClick={() => { onChange(''); setShowAC(false); }}
             title="Clear reference — use direct value"
             aria-label="Clear reference"
-            className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-error)]`}
+            className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-error)]`}
           >
             <Link2 size={12} strokeWidth={1.8} aria-hidden />
           </button>

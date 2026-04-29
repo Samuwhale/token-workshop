@@ -427,7 +427,7 @@ export function ContrastMatrixPanel({
                   setContrastPage(0);
                   setContrastModeFilter(null);
                 }}
-                className={`flex items-center gap-1.5 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastMultiMode ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                className={`flex items-center gap-1.5 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastMultiMode ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 title="Check contrast across multiple mode options simultaneously — shows worst-case ratio"
               >
                 <svg
@@ -479,7 +479,7 @@ export function ContrastMatrixPanel({
                                     return next;
                                   });
                                 }}
-                                className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${isActive ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                                className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${isActive ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                               >
                                 {opt.name}
                               </button>
@@ -504,7 +504,7 @@ export function ContrastMatrixPanel({
                 setContrastFailuresOnly((v) => !v);
                 setContrastPage(0);
               }}
-              className={`flex items-center gap-1 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastFailuresOnly ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+              className={`flex items-center gap-1 px-2 py-0.5 text-secondary rounded border transition-colors ${contrastFailuresOnly ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-text-error)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
             >
               <svg
                 width="8"
@@ -608,7 +608,7 @@ export function ContrastMatrixPanel({
                     setContrastGroupFilter("all");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === "all" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === "all" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   All
                 </button>
@@ -619,7 +619,7 @@ export function ContrastMatrixPanel({
                       setContrastGroupFilter(g);
                       setContrastPage(0);
                     }}
-                    className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === g ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                    className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === g ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                   >
                     {g}
                   </button>
@@ -634,7 +634,7 @@ export function ContrastMatrixPanel({
                     setContrastSortMode("luminance");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "luminance" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "luminance" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   Luminance
                 </button>
@@ -643,7 +643,7 @@ export function ContrastMatrixPanel({
                     setContrastSortMode("failures");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "failures" ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "failures" ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-text-error)]" : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   Most failures
                 </button>
@@ -731,7 +731,7 @@ export function ContrastMatrixPanel({
                               {canNavigateToToken(fg) && (
                                 <button
                                   onClick={() => navigateToToken(fg)}
-                                  className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                                  className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                                   title={`Go to ${getTokenTitle(fg)}`}
                                 >
                                   Go
@@ -754,7 +754,7 @@ export function ContrastMatrixPanel({
                             </div>
                           </td>
                           <td className="px-1 py-0.5 text-right">
-                            <span className="text-[color:var(--color-figma-error)]">
+                            <span className="text-[color:var(--color-figma-text-error)]">
                               {ratio.toFixed(1)}:1
                             </span>
                           </td>
@@ -780,14 +780,14 @@ export function ContrastMatrixPanel({
                                   {getTokenLabel(suggestedFix)}
                                 </span>
                                 {fixRatio !== null && (
-                                  <span className="text-[color:var(--color-figma-success)] shrink-0">
+                                  <span className="text-[color:var(--color-figma-text-success)] shrink-0">
                                     {fixRatio.toFixed(1)}:1
                                   </span>
                                 )}
                                 {canNavigateToToken(suggestedFix) && (
                                   <button
                                     onClick={() => navigateToToken(suggestedFix)}
-                                    className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                                    className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                                     title={`Go to ${getTokenTitle(suggestedFix)}`}
                                   >
                                     Go
@@ -832,7 +832,7 @@ export function ContrastMatrixPanel({
                       <button
                         key={i}
                         onClick={() => setContrastPage(i)}
-                        className={`px-1.5 py-0.5 text-secondary rounded border ${i === contrastPage ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]" : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                        className={`px-1.5 py-0.5 text-secondary rounded border ${i === contrastPage ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]" : "border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                         aria-label={`Page ${i + 1}`}
                       >
                         {i + 1}
@@ -930,12 +930,12 @@ export function ContrastMatrixPanel({
                             <span
                               className={
                                 aaa
-                                  ? "text-[color:var(--color-figma-success)]"
+                                  ? "text-[color:var(--color-figma-text-success)]"
                                   : aa
                                     ? partialFail
-                                      ? "text-[color:var(--color-figma-warning)]"
-                                      : "text-[color:var(--color-figma-warning)]"
-                                    : "text-[color:var(--color-figma-error)]"
+                                      ? "text-[color:var(--color-figma-text-warning)]"
+                                      : "text-[color:var(--color-figma-text-warning)]"
+                                    : "text-[color:var(--color-figma-text-error)]"
                               }
                               aria-hidden="true"
                             >

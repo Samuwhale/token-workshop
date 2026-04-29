@@ -49,6 +49,10 @@ async function buildSandbox() {
 
 // UI build (Vite)
 async function buildUI() {
+  await fs.rm(path.join(__dirname, 'dist', 'assets'), { recursive: true, force: true });
+  await fs.rm(path.join(__dirname, 'dist', 'index.html'), { force: true });
+  await fs.rm(path.join(__dirname, 'dist', 'ui.html'), { force: true });
+
   const config = {
     root: path.join(__dirname, 'src/ui'),
     plugins: [tailwindcss(), viteSingleFile(), syncUiHtmlPlugin()],

@@ -119,7 +119,7 @@ export function VariableDiffReviewPanel({
         <div className="overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           {pending.added > 0 && (
             <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-2 py-1.5 last:border-b-0">
-              <span className="font-medium text-[color:var(--color-figma-success)]">
+              <span className="font-medium text-[color:var(--color-figma-text-success)]">
                 +{pending.added}
               </span>
               <span>
@@ -129,7 +129,7 @@ export function VariableDiffReviewPanel({
           )}
           {pending.modified > 0 && (
             <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-2 py-1.5 last:border-b-0">
-              <span className="font-medium text-[color:var(--color-figma-warning)]">
+              <span className="font-medium text-[color:var(--color-figma-text-warning)]">
                 ~{pending.modified}
               </span>
               <span>
@@ -227,7 +227,7 @@ export function PromoteReviewPanel({
                 {row.proposedAlias ? (
                   <div className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
                     →{" "}
-                    <span className="font-mono text-[color:var(--color-figma-accent)]">{`{${row.proposedAlias}}`}</span>
+                    <span className="font-mono text-[color:var(--color-figma-text-accent)]">{`{${row.proposedAlias}}`}</span>
                     {row.$type === "color" && row.deltaE !== undefined && (
                       <span
                         className="ml-1 opacity-60"

@@ -56,7 +56,7 @@ export function CommitCompareView({
       <div className="shrink-0 flex flex-wrap items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-body text-[color:var(--color-figma-accent)] hover:underline shrink-0"
+          className="flex items-center gap-1 text-body text-[color:var(--color-figma-text-accent)] hover:underline shrink-0"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -72,7 +72,7 @@ export function CommitCompareView({
       <div className="shrink-0 grid grid-cols-1 gap-px bg-[var(--color-figma-border)] border-b border-[var(--color-figma-border)] md:grid-cols-2">
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[color:var(--color-figma-accent)]">A</span>
+            <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[color:var(--color-figma-text-accent)]">A</span>
             <span className="text-secondary font-mono text-[color:var(--color-figma-text-tertiary)]">{commitA.hash.slice(0, 7)}</span>
           </div>
           <p className="text-secondary font-medium text-[color:var(--color-figma-text)] leading-snug break-words" title={commitA.message}>{commitA.message}</p>
@@ -80,7 +80,7 @@ export function CommitCompareView({
         </div>
         <div className="px-3 py-2 bg-[var(--color-figma-bg)] space-y-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[color:var(--color-figma-success)]">B</span>
+            <span className="text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[color:var(--color-figma-text-success)]">B</span>
             <span className="text-secondary font-mono text-[color:var(--color-figma-text-tertiary)]">{commitB.hash.slice(0, 7)}</span>
           </div>
           <p className="text-secondary font-medium text-[color:var(--color-figma-text)] leading-snug break-words" title={commitB.message}>{commitB.message}</p>
@@ -92,7 +92,7 @@ export function CommitCompareView({
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {loading && (
           <div className="flex items-center justify-center py-3 gap-2">
-            <Spinner size="md" className="text-[color:var(--color-figma-accent)]" />
+            <Spinner size="md" className="text-[color:var(--color-figma-text-accent)]" />
             <p className="text-body text-[color:var(--color-figma-text-secondary)]">Computing diff…</p>
           </div>
         )}

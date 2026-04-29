@@ -59,7 +59,7 @@ export function OpIcon({ type }: { type: string }) {
     return <List size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
   }
   if (type.includes('error')) {
-    return <AlertTriangle size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className="shrink-0 text-[color:var(--color-figma-warning)]" aria-hidden />;
+    return <AlertTriangle size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className="shrink-0 text-[color:var(--color-figma-text-warning)]" aria-hidden />;
   }
   if (type.includes('run')) {
     return <Play size={OP_ICON_SIZE} strokeWidth={OP_ICON_SW} className={OP_ICON_CLASS} aria-hidden />;
@@ -173,7 +173,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                     {desc}
                   </span>
                   {i === 0 && (
-                    <span className="shrink-0 text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)] font-medium">
+                    <span className="shrink-0 text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] font-medium">
                       Undo available
                     </span>
                   )}
@@ -298,7 +298,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                             onClick={() => handleRedo(op.id)}
                             disabled={redoing !== null || rollingBack !== null}
                             title="Redo this operation (⌘Y)"
-                            className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                            className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                           >
                             {redoing === op.id ? (
                               <span className="flex items-center gap-1">
@@ -313,7 +313,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                       <button
                         onClick={() => setConfirmOp(op)}
                         disabled={rollingBack !== null}
-                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                       >
                         {rollingBack === op.id ? (
                           <span className="flex items-center gap-1">

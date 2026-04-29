@@ -18,11 +18,11 @@ function getRowMetadataToneClass(
 ): string {
   switch (tone) {
     case "accent":
-      return "text-[color:var(--color-figma-accent)]";
+      return "text-[color:var(--color-figma-text-accent)]";
     case "warning":
       return "text-[color:var(--color-figma-managed)]";
     case "danger":
-      return "text-[color:var(--color-figma-error)]";
+      return "text-[color:var(--color-figma-text-error)]";
     default:
       return "text-[color:var(--color-figma-text-secondary)]";
   }

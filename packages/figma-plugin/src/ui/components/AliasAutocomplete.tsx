@@ -206,7 +206,7 @@ export function AliasAutocomplete({
                 {entry.$type}
               </span>
               {entry.$lifecycle === 'draft' && (
-                <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-warning)]">draft</span>
+                <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-warning)]">draft</span>
               )}
               {entry.$lifecycle === 'deprecated' && (
                 <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-secondary)]">deprecated</span>

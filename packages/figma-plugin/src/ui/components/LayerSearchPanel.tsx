@@ -167,7 +167,7 @@ export function LayerSearchPanel({
                 </span>
               )}
               {layer.boundCount > 0 && (
-                <span className="shrink-0 rounded-full bg-[var(--color-figma-accent)]/15 px-1 py-0.5 text-[var(--font-size-xs)] text-[color:var(--color-figma-accent)]">
+                <span className="shrink-0 rounded-full bg-[var(--color-figma-accent)]/15 px-1 py-0.5 text-[var(--font-size-xs)] text-[color:var(--color-figma-text-accent)]">
                   {layer.boundCount}
                 </span>
               )}

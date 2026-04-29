@@ -158,7 +158,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpact
             <button
               type="button"
               onClick={() => onConfirm(false)}
-              className="w-full rounded px-3 py-1.5 text-left text-body text-[color:var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              className="w-full rounded px-3 py-1.5 text-left text-body text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
               Rename without updating references
             </button>
@@ -355,7 +355,7 @@ function ExtractToAliasModal() {
                     key={path}
                     onMouseDown={e => e.preventDefault()}
                     onClick={() => { onSetExistingAlias(path); onSetExtractError(''); }}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${existingAlias === path ? 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-accent)]' : 'hover:bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]'}`}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${existingAlias === path ? 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)]' : 'hover:bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]'}`}
                   >
                     <ValuePreview type={t.$type} value={t.$value} />
                     <span className={`flex-1 ${LONG_TEXT_CLASSES.mono}`}>{path}</span>
@@ -410,7 +410,7 @@ function DeleteImpactDetails({
           </NoticePill>
         )}
         {modeImpactCount > 0 && (
-          <NoticePill severity="info" className="border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]">
+          <NoticePill severity="info" className="border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]">
             {modeImpactCount} mode value{modeImpactCount !== 1 ? 's' : ''}
           </NoticePill>
         )}
@@ -582,7 +582,7 @@ function MoveScopePreview({
         </span>
       </div>
       {conflictCount > 0 && (
-        <div className="text-secondary text-[color:var(--color-figma-warning)]">
+        <div className="text-secondary text-[color:var(--color-figma-text-warning)]">
           {conflictCount} token{conflictCount === 1 ? "" : "s"} will overwrite existing values
         </div>
       )}

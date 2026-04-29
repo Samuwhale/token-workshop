@@ -276,7 +276,7 @@ export function TokenSelectionToolbar({
               disabled={!!operationLoading}
               variant="ghost"
               size="md"
-              className="text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-error)]"
+              className="text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
             >
               Delete
             </Button>

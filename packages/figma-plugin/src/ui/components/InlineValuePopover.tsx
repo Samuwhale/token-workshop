@@ -170,7 +170,7 @@ export function InlineValuePopover({
         <button
           type="button"
           onClick={onOpenFullEditor}
-          className="min-w-0 text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-accent)] hover:underline"
+          className="min-w-0 text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)] hover:underline"
         >
           Open token details →
         </button>

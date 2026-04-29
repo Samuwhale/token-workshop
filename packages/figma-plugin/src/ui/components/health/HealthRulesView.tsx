@@ -54,13 +54,13 @@ export function HealthRulesView({
           Loading rules…
         </p>
       ) : !config ? (
-        <p className="text-secondary text-[color:var(--color-figma-error)]">
+        <p className="text-secondary text-[color:var(--color-figma-text-error)]">
           {error ?? "Rules are unavailable right now."}
         </p>
       ) : (
         <>
           {error ? (
-            <p className="mb-3 text-secondary text-[color:var(--color-figma-error)]">
+            <p className="mb-3 text-secondary text-[color:var(--color-figma-text-error)]">
               {error}
             </p>
           ) : null}

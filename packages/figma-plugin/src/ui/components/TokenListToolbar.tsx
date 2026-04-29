@@ -434,7 +434,7 @@ export function TokenListToolbar({
                             : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                         } ${hint.kind === "replacement" ? "" : "cursor-default"}`}
                       >
-                        <span className="font-mono font-semibold text-[color:var(--color-figma-accent)]">
+                        <span className="font-mono font-semibold text-[color:var(--color-figma-text-accent)]">
                           {hint.label}
                         </span>
                         <span className="min-w-0 flex-1 whitespace-normal break-words leading-tight">
@@ -473,7 +473,7 @@ export function TokenListToolbar({
                   title="Sort and group"
                   className={`${TOOLBAR_BUTTON_CLASS} ${
                     sortMenu.open || sortActive
-                      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]"
+                      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
                       : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   }`}
                 >
@@ -765,7 +765,7 @@ export function TokenListToolbar({
                 }
                 className={`inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-secondary transition-colors ${
                   inspectMode
-                    ? "bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-accent)]"
+                    ? "bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)]"
                     : "bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
                 }`}
               >

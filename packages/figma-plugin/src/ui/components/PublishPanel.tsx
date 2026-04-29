@@ -1129,7 +1129,7 @@ export function PublishPanel({
           {/* ── Progress indicator ────────────────────────────────────── */}
           {(isSyncing || isApplying) && (
             <div className="flex items-center gap-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              <Spinner size="sm" className="text-[color:var(--color-figma-accent)]" />
+              <Spinner size="sm" className="text-[color:var(--color-figma-text-accent)]" />
               <span>
                 {readinessLoading && 'Checking readiness…'}
                 {!readinessLoading && (compareAllLoading || varSync.loading || styleSync.loading) && 'Comparing with Figma…'}
@@ -1142,7 +1142,7 @@ export function PublishPanel({
           {/* ── In sync state ─────────────────────────────────────────── */}
           {isInSync && !hasBlockers && (
             <div className="flex items-center gap-2 rounded-md border border-[var(--color-figma-success)]/20 bg-[var(--color-figma-success)]/5 px-4 py-3">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-success)] shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-success)] shrink-0">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
               <span className="text-body text-[color:var(--color-figma-text)]">Everything in sync</span>
@@ -1220,7 +1220,7 @@ export function PublishPanel({
                 {allConflictRows.length > 0 && (
                   <div className="overflow-hidden">
                     <div className="flex items-center gap-2 px-1 py-1.5">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-warning)] shrink-0" aria-hidden="true">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-warning)] shrink-0" aria-hidden="true">
                         <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -1672,7 +1672,7 @@ function PublishAllPreviewModal({
         </div>
 
         {confirmError && (
-          <p className="px-4 pb-2 text-secondary text-[color:var(--color-figma-error)] break-words" role="alert">{confirmError}</p>
+          <p className="px-4 pb-2 text-secondary text-[color:var(--color-figma-text-error)] break-words" role="alert">{confirmError}</p>
         )}
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)] pt-2">
           <button
@@ -1706,11 +1706,11 @@ function PublishAllPreviewModal({
 }
 
 function stageStatusTextClass(severity: NoticeSeverity): string {
-  if (severity === 'error') return 'text-[color:var(--color-figma-error)]';
+  if (severity === 'error') return 'text-[color:var(--color-figma-text-error)]';
   if (severity === 'warning' || severity === 'stale') {
-    return 'text-[color:var(--color-figma-warning)]';
+    return 'text-[color:var(--color-figma-text-warning)]';
   }
-  if (severity === 'success') return 'text-[color:var(--color-figma-success)]';
+  if (severity === 'success') return 'text-[color:var(--color-figma-text-success)]';
   return 'text-[color:var(--color-figma-text-secondary)]';
 }
 

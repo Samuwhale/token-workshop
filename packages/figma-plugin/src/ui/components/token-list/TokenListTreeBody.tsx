@@ -460,7 +460,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                         setSearchQuery("");
                         setTypeFilter(matchingType);
                       }}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
                     >
                       Filter by type: {matchingType}{" "}
                       <span aria-hidden="true">&rarr;</span>
@@ -520,7 +520,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           <div className="px-3 py-2 flex items-center justify-between gap-3">
             <div className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
               {crossCollectionError ? (
-                <span className="text-[color:var(--color-figma-error)]">
+                <span className="text-[color:var(--color-figma-text-error)]">
                   {crossCollectionError}
                 </span>
               ) : (
@@ -528,7 +528,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               )}
             </div>
             <button
-              className="shrink-0 text-secondary text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50"
+              className="shrink-0 text-secondary text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
               disabled={crossCollectionLoading}
               onClick={() => {
                 if (crossCollectionError) {

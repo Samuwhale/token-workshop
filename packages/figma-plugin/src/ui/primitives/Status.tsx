@@ -31,10 +31,10 @@ export interface StatusRowProps extends Omit<HTMLAttributes<HTMLElement>, "title
 
 const TONE_CLASS: Record<StatusTone, string> = {
   neutral: "text-[color:var(--color-figma-text-secondary)]",
-  info: "text-[color:var(--color-figma-accent)]",
-  success: "text-[color:var(--color-figma-success)]",
-  warning: "text-[color:var(--color-figma-warning)]",
-  danger: "text-[color:var(--color-figma-error)]",
+  info: "text-[color:var(--color-figma-text-accent)]",
+  success: "text-[color:var(--color-figma-text-success)]",
+  warning: "text-[color:var(--color-figma-text-warning)]",
+  danger: "text-[color:var(--color-figma-text-error)]",
 };
 
 function defaultIcon(tone: StatusTone) {

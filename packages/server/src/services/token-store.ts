@@ -43,6 +43,8 @@ import { isValidCollectionName } from "./collection-helpers.js";
 
 import { isSafeRegex } from "./token-tree-utils.js";
 
+const TOKEN_FILE_SUFFIX = ".tokens.json";
+
 interface StoredCollection {
   name: string;
   tokens: TokenGroup;
@@ -127,7 +129,14 @@ export class TokenStore {
   }
 
   private collectionFilePath(collectionId: string): string {
-    return path.join(this.dir, `${collectionId}.tokens.json`);
+    return path.join(this.dir, `${collectionId}${TOKEN_FILE_SUFFIX}`);
+  }
+
+  private collectionIdFromTokenFilePath(relativePath: string): string {
+    const normalized = relativePath.replace(/\\/g, "/");
+    return normalized.endsWith(TOKEN_FILE_SUFFIX)
+      ? normalized.slice(0, -TOKEN_FILE_SUFFIX.length)
+      : normalized;
   }
 
   private async readCollectionTokens(
@@ -281,7 +290,7 @@ export class TokenStore {
    * Emits a `collection-updated` event after loading.
    */
   async reloadFile(relativePath: string): Promise<void> {
-    const collectionId = relativePath.replace(".tokens.json", "");
+    const collectionId = this.collectionIdFromTokenFilePath(relativePath);
     if (!this.collections.has(collectionId)) {
       return;
     }
@@ -309,7 +318,7 @@ export class TokenStore {
         return;
       }
       const relativePath = path.relative(this.dir, filePath as string);
-      const collectionId = relativePath.replace(".tokens.json", "");
+      const collectionId = this.collectionIdFromTokenFilePath(relativePath);
       if (!this.collections.has(collectionId)) {
         return;
       }
@@ -331,7 +340,7 @@ export class TokenStore {
         return;
       }
       const relativePath = path.relative(this.dir, filePath as string);
-      const collectionId = relativePath.replace(".tokens.json", "");
+      const collectionId = this.collectionIdFromTokenFilePath(relativePath);
       if (!this.collections.has(collectionId)) {
         return;
       }
@@ -356,7 +365,7 @@ export class TokenStore {
         return;
       }
       const relativePath = path.relative(this.dir, filePath as string);
-      const collectionId = relativePath.replace(".tokens.json", "");
+      const collectionId = this.collectionIdFromTokenFilePath(relativePath);
       if (!this.collections.has(collectionId)) {
         return;
       }

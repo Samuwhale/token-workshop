@@ -92,40 +92,97 @@ export function cssVarToPath(name: string): string {
 /** CSS expressions that cannot be resolved to a static value */
 const DYNAMIC_CSS_PATTERN = /\b(calc|env|min|max|clamp)\s*\(/i;
 
+function createSkippedEntry(path: string, originalExpression: string, reason: string): SkippedEntry {
+  return { path, originalExpression, reason };
+}
+
+function stripCssComments(raw: string): string {
+  return raw.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+function splitCssStatements(raw: string): string[] {
+  const statements: string[] = [];
+  let current = '';
+  let parenDepth = 0;
+  let quote: '"' | "'" | null = null;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i];
+    current += char;
+
+    if (quote) {
+      if (char === '\\') {
+        const next = raw[i + 1];
+        if (next) {
+          current += next;
+          i++;
+        }
+      } else if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === '(') parenDepth++;
+    if (char === ')' && parenDepth > 0) parenDepth--;
+
+    if (char === ';' && parenDepth === 0) {
+      statements.push(current.slice(0, -1).trim());
+      current = '';
+    }
+  }
+
+  const trailing = current.trim();
+  if (trailing) statements.push(trailing);
+  return statements;
+}
+
+function extractCustomPropertyStatement(statement: string): { name: string; rawValue: string } | null {
+  const match = statement.match(/(?:^|[{\s])(--[\w-]+)\s*:\s*([\s\S]+)$/);
+  if (!match) return null;
+  return { name: match[1], rawValue: match[2].replace(/}\s*$/, '').trim() };
+}
+
 export function parseCSSCustomProperties(raw: string): ParseResult {
-  const lines = raw.trim().split('\n');
   const tokens: ParsedToken[] = [];
   const errors: string[] = [];
   const skipped: SkippedEntry[] = [];
+  const statements = splitCssStatements(stripCssComments(raw));
 
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i].trim();
-    if (!line || line.startsWith('//') || line.startsWith('/*') || line === '}' || line === '{' || /^[a-z.*:]+\s*\{/.test(line)) continue;
-    // Strip trailing semicolon and !important
-    line = line.replace(/\s*!important\s*/, '').replace(/;\s*$/, '');
-    const match = line.match(/^(--[\w-]+)\s*:\s*(.+)$/);
-    if (!match) {
-      errors.push(`Line ${i + 1}: expected "--name: value"`);
+  for (const statement of statements) {
+    const declaration = extractCustomPropertyStatement(statement);
+    if (!declaration) {
+      if (/(?:^|[{\s])--[\w-]+\b/.test(statement)) {
+        errors.push(`Invalid custom property declaration: "${statement}"`);
+      }
       continue;
     }
-    const path = cssVarToPath(match[1]);
-    let rawValue = match[2].trim();
+
+    const path = cssVarToPath(declaration.name);
+    let rawValue = declaration.rawValue.replace(/\s*!important\s*$/, '').trim();
+    if (!rawValue) {
+      errors.push(`Custom property "${declaration.name}" has no value`);
+      continue;
+    }
+
     // Convert var(--x) references to DTCG alias syntax
     const simpleVarRef = rawValue.match(/^var\((--[\w-]+)\)$/);
     if (simpleVarRef) {
       rawValue = `{${cssVarToPath(simpleVarRef[1])}}`;
     } else if (DYNAMIC_CSS_PATTERN.test(rawValue) || rawValue.includes('var(')) {
       // Dynamic expression — cannot be resolved to a static design token value
-      const entry: SkippedEntry = {
-        path,
-        originalExpression: rawValue,
-        reason: 'Dynamic CSS expression — cannot be resolved statically',
-      };
-      skipped.push(entry);
-      console.debug('[tokenParsers] CSS skipped:', entry.path, '—', entry.reason, `(${rawValue})`);
+      skipped.push(createSkippedEntry(path, rawValue, 'Dynamic CSS expression — cannot be resolved statically'));
       continue;
     }
     tokens.push({ path, ...inferType(rawValue) });
+  }
+
+  if (tokens.length === 0 && skipped.length === 0 && errors.length === 0) {
+    errors.push('No CSS custom properties found');
   }
 
   return { tokens, errors, skipped, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'css' };
@@ -266,21 +323,13 @@ export function flattenJSObject(
       const strVal = String(val);
       results.push({ path, ...inferType(strVal) });
     } else if (Array.isArray(val)) {
-      const entry: SkippedEntry = { path, originalExpression: JSON.stringify(val), reason: 'Array value — not a scalar design token' };
-      skipped.push(entry);
-      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
+      skipped.push(createSkippedEntry(path, JSON.stringify(val), 'Array value — not a scalar design token'));
     } else if (typeof val === 'function') {
-      const entry: SkippedEntry = { path, originalExpression: '[function]', reason: 'Function value — cannot be resolved statically' };
-      skipped.push(entry);
-      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
+      skipped.push(createSkippedEntry(path, '[function]', 'Function value — cannot be resolved statically'));
     } else if (typeof val === 'boolean') {
-      const entry: SkippedEntry = { path, originalExpression: String(val), reason: 'Boolean value — not a supported token type' };
-      skipped.push(entry);
-      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
+      skipped.push(createSkippedEntry(path, String(val), 'Boolean value — not a supported token type'));
     } else if (val === null) {
-      const entry: SkippedEntry = { path, originalExpression: 'null', reason: 'Null value — no token value to import' };
-      skipped.push(entry);
-      console.debug('[tokenParsers] Tailwind skipped:', entry.path, '—', entry.reason);
+      skipped.push(createSkippedEntry(path, 'null', 'Null value — no token value to import'));
     }
   }
   return results;
@@ -428,8 +477,7 @@ export function parseInput(raw: string): ParseResult {
       const twResult = parseTailwindConfig(trimmed);
       if (twResult.tokens.length > 0) return twResult;
       return { tokens: [], errors: ['No tokens found in JSON. Expected DTCG format with $value fields, or a plain key/value object.'], skipped: twResult.skipped, format: 'error' };
-    } catch (e) {
-      console.debug('[tokenParsers] JSON parse failed, trying Tailwind/JS fallback:', e);
+    } catch {
       const twResult = parseTailwindConfig(trimmed);
       if (twResult.tokens.length > 0) return twResult;
       // Re-parse for error message

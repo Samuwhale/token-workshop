@@ -3,15 +3,12 @@
  *
  * Consolidates the editor's token-linking UI into a single consistent component.
  *
- * Modes:
- * - "dropdown" — Inline searchable dropdown
- * - "field"    — Shows a linked badge or trigger button; opens search on click
  */
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { tokenTypeBadgeClass } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
-import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import { isAlias } from '../../shared/resolveAlias';
 import { addRecentToken } from '../shared/recentTokens';
 import { swatchBgColor } from '../shared/colorUtils';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
@@ -51,19 +48,6 @@ export interface TokenPickerProps {
   autoFocus?: boolean;
 }
 
-export interface TokenPickerFieldProps extends Omit<TokenPickerProps, 'onClose'> {
-  /** Currently linked token path, or undefined if not linked. */
-  value: string | undefined;
-  /** Collection that owns the linked token when the path is ambiguous. */
-  selectedCollectionId?: string;
-  /** Called when the user clears the linked token. */
-  onClear: () => void;
-  /** Label shown above the field. */
-  label?: string;
-  /** Compact display (no label, smaller). */
-  compact?: boolean;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -85,29 +69,6 @@ function formatValuePreview(value: unknown): string {
     return parts.join(' / ') || '';
   }
   return String(value);
-}
-
-function resolveEntry(
-  entry: TokenMapEntry,
-  allTokensFlat: Record<string, TokenMapEntry>,
-  scopedTokens?: Record<string, TokenMapEntry>,
-): TokenMapEntry {
-  if (!isAlias(entry.$value)) return entry;
-  const result = resolveTokenValue(
-    entry.$value,
-    entry.$type,
-    scopedTokens ?? allTokensFlat,
-  );
-  if (result.value != null) {
-    return { ...entry, $value: result.value, $type: result.$type };
-  }
-  if (scopedTokens != null) {
-    const fallback = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
-    if (fallback.value != null) {
-      return { ...entry, $value: fallback.value, $type: fallback.$type };
-    }
-  }
-  return entry;
 }
 
 // ---------------------------------------------------------------------------
@@ -318,7 +279,7 @@ export function TokenPickerDropdown({
                     {entry.$type}
                   </span>
                   {entry.$lifecycle === 'draft' && (
-                    <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-warning)]">
+                    <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-warning)]">
                       draft
                     </span>
                   )}
@@ -346,186 +307,6 @@ export function TokenPickerDropdown({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TokenPickerField — The field-level component (linked badge or trigger)
-// ---------------------------------------------------------------------------
-
-/**
- * A self-contained token picker field.
- *
- * When no token is linked: shows a search trigger button.
- * When a token is linked: shows a badge with the token path, resolved value,
- * and color swatch (if applicable), plus a clear button.
- *
- * Clicking the trigger or the badge opens/toggles the dropdown.
- */
-export function TokenPickerField({
-  value,
-  selectedCollectionId,
-  onSelect,
-  onClear,
-  allTokensFlat,
-  pathToCollectionId,
-  filterType,
-  includeDeprecated,
-  excludePaths,
-  label,
-  compact,
-  placeholder,
-  autoFocus,
-}: TokenPickerFieldProps) {
-  const [open, setOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const { perCollectionFlat } = useTokenFlatMapContext();
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const handleSelect = useCallback(
-    (
-      path: string,
-      resolvedValue: unknown,
-      entry: TokenMapEntry,
-      selection?: ScopedTokenCandidate,
-    ) => {
-      setOpen(false);
-      onSelect(path, resolvedValue, entry, selection);
-    },
-    [onSelect],
-  );
-
-  // Resolve the linked token for display
-  const linkedEntry =
-    value == null
-      ? undefined
-      : (selectedCollectionId
-          ? perCollectionFlat?.[selectedCollectionId]?.[value]
-          : undefined) ?? allTokensFlat[value];
-  const linkedResolved = useMemo(() => {
-    if (!linkedEntry) return undefined;
-    return resolveEntry(
-      linkedEntry,
-      allTokensFlat,
-      selectedCollectionId
-        ? perCollectionFlat?.[selectedCollectionId]
-        : undefined,
-    );
-  }, [allTokensFlat, linkedEntry, perCollectionFlat, selectedCollectionId]);
-
-  const linkedValueStr = linkedResolved
-    ? formatValuePreview(linkedResolved.$value)
-    : '';
-  const linkedIsColor =
-    linkedResolved?.$type === 'color' &&
-    typeof linkedResolved.$value === 'string';
-
-  return (
-    <div ref={wrapperRef} className="flex flex-col gap-1.5">
-      {/* Label row */}
-      {label && !compact && (
-        <div className="flex items-center gap-1.5">
-          <label className="flex-1 text-body text-[color:var(--color-figma-text-secondary)]">
-            {label}
-          </label>
-        </div>
-      )}
-
-      {/* Linked state: token badge */}
-      {value && linkedEntry ? (
-        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/40 min-w-0 group">
-          {linkedIsColor && (
-            <div
-              className="w-4 h-4 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-              style={{
-                backgroundColor: swatchBgColor(linkedResolved!.$value as string),
-              }}
-            />
-          )}
-          <span
-            className="min-w-0 flex-1 text-body font-mono text-[color:var(--color-figma-accent)] truncate cursor-default"
-            title={value}
-          >
-            {value}
-          </span>
-          {linkedValueStr && (
-            <span className="min-w-0 max-w-[40%] truncate text-secondary text-[color:var(--color-figma-text-secondary)] font-mono">
-              {linkedValueStr}
-            </span>
-          )}
-          {/* Swap button */}
-          <button
-            type="button"
-            onClick={() => setOpen(o => !o)}
-            title="Change linked token"
-            aria-label="Change linked token"
-            className="p-1 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-            </svg>
-          </button>
-          {/* Clear button */}
-          <button
-            type="button"
-            onClick={onClear}
-            title="Unlink token"
-            aria-label="Unlink token"
-            className="p-1 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      ) : (
-        /* Unlinked state: trigger button */
-        <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
-          className={`flex items-center gap-1.5 px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors text-left ${
-            compact ? 'text-secondary' : 'text-body'
-          }`}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-          </svg>
-          {placeholder ?? 'Pick a token…'}
-        </button>
-      )}
-
-      {/* Dropdown */}
-      {open && (
-        <div className="relative z-50">
-          <div className="absolute left-0 right-0 top-0">
-            <TokenPickerDropdown
-              allTokensFlat={allTokensFlat}
-              pathToCollectionId={pathToCollectionId}
-              filterType={filterType}
-              includeDeprecated={includeDeprecated}
-              excludePaths={excludePaths}
-              onSelect={handleSelect}
-              onClose={() => setOpen(false)}
-              placeholder={placeholder}
-              autoFocus={autoFocus ?? true}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

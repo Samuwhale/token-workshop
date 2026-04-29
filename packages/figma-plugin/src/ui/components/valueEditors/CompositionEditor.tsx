@@ -156,7 +156,7 @@ function CompositionPropertyEditor({
           onClick={() => onChange(!value)}
           className={`px-2 py-1 rounded text-secondary font-medium border ${
             value
-              ? 'bg-[var(--color-figma-accent)]/20 text-[color:var(--color-figma-accent)] border-[var(--color-figma-accent)]/40'
+              ? 'bg-[var(--color-figma-accent)]/20 text-[color:var(--color-figma-text-accent)] border-[var(--color-figma-accent)]/40'
               : 'bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] border-[var(--color-figma-border)]'
           }`}
         >
@@ -165,7 +165,7 @@ function CompositionPropertyEditor({
         <button
           type="button"
           onClick={() => onChange('{')}
-          className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-accent)]"
+          className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)]"
           title="Use token reference"
         >{'{…}'}</button>
       </Stack>
@@ -330,7 +330,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
               type="button"
               onClick={() => remove(prop)}
               title={isInherited(prop) ? `Override ${prop}` : `Remove ${prop}`}
-              className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+              className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
             >
               <X size={8} strokeWidth={2} aria-hidden />
             </button>
@@ -358,7 +358,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
           <button
             type="button"
             onClick={addProp}
-            className="px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/20 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
+            className="px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/20 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
           >+ Add</button>
         </Stack>
       )}

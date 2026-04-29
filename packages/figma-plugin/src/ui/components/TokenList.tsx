@@ -1900,7 +1900,7 @@ export function TokenList({
       {/* Copy feedback toast (⌘⌥C alias-ref or ⌘⇧C preferred-format) */}
       {(copyAliasFeedback || copyPreferredFeedback) && (
         <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-accent))] text-white text-body font-medium shadow-md"
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none px-3 py-1 rounded bg-[var(--color-figma-bg-brand,var(--color-figma-action-bg))] text-[color:var(--color-figma-text-onbrand)] text-body font-medium shadow-md"
           aria-live="polite"
         >
           Copied!

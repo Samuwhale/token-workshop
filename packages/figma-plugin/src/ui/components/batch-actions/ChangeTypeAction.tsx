@@ -132,7 +132,7 @@ export function ChangeTypeAction({
             {currentTypeLabels} → <span className="text-[color:var(--color-figma-text)] font-medium">{newTypeLabel}</span>
             {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
             {hasIncompatible && (
-              <span className="text-[color:var(--color-figma-error)]">
+              <span className="text-[color:var(--color-figma-text-error)]">
                 {' '}— {typeChangeInfo.incompatible.length} with incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}
               </span>
             )}
@@ -153,7 +153,7 @@ export function ChangeTypeAction({
             </p>
             {hasIncompatible ? (
               <div className="space-y-0.5">
-                <p className="text-secondary text-[color:var(--color-figma-error)] leading-snug font-medium">
+                <p className="text-secondary text-[color:var(--color-figma-text-error)] leading-snug font-medium">
                   {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}:
                 </p>
                 {(expanded ? typeChangeInfo.incompatible : typeChangeInfo.incompatible.slice(0, PREVIEW_MAX)).map(({ path, error }) => (
@@ -165,7 +165,7 @@ export function ChangeTypeAction({
                   </div>
                 ))}
                 {typeChangeInfo.incompatible.length > PREVIEW_MAX && (
-                  <button type="button" onClick={() => setExpanded(v => !v)} className="text-secondary text-[color:var(--color-figma-accent)] hover:underline text-left">
+                  <button type="button" onClick={() => setExpanded(v => !v)} className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline text-left">
                     {expanded ? 'Show less' : `and ${typeChangeInfo.incompatible.length - PREVIEW_MAX} more…`}
                   </button>
                 )}

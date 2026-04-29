@@ -51,7 +51,7 @@ export const LineHeightEditor = memo(function LineHeightEditor({ value, onChange
       <button
         type="button"
         onClick={toggleMode}
-        className="text-secondary text-[color:var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer self-start"
+        className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer self-start"
       >
         Switch to {isDimension ? 'unitless' : 'dimension'}
       </button>

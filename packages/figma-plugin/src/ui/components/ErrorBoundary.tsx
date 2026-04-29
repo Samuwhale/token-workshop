@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.error) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-6 gap-3 text-center">
-          <p className="text-body font-medium text-[color:var(--color-figma-error)]">
+          <p className="text-body font-medium text-[color:var(--color-figma-text-error)]">
             {this.props.panelName ? `${this.props.panelName} crashed` : 'Something went wrong'}
           </p>
           <p className="text-secondary text-[color:var(--color-figma-text-secondary)] font-mono break-all max-w-xs">

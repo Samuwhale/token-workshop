@@ -77,7 +77,7 @@ export function ScopeEditor({
               type="button"
               onClick={() => onChange([])}
               disabled={disabled}
-              className="text-secondary text-[color:var(--color-figma-accent)] ml-auto hover:underline"
+              className="text-secondary text-[color:var(--color-figma-text-accent)] ml-auto hover:underline"
             >
               Clear all
             </button>

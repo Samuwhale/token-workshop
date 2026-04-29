@@ -19,7 +19,7 @@ export function PanelHelpIcon({ title, expanded, onToggle }: {
     <IconButton
       size="sm"
       onClick={onToggle}
-      className={expanded ? 'text-[color:var(--color-figma-accent)]' : ''}
+      className={expanded ? 'text-[color:var(--color-figma-text-accent)]' : ''}
       title={expanded ? 'Hide help' : `What is ${title}?`}
       aria-label={expanded ? 'Hide help' : `What is ${title}?`}
       aria-expanded={expanded}

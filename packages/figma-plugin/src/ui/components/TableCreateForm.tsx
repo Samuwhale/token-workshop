@@ -159,7 +159,7 @@ export function TableCreateForm({
                   type="button"
                   title={s.source}
                   onClick={() => addSuggestedName(leafName)}
-                  className="px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors cursor-pointer"
+                  className="px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors cursor-pointer"
                 >
                   {s.label}
                 </button>
@@ -249,7 +249,7 @@ export function TableCreateForm({
                   onClick={() => onRemoveRow(row.id)}
                   tabIndex={-1}
                   aria-label={`Remove row ${idx + 1}`}
-                  className="w-[18px] h-[18px] flex items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="w-[18px] h-[18px] flex items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   <X size={12} aria-hidden="true" />
                 </button>
@@ -264,7 +264,7 @@ export function TableCreateForm({
           <button
             type="button"
             onClick={() => onAddRow()}
-            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors inline-flex items-center justify-center gap-1"
+            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors inline-flex items-center justify-center gap-1"
           >
             <Plus size={12} aria-hidden="true" />
             Add Row

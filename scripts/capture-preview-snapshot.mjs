@@ -45,24 +45,58 @@ async function ensureDemoTokenDir() {
   await fs.mkdir(demoTokenDir, { recursive: true });
 }
 
+async function listTokenFiles(dir, prefix = '') {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const absolutePath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await listTokenFiles(absolutePath, relativePath));
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith('.tokens.json')) {
+      files.push(relativePath);
+    }
+  }
+
+  return files;
+}
+
+async function removeEmptyDirectories(dir) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
+        const childDir = path.join(dir, entry.name);
+        await removeEmptyDirectories(childDir);
+        const remaining = await fs.readdir(childDir);
+        if (remaining.length === 0) {
+          await fs.rmdir(childDir);
+        }
+      }),
+  );
+}
+
+function tokenFilePath(collectionId) {
+  return path.join(demoTokenDir, `${collectionId}.tokens.json`);
+}
+
 async function clearRemovedTokenFiles(collectionIds) {
   const expected = new Set(collectionIds.map((collectionId) => `${collectionId}.tokens.json`));
-  const entries = await fs.readdir(demoTokenDir, { withFileTypes: true });
+  const tokenFiles = await listTokenFiles(demoTokenDir);
 
   await Promise.all(
-    entries.map(async (entry) => {
-      if (!entry.isFile()) {
+    tokenFiles.map(async (relativePath) => {
+      if (expected.has(relativePath)) {
         return;
       }
-      if (!entry.name.endsWith('.tokens.json')) {
-        return;
-      }
-      if (expected.has(entry.name)) {
-        return;
-      }
-      await fs.unlink(path.join(demoTokenDir, entry.name));
+      await fs.unlink(path.join(demoTokenDir, ...relativePath.split('/')));
     }),
   );
+  await removeEmptyDirectories(demoTokenDir);
 }
 
 async function capture() {
@@ -83,7 +117,6 @@ async function capture() {
   const collections = Array.isArray(collectionsResponse.collections)
     ? collectionsResponse.collections
     : [];
-  const views = Array.isArray(collectionsResponse.views) ? collectionsResponse.views : [];
 
   const tokenEntries = await Promise.all(
     collections.map(async (collection) => {
@@ -100,16 +133,15 @@ async function capture() {
     path.join(demoTokenDir, '$collections.json'),
     prettyJson({
       $collections: collections.map(({ tokenCount, ...collection }) => collection),
-      ...(views.length > 0 ? { $views: views } : {}),
     }),
   );
 
   await Promise.all(
-    tokenEntries.map(([collectionId, tokens]) =>
-      fs.writeFile(
-        path.join(demoTokenDir, `${collectionId}.tokens.json`),
-        prettyJson(tokens),
-      )),
+    tokenEntries.map(async ([collectionId, tokens]) => {
+      const targetPath = tokenFilePath(collectionId);
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.writeFile(targetPath, prettyJson(tokens));
+    }),
   );
 
   const snapshot = {

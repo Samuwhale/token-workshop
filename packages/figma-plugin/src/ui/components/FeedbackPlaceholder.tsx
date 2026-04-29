@@ -50,7 +50,7 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
 const VARIANT_ICON_COLOR: Record<FeedbackPlaceholderVariant, string> = {
   empty: 'text-[color:var(--color-figma-text-secondary)]',
   'no-results': 'text-[color:var(--color-figma-text-secondary)]',
-  error: 'text-[color:var(--color-figma-error)]',
+  error: 'text-[color:var(--color-figma-text-error)]',
   disconnected: 'text-[color:var(--color-figma-text-secondary)]',
 };
 

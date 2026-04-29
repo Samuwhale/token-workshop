@@ -191,8 +191,10 @@ export function makeDefaultStructuredGeneratorDraft(
 }
 
 export function readStructuredGeneratorDraft(
-  generator: Pick<TokenGeneratorDocument, 'nodes' | 'edges'>,
+  generator: Pick<TokenGeneratorDocument, 'authoringMode' | 'nodes' | 'edges'>,
 ): GeneratorStructuredDraft | null {
+  if (generator.authoringMode !== 'preset') return null;
+
   const generationNode = generator.nodes.find((node) => PRESET_BY_NODE_KIND[node.kind]);
   const outputNode = generator.nodes.find((node) => node.kind === 'groupOutput');
   if (!generationNode || !outputNode) return null;

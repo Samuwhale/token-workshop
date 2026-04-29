@@ -158,7 +158,7 @@ export function ExportFooter({
             </p>
           )}
           {selectedCollections !== null && selectedCollections.size === 0 && (
-            <p className="text-secondary text-[color:var(--color-figma-warning)] leading-tight">
+            <p className="text-secondary text-[color:var(--color-figma-text-warning)] leading-tight">
               No collections selected — open Collections above to choose which collections to include.
             </p>
           )}

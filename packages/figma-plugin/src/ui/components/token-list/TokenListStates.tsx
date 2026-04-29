@@ -297,7 +297,7 @@ export function TokenListFilteredEmptyState({
                 <button
                   key={index}
                   onClick={suggestion.action}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded text-secondary text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-accent)] transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded text-secondary text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
                 >
                   {suggestion.icon === "create" && (
                     <svg

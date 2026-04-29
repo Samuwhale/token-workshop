@@ -139,7 +139,7 @@ export function SetExtensionsAction({
         <button
           type="button"
           onClick={addRow}
-          className="text-secondary text-[color:var(--color-figma-accent)] hover:underline text-left"
+          className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline text-left"
         >
           Add extension key
         </button>

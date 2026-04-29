@@ -331,10 +331,10 @@ export function FormulaInput({
       >
         {segments.map((seg, i) => {
           if (seg.type === 'ref-valid') {
-            return <span key={i} className="text-[color:var(--color-figma-accent)]">{seg.text}</span>;
+            return <span key={i} className="text-[color:var(--color-figma-text-accent)]">{seg.text}</span>;
           }
           if (seg.type === 'ref-invalid') {
-            return <span key={i} className="text-[color:var(--color-figma-error)] underline decoration-wavy decoration-[var(--color-figma-error)]">{seg.text}</span>;
+            return <span key={i} className="text-[color:var(--color-figma-text-error)] underline decoration-wavy decoration-[var(--color-figma-error)]">{seg.text}</span>;
           }
           return <span key={i} className="text-transparent">{seg.text}</span>;
         })}
@@ -432,7 +432,7 @@ export function FormulaInput({
               key={op}
               onMouseDown={e => { e.preventDefault(); insertOperator(op); }}
               title={label}
-              className="px-1.5 py-0.5 rounded text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors"
+              className="px-1.5 py-0.5 rounded text-secondary font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
             >
               {op}
             </button>

@@ -147,6 +147,7 @@ export interface GeneratorOutputProvenance {
 export interface TokenGeneratorDocument {
   id: string;
   name: string;
+  authoringMode: 'preset' | 'graph';
   targetCollectionId: string;
   nodes: TokenGeneratorNode[];
   edges: TokenGeneratorEdge[];
@@ -531,6 +532,7 @@ export function createDefaultTokenGeneratorDocument(
   return {
     id,
     name,
+    authoringMode: 'preset',
     targetCollectionId,
     nodes: [
       {

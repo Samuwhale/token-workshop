@@ -82,7 +82,7 @@ function MenuItem({
       disabled={disabled}
       className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary transition-colors disabled:opacity-40 ${
         danger
-          ? "text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10"
+          ? "text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10"
           : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
       }`}
     >
@@ -163,7 +163,7 @@ export function FilterMenu(
         aria-label="Filter options"
         className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
           open || props.activeCount > 0
-            ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]"
+            ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
             : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
         }`}
         title="Filter options"

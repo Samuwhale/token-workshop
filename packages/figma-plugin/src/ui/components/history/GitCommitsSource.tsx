@@ -299,7 +299,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <button
             onClick={handleBack}
-            className="flex items-center gap-1 text-body text-[color:var(--color-figma-accent)] hover:underline"
+            className="flex items-center gap-1 text-body text-[color:var(--color-figma-text-accent)] hover:underline"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -364,7 +364,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
             </div>
           ) : detail && restoring ? (
             <div className="flex flex-col items-center justify-center py-4 gap-2">
-              <Spinner size="xl" className="text-[color:var(--color-figma-accent)]" />
+              <Spinner size="xl" className="text-[color:var(--color-figma-text-accent)]" />
               <p className="text-body text-[color:var(--color-figma-text-secondary)]">
                 Restoring {restoring === 'all' ? 'all tokens' : restoring}…
               </p>
@@ -453,7 +453,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
   if (filterTokenPath && (filterLoading || debouncing)) {
     return (
       <div className="flex items-center justify-center flex-1 gap-2">
-        <Spinner size="md" className="text-[color:var(--color-figma-accent)]" />
+        <Spinner size="md" className="text-[color:var(--color-figma-text-accent)]" />
         <p className="text-body text-[color:var(--color-figma-text-secondary)]">Searching history…</p>
       </div>
     );
@@ -476,7 +476,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
           </span>
           <button
             onClick={() => fetchCommits(debouncedCommitSearch)}
-            className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+            className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
           >
             Refresh
           </button>
@@ -525,7 +525,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
           <p className="text-body text-[color:var(--color-figma-text-secondary)]">No commits match "{debouncedCommitSearch}".</p>
           <button
             onClick={() => setCommitSearch('')}
-            className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+            className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
           >
             Clear search
           </button>

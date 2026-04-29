@@ -50,7 +50,7 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
           </div>
         )}
         {token._warning && (
-          <div className="text-secondary text-[color:var(--color-figma-warning)] break-words" title={token._warning}>
+          <div className="text-secondary text-[color:var(--color-figma-text-warning)] break-words" title={token._warning}>
             {token._warning}
           </div>
         )}
@@ -110,12 +110,12 @@ export function ImportTokenListView() {
 
       {skippedCount > 0 && (
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          <span className="text-[color:var(--color-figma-warning)]">{skippedCount} skipped</span> during parse
+          <span className="text-[color:var(--color-figma-text-warning)]">{skippedCount} skipped</span> during parse
         </div>
       )}
 
       {tokens.some(t => t._warning?.startsWith('Duplicate path')) && (
-        <div className="px-2 py-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 text-secondary text-[color:var(--color-figma-warning)]">
+        <div className="px-2 py-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 text-secondary text-[color:var(--color-figma-text-warning)]">
           Duplicate paths found — only the last per path will be saved.
         </div>
       )}

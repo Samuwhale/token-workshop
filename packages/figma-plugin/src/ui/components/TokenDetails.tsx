@@ -1030,7 +1030,7 @@ export function TokenDetails({
           role="status"
           className="flex min-h-full flex-col items-center justify-center gap-2 px-4 py-6 text-body text-[color:var(--color-figma-text-secondary)]"
         >
-          <Spinner size="md" className="text-[color:var(--color-figma-accent)]" />
+          <Spinner size="md" className="text-[color:var(--color-figma-text-accent)]" />
           Loading token...
         </div>
       </EditorShell>
@@ -1193,16 +1193,16 @@ export function TokenDetails({
           <Clock
             size={12}
             strokeWidth={1.5}
-            className="shrink-0 text-[color:var(--color-figma-warning)]"
+            className="shrink-0 text-[color:var(--color-figma-text-warning)]"
             aria-hidden
           />
-          <span className="min-w-0 flex-1 break-words text-[color:var(--color-figma-warning)]">
+          <span className="min-w-0 flex-1 break-words text-[color:var(--color-figma-text-warning)]">
             Unsaved changes from {formatDraftAge(pendingDraft.savedAt)}
           </span>
           <button
             type="button"
             onClick={() => applyDraft(pendingDraft)}
-            className="shrink-0 text-secondary font-medium text-[color:var(--color-figma-warning)] hover:underline"
+            className="shrink-0 text-secondary font-medium text-[color:var(--color-figma-text-warning)] hover:underline"
           >
             Restore
           </button>
@@ -1212,7 +1212,7 @@ export function TokenDetails({
               setPendingDraft(null);
               clearEditorDraft(ownerCollectionId, tokenPath);
             }}
-            className="shrink-0 text-secondary text-[color:var(--color-figma-warning)] hover:underline"
+            className="shrink-0 text-secondary text-[color:var(--color-figma-text-warning)] hover:underline"
           >
             Dismiss
           </button>
@@ -1229,7 +1229,7 @@ export function TokenDetails({
         <span
           className={
             footerNote && (duplicatePath || saveBlockReason)
-              ? "text-[color:var(--color-figma-error)]"
+              ? "text-[color:var(--color-figma-text-error)]"
               : undefined
           }
         >
@@ -1241,7 +1241,7 @@ export function TokenDetails({
             onClick={() => handleSave(false, true)}
             disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
             title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-            className="self-start text-secondary font-medium text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50"
+            className="self-start text-secondary font-medium text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
           >
             Create another{" "}
             <span className="opacity-60">
@@ -1322,7 +1322,7 @@ export function TokenDetails({
             <Link2
               size={12}
               strokeWidth={1.5}
-              className="shrink-0 text-[color:var(--color-figma-accent)]"
+              className="shrink-0 text-[color:var(--color-figma-text-accent)]"
               aria-hidden
             />
             <span
@@ -1337,7 +1337,7 @@ export function TokenDetails({
                 onClick={() => setExtendsPath("")}
                 title="Remove base token"
                 aria-label="Remove base token"
-                className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-error)]"
+                className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
               >
                 <X size={10} strokeWidth={1.5} aria-hidden />
               </button>
@@ -1360,7 +1360,7 @@ export function TokenDetails({
           (() => {
             if (ambiguousExtendsCollectionIds.length > 0) {
               return (
-                <p className="text-secondary text-[color:var(--color-figma-error)]">
+                <p className="text-secondary text-[color:var(--color-figma-text-error)]">
                   This path is also used in{" "}
                   {formatCollectionIdList(ambiguousExtendsCollectionIds)}. Pick
                   a token path that belongs to one collection before inheriting
@@ -1371,7 +1371,7 @@ export function TokenDetails({
             const base = allTokensFlat[extendsPath];
             if (!base) {
               return (
-                <p className="text-secondary text-[color:var(--color-figma-error)]">
+                <p className="text-secondary text-[color:var(--color-figma-text-error)]">
                   Base token not found
                 </p>
               );

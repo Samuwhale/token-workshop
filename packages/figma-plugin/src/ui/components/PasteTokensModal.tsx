@@ -36,23 +36,23 @@ const FORMAT_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  color: 'bg-[var(--token-badge-color-bg)] text-[var(--token-badge-color-text)]',
-  dimension: 'bg-[var(--token-badge-size-bg)] text-[var(--token-badge-size-text)]',
-  size: 'bg-[var(--token-badge-size-bg)] text-[var(--token-badge-size-text)]',
-  number: 'bg-[var(--token-badge-size-bg)] text-[var(--token-badge-size-text)]',
-  typography: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
-  fontFamily: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
-  fontWeight: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
-  fontSize: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
-  lineHeight: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
-  letterSpacing: 'bg-[var(--token-badge-type-bg)] text-[var(--token-badge-type-text)]',
-  shadow: 'bg-[var(--token-badge-effect-bg)] text-[var(--token-badge-effect-text)]',
-  opacity: 'bg-[var(--token-badge-effect-bg)] text-[var(--token-badge-effect-text)]',
-  border: 'bg-[var(--token-badge-effect-bg)] text-[var(--token-badge-effect-text)]',
-  duration: 'bg-[var(--token-badge-motion-bg)] text-[var(--token-badge-motion-text)]',
-  cubicBezier: 'bg-[var(--token-badge-motion-bg)] text-[var(--token-badge-motion-text)]',
-  transition: 'bg-[var(--token-badge-motion-bg)] text-[var(--token-badge-motion-text)]',
-  string: 'bg-[var(--token-badge-other-bg)] text-[var(--token-badge-other-text)]',
+  color: 'bg-[var(--token-badge-color-bg)] text-[color:var(--token-badge-color-text)]',
+  dimension: 'bg-[var(--token-badge-size-bg)] text-[color:var(--token-badge-size-text)]',
+  size: 'bg-[var(--token-badge-size-bg)] text-[color:var(--token-badge-size-text)]',
+  number: 'bg-[var(--token-badge-size-bg)] text-[color:var(--token-badge-size-text)]',
+  typography: 'bg-[var(--token-badge-type-bg)] text-[color:var(--token-badge-type-text)]',
+  fontFamily: 'bg-[var(--token-badge-type-bg)] text-[color:var(--token-badge-type-text)]',
+  fontWeight: 'bg-[var(--token-badge-type-bg)] text-[color:var(--token-badge-type-text)]',
+  fontSize: 'bg-[var(--token-badge-type-bg)] text-[color:var(--token-badge-type-text)]',
+  lineHeight: 'bg-[var(--token-badge-type-bg)] text-[color:var(--token-badge-type-text)]',
+  letterSpacing: 'bg-[var(--token-badge-type-bg)] text-[color:var(--token-badge-type-text)]',
+  shadow: 'bg-[var(--token-badge-effect-bg)] text-[color:var(--token-badge-effect-text)]',
+  opacity: 'bg-[var(--token-badge-effect-bg)] text-[color:var(--token-badge-effect-text)]',
+  border: 'bg-[var(--token-badge-effect-bg)] text-[color:var(--token-badge-effect-text)]',
+  duration: 'bg-[var(--token-badge-motion-bg)] text-[color:var(--token-badge-motion-text)]',
+  cubicBezier: 'bg-[var(--token-badge-motion-bg)] text-[color:var(--token-badge-motion-text)]',
+  transition: 'bg-[var(--token-badge-motion-bg)] text-[color:var(--token-badge-motion-text)]',
+  string: 'bg-[var(--token-badge-other-bg)] text-[color:var(--token-badge-other-text)]',
 };
 
 interface RestorableTokenSnapshot {
@@ -366,7 +366,7 @@ export function PasteTokensModal({
           {(['dtcg', 'lines', 'css', 'csv', 'tailwind'] as const).map(f => (
             <span key={f} className={`text-secondary font-mono rounded px-1.5 py-0.5 transition-colors ${
               format === f
-                ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] font-semibold'
+                ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] font-semibold'
                 : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'
             }`}>{FORMAT_LABELS[f]}</span>
           ))}
@@ -384,7 +384,7 @@ export function PasteTokensModal({
               onChange={e => { setInput(e.target.value); setSubmitError(''); }}
             />
             {format !== 'empty' && format !== 'error' && (
-              <span className="absolute bottom-2 right-2 text-secondary font-medium text-[color:var(--color-figma-accent)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/30 rounded px-1.5 py-0.5 pointer-events-none">
+              <span className="absolute bottom-2 right-2 text-secondary font-medium text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/30 rounded px-1.5 py-0.5 pointer-events-none">
                 {FORMAT_LABELS[format]}
               </span>
             )}
@@ -405,7 +405,7 @@ export function PasteTokensModal({
               />
             </div>
             {prefix.trim() && prefixError && (
-              <div className="text-secondary text-[color:var(--color-figma-error)] pl-1">{prefixError}</div>
+              <div className="text-secondary text-[color:var(--color-figma-text-error)] pl-1">{prefixError}</div>
             )}
             {prefix.trim() && !prefixError && prefixedTokens.length > 0 && (
               <div className="text-secondary text-[color:var(--color-figma-text-secondary)] font-mono truncate pl-1">
@@ -418,7 +418,7 @@ export function PasteTokensModal({
           {errors.length > 0 && (
             <div className="flex flex-col gap-0.5 px-2 py-1.5 bg-[var(--color-figma-error)]/5 rounded border border-[var(--color-figma-error)]/20">
               {errors.map((err, i) => (
-                <div key={i} className="text-secondary text-[color:var(--color-figma-error)]">{err}</div>
+                <div key={i} className="text-secondary text-[color:var(--color-figma-text-error)]">{err}</div>
               ))}
             </div>
           )}
@@ -432,7 +432,7 @@ export function PasteTokensModal({
                 aria-expanded={parsedSkippedExpanded}
               >
                 <span className="text-[color:var(--color-figma-text-secondary)]">
-                  <span className="text-[color:var(--color-figma-warning)] font-medium">{parsedSkipped.length}</span>
+                  <span className="text-[color:var(--color-figma-text-warning)] font-medium">{parsedSkipped.length}</span>
                   {' '}value{parsedSkipped.length !== 1 ? 's' : ''} skipped (unsupported)
                 </span>
                 <svg
@@ -470,19 +470,19 @@ export function PasteTokensModal({
               <div className="flex min-w-0 flex-wrap items-center gap-2 text-secondary">
                 <span className="text-[color:var(--color-figma-text)] font-medium">{effectiveRows.length} token{effectiveRows.length !== 1 ? 's' : ''}</span>
                 {toCreate.length > 0 && (
-                  <span className="text-[color:var(--color-figma-success)]">+{toCreate.length} new</span>
+                  <span className="text-[color:var(--color-figma-text-success)]">+{toCreate.length} new</span>
                 )}
                 {invalidRows.length > 0 && (
-                  <span className="text-[color:var(--color-figma-error)]">{invalidRows.length} invalid</span>
+                  <span className="text-[color:var(--color-figma-text-error)]">{invalidRows.length} invalid</span>
                 )}
                 {conflicts.length > 0 && (
-                  <span className="text-[color:var(--color-figma-warning)]">{conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''}</span>
+                  <span className="text-[color:var(--color-figma-text-warning)]">{conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''}</span>
                 )}
                 {skipped.length > 0 && (
                   <span className="text-[color:var(--color-figma-text-secondary)]">{skipped.length} skipped</span>
                 )}
                 {parsedSkipped.length > 0 && (
-                  <span className="text-[color:var(--color-figma-warning)]">{parsedSkipped.length} unsupported</span>
+                  <span className="text-[color:var(--color-figma-text-warning)]">{parsedSkipped.length} unsupported</span>
                 )}
               </div>
               {conflicts.length > 0 && (
@@ -504,20 +504,20 @@ export function PasteTokensModal({
               >
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className={`text-secondary font-mono truncate ${row.validationError ? 'text-[color:var(--color-figma-error)]' : 'text-[color:var(--color-figma-text)]'}`}>{row.path}</span>
+                    <span className={`text-secondary font-mono truncate ${row.validationError ? 'text-[color:var(--color-figma-text-error)]' : 'text-[color:var(--color-figma-text)]'}`}>{row.path}</span>
                     <span className={`text-secondary rounded px-1 shrink-0 ${TYPE_COLORS[row.$type] ?? TYPE_COLORS['string']}`}>{row.$type}</span>
                     {row.validationError && (
-                      <span className="text-secondary text-[color:var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1 shrink-0">invalid</span>
+                      <span className="text-secondary text-[color:var(--color-figma-text-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1 shrink-0">invalid</span>
                     )}
                     {!row.validationError && row.conflict && !row.overwrite && (
-                      <span className="text-secondary text-[color:var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 rounded px-1 shrink-0">skip</span>
+                      <span className="text-secondary text-[color:var(--color-figma-text-warning)] bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 rounded px-1 shrink-0">skip</span>
                     )}
                     {!row.validationError && row.conflict && row.overwrite && (
-                      <span className="text-secondary text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/30 rounded px-1 shrink-0">overwrite</span>
+                      <span className="text-secondary text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/30 rounded px-1 shrink-0">overwrite</span>
                     )}
                   </div>
                   {row.validationError ? (
-                    <div className="text-secondary text-[color:var(--color-figma-error)]">{row.validationError}</div>
+                    <div className="text-secondary text-[color:var(--color-figma-text-error)]">{row.validationError}</div>
                   ) : (
                     <div className="flex items-center gap-1">
                       {row.$type === 'color' && <ColorSwatch value={row.$value} />}
@@ -553,7 +553,7 @@ export function PasteTokensModal({
         )}
 
         {submitError && (
-          <div className="px-3 py-2 text-secondary text-[color:var(--color-figma-error)] border-t border-[var(--color-figma-border)]">{submitError}</div>
+          <div className="px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)] border-t border-[var(--color-figma-border)]">{submitError}</div>
         )}
 
         <div className="flex flex-wrap gap-2 justify-end px-4 py-3 border-t border-[var(--color-figma-border)]">

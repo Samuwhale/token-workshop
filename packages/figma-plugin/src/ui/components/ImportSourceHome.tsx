@@ -88,7 +88,7 @@ export function ImportSourceHome() {
             <path d="M7 10l5 5 5-5" />
             <path d="M5 21h14" />
           </svg>
-          <span className={`text-body ${isDragging ? 'text-[color:var(--color-figma-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
+          <span className={`text-body ${isDragging ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
             {isDragging ? 'Drop to import' : 'Drop a file or click to browse'}
           </span>
         </div>
@@ -100,10 +100,10 @@ export function ImportSourceHome() {
       {fileImportValidation && (
         <div className={`rounded px-2.5 py-1.5 text-secondary ${
           validationIsError
-            ? 'bg-[var(--color-figma-error)]/8 text-[color:var(--color-figma-error)]'
+            ? 'bg-[var(--color-figma-error)]/8 text-[color:var(--color-figma-text-error)]'
             : fileImportValidation.status === 'partial'
-              ? 'bg-[var(--color-figma-warning)]/8 text-[color:var(--color-figma-warning)]'
-              : 'bg-[var(--color-figma-success)]/8 text-[color:var(--color-figma-success)]'
+              ? 'bg-[var(--color-figma-warning)]/8 text-[color:var(--color-figma-text-warning)]'
+              : 'bg-[var(--color-figma-success)]/8 text-[color:var(--color-figma-text-success)]'
         }`}>
           {fileImportValidation.summary}
           {fileImportValidation.detail && (

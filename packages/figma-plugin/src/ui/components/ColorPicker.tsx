@@ -40,6 +40,8 @@ interface ColorPickerProps {
 // ---------------------------------------------------------------------------
 
 const MAX_RECENT = 12;
+const EYEDROPPER_REQUEST_TIMEOUT_MS = 8000;
+const EYEDROPPER_FEEDBACK_TIMEOUT_MS = 1500;
 
 function getRecentColors(): string[] {
   return lsGetJson<string[]>(STORAGE_KEYS.RECENT_COLORS, []);
@@ -256,8 +258,14 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   const [hexInputError, setHexInputError] = useState(false);
   const [alphaInput, setAlphaInput] = useState(() => Math.round(parseAlpha(value) * 100) + '%');
   const alphaEditing = useRef(false);
-  const [eyedropperState, setEyedropperState] = useState<'idle' | 'waiting' | 'success'>('idle');
+  const [eyedropperState, setEyedropperState] = useState<'idle' | 'waiting' | 'success' | 'error'>('idle');
   const eyedropperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearEyedropperTimer = useCallback(() => {
+    if (eyedropperTimerRef.current) {
+      clearTimeout(eyedropperTimerRef.current);
+      eyedropperTimerRef.current = null;
+    }
+  }, []);
 
   // Inline contrast checker state
   const [contrastBg, setContrastBg] = useState<string>(() => lsGet(STORAGE_KEYS.CONTRAST_BG, ''));
@@ -433,7 +441,14 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   const sampleSelection = () => {
     parent.postMessage({ pluginMessage: { type: 'eyedropper' } }, '*');
     setEyedropperState('waiting');
-    if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
+    clearEyedropperTimer();
+    eyedropperTimerRef.current = setTimeout(() => {
+      setEyedropperState('error');
+      eyedropperTimerRef.current = setTimeout(() => {
+        setEyedropperState('idle');
+        eyedropperTimerRef.current = null;
+      }, EYEDROPPER_FEEDBACK_TIMEOUT_MS);
+    }, EYEDROPPER_REQUEST_TIMEOUT_MS);
   };
 
   // Listen for eyedropper result
@@ -448,13 +463,19 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           setLit(hsl.l);
         }
         setEyedropperState('success');
-        if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
-        eyedropperTimerRef.current = setTimeout(() => setEyedropperState('idle'), 1500);
+        clearEyedropperTimer();
+        eyedropperTimerRef.current = setTimeout(() => {
+          setEyedropperState('idle');
+          eyedropperTimerRef.current = null;
+        }, EYEDROPPER_FEEDBACK_TIMEOUT_MS);
       }
     };
     window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+    return () => {
+      window.removeEventListener('message', handler);
+      clearEyedropperTimer();
+    };
+  }, [clearEyedropperTimer]);
 
   // Handle hex/color text input
   const onHexInputChange = (text: string) => {
@@ -545,7 +566,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <ChannelInput label="B" value={p3.b} min={0} max={1} step={0.01} decimals={3} onChange={v => updateFromP3(p3.r, p3.g, v)} />
             </div>
             {!inGamut && (
-              <div className="text-secondary text-[color:var(--color-figma-warning)] flex items-center gap-1">
+              <div className="text-secondary text-[color:var(--color-figma-text-warning)] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] inline-block" />
                 Outside sRGB gamut (clamped)
               </div>
@@ -581,7 +602,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <ChannelInput label="H" value={oH} min={0} max={360} step={1} decimals={1} onChange={H => updateFromOklch(oL, oC, H)} />
             </div>
             {!inSrgb && (
-              <div className="text-secondary text-[color:var(--color-figma-warning)] flex items-center gap-1">
+              <div className="text-secondary text-[color:var(--color-figma-text-warning)] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] inline-block" />
                 Outside sRGB gamut (clamped for preview)
               </div>
@@ -774,10 +795,10 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                 <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[var(--font-size-xs)] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
                 <span className="text-secondary text-[color:var(--color-figma-text)] tabular-nums font-medium">{ratio.toFixed(1)}:1</span>
                 <span className={`text-secondary font-bold px-1 py-0.5 rounded ${
-                  level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-success)]' :
-                  level === 'AA' ? 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-success)]' :
-                  level === 'AA18' ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-warning)]' :
-                  'bg-[var(--color-figma-error)]/20 text-[color:var(--color-figma-error)]'
+                  level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-text-success)]' :
+                  level === 'AA' ? 'bg-[var(--color-figma-success)]/20 text-[color:var(--color-figma-text-success)]' :
+                  level === 'AA18' ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-text-warning)]' :
+                  'bg-[var(--color-figma-error)]/20 text-[color:var(--color-figma-text-error)]'
                 }`}>
                   {level === 'AA18' ? 'AA 18+' : level}
                 </span>
@@ -875,11 +896,13 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           type="button"
           onClick={sampleSelection}
           disabled={eyedropperState === 'waiting'}
-          title={eyedropperState === 'waiting' ? 'Waiting for selection…' : eyedropperState === 'success' ? 'Sampled!' : 'Sample from Figma selection'}
+          title={eyedropperState === 'waiting' ? 'Waiting for selection…' : eyedropperState === 'success' ? 'Sampled!' : eyedropperState === 'error' ? 'No color found in the current selection' : 'Sample from Figma selection'}
           className={[
             'ml-auto flex items-center gap-1 px-2 py-1 rounded text-secondary border transition-colors',
             eyedropperState === 'success'
-              ? 'text-[color:var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+              ? 'text-[color:var(--color-figma-text-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+              : eyedropperState === 'error'
+              ? 'text-[color:var(--color-figma-text-error)] border-[var(--color-figma-border)] bg-[var(--color-figma-bg-hover)]'
               : eyedropperState === 'waiting'
               ? 'text-[color:var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
               : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',
@@ -889,6 +912,11 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M20 6L9 17l-5-5" />
             </svg>
+          ) : eyedropperState === 'error' ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
           ) : eyedropperState === 'waiting' ? (
             <Spinner size="sm" />
           ) : (
@@ -897,7 +925,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <circle cx="12" cy="12" r="3" />
             </svg>
           )}
-          {eyedropperState === 'success' ? 'Sampled!' : eyedropperState === 'waiting' ? 'Waiting…' : 'Sample'}
+          {eyedropperState === 'success' ? 'Sampled!' : eyedropperState === 'error' ? 'No color' : eyedropperState === 'waiting' ? 'Waiting…' : 'Sample'}
         </button>
       </div>
 

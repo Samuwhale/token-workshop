@@ -18,9 +18,9 @@ export function TokenEditorLintBanner({
 
   const toneClass =
     lintTone === "error"
-      ? "text-[color:var(--color-figma-error)]"
+      ? "text-[color:var(--color-figma-text-error)]"
       : lintTone === "warning"
-        ? "text-[color:var(--color-figma-warning)]"
+        ? "text-[color:var(--color-figma-text-warning)]"
         : "text-[color:var(--color-figma-text-secondary)]";
 
   const Icon = lintTone === "info" ? Info : AlertTriangle;

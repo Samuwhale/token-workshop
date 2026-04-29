@@ -91,7 +91,7 @@ export function HealthDeprecatedView({
           </div>
         ) : error ? (
           <div className="py-6 text-center">
-            <p className="text-secondary text-[color:var(--color-figma-error)]">{error}</p>
+            <p className="text-secondary text-[color:var(--color-figma-text-error)]">{error}</p>
           </div>
         ) : entries.length === 0 ? (
           <div className="py-12 text-center">
@@ -186,7 +186,7 @@ export function HealthDeprecatedView({
                   ) : (
                     <button
                       onClick={() => setOpenPickerKey(entryKey)}
-                      className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+                      className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
                     >
                       Replace
                     </button>

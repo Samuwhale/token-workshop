@@ -82,10 +82,10 @@ export function UnsavedChangesDialog({
             onClick={onDiscard}
             disabled={controlsDisabled}
             variant="secondary"
-            className="w-full border-[var(--color-figma-error)]/25 text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-error)]"
+            className="w-full border-[var(--color-figma-error)]/25 text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
           >
             {busyAction === "discard" && (
-              <Spinner size="sm" className="text-[color:var(--color-figma-error)]" />
+              <Spinner size="sm" className="text-[color:var(--color-figma-text-error)]" />
             )}
             {busyAction === "discard" ? "Discarding…" : "Discard changes"}
           </Button>

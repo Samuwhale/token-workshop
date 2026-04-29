@@ -84,7 +84,7 @@ export function SelectionInspectorBanners({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="shrink-0 text-[color:var(--color-figma-accent)]"
+            className="shrink-0 text-[color:var(--color-figma-text-accent)]"
             aria-hidden="true"
           >
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" />
@@ -98,7 +98,7 @@ export function SelectionInspectorBanners({
           </span>
           <button
             onClick={onApplyPeerSuggestion}
-            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
             Apply
           </button>
@@ -134,7 +134,7 @@ export function SelectionInspectorBanners({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="mt-px shrink-0 text-[color:var(--color-figma-accent)]"
+            className="mt-px shrink-0 text-[color:var(--color-figma-text-accent)]"
             aria-hidden="true"
           >
             <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
@@ -156,7 +156,7 @@ export function SelectionInspectorBanners({
           </div>
           <button
             onClick={onApplyPropTypeSuggestion}
-            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
+            className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
             Apply to all
           </button>
@@ -194,7 +194,7 @@ export function SelectionInspectorBanners({
                   label: "Next layer →",
                   onClick: onSelectNextSibling,
                   className:
-                    "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20",
+                    "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20",
                 }
           }
         >
@@ -239,7 +239,7 @@ export function SelectionInspectorBanners({
                     onDismissCreatedToken();
                   },
                   className:
-                    "bg-transparent text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10",
+                    "bg-transparent text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10",
                 }
               : undefined
           }

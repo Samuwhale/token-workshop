@@ -473,13 +473,13 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             className="min-w-0 flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-subheading text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {isTokenMode && (
-            <span className="text-secondary font-medium text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
               TOKENS
             </span>
           )}
           {isTokenMode && (
             <button
-              className={`text-secondary w-5 h-5 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
+              className={`text-secondary w-5 h-5 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
               onClick={() => setShowHelp(v => !v)}
               title="Filter syntax help (press ? when input is empty)"
               aria-label="Toggle filter syntax help"
@@ -489,7 +489,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             </button>
           )}
           {copiedLabel ? (
-            <span className="text-secondary font-medium text-[color:var(--color-figma-success)] bg-[var(--color-figma-success)]/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
+            <span className="text-secondary font-medium text-[color:var(--color-figma-text-success)] bg-[var(--color-figma-success)]/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
               <svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5"/></svg>
               Copied {copiedLabel}
             </span>
@@ -531,7 +531,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               <button
                 className={`ml-auto text-secondary px-1.5 py-0.5 rounded border transition-colors shrink-0 font-medium ${
                   searchAllCollections
-                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]'
+                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
                     : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
                 onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
@@ -569,7 +569,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                 >
-                  <code className="text-secondary text-[color:var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
+                  <code className="text-secondary text-[color:var(--color-figma-text-accent)] font-mono shrink-0 w-28">{qual}</code>
                   <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)]">{desc}</span>
                 </button>
               ))}
@@ -588,7 +588,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                 >
-                  <code className="text-secondary text-[color:var(--color-figma-accent)] font-mono shrink-0 w-28">{qual}</code>
+                  <code className="text-secondary text-[color:var(--color-figma-text-accent)] font-mono shrink-0 w-28">{qual}</code>
                   <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)]">{desc}</span>
                 </button>
               ))}
@@ -611,7 +611,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     onMouseDown={e => e.preventDefault()}
                     onClick={() => { setQuery(`>has:${val} `); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
                   >
-                    <code className="text-secondary text-[color:var(--color-figma-accent)] font-mono shrink-0">has:{val}</code>
+                    <code className="text-secondary text-[color:var(--color-figma-text-accent)] font-mono shrink-0">has:{val}</code>
                     <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)] truncate">{desc}</span>
                   </button>
                 ))}
@@ -632,7 +632,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             {qualifierCompletions.map(val => (
               <button
                 key={val}
-                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors shrink-0 font-mono"
+                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors shrink-0 font-mono"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => applyCompletion(val)}
                 title={`Filter: ${activeQualifier?.qualifier}:${val}`}
@@ -656,7 +656,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                       : <>{totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched{filteredGroups.length > 0 && <> + {totalGroupMatches} group{totalGroupMatches !== 1 ? 's' : ''}</>}</>
                     }
                   </span>
-                  {searchAllCollections && <span className="whitespace-nowrap text-[color:var(--color-figma-accent)] opacity-70">across all collections</span>}
+                  {searchAllCollections && <span className="whitespace-nowrap text-[color:var(--color-figma-text-accent)] opacity-70">across all collections</span>}
                 </div>
               )}
               {filteredTokens.length === 0 && filteredGroups.length === 0 && (
@@ -678,7 +678,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                             ))}
                           </div>
                           <button
-                            className="text-secondary text-[color:var(--color-figma-accent)] hover:underline opacity-70 hover:opacity-100"
+                            className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline opacity-70 hover:opacity-100"
                             onClick={() => setShowHelp(true)}
                           >
                             see all filters
@@ -689,7 +689,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   {tokenQuery && !searchAllCollections && allCollectionTokens && (
                     <div className="mt-1.5">
                       <button
-                        className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+                        className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
                         onClick={() => { setSearchAllSets(true); setVisibleCount(100); }}
                       >
                         Search all collections
@@ -739,11 +739,11 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                 const flatIdx = filteredGroups.length + idx; // tokens come after groups
                 const isActive = flatIdx === activeIdx;
                 const actionBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-white/70 hover:text-white focus:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30' : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]'}`;
-                const deleteBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-[color:var(--color-figma-error)] hover:text-[color:var(--color-figma-error)] focus:text-[color:var(--color-figma-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)]'}`;
+                const deleteBtnClass = `p-1.5 shrink-0 transition-colors ${isActive ? 'text-[color:var(--color-figma-text-error)] hover:text-[color:var(--color-figma-text-error)] focus:text-[color:var(--color-figma-text-error)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-error)]/30' : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-error)]'}`;
                 return (
                 <div
                   key={tokenEntryKey(token)}
-                  className={`group flex items-center gap-0 transition-colors ${isActive ? 'bg-[var(--color-figma-accent)]' : ''}`}
+                  className={`group flex items-center gap-0 transition-colors ${isActive ? 'bg-[var(--color-figma-action-bg)]' : ''}`}
                   data-palette-item
                 >
                   <button
@@ -895,7 +895,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                       {shown} of {total} shown
                     </span>
                     <button
-                      className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+                      className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
                       onClick={() => setVisibleCount(c => c + 100)}
                     >
                       Load 100 more
@@ -1079,8 +1079,8 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               <span className="whitespace-nowrap">↑↓ navigate</span>
               <span className="whitespace-nowrap">↵ go to token/group</span>
               {searchAllCollections
-                ? <span className="whitespace-nowrap text-[color:var(--color-figma-accent)] opacity-80">searching all collections</span>
-                : <button className="min-w-0 truncate opacity-60 hover:opacity-100 hover:text-[color:var(--color-figma-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
+                ? <span className="whitespace-nowrap text-[color:var(--color-figma-text-accent)] opacity-80">searching all collections</span>
+                : <button className="min-w-0 truncate opacity-60 hover:opacity-100 hover:text-[color:var(--color-figma-text-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
               }
               <span className="whitespace-nowrap">ESC close</span>
             </>

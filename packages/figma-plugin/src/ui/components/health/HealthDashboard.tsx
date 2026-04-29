@@ -43,9 +43,9 @@ function StatusIcon({ status }: { status: HealthStatus }) {
 }
 
 function statusColor(status: HealthStatus): string {
-  if (status === "critical") return "text-[color:var(--color-figma-error)]";
-  if (status === "warning") return "text-[color:var(--color-figma-warning)]";
-  return "text-[color:var(--color-figma-success)]";
+  if (status === "critical") return "text-[color:var(--color-figma-text-error)]";
+  if (status === "warning") return "text-[color:var(--color-figma-text-warning)]";
+  return "text-[color:var(--color-figma-text-success)]";
 }
 
 function statusTone(status: HealthStatus): "success" | "warning" | "danger" | "neutral" {

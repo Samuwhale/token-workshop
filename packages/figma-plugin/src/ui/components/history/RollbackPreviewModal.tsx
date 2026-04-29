@@ -162,14 +162,14 @@ export function RollbackPreviewModal({
 
           {!diffLoading && diffError && (
             <div className="flex flex-col items-center justify-center h-20 gap-1 px-3 text-center">
-              <p className="text-body text-[color:var(--color-figma-error)]">{diffError}</p>
+              <p className="text-body text-[color:var(--color-figma-text-error)]">{diffError}</p>
               <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">You can still roll back — the operation will restore tokens to their prior state.</p>
             </div>
           )}
 
           {!diffLoading && noChanges && (
             <div className="flex flex-col items-center justify-center h-20 gap-2 px-3 text-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-success)]" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-success)]" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
               <p className="text-body text-[color:var(--color-figma-text-secondary)]">No token changes detected.</p>
@@ -207,7 +207,7 @@ export function RollbackPreviewModal({
         </div>
 
         {confirmError && (
-          <p className="shrink-0 px-4 py-2 text-secondary text-[color:var(--color-figma-error)] break-words">
+          <p className="shrink-0 px-4 py-2 text-secondary text-[color:var(--color-figma-text-error)] break-words">
             {confirmError}
           </p>
         )}

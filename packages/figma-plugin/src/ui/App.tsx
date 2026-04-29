@@ -111,9 +111,9 @@ const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
 };
 
 const SYNC_ADORNMENT_TEXT: Record<"accent" | "warning" | "error", string> = {
-  accent: "text-[color:var(--color-figma-accent)]",
-  warning: "text-[color:var(--color-figma-warning)]",
-  error: "text-[color:var(--color-figma-error)]",
+  accent: "text-[color:var(--color-figma-text-accent)]",
+  warning: "text-[color:var(--color-figma-text-warning)]",
+  error: "text-[color:var(--color-figma-text-error)]",
 };
 
 export function App() {
@@ -1825,7 +1825,7 @@ export function App() {
                         aria-label={item.label}
                         className={`relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
-                            ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-accent)]"
+                            ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text-accent)]"
                             : requiresSetup
                               ? "text-[color:var(--color-figma-text-tertiary)] opacity-60"
                               : inactiveTextClass
@@ -1886,7 +1886,7 @@ export function App() {
                         <span
                           className={`ml-auto shrink-0 text-secondary ${
                             canvasHasBrokenBindings
-                              ? "text-[color:var(--color-figma-warning)]"
+                              ? "text-[color:var(--color-figma-text-warning)]"
                               : "text-[color:var(--color-figma-text-secondary)]"
                           }`}
                           title={
@@ -1945,7 +1945,7 @@ export function App() {
                                 {showReviewBadge ? (
                                   <span
                                     aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
-                                    className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-warning)]"
+                                    className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-text-warning)]"
                                   >
                                     {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
                                   </span>
@@ -2064,7 +2064,7 @@ export function App() {
               {!checking && (
                 <button
                   onClick={retryConnection}
-                  className="mt-1 text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+                  className="mt-1 text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
                   Retry connection
                 </button>
@@ -2172,7 +2172,7 @@ export function App() {
                     {showReviewBadge ? (
                       <span
                         aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
-                        className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-warning)]"
+                        className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-text-warning)]"
                       >
                         {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
                       </span>

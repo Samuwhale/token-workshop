@@ -172,7 +172,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
         <ArrowRight />
         <span className="text-secondary font-mono text-[color:var(--color-figma-text)]">{afterLabel}</span>
         {deltaStr && deltaValue !== null && (
-          <span className={`ml-auto text-secondary font-mono shrink-0 ${deltaValue > 0 ? 'text-[color:var(--color-figma-success)]' : 'text-[color:var(--color-figma-error)]'}`}>
+          <span className={`ml-auto text-secondary font-mono shrink-0 ${deltaValue > 0 ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-error)]'}`}>
             {deltaStr}
           </span>
         )}
@@ -202,7 +202,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
         <ArrowRight />
         <span className="text-secondary font-mono text-[color:var(--color-figma-text)]">{afterLabel}</span>
         {deltaStr && deltaMs !== null && (
-          <span className={`ml-auto text-secondary font-mono shrink-0 ${deltaMs > 0 ? 'text-[color:var(--color-figma-success)]' : 'text-[color:var(--color-figma-error)]'}`}>
+          <span className={`ml-auto text-secondary font-mono shrink-0 ${deltaMs > 0 ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-error)]'}`}>
             {deltaStr}
           </span>
         )}
@@ -222,7 +222,7 @@ export function ValueDiff({ type, before, after }: ValueDiffProps) {
         <ArrowRight />
         <span className="text-secondary font-mono text-[color:var(--color-figma-text)]">{String(after ?? '')}</span>
         {deltaStr && (
-          <span className={`ml-auto text-secondary font-mono shrink-0 ${delta > 0 ? 'text-[color:var(--color-figma-success)]' : 'text-[color:var(--color-figma-error)]'}`}>
+          <span className={`ml-auto text-secondary font-mono shrink-0 ${delta > 0 ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-error)]'}`}>
             {deltaStr}
           </span>
         )}

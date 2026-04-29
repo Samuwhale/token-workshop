@@ -60,9 +60,13 @@
   --color-figma-action-bg: #006fbd;
   --color-figma-action-bg-hover: #005fa8;
   --color-figma-text-onbrand: #ffffff;
-  --color-figma-success: #14ae5c;
-  --color-figma-warning: #f2a20d;
-  --color-figma-error: #f24822;
+  --color-figma-success: #0b7a3b;
+  --color-figma-warning: #9a6200;
+  --color-figma-error: #b83118;
+  --color-figma-text-accent: #5cbdff;
+  --color-figma-text-success: #42d983;
+  --color-figma-text-warning: #f2a20d;
+  --color-figma-text-error: #ff9a86;
 
   /* Managed token indicator — warm amber, distinct from warning. */
   --color-figma-managed: #d8a472;
@@ -111,7 +115,7 @@
   );
 
   /* Focus ring shorthand — already inlined on :focus-visible below. */
-  --ring-color: var(--color-figma-accent);
+  --ring-color: var(--color-figma-text-accent);
   --ring-width: 1.5px;
 }
 
@@ -133,6 +137,10 @@ html.figma-light {
   --color-figma-success: #0b7a3b;
   --color-figma-warning: #9a6200;
   --color-figma-error: #b83118;
+  --color-figma-text-accent: #006fbd;
+  --color-figma-text-success: #0b7a3b;
+  --color-figma-text-warning: #9a6200;
+  --color-figma-text-error: #b83118;
 
   --color-figma-managed: #a86b1f;
 
@@ -1395,7 +1403,7 @@ a[role="menuitem"] {
 
 .tm-inline-rename-row__error {
   font-size: var(--font-size-sm);
-  color: var(--color-figma-error);
+  color: var(--color-figma-text-error);
   overflow-wrap: anywhere;
 }
 
@@ -1619,7 +1627,7 @@ a[role="menuitem"] {
 
 .tm-token-details__header-icon--danger:hover {
   background: color-mix(in srgb, var(--color-figma-error) 10%, transparent);
-  color: var(--color-figma-error);
+  color: var(--color-figma-text-error);
 }
 
 .tm-token-details__identity-grid {
@@ -1861,7 +1869,7 @@ a[role="menuitem"] {
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-figma-warning);
+  color: var(--color-figma-text-warning);
 }
 
 .tm-token-details__inline-button:hover {
@@ -2113,12 +2121,12 @@ a[role="menuitem"] {
 
 .tm-token-details__contrast-check--pass {
   background: color-mix(in srgb, var(--color-figma-success) 10%, transparent);
-  color: var(--color-figma-success);
+  color: var(--color-figma-text-success);
 }
 
 .tm-token-details__contrast-check--fail {
   background: color-mix(in srgb, var(--color-figma-error) 10%, transparent);
-  color: var(--color-figma-error);
+  color: var(--color-figma-text-error);
 }
 
 .tm-token-details__text-button {
@@ -2126,7 +2134,7 @@ a[role="menuitem"] {
   border: 0;
   background: transparent;
   font-size: var(--font-size-base);
-  color: var(--color-figma-accent);
+  color: var(--color-figma-text-accent);
   text-align: left;
 }
 
@@ -2190,7 +2198,7 @@ button.tm-token-details__text-button:disabled:hover {
   margin: 0;
   font-size: var(--font-size-sm);
   line-height: var(--leading-body);
-  color: var(--color-figma-error);
+  color: var(--color-figma-text-error);
 }
 
 .tm-token-mode-row {
@@ -2287,7 +2295,7 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row__action-button--active {
-  color: var(--color-figma-accent);
+  color: var(--color-figma-text-accent);
 }
 
 .tm-token-mode-row__action-button--secondary {
@@ -2720,7 +2728,7 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node--selected {
-  border-color: var(--color-figma-accent);
+  border-color: var(--color-figma-text-accent);
   box-shadow:
     inset 0 2px 0 var(--tm-graph-node-accent),
     0 0 0 1px color-mix(in srgb, var(--color-figma-accent) 64%, transparent),
@@ -2728,11 +2736,11 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node--error {
-  border-color: var(--color-figma-error);
+  border-color: var(--color-figma-text-error);
 }
 
 .tm-graph-node--warning {
-  border-color: var(--color-figma-warning);
+  border-color: var(--color-figma-text-warning);
 }
 
 .tm-graph-node__content {
@@ -2827,11 +2835,11 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node__issue-count--error {
-  color: var(--color-figma-error);
+  color: var(--color-figma-text-error);
 }
 
 .tm-graph-node__issue-count--warning {
-  color: var(--color-figma-warning);
+  color: var(--color-figma-text-warning);
 }
 
 .tm-graph-node__details-toggle {
@@ -2886,11 +2894,11 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node__issues--error {
-  color: var(--color-figma-error);
+  color: var(--color-figma-text-error);
 }
 
 .tm-graph-node__issues--warning {
-  color: var(--color-figma-warning);
+  color: var(--color-figma-text-warning);
 }
 
 .tm-graph-node__outputs {
@@ -2971,7 +2979,7 @@ button.tm-token-details__text-button:disabled:hover {
 
 .tm-graph-node__result-warning,
 .tm-graph-node__result-change--warning {
-  color: var(--color-figma-error);
+  color: var(--color-figma-text-error);
 }
 
 .tm-graph-node__result-empty {

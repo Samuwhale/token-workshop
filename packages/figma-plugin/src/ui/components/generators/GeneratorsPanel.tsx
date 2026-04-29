@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent,
   type ReactNode,
 } from "react";
 import {
@@ -84,6 +85,7 @@ import { ActionRow, Button, IconButton, SegmentedControl } from "../../primitive
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 import { GeneratorCreatePanel } from "../GeneratorCreatePanel";
 import {
+  GeneratorRail,
   GeneratorListSidebar,
   NodeLibraryPanel,
   type GeneratorPaletteItem,
@@ -199,6 +201,22 @@ type PendingDeleteAction =
       reconnectCount: number;
     };
 
+type PendingPresetConversion = {
+  nodes: GraphFlowNode[];
+  edges: GraphFlowEdge[];
+  preservePreview?: boolean;
+  afterCommit?: GraphStructureCommitUiState;
+};
+
+type GraphStructureCommitUiState = {
+  selectedNodeId?: string | null;
+  selectedEdgeId?: string | null;
+  inspectorOpen?: boolean;
+  nodeLibraryOpen?: boolean;
+  graphMenu?: GraphMenuState | null;
+  editorMode?: GeneratorEditorMode;
+};
+
 type GraphFlowNode = Node<
   {
     graphNode: TokenGeneratorDocumentNode;
@@ -217,7 +235,7 @@ const GENERATOR_VIEW_OPTIONS: Array<{
   value: GeneratorEditorMode;
   label: string;
 }> = [
-  { value: "setup", label: "Outputs" },
+  { value: "setup", label: "Presets" },
   { value: "graph", label: "Graph" },
 ];
 
@@ -420,11 +438,20 @@ export function GeneratorsPanel({
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
   const [setupPanelOpen, setSetupPanelOpen] = useState(false);
+  const [floatingPreviewOpen, setFloatingPreviewOpen] = useState(true);
+  const [floatingPreviewCollapsed, setFloatingPreviewCollapsed] =
+    useState(false);
+  const [floatingPreviewPosition, setFloatingPreviewPosition] = useState({
+    x: 24,
+    y: 72,
+  });
   const [generatorListOpen, setGeneratorListOpen] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteAction | null>(
     null,
   );
+  const [pendingPresetConversion, setPendingPresetConversion] =
+    useState<PendingPresetConversion | null>(null);
   const [editorMode, setEditorMode] = useState<GeneratorEditorMode>("setup");
   const [activeInitialFocus, setActiveInitialFocus] =
     useState<GeneratorPanelFocus | null>(null);
@@ -520,6 +547,7 @@ export function GeneratorsPanel({
       activeGenerator
         ? JSON.stringify({
             id: activeGenerator.id,
+            authoringMode: activeGenerator.authoringMode,
             name: activeGenerator.name,
             targetCollectionId: activeGenerator.targetCollectionId,
             nodes: previewRelevantNodes(activeGenerator.nodes),
@@ -534,6 +562,7 @@ export function GeneratorsPanel({
       activeGenerator
         ? JSON.stringify({
             id: activeGenerator.id,
+            authoringMode: activeGenerator.authoringMode,
             nodes: activeGenerator.nodes,
             edges: activeGenerator.edges,
           })
@@ -846,16 +875,18 @@ export function GeneratorsPanel({
     (
       nextNodes: GraphFlowNode[],
       nextEdges: GraphFlowEdge[],
-      options: { preservePreview?: boolean } = {},
+      options: {
+        preservePreview?: boolean;
+        authoringMode?: TokenGeneratorDocument["authoringMode"];
+      } = {},
     ) => {
       if (!activeGenerator) return;
       localGraphEditRef.current = true;
       graphRevisionRef.current += 1;
-      const nextGenerator = graphWithFlowState(
-        activeGenerator,
-        nextNodes,
-        nextEdges,
-      );
+      const nextGenerator = {
+        ...graphWithFlowState(activeGenerator, nextNodes, nextEdges),
+        authoringMode: options.authoringMode ?? activeGenerator.authoringMode,
+      };
       setGenerators((current) =>
         current.map((graph) =>
           graph.id === activeGenerator.id
@@ -873,6 +904,72 @@ export function GeneratorsPanel({
       }
     },
     [activeGenerator],
+  );
+
+  const applyGraphStructureUiState = useCallback(
+    (state: GraphStructureCommitUiState | undefined) => {
+      if (!state) return;
+      if ("selectedNodeId" in state) {
+        setSelectedNodeId(state.selectedNodeId ?? null);
+      }
+      if ("selectedEdgeId" in state) {
+        setSelectedEdgeId(state.selectedEdgeId ?? null);
+      }
+      if (state.inspectorOpen !== undefined) {
+        setInspectorOpen(state.inspectorOpen);
+      }
+      if (state.nodeLibraryOpen !== undefined) {
+        setNodeLibraryOpen(state.nodeLibraryOpen);
+      }
+      if ("graphMenu" in state) {
+        setGraphMenu(state.graphMenu ?? null);
+      }
+      if (state.editorMode) {
+        setEditorMode(state.editorMode);
+      }
+    },
+    [],
+  );
+
+  const commitGraphStructure = useCallback(
+    (
+      nextNodes: GraphFlowNode[],
+      nextEdges: GraphFlowEdge[],
+      options: {
+        preservePreview?: boolean;
+        skipPresetConversion?: boolean;
+        afterCommit?: GraphStructureCommitUiState;
+      } = {},
+    ) => {
+      if (
+        activeGenerator?.authoringMode === "preset" &&
+        structuredDraft &&
+        !options.skipPresetConversion
+      ) {
+        setPendingPresetConversion({
+          nodes: nextNodes,
+          edges: nextEdges,
+          preservePreview: options.preservePreview,
+          afterCommit: options.afterCommit,
+        });
+        return false;
+      }
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+      commitFlowState(nextNodes, nextEdges, {
+        preservePreview: options.preservePreview,
+      });
+      applyGraphStructureUiState(options.afterCommit);
+      return true;
+    },
+    [
+      activeGenerator?.authoringMode,
+      applyGraphStructureUiState,
+      commitFlowState,
+      setEdges,
+      setNodes,
+      structuredDraft,
+    ],
   );
 
   const commitViewport = useCallback(
@@ -904,6 +1001,9 @@ export function GeneratorsPanel({
             : generator,
         ),
       );
+      setDirty(true);
+      dirtyRef.current = true;
+      dirtyGeneratorIdRef.current = activeGenerator.id;
     },
     [activeGenerator],
   );
@@ -950,6 +1050,7 @@ export function GeneratorsPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: generator.name,
+            authoringMode: generator.authoringMode,
             targetCollectionId: generator.targetCollectionId,
             nodes: generator.nodes,
             edges: generator.edges,
@@ -1060,6 +1161,7 @@ export function GeneratorsPanel({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   name: previewGenerator.name,
+                  authoringMode: previewGenerator.authoringMode,
                   targetCollectionId: previewGenerator.targetCollectionId,
                   nodes: previewGenerator.nodes,
                   edges: previewGenerator.edges,
@@ -1103,9 +1205,10 @@ export function GeneratorsPanel({
   ]);
 
   const applyGenerator = useCallback(async () => {
+    let saved = activeGenerator;
     if (dirty) {
-      setError("Save the generator before applying the latest preview.");
-      return;
+      saved = await saveGenerator();
+      if (!saved) return;
     }
     if (graphHasErrors) {
       setError("Fix graph issues before applying this generator.");
@@ -1121,7 +1224,6 @@ export function GeneratorsPanel({
       setError("Wait for the latest output preview before applying.");
       return;
     }
-    const saved = activeGenerator;
     if (!saved) return;
     setBusy("apply");
     setError(null);
@@ -1156,6 +1258,7 @@ export function GeneratorsPanel({
     graphHasErrors,
     loadGenerators,
     preview,
+    saveGenerator,
     serverUrl,
   ]);
 
@@ -1312,14 +1415,21 @@ export function GeneratorsPanel({
         setError(check.reason ?? "That connection is not valid.");
         return false;
       }
-      setEdges(nextEdges);
-      commitFlowState(baseNodes, nextEdges);
+      if (
+        !commitGraphStructure(baseNodes, nextEdges, {
+          afterCommit: {
+            selectedEdgeId: flowEdge.id,
+            graphMenu: null,
+          },
+        })
+      )
+        return false;
       setSelectedEdgeId(flowEdge.id);
       setGraphMenu(null);
       setError(null);
       return true;
     },
-    [activeGenerator, commitFlowState, edges, nodes, perCollectionFlat, setEdges],
+    [activeGenerator, commitGraphStructure, edges, nodes, perCollectionFlat],
   );
 
   const addPaletteNode = useCallback(
@@ -1383,7 +1493,7 @@ export function GeneratorsPanel({
           },
         );
         if (!firstEdge || !secondEdge) {
-          setError("That step cannot be inserted into this connection.");
+          setError("That node cannot be inserted into this connection.");
           return;
         }
         nextEdges = addSingleInputEdge(
@@ -1400,7 +1510,7 @@ export function GeneratorsPanel({
           targetNodeId: id,
         });
         if (!flowEdge) {
-          setError("That step cannot receive this connection.");
+          setError("That node cannot receive this connection.");
           return;
         }
         nextEdges = addSingleInputEdge(nextEdges, flowEdge);
@@ -1425,7 +1535,7 @@ export function GeneratorsPanel({
             replaceEdgeId: existingInputEdge.id,
           });
           if (!firstEdge || !secondEdge) {
-            setError("That step cannot be inserted before this input.");
+            setError("That node cannot be inserted before this input.");
             return;
           }
           nextEdges = addSingleInputEdge(
@@ -1442,15 +1552,24 @@ export function GeneratorsPanel({
             targetPort: options.connectTo.port,
           });
           if (!flowEdge) {
-            setError("That step cannot connect to this input.");
+            setError("That node cannot connect to this input.");
             return;
           }
           nextEdges = addSingleInputEdge(nextEdges, flowEdge);
         }
       }
-      setNodes(nextNodes);
-      setEdges(nextEdges);
-      commitFlowState(nextNodes, nextEdges);
+      if (
+        !commitGraphStructure(nextNodes, nextEdges, {
+          afterCommit: {
+            selectedNodeId: id,
+            selectedEdgeId: null,
+            inspectorOpen: true,
+            nodeLibraryOpen: false,
+            graphMenu: null,
+          },
+        })
+      )
+        return;
       setSelectedNodeId(id);
       setSelectedEdgeId(null);
       setInspectorOpen(true);
@@ -1458,7 +1577,7 @@ export function GeneratorsPanel({
       setGraphMenu(null);
       setError(null);
     },
-    [activeGenerator, commitFlowState, edges, nodes, perCollectionFlat, preview, setEdges, setNodes],
+    [activeGenerator, commitGraphStructure, edges, nodes, perCollectionFlat, preview],
   );
 
   const onConnect = useCallback(
@@ -1540,21 +1659,26 @@ export function GeneratorsPanel({
         perCollectionFlat,
       );
       if (!deletion) return;
-      setNodes(deletion.nodes);
-      setEdges(deletion.edges);
-      commitFlowState(deletion.nodes, deletion.edges);
+      if (
+        !commitGraphStructure(deletion.nodes, deletion.edges, {
+          afterCommit: {
+            selectedNodeId: null,
+            selectedEdgeId: null,
+            graphMenu: null,
+          },
+        })
+      )
+        return;
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
       setGraphMenu(null);
     },
     [
       activeGenerator,
-      commitFlowState,
+      commitGraphStructure,
       edges,
       nodes,
       perCollectionFlat,
-      setEdges,
-      setNodes,
     ],
   );
 
@@ -1607,12 +1731,19 @@ export function GeneratorsPanel({
         return;
       }
       const nextEdges = edges.filter((edge) => edge.id !== edgeId);
-      setEdges(nextEdges);
-      commitFlowState(nodes, nextEdges);
+      if (
+        !commitGraphStructure(nodes, nextEdges, {
+          afterCommit: {
+            selectedEdgeId: null,
+            graphMenu: null,
+          },
+        })
+      )
+        return;
       setSelectedEdgeId(null);
       setGraphMenu(null);
     },
-    [activeGenerator, commitFlowState, edges, nodes, setEdges],
+    [activeGenerator, commitGraphStructure, edges, nodes],
   );
 
   const repairGraphConnections = useCallback(() => {
@@ -1627,18 +1758,24 @@ export function GeneratorsPanel({
       setError("No broken connections were found to clean up.");
       return;
     }
-    setEdges(nextEdges);
-    commitFlowState(nodes, nextEdges);
+    if (
+      !commitGraphStructure(nodes, nextEdges, {
+        afterCommit: {
+          selectedEdgeId: null,
+          graphMenu: null,
+        },
+      })
+    )
+      return;
     setSelectedEdgeId(null);
     setGraphMenu(null);
     setError(null);
   }, [
     activeGenerator,
-    commitFlowState,
+    commitGraphStructure,
     edges,
     nodes,
     perCollectionFlat,
-    setEdges,
   ]);
 
   const confirmPendingDelete = useCallback(() => {
@@ -1655,6 +1792,27 @@ export function GeneratorsPanel({
     deleteNodeById(pendingDelete.nodeId);
     setPendingDelete(null);
   }, [activeGenerator?.id, deleteGenerator, deleteNodeById, pendingDelete]);
+
+  const confirmPresetConversion = useCallback(() => {
+    if (!pendingPresetConversion) return;
+    setNodes(pendingPresetConversion.nodes);
+    setEdges(pendingPresetConversion.edges);
+    commitFlowState(pendingPresetConversion.nodes, pendingPresetConversion.edges, {
+      authoringMode: "graph",
+      preservePreview: pendingPresetConversion.preservePreview,
+    });
+    applyGraphStructureUiState({
+      editorMode: "graph",
+      ...pendingPresetConversion.afterCommit,
+    });
+    setPendingPresetConversion(null);
+  }, [
+    applyGraphStructureUiState,
+    commitFlowState,
+    pendingPresetConversion,
+    setEdges,
+    setNodes,
+  ]);
 
   const duplicateNodeById = useCallback(
     (nodeId: string) => {
@@ -1683,14 +1841,23 @@ export function GeneratorsPanel({
         data: { graphNode, preview: preview ?? undefined },
       };
       const nextNodes = [...nodes, flowNode];
-      setNodes(nextNodes);
-      commitFlowState(nextNodes, edges);
+      if (
+        !commitGraphStructure(nextNodes, edges, {
+          afterCommit: {
+            selectedNodeId: id,
+            selectedEdgeId: null,
+            inspectorOpen: true,
+            graphMenu: null,
+          },
+        })
+      )
+        return;
       setSelectedNodeId(id);
       setSelectedEdgeId(null);
       setInspectorOpen(true);
       setGraphMenu(null);
     },
-    [activeGenerator, commitFlowState, edges, nodes, preview, setNodes],
+    [activeGenerator, commitGraphStructure, edges, nodes, preview],
   );
 
   const addOutputStep = useCallback(() => {
@@ -1743,22 +1910,28 @@ export function GeneratorsPanel({
           })
         : edges;
     const nextNodes = [...nodes, flowNode];
-    setNodes(nextNodes);
-    setEdges(nextEdges);
-    commitFlowState(nextNodes, nextEdges);
+    if (
+      !commitGraphStructure(nextNodes, nextEdges, {
+        afterCommit: {
+          selectedNodeId: id,
+          inspectorOpen: true,
+          nodeLibraryOpen: false,
+          editorMode: "graph",
+        },
+      })
+    )
+      return;
     setSelectedNodeId(id);
     setInspectorOpen(true);
     setNodeLibraryOpen(false);
     setEditorMode("graph");
   }, [
     activeGenerator,
-    commitFlowState,
+    commitGraphStructure,
     edges,
     nodes,
     preview,
     selectedNode,
-    setEdges,
-    setNodes,
   ]);
 
   const focusGraphIssue = useCallback(
@@ -1863,7 +2036,7 @@ export function GeneratorsPanel({
   const statusLabel = graphHasErrors
     ? "Fix settings"
     : dirty
-      ? "Save before applying"
+      ? "Unsaved changes"
       : externalPreviewInvalidated
         ? "Updating preview"
         : preview?.blocking || previewHasCollisions || previewHasNoOutputs
@@ -1954,14 +2127,14 @@ export function GeneratorsPanel({
                 (change) => change.type !== "remove",
               );
               if (safeChanges.length !== changes.length) {
-                setError("Use the step menu to delete steps safely.");
+                setError("Use the node menu to delete nodes safely.");
               }
               if (safeChanges.length === 0) return;
               if (hasStructuralNodeChange(safeChanges)) {
                 const nextNodes = applyNodeChanges(safeChanges, nodesRef.current);
-                setNodes(nextNodes);
-                commitFlowState(nextNodes, edgesRef.current, {
+                commitGraphStructure(nextNodes, edgesRef.current, {
                   preservePreview: changesOnlyCommitNodePositions(safeChanges),
+                  skipPresetConversion: changesOnlyCommitNodePositions(safeChanges),
                 });
                 return;
               }
@@ -1977,8 +2150,7 @@ export function GeneratorsPanel({
               if (safeChanges.length === 0) return;
               if (hasStructuralEdgeChange(safeChanges)) {
                 const nextEdges = applyEdgeChanges(safeChanges, edgesRef.current);
-                setEdges(nextEdges);
-                commitFlowState(nodesRef.current, nextEdges);
+                commitGraphStructure(nodesRef.current, nextEdges);
                 return;
               }
               setEdges((current) => applyEdgeChanges(safeChanges, current));
@@ -2154,6 +2326,27 @@ export function GeneratorsPanel({
               showInteractive={false}
             />
           </ReactFlow>
+          {floatingPreviewOpen ? (
+            <FloatingPreviewPanel
+              preview={preview}
+              targetCollection={targetCollection}
+              position={floatingPreviewPosition}
+              collapsed={floatingPreviewCollapsed}
+              onPositionChange={setFloatingPreviewPosition}
+              onToggleCollapsed={() =>
+                setFloatingPreviewCollapsed((collapsed) => !collapsed)
+              }
+              onClose={() => setFloatingPreviewOpen(false)}
+              onOpenFull={() => {
+                setEditorMode("setup");
+                setNodeLibraryOpen(false);
+                setInspectorOpen(false);
+              }}
+              onNavigateToToken={(path) =>
+                onNavigateToToken(path, activeGenerator.targetCollectionId)
+              }
+            />
+          ) : null}
           {graphMenu ? (
             <GraphContextMenu
               menu={graphMenu}
@@ -2184,7 +2377,7 @@ export function GeneratorsPanel({
         {nodeLibraryOpen ? (
           compactGenerators ? (
             <GeneratorOverlayPanel
-              title="Add step"
+              title="Add node"
               onClose={() => setNodeLibraryOpen(false)}
             >
               <NodeLibraryPanel
@@ -2211,7 +2404,7 @@ export function GeneratorsPanel({
         {inspectorOpen && selectedNode ? (
           compactGenerators ? (
             <GeneratorDockedPanel
-              title="Graph step"
+              title="Graph node"
               onClose={() => setInspectorOpen(false)}
             >
               <section className="p-3">
@@ -2229,7 +2422,7 @@ export function GeneratorsPanel({
             <aside className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)]">
               <section className="p-3">
                 <h2 className="mb-2 text-primary font-semibold">
-                  Graph step
+                  Graph node
                 </h2>
                 <NodeInspector
                   node={selectedNode}
@@ -2298,7 +2491,7 @@ export function GeneratorsPanel({
           </section>
           {setupPanelOpen ? (
             <GeneratorOverlayPanel
-              title="Generator setup"
+              title="Presets"
               onClose={() => setSetupPanelOpen(false)}
             >
               <section className="p-3">{renderSetupSummary(false)}</section>
@@ -2407,29 +2600,55 @@ export function GeneratorsPanel({
       ref={panelRef}
       className="relative flex h-full min-h-0 bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)]"
     >
-      {leftPanelOpen && !compactGenerators ? (
-        <GeneratorListSidebar
-          generators={scopedGenerators}
-          activeGeneratorId={activeGeneratorId}
-          createPanelOpen={createPanelOpen}
-          onCreate={() => {
-            if (busy) {
-              setError("Wait for the current generator action to finish.");
-              return;
-            }
-            if (dirty) {
-              setError("Save the current generator before creating another one.");
-              return;
-            }
-            setCreatePanelOpen(true);
-            setEditorMode("setup");
-            setError(null);
-          }}
-          onSelect={(generatorId) => {
-            setCreatePanelOpen(false);
-            selectGenerator(generatorId);
-          }}
-        />
+      {!compactGenerators ? (
+        leftPanelOpen ? (
+          <GeneratorListSidebar
+            generators={scopedGenerators}
+            activeGeneratorId={activeGeneratorId}
+            createPanelOpen={createPanelOpen}
+            onCreate={() => {
+              if (busy) {
+                setError("Wait for the current generator action to finish.");
+                return;
+              }
+              if (dirty) {
+                setError("Save the current generator before creating another one.");
+                return;
+              }
+              setCreatePanelOpen(true);
+              setEditorMode("setup");
+              setError(null);
+            }}
+            onSelect={(generatorId) => {
+              setCreatePanelOpen(false);
+              selectGenerator(generatorId);
+            }}
+          />
+        ) : (
+          <GeneratorRail
+            generators={scopedGenerators}
+            activeGeneratorId={activeGeneratorId}
+            createPanelOpen={createPanelOpen}
+            onExpand={() => setLeftPanelOpen(true)}
+            onCreate={() => {
+              if (busy) {
+                setError("Wait for the current generator action to finish.");
+                return;
+              }
+              if (dirty) {
+                setError("Save the current generator before creating another one.");
+                return;
+              }
+              setCreatePanelOpen(true);
+              setEditorMode("setup");
+              setError(null);
+            }}
+            onSelect={(generatorId) => {
+              setCreatePanelOpen(false);
+              selectGenerator(generatorId);
+            }}
+          />
+        )
       ) : null}
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -2536,7 +2755,7 @@ export function GeneratorsPanel({
                         id="generator-status-label"
                         type="button"
                         onClick={focusFirstGraphIssue}
-                        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+                        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
                       >
                         <AlertTriangle size={13} />
                         {statusLabel}
@@ -2562,7 +2781,7 @@ export function GeneratorsPanel({
                       id="generator-status-label"
                       type="button"
                       onClick={focusFirstGraphIssue}
-                      className="inline-flex h-7 max-w-[118px] items-center gap-1.5 rounded-md px-2 text-secondary font-medium text-[color:var(--color-figma-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+                      className="inline-flex h-7 max-w-[118px] items-center gap-1.5 rounded-md px-2 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
                       title={statusLabel}
                     >
                       <AlertTriangle size={13} />
@@ -2582,8 +2801,8 @@ export function GeneratorsPanel({
                   <div className="ml-auto flex items-center gap-1.5">
                     {editorMode === "setup" && compactGenerators ? (
                       <IconButton
-                        title="Generator setup"
-                        aria-label="Generator setup"
+                        title="Presets"
+                        aria-label="Presets"
                         onClick={() => {
                           setSetupPanelOpen((open) => !open);
                           setActionsMenuOpen(false);
@@ -2596,8 +2815,8 @@ export function GeneratorsPanel({
                     {editorMode === "graph" ? (
                       <>
                         <IconButton
-                          title={nodeLibraryOpen ? "Hide step library" : "Add step"}
-                          aria-label={nodeLibraryOpen ? "Hide step library" : "Add step"}
+                          title={nodeLibraryOpen ? "Hide node library" : "Add node"}
+                          aria-label={nodeLibraryOpen ? "Hide node library" : "Add node"}
                           onClick={() => {
                             setNodeLibraryOpen((open) => !open);
                             setInspectorOpen(false);
@@ -2683,6 +2902,20 @@ export function GeneratorsPanel({
                         </span>
                       </Button>
                     ) : null}
+                    {editorMode === "graph" && !floatingPreviewOpen ? (
+                      <Button
+                        title="Show floating output preview"
+                        aria-label="Show floating output preview"
+                        onClick={() => {
+                          setFloatingPreviewOpen(true);
+                          setFloatingPreviewCollapsed(false);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                      >
+                        Preview
+                      </Button>
+                    ) : null}
                     <Button
                       title="Apply generator"
                       aria-label="Apply generator"
@@ -2690,7 +2923,6 @@ export function GeneratorsPanel({
                       onClick={applyGenerator}
                       disabled={
                         busy !== null ||
-                        dirty ||
                         graphHasErrors ||
                         !preview ||
                         Boolean(preview.blocking) ||
@@ -2750,13 +2982,13 @@ export function GeneratorsPanel({
             </div>
 
             {error ? (
-              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-error)]">
+              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
                 <AlertTriangle size={14} />
                 {error}
               </div>
             ) : null}
             {lastApply ? (
-              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-success)]">
+              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-success)]">
                 <Check size={14} />
                 Applied {lastApply.created.length} created,{" "}
                 {lastApply.updated.length} updated, {lastApply.deleted.length}{" "}
@@ -2801,6 +3033,12 @@ export function GeneratorsPanel({
           action={pendingDelete}
           onCancel={() => setPendingDelete(null)}
           onConfirm={confirmPendingDelete}
+        />
+      ) : null}
+      {pendingPresetConversion ? (
+        <PresetConversionDialog
+          onCancel={() => setPendingPresetConversion(null)}
+          onConfirm={confirmPresetConversion}
         />
       ) : null}
       {compactGenerators && generatorListOpen ? (
@@ -2882,8 +3120,8 @@ function GraphIssueCallout({
           size={14}
           className={
             primaryIssue.severity === "error"
-              ? "mt-0.5 shrink-0 text-[color:var(--color-figma-error)]"
-              : "mt-0.5 shrink-0 text-[color:var(--color-figma-warning)]"
+              ? "mt-0.5 shrink-0 text-[color:var(--color-figma-text-error)]"
+              : "mt-0.5 shrink-0 text-[color:var(--color-figma-text-warning)]"
           }
         />
         <div className="min-w-0 flex-1">
@@ -2895,7 +3133,7 @@ function GraphIssueCallout({
             onClick={() => onFocusIssue(primaryIssue)}
             className={`mt-0.5 block max-w-full truncate text-left text-secondary hover:underline ${
               primaryIssue.severity === "error"
-                ? "text-[color:var(--color-figma-error)]"
+                ? "text-[color:var(--color-figma-text-error)]"
                 : "text-[color:var(--color-figma-text-secondary)]"
             }`}
             title={primaryIssue.message}
@@ -2955,7 +3193,7 @@ function GeneratorDeleteDialog({
     action.kind === "generator"
       ? `"${action.name}" and its generated-token ownership will be removed. Existing generated tokens stay in the collection.`
       : action.connectedEdgeCount === 0
-        ? "This step is not connected to the graph."
+        ? "This node is not connected to the graph."
         : action.reconnectCount > 0
           ? `${action.connectedEdgeCount} connection${action.connectedEdgeCount === 1 ? "" : "s"} will be removed. ${action.reconnectCount} compatible connection${action.reconnectCount === 1 ? "" : "s"} will be restored around it.`
           : `${action.connectedEdgeCount} connection${action.connectedEdgeCount === 1 ? "" : "s"} will be removed. Review the output preview before applying.`;
@@ -2975,6 +3213,35 @@ function GeneratorDeleteDialog({
           </Button>
           <Button type="button" size="sm" variant="danger" onClick={onConfirm}>
             Delete
+          </Button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PresetConversionDialog({
+  onCancel,
+  onConfirm,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-4">
+      <section className="w-full max-w-[380px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
+        <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
+          Convert to custom graph?
+        </h2>
+        <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+          This structural graph edit will replace preset controls with a custom graph. Existing preview and apply behavior stay the same.
+        </p>
+        <div className="mt-3 flex justify-end gap-2">
+          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="button" size="sm" variant="primary" onClick={onConfirm}>
+            Convert
           </Button>
         </div>
       </section>
@@ -3069,7 +3336,7 @@ function GraphContextMenu({
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search steps"
+              placeholder="Search nodes"
               className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
               autoFocus
             />
@@ -3131,7 +3398,7 @@ function GraphContextMenu({
                 })
               }
             >
-              Insert step
+              Insert node
             </GraphMenuAction>
             <GraphMenuAction
               onClick={() =>
@@ -3166,7 +3433,7 @@ function GraphContextMenu({
         ) : null}
 
         {existingCandidates.length > 0 ? (
-          <GraphMenuGroup title="Existing steps">
+          <GraphMenuGroup title="Existing nodes">
             {existingCandidates.map((candidate) => (
               <GraphMenuAction
                 key={`${candidate.edge.source}-${candidate.edge.sourceHandle}-${candidate.edge.target}-${candidate.edge.targetHandle}`}
@@ -3187,7 +3454,7 @@ function GraphContextMenu({
         ) : null}
 
         {showAddSearch ? (
-          <GraphMenuGroup title={existingCandidates.length > 0 ? "New steps" : "Steps"}>
+          <GraphMenuGroup title={existingCandidates.length > 0 ? "New nodes" : "Nodes"}>
             {addCandidates.map((item) => (
               <GraphMenuAction
                 key={`${item.kind}-${item.label}`}
@@ -3226,7 +3493,7 @@ function GraphContextMenu({
             ))}
             {addCandidates.length === 0 ? (
               <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                No compatible steps.
+                No compatible nodes.
               </div>
             ) : null}
           </GraphMenuGroup>
@@ -3271,7 +3538,7 @@ function GraphMenuAction({
       onClick={onClick}
       className={`block w-full rounded px-2 py-1.5 text-left text-secondary disabled:pointer-events-none disabled:opacity-40 ${
         tone === "danger"
-          ? "text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+          ? "text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-bg-hover)]"
           : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
       }`}
     >
@@ -3655,10 +3922,6 @@ function GeneratorSetupSummary({
   const outputNodes = generator.nodes.filter(
     (node) => node.kind === "groupOutput" || node.kind === "output",
   );
-  const modes =
-    targetCollection?.modes.map((mode) => mode.name) ??
-    preview?.targetModes ??
-    [];
   const status = dirty
     ? "Unsaved changes"
     : externalPreviewInvalidated
@@ -3674,7 +3937,7 @@ function GeneratorSetupSummary({
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-                Generator setup
+                Presets
               </h3>
               <button
                 type="button"
@@ -3691,11 +3954,11 @@ function GeneratorSetupSummary({
         <section className="flex flex-wrap gap-x-4 gap-y-1 text-secondary">
           <SummaryMetric
             label="Collection"
-            value={targetCollection?.id ?? generator.targetCollectionId}
-          />
-          <SummaryMetric
-            label="Modes"
-            value={modes.length > 0 ? modes.join(", ") : "No modes"}
+            value={
+              targetCollection?.publishRouting?.collectionName?.trim() ||
+              targetCollection?.id ||
+              generator.targetCollectionId
+            }
           />
           <SummaryMetric label="Status" value={status} />
         </section>
@@ -3712,7 +3975,7 @@ function GeneratorSetupSummary({
             />
           ) : (
             <div className="py-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              Custom graph. Edit the graph to change the steps.
+              Custom graph. Edit the graph to change the nodes.
             </div>
           )}
         </section>
@@ -3729,7 +3992,7 @@ function GeneratorSetupSummary({
                 onClick={() => onFocusGraphIssue(issue)}
                 className={`block w-full rounded px-1 py-1.5 text-secondary ${
                   issue.severity === "error"
-                    ? "text-[color:var(--color-figma-error)]"
+                    ? "text-[color:var(--color-figma-text-error)]"
                     : "text-[color:var(--color-figma-text-secondary)]"
                 } text-left hover:bg-[var(--color-figma-bg-hover)]`}
               >
@@ -3763,13 +4026,13 @@ function GeneratorSetupSummary({
                 onFocusGraphIssue({
                   id: "missing-output",
                   severity: "error",
-                  message: "Add an output step",
+                  message: "Add an output node",
                 })
               }
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               <Plus size={13} />
-              Add output step
+              Add output node
             </button>
           )}
         </section>
@@ -3839,17 +4102,20 @@ function StructuredGeneratorSetup({
         </span>
         <select
           value={draft.kind}
-          onChange={(event) => {
-            const kind = event.target.value as GeneratorPresetKind;
-            onChange({
-              kind,
-              outputPrefix:
-                GENERATOR_PRESET_OPTIONS.find((option) => option.id === kind)
-                  ?.outputPrefix ?? draft.outputPrefix,
-              sourceValue: generatorDefaultSourceValue(kind),
-              config: generatorDefaultConfig(kind),
-            });
-          }}
+            onChange={(event) => {
+              const kind = event.target.value as GeneratorPresetKind;
+              onChange({
+                kind,
+                outputPrefix:
+                  GENERATOR_PRESET_OPTIONS.find((option) => option.id === kind)
+                    ?.outputPrefix ?? draft.outputPrefix,
+                sourceMode: "literal",
+                sourceValue: generatorDefaultSourceValue(kind),
+                sourceCollectionId: targetCollectionId,
+                sourceTokenPath: "",
+                config: generatorDefaultConfig(kind),
+              });
+            }}
           className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary"
         >
           {GENERATOR_PRESET_OPTIONS.map((option) => (
@@ -3858,6 +4124,9 @@ function StructuredGeneratorSetup({
             </option>
           ))}
         </select>
+        <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+          Changing preset replaces preset-specific settings.
+        </span>
       </label>
 
       <GeneratorPathField
@@ -3957,7 +4226,7 @@ function StructuredGeneratorSetup({
                 </label>
                 {crossCollectionSource ? (
                   <div
-                    className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-error)]"}`}
+                    className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-text-error)]"}`}
                   >
                     {modeCompatibility
                       ? "Source modes match the target collection."
@@ -4230,8 +4499,7 @@ function TokenSourcePicker({
           type="button"
           onClick={() => onChange("")}
           className="flex w-full items-center gap-2 rounded bg-[var(--color-figma-bg-selected)] px-2 py-1.5 text-left text-secondary"
-          title="Clear source token"
-          aria-label="Clear source token"
+          aria-label={`Clear source token ${selected[0]}`}
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate font-medium">{selected[0]}</span>
@@ -4241,6 +4509,11 @@ function TokenSourcePicker({
               modes={sourceModes}
             />
           </span>
+          <X
+            size={14}
+            className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
+            aria-hidden
+          />
         </button>
       ) : null}
       <div className="max-h-[180px] overflow-y-auto py-1">
@@ -4504,6 +4777,13 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
         <div className="tm-graph-node__summary" title={summary}>
           {summary}
         </div>
+        <CompactNodePreview
+          isOutputNode={isOutputNode}
+          nodePreview={nodePreview}
+          outputs={relatedOutputs}
+          modeNames={data.preview?.targetModes ?? []}
+          previewReady={Boolean(data.preview)}
+        />
         <button
           type="button"
           className="tm-graph-node__details-toggle nodrag nopan"
@@ -4606,13 +4886,69 @@ function OutputNodeResults({
           ))}
           {hiddenOutputCount > 0 ? (
             <div className="tm-graph-node__result-more">
-              {hiddenOutputCount} more in Outputs
+              {hiddenOutputCount} more outputs
             </div>
           ) : null}
         </div>
       )}
     </div>
   );
+}
+
+function CompactNodePreview({
+  isOutputNode,
+  nodePreview,
+  outputs,
+  modeNames,
+  previewReady,
+}: {
+  isOutputNode: boolean;
+  nodePreview?: TokenGeneratorPreviewResult["nodePreviews"][string];
+  outputs: TokenGeneratorPreviewOutput[];
+  modeNames: string[];
+  previewReady: boolean;
+}) {
+  if (isOutputNode) {
+    const firstOutput = outputs[0];
+    const label = !previewReady
+      ? "Preparing preview"
+      : outputs.length === 0
+        ? "No generated tokens"
+        : `${outputs.length} ${outputs.length === 1 ? "token" : "tokens"}`;
+    return (
+      <div className="tm-graph-node__summary" title={label}>
+        {firstOutput ? `${label}: ${firstOutput.path}` : label}
+      </div>
+    );
+  }
+  if (!nodePreview) {
+    return (
+      <div className="tm-graph-node__summary">
+        {previewReady ? "No preview" : "Preparing preview"}
+      </div>
+    );
+  }
+  const modes = modeNames.length > 0 ? modeNames : Object.keys(nodePreview.modeValues);
+  const firstMode = modes[0];
+  const value = firstMode ? nodePreview.modeValues[firstMode] : undefined;
+  const label = compactRuntimeValueLabel(value);
+  return (
+    <div className="tm-graph-node__summary" title={label}>
+      {firstMode ? `${firstMode}: ${label}` : label}
+    </div>
+  );
+}
+
+function compactRuntimeValueLabel(
+  value: TokenGeneratorNodePreviewValue | undefined,
+): string {
+  if (!value) return "No value";
+  if (value.kind === "list") {
+    const first = value.values[0];
+    if (!first) return "Empty series";
+    return `${value.values.length} items, first ${formatValue(first.value)}`;
+  }
+  return formatValue(value.value) || "No value";
 }
 
 function NodeIssueList({
@@ -5334,7 +5670,7 @@ function NodeInspector({
       <button
         type="button"
         onClick={onDelete}
-        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-bg-hover)]"
       >
         <Trash2 size={14} />
         Delete node
@@ -5373,7 +5709,7 @@ function nodeInspectorNote(node: TokenGeneratorDocumentNode): string | null {
     return "Use this for ramps and scales. It creates one token per item in the connected series.";
   }
   if (getNodeOutputPorts(node).some((port) => port.shape === "list")) {
-    return "This step outputs a series. Connect it to Series output to create one token per step.";
+    return "This node outputs a series. Connect it to Series output to create one token per item.";
   }
   return null;
 }
@@ -5472,7 +5808,7 @@ function PreviewPanel({
       )}
       <div className="space-y-4">
         {preview.outputs.length === 0 ? (
-          <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary text-[color:var(--color-figma-error)]">
+          <div className="rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary text-[color:var(--color-figma-text-error)]">
             No tokens will be created. Adjust the generator and wait for the
             preview to refresh.
           </div>
@@ -5532,7 +5868,7 @@ function PreviewPanel({
                           </button>
                         )}
                         {output.collision ? (
-                          <span className="mt-1 block text-tertiary text-[color:var(--color-figma-error)]">
+                          <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
                             Manual token exists
                           </span>
                         ) : null}
@@ -5559,7 +5895,7 @@ function PreviewPanel({
                       <td
                         className={`px-2 py-2 align-top text-tertiary ${
                           output.collision
-                            ? "text-[color:var(--color-figma-error)]"
+                            ? "text-[color:var(--color-figma-text-error)]"
                             : "text-[color:var(--color-figma-text-secondary)]"
                         }`}
                       >
@@ -5579,6 +5915,197 @@ function PreviewPanel({
         )}
       </div>
     </div>
+  );
+}
+
+function FloatingPreviewPanel({
+  preview,
+  targetCollection,
+  position,
+  collapsed,
+  onPositionChange,
+  onToggleCollapsed,
+  onClose,
+  onOpenFull,
+  onNavigateToToken,
+}: {
+  preview: TokenGeneratorPreviewResult | null;
+  targetCollection: TokenCollection | undefined;
+  position: { x: number; y: number };
+  collapsed: boolean;
+  onPositionChange: (position: { x: number; y: number }) => void;
+  onToggleCollapsed: () => void;
+  onClose: () => void;
+  onOpenFull: () => void;
+  onNavigateToToken: (path: string) => void;
+}) {
+  const dragStartRef = useRef<{
+    pointerX: number;
+    pointerY: number;
+    panelX: number;
+    panelY: number;
+  } | null>(null);
+  const modes =
+    targetCollection?.modes.map((mode) => mode.name) ??
+    preview?.targetModes ??
+    [];
+  const visibleModes = modes.slice(0, 2);
+  const visibleOutputs = preview?.outputs.slice(0, 8) ?? [];
+
+  const startDrag = (event: PointerEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStartRef.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      panelX: position.x,
+      panelY: position.y,
+    };
+  };
+  const drag = (event: PointerEvent<HTMLElement>) => {
+    const start = dragStartRef.current;
+    if (!start) return;
+    onPositionChange({
+      x: Math.max(8, start.panelX + event.clientX - start.pointerX),
+      y: Math.max(8, start.panelY + event.clientY - start.pointerY),
+    });
+  };
+  const stopDrag = (event: PointerEvent<HTMLElement>) => {
+    dragStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  return (
+    <section
+      className="absolute z-20 overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: "min(520px, calc(100% - 24px))",
+      }}
+      onClick={(event) => event.stopPropagation()}
+      onContextMenu={(event) => event.stopPropagation()}
+    >
+      <header
+        className="flex h-10 cursor-move items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-2"
+        onPointerDown={startDrag}
+        onPointerMove={drag}
+        onPointerUp={stopDrag}
+        onPointerCancel={stopDrag}
+      >
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleCollapsed();
+          }}
+          className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-left text-secondary font-semibold text-[color:var(--color-figma-text)]"
+        >
+          {collapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          <span className="truncate">Output preview</span>
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenFull();
+          }}
+          className="rounded px-2 py-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          Full
+        </button>
+        <IconButton title="Close" aria-label="Close preview" onClick={onClose}>
+          <X size={14} />
+        </IconButton>
+      </header>
+      {collapsed ? null : (
+        <div className="max-h-[300px] overflow-auto p-2">
+          {!preview ? (
+            <div className="py-6 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
+              Preparing preview.
+            </div>
+          ) : preview.outputs.length === 0 ? (
+            <div className="py-6 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
+              No generated tokens.
+            </div>
+          ) : (
+            <table className="min-w-full border-separate border-spacing-0 text-left text-tertiary">
+              <thead className="text-[color:var(--color-figma-text-secondary)]">
+                <tr>
+                  <th className="min-w-[150px] px-2 py-1 font-medium">Token</th>
+                  {visibleModes.map((modeName) => (
+                    <th key={modeName} className="min-w-[110px] px-2 py-1 font-medium">
+                      {modeName}
+                    </th>
+                  ))}
+                  <th className="px-2 py-1 font-medium">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleOutputs.map((output) => (
+                  <tr key={output.path}>
+                    <td className="max-w-[180px] px-2 py-1.5 align-top">
+                      {output.change === "created" ? (
+                        <span className="block truncate font-medium text-[color:var(--color-figma-text)]">
+                          {output.path}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onNavigateToToken(output.path)}
+                          className="block max-w-full truncate text-left font-medium text-[color:var(--color-figma-text)] hover:underline"
+                        >
+                          {output.path}
+                        </button>
+                      )}
+                    </td>
+                    {visibleModes.map((modeName) => (
+                      <td
+                        key={modeName}
+                        className="max-w-[140px] px-2 py-1.5 align-top text-[color:var(--color-figma-text)]"
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          {previewIsValueBearing(output.type) ? (
+                            <ValuePreview
+                              type={output.type}
+                              value={output.modeValues[modeName]}
+                              size={12}
+                            />
+                          ) : null}
+                          <span className="truncate">
+                            {formatValue(output.modeValues[modeName])}
+                          </span>
+                        </span>
+                      </td>
+                    ))}
+                    <td
+                      className={`px-2 py-1.5 align-top ${
+                        output.collision
+                          ? "text-[color:var(--color-figma-text-error)]"
+                          : "text-[color:var(--color-figma-text-secondary)]"
+                      }`}
+                    >
+                      {output.collision ? "manual" : output.change}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {preview && preview.outputs.length > visibleOutputs.length ? (
+            <button
+              type="button"
+              onClick={onOpenFull}
+              className="mt-2 rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              {preview.outputs.length - visibleOutputs.length} more in Presets
+            </button>
+          ) : null}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -5971,7 +6498,7 @@ function collectGraphIssues(
         id: `${edge.id}-missing-node`,
         edgeId: edge.id,
         severity: "error",
-        message: "Connection references a missing step",
+        message: "Connection references a missing node",
       });
       continue;
     }
@@ -6049,7 +6576,7 @@ function collectGraphIssues(
     issues.push({
       id: "missing-output",
       severity: "error",
-      message: "Add an output step",
+      message: "Add an output node",
     });
   }
   return issues;

@@ -94,7 +94,7 @@ export function SuggestedTokens({
           <span className="text-secondary font-semibold uppercase tracking-wide text-[color:var(--color-figma-text-secondary)]">
             {title}
           </span>
-          <span className="text-secondary bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
+          <span className="text-secondary bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)] px-1.5 py-0.5 rounded-full font-medium">
             {filteredSuggestions.length}
           </span>
         </button>
@@ -106,7 +106,7 @@ export function SuggestedTokens({
             <div className="flex items-center justify-end px-1.5 pt-1 pb-0.5">
               <button
                 onClick={() => onApplyBatch?.(strongBatch)}
-                className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
                 title={`Apply ${strongBatch.length} best matches across properties`}
               >
                 Apply all ({strongBatch.length})
@@ -170,7 +170,7 @@ export function SuggestedTokens({
                         <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] opacity-50">·</span>
                         <span className={`text-[var(--font-size-xs)] ${
                           s.confidence === 'strong'
-                            ? 'text-[color:var(--color-figma-accent)]'
+                            ? 'text-[color:var(--color-figma-text-accent)]'
                             : 'text-[color:var(--color-figma-text-secondary)]'
                         }`}>
                           {s.reason}
@@ -211,7 +211,7 @@ export function SuggestedTokens({
                 setShowAll(true);
                 lsSet(LS_SHOW_ALL_KEY, 'true');
               }}
-              className="w-full text-secondary text-[color:var(--color-figma-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+              className="w-full text-secondary text-[color:var(--color-figma-text-accent)] text-center py-1.5 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-accent)]/5 transition-colors"
             >
               Show {weakGroup!.items.length} more
             </button>

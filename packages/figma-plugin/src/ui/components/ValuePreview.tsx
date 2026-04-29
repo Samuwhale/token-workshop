@@ -131,7 +131,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const glyph = Math.round(size * 0.75);
     return (
       <div
-        className="shrink-0 flex items-center justify-center text-[color:var(--color-figma-warning)]"
+        className="shrink-0 flex items-center justify-center text-[color:var(--color-figma-text-warning)]"
         style={squareStyle}
         title={`Unresolved reference: ${value}`}
       >
@@ -156,7 +156,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
           title={value + (wg ? `\nsRGB fallback: ${fallback}` : '')}
         />
         {wg && (
-          <span className="px-1 py-px rounded text-[var(--font-size-xs)] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30 shrink-0" title={`Wide-gamut · sRGB fallback: ${fallback}`}>
+          <span className="px-1 py-px rounded text-[var(--font-size-xs)] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)] border border-[var(--color-figma-warning)]/30 shrink-0" title={`Wide-gamut · sRGB fallback: ${fallback}`}>
             P3
           </span>
         )}
@@ -485,7 +485,7 @@ export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
     const glyph = Math.round(size * 0.8);
     return (
       <div
-        className={`shrink-0 flex items-center justify-center ${boolVal ? 'text-[color:var(--color-figma-success)]' : 'text-[color:var(--color-figma-text-tertiary)]'}`}
+        className={`shrink-0 flex items-center justify-center ${boolVal ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-tertiary)]'}`}
         style={squareStyle}
         title={String(boolVal)}
       >

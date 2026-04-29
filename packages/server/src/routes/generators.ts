@@ -73,15 +73,16 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post<{ Body: GeneratorCreateInput & GeneratorHistoryBody }>("/generators", async (request, reply) => {
     try {
-      const targetCollectionId = String(request.body?.targetCollectionId ?? "").trim();
+      const body = readGeneratorCreateBody(request.body);
+      const targetCollectionId = String(body.targetCollectionId ?? "").trim();
       if (!targetCollectionId) {
         throw new BadRequestError("targetCollectionId is required");
       }
       await fastify.collectionService.requireCollectionsExist([targetCollectionId]);
-      const recordHistory = request.body?.recordHistory !== false;
+      const recordHistory = body.recordHistory !== false;
       const beforeGenerators = recordHistory ? await fastify.generatorService.list() : [];
       const generator = await fastify.generatorService.create({
-        ...request.body,
+        ...body,
         targetCollectionId,
       });
       if (recordHistory) {
@@ -115,12 +116,13 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     "/generators/:id",
     async (request, reply) => {
       try {
-        if (request.body.targetCollectionId) {
+        const body = readGeneratorUpdateBody(request.body, "Generator update body");
+        if (body.targetCollectionId) {
           await fastify.collectionService.requireCollectionsExist([
-            request.body.targetCollectionId,
+            body.targetCollectionId,
           ]);
         }
-        const recordHistory = request.body?.recordHistory !== false;
+        const recordHistory = body.recordHistory !== false;
         const beforeGenerators = recordHistory
           ? await fastify.generatorService.list()
           : [];
@@ -129,7 +131,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           : undefined;
         const generator = await fastify.generatorService.update(
           request.params.id,
-          request.body,
+          body,
           fastify.tokenStore,
         );
         if (recordHistory) {
@@ -229,7 +231,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     "/generators/:id/preview-draft",
     async (request, reply) => {
       try {
-        const body = readGeneratorUpdateBody(request.body);
+        const body = readGeneratorUpdateBody(request.body, "Generator draft preview body");
         if (body.targetCollectionId) {
           await fastify.collectionService.requireCollectionsExist([
             body.targetCollectionId,
@@ -302,9 +304,99 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   );
 };
 
-function readGeneratorUpdateBody(body: unknown): GeneratorUpdateInput {
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new BadRequestError("Generator draft preview body must be an object.");
+function readGeneratorCreateBody(body: unknown): GeneratorCreateInput & GeneratorHistoryBody {
+  const record = readGeneratorRouteRecord(body, "Generator create body");
+  const input: GeneratorCreateInput & GeneratorHistoryBody = {
+    authoringMode: readGeneratorAuthoringMode(record.authoringMode),
+    targetCollectionId: readRequiredGeneratorString(
+      record.targetCollectionId,
+      "targetCollectionId",
+    ),
+  };
+  copyOptionalGeneratorFields(record, input);
+  copyRecordHistory(record, input);
+  return input;
+}
+
+function readGeneratorUpdateBody(
+  body: unknown,
+  bodyName: string,
+): GeneratorUpdateInput & GeneratorHistoryBody {
+  const record = readGeneratorRouteRecord(body, bodyName);
+  const input: GeneratorUpdateInput & GeneratorHistoryBody = {};
+  if (Object.prototype.hasOwnProperty.call(record, "authoringMode")) {
+    input.authoringMode = readGeneratorAuthoringMode(record.authoringMode);
   }
-  return body as GeneratorUpdateInput;
+  if (Object.prototype.hasOwnProperty.call(record, "targetCollectionId")) {
+    input.targetCollectionId = readRequiredGeneratorString(
+      record.targetCollectionId,
+      "targetCollectionId",
+    );
+  }
+  copyOptionalGeneratorFields(record, input);
+  copyRecordHistory(record, input);
+  return input;
+}
+
+function readGeneratorRouteRecord(
+  body: unknown,
+  bodyName: string,
+): Record<string, unknown> {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new BadRequestError(`${bodyName} must be an object.`);
+  }
+  return body as Record<string, unknown>;
+}
+
+function readGeneratorAuthoringMode(
+  value: unknown,
+): GeneratorCreateInput["authoringMode"] {
+  if (value === "preset" || value === "graph") return value;
+  throw new BadRequestError('authoringMode must be "preset" or "graph".');
+}
+
+function readRequiredGeneratorString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string") {
+    throw new BadRequestError(`${fieldName} must be a non-empty string.`);
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new BadRequestError(`${fieldName} must be a non-empty string.`);
+  }
+  return trimmed;
+}
+
+function copyOptionalGeneratorFields(
+  record: Record<string, unknown>,
+  input: GeneratorUpdateInput,
+): void {
+  if (Object.prototype.hasOwnProperty.call(record, "name")) {
+    input.name = readRequiredGeneratorString(record.name, "name");
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "template")) {
+    if (typeof record.template !== "string") {
+      throw new BadRequestError("template must be a string.");
+    }
+    (input as GeneratorCreateInput).template = record.template as GeneratorCreateInput["template"];
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "nodes")) {
+    input.nodes = record.nodes as GeneratorUpdateInput["nodes"];
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "edges")) {
+    input.edges = record.edges as GeneratorUpdateInput["edges"];
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "viewport")) {
+    input.viewport = record.viewport as GeneratorUpdateInput["viewport"];
+  }
+}
+
+function copyRecordHistory(
+  record: Record<string, unknown>,
+  input: GeneratorHistoryBody,
+): void {
+  if (!Object.prototype.hasOwnProperty.call(record, "recordHistory")) return;
+  if (typeof record.recordHistory !== "boolean") {
+    throw new BadRequestError("recordHistory must be a boolean.");
+  }
+  input.recordHistory = record.recordHistory;
 }

@@ -172,7 +172,7 @@ export function HistoryPanel({
                   }}
                   variant="ghost"
                   size="sm"
-                  className="px-1.5 text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)]"
+                  className="px-1.5 text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-accent)]"
                 >
                   Save checkpoint
                 </Button>

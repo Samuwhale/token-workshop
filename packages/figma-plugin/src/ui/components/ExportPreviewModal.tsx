@@ -78,7 +78,7 @@ export function ExportPreviewModal({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-[color:var(--color-figma-accent)]"
+                className="text-[color:var(--color-figma-text-accent)]"
                 aria-hidden="true"
               >
                 <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
@@ -137,7 +137,7 @@ export function ExportPreviewModal({
                 onClick={() => onFileSelect(i)}
                 className={`tm-modal-tab ${i === fileIndex ? "tm-modal-tab--active" : ""}`}
               >
-                <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[var(--font-size-xs)] font-medium uppercase font-sans text-[color:var(--color-figma-accent)]">
+                <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[var(--font-size-xs)] font-medium uppercase font-sans text-[color:var(--color-figma-text-accent)]">
                   {file.platform}
                 </span>
                 <span className="min-w-0 flex-1">

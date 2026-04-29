@@ -39,7 +39,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-[color:var(--color-figma-error)]"
+        className="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-[color:var(--color-figma-text-error)]"
       >
         <circle cx="12" cy="12" r="10" />
         <path d="M12 8v4M12 16h.01" />

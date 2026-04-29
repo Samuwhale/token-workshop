@@ -36,7 +36,7 @@ export function PreviewCard({
         <button
           type="button"
           onClick={onToggleExpand}
-          className="text-secondary text-[color:var(--color-figma-accent)] hover:underline text-left"
+          className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline text-left"
         >
           {expanded ? 'Show less' : `and ${count - PREVIEW_MAX} more…`}
         </button>
@@ -77,7 +77,7 @@ export function ColorTransition({ from, to }: { from: unknown; to: unknown }) {
 export function ActionFeedback({ feedback }: { feedback: { ok: boolean; msg: string } | null }) {
   if (!feedback) return null;
   return (
-    <span className={feedback.ok ? 'text-[color:var(--color-figma-text-secondary)]' : 'text-[color:var(--color-figma-error)]'}>
+    <span className={feedback.ok ? 'text-[color:var(--color-figma-text-secondary)]' : 'text-[color:var(--color-figma-text-error)]'}>
       {feedback.msg}
     </span>
   );

@@ -327,7 +327,7 @@ export function RemapBindingsPanel({
                 onClick={() =>
                   updateRows(remapRows.filter((_, rowIdx) => rowIdx !== idx))
                 }
-                className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-error)]"
+                className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-error)]"
                 title="Remove row"
                 aria-label="Remove row"
               >
@@ -353,7 +353,7 @@ export function RemapBindingsPanel({
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => updateRows([...remapRows, createEmptyRemapRow()])}
-          className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+          className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
         >
           + Add row
         </button>

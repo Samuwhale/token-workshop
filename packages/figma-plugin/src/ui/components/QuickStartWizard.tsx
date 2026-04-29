@@ -44,7 +44,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
       </div>
 
       <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-1.5">
-        <code className="text-body font-mono text-[color:var(--color-figma-accent)]">token-manager start</code>
+        <code className="text-body font-mono text-[color:var(--color-figma-text-accent)]">token-manager start</code>
       </div>
 
       <div className="flex items-center gap-2 text-secondary text-[color:var(--color-figma-text-secondary)]">

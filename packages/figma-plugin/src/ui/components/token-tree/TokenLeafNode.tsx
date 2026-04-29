@@ -941,7 +941,7 @@ export const TokenLeafNode = memo(
             <div className="flex items-center gap-1 shrink-0">
               {isFavorite && (
                 <span
-                  className="shrink-0 text-[color:var(--color-figma-warning)]"
+                  className="shrink-0 text-[color:var(--color-figma-text-warning)]"
                   title="Favorited"
                   aria-label="Favorited"
                 >
@@ -1301,7 +1301,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onToggleStar(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-[color:var(--color-figma-warning)]" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-[color:var(--color-figma-text-warning)]" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                       <span className="flex-1">{isFavorite ? "Remove favorite" : "Add to favorites"}</span>
                     </button>
                   )}
@@ -1525,7 +1525,7 @@ export const TokenLeafNode = memo(
                   {/* Token path — clickable to navigate */}
                   {!isFirst ? (
                     <button
-                      className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[color:var(--color-figma-error)]" : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-accent)] hover:underline"}`}
+                      className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[color:var(--color-figma-text-error)]" : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:underline"}`}
                       onClick={() =>
                         !step.isError &&
                         onNavigateToAlias?.(step.path, node.path)
@@ -1539,7 +1539,7 @@ export const TokenLeafNode = memo(
                       {step.path}
                     </button>
                   ) : (
-                    <span className="text-secondary font-mono text-[color:var(--color-figma-accent)] shrink-0">
+                    <span className="text-secondary font-mono text-[color:var(--color-figma-text-accent)] shrink-0">
                       {step.path}
                     </span>
                   )}
@@ -1570,7 +1570,7 @@ export const TokenLeafNode = memo(
                   {/* Error indicator */}
                   {step.isError && (
                     <span
-                      className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-error)] italic`}
+                      className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-error)] italic`}
                     >
                       {step.errorMsg}
                     </span>

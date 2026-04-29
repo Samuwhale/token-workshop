@@ -56,7 +56,7 @@ function computeLineDiff(a: string, b: string): { aLines: DiffLine[]; bLines: Di
 
 function DiffPre({ lines, side, isExpanded }: { lines: DiffLine[]; side: 'ours' | 'theirs'; isExpanded: boolean }) {
   const addedBg = side === 'ours' ? 'bg-[var(--color-figma-success)]/25' : 'bg-[var(--color-figma-accent)]/25';
-  const addedText = side === 'ours' ? 'text-[color:var(--color-figma-success)]' : 'text-[color:var(--color-figma-accent)]';
+  const addedText = side === 'ours' ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-accent)]';
   return (
     <pre className={`overflow-x-auto overflow-y-auto text-secondary font-mono whitespace-pre leading-tight${isExpanded ? '' : ' max-h-28'}`}>
       {lines.map((line, idx) => (
@@ -124,7 +124,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {git.gitError && (
-        <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)] text-secondary">
+        <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-text-error)] text-secondary">
           {git.gitError}
         </div>
       )}
@@ -176,16 +176,16 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                 <span className="text-body font-medium truncate max-w-[140px]" title={git.gitStatus.branch || 'main'}>{git.gitStatus.branch || 'main'}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={`text-secondary font-medium ${git.allChanges.length > 0 ? 'text-[color:var(--color-figma-warning)]' : 'text-[color:var(--color-figma-success)]'}`}>
+                <span className={`text-secondary font-medium ${git.allChanges.length > 0 ? 'text-[color:var(--color-figma-text-warning)]' : 'text-[color:var(--color-figma-text-success)]'}`}>
                   {git.allChanges.length > 0 ? `${git.allChanges.length} working change${git.allChanges.length !== 1 ? 's' : ''}` : 'Up to date'}
                 </span>
                 {git.gitStatus.remote && (git.gitStatus.status?.ahead ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Share`} className="text-secondary font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]">
+                  <span title={`${git.gitStatus.status!.ahead} saved version${git.gitStatus.status!.ahead !== 1 ? 's' : ''} ready to share — click Share`} className="text-secondary font-medium px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]">
                     ↑{git.gitStatus.status!.ahead}
                   </span>
                 )}
                 {git.gitStatus.remote && (git.gitStatus.status?.behind ?? 0) > 0 && (
-                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Get updates`} className="text-secondary font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-warning)]">
+                  <span title={`${git.gitStatus.status!.behind} update${git.gitStatus.status!.behind !== 1 ? 's' : ''} from your team available — click Get updates`} className="text-secondary font-medium px-1 py-0.5 rounded bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-text-warning)]">
                     ↓{git.gitStatus.status!.behind}
                   </span>
                 )}
@@ -244,14 +244,14 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                     <line x1="12" y1="9" x2="12" y2="13" />
                     <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
-                  <span className="text-body font-semibold text-[color:var(--color-figma-warning)]">
+                  <span className="text-body font-semibold text-[color:var(--color-figma-text-warning)]">
                     Conflicting edits ({git.mergeConflicts.length} file{git.mergeConflicts.length !== 1 ? 's' : ''})
                   </span>
                 </div>
                 <button
                   onClick={git.abortMerge}
                   disabled={git.actionLoading === 'abort'}
-                  className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
+                  className="text-secondary px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
                 >
                   {git.actionLoading === 'abort' ? 'Cancelling\u2026' : 'Cancel'}
                 </button>
@@ -275,11 +275,11 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                     <p>For each conflicting section, choose:</p>
                     <ul className="flex flex-col gap-1 pl-3">
                       <li className="flex items-start gap-1.5">
-                        <span className="text-[color:var(--color-figma-success)] font-semibold shrink-0 mt-px">Your version</span>
+                        <span className="text-[color:var(--color-figma-text-success)] font-semibold shrink-0 mt-px">Your version</span>
                         <span>— the edits you made locally (keep your work)</span>
                       </li>
                       <li className="flex items-start gap-1.5">
-                        <span className="text-[color:var(--color-figma-accent)] font-semibold shrink-0 mt-px">Server version</span>
+                        <span className="text-[color:var(--color-figma-text-accent)] font-semibold shrink-0 mt-px">Server version</span>
                         <span>— what&rsquo;s already saved on the shared server (keep their work)</span>
                       </li>
                     </ul>
@@ -300,7 +300,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                       }
                       return next;
                     })}
-                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-success)]/40 text-[color:var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10 transition-colors"
+                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-success)]/40 text-[color:var(--color-figma-text-success)] hover:bg-[var(--color-figma-success)]/10 transition-colors"
                   >
                     All yours
                   </button>
@@ -313,7 +313,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                       }
                       return next;
                     })}
-                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)]/40 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                    className="text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)]/40 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                   >
                     All server&rsquo;s
                   </button>
@@ -323,7 +323,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                 {git.mergeConflicts.map((conflict) => (
                   <div key={conflict.file} className="flex flex-col">
                     <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center gap-1.5">
-                      <span className="text-secondary font-mono font-bold text-[color:var(--color-figma-warning)]">!</span>
+                      <span className="text-secondary font-mono font-bold text-[color:var(--color-figma-text-warning)]">!</span>
                       <span className="text-secondary font-mono text-[color:var(--color-figma-text)] truncate" title={conflict.file}>{conflict.file}</span>
                       <span className="text-secondary text-[color:var(--color-figma-text-secondary)] ml-auto shrink-0">{conflict.regions.length} section{conflict.regions.length !== 1 ? 's' : ''}</span>
                     </div>
@@ -358,7 +358,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                               }`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className={`text-secondary font-semibold ${choice === 'ours' ? 'text-[color:var(--color-figma-success)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>Your version</span>
+                                <span className={`text-secondary font-semibold ${choice === 'ours' ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>Your version</span>
                                 {choice === 'ours' && (
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
@@ -383,7 +383,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                               }`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className={`text-secondary font-semibold ${choice === 'theirs' ? 'text-[color:var(--color-figma-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>Server version</span>
+                                <span className={`text-secondary font-semibold ${choice === 'theirs' ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>Server version</span>
                                 {choice === 'theirs' && (
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}
@@ -544,7 +544,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                     if (allFiles.length === 0) {
                       return (
                         <div className="text-secondary text-[color:var(--color-figma-text-secondary)] flex items-center gap-1.5">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-success)] shrink-0" aria-hidden="true">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-success)] shrink-0" aria-hidden="true">
                             <path d="M20 6L9 17l-5-5" />
                           </svg>
                           In sync.
@@ -557,7 +557,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                         <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto rounded border border-[var(--color-figma-border)]">
                           {allFiles.map(({ file, cat }) => {
                             const choice = git.diffChoices[file] ?? 'skip';
-                            const catColor = cat === 'local' ? 'text-[color:var(--color-figma-success)]' : cat === 'remote' ? 'text-[color:var(--color-figma-accent)]' : 'text-[color:var(--color-figma-warning)]';
+                            const catColor = cat === 'local' ? 'text-[color:var(--color-figma-text-success)]' : cat === 'remote' ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-warning)]';
                             const catLabel = cat === 'local' ? 'Local' : cat === 'remote' ? 'Remote' : 'Differs';
                             return (
                               <div key={file} className="flex items-center gap-2 px-2 py-1">

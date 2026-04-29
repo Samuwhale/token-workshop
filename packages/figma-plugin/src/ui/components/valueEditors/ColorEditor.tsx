@@ -167,7 +167,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
                   onClick={() => selectFormat(f)}
                   className={`w-full text-left px-2 py-1 text-secondary font-medium uppercase transition-colors ${
                     f === format
-                      ? 'text-[color:var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+                      ? 'text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-bg-hover)]'
                       : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
                 >
@@ -185,7 +185,7 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
           className={[
             'shrink-0 flex min-h-[28px] min-w-[28px] items-center justify-center rounded border transition-colors',
             eyedropperState === 'success'
-              ? 'text-[color:var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+              ? 'text-[color:var(--color-figma-text-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
               : eyedropperState === 'waiting'
               ? 'text-[color:var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
               : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',

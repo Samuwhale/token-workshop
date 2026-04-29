@@ -225,7 +225,7 @@ function ModeRow({
           </button>
         </div>
         {error ? (
-          <p className="mt-1 text-secondary text-[color:var(--color-figma-error)]">{error}</p>
+          <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{error}</p>
         ) : null}
       </div>
     );
@@ -252,7 +252,7 @@ function ModeRow({
           disabled={saving}
         />
         {error ? (
-          <p className="mt-1 text-secondary text-[color:var(--color-figma-error)]">{error}</p>
+          <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{error}</p>
         ) : null}
       </div>
     );
@@ -318,7 +318,7 @@ function ModeRow({
         </div>
       ) : null}
       {error ? (
-        <p className="text-secondary text-[color:var(--color-figma-error)]">{error}</p>
+        <p className="text-secondary text-[color:var(--color-figma-text-error)]">{error}</p>
       ) : null}
     </div>
   );
@@ -430,7 +430,7 @@ function ModesSection({
                 placeholder="Mode name"
               />
               {addError ? (
-                <p className="mt-1 text-secondary text-[color:var(--color-figma-error)]">{addError}</p>
+                <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{addError}</p>
               ) : null}
             </div>
           ) : (
@@ -671,7 +671,7 @@ export function CollectionDetailsPanel({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="mb-3 inline-flex items-center gap-1 text-secondary font-medium text-[color:var(--color-figma-accent)] hover:underline"
+                  className="mb-3 inline-flex items-center gap-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
                   <ArrowLeft size={12} strokeWidth={1.75} aria-hidden />
                   {returnLabel}
@@ -696,7 +696,7 @@ export function CollectionDetailsPanel({
                       className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-[17px] font-semibold tracking-tight text-[color:var(--color-figma-text)] outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                     />
                     {renameError ? (
-                      <p className="mt-1 text-secondary text-[color:var(--color-figma-error)]">{renameError}</p>
+                      <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{renameError}</p>
                     ) : null}
                   </div>
                 ) : (

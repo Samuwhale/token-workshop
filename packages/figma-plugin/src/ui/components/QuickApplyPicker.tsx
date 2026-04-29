@@ -19,6 +19,7 @@ import {
 } from './selectionInspectorUtils';
 import { swatchBgColor } from '../shared/colorUtils';
 import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // ---------------------------------------------------------------------------
 // Fuzzy match (same algorithm as CommandPalette)
@@ -122,10 +123,11 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const [ignoreScope, setIgnoreScope] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useFocusTrap(dialogRef, { initialFocusRef: inputRef });
   useEffect(() => {
     setActiveIdx(0);
     setIgnoreScope(false);
@@ -246,6 +248,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-2xl w-full mx-3 flex flex-col"
         style={{ maxHeight: '70vh' }}
         onClick={e => e.stopPropagation()}
@@ -256,7 +259,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
         {/* Header: layer name + property tabs */}
         <div className="px-3 pt-2.5 pb-0 border-b border-[var(--color-figma-border)]">
           <div className="flex items-center gap-1.5 mb-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-accent)] shrink-0" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-accent)] shrink-0" aria-hidden="true">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
             <span className="text-body font-medium text-[color:var(--color-figma-text)] truncate" title={layerSummary}>
@@ -278,7 +281,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                   onClick={() => setActiveProp(prop)}
                   className={`px-2 py-1 text-secondary font-medium rounded transition-colors whitespace-nowrap shrink-0 ${
                     isActive
-                      ? 'text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 font-semibold'
+                      ? 'text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 font-semibold'
                       : 'text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                   }`}
                 >
@@ -310,7 +313,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {currentBinding && currentBinding !== 'mixed' && (
-            <span className="text-secondary text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
+            <span className="text-secondary text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
               {currentBinding}
             </span>
           )}
@@ -318,7 +321,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             <button
               onClick={handleUnbind}
               title={`Unbind ${PROPERTY_LABELS[activeProp]} (Backspace)`}
-              className="shrink-0 flex items-center gap-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
+              className="shrink-0 flex items-center gap-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
             >
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -417,7 +420,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                         <div className={`text-secondary font-medium px-3 pt-1.5 pb-0.5 ${
                           !isFirstGroup ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
                         } ${
-                          c.confidence === 'strong' ? 'text-[color:var(--color-figma-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'
+                          c.confidence === 'strong' ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'
                         }`}>
                           {CONFIDENCE_LABELS[c.confidence]}
                         </div>
@@ -484,7 +487,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(false)}
-                  className="text-[color:var(--color-figma-accent)] hover:underline"
+                  className="text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
                   Restrict
                 </button>
@@ -495,7 +498,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(true)}
-                  className="text-[color:var(--color-figma-accent)] hover:underline"
+                  className="text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
                   Show all
                 </button>

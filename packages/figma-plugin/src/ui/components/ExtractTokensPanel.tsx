@@ -299,7 +299,7 @@ export function ExtractTokensPanel({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[color:var(--color-figma-warning)] shrink-0"
+              className="text-[color:var(--color-figma-text-warning)] shrink-0"
               aria-hidden="true"
             >
               <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -314,7 +314,7 @@ export function ExtractTokensPanel({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-[color:var(--color-figma-success)] shrink-0"
+              className="text-[color:var(--color-figma-text-success)] shrink-0"
               aria-hidden="true"
             >
               <path d="M20 6L9 17l-5-5" />
@@ -333,7 +333,7 @@ export function ExtractTokensPanel({
         )}
         {hasFailures && (
           <div className="ml-5 mt-2 mb-2">
-            <p className="text-secondary text-[color:var(--color-figma-error)] font-medium mb-1">
+            <p className="text-secondary text-[color:var(--color-figma-text-error)] font-medium mb-1">
               {failures.length} failed:
             </p>
             <ul className="space-y-0.5">
@@ -346,7 +346,7 @@ export function ExtractTokensPanel({
                     {f.name}
                   </span>
                   {" — "}
-                  <span className="text-[color:var(--color-figma-error)]">
+                  <span className="text-[color:var(--color-figma-text-error)]">
                     {f.error}
                   </span>
                 </li>
@@ -356,7 +356,7 @@ export function ExtractTokensPanel({
         )}
         <button
           onClick={onClose}
-          className="text-secondary text-[color:var(--color-figma-accent)] hover:underline ml-5"
+          className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline ml-5"
         >
           Done
         </button>
@@ -406,12 +406,12 @@ export function ExtractTokensPanel({
 
       {!loading && tokens === null && error && (
         <div className="px-3 py-4 text-center">
-          <p className="text-secondary text-[color:var(--color-figma-error)] mb-2">
+          <p className="text-secondary text-[color:var(--color-figma-text-error)] mb-2">
             {error}
           </p>
           <button
             onClick={onClose}
-            className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+            className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
           >
             Close
           </button>
@@ -428,7 +428,7 @@ export function ExtractTokensPanel({
           </p>
           <button
             onClick={onClose}
-            className="mt-2 text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+            className="mt-2 text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
           >
             Close
           </button>
@@ -450,7 +450,7 @@ export function ExtractTokensPanel({
               {selectedCount}/{tokens.length} selected
             </label>
             {conflictCount > 0 && (
-              <span className="text-secondary text-[color:var(--color-figma-warning)]">
+              <span className="text-secondary text-[color:var(--color-figma-text-warning)]">
                 {conflictCount} will overwrite
               </span>
             )}
@@ -519,7 +519,7 @@ export function ExtractTokensPanel({
                       />
                       {isConflict && isSelected && (
                         <span
-                          className="text-[var(--font-size-xs)] text-[color:var(--color-figma-warning)] shrink-0"
+                          className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-warning)] shrink-0"
                           title="Token already exists — will overwrite"
                         >
                           overwrite
@@ -556,7 +556,7 @@ export function ExtractTokensPanel({
 
           {/* Error */}
           {error && (
-            <div className="px-3 py-1.5 text-secondary text-[color:var(--color-figma-error)] bg-[var(--color-figma-error)]/5 border-t border-[var(--color-figma-border)] shrink-0">
+            <div className="px-3 py-1.5 text-secondary text-[color:var(--color-figma-text-error)] bg-[var(--color-figma-error)]/5 border-t border-[var(--color-figma-border)] shrink-0">
               {error}
             </div>
           )}

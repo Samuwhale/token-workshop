@@ -73,15 +73,15 @@ export function ImportSuccessView() {
         <div className="w-full max-w-[560px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="flex items-center gap-2 text-secondary">
-              <span className="text-[color:var(--color-figma-success)] font-medium">{succeededImportCount} ok</span>
-              <span className="text-[color:var(--color-figma-error)] font-medium">{failedImportPaths.length} failed</span>
+              <span className="text-[color:var(--color-figma-text-success)] font-medium">{succeededImportCount} ok</span>
+              <span className="text-[color:var(--color-figma-text-error)] font-medium">{failedImportPaths.length} failed</span>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleCopyFailedPaths} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">
                 {copyFeedback ? "Copied" : "Copy"}
               </button>
               {failedImportBatches.length > 0 && (
-                <button onClick={handleRetryFailed} disabled={retrying} className="text-secondary text-[color:var(--color-figma-accent)] hover:underline disabled:opacity-50">
+                <button onClick={handleRetryFailed} disabled={retrying} className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50">
                   {retrying ? "Retrying..." : "Retry"}
                 </button>
               )}
@@ -132,7 +132,7 @@ export function ImportSuccessView() {
           Import more
         </button>
         {lastImport && (
-          <button onClick={handleUndoImport} disabled={undoing} className="text-secondary text-[color:var(--color-figma-error)] hover:underline disabled:opacity-50">
+          <button onClick={handleUndoImport} disabled={undoing} className="text-secondary text-[color:var(--color-figma-text-error)] hover:underline disabled:opacity-50">
             {undoing ? "Undoing..." : "Undo"}
           </button>
         )}

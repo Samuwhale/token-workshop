@@ -120,7 +120,7 @@ function ClusterGroup({
                   <button
                     onClick={() => action(cluster)}
                     disabled={isBusy}
-                    className="shrink-0 rounded-md bg-[var(--color-figma-accent)]/8 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/15 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="shrink-0 rounded-md bg-[var(--color-figma-accent)]/8 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/15 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {isBusy ? 'Working…' : cluster.recommendedActionLabel}
                   </button>

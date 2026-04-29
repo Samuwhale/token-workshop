@@ -87,7 +87,10 @@ import { getMostRelevantImportDestinationCollection } from "../shared/navigation
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import { buildLibraryReviewSummary } from "../shared/reviewSummary";
 import { getRuleLabel, suppressKey } from "../shared/ruleLabels";
-import type { GeneratorPanelFocus } from "../components/generators/GeneratorsPanel";
+import {
+  GeneratorsPanel,
+  type GeneratorPanelFocus,
+} from "../components/generators/GeneratorsPanel";
 import { GeneratorCreatePanel } from "../components/GeneratorCreatePanel";
 
 const DEFAULT_CREATE_TYPE = "color";
@@ -95,11 +98,7 @@ const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
 const CONTEXTUAL_PANEL_MIN_WIDTH = 280;
 const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 520;
 const LazyGeneratorsPanel = lazy(() =>
-  import("../components/generators/GeneratorsPanel").then(
-    ({ GeneratorsPanel }) => ({
-      default: GeneratorsPanel,
-    }),
-  ),
+  Promise.resolve({ default: GeneratorsPanel }),
 );
 
 interface ContextualPanelLayout {
@@ -1463,7 +1462,7 @@ export function PanelRouter({
               <AlertCircle
                 size={10}
                 strokeWidth={2}
-                className="shrink-0 text-[color:var(--color-figma-error)]"
+                className="shrink-0 text-[color:var(--color-figma-text-error)]"
                 aria-hidden
               />
               <span className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-secondary text-[color:var(--color-figma-text-secondary)]">
@@ -1471,7 +1470,7 @@ export function PanelRouter({
               </span>
               <button
                 onClick={refreshTokens}
-                className="shrink-0 rounded border border-[var(--color-figma-error)]/40 px-2 py-0.5 text-secondary text-[color:var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
+                className="shrink-0 rounded border border-[var(--color-figma-error)]/40 px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-error)]/10"
               >
                 Retry
               </button>

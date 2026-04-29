@@ -48,28 +48,28 @@ const LAYOUT_STYLES: Record<InlineBannerLayout, Record<InlineBannerSize, string>
 const TONE_STYLES: Record<InlineBannerVariant, BannerTone> = {
   loading: {
     root: 'border-transparent text-[color:var(--color-figma-text-secondary)]',
-    icon: 'text-[color:var(--color-figma-accent)]',
-    action: 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
+    icon: 'text-[color:var(--color-figma-text-accent)]',
+    action: 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20',
   },
   error: {
-    root: 'border-transparent text-[color:var(--color-figma-error)]',
-    icon: 'text-[color:var(--color-figma-error)]',
-    action: 'bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20',
+    root: 'border-transparent text-[color:var(--color-figma-text-error)]',
+    icon: 'text-[color:var(--color-figma-text-error)]',
+    action: 'bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/20',
   },
   warning: {
     root: 'border-transparent text-[color:var(--color-figma-text-secondary)]',
-    icon: 'text-[color:var(--color-figma-warning)]',
-    action: 'bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/25',
+    icon: 'text-[color:var(--color-figma-text-warning)]',
+    action: 'bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)] hover:bg-[var(--color-figma-warning)]/25',
   },
   info: {
     root: 'border-transparent text-[color:var(--color-figma-text-secondary)]',
-    icon: 'text-[color:var(--color-figma-accent)]',
-    action: 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
+    icon: 'text-[color:var(--color-figma-text-accent)]',
+    action: 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20',
   },
   success: {
-    root: 'border-transparent text-[color:var(--color-figma-success)]',
-    icon: 'text-[color:var(--color-figma-success)]',
-    action: 'bg-[var(--color-figma-success)]/12 text-[color:var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/20',
+    root: 'border-transparent text-[color:var(--color-figma-text-success)]',
+    icon: 'text-[color:var(--color-figma-text-success)]',
+    action: 'bg-[var(--color-figma-success)]/12 text-[color:var(--color-figma-text-success)] hover:bg-[var(--color-figma-success)]/20',
   },
 };
 

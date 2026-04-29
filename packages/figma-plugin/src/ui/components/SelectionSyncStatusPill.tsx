@@ -37,19 +37,19 @@ export function useSelectionSyncStatus({
       freshSyncResult?.missingTokens.length ??
       0;
     const toneClass = syncing
-      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)]"
+      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
       : syncError
-        ? "bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)]"
+        ? "bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-text-error)]"
         : syncResult
           ? syncResult.errors > 0
-            ? "bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-error)]"
+            ? "bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-text-error)]"
             : syncResult.missingTokens.length > 0
-              ? "bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)]"
-              : "bg-[var(--color-figma-success)]/10 text-[color:var(--color-figma-success)]"
+              ? "bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)]"
+              : "bg-[var(--color-figma-success)]/10 text-[color:var(--color-figma-text-success)]"
           : freshSyncResult && freshSyncResult.missingTokens.length > 0
-            ? "bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)]"
+            ? "bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)]"
             : freshSyncResult && freshSyncResult.missingTokens.length === 0
-            ? "bg-[var(--color-figma-success)]/10 text-[color:var(--color-figma-success)]"
+            ? "bg-[var(--color-figma-success)]/10 text-[color:var(--color-figma-text-success)]"
             : "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)]";
 
     const label =

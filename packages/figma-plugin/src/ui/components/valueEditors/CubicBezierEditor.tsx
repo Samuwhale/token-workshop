@@ -66,7 +66,7 @@ export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChan
             <button
               key={p.label}
               onClick={() => onChange([...p.value])}
-              className={`px-2 py-0.5 rounded border text-secondary transition-colors ${active ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+              className={`px-2 py-0.5 rounded border text-secondary transition-colors ${active ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >
               {p.label}
             </button>

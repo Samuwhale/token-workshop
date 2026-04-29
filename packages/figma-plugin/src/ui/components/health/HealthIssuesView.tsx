@@ -164,7 +164,7 @@ export function HealthIssuesView({
             {tokenPathFilter && (
               <button
                 onClick={() => setTokenPathFilter(null)}
-                className="text-secondary text-[color:var(--color-figma-accent)] hover:underline"
+                className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
               >
                 Clear filter
               </button>
@@ -244,9 +244,9 @@ export function HealthIssuesView({
 
             const severityColor =
               group.severity === "error"
-                ? "text-[color:var(--color-figma-error)]"
+                ? "text-[color:var(--color-figma-text-error)]"
                 : group.severity === "warning"
-                  ? "text-[color:var(--color-figma-warning)]"
+                  ? "text-[color:var(--color-figma-text-warning)]"
                   : "text-[color:var(--color-figma-text-secondary)]";
 
             return (
@@ -320,7 +320,7 @@ export function HealthIssuesView({
                             [group.rule]: visibleLimit + Math.min(remainingCount, ISSUES_PER_PAGE),
                           }))
                         }
-                        className="w-full px-3 py-1.5 text-secondary text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center border-b border-[var(--color-figma-border)]"
+                        className="w-full px-3 py-1.5 text-secondary text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center border-b border-[var(--color-figma-border)]"
                       >
                         Show {Math.min(remainingCount, ISSUES_PER_PAGE)} more
                         {remainingCount > ISSUES_PER_PAGE ? ` of ${remainingCount} remaining` : ""}
@@ -409,8 +409,8 @@ function IssueRow({
             disabled={fixing}
             className={`text-secondary shrink-0 disabled:opacity-40 disabled:cursor-wait hover:underline ${
               issue.suggestedFix === "delete-token"
-                ? "text-[color:var(--color-figma-error)]"
-                : "text-[color:var(--color-figma-accent)]"
+                ? "text-[color:var(--color-figma-text-error)]"
+                : "text-[color:var(--color-figma-text-accent)]"
             }`}
           >
             {fixing ? <Spinner size="xs" /> : fixLabelText}

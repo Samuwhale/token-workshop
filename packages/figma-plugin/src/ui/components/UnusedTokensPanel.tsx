@@ -144,7 +144,7 @@ export function UnusedTokensPanel({
                         </button>
                         <button
                           onClick={() => confirm.trigger(`${collKey}:delete`, () => runAction(group.tokens, 'delete'))}
-                          className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
+                          className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                         >
                           {confirm.isPending(`${collKey}:delete`) ? 'Confirm?' : 'Delete all'}
                         </button>
@@ -177,7 +177,7 @@ export function UnusedTokensPanel({
                                 <button
                                   onClick={() => confirm.trigger(`${tokenKey}:delete`, () => runAction([token], 'delete'))}
                                   disabled={isBusy}
-                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
+                                  className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
                                 >
                                   {confirm.isPending(`${tokenKey}:delete`) ? 'Confirm?' : 'Delete'}
                                 </button>
@@ -191,7 +191,7 @@ export function UnusedTokensPanel({
                               ...prev,
                               [group.collectionId]: visibleLimit + Math.min(remainingCount, ITEMS_PER_PAGE),
                             }))}
-                            className="w-full px-3 py-2 text-secondary text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center"
+                            className="w-full px-3 py-2 text-secondary text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-center"
                           >
                             Show {Math.min(remainingCount, ITEMS_PER_PAGE)} more{remainingCount > ITEMS_PER_PAGE ? ` of ${remainingCount} remaining` : ''}
                           </button>

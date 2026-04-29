@@ -251,7 +251,7 @@ export function CollectionTabs({
                           : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                       }`}
                     >
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-accent)]">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-text-accent)]">
                         {allCollectionsScope.selected ? (
                           <Check size={12} strokeWidth={1.7} aria-hidden />
                         ) : null}
@@ -303,7 +303,7 @@ export function CollectionTabs({
                               : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
                           }`}
                         >
-                          <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-accent)]">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-text-accent)]">
                             {isCurrent ? (
                               <Check size={12} strokeWidth={1.7} aria-hidden />
                             ) : healthTone ? (

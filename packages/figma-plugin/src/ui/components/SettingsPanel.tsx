@@ -562,7 +562,7 @@ export function SettingsPanel({
   // ---- Connection status suffix for section header ----
   const serverStatusSuffix = (
     <span
-      className={`flex items-center gap-1 text-secondary font-medium normal-case tracking-normal ${connected ? "text-[color:var(--color-figma-success)]" : checking ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-error)]"}`}
+      className={`flex items-center gap-1 text-secondary font-medium normal-case tracking-normal ${connected ? "text-[color:var(--color-figma-text-success)]" : checking ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-text-error)]"}`}
     >
       <span
         className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? "bg-[var(--color-figma-success)]" : checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
@@ -654,7 +654,7 @@ export function SettingsPanel({
                 {contrastBg && (
                   <button
                     onClick={() => handleContrastBgChange("")}
-                    className="text-secondary text-[color:var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent-hover)] transition-colors"
+                    className="text-secondary text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-accent-hover)] transition-colors"
                   >
                     Clear
                   </button>
@@ -718,7 +718,7 @@ export function SettingsPanel({
               className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {connectResult === "ok" && (
-              <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-success)]">
+              <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-success)]">
                 <svg
                   width="10"
                   height="10"
@@ -736,7 +736,7 @@ export function SettingsPanel({
               </div>
             )}
             {connectResult === "fail" && (
-              <div className="text-secondary text-[color:var(--color-figma-error)]">
+              <div className="text-secondary text-[color:var(--color-figma-text-error)]">
                 <div className="mb-0.5 flex items-center gap-1.5 font-medium">
                   <svg
                     width="10"
@@ -877,7 +877,7 @@ export function SettingsPanel({
             />
           </div>
           {importSuccess && (
-            <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-success)]">
+            <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-success)]">
               <svg
                 width="10"
                 height="10"
@@ -895,7 +895,7 @@ export function SettingsPanel({
             </div>
           )}
           {importError && (
-            <p className="text-secondary text-[color:var(--color-figma-error)]">
+            <p className="text-secondary text-[color:var(--color-figma-text-error)]">
               {importError}
             </p>
           )}
@@ -922,7 +922,7 @@ export function SettingsPanel({
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`text-secondary font-medium ${entry.status === "added" ? "text-[color:var(--color-figma-success)]" : "text-[color:var(--color-figma-accent)]"}`}
+                        className={`text-secondary font-medium ${entry.status === "added" ? "text-[color:var(--color-figma-text-success)]" : "text-[color:var(--color-figma-text-accent)]"}`}
                       >
                         {entry.status === "added" ? "New" : "Changed"}
                       </span>
@@ -939,7 +939,7 @@ export function SettingsPanel({
                           className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
                           title={entry.oldValue}
                         >
-                          <span className="text-[color:var(--color-figma-error)]">
+                          <span className="text-[color:var(--color-figma-text-error)]">
                             -
                           </span>{" "}
                           {entry.oldValue}
@@ -949,7 +949,7 @@ export function SettingsPanel({
                       className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
                       title={entry.newValue}
                     >
-                      <span className="text-[color:var(--color-figma-success)]">
+                      <span className="text-[color:var(--color-figma-text-success)]">
                         +
                       </span>{" "}
                       {entry.newValue}
@@ -967,7 +967,7 @@ export function SettingsPanel({
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="mt-px shrink-0 text-[color:var(--color-figma-warning)]"
+                  className="mt-px shrink-0 text-[color:var(--color-figma-text-warning)]"
                   aria-hidden="true"
                 >
                   <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -1003,7 +1003,7 @@ export function SettingsPanel({
                   setShowClearConfirm(true);
                   setClearConfirmText("");
                 }}
-                className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
+                className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
               >
                 Delete workspace data
               </button>
@@ -1011,7 +1011,7 @@ export function SettingsPanel({
               <div className="flex flex-col gap-2">
                 <p className="text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
                   Type{" "}
-                  <span className="font-mono font-bold text-[color:var(--color-figma-error)]">
+                  <span className="font-mono font-bold text-[color:var(--color-figma-text-error)]">
                     DELETE
                   </span>{" "}
                   to permanently remove all workspace data.

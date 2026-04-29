@@ -3,7 +3,7 @@
  *
  * Color math primitives (hexToRgb, rgbToHex, rgbToLab, colorDeltaE, normalizeHex,
  * srgbToLinear, srgbFromLinear) live in @tokenmanager/core. Import them directly
- * from core — do NOT re-export through this file (vite-plugin-singlefile TDZ risk).
+ * from core — do NOT re-export through this file (bundler scope-hoisting TDZ risk).
  */
 
 let _coreWarnLogged = false;

@@ -3,6 +3,7 @@ import {
   Droplet,
   Hash,
   Layers,
+  PanelLeft,
   Palette,
   Plus,
   Ruler,
@@ -100,6 +101,65 @@ export function GeneratorListSidebar({
   );
 }
 
+export function GeneratorRail({
+  generators,
+  activeGeneratorId,
+  createPanelOpen,
+  onCreate,
+  onSelect,
+  onExpand,
+}: {
+  generators: TokenGeneratorDocument[];
+  activeGeneratorId: string | null;
+  createPanelOpen: boolean;
+  onCreate: () => void;
+  onSelect: (generatorId: string) => void;
+  onExpand: () => void;
+}) {
+  return (
+    <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-[var(--color-figma-border)] px-1 py-2">
+      <button
+        type="button"
+        onClick={onExpand}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        title="Show generators"
+        aria-label="Show generators"
+      >
+        <PanelLeft size={14} />
+      </button>
+      <button
+        type="button"
+        onClick={onCreate}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] ${
+          createPanelOpen ? "bg-[var(--color-figma-bg-selected)]" : ""
+        }`}
+        title="Create generator"
+        aria-label="Create generator"
+      >
+        <Plus size={14} />
+      </button>
+      <div className="mt-1 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
+        {generators.map((generator) => (
+          <button
+            key={generator.id}
+            type="button"
+            onClick={() => onSelect(generator.id)}
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${
+              generator.id === activeGeneratorId && !createPanelOpen
+                ? "bg-[var(--color-figma-bg-selected)]"
+                : "hover:bg-[var(--color-figma-bg-hover)]"
+            }`}
+            title={generator.name}
+            aria-label={generator.name}
+          >
+            <GeneratorIcon generator={generator} />
+          </button>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
 function readGeneratorOutputLabel(generator: TokenGeneratorDocument): string {
   const structured = readStructuredGeneratorDraft(generator);
   if (structured?.outputPrefix) return structured.outputPrefix;
@@ -157,7 +217,7 @@ export function NodeLibraryPanel({
     <aside className={className}>
       <div className="mb-2 flex items-center justify-between gap-2">
         {presentation === "sidebar" ? (
-          <h2 className="text-primary font-semibold">Add step</h2>
+          <h2 className="text-primary font-semibold">Add node</h2>
         ) : (
           <span />
         )}
@@ -166,7 +226,7 @@ export function NodeLibraryPanel({
           onClick={onToggleAllNodes}
           className="rounded px-2 py-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          {allNodesOpen ? "Suggested" : "All steps"}
+          {allNodesOpen ? "Suggested" : "All nodes"}
         </button>
       </div>
       <div className="mb-2 flex items-center gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
@@ -178,7 +238,7 @@ export function NodeLibraryPanel({
           value={paletteQuery}
           onChange={(event) => onPaletteQueryChange(event.target.value)}
           placeholder={
-            allNodesOpen ? "Search all steps" : "Search suggested steps"
+          allNodesOpen ? "Search all nodes" : "Search suggested nodes"
           }
           className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
         />

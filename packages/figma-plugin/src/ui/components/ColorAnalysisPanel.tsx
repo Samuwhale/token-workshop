@@ -111,7 +111,7 @@ export function ColorAnalysisPanel({
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
         <button
           onClick={onClose}
-          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          className="flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
         >
           &larr; Back
         </button>

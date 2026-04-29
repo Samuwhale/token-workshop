@@ -34,7 +34,7 @@ export function FieldBlock({
       </span>
       {children}
       {error ? (
-        <span className="mt-1 block text-tertiary text-[color:var(--color-figma-error)]">
+        <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
           {error}
         </span>
       ) : null}
@@ -547,7 +547,7 @@ export function NamedNumberStepTable({
                 />
               ) : null}
               {pathPrefix || error ? (
-                <div className={`truncate text-tertiary ${error ? "text-[color:var(--color-figma-error)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
+                <div className={`truncate text-tertiary ${error ? "text-[color:var(--color-figma-text-error)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
                   {error ?? `${pathPrefix}.${name}`}
                 </div>
               ) : null}
@@ -616,7 +616,7 @@ export function ShadowStepTable({
                 ))}
               </div>
               {pathPrefix || error ? (
-                <div className={`truncate text-tertiary ${error ? "text-[color:var(--color-figma-error)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
+                <div className={`truncate text-tertiary ${error ? "text-[color:var(--color-figma-text-error)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
                   {error ?? `${pathPrefix}.${name}`}
                 </div>
               ) : null}

@@ -96,7 +96,7 @@ export function ImportPreviewFooter() {
             </div>
           </div>
           {newCollectionError && (
-            <p role="alert" className="text-secondary text-[color:var(--color-figma-error)]">
+            <p role="alert" className="text-secondary text-[color:var(--color-figma-text-error)]">
               {newCollectionError}
             </p>
           )}
@@ -133,7 +133,7 @@ export function ImportPreviewFooter() {
       )}
 
       {collectionsError && (
-        <p className="text-secondary text-[color:var(--color-figma-error)]">
+        <p className="text-secondary text-[color:var(--color-figma-text-error)]">
           Could not load collections.{' '}
           <button type="button" onClick={fetchCollections} className="underline hover:opacity-80">Retry</button>
         </p>
@@ -145,17 +145,17 @@ export function ImportPreviewFooter() {
             {existingPathsFetching ? (
               <span className="text-[color:var(--color-figma-text-secondary)]">Checking existing tokens...</span>
             ) : existingTokenMapError !== null ? (
-              <span className="text-[color:var(--color-figma-warning)]">Conflict detection unavailable</span>
+              <span className="text-[color:var(--color-figma-text-warning)]">Conflict detection unavailable</span>
             ) : previewNewCount !== null && previewOverwriteCount !== null && (
               <>
                 {previewNewCount > 0 && (
-                  <span className="text-[color:var(--color-figma-success)]">{previewNewCount} new</span>
+                  <span className="text-[color:var(--color-figma-text-success)]">{previewNewCount} new</span>
                 )}
                 {previewNewCount > 0 && previewOverwriteCount > 0 && (
                   <span className="text-[color:var(--color-figma-border)]">&middot;</span>
                 )}
                 {previewOverwriteCount > 0 && (
-                  <span className="text-[color:var(--color-figma-warning)]">
+                  <span className="text-[color:var(--color-figma-text-warning)]">
                     {previewOverwriteCount} existing
                   </span>
                 )}

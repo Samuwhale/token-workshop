@@ -33,9 +33,9 @@ const DOT_TONE: Record<Tone, string> = {
 
 const LABEL_TONE: Record<Tone, string> = {
   neutral: "text-[color:var(--color-figma-text-secondary)]",
-  accent: "text-[color:var(--color-figma-accent)]",
-  warning: "text-[color:var(--color-figma-warning)]",
-  error: "text-[color:var(--color-figma-error)]",
+  accent: "text-[color:var(--color-figma-text-accent)]",
+  warning: "text-[color:var(--color-figma-text-warning)]",
+  error: "text-[color:var(--color-figma-text-error)]",
 };
 
 function healthTone(status: HealthStatus): Tone {

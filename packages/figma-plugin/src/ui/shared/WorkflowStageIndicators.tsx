@@ -38,7 +38,7 @@ const toneDot: Record<WorkflowStageTone, string> = {
 };
 
 const toneText: Record<WorkflowStageTone, string> = {
-  current: 'text-[color:var(--color-figma-accent)] font-semibold',
+  current: 'text-[color:var(--color-figma-text-accent)] font-semibold',
   complete: 'text-[color:var(--color-figma-text)]',
   pending: 'text-[color:var(--color-figma-text-secondary)]',
   blocked: 'text-[color:var(--color-figma-text-tertiary)]',
@@ -89,7 +89,7 @@ export function WorkflowStageIndicators<StageId extends string>({
               disabled={action.disabled}
               className={`rounded border px-2 py-0.5 text-secondary font-medium transition-colors ${
                 action.active
-                  ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/8 text-[color:var(--color-figma-accent)]'
+                  ? 'border-[var(--color-figma-accent)]/35 bg-[var(--color-figma-accent)]/8 text-[color:var(--color-figma-text-accent)]'
                   : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]'
               } disabled:opacity-50`}
             >

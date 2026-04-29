@@ -11,7 +11,7 @@ export function Chip({ label, onRemove, title, tone = "accent" }: ChipProps) {
   const removable = Boolean(onRemove);
   const toneClass = removable
     ? tone === "accent"
-      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20"
       : "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg)]"
     : "bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)]";
   return (

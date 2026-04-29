@@ -99,9 +99,9 @@ export function CollapsibleChangeSection({ title, open, onToggle, badge, childre
 export function ChangeSummaryBadges({ added, modified, removed }: { added: number; modified: number; removed: number }) {
   return (
     <span className="flex items-center gap-1.5 ml-auto text-secondary font-mono">
-      {added > 0 && <span style={{ color: 'var(--color-figma-success)' }}>+{added}</span>}
-      {modified > 0 && <span style={{ color: 'var(--color-figma-warning)' }}>~{modified}</span>}
-      {removed > 0 && <span style={{ color: 'var(--color-figma-error)' }}>-{removed}</span>}
+      {added > 0 && <span style={{ color: 'var(--color-figma-text-success)' }}>+{added}</span>}
+      {modified > 0 && <span style={{ color: 'var(--color-figma-text-warning)' }}>~{modified}</span>}
+      {removed > 0 && <span style={{ color: 'var(--color-figma-text-error)' }}>-{removed}</span>}
       {added === 0 && modified === 0 && removed === 0 && (
         <span className="text-[color:var(--color-figma-text-tertiary)]">no token changes</span>
       )}

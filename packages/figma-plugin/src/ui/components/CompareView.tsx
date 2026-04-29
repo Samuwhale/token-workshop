@@ -262,7 +262,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
             </span>
           )}
           {!anyDiff && (
-            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-success)]">
+            <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-text-success)]">
               All identical
             </span>
           )}
@@ -273,7 +273,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
             disabled={!anyDiff}
             className={`text-secondary px-2 py-0.5 rounded transition-colors ${
               showDiffsOnly
-                ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/30'
+                ? 'bg-[var(--color-figma-warning)]/20 text-[color:var(--color-figma-text-warning)] hover:bg-[var(--color-figma-warning)]/30'
                 : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
             } disabled:opacity-40 disabled:cursor-not-allowed`}
             title={anyDiff ? 'Show only rows where values differ' : 'No differences to filter'}
@@ -364,7 +364,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
                   <tr key={key} className={isDiff ? 'bg-[var(--color-figma-warning)]/8' : ''}>
                     <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${isDiff ? 'text-[color:var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
                       {key}
-                      {isDiff && <span className="ml-1 text-[color:var(--color-figma-warning)]">*</span>}
+                      {isDiff && <span className="ml-1 text-[color:var(--color-figma-text-warning)]">*</span>}
                     </td>
                     {tokens.map(t => {
                       const val = fmtProp(t.resolvedValue, key);
@@ -388,7 +388,7 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
               <tr className={rowDiffs['$value'] ? 'bg-[var(--color-figma-warning)]/8' : ''}>
                 <td className={`px-3 py-1.5 font-medium border-b border-r border-[var(--color-figma-border)] sticky left-0 z-[5] ${rowDiffs['$value'] ? 'text-[color:var(--color-figma-text)] bg-[var(--color-figma-warning)]/8' : 'text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}>
                   value
-                  {rowDiffs['$value'] && <span className="ml-1 text-[color:var(--color-figma-warning)]">*</span>}
+                  {rowDiffs['$value'] && <span className="ml-1 text-[color:var(--color-figma-text-warning)]">*</span>}
                 </td>
                 {tokens.map(t => {
                   const formatted = formatTokenValueForDisplay(t.type, t.resolvedValue);
@@ -589,10 +589,10 @@ function CrossCollectionMode({
                 {collection.id}
               </span>
               {stats.allSame && !stats.anyMissing && (
-                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-success)]">Identical</span>
+                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-text-success)]">Identical</span>
               )}
               {stats.anyMissing && (
-                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-warning)]">Some missing</span>
+                <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)]">Some missing</span>
               )}
             </div>
 
@@ -1297,7 +1297,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                   onClick={() => handleCopyMissing('A')}
                   disabled={bulkCreating !== null}
                   title={`Copy ${onlyInB.length} token${onlyInB.length !== 1 ? 's' : ''} from B into A`}
-                  className="ml-auto px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
+                  className="ml-auto px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors"
                 >
                   {bulkCreating === 'A' ? 'Copying…' : `+ ${onlyInB.length} missing in A`}
                 </button>
@@ -1307,7 +1307,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                   onClick={() => handleCopyMissing('B')}
                   disabled={bulkCreating !== null}
                   title={`Copy ${onlyInA.length} token${onlyInA.length !== 1 ? 's' : ''} from A into B`}
-                  className={`px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors ${!serverUrl || onlyInB.length > 0 ? '' : 'ml-auto'}`}
+                  className={`px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20 disabled:opacity-50 transition-colors ${!serverUrl || onlyInB.length > 0 ? '' : 'ml-auto'}`}
                 >
                   {bulkCreating === 'B' ? 'Copying…' : `+ ${onlyInA.length} missing in B`}
                 </button>
@@ -1336,7 +1336,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                 ? 'bg-[var(--color-figma-diff-a)]/10 text-[color:var(--color-figma-diff-a)]'
                 : diff.status === 'only-b'
                 ? 'bg-[var(--color-figma-diff-b)]/10 text-[color:var(--color-figma-diff-b)]'
-                : 'bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-warning)]';
+                : 'bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-text-warning)]';
               const statusLabel = diff.status === 'only-a' ? 'only A' : diff.status === 'only-b' ? 'only B' : 'changed';
               return (
                 <div
@@ -1379,7 +1379,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                     {diff.status === 'only-b' && onCreateToken && (
                       <button
                         onClick={() => onCreateToken(diff.path, collectionA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
-                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
                         title={`Create token in ${collectionA} (copy B's value)`}
                       >
                         + Create in A
@@ -1388,7 +1388,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                     {diff.status === 'only-a' && onCreateToken && (
                       <button
                         onClick={() => onCreateToken(diff.path, collectionB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
-                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                        className="px-1.5 py-0.5 rounded text-secondary font-medium bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
                         title={`Create token in ${collectionB} (copy A's value)`}
                       >
                         + Create in B

@@ -40,7 +40,7 @@ export function Field({ label, help, error, children, htmlFor, className = "" }:
       </label>
       {control}
       {error ? (
-        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-error)]">
+        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-error)]">
           {error}
         </p>
       ) : help ? (

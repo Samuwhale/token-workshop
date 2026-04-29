@@ -296,14 +296,14 @@ export function TokenDetailsModeRow({
                     <button
                       type="button"
                       onClick={() => onNavigateToToken(readOnly.aliasTargetPath!)}
-                      className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[color:var(--color-figma-accent)] hover:underline"
+                      className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[color:var(--color-figma-text-accent)] hover:underline"
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
                       <Link2 size={10} strokeWidth={1.5} aria-hidden />
                       <span className="min-w-0 break-all">{readOnly.aliasTargetPath}</span>
                     </button>
                   ) : (
-                    <span className="break-all font-mono text-body text-[color:var(--color-figma-accent)]">
+                    <span className="break-all font-mono text-body text-[color:var(--color-figma-text-accent)]">
                       {readOnly.aliasTargetPath}
                     </span>
                   )}

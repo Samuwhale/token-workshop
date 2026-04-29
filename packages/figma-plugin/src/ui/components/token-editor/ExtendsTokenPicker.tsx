@@ -63,7 +63,7 @@ export function ExtendsTokenPicker({
           setOpen(true);
           setTimeout(() => inputRef.current?.focus(), 0);
         }}
-        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-accent)] transition-colors text-left"
+        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors text-left"
       >
         Inherit from token…
       </button>

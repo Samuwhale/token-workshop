@@ -22,7 +22,7 @@ export function ProgressOverlay({
       aria-busy="true"
     >
       <div className="flex w-full max-w-[min(320px,calc(100vw-24px))] flex-col items-center gap-3 rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-4 py-4 text-center shadow-xl">
-        <Spinner size="xl" className="text-[color:var(--color-figma-accent)]" />
+        <Spinner size="xl" className="text-[color:var(--color-figma-text-accent)]" />
         <div className="w-full space-y-1">
           <p className="text-heading font-semibold text-[color:var(--color-figma-text)] break-words">
             {message}

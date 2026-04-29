@@ -113,10 +113,10 @@ export function TokenChangeRow({
 }) {
   const statusColor =
     change.status === "added"
-      ? "text-[color:var(--color-figma-success)]"
+      ? "text-[color:var(--color-figma-text-success)]"
       : change.status === "removed"
-        ? "text-[color:var(--color-figma-error)]"
-        : "text-[color:var(--color-figma-warning)]";
+        ? "text-[color:var(--color-figma-text-error)]"
+        : "text-[color:var(--color-figma-text-warning)]";
   const statusChar =
     change.status === "added"
       ? "+"
@@ -147,7 +147,7 @@ export function TokenChangeRow({
       {change.status === "modified" && (
         <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-secondary font-mono">
           <div className="flex min-w-0 items-start gap-1">
-            <span className="text-[color:var(--color-figma-error)] shrink-0 w-3">
+            <span className="text-[color:var(--color-figma-text-error)] shrink-0 w-3">
               &minus;
             </span>
             {isColor && isHexColor(beforeStr) && <DiffSwatch hex={beforeStr} />}
@@ -159,7 +159,7 @@ export function TokenChangeRow({
             </span>
           </div>
           <div className="flex min-w-0 items-start gap-1">
-            <span className="text-[color:var(--color-figma-success)] shrink-0 w-3">
+            <span className="text-[color:var(--color-figma-text-success)] shrink-0 w-3">
               +
             </span>
             {isColor && isHexColor(afterStr) && <DiffSwatch hex={afterStr} />}
@@ -348,11 +348,11 @@ export function FileTokenDiffList({
                 <span
                   className={`text-secondary font-mono font-bold w-3 flex-shrink-0 ${
                     change.status === "M"
-                      ? "text-[color:var(--color-figma-warning)]"
+                      ? "text-[color:var(--color-figma-text-warning)]"
                       : change.status === "A"
-                        ? "text-[color:var(--color-figma-success)]"
+                        ? "text-[color:var(--color-figma-text-success)]"
                         : change.status === "D"
-                          ? "text-[color:var(--color-figma-error)]"
+                          ? "text-[color:var(--color-figma-text-error)]"
                           : "text-[color:var(--color-figma-text-secondary)]"
                   }`}
                 >
@@ -372,17 +372,17 @@ export function FileTokenDiffList({
                   hasTokenChanges && (
                     <span className="flex gap-1.5 text-secondary font-mono shrink-0 ml-auto">
                       {fileCounts.added > 0 && (
-                        <span className="text-[color:var(--color-figma-success)]">
+                        <span className="text-[color:var(--color-figma-text-success)]">
                           +{fileCounts.added}
                         </span>
                       )}
                       {fileCounts.modified > 0 && (
-                        <span className="text-[color:var(--color-figma-warning)]">
+                        <span className="text-[color:var(--color-figma-text-warning)]">
                           ~{fileCounts.modified}
                         </span>
                       )}
                       {fileCounts.removed > 0 && (
-                        <span className="text-[color:var(--color-figma-error)]">
+                        <span className="text-[color:var(--color-figma-text-error)]">
                           &minus;{fileCounts.removed}
                         </span>
                       )}
@@ -403,7 +403,7 @@ export function FileTokenDiffList({
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-[color:var(--color-figma-success)]"
+                        className="text-[color:var(--color-figma-text-success)]"
                         aria-hidden="true"
                       >
                         <path d="M20 6L9 17l-5-5" />
@@ -433,17 +433,17 @@ export function FileTokenDiffList({
           previewCounts.removed > 0) && (
           <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {previewCounts.added > 0 && (
-              <span className="text-[color:var(--color-figma-success)]">
+              <span className="text-[color:var(--color-figma-text-success)]">
                 +{previewCounts.added} added
               </span>
             )}
             {previewCounts.modified > 0 && (
-              <span className="text-[color:var(--color-figma-warning)]">
+              <span className="text-[color:var(--color-figma-text-warning)]">
                 ~{previewCounts.modified} modified
               </span>
             )}
             {previewCounts.removed > 0 && (
-              <span className="text-[color:var(--color-figma-error)]">
+              <span className="text-[color:var(--color-figma-text-error)]">
                 &minus;{previewCounts.removed} removed
               </span>
             )}
@@ -529,7 +529,7 @@ export function SyncDiffSummary({
                   {r.cat === "conflict" && (
                     <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-secondary font-mono">
                       <div className="flex min-w-0 items-start gap-1">
-                        <span className="text-[color:var(--color-figma-error)] shrink-0 w-3">
+                        <span className="text-[color:var(--color-figma-text-error)] shrink-0 w-3">
                           &minus;
                         </span>
                         {isColor && isHexColor(beforeVal) && (
@@ -543,7 +543,7 @@ export function SyncDiffSummary({
                         </span>
                       </div>
                       <div className="flex min-w-0 items-start gap-1">
-                        <span className="text-[color:var(--color-figma-success)] shrink-0 w-3">
+                        <span className="text-[color:var(--color-figma-text-success)] shrink-0 w-3">
                           +
                         </span>
                         {isColor && isHexColor(afterVal) && (

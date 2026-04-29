@@ -90,7 +90,7 @@ export function ConfirmModal({
         <div className="tm-modal-body">
           {children}
         {error && (
-            <p role="alert" className="pb-3 text-secondary text-[color:var(--color-figma-error)] break-words">{error}</p>
+            <p role="alert" className="pb-3 text-secondary text-[color:var(--color-figma-text-error)] break-words">{error}</p>
         )}
         </div>
         <div className="tm-modal-footer">
