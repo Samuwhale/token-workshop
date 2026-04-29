@@ -25,6 +25,7 @@ import {
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
+import { Button, IconButton, SegmentedControl } from "../primitives";
 import { ValuePreview, previewIsValueBearing } from "./ValuePreview";
 
 type BusyState = "create" | "custom" | null;
@@ -75,6 +76,10 @@ const FORMULA_DEFAULT = generatorDefaultConfig("formula") as {
   roundTo: number;
   outputType: "number" | "dimension";
 };
+const SOURCE_MODE_OPTIONS: Array<{ value: GeneratorSourceMode; label: string }> = [
+  { value: "literal", label: "Value" },
+  { value: "token", label: "Token" },
+];
 
 export function GeneratorCreatePanel({
   serverUrl,
@@ -373,43 +378,51 @@ export function GeneratorCreatePanel({
         <h3 className="min-w-0 flex-1 truncate text-body font-semibold text-[var(--color-figma-text)]">
           Create generator
         </h3>
-        <button
-          type="button"
+        <IconButton
           onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           aria-label="Close"
         >
           <X size={14} aria-hidden />
-        </button>
+        </IconButton>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="grid gap-4 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="space-y-1">
-            {GENERATOR_PRESET_OPTIONS.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => updateKind(option.id)}
-                className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors ${
-                  option.id === kind
-                    ? "bg-[var(--color-figma-bg-selected)]"
-                    : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-secondary font-semibold text-[var(--color-figma-text)]">
-                    {option.label}
+          <div className="space-y-2">
+            <div className="px-1">
+              <h4 className="text-body font-semibold text-[var(--color-figma-text)]">
+                Preset
+              </h4>
+              <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                Choose the pattern that matches the token group you want.
+              </p>
+            </div>
+            <div className="space-y-1">
+              {GENERATOR_PRESET_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => updateKind(option.id)}
+                  className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors ${
+                    option.id === kind
+                      ? "bg-[var(--color-figma-bg-selected)]"
+                      : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-secondary font-semibold text-[var(--color-figma-text)]">
+                      {option.label}
+                    </span>
+                    <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
+                      {presetSourceLabel(option.id)}
+                      {" -> "}
+                      {option.outputPrefix}
+                    </span>
                   </span>
-                  <span className="block truncate text-tertiary text-[var(--color-figma-text-secondary)]">
-                    {presetSourceLabel(option.id)}
-                    {" -> "}
-                    {option.outputPrefix}
-                  </span>
-                </span>
-                <PresetIcon kind={option.id} />
-              </button>
-            ))}
+                  <PresetIcon kind={option.id} />
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={createBlankGenerator}
@@ -432,67 +445,64 @@ export function GeneratorCreatePanel({
           </div>
 
           <div className="space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-              Collection
-            </span>
-            <select
-              value={targetCollectionId}
-              onChange={(event) => {
-                const nextCollectionId = event.target.value;
-                setTargetCollectionId(nextCollectionId);
-                if (!sourceAdvancedOpen) {
-                  setSourceCollectionId(nextCollectionId);
-                  setSourceTokenPath("");
-                }
-              }}
-              className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-            >
-              {collectionOptions.map((collection) => (
-                <option key={collection.id} value={collection.id}>
-                  {collection.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div>
+              <h4 className="text-body font-semibold text-[var(--color-figma-text)]">
+                Setup
+              </h4>
+              <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                Pick where the generated tokens live and what they come from.
+              </p>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+                Collection
+              </span>
+              <select
+                value={targetCollectionId}
+                onChange={(event) => {
+                  const nextCollectionId = event.target.value;
+                  setTargetCollectionId(nextCollectionId);
+                  if (!sourceAdvancedOpen) {
+                    setSourceCollectionId(nextCollectionId);
+                    setSourceTokenPath("");
+                  }
+                }}
+                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+              >
+                {collectionOptions.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <ModeSummary modes={targetModes} />
+            <ModeSummary modes={targetModes} />
 
-          <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-              Output group
-            </span>
-            <input
-              value={outputPrefix}
-              onChange={(event) => setOutputPrefix(event.target.value)}
-              className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-            />
-          </label>
+            <label className="block">
+              <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
+                Output group
+              </span>
+              <input
+                value={outputPrefix}
+                onChange={(event) => setOutputPrefix(event.target.value)}
+                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+              />
+            </label>
 
           {!SOURCELESS_GENERATOR_PRESETS.has(kind) ? (
             <div className="space-y-2">
-              <div className="flex rounded bg-[var(--color-figma-bg-secondary)] p-0.5">
-                {(["literal", "token"] as GeneratorSourceMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => {
-                      setSourceMode(mode);
-                      if (mode === "token" && !sourceAdvancedOpen) {
-                        setSourceCollectionId(targetCollectionId);
-                      }
-                    }}
-                    aria-pressed={sourceMode === mode}
-                    className={`min-h-7 flex-1 rounded px-2 text-secondary font-medium ${
-                      sourceMode === mode
-                        ? "bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
-                        : "text-[var(--color-figma-text-secondary)]"
-                    }`}
-                  >
-                    {mode === "literal" ? "Value" : "Token"}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                value={sourceMode}
+                options={SOURCE_MODE_OPTIONS}
+                ariaLabel="Generator source"
+                onChange={(mode) => {
+                  setSourceMode(mode);
+                  if (mode === "token" && !sourceAdvancedOpen) {
+                    setSourceCollectionId(targetCollectionId);
+                  }
+                }}
+              />
 
               {sourceMode === "literal" ? (
                 <label className="block">
@@ -721,21 +731,21 @@ export function GeneratorCreatePanel({
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] px-4 py-3">
-        <button
-          type="button"
+        <Button
           onClick={onClose}
-          className="rounded px-3 py-1.5 text-secondary font-medium text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+          variant="ghost"
+          size="sm"
         >
           Cancel
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={createGenerator}
           disabled={busy !== null || !targetCollectionId}
-          className="rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-secondary font-semibold text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+          variant="primary"
+          size="sm"
         >
           {busy ? "Creating..." : "Create generator"}
-        </button>
+        </Button>
       </div>
     </div>
   );

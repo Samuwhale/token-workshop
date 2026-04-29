@@ -32,17 +32,27 @@ export function GeneratorListSidebar({
   createPanelOpen,
   onCreate,
   onSelect,
+  presentation = "sidebar",
 }: {
   generators: TokenGeneratorDocument[];
   activeGeneratorId: string | null;
   createPanelOpen: boolean;
   onCreate: () => void;
   onSelect: (generatorId: string) => void;
+  presentation?: "sidebar" | "overlay";
 }) {
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col overflow-y-auto border-r border-[var(--color-figma-border)] px-2 py-2 max-[760px]:w-[220px]">
+    <aside
+      className={
+        presentation === "overlay"
+          ? "flex h-full min-h-0 w-full flex-col overflow-y-auto px-2 py-2"
+          : "flex w-[260px] shrink-0 flex-col overflow-y-auto border-r border-[var(--color-figma-border)] px-2 py-2 max-[760px]:w-[220px]"
+      }
+    >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="px-1 text-primary font-semibold">Generators</h2>
+        <h2 className="px-1 text-primary font-semibold">
+          {presentation === "overlay" ? "Switch generator" : "Generators"}
+        </h2>
         <button
           type="button"
           onClick={onCreate}
@@ -124,6 +134,7 @@ export function NodeLibraryPanel({
   onToggleAllNodes,
   onPaletteQueryChange,
   onAddNode,
+  presentation = "sidebar",
 }: {
   allNodesOpen: boolean;
   paletteQuery: string;
@@ -134,11 +145,21 @@ export function NodeLibraryPanel({
     item: GeneratorPaletteItem,
     position?: TokenGeneratorDocumentNode["position"],
   ) => void;
+  presentation?: "sidebar" | "overlay";
 }) {
+  const className =
+    presentation === "overlay"
+      ? "flex h-full min-h-0 w-full flex-col overflow-y-auto p-3"
+      : "flex w-[260px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)] p-3 max-[760px]:max-h-[260px] max-[760px]:w-full max-[760px]:border-l-0 max-[760px]:border-t";
+
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)] p-3 max-[760px]:max-h-[260px] max-[760px]:w-full max-[760px]:border-l-0 max-[760px]:border-t">
+    <aside className={className}>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-primary font-semibold">Add step</h2>
+        {presentation === "sidebar" ? (
+          <h2 className="text-primary font-semibold">Add step</h2>
+        ) : (
+          <span />
+        )}
         <button
           type="button"
           onClick={onToggleAllNodes}

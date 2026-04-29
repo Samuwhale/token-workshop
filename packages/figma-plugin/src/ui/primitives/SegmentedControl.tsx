@@ -80,7 +80,7 @@ export function SegmentedControl<T extends string>({
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
-            className={`inline-flex min-h-[22px] min-w-fit shrink-0 items-center justify-center whitespace-nowrap rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
+            className={`inline-flex min-h-6 min-w-fit shrink-0 items-center justify-center whitespace-nowrap rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
               selected
                 ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
                 : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"

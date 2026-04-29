@@ -13,11 +13,11 @@ type StartHereBranchCopy = {
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
     title: "Start with a collection",
-    description: "Set up the first collection for this file, then add tokens to it or bring in structure you already maintain elsewhere.",
+    description: "Create one, import tokens, or extract from the current selection.",
   },
   "start-new": {
     title: "Create your first collection",
-    description: "Collections hold related tokens and their modes. Set up the collection first, then start authoring tokens.",
+    description: "Collections hold tokens and modes.",
   },
 };
 
@@ -143,7 +143,7 @@ export function WelcomePrompt({
     <div>
       <ActionRow
         title="Create your first collection"
-        description="Start with one collection and the mode contexts it needs."
+        description="Add the collection and its modes."
         onClick={() => setBranch("start-new")}
         emphasized
         icon={
@@ -165,7 +165,7 @@ export function WelcomePrompt({
       />
       <ActionRow
         title="Import existing tokens"
-        description="Bring in variables, styles, or token files and keep the structure you already have."
+        description="Use variables, styles, or token files."
         onClick={() => handleAction(onImportExistingSystem)}
         icon={
           <svg
@@ -187,7 +187,7 @@ export function WelcomePrompt({
       />
       <ActionRow
         title="Start from current selection"
-        description="Extract colors, type, and spacing from the layers already selected in Figma."
+        description="Extract colors, type, and spacing."
         onClick={() => handleAction(onStartFromSelection)}
         icon={
           <svg
@@ -214,7 +214,7 @@ export function WelcomePrompt({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)]">
-      <div className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="dialog" aria-modal="true" aria-labelledby="welcome-dialog-title">
+      <div className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg" role="dialog" aria-modal="true" aria-labelledby="welcome-dialog-title">
         <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">

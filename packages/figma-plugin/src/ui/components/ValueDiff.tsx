@@ -103,7 +103,7 @@ function TypoPreviewSwatch({ value }: { value: unknown }) {
   return (
     <div
       className="w-6 h-4 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
-      style={{ fontFamily, fontWeight, fontSize: '9px', lineHeight: 1 }}
+      style={{ fontFamily, fontWeight, fontSize: '11px', lineHeight: 1 }}
       aria-hidden="true"
     >
       Aa

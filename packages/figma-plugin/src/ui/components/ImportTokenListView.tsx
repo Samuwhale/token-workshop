@@ -55,7 +55,7 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
           </div>
         )}
       </div>
-      <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 ${tokenTypeBadgeClass(token.$type)}`}>
+      <span className={`px-1 py-0.5 rounded text-[var(--font-size-xs)] font-medium uppercase shrink-0 ${tokenTypeBadgeClass(token.$type)}`}>
         {token.$type}
       </span>
     </div>

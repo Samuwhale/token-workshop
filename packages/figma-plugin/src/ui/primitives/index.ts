@@ -1,12 +1,11 @@
 // Reach for these before adding ad-hoc Tailwind utilities. Keep the set small.
-//   Button, IconButton, TextInput, Chip, SegmentedControl   — controls
-//   ActionRow, MenuRadioGroup                               — menu rows
-//   Surface                                                 — panel / banner container
-//   Section                                                 — title + description + actions header with body slot
-//   Field                                                   — label + control + help/error
-//   ListItem                                                — single hoverable row (leading / label / trailing)
-//   Stack                                                   — flex column/row with token-spaced gap
-//   Toolbar                                                 — flex row of actions with justify control
+//   Button, IconButton, TextInput, SearchField, Chip, SegmentedControl — controls
+//   ActionRow, MenuRadioGroup                                          — menu rows
+//   CheckboxRow, DisclosureRow, ListItem                               — reusable list / option rows
+//   StatusBanner, StatusRow                                            — status surfaces
+//   Section                                                            — content groups with header slots
+//   Field                                                              — label + control + help/error
+//   Stack                                                              — layout
 export { ActionRow } from "./ActionRow";
 export { Button } from "./Button";
 export { Chip } from "./Chip";
@@ -15,9 +14,15 @@ export { IconButton } from "./IconButton";
 export { InlineRenameRow } from "./InlineRenameRow";
 export { ListItem } from "./ListItem";
 export { MenuRadioGroup } from "./MenuRadioGroup";
+export {
+  CheckboxRow,
+  DisclosureRow,
+  type CheckboxRowProps,
+  type DisclosureRowProps,
+} from "./OptionRow";
+export { SearchField, type SearchFieldProps } from "./SearchField";
 export { SegmentedControl, type SegmentedOption } from "./SegmentedControl";
 export { Section } from "./Section";
 export { Stack } from "./Stack";
-export { Surface } from "./Surface";
+export { StatusBanner, StatusRow, type StatusBannerProps, type StatusRowProps } from "./Status";
 export { TextInput } from "./TextInput";
-export { Toolbar } from "./Toolbar";

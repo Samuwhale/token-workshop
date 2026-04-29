@@ -277,20 +277,27 @@ export {
 
 // Token generator documents
 export {
+  checkTokenGeneratorConnection,
   createDefaultTokenGeneratorDocument,
   evaluateTokenGeneratorDocument,
   generatorProvenanceHash,
+  getTokenGeneratorInputPorts,
+  getTokenGeneratorOutputPorts,
   readGeneratorProvenance,
   tokenFromGeneratorOutput,
 } from './token-generator-documents.js';
 export type {
   EvaluateTokenGeneratorDocumentInput,
   GeneratorOutputProvenance,
+  TokenGeneratorConnectionCheck,
+  TokenGeneratorConnectionInput,
   TokenGeneratorDiagnostic,
   TokenGeneratorDocument,
   TokenGeneratorEdge,
   TokenGeneratorNode as TokenGeneratorDocumentNode,
   TokenGeneratorNodeKind,
+  TokenGeneratorPortDescriptor,
+  TokenGeneratorPortShape,
   TokenGeneratorPortType,
   TokenGeneratorPosition,
   TokenGeneratorPreviewOutput,

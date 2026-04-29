@@ -378,7 +378,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                         )}
                         <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
                         {isCurrent && (
-                          <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>current</span>
+                          <span className={`text-[var(--font-size-xs)] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>current</span>
                         )}
                         {valueDisplay && !isCurrent && (
                           <span className={`text-secondary shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>{valueDisplay}</span>
@@ -446,12 +446,12 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                         )}
                         <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
                         {isCurrent && (
-                          <span className={`text-[8px] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                          <span className={`text-[var(--font-size-xs)] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                             current
                           </span>
                         )}
                         {!isCurrent && !query && c.confidence !== 'weak' && (
-                          <span className={`text-[8px] shrink-0 ${isSelected ? 'text-white/50' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                          <span className={`text-[var(--font-size-xs)] shrink-0 ${isSelected ? 'text-white/50' : 'text-[var(--color-figma-text-secondary)]'}`}>
                             {c.reason}
                           </span>
                         )}

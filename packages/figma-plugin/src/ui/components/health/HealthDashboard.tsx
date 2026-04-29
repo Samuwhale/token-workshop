@@ -1,10 +1,12 @@
 import { AlertCircle, AlertTriangle, Check, SlidersHorizontal } from "lucide-react";
+import { StatusRow } from "../../primitives";
 import type { HealthView } from "./types";
 import type { HealthStatus } from "../../hooks/useHealthSignals";
 
 interface ReviewRow {
   id: string;
   label: string;
+  description: string;
   count: number;
   severity: HealthStatus;
   pending?: boolean;
@@ -46,6 +48,13 @@ function statusColor(status: HealthStatus): string {
   return "text-[var(--color-figma-success)]";
 }
 
+function statusTone(status: HealthStatus): "success" | "warning" | "danger" | "neutral" {
+  if (status === "critical") return "danger";
+  if (status === "warning") return "warning";
+  if (status === "healthy") return "success";
+  return "neutral";
+}
+
 function formatCheckedAt(date: Date): string {
   const diffMin = Math.floor((Date.now() - date.getTime()) / 60000);
   if (diffMin < 1) return "Just now";
@@ -56,49 +65,37 @@ function formatCheckedAt(date: Date): string {
 
 function ReviewSection({
   title,
+  description,
   rows,
 }: {
   title: string;
+  description: string;
   rows: ReviewRow[];
 }) {
   if (rows.length === 0) return null;
   return (
     <section>
-      <h3 className="px-1 pb-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-        {title}
-      </h3>
+      <div className="mb-1.5 px-1">
+        <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+          {title}
+        </h3>
+        <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+          {description}
+        </p>
+      </div>
       <div>
-        {rows.map((row) => {
-          const tone =
-            row.severity === "critical"
-              ? "text-[var(--color-figma-error)]"
-              : row.severity === "warning"
-                ? "text-[var(--color-figma-warning)]"
-                : "text-[var(--color-figma-text-tertiary)]";
-          return (
-            <button
-              key={row.id}
-              type="button"
-              onClick={row.onOpen}
-              disabled={row.disabled}
-              className={`flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors ${
-                row.disabled
-                  ? "cursor-default opacity-60"
-                  : "hover:bg-[var(--color-figma-bg-hover)]"
-              }`}
-            >
-              <span className={`shrink-0 ${tone}`}>
-                <StatusIcon status={row.severity} />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
-                {row.label}
-              </span>
-              <span className={`shrink-0 tabular-nums text-secondary ${tone}`}>
-                {row.pending ? "…" : row.count}
-              </span>
-            </button>
-          );
-        })}
+        {rows.map((row) => (
+          <StatusRow
+            key={row.id}
+            tone={statusTone(row.severity)}
+            label={row.label}
+            description={row.description}
+            value={row.pending ? "…" : row.count}
+            icon={<StatusIcon status={row.severity} />}
+            disabled={row.disabled}
+            onClick={row.onOpen}
+          />
+        ))}
       </div>
     </section>
   );
@@ -143,6 +140,12 @@ export function HealthDashboard({
     {
       id: "issues",
       label: "Validation issues",
+      description:
+        issueCount > 0
+          ? "Fix rule failures and invalid token values."
+          : validationLoading
+            ? "Checking token rules."
+            : "No token rule issues found.",
       count: issueCount,
       severity: issueStatus,
       onOpen: openView("issues"),
@@ -150,6 +153,7 @@ export function HealthDashboard({
     {
       id: "generators",
       label: "Generator updates",
+      description: "Save, preview, or apply generated outputs.",
       count: generatorIssueCount,
       severity: generatorStatus,
       disabled: !onNavigateToGenerators,
@@ -158,6 +162,7 @@ export function HealthDashboard({
     {
       id: "deprecated",
       label: "Deprecated references",
+      description: "Replace active references to retired tokens.",
       count: deprecatedCount,
       severity: sevFromCount(deprecatedCount),
       onOpen: openView("deprecated"),
@@ -168,6 +173,9 @@ export function HealthDashboard({
     {
       id: "unused",
       label: "Unused tokens",
+      description: unusedReady
+        ? "Review tokens not found on the Figma canvas."
+        : "Scanning Figma usage.",
       count: unusedCount,
       severity: sevFromCount(unusedCount),
       pending: !unusedReady,
@@ -176,6 +184,7 @@ export function HealthDashboard({
     {
       id: "alias-opportunities",
       label: "Suggested aliases",
+      description: "Promote repeated values into shared tokens.",
       count: aliasOpportunitiesCount,
       severity: sevFromCount(aliasOpportunitiesCount),
       onOpen: openView("alias-opportunities"),
@@ -183,6 +192,7 @@ export function HealthDashboard({
     {
       id: "duplicates",
       label: "Duplicates",
+      description: "Merge matching values that can share one token.",
       count: duplicateCount,
       severity: sevFromCount(duplicateCount),
       onOpen: openView("duplicates"),
@@ -193,58 +203,67 @@ export function HealthDashboard({
     cleanupRows.push({
       id: "hidden",
       label: "Hidden",
+      description: "Restore issues hidden from Review.",
       count: hiddenCount,
       severity: "healthy",
       onOpen: openView("hidden"),
     });
   }
 
-  const statusLabel = validationError
+  const statusTitle = validationError
     ? "Check failed"
     : validationLoading && !validationLastRefreshed
-      ? "Checking…"
+      ? "Checking library"
       : totalIssueCount === 0
-        ? "All clear"
-        : `${totalIssueCount} item${totalIssueCount === 1 ? "" : "s"} need attention`;
+        ? "Ready to publish"
+        : "Review needs attention";
+  const statusDetail = validationError
+    ? validationError
+    : totalIssueCount === 0
+      ? `${scopeLabel} No blocking review items found.`
+      : `${totalIssueCount} item${totalIssueCount === 1 ? "" : "s"} need attention. Start with Fix next, then clean up library hygiene.`;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto px-4 py-4" style={{ scrollbarWidth: "thin" }}>
-      <div className="mb-5 flex items-center gap-2">
+      <div className="mb-5 flex items-start gap-2">
         <span className={`shrink-0 ${statusColor(overallStatus)}`}>
           <StatusIcon status={overallStatus} />
         </span>
-        <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
-          {statusLabel}
-        </h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
+            {statusTitle}
+          </h2>
+          <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+            {statusDetail}
+          </p>
+        </div>
         {validationLastRefreshed && !validationLoading && !validationError ? (
-          <span className="ml-auto text-secondary text-[var(--color-figma-text-tertiary)]">
+          <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
             {formatCheckedAt(validationLastRefreshed)}
           </span>
         ) : null}
       </div>
 
-      <p className="mb-5 text-secondary text-[var(--color-figma-text-secondary)]">
-        {scopeLabel}
-      </p>
-
       <div className="flex flex-col gap-4">
-        <ReviewSection title="Fix before publish" rows={fixNextRows} />
-        <ReviewSection title="Clean up library" rows={cleanupRows} />
+        <ReviewSection
+          title="Fix next"
+          description="Items that can block confident handoff or publish."
+          rows={fixNextRows}
+        />
+        <ReviewSection
+          title="Clean up"
+          description="Helpful library maintenance after blockers are clear."
+          rows={cleanupRows}
+        />
       </div>
 
       <div className="mt-auto pt-6">
-        <button
-          type="button"
+        <StatusRow
+          tone="neutral"
+          label="Rules"
+          icon={<SlidersHorizontal size={14} strokeWidth={2.25} aria-hidden />}
           onClick={openView("rules")}
-          className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-        >
-          <span className="shrink-0 text-[var(--color-figma-text-tertiary)]">
-            <SlidersHorizontal size={14} strokeWidth={2.25} aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
-            Rules
-          </span>
-        </button>
+        />
       </div>
     </div>
   );

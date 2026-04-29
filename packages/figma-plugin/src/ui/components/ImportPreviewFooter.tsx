@@ -55,7 +55,7 @@ export function ImportPreviewFooter() {
     <div className="flex flex-col gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
       {newCollectionInputVisible ? (
         <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="tm-panel-inline-form">
             <input
               autoFocus
               type="text"
@@ -77,21 +77,23 @@ export function ImportPreviewFooter() {
                 if (e.key === 'Escape') cancelNewCollection();
               }}
               placeholder="New collection name…"
-              className={`min-w-0 flex-[999_1_180px] rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-accent)]'}`}
+              className={`tm-panel-inline-form__field rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-accent)]'}`}
             />
-            <button
-              onClick={commitNewCollection}
-              disabled={!newCollectionDraft.trim() || !!newCollectionError}
-              className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white hover:opacity-90 disabled:opacity-40"
-            >
-              Create
-            </button>
-            <button
-              onClick={cancelNewCollection}
-              className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Cancel
-            </button>
+            <div className="tm-panel-inline-form__actions">
+              <button
+                onClick={commitNewCollection}
+                disabled={!newCollectionDraft.trim() || !!newCollectionError}
+                className="rounded bg-[var(--color-figma-accent)] px-2 py-1 text-secondary font-medium text-white hover:opacity-90 disabled:opacity-40"
+              >
+                Create
+              </button>
+              <button
+                onClick={cancelNewCollection}
+                className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
           {newCollectionError && (
             <p role="alert" className="text-secondary text-[var(--color-figma-error)]">
@@ -105,7 +107,7 @@ export function ImportPreviewFooter() {
           )}
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="tm-panel-inline-form">
           <label className="shrink-0 text-secondary text-[var(--color-figma-text-secondary)]">Into</label>
           <select
             value={targetCollectionId}
@@ -117,7 +119,7 @@ export function ImportPreviewFooter() {
                 setTargetCollectionIdAndPersist(e.target.value);
               }
             }}
-            className="min-w-0 flex-[999_1_180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+            className="tm-panel-inline-form__field rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
           >
             {collectionIds.map((id) => (
               <option key={id} value={id}>{id}</option>
@@ -139,7 +141,7 @@ export function ImportPreviewFooter() {
 
       {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null || existingTokenMapError !== null) && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-secondary">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-[1_1_220px] flex-wrap items-center gap-2">
             {existingPathsFetching ? (
               <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens...</span>
             ) : existingTokenMapError !== null ? (
@@ -163,7 +165,7 @@ export function ImportPreviewFooter() {
           {hasPreviewConflicts && (
             <button
               onClick={handleImportStyles}
-              className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+              className="min-w-0 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
             >
               Open conflict review&hellip;
             </button>

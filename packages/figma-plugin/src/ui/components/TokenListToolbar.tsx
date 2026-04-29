@@ -7,9 +7,7 @@ import {
   ChevronRight,
   MoreHorizontal,
   Plus,
-  Search,
   Target,
-  X,
 } from "lucide-react";
 import {
   FilterMenu,
@@ -25,6 +23,7 @@ import {
   Chip,
   IconButton,
   MenuRadioGroup,
+  SearchField,
   type SegmentedOption,
 } from "../primitives";
 
@@ -308,114 +307,92 @@ export function TokenListToolbar({
 
             {hasTokens ? (
               <div className="tm-responsive-toolbar__search relative">
-                <div className="flex min-h-[28px] items-center gap-1.5 rounded bg-[var(--color-figma-bg)] px-2">
-                  <Search
-                    size={12}
-                    strokeWidth={1.5}
-                    className="pointer-events-none shrink-0 text-[var(--color-figma-text-tertiary)]"
-                    aria-hidden
-                  />
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    role={viewMode === "tree" ? "combobox" : "searchbox"}
-                    aria-autocomplete={viewMode === "tree" ? "list" : undefined}
-                    aria-expanded={
-                      viewMode === "tree"
-                        ? showQualifierHints && qualifierHints.length > 0
-                        : undefined
-                    }
-                    aria-controls={
-                      viewMode === "tree"
-                        ? "qualifier-hints-listbox"
-                        : undefined
-                    }
-                    aria-activedescendant={
-                      viewMode === "tree" &&
-                      showQualifierHints &&
-                      qualifierHints.length > 0
-                        ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
-                        : undefined
-                    }
-                    value={searchQuery}
-                    onChange={(event) => {
-                      setSearchQuery(event.target.value);
-                      setHintIndex(0);
-                    }}
-                    onFocus={() => setShowQualifierHints(viewMode === "tree")}
-                    onBlur={() => {
-                      window.setTimeout(
-                        () => setShowQualifierHints(false),
-                        150,
-                      );
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Escape") {
-                        event.preventDefault();
-                        if (searchQuery) {
-                          setSearchQuery("");
-                          setHintIndex(0);
-                        }
-                        searchRef.current?.blur();
-                        return;
-                      }
-                      if (viewMode !== "tree") {
-                        return;
-                      }
-                      if (!showQualifierHints || qualifierHints.length === 0) {
-                        return;
-                      }
-                      if (event.key === "ArrowDown") {
-                        event.preventDefault();
-                        setHintIndex((index: number) =>
-                          Math.min(index + 1, qualifierHints.length - 1),
-                        );
-                      } else if (event.key === "ArrowUp") {
-                        event.preventDefault();
-                        setHintIndex((index: number) => Math.max(index - 1, 0));
-                      } else if (
-                        event.key === "Tab" ||
-                        (event.key === "Enter" && qualifierHints.length > 0)
-                      ) {
-                        const hint = qualifierHints[hintIndex];
-                        if (
-                          !hint ||
-                          hint.kind !== "replacement" ||
-                          !hint.replacement
-                        ) {
-                          return;
-                        }
-                        event.preventDefault();
-                        setSearchQuery(
-                          replaceQueryToken(
-                            searchQuery,
-                            activeQueryToken,
-                            hint.replacement,
-                          ),
-                        );
-                        setHintIndex(0);
-                      }
-                    }}
-                    placeholder={searchPlaceholder}
-                    title={effectiveSearchTooltip}
-                    className="min-w-[40px] flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
-                  />
-                  {searchQuery ? (
-                    <IconButton
-                      onClick={() => {
+                <SearchField
+                  ref={searchRef}
+                  role={viewMode === "tree" ? "combobox" : "searchbox"}
+                  aria-autocomplete={viewMode === "tree" ? "list" : undefined}
+                  aria-expanded={
+                    viewMode === "tree"
+                      ? showQualifierHints && qualifierHints.length > 0
+                      : undefined
+                  }
+                  aria-controls={
+                    viewMode === "tree"
+                      ? "qualifier-hints-listbox"
+                      : undefined
+                  }
+                  aria-activedescendant={
+                    viewMode === "tree" &&
+                    showQualifierHints &&
+                    qualifierHints.length > 0
+                      ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
+                      : undefined
+                  }
+                  value={searchQuery}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setHintIndex(0);
+                  }}
+                  onFocus={() => setShowQualifierHints(viewMode === "tree")}
+                  onBlur={() => {
+                    window.setTimeout(() => setShowQualifierHints(false), 150);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      if (searchQuery) {
                         setSearchQuery("");
                         setHintIndex(0);
-                        searchRef.current?.focus();
-                      }}
-                      size="sm"
-                      className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
-                      title="Clear search"
-                      aria-label="Clear search"
-                    >
-                      <X size={10} strokeWidth={1.5} aria-hidden />
-                    </IconButton>
-                  ) : null}
-                </div>
+                      }
+                      searchRef.current?.blur();
+                      return;
+                    }
+                    if (viewMode !== "tree") {
+                      return;
+                    }
+                    if (!showQualifierHints || qualifierHints.length === 0) {
+                      return;
+                    }
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setHintIndex((index: number) =>
+                        Math.min(index + 1, qualifierHints.length - 1),
+                      );
+                    } else if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setHintIndex((index: number) => Math.max(index - 1, 0));
+                    } else if (
+                      event.key === "Tab" ||
+                      (event.key === "Enter" && qualifierHints.length > 0)
+                    ) {
+                      const hint = qualifierHints[hintIndex];
+                      if (
+                        !hint ||
+                        hint.kind !== "replacement" ||
+                        !hint.replacement
+                      ) {
+                        return;
+                      }
+                      event.preventDefault();
+                      setSearchQuery(
+                        replaceQueryToken(
+                          searchQuery,
+                          activeQueryToken,
+                          hint.replacement,
+                        ),
+                      );
+                      setHintIndex(0);
+                    }
+                  }}
+                  placeholder={searchPlaceholder}
+                  title={effectiveSearchTooltip}
+                  onClear={() => {
+                    setSearchQuery("");
+                    setHintIndex(0);
+                    searchRef.current?.focus();
+                  }}
+                  containerClassName="w-full"
+                />
 
                 {showQualifierHints &&
                 viewMode === "tree" &&
@@ -588,21 +565,6 @@ export function TokenListToolbar({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    {onCreateGenerator ? (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() =>
-                          runCreateAction(() =>
-                            onCreateGenerator(zoomRootPath ?? undefined),
-                          )
-                        }
-                        disabled={!connected}
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                      >
-                        Generator…
-                      </button>
-                    ) : null}
                     <button
                       type="button"
                       role="menuitem"
@@ -631,6 +593,24 @@ export function TokenListToolbar({
                       >
                         Paste JSON
                       </button>
+                    ) : null}
+                    {onCreateGenerator ? (
+                      <>
+                        <div className="h-1.5" aria-hidden />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() =>
+                            runCreateAction(() =>
+                              onCreateGenerator(zoomRootPath ?? undefined),
+                            )
+                          }
+                          disabled={!connected}
+                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-40"
+                        >
+                          Generator…
+                        </button>
+                      </>
                     ) : null}
                   </div>
                 ) : null}

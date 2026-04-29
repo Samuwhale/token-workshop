@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, getCompositionPropertyType } from '../shared/types.js';
 import type { ExtractedTokenEntry, NodeCapabilities, NodeCurrentValues, SelectionNodeInfo, TokenMapEntry, ResolvedTokenValue, TypographyValue, DimensionValue, BorderValue, ShadowTokenValue } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { cloneValue } from '../shared/clone.js';
@@ -184,22 +184,11 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
       break;
 
     case 'composition': {
-      // Map each property in the composition value to its inferred token type
-      const propTypeMap: Record<string, string> = {
-        fill: 'color', stroke: 'color',
-        width: 'dimension', height: 'dimension',
-        paddingTop: 'dimension', paddingRight: 'dimension',
-        paddingBottom: 'dimension', paddingLeft: 'dimension',
-        itemSpacing: 'dimension', cornerRadius: 'dimension', strokeWeight: 'dimension',
-        opacity: 'number',
-        visible: 'boolean',
-        typography: 'typography',
-        shadow: 'shadow',
-      };
-      const compVal = typeof value === 'object' && value !== null ? value : {};
+      const compVal = value != null && typeof value === 'object' && !Array.isArray(value)
+        ? value
+        : {};
       for (const [prop, propVal] of Object.entries(compVal)) {
-        const propType = propTypeMap[prop] || 'string';
-        await applyTokenValue(node, prop, propVal, propType);
+        await applyTokenValue(node, prop, propVal, getCompositionPropertyType(prop));
       }
       break;
     }

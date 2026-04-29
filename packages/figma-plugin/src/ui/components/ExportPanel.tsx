@@ -19,7 +19,7 @@ interface ExportPanelProps {
 }
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
-  const help = usePanelHelp('export');
+  const help = usePanelHelp();
   const {
     collections,
   } = useCollectionStateContext();
@@ -157,7 +157,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         bodyClassName="gap-4"
         actions={
           <PanelHelpIcon
-            panelKey="export"
             title="Export"
             expanded={help.expanded}
             onToggle={help.toggle}
@@ -175,15 +174,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         footer={
           <ExportFooter
             mode="platforms"
-            connected={connected}
             changesOnly={diffState.changesOnly}
-            setChangesOnly={diffState.setChangesOnly}
             diffPaths={diffState.diffPaths}
             diffLoading={diffState.diffLoading}
             isGitRepo={diffState.isGitRepo}
             lastExportTimestamp={diffState.lastExportTimestamp}
-            fetchDiff={diffState.fetchDiff}
-            fetchDiffSince={diffState.fetchDiffSince}
             results={exportResults.results}
             exporting={exportResults.exporting}
             selected={platformConfig.selected}

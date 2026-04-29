@@ -36,8 +36,8 @@ type BannerTone = {
 
 const LAYOUT_STYLES: Record<InlineBannerLayout, Record<InlineBannerSize, string>> = {
   inline: {
-    sm: 'rounded-md px-2.5 py-2 text-secondary',
-    md: 'rounded-md px-3 py-2 text-body',
+    sm: 'py-1.5 text-secondary',
+    md: 'py-2 text-body',
   },
   strip: {
     sm: 'shrink-0 border-b px-3 py-1.5 text-secondary',
@@ -47,27 +47,27 @@ const LAYOUT_STYLES: Record<InlineBannerLayout, Record<InlineBannerSize, string>
 
 const TONE_STYLES: Record<InlineBannerVariant, BannerTone> = {
   loading: {
-    root: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
+    root: 'border-transparent text-[var(--color-figma-text-secondary)]',
     icon: 'text-[var(--color-figma-accent)]',
     action: 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
   },
   error: {
-    root: 'border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]',
+    root: 'border-transparent text-[var(--color-figma-error)]',
     icon: 'text-[var(--color-figma-error)]',
     action: 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20',
   },
   warning: {
-    root: 'border-[var(--color-figma-warning)]/20 bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-text-secondary)]',
+    root: 'border-transparent text-[var(--color-figma-text-secondary)]',
     icon: 'text-[var(--color-figma-warning)]',
     action: 'bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] hover:bg-[var(--color-figma-warning)]/25',
   },
   info: {
-    root: 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
+    root: 'border-transparent text-[var(--color-figma-text-secondary)]',
     icon: 'text-[var(--color-figma-accent)]',
     action: 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20',
   },
   success: {
-    root: 'border-[var(--color-figma-success)]/20 bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]',
+    root: 'border-transparent text-[var(--color-figma-success)]',
     icon: 'text-[var(--color-figma-success)]',
     action: 'bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/20',
   },
@@ -144,7 +144,7 @@ export function InlineBanner({
       role={variant === 'error' ? 'alert' : 'status'}
       aria-live={variant === 'error' ? 'assertive' : 'polite'}
       className={joinClasses(
-        'flex items-start gap-2 border',
+        'flex items-start gap-2',
         LAYOUT_STYLES[layout][size],
         tone.root,
         className,

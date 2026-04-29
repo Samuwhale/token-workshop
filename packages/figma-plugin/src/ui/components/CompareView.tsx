@@ -942,13 +942,13 @@ function ModePairsMode({
                       <span className="text-secondary text-[var(--color-figma-text-tertiary)] truncate">{par}.</span>
                     )}
                     <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{leaf}</span>
-                    <span className="ml-auto text-[8px] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                    <span className="ml-auto text-[var(--font-size-xs)] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
                       {diff.type}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
                       {hexA && <ColorSwatch value={hexA} />}
                       <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate" title={fmtA}>
                         {absentInA ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtA}
@@ -958,7 +958,7 @@ function ModePairsMode({
                       <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
                       {hexB && <ColorSwatch value={hexB} />}
                       <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={fmtB}>
                         {absentInB ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtB}
@@ -1348,16 +1348,16 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                       <span className="text-secondary text-[var(--color-figma-text-tertiary)] truncate">{par}.</span>
                     )}
                     <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{diff.name}</span>
-                    <span className={`ml-auto text-[8px] shrink-0 px-1 py-0.5 rounded ${statusColor}`}>
+                    <span className={`ml-auto text-[var(--font-size-xs)] shrink-0 px-1 py-0.5 rounded ${statusColor}`}>
                       {statusLabel}
                     </span>
-                    <span className="text-[8px] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
                       {diff.type}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded ${diff.status === 'only-b' ? 'opacity-40' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
-                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
                       {hexA && <ColorSwatch value={hexA} />}
                       <span className="text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate">
                         {fmtA ?? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em>}
@@ -1367,7 +1367,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
                       <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                     <div className={`flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded ${diff.status === 'only-a' ? 'opacity-40' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
-                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
+                      <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
                       {hexB && <ColorSwatch value={hexB} />}
                       <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate">
                         {fmtB ?? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em>}

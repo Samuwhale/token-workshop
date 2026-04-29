@@ -112,7 +112,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const [isDragging, setIsDragging] = useState(false);
   const [fileImportValidation, setFileImportValidation] = useState<FileImportValidation | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const cssFileInputRef = useRef<HTMLInputElement | null>(null);
   const tailwindFileInputRef = useRef<HTMLInputElement | null>(null);
   const tokensStudioFileInputRef = useRef<HTMLInputElement | null>(null);

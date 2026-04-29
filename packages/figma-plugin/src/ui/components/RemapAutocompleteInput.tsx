@@ -159,13 +159,13 @@ export function RemapAutocompleteInput({
                 <span className="flex-1 text-secondary font-mono text-[var(--color-figma-text)] truncate">{path}</span>
                 {preview ? (
                   <span
-                    className="max-w-[100px] shrink-0 truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                    className="max-w-[100px] shrink-0 truncate text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]"
                     title={preview}
                   >
                     {preview}
                   </span>
                 ) : null}
-                <span className="shrink-0 text-[8px] text-[var(--color-figma-text-secondary)]">
+                <span className="shrink-0 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
                   {entry?.$type ?? "stale"}
                 </span>
               </button>

@@ -74,7 +74,9 @@ export type TransitionValue = {
  * (e.g. "fill", "cornerRadius", "paddingTop") to token references or
  * direct values. When applied, all properties are set at once.
  */
-export type CompositionValue = Record<string, string | number | boolean | null>;
+export type CompositionValue = {
+  [property: string]: TokenValue | null;
+};
 
 // ---------------------------------------------------------------------------
 // Union of all possible token values

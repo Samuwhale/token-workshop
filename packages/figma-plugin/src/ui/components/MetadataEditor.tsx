@@ -242,10 +242,10 @@ function ExtensionsEditor({
         <span className="flex items-center gap-1.5">
           Extensions
           {hasCustom && (
-            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] text-[8px] font-medium">custom</span>
+            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium">custom</span>
           )}
           {extensionsJsonError && (
-            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] text-[8px] font-medium">invalid</span>
+            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] text-[var(--font-size-xs)] font-medium">invalid</span>
           )}
         </span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showExtensions ? 'rotate-180' : ''}`}>
@@ -255,15 +255,15 @@ function ExtensionsEditor({
       {showExtensions && (
         <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           <div className="flex items-center justify-between">
-            <p className="text-secondary text-[var(--color-figma-text-secondary)]">
-              Custom extension data. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">com.figma.scopes</code> sections are managed above.
+            <p className="text-body leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+              Additional token fields. TokenManager and Figma scope fields are managed above.
             </p>
             <button
               type="button"
               onClick={rawMode ? switchToStructured : switchToRaw}
               disabled={rawMode && !canSwitchToStructured}
-              title={rawMode ? 'Switch to structured editor' : 'Switch to raw JSON'}
-              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-secondary font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40"
+              title={rawMode ? 'Switch to structured editor' : 'Edit as JSON'}
+              className="ml-2 flex min-h-7 shrink-0 items-center rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
             >
               {rawMode ? (
                 <span className="flex items-center gap-1">

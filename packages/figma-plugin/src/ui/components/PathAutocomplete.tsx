@@ -224,7 +224,7 @@ export function PathAutocomplete({
           <span className={`flex-1 text-secondary truncate ${isGhost || isSibling ? 'text-[var(--color-figma-text-secondary)] italic' : 'text-[var(--color-figma-text)]'}`}>
             {label}{isGroup ? '.' : ''}
           </span>
-          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+          <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0">
             {isGhost ? 'new' : isGroup ? 'group' : isSibling ? 'sibling' : 'token'}
           </span>
         </button>

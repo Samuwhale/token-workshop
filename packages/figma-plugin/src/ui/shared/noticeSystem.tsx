@@ -16,19 +16,19 @@ export type NoticeSeverity =
 /* ------------------------------------------------------------------ */
 
 const BANNER_TONE: Record<NoticeSeverity, string> = {
-  error:   'border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]',
-  warning: 'border-[var(--color-figma-warning)]/60 bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)]',
-  stale:   'border-[var(--color-figma-warning)]/45 bg-[var(--color-figma-warning)]/8 text-[var(--color-figma-warning)]',
-  info:    'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
-  success: 'border-[var(--color-figma-success)]/40 bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]',
+  error:   'text-[var(--color-figma-error)]',
+  warning: 'text-[var(--color-figma-warning)]',
+  stale:   'text-[var(--color-figma-warning)]',
+  info:    'text-[var(--color-figma-text-secondary)]',
+  success: 'text-[var(--color-figma-success)]',
 };
 
 const PILL_TONE: Record<NoticeSeverity, string> = {
-  error:   'border-[var(--color-figma-error)]/30 bg-[var(--color-figma-error)]/12 text-[var(--color-figma-error)]',
-  warning: 'border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/12 text-[var(--color-figma-warning)]',
-  stale:   'border-[var(--color-figma-warning)]/35 bg-[var(--color-figma-warning)]/12 text-[var(--color-figma-warning)]',
-  info:    'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]',
-  success: 'border-[var(--color-figma-success)]/30 bg-[var(--color-figma-success)]/12 text-[var(--color-figma-success)]',
+  error:   'text-[var(--color-figma-error)]',
+  warning: 'text-[var(--color-figma-warning)]',
+  stale:   'text-[var(--color-figma-warning)]',
+  info:    'text-[var(--color-figma-text-secondary)]',
+  success: 'text-[var(--color-figma-success)]',
 };
 
 const FIELD_TONE: Record<NoticeSeverity, string> = {
@@ -154,10 +154,10 @@ export function NoticeBanner({
     <div
       role={severity === 'error' ? 'alert' : 'status'}
       aria-live={severity === 'error' ? undefined : 'polite'}
-      className={`flex items-center gap-2 px-3 py-1.5 border-b text-body shrink-0 ${BANNER_TONE[severity]}${className ? ` ${className}` : ''}`}
+      className={`flex items-center gap-2 py-1.5 text-body shrink-0 ${BANNER_TONE[severity]}${className ? ` ${className}` : ''}`}
     >
       {severityIcon(severity)}
-      <span className="flex-1 min-w-0 break-words text-[var(--color-figma-text)]">{children}</span>
+      <span className="flex-1 min-w-0 break-words">{children}</span>
       {actions}
       {onDismiss && (
         <button
@@ -189,7 +189,7 @@ export interface NoticePillProps {
 export function NoticePill({ severity, children, title, icon, className }: NoticePillProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-secondary font-medium ${PILL_TONE[severity]}${className ? ` ${className}` : ''}`}
+      className={`inline-flex items-center gap-1 text-secondary font-medium ${PILL_TONE[severity]}${className ? ` ${className}` : ''}`}
       title={title}
     >
       {icon}
@@ -264,10 +264,10 @@ export interface NoticeInlineAlertProps {
 
 export function NoticeInlineAlert({ severity, children, onDismiss, className }: NoticeInlineAlertProps) {
   const tone = severity === 'error'
-    ? 'bg-[var(--color-figma-error)]/10 border-[var(--color-figma-error)]/20'
+    ? 'border-transparent'
     : severity === 'warning'
-    ? 'bg-[var(--color-figma-warning)]/10 border-[var(--color-figma-warning)]/20'
-    : 'bg-[var(--color-figma-bg-secondary)] border-[var(--color-figma-border)]';
+    ? 'border-transparent'
+    : 'border-transparent';
 
   const textTone = severity === 'error'
     ? 'text-[var(--color-figma-error)]'
@@ -278,7 +278,7 @@ export function NoticeInlineAlert({ severity, children, onDismiss, className }: 
   return (
     <div
       role={severity === 'error' ? 'alert' : 'status'}
-      className={`flex items-start gap-1.5 px-2 py-1.5 rounded border ${tone}${className ? ` ${className}` : ''}`}
+      className={`flex items-start gap-1.5 py-1.5 ${tone}${className ? ` ${className}` : ''}`}
     >
       {severityIcon(severity)}
       <span className={`text-secondary flex-1 leading-snug ${textTone}`}>{children}</span>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 
 interface HealthSubViewHeaderProps {
   title: string;
@@ -20,9 +21,11 @@ export function HealthSubViewHeader({
           <button
             type="button"
             onClick={onBack}
-            className="text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text)]"
+            className="inline-flex min-h-6 items-center gap-1 rounded px-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            aria-label="Back to Review"
           >
-            ← Review
+            <ArrowLeft size={12} strokeWidth={1.6} aria-hidden />
+            <span>Review</span>
           </button>
           <span className="tm-panel-bar__title text-body font-semibold text-[var(--color-figma-text)]">
             {title}

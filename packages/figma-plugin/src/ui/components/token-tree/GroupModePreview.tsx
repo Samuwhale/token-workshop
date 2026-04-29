@@ -120,7 +120,7 @@ export const GroupModePreview = memo(function GroupModePreview({
 
   if (valuedCount === 0) {
     return (
-      <span className="text-[10px] leading-none text-[var(--color-figma-text-tertiary)]">
+      <span className="text-[var(--font-size-xs)] leading-none text-[var(--color-figma-text-tertiary)]">
         —
       </span>
     );
@@ -129,7 +129,7 @@ export const GroupModePreview = memo(function GroupModePreview({
   if (uniformNonValueBearingType) {
     return (
       <div
-        className="flex min-w-0 items-center gap-1 text-[10px] leading-none text-[var(--color-figma-text-tertiary)]"
+        className="flex min-w-0 items-center gap-1 text-[var(--font-size-xs)] leading-none text-[var(--color-figma-text-tertiary)]"
         title={`${valuedCount} ${uniformNonValueBearingType} token${valuedCount === 1 ? "" : "s"}`}
       >
         <span className="shrink-0">
@@ -165,7 +165,7 @@ export const GroupModePreview = memo(function GroupModePreview({
       </div>
       {overflow > 0 && (
         <span
-          className="shrink-0 text-[10px] leading-none text-[var(--color-figma-text-tertiary)]"
+          className="shrink-0 text-[var(--font-size-xs)] leading-none text-[var(--color-figma-text-tertiary)]"
           title={`${overflow} more token${overflow === 1 ? "" : "s"}`}
         >
           +{overflow}

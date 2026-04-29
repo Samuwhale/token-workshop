@@ -146,7 +146,7 @@ export function LightnessInspectorPanel({
                           onClick={() => onNavigateToToken(p.path, collectionId)}
                           title={`Go to ${p.path} in ${collectionId}`}
                           aria-label={`Go to ${p.path} in ${collectionId}`}
-                          className="absolute h-4 -translate-x-1/2 -translate-y-1/2 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 text-[8px] font-medium leading-none text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
+                          className="absolute h-4 -translate-x-1/2 -translate-y-1/2 rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1 text-[var(--font-size-xs)] font-medium leading-none text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                           style={{
                             left: Math.min(Math.max(p.x + 14, 16), W - 16),
                             top: Math.max(p.y - 8, 8),

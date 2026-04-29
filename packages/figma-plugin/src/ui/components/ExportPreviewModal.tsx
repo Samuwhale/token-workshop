@@ -148,7 +148,7 @@ export function ExportPreviewModal({
                 onClick={() => onFileSelect(i)}
                 className={`tm-modal-tab ${i === fileIndex ? "tm-modal-tab--active" : ""}`}
               >
-                <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[8px] font-medium uppercase font-sans text-[var(--color-figma-accent)]">
+                <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 text-[var(--font-size-xs)] font-medium uppercase font-sans text-[var(--color-figma-accent)]">
                   {file.platform}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -157,7 +157,7 @@ export function ExportPreviewModal({
                   </span>
                   {directory ? (
                     <span
-                      className="tm-modal-tab__meta pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]"
+                      className="tm-modal-tab__meta pt-0.5 text-[var(--font-size-xs)] text-[var(--color-figma-text-tertiary)]"
                       title={directory}
                     >
                       {directory}

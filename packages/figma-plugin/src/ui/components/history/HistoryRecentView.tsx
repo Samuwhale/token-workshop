@@ -199,20 +199,20 @@ export function HistoryRecentView({
               const isUndoingThis = undoingToEntry !== null && undoingToEntry >= stepsToUndo;
               const isBusy = undoingToEntry !== null;
               return (
-                <div key={`local-${stepsToUndo}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
+                <div key={`local-${stepsToUndo}`} className="flex flex-wrap items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                   <div className="mt-0.5 shrink-0">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><circle cx="12" cy="12" r="3" /></svg>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-[1_1_220px]">
                     <div className="text-secondary min-w-0 break-words text-[var(--color-figma-text)]">{description}</div>
                   </div>
-                  <div className="shrink-0 mt-0.5 flex flex-wrap items-center justify-end gap-1">
+                  <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
                     {executeUndo && (
                       <button
                         onClick={() => handleUndoToEntry(stepsToUndo)}
                         disabled={isBusy}
                         title={isTop ? 'Undo this action' : `Undo this and ${stepsToUndo - 1} newer action${stepsToUndo > 2 ? 's' : ''}`}
-                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[var(--color-figma-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                       >
                         {isUndoingThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Undoing…</span> : isTop ? 'Undo' : `Undo ${stepsToUndo}`}
                       </button>

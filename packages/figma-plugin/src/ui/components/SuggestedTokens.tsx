@@ -117,7 +117,7 @@ export function SuggestedTokens({
             <div key={group.confidence}>
               {/* Group header — only when multiple groups are visible */}
               {visibleGroups.length > 1 && (
-                <div className={`text-[8px] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 ${
+                <div className={`text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 ${
                   groupIdx > 0 ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
                 }`}>
                   {CONFIDENCE_LABELS[group.confidence]}
@@ -148,7 +148,7 @@ export function SuggestedTokens({
                       />
                     ) : (
                       <div className="w-3 h-3 rounded-sm bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center">
-                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] font-bold leading-none">
+                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] font-bold leading-none">
                           {s.entry.$type.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -164,11 +164,11 @@ export function SuggestedTokens({
                         {s.path}
                       </button>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
+                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
                           {propLabel}
                         </span>
-                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
-                        <span className={`text-[8px] ${
+                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
+                        <span className={`text-[var(--font-size-xs)] ${
                           s.confidence === 'strong'
                             ? 'text-[var(--color-figma-accent)]'
                             : 'text-[var(--color-figma-text-secondary)]'
@@ -177,9 +177,9 @@ export function SuggestedTokens({
                         </span>
                         {valueStr && (
                           <>
-                            <span className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
+                            <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] opacity-50">·</span>
                             <span
-                              className="min-w-0 max-w-[40%] text-[8px] text-[var(--color-figma-text-secondary)] font-mono truncate"
+                              className="min-w-0 max-w-[40%] text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] font-mono truncate"
                               title={valueStr}
                             >
                               {valueStr}

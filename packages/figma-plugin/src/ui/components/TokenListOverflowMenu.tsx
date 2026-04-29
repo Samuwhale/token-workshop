@@ -171,7 +171,7 @@ export function FilterMenu(
         <Filter size={12} strokeWidth={1.5} aria-hidden />
         <span className="tm-token-toolbar__button-label">Filters</span>
         {props.activeCount > 0 && (
-          <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-1 text-[10px] font-semibold leading-none text-white">
+          <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-accent)] px-1 text-[var(--font-size-xs)] font-semibold leading-none text-white">
             {props.activeCount}
           </span>
         )}
@@ -261,7 +261,7 @@ export function FilterMenu(
             ) : null}
 
             <div className={MENU_SECTION_BORDER}>
-              <MenuLabel>Value Source</MenuLabel>
+              <MenuLabel>Value source</MenuLabel>
             </div>
             {referenceOptions.map((option) => (
               <MenuItem

@@ -10,10 +10,8 @@ import {
   Check,
   ChevronDown,
   Plus,
-  Search,
   Settings2,
   Upload,
-  X,
 } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
@@ -25,7 +23,7 @@ import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
-import { IconButton } from "../../primitives";
+import { SearchField } from "../../primitives";
 
 interface AllCollectionsScope {
   selected: boolean;
@@ -214,18 +212,15 @@ export function CollectionTabs({
                 role="dialog"
                 aria-label="Choose collection"
               >
-                <div className="mb-1 flex min-h-[28px] items-center gap-1.5 rounded bg-[var(--color-figma-bg-secondary)] px-2">
-                  <Search
-                    size={12}
-                    strokeWidth={1.5}
-                    className="shrink-0 text-[var(--color-figma-text-tertiary)]"
-                    aria-hidden
-                  />
-                  <input
+                <div className="mb-1">
+                  <SearchField
                     ref={searchInputRef}
-                    type="text"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
+                    onClear={() => {
+                      setQuery("");
+                      requestAnimationFrame(() => searchInputRef.current?.focus());
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Escape" && query.length > 0) {
                         event.stopPropagation();
@@ -234,21 +229,9 @@ export function CollectionTabs({
                     }}
                     placeholder="Search collections"
                     aria-label="Search collections"
-                    className="min-w-0 flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                    containerClassName="w-full"
+                    className="bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-secondary)]"
                   />
-                  {query ? (
-                    <IconButton
-                      onClick={() => {
-                        setQuery("");
-                        requestAnimationFrame(() => searchInputRef.current?.focus());
-                      }}
-                      size="sm"
-                      className="text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
-                      aria-label="Clear collection search"
-                    >
-                      <X size={10} strokeWidth={1.5} aria-hidden />
-                    </IconButton>
-                  ) : null}
                 </div>
 
                 <div
@@ -381,10 +364,12 @@ export function CollectionTabs({
                 type="button"
                 onClick={onOpenCreateCollection}
                 title="Create collection"
-                className="tm-collection-toolbar__action tm-collection-toolbar__action--primary inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
+                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
-                <Plus size={12} strokeWidth={1.7} aria-hidden />
-                <span className="tm-toolbar-action__label">New collection</span>
+                <Plus size={12} strokeWidth={1.5} aria-hidden />
+                <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
+                  New collection
+                </span>
               </button>
             ) : null}
 

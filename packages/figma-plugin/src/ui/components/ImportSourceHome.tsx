@@ -113,7 +113,7 @@ export function ImportSourceHome() {
       )}
 
       <input
-        ref={fileInputRef as React.LegacyRef<HTMLInputElement>}
+        ref={fileInputRef}
         type="file"
         accept=".json,.css,.js,.ts,.mjs,.cjs,application/json,text/css"
         className="sr-only"

@@ -202,14 +202,14 @@ export function AliasAutocomplete({
                   {previewValue}
                 </span>
               ) : null}
-              <span className={`shrink-0 rounded px-1 py-0.5 text-[8px] font-medium uppercase ${tokenTypeBadgeClass(entry.$type)}`}>
+              <span className={`shrink-0 rounded px-1 py-0.5 text-[var(--font-size-xs)] font-medium uppercase ${tokenTypeBadgeClass(entry.$type)}`}>
                 {entry.$type}
               </span>
               {entry.$lifecycle === 'draft' && (
-                <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[8px] font-medium text-[var(--color-figma-warning)]">draft</span>
+                <span className="shrink-0 rounded bg-[var(--color-figma-warning)]/15 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[var(--color-figma-warning)]">draft</span>
               )}
               {entry.$lifecycle === 'deprecated' && (
-                <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[8px] font-medium text-[var(--color-figma-text-secondary)]">deprecated</span>
+                <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[var(--color-figma-text-secondary)]">deprecated</span>
               )}
             </div>
           </div>

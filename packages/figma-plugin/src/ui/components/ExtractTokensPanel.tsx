@@ -519,7 +519,7 @@ export function ExtractTokensPanel({
                       />
                       {isConflict && isSelected && (
                         <span
-                          className="text-[8px] text-[var(--color-figma-warning)] shrink-0"
+                          className="text-[var(--font-size-xs)] text-[var(--color-figma-warning)] shrink-0"
                           title="Token already exists — will overwrite"
                         >
                           overwrite
@@ -528,7 +528,7 @@ export function ExtractTokensPanel({
                     </div>
                     {/* Value + type badge + layer info */}
                     <div className="flex items-center gap-1.5 text-secondary">
-                      <span className={`${badgeClass} px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0`}>
+                      <span className={`${badgeClass} px-1 py-0.5 rounded text-[var(--font-size-xs)] font-medium uppercase shrink-0`}>
                         {token.tokenType}
                       </span>
                       {/* Color swatch */}

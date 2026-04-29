@@ -6,6 +6,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
+import { Filter, MoreHorizontal } from "lucide-react";
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -49,6 +50,7 @@ import { ExtractTokensPanel } from "./ExtractTokensPanel";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
 import { useSelectionHealth } from "../hooks/useSelectionHealth";
+import { SearchField } from "../primitives";
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -678,6 +680,7 @@ export function SelectionInspector({
   }, [hasSelection, rootNodes]);
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showSelectionActions, setShowSelectionActions] = useState(false);
   const [extractOpen, setExtractOpen] = useState<BindableProperty[] | null>(
     null,
   );
@@ -821,8 +824,8 @@ export function SelectionInspector({
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Compact header */}
-      <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 shrink-0">
-        <div className="min-w-0 flex-1 flex items-center gap-2">
+      <div className="relative flex items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 shrink-0">
+        <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate">
             {headerLabel}
           </span>
@@ -835,7 +838,7 @@ export function SelectionInspector({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
           <SelectionSyncStatusPill
             syncing={syncing}
             syncProgress={syncProgress}
@@ -849,64 +852,70 @@ export function SelectionInspector({
             <button
               onClick={() => onSync("selection")}
               disabled={syncing}
-              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors disabled:opacity-50"
+              className="min-h-7 rounded bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
               title="Apply to selection"
             >
-              Apply to selection
+              Apply
             </button>
           )}
-          {connected && (
+          {(connected || totalBindings > 0) && (
             <button
-              onClick={() => onSync("page")}
-              disabled={syncing}
-              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50"
-              title="Apply to page"
+              onClick={() => setShowSelectionActions((open) => !open)}
+              className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
+                showSelectionActions
+                  ? "bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]"
+                  : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              }`}
+              title="More selection actions"
+              aria-label="More selection actions"
+              aria-expanded={showSelectionActions}
             >
-              Apply to page
-            </button>
-          )}
-          {totalBindings > 0 && (
-            <button
-              onClick={() => setShowClearConfirm(true)}
-              className="rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
-            >
-              Remove bindings
+              <MoreHorizontal size={14} strokeWidth={1.75} aria-hidden />
             </button>
           )}
         </div>
+
+        {showSelectionActions && (
+          <div className="absolute right-3 top-[calc(100%-2px)] z-20 flex min-w-[168px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg">
+            {connected && (
+              <button
+                onClick={() => {
+                  setShowSelectionActions(false);
+                  onSync("page");
+                }}
+                disabled={syncing}
+                className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] disabled:opacity-50"
+                title="Apply bindings to every page layer"
+              >
+                Apply to page
+              </button>
+            )}
+            {totalBindings > 0 && (
+              <button
+                onClick={() => {
+                  setShowSelectionActions(false);
+                  setShowClearConfirm(true);
+                }}
+                className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-error)]"
+                title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}`}
+              >
+                Remove bindings
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
-        <div className="relative min-w-0 flex-1">
-          <svg
-            width="9" height="9" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-secondary)]"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
+      <div className="flex items-center gap-1 px-2 py-1.5 shrink-0">
+        <div className="min-w-0 flex-1">
+          <SearchField
+            size="sm"
             value={propFilter}
             onChange={(e) => setPropFilter(e.target.value)}
-            placeholder="Filter properties…"
+            onClear={propFilter ? () => setPropFilter("") : undefined}
+            placeholder="Filter properties..."
             aria-label="Filter properties"
-            className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 pl-5 pr-5 text-secondary text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           />
-          {propFilter && (
-            <button
-              onClick={() => setPropFilter("")}
-              className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              aria-label="Clear filter"
-            >
-              <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          )}
         </div>
         <button
           onClick={() => setShowFilterPanel((p) => !p)}
@@ -918,11 +927,8 @@ export function SelectionInspector({
               : "text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
           }`}
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-          </svg>
+          <Filter size={13} strokeWidth={1.75} aria-hidden />
         </button>
-        <span className="w-px h-3 bg-[var(--color-figma-border)] shrink-0" />
         <button
           onClick={handleToggleDeepInspect}
           className={`shrink-0 rounded px-1.5 py-0.5 text-secondary transition-colors ${
@@ -937,7 +943,7 @@ export function SelectionInspector({
       </div>
 
       {showFilterPanel && (
-        <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-1 px-2 pb-1.5 shrink-0">
           {PROP_FILTER_MODES.map((mode) => (
             <button
               key={mode}
@@ -1042,7 +1048,7 @@ export function SelectionInspector({
                               onClick={() =>
                                 handleUnbindAllInGroup(boundPropsInGroup)
                               }
-                              className="opacity-0 group-hover/groupheader:opacity-100 pointer-events-none group-hover/groupheader:pointer-events-auto transition-opacity text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1 py-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                              className="shrink-0 rounded px-1.5 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] opacity-0 transition-opacity hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:opacity-100 group-hover/groupheader:opacity-100"
                               title={`Unbind all ${group.label.toLowerCase()} properties`}
                             >
                               Unbind all

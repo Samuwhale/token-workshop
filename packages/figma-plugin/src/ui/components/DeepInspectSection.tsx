@@ -190,11 +190,11 @@ function DeepBindPanel({
                     {path}
                   </span>
                   {isCurrent && (
-                    <span className="text-[8px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
+                    <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
                       current
                     </span>
                   )}
-                  <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                  <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0">
                     {entry.$type}
                   </span>
                 </button>
@@ -327,7 +327,7 @@ export function DeepInspectSection({
               >
                 {child.name}
               </span>
-              <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 uppercase tracking-wide">
+              <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0 uppercase tracking-wide">
                 {child.type}
               </span>
               {onSelectNode && (
@@ -368,7 +368,7 @@ export function DeepInspectSection({
                       ) : (
                         <div className="w-2.5 h-2.5 shrink-0" />
                       )}
-                      <span className="text-[8px] text-[var(--color-figma-text-secondary)] w-[60px] shrink-0 truncate">
+                      <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] w-[60px] shrink-0 truncate">
                         {PROPERTY_LABELS[prop]}
                       </span>
                       <svg
@@ -387,7 +387,7 @@ export function DeepInspectSection({
                         <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                       </svg>
                       <span
-                        className="text-[8px] text-[var(--color-figma-accent)] font-mono truncate flex-1"
+                        className="text-[var(--font-size-xs)] text-[var(--color-figma-accent)] font-mono truncate flex-1"
                         title={tokenPath}
                       >
                         {tokenPath}

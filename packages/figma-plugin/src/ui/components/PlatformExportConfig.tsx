@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import type { RefObject } from 'react';
 import { Spinner } from './Spinner';
 import { PLATFORMS } from '../shared/platforms';
@@ -7,6 +7,7 @@ import type { PlatformConfig } from '../hooks/usePlatformConfig';
 import type { DiffState } from '../hooks/useDiffState';
 import type { ExportPresetsState, ExportPreset } from '../hooks/useExportPresets';
 import type { ExportResultFile } from '../hooks/useExportResults';
+import { CheckboxRow, DisclosureRow } from '../primitives';
 
 interface PlatformExportConfigProps {
   platformConfig: PlatformConfig;
@@ -29,7 +30,7 @@ interface PlatformExportConfigProps {
   // Other
   collectionIds: string[];
   connected: boolean;
-  savePresetInputRef: RefObject<HTMLInputElement | null>;
+  savePresetInputRef: RefObject<HTMLInputElement>;
 }
 
 export function PlatformExportConfig({
@@ -81,6 +82,11 @@ export function PlatformExportConfig({
     showSavePreset, setShowSavePreset,
     presetName, setPresetName,
   } = presetsState;
+  const [presetsOpen, setPresetsOpen] = useState(false);
+
+  useEffect(() => {
+    if (showSavePreset) setPresetsOpen(true);
+  }, [showSavePreset]);
 
   const toggleCollection = (name: string) => {
     setSelectedCollections(prev => {
@@ -109,110 +115,16 @@ export function PlatformExportConfig({
 
   return (
     <>
-      {/* Export presets */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <div className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">
-              Presets
-            </div>
-            <kbd className="text-secondary text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 font-mono leading-none" title="Export with preset (command palette)">⌘⇧E</kbd>
-          </div>
-          <button
-            onClick={() => {
-              setShowSavePreset(v => !v);
-              setPresetName('');
-              setTimeout(() => savePresetInputRef.current?.focus(), 0);
-            }}
-            className="text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-          >
-            Save current
-          </button>
-        </div>
-
-        {showSavePreset && (
-          <div className="flex items-center gap-1.5 mb-2">
-            <input
-              ref={savePresetInputRef as React.LegacyRef<HTMLInputElement>}
-              type="text"
-              value={presetName}
-              onChange={e => setPresetName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') onSavePreset();
-                if (e.key === 'Escape') { setShowSavePreset(false); setPresetName(''); }
-              }}
-              placeholder="Preset name…"
-              className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
-            />
-            <button
-              onClick={onSavePreset}
-              disabled={!presetName.trim()}
-              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => { setShowSavePreset(false); setPresetName(''); }}
-              className="px-1.5 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              aria-label="Cancel"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {presets.length === 0 && !showSavePreset && (
-          <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-relaxed">
-            No presets yet. Configure your export settings and click "Save current" to create one.
-          </div>
-        )}
-
-        {presets.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {presets.map(preset => (
-              <div key={preset.id} className="flex items-center rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] overflow-hidden max-w-full">
-                <button
-                  onClick={() => onLoadPreset(preset)}
-                  title={`Load full preset "${preset.name}" — replaces current platform selection and all filters`}
-                  className="min-w-0 max-w-[160px] truncate px-2 py-1 text-secondary text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  {preset.name}
-                </button>
-                <div className="w-px self-stretch bg-[var(--color-figma-border)]" />
-                <button
-                  onClick={() => onLoadPresetFiltersOnly(preset)}
-                  title="Apply collections, types, and path prefix from this preset — keeps the current platform selection"
-                  className="px-1.5 py-1 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  aria-label={`Apply filters only from preset ${preset.name}`}
-                >
-                  Filters
-                </button>
-                <div className="w-px self-stretch bg-[var(--color-figma-border)]" />
-                <button
-                  onClick={() => onDeletePreset(preset.id)}
-                  title="Delete preset"
-                  className="px-1.5 py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  aria-label={`Delete preset ${preset.name}`}
-                >
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Target Platforms */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] font-medium">
-            Target Platforms
+          <div>
+            <div className="text-body text-[var(--color-figma-text)] font-semibold">
+              Target platforms
+            </div>
+            <div className="text-secondary text-[var(--color-figma-text-tertiary)]">
+              Choose the files this export should generate.
+            </div>
           </div>
           <button
             onClick={() => {
@@ -222,81 +134,153 @@ export function PlatformExportConfig({
                 setSelected(new Set(PLATFORMS.map(p => p.id)));
               }
             }}
-            className="text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+            className="text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
           >
             {selected.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
           </button>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           {PLATFORMS.map(platform => {
             const isSelected = selected.has(platform.id);
             return (
-              <label
+              <CheckboxRow
                 key={platform.id}
-                className={`group flex items-start gap-2.5 px-3 py-2 rounded-md border cursor-pointer transition-all ${
-                  isSelected
-                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                    : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
+                checked={isSelected}
+                onChange={() => togglePlatform(platform.id)}
+                title={platform.label}
+                description={platform.description}
               >
-                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                  isSelected
-                    ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                    : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
-                }`}>
-                  {isSelected && (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  )}
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => togglePlatform(platform.id)}
-                  className="sr-only"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-body font-medium text-[var(--color-figma-text)]">{platform.label}</div>
-                  <div className="text-secondary text-[var(--color-figma-text-secondary)]">{platform.description}</div>
-                  {isSelected && (
-                    <div className="mt-1 text-[8px] font-mono text-[var(--color-figma-text-tertiary)] truncate">
-                      {platform.example}
-                    </div>
-                  )}
-                </div>
-              </label>
+                {isSelected ? (
+                  <span className="block min-w-0 break-all font-mono text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-tertiary)]">
+                    {platform.example}
+                  </span>
+                ) : null}
+              </CheckboxRow>
             );
           })}
         </div>
       </div>
 
+      {/* Export presets */}
+      <div className="pt-1">
+        <DisclosureRow
+          title="Saved presets"
+          summary={presets.length > 0 ? `${presets.length}` : 'None yet'}
+          open={presetsOpen}
+          onToggle={() => setPresetsOpen(v => !v)}
+          action={
+            <button
+              onClick={() => {
+                setPresetsOpen(true);
+                setShowSavePreset(v => !v);
+                setPresetName('');
+                setTimeout(() => savePresetInputRef.current?.focus(), 0);
+              }}
+              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Save current
+            </button>
+          }
+        />
+
+        {presetsOpen && (
+          <div className="mt-2 flex flex-col gap-2">
+            {showSavePreset && (
+              <div className="flex items-center gap-1.5">
+                <input
+                  ref={savePresetInputRef}
+                  type="text"
+                  value={presetName}
+                  onChange={e => setPresetName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') onSavePreset();
+                    if (e.key === 'Escape') { setShowSavePreset(false); setPresetName(''); }
+                  }}
+                  placeholder="Preset name…"
+                  className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                />
+                <button
+                  onClick={onSavePreset}
+                  disabled={!presetName.trim()}
+                  className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] text-secondary font-medium disabled:opacity-40 hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => { setShowSavePreset(false); setPresetName(''); }}
+                  className="px-1.5 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  aria-label="Cancel"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {presets.length === 0 && !showSavePreset && (
+              <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-relaxed">
+                Save the current setup when you have a repeat export.
+              </div>
+            )}
+
+            {presets.length > 0 && (
+              <div className="flex flex-col gap-1">
+                {presets.map(preset => (
+                  <div key={preset.id} className="group flex items-center gap-1.5 rounded-md px-1 py-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                    <button
+                      onClick={() => onLoadPreset(preset)}
+                      title={`Load full preset "${preset.name}" — replaces current platform selection and all filters`}
+                      className="min-w-0 flex-1 truncate px-1 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:text-[var(--color-figma-accent)] transition-colors"
+                    >
+                      {preset.name}
+                    </button>
+                    <button
+                      onClick={() => onLoadPresetFiltersOnly(preset)}
+                      title="Apply collections, types, and path prefix from this preset — keeps the current platform selection"
+                      className="px-1.5 py-1 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors"
+                      aria-label={`Apply filters only from preset ${preset.name}`}
+                    >
+                      Filters
+                    </button>
+                    <button
+                      onClick={() => onDeletePreset(preset.id)}
+                      title="Delete preset"
+                      className="px-1.5 py-1 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] transition-colors"
+                      aria-label={`Delete preset ${preset.name}`}
+                    >
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* CSS Selector */}
       {selected.has('css') && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <button
-              onClick={() => setCssSelectorOpen(v => !v)}
-              className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${cssSelectorOpen ? 'rotate-90' : ''}`} aria-hidden="true">
-                <path d="M2 1l4 3-4 3" />
-              </svg>
-              <span className="font-medium uppercase tracking-wide">CSS Selector</span>
-            </button>
-            {cssSelectorOpen ? (
-              cssSelector !== ':root' && (
-                <button
-                  onClick={() => setCssSelector(':root')}
-                  className="text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                >
-                  Reset to :root
-                </button>
-              )
-            ) : (
-              <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[120px]">{cssSelector || ':root'}</span>
-            )}
-          </div>
+          <DisclosureRow
+            title="CSS selector"
+            summary={<span className="font-mono">{cssSelector || ':root'}</span>}
+            open={cssSelectorOpen}
+            onToggle={() => setCssSelectorOpen(v => !v)}
+            action={cssSelectorOpen && cssSelector !== ':root' ? (
+              <button
+                onClick={() => setCssSelector(':root')}
+                className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Reset
+              </button>
+            ) : undefined}
+            className="mb-1"
+          />
           {cssSelectorOpen && (
             <div className="flex flex-col gap-1.5">
               <input
@@ -318,17 +302,18 @@ export function PlatformExportConfig({
       {/* Collections */}
       {collectionIds.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <button
-              onClick={() => setSetsOpen(v => !v)}
-              className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-            >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${setsOpen ? 'rotate-90' : ''}`} aria-hidden="true">
-                <path d="M2 1l4 3-4 3" />
-              </svg>
-              <span className="font-medium uppercase tracking-wide">Collections</span>
-            </button>
-            {setsOpen ? (
+          <DisclosureRow
+            title="Collections"
+            summary={
+              selectedCollections === null
+                ? 'All collections'
+                : selectedCollections.size === 0
+                  ? <span className="text-[var(--color-figma-warning)]">None selected</span>
+                  : `${selectedCollections.size} of ${collectionIds.length}`
+            }
+            open={setsOpen}
+            onToggle={() => setSetsOpen(v => !v)}
+            action={setsOpen ? (
               <button
                 onClick={() => {
                   if (selectedCollections === null) {
@@ -337,56 +322,28 @@ export function PlatformExportConfig({
                     setSelectedCollections(null);
                   }
                 }}
-                className="text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 {selectedCollections === null
                   ? `Deselect all`
                   : `Select all (${collectionIds.length})`}
               </button>
-            ) : (
-              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-                {selectedCollections === null
-                  ? 'All collections'
-                  : selectedCollections.size === 0
-                    ? <span className="text-[var(--color-figma-warning)]">None selected</span>
-                    : `${selectedCollections.size} of ${collectionIds.length}`}
-              </span>
-            )}
-          </div>
+            ) : undefined}
+            className="mb-1"
+          />
           {setsOpen && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-0.5">
               {collectionIds.map((collectionId) => {
                 const isSelected =
                   selectedCollections === null ||
                   selectedCollections.has(collectionId);
                 return (
-                  <label
+                  <CheckboxRow
                     key={collectionId}
-                    className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-md border cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                        : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
-                    }`}
-                  >
-                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected
-                        ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                        : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
-                    }`}>
-                      {isSelected && (
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      )}
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleCollection(collectionId)}
-                      className="sr-only"
-                    />
-                    <span className="text-body text-[var(--color-figma-text)] font-mono truncate min-w-0 flex-1">{collectionId}</span>
-                  </label>
+                    checked={isSelected}
+                    onChange={() => toggleCollection(collectionId)}
+                    title={<span className="font-mono">{collectionId}</span>}
+                  />
                 );
               })}
             </div>
@@ -396,39 +353,31 @@ export function PlatformExportConfig({
 
       {/* Token Types */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <button
-            onClick={() => {
-              const next = !typesOpen;
-              setTypesOpen(next);
-              if (next && selectedTypes === null) setSelectedTypes(new Set(ALL_TOKEN_TYPES));
-            }}
-            className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${typesOpen ? 'rotate-90' : ''}`} aria-hidden="true">
-              <path d="M2 1l4 3-4 3" />
-            </svg>
-            <span className="font-medium uppercase tracking-wide">Token Types</span>
-          </button>
-          {typesOpen ? (
-            selectedTypes !== null && selectedTypes.size < ALL_TOKEN_TYPES.length && (
-              <button
-                onClick={() => setSelectedTypes(null)}
-                className="text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-              >
-                All types
-              </button>
-            )
-          ) : (
-            <span className="text-secondary text-[var(--color-figma-text-tertiary)]">
-              {selectedTypes === null || selectedTypes.size === ALL_TOKEN_TYPES.length
-                ? 'All types'
-                : selectedTypes.size === 0
-                  ? <span className="text-[var(--color-figma-warning)]">None selected</span>
-                  : `${selectedTypes.size} of ${ALL_TOKEN_TYPES.length}`}
-            </span>
-          )}
-        </div>
+        <DisclosureRow
+          title="Token types"
+          summary={
+            selectedTypes === null || selectedTypes.size === ALL_TOKEN_TYPES.length
+              ? 'All types'
+              : selectedTypes.size === 0
+                ? <span className="text-[var(--color-figma-warning)]">None selected</span>
+                : `${selectedTypes.size} of ${ALL_TOKEN_TYPES.length}`
+          }
+          open={typesOpen}
+          onToggle={() => {
+            const next = !typesOpen;
+            setTypesOpen(next);
+            if (next && selectedTypes === null) setSelectedTypes(new Set(ALL_TOKEN_TYPES));
+          }}
+          action={typesOpen && selectedTypes !== null && selectedTypes.size < ALL_TOKEN_TYPES.length ? (
+            <button
+              onClick={() => setSelectedTypes(null)}
+              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              All types
+            </button>
+          ) : undefined}
+          className="mb-1"
+        />
         {typesOpen && (
           <div className="flex flex-wrap gap-1">
             {ALL_TOKEN_TYPES.map(type => {
@@ -457,29 +406,21 @@ export function PlatformExportConfig({
 
       {/* Path Prefix */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <button
-            onClick={() => setPathPrefixOpen(v => !v)}
-            className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${pathPrefixOpen ? 'rotate-90' : ''}`} aria-hidden="true">
-              <path d="M2 1l4 3-4 3" />
-            </svg>
-            <span className="font-medium uppercase tracking-wide">Path Prefix</span>
-          </button>
-          {pathPrefixOpen ? (
-            pathPrefix && (
-              <button
-                onClick={() => setPathPrefix('')}
-                className="text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-              >
-                Clear
-              </button>
-            )
-          ) : (
-            <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] truncate max-w-[120px]">{pathPrefix || 'None'}</span>
-          )}
-        </div>
+        <DisclosureRow
+          title="Path prefix"
+          summary={<span className="font-mono">{pathPrefix || 'None'}</span>}
+          open={pathPrefixOpen}
+          onToggle={() => setPathPrefixOpen(v => !v)}
+          action={pathPrefixOpen && pathPrefix ? (
+            <button
+              onClick={() => setPathPrefix('')}
+              className="rounded px-2 py-1 text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              Clear
+            </button>
+          ) : undefined}
+          className="mb-1"
+        />
         {pathPrefixOpen && (
           <>
             <input
@@ -499,57 +440,31 @@ export function PlatformExportConfig({
 
       {/* Scope / Changes only */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <button
-            onClick={() => setScopeOpen(v => !v)}
-            className="flex items-center gap-1.5 text-secondary text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform shrink-0 ${scopeOpen ? 'rotate-90' : ''}`} aria-hidden="true">
-              <path d="M2 1l4 3-4 3" />
-            </svg>
-            <span className="font-medium uppercase tracking-wide">Scope</span>
-          </button>
-          {!scopeOpen && (
-            <span className={`text-secondary ${changesOnly ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)]'}`}>
-              {changesOnly ? 'Changes only' : 'All tokens'}
-            </span>
-          )}
-        </div>
+        <DisclosureRow
+          title="Scope"
+          summary={changesOnly ? 'Changes only' : 'All tokens'}
+          open={scopeOpen}
+          onToggle={() => setScopeOpen(v => !v)}
+          className="mb-1"
+        />
         {scopeOpen && (
           <>
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={changesOnly}
-                onChange={() => {
+            <CheckboxRow
+              checked={changesOnly}
+              onChange={() => {
                   const next = !changesOnly;
                   setChangesOnly(next);
                   if (next && connected && diffPaths === null) {
                     fetchDiff();
                   }
                 }}
-                className="sr-only"
-              />
-              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                changesOnly
-                  ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                  : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
-              }`}>
-                {changesOnly && (
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-body text-[var(--color-figma-text)]">Changes only</span>
-                <span className="ml-1.5 text-secondary text-[var(--color-figma-text-tertiary)]">
-                  {isGitRepo === false
+              title="Changes only"
+              description={
+                isGitRepo === false
                     ? 'Tokens from files modified since last export'
-                    : 'Tokens added or modified since last commit'}
-                </span>
-              </div>
-            </label>
+                    : 'Tokens added or modified since last commit'
+              }
+            />
 
             {changesOnly && (
               <div className="mt-2 pl-6">
@@ -569,7 +484,7 @@ export function PlatformExportConfig({
                         </span>
                         <button
                           onClick={handleSetBaseline}
-                          className="self-start px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                          className="self-start px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] transition-colors"
                         >
                           Set baseline now
                         </button>
@@ -696,27 +611,13 @@ export function PlatformExportConfig({
                 <span className="text-secondary text-[var(--color-figma-text-tertiary)] pr-2 shrink-0">.zip</span>
               </div>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={nestByPlatform}
-                onChange={() => setNestByPlatform(!nestByPlatform)}
-                className="sr-only"
-              />
-              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                nestByPlatform
-                  ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
-                  : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
-              }`}>
-                {nestByPlatform && (
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-secondary text-[var(--color-figma-text)]">Nest files by platform folder</span>
-              <span className="text-secondary text-[var(--color-figma-text-tertiary)]">e.g. css/variables.css</span>
-            </label>
+            <CheckboxRow
+              checked={nestByPlatform}
+              onChange={() => setNestByPlatform(!nestByPlatform)}
+              title="Nest files by platform folder"
+              description="e.g. css/variables.css"
+              className="px-0"
+            />
           </div>
         </div>
       )}
@@ -774,7 +675,7 @@ export function PlatformExportConfig({
                         : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
                     }`}
                   >
-                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium font-sans shrink-0">
+                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium font-sans shrink-0">
                       {file.platform}
                     </span>
                     <span className="truncate max-w-[140px]">{file.path}</span>

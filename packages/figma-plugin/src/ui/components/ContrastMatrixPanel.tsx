@@ -455,7 +455,7 @@ export function ContrastMatrixPanel({
                         className="flex items-center gap-1 flex-wrap"
                       >
                         {collections.length > 1 && (
-                          <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
+                          <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
                             {collection.id}:
                           </span>
                         )}
@@ -479,7 +479,7 @@ export function ContrastMatrixPanel({
                                     return next;
                                   });
                                 }}
-                                className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${isActive ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                                className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${isActive ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                               >
                                 {opt.name}
                               </button>
@@ -600,7 +600,7 @@ export function ContrastMatrixPanel({
           {availableGroups.length > 1 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 px-1">
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
                   Group:
                 </span>
                 <button
@@ -608,7 +608,7 @@ export function ContrastMatrixPanel({
                     setContrastGroupFilter("all");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastGroupFilter === "all" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === "all" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   All
                 </button>
@@ -619,14 +619,14 @@ export function ContrastMatrixPanel({
                       setContrastGroupFilter(g);
                       setContrastPage(0);
                     }}
-                    className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastGroupFilter === g ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                    className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastGroupFilter === g ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                   >
                     {g}
                   </button>
                 ))}
               </div>
               <div className="flex items-center gap-1 ml-auto">
-                <span className="text-[8px] text-[var(--color-figma-text-secondary)]">
+                <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
                   Sort:
                 </span>
                 <button
@@ -634,7 +634,7 @@ export function ContrastMatrixPanel({
                     setContrastSortMode("luminance");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastSortMode === "luminance" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "luminance" ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   Luminance
                 </button>
@@ -643,7 +643,7 @@ export function ContrastMatrixPanel({
                     setContrastSortMode("failures");
                     setContrastPage(0);
                   }}
-                  className={`px-1.5 py-0.5 text-[8px] rounded border transition-colors ${contrastSortMode === "failures" ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
+                  className={`px-1.5 py-0.5 text-[var(--font-size-xs)] rounded border transition-colors ${contrastSortMode === "failures" ? "border-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]" : "border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"}`}
                 >
                   Most failures
                 </button>
@@ -657,7 +657,7 @@ export function ContrastMatrixPanel({
               </div>
             ) : (
               <table
-                className="text-[8px] border-collapse w-full"
+                className="text-[var(--font-size-xs)] border-collapse w-full"
                 aria-label="Failing color contrast pairs"
               >
                 <thead>
@@ -731,7 +731,7 @@ export function ContrastMatrixPanel({
                               {canNavigateToToken(fg) && (
                                 <button
                                   onClick={() => navigateToToken(fg)}
-                                  className="text-[8px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                                  className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                                   title={`Go to ${getTokenTitle(fg)}`}
                                 >
                                   Go
@@ -787,7 +787,7 @@ export function ContrastMatrixPanel({
                                 {canNavigateToToken(suggestedFix) && (
                                   <button
                                     onClick={() => navigateToToken(suggestedFix)}
-                                    className="text-[8px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                                    className="text-[var(--font-size-xs)] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                                     title={`Go to ${getTokenTitle(suggestedFix)}`}
                                   >
                                     Go
@@ -852,7 +852,7 @@ export function ContrastMatrixPanel({
                 </div>
               )}
               <table
-                className="text-[8px] border-collapse"
+                className="text-[var(--font-size-xs)] border-collapse"
                 aria-label="Color contrast matrix"
               >
                 <thead>
@@ -945,7 +945,7 @@ export function ContrastMatrixPanel({
                               !aaa &&
                               failingModeCount > 0 &&
                               totalModeCount > 0 && (
-                                <span className="block text-[8px] leading-none mt-0.5 text-[var(--color-figma-text-secondary)]">
+                                <span className="block text-[var(--font-size-xs)] leading-none mt-0.5 text-[var(--color-figma-text-secondary)]">
                                   {failingModeCount}/{totalModeCount}
                                 </span>
                               )}
@@ -956,7 +956,7 @@ export function ContrastMatrixPanel({
                   ))}
                 </tbody>
               </table>
-              <div className="flex gap-3 mt-2 px-1 text-[8px] text-[var(--color-figma-text-secondary)]">
+              <div className="flex gap-3 mt-2 px-1 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded bg-[var(--color-figma-success)]/20 border border-[var(--color-figma-success)]/40" />
                   AAA (≥7:1)
@@ -977,7 +977,7 @@ export function ContrastMatrixPanel({
                 </span>
               </div>
               {isMultiMode && (
-                <p className="mt-1 px-1 text-[8px] text-[var(--color-figma-text-secondary)]">
+                <p className="mt-1 px-1 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]">
                   Ratio shown is the worst case across selected modes. Hover a
                   cell to see the per-mode breakdown.
                 </p>

@@ -471,6 +471,22 @@ export function HealthPanel({
     const cleanupCollections = collectionSummaries.filter(
       ([, summary]) => summary.errors === 0 && summary.reviewItems > 0,
     );
+    const allScopeStatusTitle =
+      libraryReviewErrors.length > 0
+        ? "Review could not finish"
+        : collectionSummariesPending
+          ? "Checking library"
+          : collectionSummaries.length > 0
+            ? "Review needs attention"
+            : "Ready to publish";
+    const allScopeStatusDetail =
+      libraryReviewErrors.length > 0
+        ? "Some checks failed. Refresh Review once the server is connected."
+        : collectionSummariesPending
+          ? "Scanning collections, token usage, and generator outputs."
+          : collectionSummaries.length > 0
+            ? `${collectionSummaries.length} collection${collectionSummaries.length === 1 ? "" : "s"} have review items. Start with Fix next.`
+            : "Every collection is clear.";
     const renderCollectionRow = (
       collectionId: string,
       summary: { errors: number; warnings: number; actionable: number; reviewItems: number; info: number },
@@ -495,6 +511,9 @@ export function HealthPanel({
               {meta}
             </span>
           </span>
+          <span className="shrink-0 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+            Review
+          </span>
         </button>
       );
     };
@@ -504,6 +523,15 @@ export function HealthPanel({
         className="flex h-full flex-col overflow-y-auto px-4 py-4"
         style={{ scrollbarWidth: "thin" }}
       >
+        <div className="mb-5">
+          <h2 className="text-body font-semibold text-[var(--color-figma-text)]">
+            {allScopeStatusTitle}
+          </h2>
+          <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+            {allScopeStatusDetail}
+          </p>
+        </div>
+
         {libraryReviewErrors.length > 0 ? (
           <div className="mb-4 text-secondary text-[var(--color-figma-error)]">
             Some review checks failed. {libraryReviewErrors.join(" ")}
@@ -513,9 +541,14 @@ export function HealthPanel({
         {collectionSummaries.length > 0 ? (
           <div className="flex flex-col gap-4">
             <section>
-              <h3 className="px-1 pb-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-                Fix next
-              </h3>
+              <div className="mb-1.5 px-1">
+                <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+                  Fix next
+                </h3>
+                <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                  Collections with errors or actionable warnings.
+                </p>
+              </div>
               <div>
                 {(fixNextCollections.length > 0
                   ? fixNextCollections
@@ -528,9 +561,14 @@ export function HealthPanel({
 
             {cleanupCollections.length > 0 ? (
               <section>
-                <h3 className="px-1 pb-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
-                  Clean up
-                </h3>
+                <div className="mb-1.5 px-1">
+                  <h3 className="text-body font-semibold text-[var(--color-figma-text)]">
+                    Clean up
+                  </h3>
+                  <p className="mt-0.5 text-secondary text-[var(--color-figma-text-secondary)]">
+                    Library hygiene after blockers are clear.
+                  </p>
+                </div>
                 <div>
                   {cleanupCollections.map(([collectionId, summary]) =>
                     renderCollectionRow(collectionId, summary, "cleanup"),

@@ -602,7 +602,7 @@ export function PropertyRow({
                 {/* Recently used section */}
                 {recentBindCandidates.length > 0 && (
                   <>
-                    <div className="text-[8px] text-[var(--color-figma-text-secondary)] font-medium px-1.5 pt-0.5 pb-0.5">
+                    <div className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] font-medium px-1.5 pt-0.5 pb-0.5">
                       Recently used
                     </div>
                     {recentBindCandidates.map(([path, entry], idx) => {
@@ -629,14 +629,14 @@ export function PropertyRow({
                             </div>
                           )}
                           <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>{path}</span>
-                          {isCurrent && <span className="text-[8px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
-                          {resolvedValueDisplay && !isCurrent && <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">{resolvedValueDisplay}</span>}
-                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
+                          {isCurrent && <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
+                          {resolvedValueDisplay && !isCurrent && <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">{resolvedValueDisplay}</span>}
+                          <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
                         </button>
                       );
                     })}
                     {mainBindCandidates.length > 0 && (
-                      <div className="text-[8px] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                      <div className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
                         {showSuggestedDivider ? 'Suggested' : 'All tokens'}
                       </div>
                     )}
@@ -657,12 +657,12 @@ export function PropertyRow({
                   return (
                     <div key={path}>
                       {showSuggestedHeader && (
-                        <div className="text-[8px] text-[var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5">
+                        <div className="text-[var(--font-size-xs)] text-[var(--color-figma-accent)] font-medium px-1.5 pt-0.5 pb-0.5">
                           Suggested
                         </div>
                       )}
                       {showOthersHeader && (
-                        <div className="text-[8px] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
+                        <div className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] px-1.5 pt-1 pb-0.5 border-t border-[var(--color-figma-border)]/50 mt-0.5">
                           All tokens
                         </div>
                       )}
@@ -687,14 +687,14 @@ export function PropertyRow({
                           {path}
                         </span>
                         {isCurrent && (
-                          <span className="text-[8px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
+                          <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
                         )}
                         {resolvedValueDisplay && !isCurrent && (
-                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
+                          <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
                             {resolvedValueDisplay}
                           </span>
                         )}
-                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                        <span className="text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] shrink-0">
                           {entry.$type}
                         </span>
                       </button>

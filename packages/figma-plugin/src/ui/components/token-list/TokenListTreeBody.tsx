@@ -508,7 +508,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   )}
                 </span>
                 <span
-                  className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${tokenTypeBadgeClass(r.entry.$type)}`}
+                  className={`shrink-0 text-[var(--font-size-xs)] px-1 py-0.5 rounded ${tokenTypeBadgeClass(r.entry.$type)}`}
                 >
                   {r.entry.$type}
                 </span>

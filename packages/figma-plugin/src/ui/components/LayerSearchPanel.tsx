@@ -160,14 +160,14 @@ export function LayerSearchPanel({
               </span>
               {layer.parentName && (
                 <span
-                  className="max-w-[80px] truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                  className="max-w-[80px] truncate text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]"
                   title={`in ${layer.parentName}`}
                 >
                   in {layer.parentName}
                 </span>
               )}
               {layer.boundCount > 0 && (
-                <span className="shrink-0 rounded-full bg-[var(--color-figma-accent)]/15 px-1 py-0.5 text-[8px] text-[var(--color-figma-accent)]">
+                <span className="shrink-0 rounded-full bg-[var(--color-figma-accent)]/15 px-1 py-0.5 text-[var(--font-size-xs)] text-[var(--color-figma-accent)]">
                   {layer.boundCount}
                 </span>
               )}

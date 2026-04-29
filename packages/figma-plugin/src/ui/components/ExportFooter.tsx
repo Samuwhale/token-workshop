@@ -1,18 +1,13 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { Spinner } from './Spinner';
 import type { ExportResultFile } from '../hooks/useExportResults';
 
 export interface ExportFooterProps {
   mode: 'platforms';
-  connected: boolean;
   changesOnly: boolean;
-  setChangesOnly: Dispatch<SetStateAction<boolean>>;
   diffPaths: string[] | null;
   diffLoading: boolean;
   isGitRepo: boolean | undefined;
   lastExportTimestamp: number | null;
-  fetchDiff: () => Promise<void>;
-  fetchDiffSince: (ts: number) => Promise<void>;
   results: ExportResultFile[];
   exporting: boolean;
   selected: Set<string>;
@@ -24,17 +19,16 @@ export interface ExportFooterProps {
 }
 
 export function ExportFooter({
-  connected,
-  changesOnly, setChangesOnly, diffPaths, diffLoading, isGitRepo, lastExportTimestamp,
-  fetchDiff, fetchDiffSince,
+  changesOnly, diffPaths, diffLoading, isGitRepo, lastExportTimestamp,
   results, exporting, selected, selectedCollections, zipProgress,
   handleExport, handleCopyAllPlatformResults, handleDownloadZip,
 }: ExportFooterProps) {
   const hasResolvedZeroChanges = changesOnly && diffPaths !== null && !diffLoading && diffPaths.length === 0;
+  const changesOnlyNeedsBaseline = changesOnly && isGitRepo === false && lastExportTimestamp === null;
   const exportDisabled = selected.size === 0
     || (selectedCollections !== null && selectedCollections.size === 0)
     || exporting
-    || (changesOnly && isGitRepo === false)
+    || changesOnlyNeedsBaseline
     || hasResolvedZeroChanges;
   const selectedPlatformCount = selected.size;
   const selectedCollectionCount = selectedCollections?.size ?? null;
@@ -57,92 +51,7 @@ export function ExportFooter({
   ].filter(Boolean);
 
   return (
-    <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
-      {(
-        <div className="flex flex-wrap items-start gap-2 pb-0.5">
-          <button
-            onClick={() => {
-              const next = !changesOnly;
-              setChangesOnly(next);
-              if (next && connected && diffPaths === null) {
-                fetchDiff();
-              }
-            }}
-            title={changesOnly
-              ? isGitRepo === false
-                ? 'Currently exporting only tokens from files modified since the baseline. Click to export all tokens.'
-                : 'Currently exporting only tokens with uncommitted git changes. Click to export all tokens.'
-              : 'Export only tokens added or modified since your last git commit, or since a set baseline if git is unavailable.'}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-secondary font-medium transition-colors shrink-0 ${
-              changesOnly
-                ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] border-[var(--color-figma-accent)]/40 hover:bg-[var(--color-figma-accent)]/15'
-                : 'bg-transparent text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)]'
-            }`}
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="6" y1="3" x2="6" y2="15" />
-              <circle cx="18" cy="6" r="3" />
-              <circle cx="6" cy="18" r="3" />
-              <path d="M18 9a9 9 0 0 1-9 9" />
-            </svg>
-            Changes only
-            {changesOnly && diffPaths !== null && !diffLoading && (
-              <span className={`px-1.5 py-0.5 rounded-full text-secondary font-semibold leading-none ${
-                diffPaths.length === 0
-                  ? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'
-                  : 'bg-[var(--color-figma-accent)] text-white'
-              }`}>
-                {diffPaths.length}
-              </span>
-            )}
-            {changesOnly && diffLoading && (
-              <Spinner size="sm" />
-            )}
-          </button>
-          {!changesOnly && (
-            <span className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
-              Export tokens changed since last commit
-            </span>
-          )}
-          {changesOnly && isGitRepo === false && lastExportTimestamp === null && (
-            <span className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
-              No baseline set — open Scope to configure
-            </span>
-          )}
-          {changesOnly && isGitRepo === false && lastExportTimestamp !== null && diffPaths !== null && !diffLoading && (
-            <span className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
-              {diffPaths.length === 0
-                ? 'No changes since last export'
-                : `${diffPaths.length} token${diffPaths.length !== 1 ? 's' : ''} modified since last export`}
-              {diffPaths.length > 0 && (
-                <button
-                  onClick={() => fetchDiffSince(lastExportTimestamp)}
-                  title="Re-check for changes"
-                  className="ml-1.5 text-[var(--color-figma-accent)] hover:underline"
-                >Refresh</button>
-              )}
-            </span>
-          )}
-          {changesOnly && isGitRepo !== false && diffPaths !== null && !diffLoading && (
-            <span className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
-              {diffPaths.length === 0
-                ? 'No uncommitted changes'
-                : `${diffPaths.length} token${diffPaths.length !== 1 ? 's' : ''} added or modified`}
-              {diffPaths.length > 0 && (
-                <button
-                  onClick={fetchDiff}
-                  title="Re-check for changes"
-                  className="ml-1.5 text-[var(--color-figma-accent)] hover:underline"
-                >Refresh</button>
-              )}
-            </span>
-          )}
-          {changesOnly && diffLoading && (
-            <span className="min-w-0 flex-1 text-secondary text-[var(--color-figma-text-tertiary)]">Checking for changes…</span>
-          )}
-        </div>
-      )}
-
+    <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
       {results.length > 0 && (
         <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
           {resultSummaryParts.join(' · ')}
@@ -151,10 +60,27 @@ export function ExportFooter({
 
       {results.length > 0 && (
         <>
+          <button
+            onClick={() => handleExport(true)}
+            disabled={exportDisabled}
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-body font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            title={hasResolvedZeroChanges
+              ? 'No changed tokens to export'
+              : 'Re-fetch tokens from the server and regenerate all platform files'}
+          >
+            {exporting ? (
+              <>
+                <Spinner />
+                Exporting…
+              </>
+            ) : hasResolvedZeroChanges
+              ? 'Re-export 0 Changed Tokens'
+              : 'Re-export'}
+          </button>
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={handleCopyAllPlatformResults}
-              className="flex-1 basis-[140px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-body font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] transition-colors"
+              className="flex-1 basis-[140px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-secondary font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] transition-colors"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="9" y="9" width="13" height="13" rx="2" />
@@ -165,7 +91,7 @@ export function ExportFooter({
             <button
               onClick={handleDownloadZip}
               disabled={zipProgress !== null}
-              className="relative flex-1 basis-[180px] flex items-center justify-center gap-1.5 overflow-hidden rounded-md border border-[var(--color-figma-accent)] px-3 py-2 text-body font-medium text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/5 disabled:opacity-60"
+              className="relative flex-1 basis-[180px] flex items-center justify-center gap-1.5 overflow-hidden rounded-md border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] disabled:opacity-60"
               title={zipProgress !== null ? `Building ZIP… ${zipProgress}%` : `Download all ${results.length} file${results.length !== 1 ? 's' : ''} as a ZIP archive`}
             >
               {zipProgress !== null && (
@@ -192,29 +118,12 @@ export function ExportFooter({
               )}
             </button>
           </div>
-          <button
-            onClick={() => handleExport(true)}
-            disabled={exportDisabled}
-            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-            title={hasResolvedZeroChanges
-              ? 'No changed tokens to export'
-              : 'Re-fetch tokens from the server and regenerate all platform files'}
-          >
-            {exporting ? (
-              <>
-                <Spinner />
-                Exporting…
-              </>
-            ) : hasResolvedZeroChanges
-              ? 'Re-export 0 Changed Tokens'
-              : 'Re-export'}
-          </button>
         </>
       )}
 
       {results.length === 0 && (
         <>
-          {selected.size > 0 && !(selectedCollections !== null && selectedCollections.size === 0) && !(changesOnly && isGitRepo === false) && (
+          {selected.size > 0 && !(selectedCollections !== null && selectedCollections.size === 0) && !changesOnlyNeedsBaseline && (
             <div className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
               {pendingSummaryParts.join(' · ')}
             </div>
@@ -222,7 +131,7 @@ export function ExportFooter({
           <button
             onClick={() => handleExport(true)}
             disabled={exportDisabled}
-            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 whitespace-normal leading-tight text-center"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-accent)] px-3 py-2 text-body font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 whitespace-normal leading-tight text-center"
           >
             {exporting ? (
               <>
@@ -233,8 +142,8 @@ export function ExportFooter({
               ? 'Select a platform'
               : selectedCollections !== null && selectedCollections.size === 0
               ? 'Select at least one collection'
-              : changesOnly && isGitRepo === false
-              ? 'Changes only — requires git'
+              : changesOnlyNeedsBaseline
+              ? 'Changes only — set baseline'
               : hasResolvedZeroChanges
               ? 'No changed tokens to export'
               : changesOnly && diffPaths !== null && diffPaths.length > 0
@@ -244,22 +153,22 @@ export function ExportFooter({
               : `Export ${selected.size} platform${selected.size !== 1 ? 's' : ''}`}
           </button>
           {selected.size === 0 && (
-            <p className="text-secondary text-[var(--color-figma-text-tertiary)] text-center leading-tight">
+            <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
               Select at least one platform in the list above.
             </p>
           )}
           {selectedCollections !== null && selectedCollections.size === 0 && (
-            <p className="text-secondary text-[var(--color-figma-warning)] text-center leading-tight">
+            <p className="text-secondary text-[var(--color-figma-warning)] leading-tight">
               No collections selected — open Collections above to choose which collections to include.
             </p>
           )}
-          {changesOnly && isGitRepo === false && (
-            <p className="text-secondary text-[var(--color-figma-text-tertiary)] text-center leading-tight">
+          {changesOnlyNeedsBaseline && (
+            <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
               Changes-only without git requires a baseline — open Scope above to set one.
             </p>
           )}
           {hasResolvedZeroChanges && isGitRepo !== false && (
-            <p className="text-secondary text-[var(--color-figma-text-tertiary)] text-center leading-tight">
+            <p className="text-secondary text-[var(--color-figma-text-tertiary)] leading-tight">
               No uncommitted token changes to export right now.
             </p>
           )}

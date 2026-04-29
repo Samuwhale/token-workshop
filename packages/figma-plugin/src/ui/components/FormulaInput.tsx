@@ -404,14 +404,14 @@ export function FormulaInput({
               )}
 
               {/* Type badge */}
-              <span className={`text-[8px] px-1 py-0.5 rounded font-medium shrink-0 ${tokenTypeBadgeClass(entry.$type)}`}>
+              <span className={`text-[var(--font-size-xs)] px-1 py-0.5 rounded font-medium shrink-0 ${tokenTypeBadgeClass(entry.$type)}`}>
                 {entry.$type}
               </span>
 
               {/* Set name */}
               {candidate.isAmbiguousPath && candidate.collectionId && (
                 <span
-                  className="min-w-0 max-w-[30%] truncate text-[8px] text-[var(--color-figma-text-secondary)]"
+                  className="min-w-0 max-w-[30%] truncate text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)]"
                   title={candidate.collectionId}
                 >
                   {candidate.collectionId}

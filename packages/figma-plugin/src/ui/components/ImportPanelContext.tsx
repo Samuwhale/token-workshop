@@ -141,7 +141,7 @@ export interface ImportSourceContextValue {
   skippedExpanded: boolean;
   fileImportValidation: FileImportValidation | null;
   isDragging: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
   cssFileInputRef: React.RefObject<HTMLInputElement | null>;
   tailwindFileInputRef: React.RefObject<HTMLInputElement | null>;
   tokensStudioFileInputRef: React.RefObject<HTMLInputElement | null>;

@@ -37,9 +37,9 @@ export function TokenDetailsAdvancedSection({
       <div className="tm-token-details__advanced-content">
         <section className="tm-token-details__subsection">
           <div className="tm-token-details__subsection-copy">
-            <h4 className="tm-token-details__subsection-title">Developer metadata</h4>
+            <h4 className="tm-token-details__subsection-title">Metadata</h4>
             <p className="tm-token-details__subsection-description">
-              Additional DTCG metadata and plugin-specific fields.
+              Additional fields saved with this token.
             </p>
           </div>
           {!editable ? (
@@ -60,16 +60,15 @@ export function TokenDetailsAdvancedSection({
 
         <section className="tm-token-details__subsection">
           <div className="tm-token-details__subsection-copy">
-            <h4 className="tm-token-details__subsection-title">Raw JSON</h4>
+            <h4 className="tm-token-details__subsection-title">Saved payload</h4>
             <p className="tm-token-details__subsection-description">
-              Preview of the token payload that will be saved.
+              Preview of the token data that will be saved.
             </p>
           </div>
           <pre className="tm-token-details__code-block">{rawJsonPreview}</pre>
           {extensionsJsonError ? (
             <p className="tm-token-details__error-copy">
-              Extensions JSON is invalid. The preview excludes that invalid block until
-              it parses.
+              Metadata JSON is invalid. The preview excludes that block until it parses.
             </p>
           ) : null}
         </section>

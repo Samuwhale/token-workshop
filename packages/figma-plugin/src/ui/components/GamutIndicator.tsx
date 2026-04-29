@@ -11,7 +11,7 @@ export function GamutIndicator({ color, showFallback = false }: { color: string;
 
   return (
     <span className="inline-flex items-center gap-0.5 shrink-0" title={`Wide-gamut color — outside sRGB.\nFallback: ${fallback ?? 'N/A'}`}>
-      <span className="px-1 py-px rounded text-[8px] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30">
+      <span className="px-1 py-px rounded text-[var(--font-size-xs)] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30">
         P3
       </span>
       {showFallback && fallback && (

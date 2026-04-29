@@ -47,6 +47,7 @@ import { isReference, parseReference } from './dtcg-types.js';
 import type {
   Token,
   TokenCollection,
+  DimensionValue,
   TokenReference,
   TokenType,
   TokenValue,
@@ -110,6 +111,29 @@ export interface TokenGeneratorEdge {
     nodeId: string;
     port: string;
   };
+}
+
+export type TokenGeneratorPortShape = 'scalar' | 'list';
+
+export interface TokenGeneratorPortDescriptor {
+  id: string;
+  label: string;
+  shape: TokenGeneratorPortShape;
+  type: TokenGeneratorPortType;
+  accepts?: TokenGeneratorPortType[];
+}
+
+export interface TokenGeneratorConnectionCheck {
+  valid: boolean;
+  reason?: string;
+}
+
+export interface TokenGeneratorConnectionInput {
+  sourceNodeId: string;
+  sourcePort: string;
+  targetNodeId: string;
+  targetPort: string;
+  edges?: TokenGeneratorEdge[];
 }
 
 export interface GeneratorOutputProvenance {
@@ -188,6 +212,295 @@ type GeneratorRuntimeValue =
     };
 
 type ModeRuntimeValues = Record<string, GeneratorRuntimeValue | undefined>;
+
+export function getTokenGeneratorInputPorts(
+  node: TokenGeneratorNode,
+): TokenGeneratorPortDescriptor[] {
+  switch (node.kind) {
+    case 'math':
+      return [
+        {
+          id: 'value',
+          label: 'Value',
+          shape: 'scalar',
+          type: 'number',
+          accepts: ['number', 'dimension'],
+        },
+      ];
+    case 'formula':
+      return [
+        { id: 'value', label: 'Value', shape: 'scalar', type: 'number', accepts: ['number'] },
+        { id: 'var2', label: 'Var 2', shape: 'scalar', type: 'number', accepts: ['number'] },
+        { id: 'var3', label: 'Var 3', shape: 'scalar', type: 'number', accepts: ['number'] },
+      ];
+    case 'color':
+    case 'colorRamp':
+      return [
+        { id: 'value', label: 'Color', shape: 'scalar', type: 'color', accepts: ['color'] },
+      ];
+    case 'spacingScale':
+      return [
+        {
+          id: 'value',
+          label: 'Base',
+          shape: 'scalar',
+          type: 'dimension',
+          accepts: ['number', 'dimension'],
+        },
+      ];
+    case 'typeScale':
+      return [
+        {
+          id: 'value',
+          label: 'Base',
+          shape: 'scalar',
+          type: 'dimension',
+          accepts: ['number', 'dimension'],
+        },
+      ];
+    case 'borderRadiusScale':
+      return [
+        {
+          id: 'value',
+          label: 'Base',
+          shape: 'scalar',
+          type: 'dimension',
+          accepts: ['number', 'dimension'],
+        },
+      ];
+    case 'customScale':
+      return [
+        {
+          id: 'value',
+          label: 'Base',
+          shape: 'scalar',
+          type: 'number',
+          accepts: ['number', 'dimension'],
+        },
+      ];
+    case 'output':
+      return [
+        { id: 'value', label: 'Value', shape: 'scalar', type: 'any', accepts: ['any'] },
+      ];
+    case 'groupOutput':
+      return [
+        { id: 'value', label: 'Steps', shape: 'list', type: 'any', accepts: ['any'] },
+      ];
+    default:
+      return [];
+  }
+}
+
+export function getTokenGeneratorOutputPorts(
+  node: TokenGeneratorNode,
+): TokenGeneratorPortDescriptor[] {
+  switch (node.kind) {
+    case 'output':
+    case 'groupOutput':
+      return [];
+    case 'colorRamp':
+      return [
+        { id: 'value', label: 'Value', shape: 'list', type: 'color' },
+        { id: 'steps', label: 'Steps', shape: 'list', type: 'color' },
+      ];
+    case 'spacingScale':
+    case 'typeScale':
+    case 'borderRadiusScale':
+      return [
+        { id: 'value', label: 'Value', shape: 'list', type: 'dimension' },
+        { id: 'steps', label: 'Steps', shape: 'list', type: 'dimension' },
+      ];
+    case 'opacityScale':
+    case 'zIndexScale':
+      return [
+        { id: 'value', label: 'Value', shape: 'list', type: 'number' },
+        { id: 'steps', label: 'Steps', shape: 'list', type: 'number' },
+      ];
+    case 'shadowScale':
+      return [
+        { id: 'value', label: 'Value', shape: 'list', type: 'token' },
+        { id: 'steps', label: 'Steps', shape: 'list', type: 'token' },
+      ];
+    case 'customScale': {
+      const type = readCustomScaleOutputType(node.data.outputType);
+      return [
+        { id: 'value', label: 'Value', shape: 'list', type },
+        { id: 'steps', label: 'Steps', shape: 'list', type },
+      ];
+    }
+    case 'list':
+      return [
+        {
+          id: 'value',
+          label: 'Items',
+          shape: 'list',
+          type: readNodeOutputType(node),
+        },
+        {
+          id: 'steps',
+          label: 'Steps',
+          shape: 'list',
+          type: readNodeOutputType(node),
+        },
+      ];
+    default:
+      return [
+        {
+          id: 'value',
+          label: 'Value',
+          shape: 'scalar',
+          type: readNodeOutputType(node),
+        },
+      ];
+  }
+}
+
+export function checkTokenGeneratorConnection(
+  document: Pick<TokenGeneratorDocument, 'nodes' | 'edges'>,
+  input: TokenGeneratorConnectionInput,
+): TokenGeneratorConnectionCheck {
+  const sourceNode = document.nodes.find((node) => node.id === input.sourceNodeId);
+  const targetNode = document.nodes.find((node) => node.id === input.targetNodeId);
+  if (!sourceNode || !targetNode) {
+    return { valid: false, reason: 'Choose two existing graph steps.' };
+  }
+  if (sourceNode.id === targetNode.id) {
+    return { valid: false, reason: 'A step cannot connect to itself.' };
+  }
+
+  const sourcePort = getTokenGeneratorOutputPorts(sourceNode).find(
+    (port) => port.id === input.sourcePort,
+  );
+  const targetPort = getTokenGeneratorInputPorts(targetNode).find(
+    (port) => port.id === input.targetPort,
+  );
+  if (!sourcePort) {
+    return { valid: false, reason: 'This step does not have that output.' };
+  }
+  if (!targetPort) {
+    return { valid: false, reason: 'This step does not have that input.' };
+  }
+  if (sourcePort.shape !== targetPort.shape) {
+    return {
+      valid: false,
+      reason:
+        targetPort.shape === 'list'
+          ? 'This input needs a list of generated steps.'
+          : 'This input needs one value.',
+    };
+  }
+  if (!portTypesAreCompatible(sourcePort.type, targetPort)) {
+    return {
+      valid: false,
+      reason: `${targetPort.label} expects ${formatPortTypeList(targetPort.accepts ?? [targetPort.type])}.`,
+    };
+  }
+
+  const nextEdges = input.edges ?? document.edges;
+  const targetInputEdges = nextEdges.filter(
+    (edge) =>
+      edge.to.nodeId === input.targetNodeId &&
+      edge.to.port === input.targetPort,
+  );
+  const matchingConnectionEdges = targetInputEdges.filter(
+    (edge) =>
+      edge.from.nodeId === input.sourceNodeId &&
+      edge.from.port === input.sourcePort,
+  );
+  if (
+    targetInputEdges.length > 1 ||
+    targetInputEdges.length > matchingConnectionEdges.length
+  ) {
+    return { valid: false, reason: 'This input already has a source.' };
+  }
+  if (connectionWouldCycle(nextEdges, input.sourceNodeId, input.targetNodeId)) {
+    return { valid: false, reason: 'This connection would create a loop.' };
+  }
+
+  return { valid: true };
+}
+
+function readNodeOutputType(node: TokenGeneratorNode): TokenGeneratorPortType {
+  if (node.kind === 'literal') {
+    const type = node.data.type;
+    if (
+      type === 'color' ||
+      type === 'number' ||
+      type === 'dimension' ||
+      type === 'string' ||
+      type === 'boolean'
+    ) {
+      return type;
+    }
+    return 'any';
+  }
+  if (node.kind === 'tokenInput') {
+    const type = node.data.tokenType;
+    if (type === 'color' || type === 'number' || type === 'dimension') return type;
+    if (type === 'string' || type === 'boolean' || type === 'token') return 'token';
+    return 'any';
+  }
+  if (node.kind === 'alias') return 'token';
+  if (node.kind === 'color') return 'color';
+  if (node.kind === 'math' || node.kind === 'formula') return 'number';
+  if (node.kind === 'list') {
+    const type = node.data.type;
+    if (
+      type === 'color' ||
+      type === 'number' ||
+      type === 'dimension' ||
+      type === 'string' ||
+      type === 'boolean' ||
+      type === 'token'
+    ) {
+      return type;
+    }
+  }
+  return 'any';
+}
+
+function portTypesAreCompatible(
+  sourceType: TokenGeneratorPortType,
+  targetPort: TokenGeneratorPortDescriptor,
+): boolean {
+  const accepted = targetPort.accepts ?? [targetPort.type];
+  if (accepted.includes('any')) return true;
+  if (sourceType === 'any') return targetPort.type === 'any';
+  return accepted.includes(sourceType);
+}
+
+function formatPortTypeList(types: TokenGeneratorPortType[]): string {
+  const normalized = types.includes('any') ? ['any value'] : types;
+  return normalized.join(' or ');
+}
+
+function readCustomScaleOutputType(value: unknown): 'dimension' | 'number' {
+  return value === 'dimension' ? 'dimension' : 'number';
+}
+
+function connectionWouldCycle(
+  edges: TokenGeneratorEdge[],
+  sourceNodeId: string,
+  targetNodeId: string,
+): boolean {
+  const outgoing = new Map<string, string[]>();
+  for (const edge of edges) {
+    outgoing.set(edge.from.nodeId, [
+      ...(outgoing.get(edge.from.nodeId) ?? []),
+      edge.to.nodeId,
+    ]);
+  }
+  const stack = [targetNodeId];
+  const visited = new Set<string>();
+  while (stack.length > 0) {
+    const nodeId = stack.pop()!;
+    if (nodeId === sourceNodeId) return true;
+    if (visited.has(nodeId)) continue;
+    visited.add(nodeId);
+    stack.push(...(outgoing.get(nodeId) ?? []));
+  }
+  return false;
+}
 
 export function createDefaultTokenGeneratorDocument(
   targetCollectionId: string,
@@ -365,24 +678,22 @@ export function evaluateTokenGeneratorDocument({
 
   const nodeById = new Map(document.nodes.map((node) => [node.id, node]));
   for (const edge of document.edges) {
-    if (!nodeById.has(edge.from.nodeId) || !nodeById.has(edge.to.nodeId)) {
+    const check = checkTokenGeneratorConnection(document, {
+      sourceNodeId: edge.from.nodeId,
+      sourcePort: edge.from.port,
+      targetNodeId: edge.to.nodeId,
+      targetPort: edge.to.port,
+      edges: document.edges,
+    });
+    if (!check.valid) {
       diagnostics.push({
         id: `broken-edge-${edge.id}`,
         severity: 'error',
         edgeId: edge.id,
-        message: 'This connection points to a node that no longer exists.',
+        ...(nodeById.has(edge.to.nodeId) ? { nodeId: edge.to.nodeId } : {}),
+        message: check.reason ?? 'This connection is not valid.',
       });
     }
-  }
-
-  const cycleNodeIds = findCycleNodeIds(document);
-  for (const nodeId of cycleNodeIds) {
-    diagnostics.push({
-      id: `cycle-${nodeId}`,
-      severity: 'error',
-      nodeId,
-      message: 'This node participates in a cycle. Generator flows must run top to bottom without loops.',
-    });
   }
   if (diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
     return emptyPreview(document, diagnostics, previewedAt, modeNames);
@@ -488,7 +799,7 @@ function evaluateNodeForModes({
 
   for (const modeName of modeNames) {
     try {
-      const source = input('value')[modeName] ?? input('source')[modeName];
+      const source = input('value')[modeName];
       result[modeName] = evaluateNodeForMode({
         node,
         modeName,
@@ -698,7 +1009,7 @@ function mathValue(
     return { kind: 'scalar', type: source?.type ?? 'number', value: opScaleBy(value as number, amount) as TokenValue };
   }
   if (operation === 'subtract') {
-    return { kind: 'scalar', type: source?.type ?? 'number', value: opAdd(value as number, -amount) as TokenValue };
+    return { kind: 'scalar', type: source?.type ?? 'number', value: opAdd(value as number, mathDeltaForSource(value, -amount)) as TokenValue };
   }
   if (operation === 'multiply') {
     return { kind: 'scalar', type: source?.type ?? 'number', value: opScaleBy(value as number, amount) as TokenValue };
@@ -731,7 +1042,7 @@ function mathValue(
     }
     return { kind: 'scalar', type: 'number', value: Math.round(Number(value) * factor) / factor };
   }
-  return { kind: 'scalar', type: source?.type ?? 'number', value: opAdd(value as number, amount) as TokenValue };
+  return { kind: 'scalar', type: source?.type ?? 'number', value: opAdd(value as number, mathDeltaForSource(value, amount)) as TokenValue };
 }
 
 function isDimensionLike(value: unknown): value is { value: number; unit: string } {
@@ -743,6 +1054,16 @@ function isDimensionLike(value: unknown): value is { value: number; unit: string
     typeof (value as { value?: unknown }).value === 'number' &&
     typeof (value as { unit?: unknown }).unit === 'string'
   );
+}
+
+function mathDeltaForSource(
+  value: TokenValue | TokenReference,
+  amount: number,
+): number | DimensionValue {
+  if (isDimensionLike(value)) {
+    return { value: amount, unit: value.unit as DimensionValue['unit'] };
+  }
+  return amount;
 }
 
 function formulaValue(
@@ -759,9 +1080,16 @@ function formulaValue(
     vars.x = numberValue;
     vars.var1 = numberValue;
   }
-  for (const [key, value] of Object.entries(node.data)) {
+  const variableKeys = new Set(
+    Object.keys(node.data).filter((key) => key.startsWith('var')),
+  );
+  for (const port of getTokenGeneratorInputPorts(node)) {
+    if (port.id.startsWith('var')) variableKeys.add(port.id);
+  }
+  for (const key of variableKeys) {
     if (!key.startsWith('var')) continue;
     if (key === 'var1' && source) continue;
+    const value = node.data[key];
     const portSource = input(key)[modeName];
     const scalar = portSource ? requireScalar(portSource, `Formula input "${key}" has no value.`) : Number(value ?? 0);
     vars[key] = Number(scalar);
@@ -855,14 +1183,15 @@ function customScaleValue(
   source: GeneratorRuntimeValue | undefined,
 ): GeneratorRuntimeValue {
   const config = readNodeConfig<CustomScaleConfig>(node, DEFAULT_CUSTOM_SCALE_CONFIG);
-  const outputPortType: TokenGeneratorPortType =
-    config.outputType === 'dimension' ||
-    config.outputType === 'number'
-      ? config.outputType
-      : 'any';
+  const outputPortType = readCustomScaleOutputType(config.outputType);
+  const normalizedConfig = { ...config, outputType: outputPortType };
   return generatedResultsToList(
     outputPortType,
-    computeCustomScaleTokens(source ? requireNumericSource(source) : undefined, config, 'output'),
+    computeCustomScaleTokens(
+      source ? requireNumericSource(source) : undefined,
+      normalizedConfig,
+      'output',
+    ),
   );
 }
 
@@ -1003,7 +1332,17 @@ function materializeOutputs({
     return [];
   }
 
-  if (firstModeValue.kind === 'list' || node.kind === 'groupOutput') {
+  if (node.kind === 'output' && firstModeValue.kind === 'list') {
+    diagnostics.push({
+      id: `${node.id}-list-token-output`,
+      severity: 'error',
+      nodeId: node.id,
+      message: `${node.label}: token outputs need one value. Use Group output for lists.`,
+    });
+    return [];
+  }
+
+  if (node.kind === 'groupOutput') {
     const firstListValue = firstModeValue.kind === 'list' ? firstModeValue : null;
     if (!firstListValue) return [];
     if (!pathPrefix) {
@@ -1049,25 +1388,28 @@ function materializeOutputs({
     }
     if (listValuesByMode.size !== modeNames.length) return [];
     return firstListValue.values.map((item, itemIndex) => {
-          const modeValues = Object.fromEntries(
-            modeNames.map((modeName) => {
-              const modeValue = listValuesByMode.get(modeName)!;
-              return [modeName, modeValue.values[itemIndex].value];
-            }),
-          ) as Record<string, TokenValue | TokenReference>;
-          const outputPath = `${pathPrefix}.${item.key}`;
-          return makeOutput({
-            document,
-            node,
-            targetCollection,
-            outputPath,
-            outputKey: item.key,
-            modeValues,
-            type: item.type ?? inferTokenType(item.value),
-            existingTokens,
-          });
-        });
+      const modeValues = Object.fromEntries(
+        modeNames.map((modeName) => {
+          const modeValue = listValuesByMode.get(modeName)!;
+          return [modeName, modeValue.values[itemIndex].value];
+        }),
+      ) as Record<string, TokenValue | TokenReference>;
+      const outputPath = `${pathPrefix}.${item.key}`;
+      return makeOutput({
+        document,
+        node,
+        targetCollection,
+        outputPath,
+        outputKey: item.key,
+        modeValues,
+        type: item.type ?? inferTokenType(item.value),
+        existingTokens,
+      });
+    });
   }
+
+  const firstScalarValue = firstModeValue.kind === 'scalar' ? firstModeValue : null;
+  if (!firstScalarValue) return [];
 
   if (!path) {
     diagnostics.push({
@@ -1116,7 +1458,9 @@ function materializeOutputs({
       outputPath: path,
       outputKey: path,
       modeValues,
-      type: (node.data.tokenType as TokenType | undefined) ?? inferTokenType(firstModeValue.value),
+      type:
+        (node.data.tokenType as TokenType | undefined) ??
+        inferTokenType(firstScalarValue.value),
       existingTokens,
     }),
   ];
@@ -1195,34 +1539,4 @@ function inferTokenType(value: unknown): TokenType {
     return 'dimension';
   }
   return 'string';
-}
-
-function findCycleNodeIds(document: TokenGeneratorDocument): Set<string> {
-  const outgoing = new Map<string, string[]>();
-  for (const edge of document.edges) {
-    outgoing.set(edge.from.nodeId, [...(outgoing.get(edge.from.nodeId) ?? []), edge.to.nodeId]);
-  }
-  const visiting = new Set<string>();
-  const visited = new Set<string>();
-  const cycles = new Set<string>();
-
-  const visit = (nodeId: string) => {
-    if (visiting.has(nodeId)) {
-      cycles.add(nodeId);
-      return;
-    }
-    if (visited.has(nodeId)) return;
-    visiting.add(nodeId);
-    for (const next of outgoing.get(nodeId) ?? []) {
-      visit(next);
-      if (cycles.has(next)) cycles.add(nodeId);
-    }
-    visiting.delete(nodeId);
-    visited.add(nodeId);
-  };
-
-  for (const node of document.nodes) {
-    visit(node.id);
-  }
-  return cycles;
 }

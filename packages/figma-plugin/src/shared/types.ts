@@ -98,6 +98,32 @@ export const TOKEN_PROPERTY_MAP: Record<string, BindableProperty[]> = {
   boolean: ['visible'],
 };
 
+export const COMPOSITION_PROPERTY_TYPES = {
+  fill: 'color',
+  stroke: 'color',
+  width: 'dimension',
+  height: 'dimension',
+  paddingTop: 'dimension',
+  paddingRight: 'dimension',
+  paddingBottom: 'dimension',
+  paddingLeft: 'dimension',
+  itemSpacing: 'dimension',
+  cornerRadius: 'dimension',
+  strokeWeight: 'dimension',
+  opacity: 'number',
+  typography: 'typography',
+  shadow: 'shadow',
+  visible: 'boolean',
+} as const satisfies Record<BindableProperty, string>;
+
+export type CompositionPropertyType =
+  (typeof COMPOSITION_PROPERTY_TYPES)[keyof typeof COMPOSITION_PROPERTY_TYPES]
+  | 'string';
+
+export function getCompositionPropertyType(property: string): CompositionPropertyType {
+  return COMPOSITION_PROPERTY_TYPES[property as BindableProperty] ?? 'string';
+}
+
 export const PROPERTY_LABELS: Record<BindableProperty, string> = {
   fill: 'Fill Color',
   stroke: 'Stroke Color',

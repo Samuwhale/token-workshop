@@ -8,8 +8,8 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const SIZE_CLASS: Record<NonNullable<IconButtonProps["size"]>, string> = {
-  sm: "h-6 w-6",
-  md: "h-7 w-7",
+  sm: "h-7 w-7",
+  md: "h-8 w-8",
   lg: "h-8 w-8",
 };
 

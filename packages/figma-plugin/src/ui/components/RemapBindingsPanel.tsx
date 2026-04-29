@@ -366,7 +366,7 @@ export function RemapBindingsPanel({
                 return currentScope === "selection" ? "page" : "selection";
               })
             }
-            className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[8px] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)]"
+            className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[var(--font-size-xs)] text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)]"
             title="Toggle scope between selection and entire page"
           >
             {remapScope === "selection" ? "Selection" : "Page"}

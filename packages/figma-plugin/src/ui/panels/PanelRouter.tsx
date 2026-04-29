@@ -1586,7 +1586,7 @@ export function PanelRouter({
         size="full"
         icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
         title="Create your first collection"
-        description="Collections are the home for tokens and modes. Start there, then import existing work or extract from the canvas when you need to."
+        description="Start with a collection, then add tokens or import existing work."
         actions={[
           {
             label: "Create collection",

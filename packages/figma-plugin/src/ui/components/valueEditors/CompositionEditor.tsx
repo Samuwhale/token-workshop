@@ -1,55 +1,44 @@
 import { useState, memo } from 'react';
 import { X } from 'lucide-react';
-import type { TokenMapEntry } from '../../../shared/types';
+import {
+  ALL_BINDABLE_PROPERTIES,
+  getCompositionPropertyType,
+  PROPERTY_LABELS,
+  type TokenMapEntry,
+} from '../../../shared/types';
 import { AUTHORING } from '../../shared/editorClasses';
 import { Stack } from '../../primitives';
 import { swatchBgColor } from '../../shared/colorUtils';
 import { ColorSwatchButton } from './ColorEditor';
 import { SubPropInput } from './valueEditorShared';
 
-const COMPOSITION_PROPERTIES = [
-  'fill', 'stroke', 'width', 'height',
-  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
-  'itemSpacing', 'cornerRadius', 'strokeWeight', 'opacity',
-  'typography', 'shadow', 'visible',
-];
+type CompositionEditorValue = Record<string, unknown>;
 
-/** Maps each composition property to its expected DTCG type for type-aware editing. */
-const COMP_PROP_TYPE: Record<string, 'color' | 'dimension' | 'number' | 'boolean' | 'typography' | 'shadow'> = {
-  fill: 'color',
-  stroke: 'color',
-  width: 'dimension',
-  height: 'dimension',
-  paddingTop: 'dimension',
-  paddingRight: 'dimension',
-  paddingBottom: 'dimension',
-  paddingLeft: 'dimension',
-  itemSpacing: 'dimension',
-  cornerRadius: 'dimension',
-  strokeWeight: 'dimension',
-  opacity: 'number',
-  typography: 'typography',
-  shadow: 'shadow',
-  visible: 'boolean',
-};
+function isRecord(value: unknown): value is CompositionEditorValue {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 
-const COMP_PROP_LABELS: Record<string, string> = {
-  fill: 'Fill',
-  stroke: 'Stroke',
-  width: 'Width',
-  height: 'Height',
-  paddingTop: 'Padding Top',
-  paddingRight: 'Padding Right',
-  paddingBottom: 'Padding Bottom',
-  paddingLeft: 'Padding Left',
-  itemSpacing: 'Item Spacing',
-  cornerRadius: 'Corner Radius',
-  strokeWeight: 'Stroke Weight',
-  opacity: 'Opacity',
-  typography: 'Typography',
-  shadow: 'Shadow',
-  visible: 'Visible',
-};
+function isAliasValue(value: unknown): value is `{${string}` {
+  return typeof value === 'string' && value.startsWith('{');
+}
+
+function getPropertyLabel(prop: string): string {
+  return PROPERTY_LABELS[prop as keyof typeof PROPERTY_LABELS] ?? prop;
+}
+
+function readNumericValue(value: unknown, fallback: number): number {
+  if (isAliasValue(value)) return fallback;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+  if (isRecord(value) && 'value' in value) {
+    return readNumericValue(value.value, fallback);
+  }
+  const parsed = Number.parseFloat(String(value));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function readStringValue(value: unknown, fallback: string): string {
+  return isAliasValue(value) ? fallback : typeof value === 'string' ? value : fallback;
+}
 
 function CompositionPropertyEditor({
   prop,
@@ -59,13 +48,13 @@ function CompositionPropertyEditor({
   pathToCollectionId,
 }: {
   prop: string;
-  value: any;
-  onChange: (v: any) => void;
+  value: unknown;
+  onChange: (v: unknown) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
 }) {
-  const propType = COMP_PROP_TYPE[prop] || 'string';
-  const isAlias = typeof value === 'string' && value.startsWith('{');
+  const propType = getCompositionPropertyType(prop);
+  const isAlias = isAliasValue(value);
 
   if (propType === 'color') {
     return (
@@ -93,7 +82,7 @@ function CompositionPropertyEditor({
   if (propType === 'dimension') {
     return (
       <SubPropInput
-        value={isAlias ? value : (typeof value === 'object' && value !== null ? value.value : (value ?? ''))}
+        value={isAlias ? value : (isRecord(value) ? value.value : (value ?? ''))}
         onChange={v => {
           if (typeof v === 'string' && v.startsWith('{')) {
             onChange(v);
@@ -199,33 +188,23 @@ function CompositionPropertyEditor({
 }
 
 /** Renders a live preview box showing the composed visual result. */
-function CompositionPreview({ val }: { val: Record<string, any> }) {
+function CompositionPreview({ val }: { val: CompositionEditorValue }) {
   const hasVisualProps = ['fill', 'stroke', 'width', 'height', 'cornerRadius', 'opacity', 'strokeWeight',
     'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'shadow', 'visible'].some(p => p in val);
   if (!hasVisualProps) return null;
 
-  const isRef = (v: any) => typeof v === 'string' && v.startsWith('{');
-  const numVal = (v: any, fallback: number) => {
-    if (isRef(v)) return fallback;
-    if (typeof v === 'number') return v;
-    if (typeof v === 'object' && v !== null && 'value' in v) return v.value;
-    const n = parseFloat(String(v));
-    return isNaN(n) ? fallback : n;
-  };
-  const strVal = (v: any, fallback: string) => isRef(v) ? fallback : (typeof v === 'string' ? v : fallback);
-
-  const fill = strVal(val.fill, '#e2e8f0');
-  const stroke = strVal(val.stroke, 'transparent');
-  const w = numVal(val.width, 80);
-  const h = numVal(val.height, 48);
-  const radius = numVal(val.cornerRadius, 0);
-  const opacity = 'opacity' in val ? numVal(val.opacity, 1) : 1;
-  const sw = numVal(val.strokeWeight, stroke !== 'transparent' ? 1 : 0);
-  const pt = numVal(val.paddingTop, 0);
-  const pr = numVal(val.paddingRight, 0);
-  const pb = numVal(val.paddingBottom, 0);
-  const pl = numVal(val.paddingLeft, 0);
-  const visible = 'visible' in val ? (isRef(val.visible) ? true : !!val.visible) : true;
+  const fill = readStringValue(val.fill, '#e2e8f0');
+  const stroke = readStringValue(val.stroke, 'transparent');
+  const w = readNumericValue(val.width, 80);
+  const h = readNumericValue(val.height, 48);
+  const radius = readNumericValue(val.cornerRadius, 0);
+  const opacity = 'opacity' in val ? readNumericValue(val.opacity, 1) : 1;
+  const sw = readNumericValue(val.strokeWeight, stroke !== 'transparent' ? 1 : 0);
+  const pt = readNumericValue(val.paddingTop, 0);
+  const pr = readNumericValue(val.paddingRight, 0);
+  const pb = readNumericValue(val.paddingBottom, 0);
+  const pl = readNumericValue(val.paddingLeft, 0);
+  const visible = 'visible' in val ? (isAliasValue(val.visible) ? true : Boolean(val.visible)) : true;
 
   if (!visible) return (
     <Stack gap={1}>
@@ -235,14 +214,14 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
   );
 
   const shadowStr = (() => {
-    if (!('shadow' in val) || isRef(val.shadow)) return 'none';
-    if (typeof val.shadow === 'object' && val.shadow !== null) {
+    if (!('shadow' in val) || isAliasValue(val.shadow)) return 'none';
+    if (isRecord(val.shadow)) {
       const s = val.shadow;
-      const ox = numVal(s.offsetX, 0);
-      const oy = numVal(s.offsetY, 0);
-      const blur = numVal(s.blur, 0);
-      const spread = numVal(s.spread, 0);
-      const color = strVal(s.color, '#00000040');
+      const ox = readNumericValue(s.offsetX, 0);
+      const oy = readNumericValue(s.offsetY, 0);
+      const blur = readNumericValue(s.blur, 0);
+      const spread = readNumericValue(s.spread, 0);
+      const color = readStringValue(s.color, '#00000040');
       return `${ox}px ${oy}px ${blur}px ${spread}px ${color}`;
     }
     return 'none';
@@ -250,7 +229,7 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
 
   const hasPadding = pt > 0 || pr > 0 || pb > 0 || pl > 0;
 
-  const hasRefs = Object.keys(val).some(k => isRef(val[k]));
+  const hasRefs = Object.keys(val).some(k => isAliasValue(val[k]));
   return (
     <Stack gap={1}>
       <span className="text-secondary font-medium text-[var(--color-figma-text-secondary)]">Preview</span>
@@ -291,16 +270,16 @@ function CompositionPreview({ val }: { val: Record<string, any> }) {
   );
 }
 
-export const CompositionEditor = memo(function CompositionEditor({ value, onChange, inheritedValue, allTokensFlat = {}, pathToCollectionId = {} }: { value: any; onChange: (v: any) => void; inheritedValue?: any; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string> }) {
-  const [newProp, setNewProp] = useState(COMPOSITION_PROPERTIES[0]);
-  const rawVal = typeof value === 'object' && value !== null ? value : {};
-  const inherited = typeof inheritedValue === 'object' && inheritedValue !== null ? inheritedValue : undefined;
+export const CompositionEditor = memo(function CompositionEditor({ value, onChange, inheritedValue, allTokensFlat = {}, pathToCollectionId = {} }: { value: unknown; onChange: (v: CompositionEditorValue) => void; inheritedValue?: unknown; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string> }) {
+  const [newProp, setNewProp] = useState<string>(ALL_BINDABLE_PROPERTIES[0]);
+  const rawVal = isRecord(value) ? value : {};
+  const inherited = isRecord(inheritedValue) ? inheritedValue : undefined;
   const val = inherited ? { ...inherited, ...rawVal } : rawVal;
-  const isInherited = (key: string) => inherited && !(key in rawVal) && key in inherited;
+  const isInherited = (key: string): boolean => Boolean(inherited && !(key in rawVal) && key in inherited);
   const usedProps = Object.keys(val);
-  const unusedProps = COMPOSITION_PROPERTIES.filter(p => !usedProps.includes(p));
+  const unusedProps = ALL_BINDABLE_PROPERTIES.filter(p => !usedProps.includes(p));
 
-  const update = (key: string, v: any) => {
+  const update = (key: string, v: unknown) => {
     if (inherited) {
       onChange({ ...rawVal, [key]: v });
     } else {
@@ -321,11 +300,11 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
   const addProp = () => {
     const prop = newProp || unusedProps[0];
     if (!prop || prop in val) return;
-    const defaults: Record<string, any> = {
+    const defaults: Record<string, unknown> = {
       color: '#000000', dimension: 0, number: 1, boolean: true,
       typography: '', shadow: '',
     };
-    const defaultVal = defaults[COMP_PROP_TYPE[prop] || 'string'] ?? '';
+    const defaultVal = defaults[getCompositionPropertyType(prop)] ?? '';
     if (inherited) {
       onChange({ ...rawVal, [prop]: defaultVal });
     } else {
@@ -343,7 +322,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
         <div key={prop} className="flex flex-col gap-1">
           <div className="flex items-center gap-1">
             <span className={`text-secondary shrink-0 font-medium ${isInherited(prop) ? 'text-[var(--color-figma-text-tertiary)] italic' : 'text-[var(--color-figma-text-secondary)]'}`} title={prop}>
-              {COMP_PROP_LABELS[prop] || prop}
+              {getPropertyLabel(prop)}
               {isInherited(prop) && <span className="text-secondary ml-0.5">(inherited)</span>}
             </span>
             <div className="flex-1" />
@@ -374,7 +353,7 @@ export const CompositionEditor = memo(function CompositionEditor({ value, onChan
             onChange={e => setNewProp(e.target.value)}
             className={AUTHORING.input + ' flex-1'}
           >
-            {unusedProps.map(p => <option key={p} value={p}>{COMP_PROP_LABELS[p] || p}</option>)}
+            {unusedProps.map(p => <option key={p} value={p}>{getPropertyLabel(p)}</option>)}
           </select>
           <button
             type="button"

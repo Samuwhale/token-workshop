@@ -771,7 +771,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             />
             {contrastBg && ratio !== null ? (
               <>
-                <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[8px] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
+                <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[var(--font-size-xs)] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
                 <span className="text-secondary text-[var(--color-figma-text)] tabular-nums font-medium">{ratio.toFixed(1)}:1</span>
                 <span className={`text-secondary font-bold px-1 py-0.5 rounded ${
                   level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :

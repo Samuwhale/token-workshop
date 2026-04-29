@@ -433,24 +433,6 @@ export const TokenGroupNode = memo(
                 <div
                   className={`flex items-center gap-0.5 shrink-0 ${selectMode || !structuralActionsEnabled ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
                 >
-                  {onZoomIntoGroup && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onZoomIntoGroup(node.path); }}
-                      title="Focus on this group"
-                      aria-label="Focus on this group"
-                      className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onCreateSibling?.(node.path, inferGroupTokenType(node.children)); }}
-                    title="Add token to group"
-                    aria-label="Add token to group"
-                    className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

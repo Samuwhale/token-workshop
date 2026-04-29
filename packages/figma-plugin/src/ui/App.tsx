@@ -102,6 +102,7 @@ function formatCount(
 
 const SIDEBAR_HOVER_CLASSES =
   "hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]";
+const RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH = 640;
 
 const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
   accent: "bg-[var(--color-figma-accent)]",
@@ -737,10 +738,48 @@ export function App() {
     mode: "px",
     snap: { below: 112, to: 40 },
   });
-  const sidebarCollapsed = sidebarBoundary.size <= 40;
+  const [responsiveSidebarCollapsed, setResponsiveSidebarCollapsed] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.innerWidth < RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH,
+  );
+  const [responsiveSidebarFlyout, setResponsiveSidebarFlyout] = useState<{
+    itemId: string;
+    top: number;
+  } | null>(null);
+  useEffect(() => {
+    const updateResponsiveSidebar = () => {
+      setResponsiveSidebarCollapsed(
+        window.innerWidth < RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH,
+      );
+    };
+    updateResponsiveSidebar();
+    window.addEventListener("resize", updateResponsiveSidebar);
+    return () => window.removeEventListener("resize", updateResponsiveSidebar);
+  }, []);
+  const sidebarCollapsed =
+    responsiveSidebarCollapsed || sidebarBoundary.size <= 40;
+  const effectiveSidebarWidth = responsiveSidebarCollapsed
+    ? 40
+    : sidebarBoundary.size;
   const toggleSidebarCollapsed = useCallback(() => {
     sidebarBoundary.setSize(sidebarBoundary.size <= 40 ? 120 : 40);
   }, [sidebarBoundary]);
+  useEffect(() => {
+    if (!responsiveSidebarCollapsed) {
+      setResponsiveSidebarFlyout(null);
+    }
+  }, [responsiveSidebarCollapsed]);
+  const openResponsiveSidebarFlyout = useCallback((itemId: string, top: number) => {
+    setResponsiveSidebarFlyout((current) =>
+      current?.itemId === itemId
+        ? null
+        : {
+            itemId,
+            top: Math.max(8, Math.min(top, window.innerHeight - 220)),
+          },
+    );
+  }, []);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(
     () => new Set([activeWorkspace.id]),
   );
@@ -1698,7 +1737,7 @@ export function App() {
       {/* Sidebar */}
       <nav
         className={`flex shrink-0 flex-col bg-[var(--color-figma-bg)] ${sidebarBoundary.isDragging ? '' : 'transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]'}`}
-        style={{ width: sidebarBoundary.size }}
+        style={{ width: effectiveSidebarWidth }}
         aria-label="Workspaces"
       >
         {/* Accordion navigation */}
@@ -1767,7 +1806,22 @@ export function App() {
                       position="right"
                     >
                       <button
-                        onClick={() => handleSidebarItemClick(item)}
+                        onClick={(event) => {
+                          if (responsiveSidebarCollapsed && sections.length > 0) {
+                            openResponsiveSidebarFlyout(
+                              item.id,
+                              event.currentTarget.getBoundingClientRect().top,
+                            );
+                            return;
+                          }
+                          setResponsiveSidebarFlyout(null);
+                          handleSidebarItemClick(item);
+                        }}
+                        aria-expanded={
+                          responsiveSidebarCollapsed && sections.length > 0
+                            ? responsiveSidebarFlyout?.itemId === item.id
+                            : undefined
+                        }
                         aria-label={item.label}
                         className={`relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
@@ -1926,7 +1980,7 @@ export function App() {
                   >
                     <Bell size={14} strokeWidth={1.5} aria-hidden />
                     {notificationCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[8px] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
+                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
                     )}
                   </button>
                 </Tooltip>
@@ -1972,7 +2026,7 @@ export function App() {
                 >
                   <Bell size={14} strokeWidth={1.5} aria-hidden />
                   {notificationCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[8px] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium text-white">{notificationCount > 9 ? "9+" : notificationCount}</span>
                   )}
                 </button>
                 <button
@@ -2016,29 +2070,114 @@ export function App() {
               <div className="mx-auto h-2 w-2 rounded-full bg-[var(--color-figma-error)]" />
             </Tooltip>
           )}
-          <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--color-figma-border)]`} />
-          <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
-            <button
-              onClick={toggleSidebarCollapsed}
-              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className={`flex h-7 items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto w-7' : 'w-full'}`}
-            >
-              {sidebarCollapsed ? (
-                <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
-              ) : (
-                <ChevronsLeft size={12} strokeWidth={1.5} aria-hidden />
-              )}
-            </button>
-          </Tooltip>
+          {responsiveSidebarCollapsed ? (
+            <>
+              <div className="my-1 w-5 mx-auto border-t border-[var(--color-figma-border)]" />
+              <Tooltip label="Workspace sections" position="right">
+                <button
+                  type="button"
+                  onClick={() => openResponsiveSidebarFlyout(activeWorkspace.id, window.innerHeight - 224)}
+                  aria-label="Open workspace sections"
+                  aria-expanded={responsiveSidebarFlyout?.itemId === activeWorkspace.id}
+                  className="mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)]"
+                >
+                  <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
+                </button>
+              </Tooltip>
+            </>
+          ) : (
+            <>
+              <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--color-figma-border)]`} />
+              <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
+                <button
+                  onClick={toggleSidebarCollapsed}
+                  aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                  className={`flex h-7 items-center justify-center rounded-md text-[var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto w-7' : 'w-full'}`}
+                >
+                  {sidebarCollapsed ? (
+                    <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
+                  ) : (
+                    <ChevronsLeft size={12} strokeWidth={1.5} aria-hidden />
+                  )}
+                </button>
+              </Tooltip>
+            </>
+          )}
         </div>
       </nav>
-      <ResizeDivider
-        axis="x"
-        ariaLabel="Resize workspace sidebar"
-        ariaValueNow={sidebarBoundary.ariaValueNow}
-        onMouseDown={sidebarBoundary.onMouseDown}
-        onKeyDown={sidebarBoundary.onKeyDown}
-      />
+      {!responsiveSidebarCollapsed ? (
+        <ResizeDivider
+          axis="x"
+          ariaLabel="Resize workspace sidebar"
+          ariaValueNow={sidebarBoundary.ariaValueNow}
+          onMouseDown={sidebarBoundary.onMouseDown}
+          onKeyDown={sidebarBoundary.onKeyDown}
+        />
+      ) : null}
+      {responsiveSidebarFlyout ? (() => {
+        const item = SIDEBAR_GROUPS.flatMap((group) => group.items).find(
+          (candidate) => candidate.id === responsiveSidebarFlyout.itemId,
+        );
+        const workspace = item
+          ? WORKSPACE_TABS.find((candidate) => candidate.id === item.workspaceId)
+          : null;
+        const sections = workspace?.sections ?? [];
+        if (!item || sections.length === 0) return null;
+        const isWorkspaceActive =
+          item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
+        return (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-20 cursor-default"
+              aria-label="Close workspace navigation"
+              onClick={() => setResponsiveSidebarFlyout(null)}
+            />
+            <div
+              className="absolute left-10 z-30 w-[184px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
+              style={{ top: responsiveSidebarFlyout.top }}
+            >
+              <div className="px-2 py-1 text-secondary font-medium text-[var(--color-figma-text-secondary)]">
+                {item.label}
+              </div>
+              {sections.map((section) => {
+                const isSectionActive =
+                  isWorkspaceActive && activeSubTab === section.subTab;
+                const showReviewBadge =
+                  item.id === "library" &&
+                  section.id === "health" &&
+                  reviewBadgeCount > 0 &&
+                  !isSectionActive;
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => {
+                      setResponsiveSidebarFlyout(null);
+                      handleSubTabClick(section);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-secondary outline-none transition-colors ${
+                      isSectionActive
+                        ? "bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)] font-medium"
+                        : "text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                    }`}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{section.label}</span>
+                    {showReviewBadge ? (
+                      <span
+                        aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
+                        className="shrink-0 tabular-nums text-secondary font-medium text-[var(--color-figma-warning)]"
+                      >
+                        {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        );
+      })() : null}
 
       {/* Content area — no top bar */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

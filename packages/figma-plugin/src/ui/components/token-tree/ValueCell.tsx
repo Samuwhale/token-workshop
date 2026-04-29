@@ -163,7 +163,7 @@ export function ValueCell({
       </div>
       {secondary ? (
         <div
-          className={`tm-value-cell__line text-[10px] leading-[1.08] ${
+          className={`tm-value-cell__line text-[var(--font-size-xs)] leading-[1.08] ${
             options?.secondaryMonospace ? "font-mono" : ""
           } ${
             options?.secondaryClassName ??
