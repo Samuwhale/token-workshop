@@ -7,7 +7,7 @@ import {
   summarizeChanges,
   formatTokenValue,
   ColorSwatch,
-  Section,
+  CollapsibleChangeSection,
   ChangeSummaryBadges,
 } from '../../shared/changeHelpers';
 import { stableStringify } from '../../shared/utils';
@@ -121,7 +121,7 @@ export function ChangesByCollectionList({
       {Array.from(changesByCollection.entries()).map(([collectionId, collectionChanges]) => {
         const collectionSummary = summarizeChanges(collectionChanges);
         return (
-          <Section
+          <CollapsibleChangeSection
             key={collectionId}
             title={collectionId}
             open={openSections[collectionId] ?? true}
@@ -137,7 +137,7 @@ export function ChangesByCollectionList({
                 />
               ))}
             </div>
-          </Section>
+          </CollapsibleChangeSection>
         );
       })}
     </>

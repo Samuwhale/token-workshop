@@ -1,18 +1,35 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { TokenNode } from "../../hooks/useTokens";
 import { STORAGE_KEYS, lsGet } from "../../shared/storage";
+import { stringifyValueForDisplay } from "../../shared/utils";
 import type { PreferredCopyFormat } from "../SettingsPanel";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function ensureChildGroup(
+  parent: Record<string, unknown>,
+  segment: string,
+): Record<string, unknown> {
+  const existing = parent[segment];
+  if (isRecord(existing)) {
+    return existing;
+  }
+  const next: Record<string, unknown> = {};
+  parent[segment] = next;
+  return next;
+}
 
 /** Build nested DTCG JSON from a list of token nodes and copy to clipboard. */
 function buildDtcgJson(nodes: TokenNode[]): string {
-  const root: Record<string, any> = {};
+  const root: Record<string, unknown> = {};
   for (const node of nodes) {
     if (node.isGroup) continue;
     const segments = node.path.split(".");
     let cursor = root;
     for (let i = 0; i < segments.length - 1; i++) {
-      if (!(segments[i] in cursor)) cursor[segments[i]] = {};
-      cursor = cursor[segments[i]];
+      cursor = ensureChildGroup(cursor, segments[i]);
     }
     const leaf: Record<string, unknown> = {
       $value: node.$value,
@@ -125,9 +142,7 @@ export function useTokenListClipboard(callbacks: {
       text = buildDtcgJson(leafNodes);
     } else if (fmt === "raw") {
       text = leafNodes
-        .map((n) =>
-          typeof n.$value === "string" ? n.$value : JSON.stringify(n.$value),
-        )
+        .map((n) => stringifyValueForDisplay(n.$value))
         .join("\n");
     } else if (fmt === "dtcg-ref") {
       text = leafNodes.map((n) => `{${n.path}}`).join("\n");

@@ -6,26 +6,6 @@ import { summarizeChanges, statusColor, formatRelativeTime } from '../../shared/
 import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { CommitEntry, CommitDetail, UndoSlot, TokenChange } from './types';
 
-interface ServerTokenChange {
-  path: string;
-  collectionId: string;
-  type: string;
-  status: 'added' | 'modified' | 'removed';
-  before?: unknown;
-  after?: unknown;
-}
-
-function mapServerChange(change: ServerTokenChange): TokenChange {
-  return {
-    path: change.path,
-    collectionId: change.collectionId,
-    type: change.type,
-    status: change.status,
-    before: change.before,
-    after: change.after,
-  };
-}
-
 export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath, initialSelectedHash, initialSelectedCommit, onBack, skipListFetch }: {
   serverUrl: string;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -128,8 +108,8 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
     Promise.all(
       commits.map(async (commit) => {
         try {
-          const data = await apiFetch<{ changes?: ServerTokenChange[] }>(`${serverUrl}/api/sync/log/${commit.hash}/tokens`);
-          const match = (data.changes ?? []).map(mapServerChange).find(c => c.path === debouncedFilterPath);
+          const data = await apiFetch<{ changes?: TokenChange[] }>(`${serverUrl}/api/sync/log/${commit.hash}/tokens`);
+          const match = (data.changes ?? []).find(c => c.path === debouncedFilterPath);
           return { hash: commit.hash, change: match ?? null };
         } catch {
           return { hash: commit.hash, change: null };
@@ -151,13 +131,13 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
     setDetailLoading(true);
     setDetailError(null);
     try {
-      const data = await apiFetch<{ hash?: string; changes?: ServerTokenChange[]; fileCount?: number }>(`${serverUrl}/api/sync/log/${hash}/tokens`);
+      const data = await apiFetch<{ hash?: string; changes?: TokenChange[]; fileCount?: number }>(`${serverUrl}/api/sync/log/${hash}/tokens`);
       if (!data || !Array.isArray(data.changes)) {
         throw new Error('Invalid response: expected an object with a "changes" array');
       }
       const parsed: CommitDetail = {
         hash: typeof data.hash === 'string' ? data.hash : hash,
-        changes: data.changes.map(mapServerChange),
+        changes: data.changes,
         fileCount: typeof data.fileCount === 'number' ? data.fileCount : 0,
       };
       setDetail(parsed);

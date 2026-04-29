@@ -11,7 +11,7 @@ import type {
   TokenMapEntry,
 } from '../../shared/types';
 import { apiFetch, createFetchSignal } from './apiFetch';
-import { coerceBooleanValue, stableStringify } from './utils';
+import { coerceBooleanValue, stableStringify, truncateValueForDisplay } from './utils';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import type {
   WorkflowStageIndicatorItem,
@@ -43,13 +43,13 @@ export interface PublishPreflightCluster {
   severity: PublishPreflightSeverity;
   affectedCount?: number;
   detail?: string;
-	  recommendedActionLabel?: string;
-	  recommendedActionId?: PublishPreflightActionId;
-	  recommendedGeneratorId?: string;
-	  recommendedGeneratorDiagnosticId?: string;
-	  recommendedGeneratorNodeId?: string;
-	  recommendedGeneratorEdgeId?: string;
-	}
+  recommendedActionLabel?: string;
+  recommendedActionId?: PublishPreflightActionId;
+  recommendedGeneratorId?: string;
+  recommendedGeneratorDiagnosticId?: string;
+  recommendedGeneratorNodeId?: string;
+  recommendedGeneratorEdgeId?: string;
+}
 
 export interface PublishPreflightState {
   stage: PublishPreflightStage;
@@ -57,6 +57,10 @@ export interface PublishPreflightState {
   blockingCount: number;
   advisoryCount: number;
   canProceed: boolean;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export const DEFAULT_PUBLISH_PREFLIGHT_STATE: PublishPreflightState = {
@@ -256,13 +260,17 @@ function summarizeStyleValue(value: unknown, type: string): string {
     const size = typeof typography.fontSize === 'object'
       ? `${typography.fontSize?.value ?? ''}${typography.fontSize?.unit ?? ''}`
       : String(typography.fontSize ?? '');
-    return `${family ?? ''}${size ? ` ${size}` : ''}`.trim() || JSON.stringify(value).slice(0, 28);
+    return `${family ?? ''}${size ? ` ${size}` : ''}`.trim() || truncateValueForDisplay(value, 28);
   }
   if (type === 'shadow') {
     const layers = Array.isArray(value) ? value : [value];
-    return layers.map((layer: any) => layer?.color ?? '').join(', ').slice(0, 28);
+    return layers
+      .map((layer) => (isRecord(layer) && typeof layer.color === 'string' ? layer.color : ''))
+      .filter(Boolean)
+      .join(', ')
+      .slice(0, 28);
   }
-  return JSON.stringify(value).slice(0, 28);
+  return truncateValueForDisplay(value, 28);
 }
 
 function createPublishSyncBuilders<TEntry extends SyncEntry>(spec: SyncBuildersSpec<TEntry>): SyncDiffConfig<TEntry, TEntry, PublishDiffRow> {

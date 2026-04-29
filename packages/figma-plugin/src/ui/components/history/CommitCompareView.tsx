@@ -6,15 +6,6 @@ import { formatRelativeTime } from '../../shared/changeHelpers';
 import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { CommitEntry, TokenChange } from './types';
 
-interface ServerTokenChange {
-  path: string;
-  collectionId: string;
-  type: string;
-  status: 'added' | 'modified' | 'removed';
-  before?: unknown;
-  after?: unknown;
-}
-
 export function CommitCompareView({
   serverUrl,
   commitA,
@@ -35,19 +26,12 @@ export function CommitCompareView({
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    apiFetch<{ changes?: ServerTokenChange[]; fileCount?: number }>(
+    apiFetch<{ changes?: TokenChange[]; fileCount?: number }>(
       `${serverUrl}/api/sync/compare?from=${encodeURIComponent(commitA.hash)}&to=${encodeURIComponent(commitB.hash)}`,
       { signal: controller.signal }
     ).then(data => {
       if (controller.signal.aborted) return;
-      const c = (data.changes ?? []).map((change): TokenChange => ({
-        path: change.path,
-        collectionId: change.collectionId,
-        type: change.type,
-        status: change.status,
-        before: change.before,
-        after: change.after,
-      }));
+      const c = data.changes ?? [];
       setChanges(c);
       const sections: Record<string, boolean> = {};
       const collectionIds = new Set(c.map((change) => change.collectionId));

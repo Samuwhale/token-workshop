@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { swatchBgColor } from './colorUtils';
 import { formatTokenValueForDisplay } from './tokenFormatting';
 
@@ -10,8 +11,8 @@ export interface TokenChange {
   collectionId: string;
   type: string;
   status: ChangeStatus;
-  before?: any;
-  after?: any;
+  before?: unknown;
+  after?: unknown;
   changedFields?: string[];
 }
 
@@ -55,7 +56,7 @@ export function summarizeChanges(changes: TokenChange[]): { added: number; modif
   return { added, modified, removed };
 }
 
-export function formatTokenValue(type: string, value: any): string {
+export function formatTokenValue(type: string, value: unknown): string {
   return formatTokenValueForDisplay(type, value);
 }
 
@@ -71,12 +72,12 @@ export function ColorSwatch({ color }: { color: string }) {
   );
 }
 
-export function Section({ title, open, onToggle, badge, children }: {
+export function CollapsibleChangeSection({ title, open, onToggle, badge, children }: {
   title: string;
   open: boolean;
   onToggle: () => void;
-  badge?: React.ReactNode;
-  children: React.ReactNode;
+  badge?: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded border border-[var(--color-figma-border)] overflow-hidden">

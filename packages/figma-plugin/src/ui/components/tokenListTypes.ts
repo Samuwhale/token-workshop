@@ -400,13 +400,13 @@ export interface TokenTreeLeafActionsContextType {
   onRequestMoveToken?: (tokenPath: string) => void;
   onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateToken?: (path: string) => void;
-  onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
+  onExtractToAlias?: (path: string, $type?: string, $value?: unknown) => void;
   onHoverToken?: (path: string) => void;
   onFilterByType?: (type: string) => void;
   onInlineSave?: (
     path: string,
     type: string,
-    newValue: any,
+    newValue: unknown,
     previousState?: { type?: string; value: unknown },
   ) => void;
   onRenameToken?: (oldPath: string, newPath: string) => void;
@@ -432,7 +432,7 @@ export interface TokenTreeLeafActionsContextType {
   onMultiModeInlineSave?: (
     path: string,
     type: string,
-    newValue: any,
+    newValue: unknown,
     targetCollectionId: string,
     collectionId: string,
     optionName: string,

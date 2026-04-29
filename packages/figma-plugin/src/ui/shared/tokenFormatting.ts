@@ -1,4 +1,5 @@
 import { formatUnitTokenValue } from './tokenValueParsing';
+import { truncateValueForDisplay } from './utils';
 
 /**
  * Unified token value formatting for display.
@@ -125,9 +126,7 @@ export function formatTokenValueForDisplay(
       return [w, style].filter(Boolean).join(' ') || 'Border';
     }
 
-    // Unknown object type — truncate JSON
-    const s = JSON.stringify(value);
-    return s.length > 50 ? `${s.slice(0, 50)}…` : s;
+    return truncateValueForDisplay(value, 50);
   }
 
   return String(value);

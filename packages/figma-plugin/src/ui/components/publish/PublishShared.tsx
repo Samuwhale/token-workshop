@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { swatchBgColor } from "../../shared/colorUtils";
 import { getDiffRowId } from "../../shared/syncWorkflow";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
+import { stringifyValueForDisplay } from "../../shared/utils";
 
 type TokenChange = import("../../hooks/useGitDiff").TokenChange;
 
@@ -57,7 +58,7 @@ function countTokenChanges(changes: TokenChange[]): TokenChangeCounts {
 }
 
 function stringifyTokenValue(value: unknown): string {
-  return typeof value === "string" ? value : JSON.stringify(value);
+  return stringifyValueForDisplay(value);
 }
 
 /* ── DiffSwatch ─────────────────────────────────────────────────────────── */

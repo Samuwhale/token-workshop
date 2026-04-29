@@ -60,6 +60,15 @@ export function describeError(err: unknown, operation?: string): string {
     : getErrorMessage(err, String(err));
 }
 
+export function stringifyValueForDisplay(value: unknown): string {
+  return typeof value === 'string' ? value : stableStringify(value);
+}
+
+export function truncateValueForDisplay(value: unknown, maxLength: number): string {
+  const text = stringifyValueForDisplay(value);
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');

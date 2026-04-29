@@ -23,12 +23,12 @@ import {
 export function resolveCompositeForApply(
   node: TokenNode,
   allTokensFlat: Record<string, TokenMapEntry>,
-): Record<string, any> {
+): Record<string, unknown> {
   const rawVal = isAlias(node.$value)
     ? resolveTokenValue(node.$value as string, 'composition', allTokensFlat).value
     : node.$value;
   const compObj = typeof rawVal === 'object' && rawVal !== null ? rawVal : {};
-  const resolvedComp: Record<string, any> = {};
+  const resolvedComp: Record<string, unknown> = {};
   for (const [prop, propVal] of Object.entries(compObj)) {
     if (isAlias(propVal)) {
       const r = resolveTokenValue(propVal as string, 'unknown', allTokensFlat);
@@ -45,7 +45,7 @@ export function resolveCompositeForApply(
 // ---------------------------------------------------------------------------
 
 /** Find alias refs in JSON text that don't resolve to any known token path. */
-export function validateJsonRefs(text: string, allTokensFlat: Record<string, any>): string[] {
+export function validateJsonRefs(text: string, allTokensFlat: Record<string, TokenMapEntry>): string[] {
   const broken: string[] = [];
   const seen = new Set<string>();
   const re = /"\{([^}]+)\}"/g;

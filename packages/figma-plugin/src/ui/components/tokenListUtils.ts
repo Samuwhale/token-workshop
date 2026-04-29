@@ -370,7 +370,7 @@ export function nodeParentPath(nodePath: string, nodeName: string): string {
 // Value formatting
 // ---------------------------------------------------------------------------
 
-export function formatValue(type?: string, value?: any): string {
+export function formatValue(type?: string, value?: unknown): string {
   return formatTokenValueForDisplay(type, value, { emptyPlaceholder: '' });
 }
 
@@ -751,8 +751,8 @@ export function buildZoomBranchNavigation(
   };
 }
 
-export function collectGroupLeaves(nodes: TokenNode[], groupPath: string): Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> {
-  const result: Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> = [];
+export function collectGroupLeaves(nodes: TokenNode[], groupPath: string): Array<{ path: string; data: { $type?: string; $value?: unknown; $description?: string } }> {
+  const result: Array<{ path: string; data: { $type?: string; $value?: unknown; $description?: string } }> = [];
   const walk = (list: TokenNode[]) => {
     for (const node of list) {
       if (!node.isGroup && (node.path === groupPath || node.path.startsWith(`${groupPath}.`))) {
@@ -765,7 +765,7 @@ export function collectGroupLeaves(nodes: TokenNode[], groupPath: string): Array
   return result;
 }
 
-export function getDefaultValue(type: string): any {
+export function getDefaultValue(type: string): unknown {
   switch (type) {
     case 'color': return '#000000';
     case 'dimension': return { value: 16, unit: 'px' };

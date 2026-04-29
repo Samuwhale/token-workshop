@@ -8,7 +8,7 @@ import { wcagContrast } from '../shared/colorUtils';
 
 interface ContrastCheckerProps {
   tokenPath: string;
-  value: any;
+  value: unknown;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   colorFlatMap: Record<string, unknown>;
