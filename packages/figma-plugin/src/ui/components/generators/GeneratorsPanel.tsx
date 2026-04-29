@@ -40,7 +40,6 @@ import {
   Plus,
   Save,
   Search,
-  Settings2,
   Sparkles,
   Trash2,
   Workflow,
@@ -437,7 +436,6 @@ export function GeneratorsPanel({
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
-  const [overviewPanelOpen, setOverviewPanelOpen] = useState(false);
   const [floatingPreviewOpen, setFloatingPreviewOpen] = useState(true);
   const [floatingPreviewCollapsed, setFloatingPreviewCollapsed] =
     useState(false);
@@ -2059,13 +2057,12 @@ export function GeneratorsPanel({
 
   useEffect(() => {
     if (!compactGenerators) {
-      setOverviewPanelOpen(false);
       setGeneratorListOpen(false);
       setActionsMenuOpen(false);
       return;
     }
     if (editorMode === "graph") {
-      setOverviewPanelOpen(false);
+      setActionsMenuOpen(false);
     } else {
       setNodeLibraryOpen(false);
       setInspectorOpen(false);
@@ -2489,7 +2486,6 @@ export function GeneratorsPanel({
         onChangeStructuredDraft={updateStructuredDraft}
         onEditGraph={() => {
           setEditorMode("graph");
-          setOverviewPanelOpen(false);
         }}
         onFocusGraphIssue={focusGraphIssue}
         showHeader={showHeader}
@@ -2519,18 +2515,13 @@ export function GeneratorsPanel({
     if (!activeGenerator) return null;
     if (compactGenerators) {
       return (
-        <div className="relative h-full min-h-0 overflow-hidden">
-          <section className="h-full min-w-0 overflow-auto p-3">
+        <div className="h-full min-h-0 overflow-auto">
+          <section className="min-w-0 p-3 pb-4">
+            {renderOverviewSummary()}
+          </section>
+          <section className="min-w-0 px-3 pb-4">
             {renderPreviewPanel()}
           </section>
-          {overviewPanelOpen ? (
-            <GeneratorOverlayPanel
-              title="Overview settings"
-              onClose={() => setOverviewPanelOpen(false)}
-            >
-              <section className="p-3">{renderOverviewSummary(false)}</section>
-            </GeneratorOverlayPanel>
-          ) : null}
         </div>
       );
     }
@@ -2555,7 +2546,6 @@ export function GeneratorsPanel({
         onClick={() => {
           setGeneratorListOpen(true);
           setActionsMenuOpen(false);
-          setOverviewPanelOpen(false);
           setNodeLibraryOpen(false);
           setInspectorOpen(false);
         }}
@@ -2585,7 +2575,6 @@ export function GeneratorsPanel({
     if (compactGenerators) {
       suppressedViewportCommitCountRef.current += 4;
     }
-    setOverviewPanelOpen(false);
   };
 
   const renderViewControl = () => (
@@ -2745,20 +2734,7 @@ export function GeneratorsPanel({
           : "ml-auto flex min-w-0 items-center gap-1"
       }
     >
-      {editorMode === "overview" && compact ? (
-        <IconButton
-          title="Overview settings"
-          aria-label="Overview settings"
-          onClick={() => {
-            setOverviewPanelOpen((open) => !open);
-            setActionsMenuOpen(false);
-          }}
-          size="md"
-        >
-          <Settings2 size={14} />
-        </IconButton>
-      ) : null}
-      {editorMode === "graph" && !compact ? (
+      {editorMode === "graph" ? (
         <>
           <IconButton
             title={nodeLibraryOpen ? "Hide node library" : "Add node"}
@@ -2848,7 +2824,7 @@ export function GeneratorsPanel({
           </span>
         </Button>
       ) : null}
-      {editorMode === "graph" && !floatingPreviewOpen ? (
+      {editorMode === "graph" && !floatingPreviewOpen && !compact ? (
         <Button
           title="Show floating output preview"
           aria-label="Show floating output preview"
@@ -2879,7 +2855,7 @@ export function GeneratorsPanel({
         size="sm"
       >
         <Sparkles size={14} />
-        <span className={compact ? "" : "max-[760px]:sr-only"}>Apply</span>
+        <span className={compact ? "max-[380px]:sr-only" : "max-[760px]:sr-only"}>Apply</span>
       </Button>
       {compact ? (
         <div className="relative">
@@ -3003,13 +2979,15 @@ export function GeneratorsPanel({
             {activeGenerator ? (
               compactGenerators ? (
                 <div className="flex shrink-0 flex-col gap-2 border-b border-[var(--color-figma-border)] px-2 py-2">
-                  <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex min-w-0 items-center">
                     {renderGeneratorSelector()}
-                    {renderStatusIndicator(true)}
                   </div>
                   <div className="flex min-w-0 items-center gap-2">
                     <div className="min-w-0 flex-1">{renderViewControl()}</div>
                     {renderGeneratorActions(true)}
+                  </div>
+                  <div className="flex min-h-5 min-w-0 items-center">
+                    {renderStatusIndicator(true)}
                   </div>
                 </div>
               ) : (
@@ -3392,6 +3370,14 @@ function GraphContextMenu({
     menu.kind === "connect-from-output" ||
     menu.kind === "connect-to-input" ||
     menu.kind === "edge-insert";
+  const menuLeft =
+    typeof window === "undefined"
+      ? menu.x
+      : Math.min(Math.max(8, menu.x), Math.max(8, window.innerWidth - 268));
+  const menuTop =
+    typeof window === "undefined"
+      ? menu.y
+      : Math.min(Math.max(8, menu.y), Math.max(8, window.innerHeight - 320));
 
   return (
     <>
@@ -3402,8 +3388,8 @@ function GraphContextMenu({
         onClick={onClose}
       />
       <div
-        className="fixed z-30 w-[260px] overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
-        style={{ left: menu.x, top: menu.y }}
+        className="fixed z-30 w-[260px] max-w-[calc(100vw_-_16px)] overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
+        style={{ left: menuLeft, top: menuTop }}
         onClick={(event) => event.stopPropagation()}
         onContextMenu={(event) => event.preventDefault()}
       >
@@ -3951,7 +3937,7 @@ function GeneratorDockedPanel({
     <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex justify-end p-2">
       <aside
         className="pointer-events-auto flex h-full flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
-        style={{ width: "min(360px, calc(100% - 56px))" }}
+        style={{ width: "min(360px, calc(100% - 16px))" }}
         onClick={(event) => event.stopPropagation()}
         onContextMenu={(event) => event.stopPropagation()}
       >
@@ -4014,7 +4000,7 @@ function GeneratorOverviewSummary({
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-                Generator settings
+                Settings
               </h3>
               <button
                 type="button"
@@ -4022,7 +4008,7 @@ function GeneratorOverviewSummary({
                 className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 <Workflow size={13} />
-                Edit nodes
+                Edit graph
               </button>
             </div>
           </section>
@@ -4053,7 +4039,7 @@ function GeneratorOverviewSummary({
           ) : (
             <div className="space-y-1 py-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
               <div>
-                Custom generator with {generator.nodes.length}{" "}
+                Custom graph with {generator.nodes.length}{" "}
                 {generator.nodes.length === 1 ? "node" : "nodes"} and{" "}
                 {generator.edges.length}{" "}
                 {generator.edges.length === 1 ? "connection" : "connections"}.
@@ -4064,7 +4050,7 @@ function GeneratorOverviewSummary({
                 className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 <Workflow size={13} />
-                Edit nodes
+                Edit graph
               </button>
             </div>
           )}
@@ -4220,7 +4206,7 @@ function StructuredGeneratorSettings({
       </label>
 
       <GeneratorPathField
-        label="Series path"
+        label="Output group"
         value={draft.outputPrefix}
         series
         onChange={(outputPrefix) => onChange({ outputPrefix })}
