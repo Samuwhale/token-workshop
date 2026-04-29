@@ -221,11 +221,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         for (const col of cols) {
           for (const mode of col.modes) {
             const key = modeKey(col.name, mode.modeId);
-            names[key] = defaultCollectionName(
-              col.name,
-              mode.modeName,
-              col.modes.length,
-            );
+            names[key] = defaultCollectionName(col.name);
             enabled[key] = true;
           }
         }

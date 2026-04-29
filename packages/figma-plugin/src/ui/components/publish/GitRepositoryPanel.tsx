@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Spinner } from '../Spinner';
 import { useGitSync } from '../../hooks/useGitSync';
-import { swatchBgColor } from '../../shared/colorUtils';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { GitSubPanel } from './GitSubPanel';
 import { GitCommitsSource } from '../history/GitCommitsSource';
@@ -9,6 +8,7 @@ import { CommitCompareView } from '../history/CommitCompareView';
 import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import { apiFetch } from '../../shared/apiFetch';
+import { TokenChangeRow } from './PublishShared';
 import type { CommitEntry, UndoSlot } from '../history/types';
 import type { GitPreview, TokenChange } from '../../hooks/useGitDiff';
 
@@ -608,7 +608,7 @@ function GitPreviewModal({
                           </button>
                           {isExpanded && (
                             <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] divide-y divide-[var(--color-figma-border)]">
-                              {allChanges.map(change => <ModalTokenChangeRow key={change.path} change={change} />)}
+                              {allChanges.map(change => <TokenChangeRow key={change.path} change={change} />)}
                             </div>
                           )}
                         </div>
@@ -750,7 +750,7 @@ function CommitPreviewModal({
                     </div>
                     {isExpanded && hasTokenChanges && (
                       <div className="bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
-                        {fileTokenChanges.map(item => <ModalTokenChangeRow key={`${item.path}-${item.status}`} change={item} />)}
+                        {fileTokenChanges.map(item => <TokenChangeRow key={`${item.path}-${item.status}`} change={item} />)}
                       </div>
                     )}
                   </div>
@@ -839,67 +839,5 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
         </div>
       </div>
     </div>
-  );
-}
-
-function ModalTokenChangeRow({ change }: { change: TokenChange }) {
-  const statusColor = change.status === 'added' ? 'text-[var(--color-figma-success)]' : change.status === 'removed' ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-warning)]';
-  const statusChar = change.status === 'added' ? '+' : change.status === 'removed' ? '−' : '~';
-  const valueToString = (value: unknown) => (typeof value === 'string' ? value : JSON.stringify(value));
-  const isColor = change.type === 'color';
-  const beforeValue = change.before != null ? valueToString(change.before) : undefined;
-  const afterValue = change.after != null ? valueToString(change.after) : undefined;
-
-  return (
-    <div className="px-3 py-1">
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span className={`text-secondary font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
-        <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate" title={change.path}>{change.path}</span>
-      </div>
-      {change.status === 'modified' && (
-        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-secondary font-mono">
-          <div className="flex items-center gap-1 min-w-0">
-            <span className="text-[var(--color-figma-error)] shrink-0 w-3">−</span>
-            {isColor && isHexColor(beforeValue) && <DiffSwatch hex={beforeValue} />}
-            <span className="text-[var(--color-figma-text-secondary)] truncate" title={beforeValue}>{truncateValue(beforeValue ?? '', 40)}</span>
-          </div>
-          <div className="flex items-center gap-1 min-w-0">
-            <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
-            {isColor && isHexColor(afterValue) && <DiffSwatch hex={afterValue} />}
-            <span className="text-[var(--color-figma-text)] truncate" title={afterValue}>{truncateValue(afterValue ?? '', 40)}</span>
-          </div>
-        </div>
-      )}
-      {change.status === 'added' && afterValue !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
-          {isColor && isHexColor(afterValue) && <DiffSwatch hex={afterValue} />}
-          <span className="text-[var(--color-figma-text-secondary)] truncate" title={afterValue}>{truncateValue(afterValue, 40)}</span>
-        </div>
-      )}
-      {change.status === 'removed' && beforeValue !== undefined && (
-        <div className="ml-4 mt-0.5 flex items-center gap-1 text-secondary font-mono min-w-0">
-          {isColor && isHexColor(beforeValue) && <DiffSwatch hex={beforeValue} />}
-          <span className="text-[var(--color-figma-text-secondary)] line-through truncate" title={beforeValue}>{truncateValue(beforeValue, 40)}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function truncateValue(value: string, max = 24): string {
-  return value.length > max ? `${value.slice(0, max)}…` : value;
-}
-
-function isHexColor(value: string | undefined): value is string {
-  return typeof value === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(value);
-}
-
-function DiffSwatch({ hex }: { hex: string }) {
-  return (
-    <span
-      className="inline-block w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0 align-middle"
-      style={{ backgroundColor: swatchBgColor(hex) }}
-      aria-hidden="true"
-    />
   );
 }

@@ -3,12 +3,12 @@
 export interface ImportToken {
   path: string;
   $type: string;
-  $value: any;
+  $value: unknown;
   collection?: string;
   _warning?: string;
   $description?: string;
   $scopes?: string[];
-  $extensions?: Record<string, any>;
+  $extensions?: Record<string, unknown>;
 }
 
 export interface ModeData {
@@ -209,11 +209,7 @@ export function markDuplicatePaths(importTokens: ImportToken[]): ImportToken[] {
   });
 }
 
-export function defaultCollectionName(
-  collectionName: string,
-  _modeName: string,
-  _totalModes: number,
-): string {
+export function defaultCollectionName(collectionName: string): string {
   return slugify(collectionName);
 }
 

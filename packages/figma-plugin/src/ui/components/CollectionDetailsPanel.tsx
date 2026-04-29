@@ -273,7 +273,7 @@ function ModeRow({
       >
         {modeName}
       </button>
-      {connected && allModeNames.length > 1 ? (
+      {connected ? (
         <div className="tm-collection-details__mode-actions">
           <IconButton
             size="sm"
@@ -307,7 +307,7 @@ function ModeRow({
             size="sm"
             tone="danger"
             onClick={() => setConfirmingDelete(true)}
-            disabled={saving}
+            disabled={allModeNames.length <= 1 || saving}
             aria-label="Delete mode"
           >
             <X size={10} strokeWidth={2} aria-hidden />

@@ -474,11 +474,7 @@ function buildCollectionImportPlans(
 
       const collectionId = (
         modeCollectionNames[key] ??
-        defaultCollectionName(
-          collection.name,
-          mode.modeName,
-          collection.modes.length,
-        )
+        defaultCollectionName(collection.name)
       ).trim();
       const sourceLabel = buildCollectionImportSourceLabel(
         collection.name,
@@ -979,11 +975,7 @@ export function ImportPanelProvider({
       for (const collection of importCollectionData) {
         for (const mode of collection.modes) {
           const key = modeKey(collection.name, mode.modeId);
-          const defaultName = defaultCollectionName(
-            collection.name,
-            mode.modeName,
-            collection.modes.length,
-          );
+          const defaultName = defaultCollectionName(collection.name);
           const currentName = previousNames[key]?.trim() ?? "";
           const exactMatch =
             collectionsHook.collectionIds.includes(collection.name)
@@ -1681,11 +1673,7 @@ export function ImportPanelProvider({
           }
           const candidate = (
             src.modeCollectionNames[key] ??
-            defaultCollectionName(
-              collection.name,
-              mode.modeName,
-              collection.modes.length,
-            )
+            defaultCollectionName(collection.name)
           ).trim();
           return !candidate || !COLLECTION_NAME_RE.test(candidate);
         }),

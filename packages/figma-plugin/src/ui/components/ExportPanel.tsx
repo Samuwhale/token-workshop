@@ -11,6 +11,7 @@ import { PlatformExportConfig } from './PlatformExportConfig';
 import { ExportFooter } from './ExportFooter';
 import { ExportPreviewModal } from './ExportPreviewModal';
 import { InlineBanner } from './InlineBanner';
+import { SecondaryPanel } from './SecondaryPanel';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -149,75 +150,78 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   return (
     <>
-      <div className="tm-secondary-panel h-full">
-        <div className="tm-secondary-panel__header">
-          <div className="tm-secondary-panel__header-copy">
-            <h2 className="tm-secondary-panel__title">Export files</h2>
-            <p className="tm-secondary-panel__description">
-              Generate platform token files for apps, web, and developer handoff.
-            </p>
-          </div>
-          <div className="tm-secondary-panel__actions">
-            <PanelHelpIcon panelKey="export" title="Export" expanded={help.expanded} onToggle={help.toggle} />
-          </div>
-        </div>
-        {help.expanded && (
-          <PanelHelpBanner
+      <SecondaryPanel
+        title="Export files"
+        description="Generate platform token files for apps, web, and developer handoff."
+        className="h-full"
+        bodyClassName="gap-4"
+        actions={
+          <PanelHelpIcon
+            panelKey="export"
             title="Export"
-            description="Generate platform token files — CSS, Dart, Swift, Android, JSON."
-            onDismiss={help.dismiss}
+            expanded={help.expanded}
+            onToggle={help.toggle}
           />
-        )}
-        <div className="tm-secondary-panel__body gap-4">
-          {error && (
-            <InlineBanner variant="error">
-              {error}
-            </InlineBanner>
-          )}
-
-          <PlatformExportConfig
-            platformConfig={platformConfig}
-            diffState={diffState}
-            presetsState={presetsState}
+        }
+        beforeBody={
+          help.expanded ? (
+            <PanelHelpBanner
+              title="Export"
+              description="Generate platform token files — CSS, Dart, Swift, Android, JSON."
+              onDismiss={help.dismiss}
+            />
+          ) : null
+        }
+        footer={
+          <ExportFooter
+            mode="platforms"
+            connected={connected}
+            changesOnly={diffState.changesOnly}
+            setChangesOnly={diffState.setChangesOnly}
+            diffPaths={diffState.diffPaths}
+            diffLoading={diffState.diffLoading}
+            isGitRepo={diffState.isGitRepo}
+            lastExportTimestamp={diffState.lastExportTimestamp}
+            fetchDiff={diffState.fetchDiff}
+            fetchDiffSince={diffState.fetchDiffSince}
             results={exportResults.results}
             exporting={exportResults.exporting}
-            previewFileIndex={exportResults.previewFileIndex}
-            setPreviewFileIndex={exportResults.setPreviewFileIndex}
-            copiedFile={exportResults.copiedFile}
+            selected={platformConfig.selected}
+            selectedCollections={platformConfig.selectedCollections}
+            zipProgress={exportResults.zipProgress}
             handleExport={exportResults.handleExport}
-            handleDownloadFile={exportResults.handleDownloadFile}
-            handleCopyFile={exportResults.handleCopyFile}
-            onSavePreset={handleSavePreset}
-            onLoadPreset={handleLoadPreset}
-            onLoadPresetFiltersOnly={handleLoadPresetFiltersOnly}
-            onDeletePreset={handleDeletePreset}
-            collectionIds={collectionIds}
-            connected={connected}
-            savePresetInputRef={savePresetInputRef}
+            handleCopyAllPlatformResults={exportResults.handleCopyAllPlatformResults}
+            handleDownloadZip={exportResults.handleDownloadZip}
           />
-        </div>
+        }
+      >
+        {error && (
+          <InlineBanner variant="error">
+            {error}
+          </InlineBanner>
+        )}
 
-        <ExportFooter
-          mode="platforms"
-          connected={connected}
-          changesOnly={diffState.changesOnly}
-          setChangesOnly={diffState.setChangesOnly}
-          diffPaths={diffState.diffPaths}
-          diffLoading={diffState.diffLoading}
-          isGitRepo={diffState.isGitRepo}
-          lastExportTimestamp={diffState.lastExportTimestamp}
-          fetchDiff={diffState.fetchDiff}
-          fetchDiffSince={diffState.fetchDiffSince}
+        <PlatformExportConfig
+          platformConfig={platformConfig}
+          diffState={diffState}
+          presetsState={presetsState}
           results={exportResults.results}
           exporting={exportResults.exporting}
-          selected={platformConfig.selected}
-          selectedCollections={platformConfig.selectedCollections}
-          zipProgress={exportResults.zipProgress}
+          previewFileIndex={exportResults.previewFileIndex}
+          setPreviewFileIndex={exportResults.setPreviewFileIndex}
+          copiedFile={exportResults.copiedFile}
           handleExport={exportResults.handleExport}
-          handleCopyAllPlatformResults={exportResults.handleCopyAllPlatformResults}
-          handleDownloadZip={exportResults.handleDownloadZip}
+          handleDownloadFile={exportResults.handleDownloadFile}
+          handleCopyFile={exportResults.handleCopyFile}
+          onSavePreset={handleSavePreset}
+          onLoadPreset={handleLoadPreset}
+          onLoadPresetFiltersOnly={handleLoadPresetFiltersOnly}
+          onDeletePreset={handleDeletePreset}
+          collectionIds={collectionIds}
+          connected={connected}
+          savePresetInputRef={savePresetInputRef}
         />
-      </div>
+      </SecondaryPanel>
 
       {/* Delete preset confirmation */}
       {presetsState.pendingDeletePresetId && presetsState.presets.find(p => p.id === presetsState.pendingDeletePresetId) && (

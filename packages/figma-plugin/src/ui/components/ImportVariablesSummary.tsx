@@ -55,11 +55,7 @@ export function ImportVariablesSummary() {
     });
     const tokenCount = enabledModes.reduce((sum, m) => sum + m.tokens.length, 0);
     const firstModeKey = modeKey(col.name, col.modes[0]?.modeId ?? '');
-    const suggestedDestination = defaultCollectionName(
-      col.name,
-      col.modes[0]?.modeName ?? '',
-      col.modes.length,
-    );
+    const suggestedDestination = defaultCollectionName(col.name);
     const explicitDestination = modeCollectionNames[firstModeKey]?.trim() ?? '';
     const exactMatchDestination =
       collectionIds.includes(col.name)
