@@ -11,6 +11,7 @@ import {
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { NoticeBanner } from "../shared/noticeSystem";
 import { QuickStartWizard } from "./QuickStartWizard";
+import type { CreateCollectionRequest } from "./CollectionCreateDialog";
 
 export type StartHereBranch = "root" | "start-new";
 
@@ -47,6 +48,7 @@ interface WelcomePromptProps {
   onImportExistingSystem: () => void;
   onStartFromSelection: () => void;
   onAuthorFirstToken?: () => void;
+  onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   onGuidedSetupComplete: () => void;
   onCollectionCreated?: (name: string) => void;
 }
@@ -128,6 +130,7 @@ export function WelcomePrompt({
   onImportExistingSystem,
   onStartFromSelection,
   onAuthorFirstToken,
+  onCreateCollection,
   onGuidedSetupComplete,
   onCollectionCreated,
 }: WelcomePromptProps) {
@@ -271,6 +274,7 @@ export function WelcomePrompt({
                 onCollectionCreated={onCollectionCreated}
                 onRetryConnection={onRetryConnection}
                 onAuthorFirstToken={onAuthorFirstToken}
+                onCreateCollection={onCreateCollection}
               />
             </div>
           )}

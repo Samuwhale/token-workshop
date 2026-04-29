@@ -77,7 +77,8 @@ function MenuItem({
   return (
     <button
       type="button"
-      role="menuitem"
+      role={checked !== undefined ? "menuitemcheckbox" : "menuitem"}
+      aria-checked={checked}
       onClick={onClick}
       disabled={disabled}
       className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary transition-colors disabled:opacity-40 ${
@@ -161,6 +162,7 @@ export function FilterMenu(
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Filter options"
+        aria-pressed={props.activeCount > 0}
         className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
           open || props.activeCount > 0
             ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"

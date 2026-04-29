@@ -1,10 +1,20 @@
-import { useState, memo } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
 
+function formatCustomValue(value: unknown): string {
+  return typeof value === 'object' && value !== null
+    ? JSON.stringify(value, null, 2)
+    : String(value ?? '');
+}
+
 export const CustomEditor = memo(function CustomEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-  const isObj = typeof value === 'object' && value !== null;
-  const [text, setText] = useState(() => isObj ? JSON.stringify(value, null, 2) : String(value ?? ''));
+  const [text, setText] = useState(() => formatCustomValue(value));
   const [parseError, setParseError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setText(formatCustomValue(value));
+    setParseError(null);
+  }, [value]);
 
   const commit = (raw: string) => {
     try {

@@ -737,6 +737,7 @@ export const TokenLeafNode = memo(
         <div
           role="treeitem"
           aria-level={depth + 1}
+          aria-selected={isSelected}
           style={{ display: "grid", gridTemplateColumns: gridTemplate }}
           className={`relative items-stretch py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group token-row-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${rowStateClass} ${boundAccentClass}`}
           data-roving-focus={rovingFocusPath === node.path || undefined}

@@ -6,7 +6,6 @@ import { swatchBgColor } from '../shared/colorUtils';
 import type { CommandPaletteToken } from '../shared/commandPaletteTokens';
 import {
   parseStructuredQuery,
-  QUERY_QUALIFIERS,
   getQualifierCompletions,
   tokenMatchesScopeCategories,
 } from './tokenListUtils';
@@ -158,7 +157,6 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
   const [query, setQuery] = useState(initialQuery);
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
-  const [showAllQualifiers, setShowAllQualifiers] = useState(false);
   const [searchAllCollections, setSearchAllSets] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
@@ -393,6 +391,12 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
+  const openTokenQuery = (nextQuery: string) => {
+    setQuery(nextQuery);
+    setShowHelp(false);
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
   const executeCommand = (cmd: Command) => {
     saveRecent({ id: cmd.id, label: cmd.label });
     cmd.handler();
@@ -466,8 +470,8 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isTokenMode
-              ? (searchAllCollections ? 'Search all collections… (type:color, has:ref, path:brand)' : 'Search tokens… (type:color, has:ref, path:brand)')
-              : 'Search expert actions… (type > for tokens)'}
+              ? (searchAllCollections ? 'Search all collections' : 'Search tokens')
+              : 'Search actions or type > for tokens'}
             aria-label="Search commands"
             aria-autocomplete="list"
             className="min-w-0 flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-subheading text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
@@ -488,6 +492,19 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
               ?
             </button>
           )}
+          {isTokenMode && allCollectionTokens && (
+            <button
+              className={`text-secondary shrink-0 rounded px-1.5 py-0.5 transition-colors ${
+                searchAllCollections
+                  ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
+                  : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]'
+              }`}
+              onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
+              title={searchAllCollections ? 'Searching across all collections' : 'Search only the working collection'}
+            >
+              {searchAllCollections ? 'All collections' : 'This collection'}
+            </button>
+          )}
           {copiedLabel ? (
             <span className="text-secondary font-medium text-[color:var(--color-figma-text-success)] bg-[var(--color-figma-success)]/10 rounded px-1.5 py-0.5 shrink-0 flex items-center gap-1">
               <svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5"/></svg>
@@ -499,49 +516,6 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             </kbd>
           )}
         </div>
-
-        {!isTokenMode && !query.trim() && (
-          <div className="px-3 py-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            Power-user actions live here. Use the workspace tabs and Utilities menu for regular navigation.
-          </div>
-        )}
-
-        {/* Qualifier hint chips — persistent reference row */}
-        {isTokenMode && (
-          <div className="px-3 py-1 flex gap-1.5 flex-wrap items-center">
-            <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0 self-center opacity-60 mr-0.5">filters:</span>
-            {(showAllQualifiers ? QUERY_QUALIFIERS : QUERY_QUALIFIERS.slice(0, 6)).map(q => (
-              <button
-                key={q.qualifier}
-                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0"
-                onClick={() => setQuery('>' + q.qualifier + (q.qualifier.endsWith(':') ? '' : ' '))}
-                title={q.desc}
-              >
-                {q.qualifier}{q.example ? q.example.slice(q.qualifier.length) : ''}
-              </button>
-            ))}
-            <button
-              className="text-secondary px-1.5 py-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors shrink-0 opacity-60 hover:opacity-100"
-              onClick={() => setShowAllQualifiers(v => !v)}
-              title={showAllQualifiers ? 'Show fewer qualifiers' : `Show all ${QUERY_QUALIFIERS.length} qualifiers`}
-            >
-              {showAllQualifiers ? 'fewer' : `+${QUERY_QUALIFIERS.length - 6} more`}
-            </button>
-            {allCollectionTokens && (
-              <button
-                className={`ml-auto text-secondary px-1.5 py-0.5 rounded border transition-colors shrink-0 font-medium ${
-                  searchAllCollections
-                    ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
-                    : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-                onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
-                title={searchAllCollections ? 'Searching across collections — click to search only the working collection' : 'Search across all token collections'}
-              >
-                {searchAllCollections ? 'Across collections' : 'Working collection only'}
-              </button>
-            )}
-          </div>
-        )}
 
         {/* Filter syntax cheatsheet — toggled by ? button or ? key */}
         {isTokenMode && showHelp && (
@@ -555,67 +529,29 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                 close
               </button>
             </div>
-            {/* Group: type & value */}
-            <div className="mb-2">
-              <div className="mb-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] opacity-60">Type &amp; content</div>
+            <div className="grid gap-1.5">
               {[
-                { qual: 'type:color', desc: 'Filter by token type (color, dimension, number, string…)', insert: '>type:' },
-                { qual: 'value:#ff0000', desc: 'Tokens whose value contains the given string', insert: '>value:' },
-                { qual: 'desc:primary', desc: 'Tokens whose description contains the given string', insert: '>desc:' },
+                { qual: 'type:color', desc: 'Filter by token type.', insert: '>type:' },
+                { qual: 'path:brand', desc: 'Match a path prefix or segment.', insert: '>path:' },
+                { qual: 'name:500', desc: 'Match only the leaf token name.', insert: '>name:' },
+                { qual: 'value:#ff0000', desc: 'Find matching values.', insert: '>value:' },
+                { qual: 'has:alias', desc: 'Show references only.', insert: '>has:alias ' },
+                { qual: 'group:colors', desc: 'Jump straight to a group.', insert: '>group:' },
               ].map(({ qual, desc, insert }) => (
                 <button
                   key={qual}
-                  className="w-full text-left flex items-center gap-2 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
+                  className="flex min-w-0 items-center gap-2 rounded px-1.5 py-1 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                   onMouseDown={e => e.preventDefault()}
-                  onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
+                  onClick={() => openTokenQuery(insert)}
                 >
-                  <code className="text-secondary text-[color:var(--color-figma-text-accent)] font-mono shrink-0 w-28">{qual}</code>
-                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)]">{desc}</span>
+                  <code className="min-w-[96px] shrink-0 font-mono text-[color:var(--color-figma-text-accent)]">
+                    {qual}
+                  </code>
+                  <span className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                    {desc}
+                  </span>
                 </button>
               ))}
-            </div>
-            {/* Group: path & name */}
-            <div className="mb-2">
-              <div className="mb-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] opacity-60">Path &amp; name</div>
-              {[
-                { qual: 'path:colors.brand', desc: 'Tokens whose path starts with the given prefix', insert: '>path:' },
-                { qual: 'name:500', desc: 'Tokens whose leaf name contains the given string', insert: '>name:' },
-                { qual: 'group:colors', desc: 'Navigate directly to a token group', insert: '>group:' },
-              ].map(({ qual, desc, insert }) => (
-                <button
-                  key={qual}
-                  className="w-full text-left flex items-center gap-2 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => { setQuery(insert); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
-                >
-                  <code className="text-secondary text-[color:var(--color-figma-text-accent)] font-mono shrink-0 w-28">{qual}</code>
-                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)]">{desc}</span>
-                </button>
-              ))}
-            </div>
-            {/* Group: has: */}
-            <div className="mb-1.5">
-              <div className="mb-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] opacity-60">Presence filters (has:)</div>
-              <div className="grid grid-cols-2 gap-x-3">
-                {[
-                  { val: 'alias', desc: 'Reference tokens only' },
-                  { val: 'direct', desc: 'Direct-value tokens only' },
-                  { val: 'duplicate', desc: 'Tokens sharing a value' },
-                  { val: 'description', desc: 'Tokens with a description' },
-                  { val: 'extension', desc: 'Tokens with extensions' },
-                  { val: 'unused', desc: 'No Figma usage or dependents' },
-                ].map(({ val, desc }) => (
-                  <button
-                    key={val}
-                    className="text-left flex items-center gap-1.5 py-0.5 group/row hover:bg-[var(--color-figma-bg-hover)] rounded px-1 -mx-1"
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => { setQuery(`>has:${val} `); setShowHelp(false); setTimeout(() => inputRef.current?.focus(), 0); }}
-                  >
-                    <code className="text-secondary text-[color:var(--color-figma-text-accent)] font-mono shrink-0">has:{val}</code>
-                    <span className="text-secondary text-[color:var(--color-figma-text-secondary)] group-hover/row:text-[color:var(--color-figma-text)] truncate">{desc}</span>
-                  </button>
-                ))}
-              </div>
             </div>
             <div className="mt-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
               Combine qualifiers: <code className="font-mono">type:color has:alias path:brand</code>
@@ -664,24 +600,13 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   {tokenQuery
                     ? `No tokens or groups match "${tokenQuery}"${!searchAllCollections && allCollectionTokens ? ' in this collection' : ''}`
                     : <>
-                        Type a token path to search{searchAllCollections ? ' across all collections' : ''}
-                        <div className="mt-1.5 flex flex-col items-center gap-1">
-                          <div className="flex gap-1.5 flex-wrap justify-center">
-                            {['type:', 'has:alias', 'value:', 'path:', 'name:'].map(q => (
-                              <button
-                                key={q}
-                                className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors font-mono"
-                                onClick={() => { setQuery('>' + q); setTimeout(() => inputRef.current?.focus(), 0); }}
-                              >
-                                {q}
-                              </button>
-                            ))}
-                          </div>
+                        Type a token path or open filter help.
+                        <div className="mt-1.5">
                           <button
-                            className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline opacity-70 hover:opacity-100"
+                            className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
                             onClick={() => setShowHelp(true)}
                           >
-                            see all filters
+                            Show token filters
                           </button>
                         </div>
                       </>
@@ -1078,10 +1003,13 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             <>
               <span className="whitespace-nowrap">↑↓ navigate</span>
               <span className="whitespace-nowrap">↵ go to token/group</span>
-              {searchAllCollections
-                ? <span className="whitespace-nowrap text-[color:var(--color-figma-text-accent)] opacity-80">searching all collections</span>
-                : <button className="min-w-0 truncate opacity-60 hover:opacity-100 hover:text-[color:var(--color-figma-text-accent)] transition-colors" onClick={() => setShowHelp(v => !v)} title="Toggle filter syntax help">type: has: value: path: name: group: <span className="opacity-60">(?)</span></button>
-              }
+              <button
+                className="min-w-0 truncate opacity-70 transition-colors hover:opacity-100 hover:text-[color:var(--color-figma-text-accent)]"
+                onClick={() => setShowHelp(v => !v)}
+                title="Toggle token filter help"
+              >
+                ? filters
+              </button>
               <span className="whitespace-nowrap">ESC close</span>
             </>
           ) : (

@@ -160,7 +160,6 @@ export function App() {
     collectionDescriptions,
     refreshCollections: refreshTokens,
     syncCollectionSummariesToState,
-    addCollectionToState,
     removeCollectionFromState,
     renameCollectionInState,
     updateCollectionMetadataInState,
@@ -2353,8 +2352,8 @@ export function App() {
               refreshAll();
             });
           }}
+          onCreateCollection={createCollectionByName}
           onCollectionCreated={(name) => {
-            void addCollectionToState(name);
             setCurrentCollectionId(name);
           }}
         />

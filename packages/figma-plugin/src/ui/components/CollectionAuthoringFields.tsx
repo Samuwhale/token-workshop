@@ -79,6 +79,10 @@ export function CollectionAuthoringFields({
   onAddMode,
   onRemoveMode,
 }: CollectionAuthoringFieldsProps) {
+  const normalizedModes = draft.modeNames.map((modeName) =>
+    modeName.trim().toLocaleLowerCase(),
+  );
+
   return (
     <div className="flex flex-col gap-3">
       <label className="flex flex-col gap-1">
@@ -90,7 +94,7 @@ export function CollectionAuthoringFields({
           type="text"
           value={draft.name}
           onChange={(event) => onNameChange(event.target.value)}
-          placeholder="primitives"
+          placeholder="colors"
           disabled={pending}
           className={COLLECTION_INPUT_CLASS}
         />
@@ -117,17 +121,30 @@ export function CollectionAuthoringFields({
 
         {onModeNamesChange ? (
           <div className="flex flex-wrap gap-1.5" aria-label="Mode starters">
-            {MODE_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => onModeNamesChange(preset.modes)}
-                disabled={pending}
-                className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
-              >
-                {preset.label}
-              </button>
-            ))}
+            {MODE_PRESETS.map((preset) => {
+              const presetActive =
+                preset.modes.length === normalizedModes.length &&
+                preset.modes.every(
+                  (modeName, index) =>
+                    modeName.toLocaleLowerCase() === normalizedModes[index],
+                );
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => onModeNamesChange(preset.modes)}
+                  disabled={pending}
+                  aria-pressed={presetActive}
+                  className={`rounded border px-2 py-1 text-secondary transition-colors disabled:opacity-50 ${
+                    presetActive
+                      ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
+                      : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
           </div>
         ) : null}
 

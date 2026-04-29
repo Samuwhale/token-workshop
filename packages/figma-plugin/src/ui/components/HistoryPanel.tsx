@@ -35,6 +35,7 @@ export function HistoryPanel({
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [saveLabel, setSaveLabel] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savedViewRefreshKey, setSavedViewRefreshKey] = useState(0);
   const validWorkingCollectionId = collectionIds.includes(workingCollectionId)
     ? workingCollectionId
     : collectionIds[0] ?? null;
@@ -97,6 +98,7 @@ export function HistoryPanel({
       });
       setSaveLabel("");
       setShowSaveInput(false);
+      setSavedViewRefreshKey((key) => key + 1);
       dispatchToast(`Checkpoint "${label}" saved`, "success", { destination });
     } catch (err) {
       dispatchToast((err as Error).message || "Failed to save checkpoint", "error", { destination });
@@ -263,6 +265,7 @@ export function HistoryPanel({
             onRefreshTokens={onRefreshTokens}
             collectionFilter={activeCollectionFilter ?? undefined}
             filterTokenPath={scope.tokenPath ?? undefined}
+            refreshKey={savedViewRefreshKey}
           />
         )}
       </div>

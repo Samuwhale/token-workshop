@@ -453,8 +453,8 @@ export function getImportResultNextStepRecommendations(
     addRecommendation(
       createWorkspaceRecommendation(
         "library",
-        "tokens",
-        "Large import — review the new library structure first.",
+        "health",
+        "Large import — review library health before publishing.",
       ),
     );
   }
@@ -463,8 +463,8 @@ export function getImportResultNextStepRecommendations(
     addRecommendation(
       createWorkspaceRecommendation(
         "library",
-        "tokens",
-        "Review naming and grouping in the library.",
+        "health",
+        "Review naming, aliases, and unused tokens before publishing.",
       ),
     );
   }

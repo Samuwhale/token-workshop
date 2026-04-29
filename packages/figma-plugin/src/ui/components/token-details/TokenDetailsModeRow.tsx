@@ -7,6 +7,7 @@ import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ValuePreview } from "../ValuePreview";
 import { ModeValueEditor } from "../token-editor/ModeValueEditor";
 import { formatTokenValueForDisplay } from "../../shared/tokenFormatting";
+import { getDefaultValue } from "../tokenListUtils";
 import {
   buildTypographyPreviewStyle,
   getTypographyPreviewValue,
@@ -68,6 +69,12 @@ function resolveReadOnlyPresentation(
   };
 }
 
+function getInitialModeValue(tokenType: string): unknown {
+  if (tokenType === "string") return "Text";
+  if (tokenType === "asset") return "https://example.com/asset.png";
+  return getDefaultValue(tokenType);
+}
+
 export function TokenDetailsModeRow({
   modeName,
   tokenType,
@@ -112,6 +119,15 @@ export function TokenDetailsModeRow({
   }, [value]);
 
   const isEmpty = value === undefined || value === null || value === "";
+  const aliasStatusId = `mode-alias-status-${modeName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")}`;
+  const aliasQueryTrimmed = aliasQuery.trim();
+  const aliasTargetExists =
+    aliasQueryTrimmed.length === 0 || allTokensFlat[aliasQueryTrimmed] !== undefined;
+  const showAliasMissingState =
+    editable && aliasMode && aliasQueryTrimmed.length > 0 && !aliasTargetExists;
   const resolvedColorSwatch =
     tokenType === "color" && typeof value === "string"
       ? isAlias(value)
@@ -164,14 +180,16 @@ export function TokenDetailsModeRow({
     setAutocompleteOpen(false);
   };
 
-  const showHeader = showModeLabel || modified;
+  const showHeader = showModeLabel;
   const controls = editable ? (
     <div className="tm-token-mode-row__controls">
       <button
         type="button"
         onClick={handleAliasToggle}
+        aria-pressed={aliasMode}
         className={joinClasses(
           "tm-token-mode-row__action-button",
+          "tm-token-mode-row__action-button--icon",
           aliasMode && "tm-token-mode-row__action-button--active",
         )}
         title={aliasMode ? "Use a direct value for this mode" : "Reference another token for this mode"}
@@ -180,32 +198,32 @@ export function TokenDetailsModeRow({
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
-        <span className="tm-token-mode-row__action-label">
-          {aliasMode ? "Direct value" : "Reference"}
+        <span className="sr-only">
+          {aliasMode ? "Use direct value" : "Reference"}
         </span>
       </button>
       {allowCopyFromPrevious && onCopyFromPrevious ? (
         <button
           type="button"
           onClick={onCopyFromPrevious}
-          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
+          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--icon tm-token-mode-row__action-button--secondary"
           title="Copy from previous mode"
           aria-label="Copy from previous mode"
         >
           <Copy size={12} strokeWidth={1.5} aria-hidden />
-          <span className="tm-token-mode-row__action-label">Previous</span>
+          <span className="sr-only">Copy from previous mode</span>
         </button>
       ) : null}
       {allowCopyToAll && onCopyToAll ? (
         <button
           type="button"
           onClick={onCopyToAll}
-          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
+          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--icon tm-token-mode-row__action-button--secondary"
           title="Copy to all other modes"
           aria-label="Copy to all other modes"
         >
           <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-          <span className="tm-token-mode-row__action-label">All modes</span>
+          <span className="sr-only">Copy to all other modes</span>
         </button>
       ) : null}
     </div>
@@ -232,9 +250,16 @@ export function TokenDetailsModeRow({
             )}
             <div className="tm-token-mode-row__label">
               {showModeLabel ? (
-                <span className="tm-token-mode-row__name" title={modeName}>
-                  {modeName}
-                </span>
+                <div className="tm-token-mode-row__label-line">
+                  <span className="tm-token-mode-row__name" title={modeName}>
+                    {modeName}
+                  </span>
+                  {aliasMode ? (
+                    <span className="tm-token-mode-row__status-text">
+                      Reference
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </div>
@@ -269,7 +294,14 @@ export function TokenDetailsModeRow({
                 }}
                 autoFocus={autoFocus}
                 placeholder="Search tokens…"
-                className="tm-token-mode-row__alias-input w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]"
+                aria-invalid={showAliasMissingState}
+                aria-describedby={
+                  showAliasMissingState ? aliasStatusId : undefined
+                }
+                className={joinClasses(
+                  "tm-token-mode-row__alias-input w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]",
+                  showAliasMissingState && "tm-token-mode-row__alias-input--invalid",
+                )}
               />
               {autocompleteOpen && (
                 <AliasAutocomplete
@@ -281,7 +313,23 @@ export function TokenDetailsModeRow({
                   onClose={() => setAutocompleteOpen(false)}
                 />
               )}
+              {showAliasMissingState ? (
+                <p
+                  id={aliasStatusId}
+                  className="tm-token-mode-row__helper"
+                >
+                  No token matches this reference yet.
+                </p>
+              ) : null}
             </div>
+          ) : editable && isEmpty ? (
+            <button
+              type="button"
+              onClick={() => onChange?.(getInitialModeValue(tokenType))}
+              className="w-full rounded border border-dashed border-[var(--color-figma-border)] px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5"
+            >
+              Add value
+            </button>
           ) : editable ? (
             <ModeValueEditor
               tokenType={tokenType}
@@ -350,8 +398,17 @@ export function TokenDetailsModeRow({
           />
         )}
 
-        {!showHeader && controls ? (
-          <div className="tm-token-mode-row__inline-controls">{controls}</div>
+        {!showHeader && (controls || modified) ? (
+          <div className="tm-token-mode-row__inline-controls">
+            {modified ? (
+              <span
+                className="tm-token-mode-row__inline-status"
+                title="Modified"
+                aria-label="Modified"
+              />
+            ) : null}
+            {controls}
+          </div>
         ) : null}
       </div>
 

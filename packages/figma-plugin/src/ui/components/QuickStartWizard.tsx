@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
-import { apiFetch } from "../shared/apiFetch";
-import { getErrorMessage } from "../shared/utils";
+import { X } from "lucide-react";
 import {
   buildCollectionModeNames,
   CollectionAuthoringFields,
   type CollectionAuthoringDraft,
   validateCollectionAuthoringDraft,
 } from "./CollectionAuthoringFields";
+import type { CreateCollectionRequest } from "./CollectionCreateDialog";
 
 type PrereqPhase = "connect" | "create-collection" | null;
 const QUICK_START_TITLE = "Start a token library";
@@ -22,6 +22,7 @@ interface QuickStartWizardProps {
   onCollectionCreated?: (name: string) => void;
   onRetryConnection?: () => void;
   onAuthorFirstToken?: () => void;
+  onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   embedded?: boolean;
   onBack?: () => void;
 }
@@ -66,19 +67,19 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
           disabled={checking}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-60"
         >
-          {checking ? "Checking…" : "Retry Connection"}
+          {checking ? "Checking…" : "Retry connection"}
         </button>
       </div>
     </div>
   );
 }
 
-function CreateCollectionStep({ serverUrl, onCreated }: {
-  serverUrl: string;
+function CreateCollectionStep({ onCreateCollection, onCreated }: {
+  onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   onCreated: (name: string) => void;
 }) {
   const [draft, setDraft] = useState<CollectionAuthoringDraft>({
-    name: "primitives",
+    name: "colors",
     modeNames: ["Default"],
   });
   const [saving, setSaving] = useState(false);
@@ -94,23 +95,17 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
     setSaving(true);
     setError("");
     try {
-      await apiFetch(`${serverUrl}/api/collections`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: collectionName,
-          modes: buildCollectionModeNames(draft).map((modeName) => ({
-            name: modeName,
-          })),
-        }),
+      const createdCollectionId = await onCreateCollection({
+        name: collectionName,
+        modes: buildCollectionModeNames(draft),
       });
-      onCreated(collectionName);
+      onCreated(createdCollectionId);
     } catch (error) {
-      setError(getErrorMessage(error));
+      setError(error instanceof Error ? error.message : "Failed to create collection");
     } finally {
       setSaving(false);
     }
-  }, [draft, onCreated, serverUrl]);
+  }, [draft, onCreateCollection, onCreated]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -129,6 +124,10 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
         error={error}
         onNameChange={(value) => {
           setDraft((current) => ({ ...current, name: value }));
+          setError("");
+        }}
+        onModeNamesChange={(modeNames) => {
+          setDraft((current) => ({ ...current, modeNames }));
           setError("");
         }}
         onModeNameChange={(index, value) => {
@@ -162,7 +161,7 @@ function CreateCollectionStep({ serverUrl, onCreated }: {
         disabled={saving || !draft.name.trim()}
         className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
       >
-        {saving ? "Creating…" : "Create Collection"}
+        {saving ? "Creating…" : "Create collection"}
       </button>
     </div>
   );
@@ -190,9 +189,7 @@ function QuickStartShell({
             aria-label="Close"
             className="rounded p-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <X size={12} strokeWidth={2} aria-hidden />
           </button>
         </div>
       ) : null}
@@ -227,6 +224,7 @@ export function QuickStartWizard({
   onCollectionCreated,
   onRetryConnection,
   onAuthorFirstToken,
+  onCreateCollection,
   embedded = false,
   onBack,
 }: QuickStartWizardProps) {
@@ -267,7 +265,7 @@ export function QuickStartWizard({
             />
           ) : (
             <CreateCollectionStep
-              serverUrl={serverUrl}
+              onCreateCollection={onCreateCollection}
               onCreated={handleCollectionCreated}
             />
           )}

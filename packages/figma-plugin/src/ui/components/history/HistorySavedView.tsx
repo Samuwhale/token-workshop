@@ -17,6 +17,7 @@ export interface HistorySavedViewProps {
   onRefreshTokens?: () => void;
   collectionFilter?: string;
   filterTokenPath?: string;
+  refreshKey?: number;
 }
 
 export function HistorySavedView({
@@ -26,6 +27,7 @@ export function HistorySavedView({
   onRefreshTokens,
   collectionFilter,
   filterTokenPath,
+  refreshKey = 0,
 }: HistorySavedViewProps) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export function HistorySavedView({
     }
   }, [serverUrl, connected]);
 
-  useEffect(() => { fetchSnapshots(); }, [fetchSnapshots]);
+  useEffect(() => { fetchSnapshots(); }, [fetchSnapshots, refreshKey]);
 
   if (selectedSnapshotId) {
     return (

@@ -13,10 +13,16 @@
  *   getMenuItems(menuEl)[0]?.focus();
  */
 
-/** Returns all non-disabled [role="menuitem"] elements within a container. */
+const MENU_ITEM_SELECTOR = [
+  '[role="menuitem"]',
+  '[role="menuitemradio"]',
+  '[role="menuitemcheckbox"]',
+].join(", ");
+
+/** Returns all non-disabled ARIA menu items within a container. */
 export function getMenuItems(container: HTMLElement): HTMLElement[] {
   return Array.from(
-    container.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    container.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR)
   ).filter(el => !(el as HTMLButtonElement).disabled);
 }
 

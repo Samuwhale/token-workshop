@@ -486,10 +486,13 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               ].filter(Boolean).join(', ')})`
             : 'No token differences from current state';
           const workspaceText = workspaceSummary ? ` Plus ${workspaceSummary}.` : '';
+          const undoText = onPushUndo
+            ? ' You can use Undo after restoring when the server records the restore operation.'
+            : ' To go back, restore another checkpoint.';
           return (
             <ConfirmModal
               title={`Restore to "${label}"?`}
-              description={`${summaryText}.${workspaceText} This replaces your current workspace state and cannot be undone without another snapshot.`}
+              description={`${summaryText}.${workspaceText} This replaces your current workspace state.${undoText}`}
               confirmLabel="Restore"
               danger
               onConfirm={async () => {

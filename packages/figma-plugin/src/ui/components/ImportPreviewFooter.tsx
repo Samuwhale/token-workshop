@@ -33,7 +33,6 @@ export function ImportPreviewFooter() {
     importProgress,
     checkingConflicts,
     handleImportStyles,
-    executeImport,
     clearConflictState,
   } = useImportReviewContext();
 
@@ -188,17 +187,6 @@ export function ImportPreviewFooter() {
               ? `Review ${previewConflictCount} conflict${previewConflictCount === 1 ? "" : "s"} before import`
               : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
       </button>
-
-      {hasPreviewConflicts && (
-        <button
-          type="button"
-          onClick={() => executeImport("overwrite")}
-          disabled={importDisabled}
-          className="w-full rounded px-3 py-1.5 text-body text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40"
-        >
-          Replace {previewConflictCount} existing token{previewConflictCount === 1 ? "" : "s"}
-        </button>
-      )}
 
       {importing && importProgress && importProgress.total > 0 && (
         <div className="w-full h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden">

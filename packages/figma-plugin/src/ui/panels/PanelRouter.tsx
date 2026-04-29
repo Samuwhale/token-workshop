@@ -916,7 +916,12 @@ export function PanelRouter({
           ? undefined
           : () => openCollectionIssues(tokenDetails.collectionId),
         onManageCollectionModes: (collectionId: string) => {
-          setInspectingCollection({ collectionId });
+          controller.guardEditorAction(() => {
+            switchContextualSurface({
+              surface: "collection-details",
+              collection: { collectionId },
+            });
+          });
         },
       }
     : null;

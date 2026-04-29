@@ -2064,6 +2064,7 @@ export function TokenList({
           ref={virtualListRef}
           role="tree"
           aria-label="Token tree"
+          aria-multiselectable="true"
           className={`h-full overflow-auto${operationLoading ? " opacity-50 pointer-events-none" : ""}`}
           onScroll={(e) => {
             const top = e.currentTarget.scrollTop;

@@ -668,6 +668,26 @@ export function TokenDetails({
     ownerCollectionId,
     pathToCollectionId,
   ]);
+  const trimmedEditPath = editPath.trim();
+  const conflictingOtherCollectionIds = useMemo(
+    () =>
+      isCreateMode && trimmedEditPath
+        ? getCollectionIdsForPath({
+            path: trimmedEditPath,
+            pathToCollectionId,
+            collectionIdsByPath,
+          }).filter((collectionId) => collectionId !== ownerCollectionId)
+        : [],
+    [
+      collectionIdsByPath,
+      isCreateMode,
+      ownerCollectionId,
+      pathToCollectionId,
+      trimmedEditPath,
+    ],
+  );
+  const crossCollectionDuplicatePath =
+    conflictingOtherCollectionIds.length > 0;
 
   useEffect(() => {
     editorSessionHost.registerSession({
@@ -677,6 +697,7 @@ export function TokenDetails({
         canSave &&
         !saving &&
         !duplicatePath &&
+        !crossCollectionDuplicatePath &&
         (!isCreateMode || editPath.trim().length > 0),
       save: async () => {
         if (fieldEditable) {
@@ -698,6 +719,7 @@ export function TokenDetails({
     };
   }, [
     canSave,
+    crossCollectionDuplicatePath,
     duplicatePath,
     editPath,
     editorSessionHost,
@@ -1045,21 +1067,14 @@ export function TokenDetails({
     (v) => v.path === tokenPath,
   );
 
-  const trimmedEditPath = editPath.trim();
-  const conflictingOtherCollectionIds =
-    isCreateMode && trimmedEditPath
-      ? getCollectionIdsForPath({
-          path: trimmedEditPath,
-          pathToCollectionId,
-          collectionIdsByPath,
-        }).filter((collectionId) => collectionId !== ownerCollectionId)
-      : [];
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
   const footerNote =
     isGeneratorLocked
       ? "Managed by generator. Detach before editing directly."
       : isCreateMode && duplicatePath
       ? "Path already exists."
+      : isCreateMode && crossCollectionDuplicatePath
+      ? "Path already exists in another collection."
       : isCreateMode && !trimmedEditPath
         ? "Enter a token path."
         : saveBlockReason;
@@ -1228,7 +1243,8 @@ export function TokenDetails({
       >
         <span
           className={
-            footerNote && (duplicatePath || saveBlockReason)
+            footerNote &&
+            (duplicatePath || crossCollectionDuplicatePath || saveBlockReason)
               ? "text-[color:var(--color-figma-text-error)]"
               : undefined
           }
@@ -1239,7 +1255,13 @@ export function TokenDetails({
           <button
             type="button"
             onClick={() => handleSave(false, true)}
-            disabled={saving || !canSave || !trimmedEditPath || duplicatePath}
+            disabled={
+              saving ||
+              !canSave ||
+              !trimmedEditPath ||
+              duplicatePath ||
+              crossCollectionDuplicatePath
+            }
             title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
             className="self-start text-secondary font-medium text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
           >
@@ -1287,6 +1309,7 @@ export function TokenDetails({
               !fieldEditable ||
               !canSave ||
               duplicatePath ||
+              crossCollectionDuplicatePath ||
               (!isCreateMode && !isDirty) ||
               (isCreateMode && !trimmedEditPath)
             }
@@ -1453,7 +1476,7 @@ export function TokenDetails({
         <TokenDetailsStatusBanners
           displayError={displayError}
           retryAction={retryAction}
-          lintViolations={[]}
+          lintViolations={tokenLintViolations}
           lifecycle={lifecycle}
           isCreateMode={isCreateMode}
           isEditMode
@@ -1642,12 +1665,11 @@ export function TokenDetails({
             </p>
           ) : null}
           {!duplicatePath && conflictingOtherCollectionIds.length > 0 ? (
-            <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+            <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-error)]">
               This path is already used in{" "}
-              {formatCollectionIdList(conflictingOtherCollectionIds)}. Creating
-              it here will make references to{" "}
-              <span className="font-mono">{trimmedEditPath}</span> ambiguous
-              across collections.
+              {formatCollectionIdList(conflictingOtherCollectionIds)}. Use a
+              unique path so references to{" "}
+              <span className="font-mono">{trimmedEditPath}</span> stay clear.
             </p>
           ) : null}
 
