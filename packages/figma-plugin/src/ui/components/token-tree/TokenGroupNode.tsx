@@ -6,7 +6,6 @@
 import {
   useState,
   useCallback,
-  useEffect,
   useRef,
   useLayoutEffect,
   useMemo,
@@ -20,7 +19,6 @@ import {
   useTokenTreeGroupState,
   useTokenTreeSharedData,
 } from "../TokenTreeContext";
-import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import { InlineRenameRow } from "../../primitives";
 import {
   getLifecycleLabel,
@@ -37,6 +35,7 @@ import {
   MENU_SEPARATOR_CLASS,
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
+  useContextMenuController,
 } from "./tokenTreeNodeShared";
 import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
@@ -123,40 +122,11 @@ export const TokenGroupNode = memo(
       setGroupMenuAdvanced(false);
     }, []);
 
-    useEffect(() => {
-      if (!groupMenuPos) return;
-      requestAnimationFrame(() => {
-        if (groupMenuRef.current)
-          getMenuItems(groupMenuRef.current)[0]?.focus();
-      });
-      const onDocumentClick = (e: MouseEvent) => {
-        const target = e.target as Node | null;
-        if (groupMenuRef.current?.contains(target)) return;
-        closeGroupMenus();
-      };
-      const onKey = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-          closeGroupMenus();
-          return;
-        }
-        if (!groupMenuRef.current) return;
-        if (handleMenuArrowKeys(e, groupMenuRef.current, {})) return;
-        const key = e.key.toLowerCase();
-        const btn = groupMenuRef.current.querySelector(
-          `[data-accel="${key}"]`,
-        ) as HTMLButtonElement | null;
-        if (btn) {
-          e.preventDefault();
-          btn.click();
-        }
-      };
-      document.addEventListener("click", onDocumentClick);
-      document.addEventListener("keydown", onKey);
-      return () => {
-        document.removeEventListener("click", onDocumentClick);
-        document.removeEventListener("keydown", onKey);
-      };
-    }, [closeGroupMenus, groupMenuPos]);
+    useContextMenuController({
+      isOpen: groupMenuPos !== null,
+      menuRef: groupMenuRef,
+      onClose: closeGroupMenus,
+    });
 
     const isSyntheticTypeGroup =
       groupBy === "type" && node.path.startsWith("__type/");

@@ -53,7 +53,6 @@ import {
 } from "../ComplexTypePreviewCard";
 import { useNearbyTokenMatch } from "../../hooks/useNearbyTokenMatch";
 import { TokenNudge } from "../TokenNudge";
-import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import { matchesShortcut } from "../../shared/shortcutRegistry";
 import { InlineRenameRow } from "../../primitives";
 import {
@@ -74,11 +73,16 @@ import {
   MENU_SEPARATOR_CLASS,
   MENU_SHORTCUT_CLASS,
   MENU_SURFACE_CLASS,
+  useContextMenuController,
 } from "./tokenTreeNodeShared";
 import type { MenuPosition } from "./tokenTreeNodeShared";
 import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
 import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { ValueCell } from "./ValueCell";
+
+function getTokenMenuAccelerator(event: KeyboardEvent): string {
+  return event.key === "Backspace" ? "delete" : event.key.toLowerCase();
+}
 
 export const TokenLeafNode = memo(
   function TokenLeafNode(props: TokenTreeNodeProps) {
@@ -218,41 +222,12 @@ export const TokenLeafNode = memo(
       setTokenMenuAdvanced(false);
     }, []);
 
-    // Close context menu on outside click + scoped arrow-key navigation + letter-key accelerators
-    useEffect(() => {
-      if (!contextMenuPos) return;
-      requestAnimationFrame(() => {
-        if (tokenMenuRef.current)
-          getMenuItems(tokenMenuRef.current)[0]?.focus();
-      });
-      const onDocumentClick = (e: MouseEvent) => {
-        const target = e.target as Node | null;
-        if (tokenMenuRef.current?.contains(target)) return;
-        closeTokenMenus();
-      };
-      const onKey = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-          closeTokenMenus();
-          return;
-        }
-        if (!tokenMenuRef.current) return;
-        if (handleMenuArrowKeys(e, tokenMenuRef.current, {})) return;
-        const key = e.key === "Backspace" ? "delete" : e.key.toLowerCase();
-        const btn = tokenMenuRef.current.querySelector(
-          `[data-accel="${key}"]`,
-        ) as HTMLButtonElement | null;
-        if (btn) {
-          e.preventDefault();
-          btn.click();
-        }
-      };
-      document.addEventListener("click", onDocumentClick);
-      document.addEventListener("keydown", onKey);
-      return () => {
-        document.removeEventListener("click", onDocumentClick);
-        document.removeEventListener("keydown", onKey);
-      };
-    }, [closeTokenMenus, contextMenuPos]);
+    useContextMenuController({
+      isOpen: contextMenuPos !== null,
+      menuRef: tokenMenuRef,
+      onClose: closeTokenMenus,
+      getAcceleratorKey: getTokenMenuAccelerator,
+    });
 
     // Close refs popover on outside click or Escape
     useEffect(() => {

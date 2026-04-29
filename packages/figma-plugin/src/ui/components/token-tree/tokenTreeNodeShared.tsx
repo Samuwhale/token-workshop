@@ -1,6 +1,7 @@
-import type { MouseEvent } from "react";
+import { useEffect, type MouseEvent, type RefObject } from "react";
+import { collectTokenReferencePaths } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
-import { extractAliasPath } from "../../../shared/resolveAlias";
+import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
   DEPTH_GUIDE_COLOR,
@@ -14,38 +15,15 @@ export const EMPTY_LINT_VIOLATIONS: NonNullable<
 export const BADGE_TEXT_CLASS = "text-secondary";
 export const INTERACTIVE_BADGE_HIT_AREA_CLASS = "min-h-[24px] min-w-[24px]";
 
-/** Returns true if `value` contains a direct alias reference to `target`. */
-function hasDirectRef(value: unknown, target: string): boolean {
-  if (typeof value === "string") {
-    return extractAliasPath(value) === target;
-  }
-  if (value && typeof value === "object") {
-    const items = Array.isArray(value) ? value : [value];
-    for (const item of items) {
-      if (item && typeof item === "object") {
-        for (const nestedValue of Object.values(
-          item as Record<string, unknown>,
-        )) {
-          if (
-            typeof nestedValue === "string" &&
-            extractAliasPath(nestedValue) === target
-          ) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-  return false;
-}
-
 export function getIncomingRefs(
   targetPath: string,
   allTokensFlat: Record<string, TokenMapEntry>,
 ): string[] {
   const results: string[] = [];
   for (const [path, entry] of Object.entries(allTokensFlat)) {
-    if (hasDirectRef(entry.$value, targetPath)) results.push(path);
+    if (collectTokenReferencePaths(entry).includes(targetPath)) {
+      results.push(path);
+    }
   }
   return results.sort();
 }
@@ -106,6 +84,80 @@ export const MENU_SEPARATOR_CLASS =
   "h-px mx-2 my-1 bg-[var(--color-figma-border)]";
 export const MENU_SHORTCUT_CLASS =
   "ml-auto text-secondary text-[var(--color-figma-text-tertiary)]";
+
+type ContextMenuControllerOptions = {
+  isOpen: boolean;
+  menuRef: RefObject<HTMLElement>;
+  onClose: () => void;
+  getAcceleratorKey?: (event: KeyboardEvent) => string | null;
+};
+
+function defaultAcceleratorKey(event: KeyboardEvent): string | null {
+  return event.key.length === 1 ? event.key.toLowerCase() : null;
+}
+
+function getAcceleratedMenuItem(
+  container: HTMLElement,
+  acceleratorKey: string,
+): HTMLButtonElement | null {
+  for (const item of getMenuItems(container)) {
+    if (item.dataset.accel === acceleratorKey) {
+      return item as HTMLButtonElement;
+    }
+  }
+  return null;
+}
+
+export function useContextMenuController({
+  isOpen,
+  menuRef,
+  onClose,
+  getAcceleratorKey = defaultAcceleratorKey,
+}: ContextMenuControllerOptions): void {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const focusFrame = requestAnimationFrame(() => {
+      if (menuRef.current) {
+        getMenuItems(menuRef.current)[0]?.focus();
+      }
+    });
+
+    const onDocumentClick = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node | null;
+      if (target && menuRef.current?.contains(target)) return;
+      onClose();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      const menu = menuRef.current;
+      if (!menu) return;
+      if (handleMenuArrowKeys(event, menu, {})) return;
+
+      const acceleratorKey = getAcceleratorKey(event);
+      if (!acceleratorKey) return;
+
+      const item = getAcceleratedMenuItem(menu, acceleratorKey);
+      if (!item) return;
+
+      event.preventDefault();
+      item.click();
+    };
+
+    document.addEventListener("click", onDocumentClick);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener("click", onDocumentClick);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [getAcceleratorKey, isOpen, menuRef, onClose]);
+}
 
 export function clampMenuPosition(
   x: number,
