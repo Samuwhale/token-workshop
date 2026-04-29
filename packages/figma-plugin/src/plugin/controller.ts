@@ -7,7 +7,6 @@ import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
 import { selectNode, selectNextSibling, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
-import { scanConsistency } from './consistencyScanner.js';
 
 figma.showUI(__html__, { width: 680, height: 720, themeColors: true });
 
@@ -39,17 +38,15 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 // ---------------------------------------------------------------------------
 // Scan cancellation
 // ---------------------------------------------------------------------------
-// Long-running scans (heatmap, consistency, token-usage) each keep
-// their own active signal. Starting a new token-usage scan should not abort an
-// unrelated heatmap or consistency scan that the user explicitly kicked off.
-// The UI sends `cancel-scan` to abort either the matching requestId or all
-// active scans when no requestId is supplied.
+// Long-running token-usage scans each keep their own active signal. Starting a
+// new scan of the same kind aborts the older one without touching unrelated
+// scans. The UI sends `cancel-scan` to abort either the matching requestId or
+// all active scans when no requestId is supplied.
 // ---------------------------------------------------------------------------
 
 type ScanKind =
   | 'token-usage-map'
-  | 'single-token-usage'
-  | 'consistency';
+  | 'single-token-usage';
 
 type ActiveScanState = {
   kind: ScanKind;
@@ -146,7 +143,6 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'scan-single-token-usage':    [['tokenPath', 'string']],
   'scan-token-variable-bindings': [['tokenPath', 'string']],
   'extract-tokens-from-selection': [],
-  'scan-consistency':           [['tokenMap', 'object'], ['scope', 'string']],
   'search-layers':              [['query', 'string']],
   'find-peers-for-property':    [['nodeId', 'string'], ['property', 'string']],
   'apply-to-nodes':             [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string'], ['resolvedValue', 'any']],
@@ -545,17 +541,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('extract-tokens-from-selection', e);
       }
       break;
-    case 'scan-consistency': {
-      const signal = createScanSignal('consistency');
-      try {
-        await scanConsistency(msg.tokenMap, msg.scope, signal);
-      } catch (e) {
-        reportError('scan-consistency', e);
-      } finally {
-        clearScanSignal('consistency', signal);
-      }
-      break;
-    }
     case 'search-layers':
       try {
         searchLayers(msg.query, msg.correlationId);

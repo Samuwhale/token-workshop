@@ -7,12 +7,23 @@ import path from "node:path";
 import { isAllowedCorsOrigin } from "./cors.js";
 
 const _require = createRequire(import.meta.url);
-const _pkgPath = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "package.json",
-);
-const { version: SERVER_VERSION } = _require(_pkgPath) as { version: string };
+
+function readServerVersion(): string {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  for (const relativePath of ["../package.json", "../../package.json"]) {
+    try {
+      const pkg = _require(path.join(moduleDir, relativePath)) as { version?: unknown };
+      if (typeof pkg.version === "string" && pkg.version.length > 0) {
+        return pkg.version;
+      }
+    } catch {
+      // Source runs from src/, compiled output runs from dist/src/.
+    }
+  }
+  return "0.0.0";
+}
+
+const SERVER_VERSION = readServerVersion();
 import { getHttpStatusCode, getErrorMessage } from "./errors.js";
 import { tokenRoutes } from "./routes/tokens.js";
 import { collectionStructureRoutes } from "./routes/collection-structure.js";
@@ -85,7 +96,7 @@ export async function startServer(config: ServerConfig) {
   fastify.addHook("onRequest", async (request, reply) => {
     const result = rateLimiter.check(request.method, request.ip);
     if (result) {
-      reply
+      return reply
         .header("Retry-After", String(result.retryAfterSec))
         .status(429)
         .send({
@@ -301,16 +312,11 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(docsRoutes);
   await fastify.register(helpRoutes);
 
-  try {
-    await fastify.listen({ port: config.port, host: config.host });
-    console.log(
-      `TokenManager server running at http://${config.host}:${config.port}`,
-    );
-    console.log(`Token directory: ${config.tokenDir}`);
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
+  await fastify.listen({ port: config.port, host: config.host });
+  console.log(
+    `TokenManager server running at http://${config.host}:${config.port}`,
+  );
+  console.log(`Token directory: ${config.tokenDir}`);
 
   return fastify;
 }

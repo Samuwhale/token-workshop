@@ -417,27 +417,6 @@ export type ReadStyleToken =
   | ReadTypographyStyleToken
   | ReadShadowStyleToken;
 
-// ─── Consistency scanner types ────────────────────────────────────────────────
-
-/** A single node that nearly matches a token value but is not bound to it. */
-export interface ConsistencyMatch {
-  nodeId: string;
-  nodeName: string;
-  nodeType: string;
-  property: string;
-  actualValue: string | number;
-  tokenValue: string | number;
-}
-
-/** A token that has near-matches across canvas nodes (consistency scanner result). */
-export interface ConsistencySuggestion {
-  tokenPath: string;
-  tokenType: string;
-  tokenValue: ResolvedTokenValue;
-  property: string;
-  matches: ConsistencyMatch[];
-}
-
 /**
  * Maps Figma variable scope values to the BindableProperty values they allow.
  * Used to filter bind-picker candidates so scoped tokens only appear for
@@ -671,17 +650,6 @@ export interface ApplyToNodesMessage {
   tokenType: string;
   targetProperty: string;
   resolvedValue: ResolvedTokenValue;
-}
-
-// --- Consistency scanner ---
-
-export type ConsistencyScope = 'selection' | 'page' | 'all-pages';
-
-export interface ScanConsistencyMessage {
-  type: 'scan-consistency';
-  /** Flat resolved token map (path → {$value, $type}) */
-  tokenMap: Record<string, TokenMapEntry>;
-  scope: ConsistencyScope;
 }
 
 export interface GetAvailableFontsMessage {
@@ -987,23 +955,6 @@ export interface TokenUsageResultMessage {
   error?: string;
 }
 
-export interface ConsistencyScanProgressMessage {
-  type: 'consistency-scan-progress';
-  processed: number;
-  total: number;
-}
-
-export interface ConsistencyScanResultMessage {
-  type: 'consistency-scan-result';
-  suggestions: ConsistencySuggestion[];
-  totalNodes: number;
-}
-
-export interface ConsistencyScanErrorMessage {
-  type: 'consistency-scan-error';
-  error: string;
-}
-
 /** Discriminated union of all Controller→UI (plugin sandbox → iframe) messages */
 export type ControllerMessage =
   | ControllerErrorMessage
@@ -1038,9 +989,6 @@ export type ControllerMessage =
   | TokenUsageMapMessage
   | TokenUsageMapCancelledMessage
   | TokenUsageResultMessage
-  | ConsistencyScanProgressMessage
-  | ConsistencyScanResultMessage
-  | ConsistencyScanErrorMessage
   | VariablesRevertedMessage
   | StylesRevertedMessage;
 
@@ -1079,9 +1027,6 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'token-usage-map',
   'token-usage-map-cancelled',
   'token-usage-result',
-  'consistency-scan-progress',
-  'consistency-scan-result',
-  'consistency-scan-error',
   'variables-reverted',
   'styles-reverted',
 ]);
@@ -1111,7 +1056,6 @@ export type PluginMessage =
   | ScanTokenVariableBindingsMessage
   | ExtractTokensFromSelectionMessage
   | SelectNextSiblingMessage
-  | ScanConsistencyMessage
   | GetAvailableFontsMessage
   | FindPeersForPropertyMessage
   | ApplyToNodesMessage
