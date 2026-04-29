@@ -3011,7 +3011,8 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node__result-row--warning {
-  box-shadow: inset 2px 0 0 var(--color-figma-error);
+  outline: 1px solid color-mix(in srgb, var(--color-figma-error) 52%, transparent);
+  background: color-mix(in srgb, var(--color-figma-error) 10%, var(--color-figma-bg));
 }
 
 .tm-graph-node__result-path {
@@ -3183,8 +3184,8 @@ button.tm-token-details__text-button:disabled:hover {
 
 @media (max-width: 520px) {
   .tm-graph {
-    --tm-graph-node-width: 320px;
-    --tm-graph-port-column: 72px;
+    --tm-graph-node-width: 280px;
+    --tm-graph-port-column: 64px;
   }
 
   .tm-graph-node__content {
@@ -3213,8 +3214,8 @@ button.tm-token-details__text-button:disabled:hover {
 
 @media (max-width: 360px) {
   .tm-graph {
-    --tm-graph-node-width: 288px;
-    --tm-graph-port-column: 62px;
+    --tm-graph-node-width: 240px;
+    --tm-graph-port-column: 52px;
   }
 
   .tm-graph-node__content {

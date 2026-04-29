@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent,
   type ReactNode,
 } from "react";
@@ -2075,7 +2076,7 @@ export function GeneratorsPanel({
     let resetTimeoutId = 0;
     const fitCompactGraph = () => {
       suppressedViewportCommitCountRef.current += 1;
-      flowInstance.fitView({ padding: 0.14, duration: 150 });
+      flowInstance.fitView({ padding: 0.08, duration: 150 });
     };
     window.requestAnimationFrame(fitCompactGraph);
     timeoutId = window.setTimeout(fitCompactGraph, 220);
@@ -2094,6 +2095,12 @@ export function GeneratorsPanel({
     nodes.length,
     panelWidth,
   ]);
+
+  useEffect(() => {
+    if (compactGenerators && editorMode === "graph") {
+      setFloatingPreviewCollapsed(true);
+    }
+  }, [activeGeneratorId, compactGenerators, editorMode]);
 
   useEffect(() => {
     if (!compactGenerators || panelWidth === null) return;
@@ -2515,52 +2522,83 @@ export function GeneratorsPanel({
     if (!activeGenerator) return null;
     if (compactGenerators) {
       return (
-        <div className="h-full min-h-0 overflow-auto">
-          <section className="min-w-0 p-3 pb-4">
+        <div className="h-full min-h-0 overflow-auto px-3 py-3">
+          <section className="min-w-0">
             {renderOverviewSummary()}
           </section>
-          <section className="min-w-0 px-3 pb-4">
+          <section className="mt-4 min-w-0">
             {renderPreviewPanel()}
           </section>
         </div>
       );
     }
     return (
-      <div className="flex h-full min-h-0 overflow-hidden max-[900px]:flex-col max-[900px]:overflow-y-auto">
-        <aside className="w-[360px] shrink-0 overflow-y-auto border-r border-[var(--color-figma-border)] p-3 max-[900px]:max-h-none max-[900px]:w-full max-[900px]:border-b max-[900px]:border-r-0">
+      <div className="grid h-full min-h-0 grid-cols-[minmax(300px,380px)_minmax(0,1fr)] overflow-hidden max-[900px]:block max-[900px]:overflow-y-auto">
+        <aside className="min-w-0 overflow-y-auto px-3 py-3 max-[900px]:overflow-visible">
           {renderOverviewSummary()}
         </aside>
-        <section className="min-w-0 flex-1 overflow-auto p-3">
+        <section className="min-w-0 overflow-auto px-3 py-3 max-[900px]:overflow-visible max-[900px]:pt-0">
           {renderPreviewPanel()}
         </section>
       </div>
     );
   };
 
-  const renderGeneratorSelector = () => (
-    <div className="flex min-w-0 flex-1 items-center gap-2">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => {
+  const renderGeneratorListControl = () => (
+    <IconButton
+      title={
+        compactGenerators
+          ? "Switch generator"
+          : leftPanelOpen
+            ? "Hide generator list"
+            : "Show generator list"
+      }
+      aria-label={
+        compactGenerators
+          ? "Switch generator"
+          : leftPanelOpen
+            ? "Hide generator list"
+            : "Show generator list"
+      }
+      aria-expanded={compactGenerators ? generatorListOpen : leftPanelOpen}
+      onClick={() => {
+        if (compactGenerators) {
           setGeneratorListOpen(true);
           setActionsMenuOpen(false);
           setNodeLibraryOpen(false);
           setInspectorOpen(false);
-        }}
-        aria-expanded={generatorListOpen}
-        aria-label="Open generators"
-      >
-        <PanelLeft size={14} />
-        Generators
-      </Button>
-      <span
-        className="min-w-0 flex-1 truncate text-primary font-semibold"
-        title={activeGenerator?.name}
-      >
-        {activeGenerator?.name ?? "No generator"}
-      </span>
+          return;
+        }
+        setLeftPanelOpen((open) => !open);
+      }}
+      size={compactGenerators ? "md" : "lg"}
+    >
+      <PanelLeft size={14} />
+    </IconButton>
+  );
+
+  const renderGeneratorIdentity = (compact = false) => (
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      {renderGeneratorListControl()}
+      <input
+        value={activeGenerator?.name ?? ""}
+        onChange={(event) => patchActiveGraph({ name: event.target.value })}
+        className={
+          compact
+            ? "min-w-0 flex-1 rounded bg-transparent px-1.5 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)]"
+            : "min-w-[180px] max-w-[340px] flex-1 rounded bg-transparent px-2 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)]"
+        }
+        aria-label="Generator name"
+      />
+      {!compact ? (
+        <span
+          className="max-w-[220px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
+          title={activeGenerator?.targetCollectionId}
+        >
+          {targetCollection?.publishRouting?.collectionName?.trim() ||
+            activeGenerator?.targetCollectionId}
+        </span>
+      ) : null}
     </div>
   );
 
@@ -2578,11 +2616,14 @@ export function GeneratorsPanel({
   };
 
   const renderViewControl = () => (
-    <SegmentedControl
+    <GeneratorViewSwitch
       value={editorMode}
-      options={GENERATOR_VIEW_OPTIONS}
-      ariaLabel="Generator view"
       onChange={changeEditorMode}
+      preview={preview}
+      graphIssues={graphIssues}
+      nodeCount={activeGenerator?.nodes.length ?? 0}
+      edgeCount={activeGenerator?.edges.length ?? 0}
+      compact={compactGenerators}
     />
   );
 
@@ -2855,7 +2896,7 @@ export function GeneratorsPanel({
         size="sm"
       >
         <Sparkles size={14} />
-        <span className={compact ? "max-[380px]:sr-only" : "max-[760px]:sr-only"}>Apply</span>
+        <span className={compact ? "" : "max-[760px]:sr-only"}>Apply</span>
       </Button>
       {compact ? (
         <div className="relative">
@@ -2979,42 +3020,19 @@ export function GeneratorsPanel({
             {activeGenerator ? (
               compactGenerators ? (
                 <div className="flex shrink-0 flex-col gap-2 border-b border-[var(--color-figma-border)] px-2 py-2">
-                  <div className="flex min-w-0 items-center">
-                    {renderGeneratorSelector()}
-                  </div>
                   <div className="flex min-w-0 items-center gap-2">
-                    <div className="min-w-0 flex-1">{renderViewControl()}</div>
-                    {renderGeneratorActions(true)}
-                  </div>
-                  <div className="flex min-h-5 min-w-0 items-center">
+                    {renderGeneratorIdentity(true)}
                     {renderStatusIndicator(true)}
+                  </div>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <div className="min-w-[156px] flex-1">{renderViewControl()}</div>
+                    {renderGeneratorActions(true)}
                   </div>
                 </div>
               ) : (
-                <div className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] px-3">
-                  <IconButton
-                    title={leftPanelOpen ? "Hide generator list" : "Show generator list"}
-                    aria-label={leftPanelOpen ? "Hide generator list" : "Show generator list"}
-                    onClick={() => setLeftPanelOpen((open) => !open)}
-                    size="lg"
-                  >
-                    <PanelLeft size={14} />
-                  </IconButton>
-                  <input
-                    value={activeGenerator.name}
-                    onChange={(event) =>
-                      patchActiveGraph({ name: event.target.value })
-                    }
-                    className="min-w-[150px] max-w-[300px] rounded-md bg-transparent px-2 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)] max-[760px]:min-w-0 max-[760px]:max-w-[140px]"
-                  />
-                  <span
-                    className="max-w-[220px] truncate text-secondary text-[color:var(--color-figma-text-secondary)] max-[760px]:hidden"
-                    title={activeGenerator.targetCollectionId}
-                  >
-                    {targetCollection?.publishRouting?.collectionName?.trim() ||
-                      activeGenerator.targetCollectionId}
-                  </span>
-                  {renderViewControl()}
+                <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--color-figma-border)] px-3 py-2">
+                  {renderGeneratorIdentity()}
+                  <div className="min-w-[236px]">{renderViewControl()}</div>
                   {renderStatusIndicator()}
                   {renderGeneratorActions()}
                 </div>
@@ -3136,6 +3154,127 @@ export function GeneratorsPanel({
           />
         </GeneratorOverlayPanel>
       ) : null}
+    </div>
+  );
+}
+
+function GeneratorViewSwitch({
+  value,
+  onChange,
+  preview,
+  graphIssues,
+  nodeCount,
+  edgeCount,
+  compact,
+}: {
+  value: GeneratorEditorMode;
+  onChange: (value: GeneratorEditorMode) => void;
+  preview: TokenGeneratorPreviewResult | null;
+  graphIssues: GraphIssue[];
+  nodeCount: number;
+  edgeCount: number;
+  compact: boolean;
+}) {
+  const graphErrorCount = graphIssues.filter(
+    (issue) => issue.severity === "error",
+  ).length;
+  const graphWarningCount = graphIssues.length - graphErrorCount;
+  const detailByView: Record<GeneratorEditorMode, string> = {
+    overview: preview
+      ? `${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`
+      : "Previewing",
+    graph:
+      graphErrorCount > 0
+        ? `${graphErrorCount} ${graphErrorCount === 1 ? "issue" : "issues"}`
+        : graphWarningCount > 0
+          ? `${graphWarningCount} ${graphWarningCount === 1 ? "warning" : "warnings"}`
+          : `${nodeCount} ${nodeCount === 1 ? "step" : "steps"}`,
+  };
+  const titleByView: Record<GeneratorEditorMode, string> = {
+    overview: "Overview",
+    graph: "Graph",
+  };
+  const selectedIndex = GENERATOR_VIEW_OPTIONS.findIndex(
+    (option) => option.value === value,
+  );
+
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (selectedIndex === -1) return;
+    const focusOption = (index: number) => {
+      const next = GENERATOR_VIEW_OPTIONS[index];
+      onChange(next.value);
+      const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
+        '[role="tab"]',
+      );
+      buttons[index]?.focus();
+    };
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      focusOption((selectedIndex + 1) % GENERATOR_VIEW_OPTIONS.length);
+    }
+
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      focusOption(
+        (selectedIndex - 1 + GENERATOR_VIEW_OPTIONS.length) %
+          GENERATOR_VIEW_OPTIONS.length,
+      );
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusOption(0);
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      focusOption(GENERATOR_VIEW_OPTIONS.length - 1);
+    }
+  };
+
+  return (
+    <div
+      className="grid min-w-0 grid-cols-2 gap-1 rounded bg-[var(--color-figma-bg-secondary)] p-1"
+      role="tablist"
+      aria-label="Generator view"
+      onKeyDown={handleKeyDown}
+    >
+      {GENERATOR_VIEW_OPTIONS.map((option) => {
+        const selected = option.value === value;
+        const detail =
+          option.value === "graph" && !compact && edgeCount > 0
+            ? `${detailByView.graph} · ${edgeCount} ${edgeCount === 1 ? "link" : "links"}`
+            : detailByView[option.value];
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(option.value)}
+            className={`min-w-0 rounded px-2 py-1 text-left transition-colors ${
+              selected
+                ? "bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] shadow-[0_0_0_1px_var(--color-figma-border)]"
+                : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+            }`}
+          >
+            <span className="block truncate text-secondary font-semibold">
+              {titleByView[option.value]}
+            </span>
+            <span
+              className={`block truncate text-tertiary ${
+                option.value === "graph" && graphErrorCount > 0
+                  ? "text-[color:var(--color-figma-text-error)]"
+                  : "text-[color:var(--color-figma-text-secondary)]"
+              } ${compact ? "sr-only" : ""}`}
+            >
+              {detail}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -3992,6 +4131,17 @@ function GeneratorOverviewSummary({
       : preview
         ? "Preview ready"
         : "Preparing preview";
+  const errorCount = graphIssues.filter((issue) => issue.severity === "error").length;
+  const warningCount = graphIssues.length - errorCount;
+  const graphStatus =
+    errorCount > 0
+      ? `${errorCount} ${errorCount === 1 ? "issue" : "issues"} block apply`
+      : warningCount > 0
+        ? `${warningCount} ${warningCount === 1 ? "warning" : "warnings"}`
+        : `${generator.nodes.length} ${generator.nodes.length === 1 ? "step" : "steps"}`;
+  const previewStatus = preview
+    ? `${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`
+    : "Previewing";
 
   return (
     <div className="min-h-0">
@@ -4000,16 +4150,11 @@ function GeneratorOverviewSummary({
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-                Settings
+                Overview
               </h3>
-              <button
-                type="button"
-                onClick={onEditGraph}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                <Workflow size={13} />
-                Edit graph
-              </button>
+              <span className="truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                {previewStatus}
+              </span>
             </div>
           </section>
         ) : null}
@@ -4027,6 +4172,9 @@ function GeneratorOverviewSummary({
         </section>
 
         <section className="space-y-3">
+          <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
+            Setup
+          </h3>
           {structuredDraft ? (
             <StructuredGeneratorSettings
               draft={structuredDraft}
@@ -4037,23 +4185,64 @@ function GeneratorOverviewSummary({
               onChange={onChangeStructuredDraft}
             />
           ) : (
-            <div className="space-y-1 py-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              <div>
+            <div className="space-y-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              <p className="m-0">
                 Custom graph with {generator.nodes.length}{" "}
                 {generator.nodes.length === 1 ? "node" : "nodes"} and{" "}
                 {generator.edges.length}{" "}
                 {generator.edges.length === 1 ? "connection" : "connections"}.
-              </div>
-              <button
-                type="button"
-                onClick={onEditGraph}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                <Workflow size={13} />
-                Edit graph
-              </button>
+              </p>
             </div>
           )}
+        </section>
+
+        <section className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
+              Graph
+            </h3>
+            <button
+              type="button"
+              onClick={onEditGraph}
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              <Workflow size={13} />
+              Open
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onEditGraph}
+            className="flex w-full min-w-0 items-center justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-left hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Workflow
+                size={14}
+                className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
+              />
+              <span className="min-w-0">
+                <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                  Edit generator graph
+                </span>
+                <span
+                  className={`block truncate text-tertiary ${
+                    errorCount > 0
+                      ? "text-[color:var(--color-figma-text-error)]"
+                      : "text-[color:var(--color-figma-text-secondary)]"
+                  }`}
+                >
+                  {graphStatus}
+                  {generator.edges.length > 0
+                    ? ` · ${generator.edges.length} ${generator.edges.length === 1 ? "connection" : "connections"}`
+                    : ""}
+                </span>
+              </span>
+            </span>
+            <ChevronRight
+              size={14}
+              className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
+            />
+          </button>
         </section>
 
         {graphIssues.length > 0 ? (
@@ -4078,40 +4267,42 @@ function GeneratorOverviewSummary({
           </section>
         ) : null}
 
-        <section className="space-y-2">
-          <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-            Outputs
-          </h3>
-          {outputNodes.length > 0 ? (
-            <div className="space-y-1">
-              {outputNodes.map((node) => (
-                <div
-                  key={node.id}
-                  className="py-1.5 text-secondary text-[color:var(--color-figma-text)]"
-                >
-                  {String(
-                    node.data.pathPrefix ?? node.data.path ?? "Untitled output",
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() =>
-                onFocusGraphIssue({
-                  id: "missing-output",
-                  severity: "error",
-                  message: "Add an output node",
-                })
-              }
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              <Plus size={13} />
-              Add output node
-            </button>
-          )}
-        </section>
+        {!structuredDraft ? (
+          <section className="space-y-2">
+            <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
+              Destination
+            </h3>
+            {outputNodes.length > 0 ? (
+              <div className="space-y-1">
+                {outputNodes.map((node) => (
+                  <div
+                    key={node.id}
+                    className="rounded px-1 py-1.5 text-secondary text-[color:var(--color-figma-text)]"
+                  >
+                    {String(
+                      node.data.pathPrefix ?? node.data.path ?? "Untitled output",
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  onFocusGraphIssue({
+                    id: "missing-output",
+                    severity: "error",
+                    message: "Add an output node",
+                  })
+                }
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                <Plus size={13} />
+                Add output node
+              </button>
+            )}
+          </section>
+        ) : null}
       </div>
     </div>
   );
@@ -5832,7 +6023,11 @@ function PreviewPanel({
 }) {
   if (!preview) {
     return (
-      <div className="flex h-full min-h-[280px] items-center justify-center rounded-md bg-[var(--color-figma-bg-secondary)] p-6 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
+      <div
+        className={`flex h-full items-center justify-center rounded-md bg-[var(--color-figma-bg-secondary)] p-6 text-center text-secondary text-[color:var(--color-figma-text-secondary)] ${
+          compact ? "min-h-[180px]" : "min-h-[280px]"
+        }`}
+      >
         Preview shows the exact tokens and mode values this generator will apply.
       </div>
     );
@@ -5843,12 +6038,22 @@ function PreviewPanel({
   const focusedDiagnostic = preview.diagnostics.find(
     (diagnostic) => diagnostic.id === focusedDiagnosticId,
   );
+  const changeCounts = preview.outputs.reduce(
+    (counts, output) => {
+      if (output.collision) counts.collisions += 1;
+      else if (output.change === "created") counts.created += 1;
+      else if (output.change === "updated") counts.updated += 1;
+      else counts.unchanged += 1;
+      return counts;
+    },
+    { collisions: 0, created: 0, updated: 0, unchanged: 0 },
+  );
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
         <div>
           <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-            Output preview
+            Output review
           </h3>
           <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {preview.outputs.length} outputs across {modes.length}{" "}
@@ -5861,6 +6066,14 @@ function PreviewPanel({
             minute: "2-digit",
           })}
         </span>
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-secondary">
+        {changeCounts.collisions > 0 ? (
+          <SummaryMetric label="Needs attention" value={`${changeCounts.collisions}`} />
+        ) : null}
+        <SummaryMetric label="New" value={`${changeCounts.created}`} />
+        <SummaryMetric label="Updated" value={`${changeCounts.updated}`} />
+        <SummaryMetric label="Unchanged" value={`${changeCounts.unchanged}`} />
       </div>
       {preview.diagnostics.length > 0 && (
         <div className="space-y-1">
