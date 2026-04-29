@@ -30,6 +30,8 @@ import {
 } from "@xyflow/react";
 import {
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
   Check,
   MoreHorizontal,
   PanelLeft,
@@ -202,8 +204,8 @@ type GraphFlowNode = Node<
     graphNode: TokenGeneratorDocumentNode;
     preview?: TokenGeneratorPreviewResult;
     issues?: GraphIssue[];
-    outputExpanded?: boolean;
-    onToggleOutputExpanded?: (nodeId: string) => void;
+    detailsExpanded?: boolean;
+    onToggleDetailsExpanded?: (nodeId: string) => void;
   },
   "graphNode"
 >;
@@ -399,7 +401,7 @@ export function GeneratorsPanel({
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  const [expandedOutputNodeIds, setExpandedOutputNodeIds] = useState<Set<string>>(
+  const [expandedGraphNodeIds, setExpandedGraphNodeIds] = useState<Set<string>>(
     () => new Set(),
   );
   const [graphMenu, setGraphMenu] = useState<GraphMenuState | null>(null);
@@ -452,6 +454,9 @@ export function GeneratorsPanel({
 
   const setActiveGeneratorSelection = useCallback(
     (generatorId: string | null) => {
+      if (activeGeneratorIdRef.current !== generatorId) {
+        setExpandedGraphNodeIds(new Set());
+      }
       activeGeneratorIdRef.current = generatorId;
       setActiveGeneratorId(generatorId);
     },
@@ -517,7 +522,7 @@ export function GeneratorsPanel({
             id: activeGenerator.id,
             name: activeGenerator.name,
             targetCollectionId: activeGenerator.targetCollectionId,
-            nodes: activeGenerator.nodes,
+            nodes: previewRelevantNodes(activeGenerator.nodes),
             edges: activeGenerator.edges,
             tokenChangeKey,
           })
@@ -536,8 +541,8 @@ export function GeneratorsPanel({
     [activeGenerator],
   );
 
-  const toggleOutputNodeExpanded = useCallback((nodeId: string) => {
-    setExpandedOutputNodeIds((current) => {
+  const toggleGraphNodeDetailsExpanded = useCallback((nodeId: string) => {
+    setExpandedGraphNodeIds((current) => {
       const next = new Set(current);
       if (next.has(nodeId)) {
         next.delete(nodeId);
@@ -547,10 +552,6 @@ export function GeneratorsPanel({
       return next;
     });
   }, []);
-
-  useEffect(() => {
-    setExpandedOutputNodeIds(new Set());
-  }, [activeGeneratorId]);
 
   const loadGenerators = useCallback(async () => {
     const data = await apiFetch<GeneratorListResponse>(
@@ -749,7 +750,15 @@ export function GeneratorsPanel({
       previewRef.current?.generatorId === activeGenerator.id
         ? previewRef.current
         : null;
-    setNodes(toFlowNodes(activeGenerator, activePreview));
+    setNodes(
+      toFlowNodes(
+        activeGenerator,
+        activePreview,
+        graphIssues,
+        expandedGraphNodeIds,
+        toggleGraphNodeDetailsExpanded,
+      ),
+    );
     setEdges(toFlowEdges(activeGenerator.edges));
     setSelectedNodeId((current) =>
       current && activeGenerator.nodes.some((node) => node.id === current)
@@ -761,7 +770,15 @@ export function GeneratorsPanel({
         ? current
         : null,
     );
-  }, [activeGenerator, activeGeneratorStructureSignature, setEdges, setNodes]);
+  }, [
+    activeGenerator,
+    activeGeneratorStructureSignature,
+    expandedGraphNodeIds,
+    graphIssues,
+    setEdges,
+    setNodes,
+    toggleGraphNodeDetailsExpanded,
+  ]);
 
   useEffect(() => {
     if (!activeGenerator) return;
@@ -774,18 +791,18 @@ export function GeneratorsPanel({
           issues: graphIssues.filter(
             (issue) => issue.nodeId === node.id,
           ),
-          outputExpanded: expandedOutputNodeIds.has(node.id),
-          onToggleOutputExpanded: toggleOutputNodeExpanded,
+          detailsExpanded: expandedGraphNodeIds.has(node.id),
+          onToggleDetailsExpanded: toggleGraphNodeDetailsExpanded,
         },
       })),
     );
   }, [
     activeGenerator,
-    expandedOutputNodeIds,
+    expandedGraphNodeIds,
     graphIssues,
     preview,
     setNodes,
-    toggleOutputNodeExpanded,
+    toggleGraphNodeDetailsExpanded,
   ]);
 
   const patchActiveGraph = useCallback(
@@ -826,7 +843,11 @@ export function GeneratorsPanel({
   }, [activeGenerator, edges, nodes, setGenerators]);
 
   const commitFlowState = useCallback(
-    (nextNodes: GraphFlowNode[], nextEdges: GraphFlowEdge[]) => {
+    (
+      nextNodes: GraphFlowNode[],
+      nextEdges: GraphFlowEdge[],
+      options: { preservePreview?: boolean } = {},
+    ) => {
       if (!activeGenerator) return;
       localGraphEditRef.current = true;
       graphRevisionRef.current += 1;
@@ -845,9 +866,11 @@ export function GeneratorsPanel({
       setDirty(true);
       dirtyRef.current = true;
       dirtyGeneratorIdRef.current = activeGenerator.id;
-      setPreview(null);
-      setLastApply(null);
-      setExternalPreviewInvalidated(false);
+      if (!options.preservePreview) {
+        setPreview(null);
+        setLastApply(null);
+        setExternalPreviewInvalidated(false);
+      }
     },
     [activeGenerator],
   );
@@ -1879,12 +1902,9 @@ export function GeneratorsPanel({
     activeGeneratorId,
     compactGenerators,
     editorMode,
-    expandedOutputNodeIds,
     flowInstance,
     nodes.length,
     panelWidth,
-    preview?.hash,
-    selectedNodeId,
   ]);
 
   const renderGraphWorkspace = () => {
@@ -1930,7 +1950,9 @@ export function GeneratorsPanel({
               if (hasStructuralNodeChange(safeChanges)) {
                 const nextNodes = applyNodeChanges(safeChanges, nodesRef.current);
                 setNodes(nextNodes);
-                commitFlowState(nextNodes, edgesRef.current);
+                commitFlowState(nextNodes, edgesRef.current, {
+                  preservePreview: changesOnlyCommitNodePositions(safeChanges),
+                });
                 return;
               }
               setNodes((current) => applyNodeChanges(safeChanges, current));
@@ -2651,7 +2673,7 @@ export function GeneratorsPanel({
                           </span>
                         </span>
                       </Button>
-	                    ) : null}
+                    ) : null}
                     <Button
                       title="Apply generator"
                       aria-label="Apply generator"
@@ -4345,13 +4367,14 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
     [];
   const nodePreview = data.preview?.nodePreviews[graphNode.id];
   const diagnostics =
-    [
-      ...(data.preview?.diagnostics ?? []),
-      ...(data.preview?.nodePreviewDiagnostics ?? []),
-    ].filter(
+    (data.preview?.nodePreviewDiagnostics ?? []).filter(
       (diagnostic) => diagnostic.nodeId === graphNode.id,
     );
   const issues = data.issues ?? [];
+  const issueMessages = uniqueStrings([
+    ...issues.map((issue) => issue.message),
+    ...diagnostics.map((diagnostic) => diagnostic.message),
+  ]);
   const inputPorts = getNodeInputPorts(graphNode);
   const outputPorts = getNodeOutputPorts(graphNode);
   const hasErrors =
@@ -4366,14 +4389,28 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
         ? "tm-graph-node--warning"
         : "";
   const summary = nodeSummary(graphNode);
-  const statusMessage = issues[0]?.message ?? diagnostics[0]?.message;
+  const issueCountLabel =
+    issueMessages.length === 1
+      ? hasErrors
+        ? "1 issue"
+        : "1 warning"
+      : hasErrors
+        ? `${issueMessages.length} issues`
+        : `${issueMessages.length} warnings`;
+  const issueTitle = issueMessages.join("\n");
   const nodeStyle: CSSProperties & { "--tm-graph-node-accent": string } = {
     minBlockSize: graphNodeMinBlockSize(inputPorts.length, outputPorts.length),
     "--tm-graph-node-accent": graphNodeAccent(graphNode),
   };
   const isOutputNode =
     graphNode.kind === "output" || graphNode.kind === "groupOutput";
-  const showIntermediatePreview = selected && !isOutputNode && nodePreview;
+  const detailsExpanded = Boolean(data.detailsExpanded);
+  const hasIssues = issueMessages.length > 0;
+  const detailsLabel = hasIssues
+    ? "details"
+    : isOutputNode
+      ? "output preview"
+      : "preview";
 
   return (
     <div
@@ -4413,43 +4450,61 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
             </div>
           </div>
           {(diagnostics.length > 0 || issues.length > 0) && (
-            <AlertTriangle
-              size={14}
-              className={
+            <div
+              className={`tm-graph-node__issue-count ${
                 hasErrors
-                  ? "text-[var(--color-figma-error)]"
-                  : "text-[var(--color-figma-warning)]"
-              }
-            />
+                  ? "tm-graph-node__issue-count--error"
+                  : "tm-graph-node__issue-count--warning"
+              }`}
+              title={issueTitle}
+            >
+              <AlertTriangle size={13} />
+              <span>{issueCountLabel}</span>
+            </div>
           )}
         </div>
         <div className="tm-graph-node__summary" title={summary}>
           {summary}
         </div>
-        {statusMessage ? (
-          <div
-            className={`tm-graph-node__status ${hasErrors ? "tm-graph-node__status--error" : "tm-graph-node__status--warning"}`}
-            title={statusMessage}
-          >
-            {statusMessage}
-          </div>
+        <button
+          type="button"
+          className="tm-graph-node__details-toggle nodrag nopan"
+          aria-expanded={detailsExpanded}
+          onClick={(event) => {
+            event.stopPropagation();
+            data.onToggleDetailsExpanded?.(graphNode.id);
+          }}
+        >
+          {detailsExpanded ? (
+            <ChevronDown size={13} />
+          ) : (
+            <ChevronRight size={13} />
+          )}
+          <span>
+            {detailsExpanded ? `Hide ${detailsLabel}` : `Show ${detailsLabel}`}
+          </span>
+        </button>
+        {detailsExpanded && hasIssues ? (
+          <NodeIssueList messages={issueMessages} hasErrors={hasErrors} />
         ) : null}
-        {isOutputNode ? (
+        {isOutputNode && detailsExpanded ? (
           <OutputNodeResults
             outputs={relatedOutputs}
             diagnostics={diagnostics}
             issues={issues}
             previewReady={Boolean(data.preview)}
             modeNames={data.preview?.targetModes ?? []}
-            expanded={Boolean(data.outputExpanded)}
-            onToggle={() => data.onToggleOutputExpanded?.(graphNode.id)}
           />
         ) : null}
-        {showIntermediatePreview ? (
-          <NodeRuntimePreview
-            preview={nodePreview}
-            modeNames={data.preview?.targetModes ?? []}
-          />
+        {!isOutputNode && detailsExpanded ? (
+          nodePreview ? (
+            <NodeRuntimePreview
+              preview={nodePreview}
+              modeNames={data.preview?.targetModes ?? []}
+            />
+          ) : (
+            <NodePreviewPending />
+          )
         ) : null}
       </div>
     </div>
@@ -4462,40 +4517,24 @@ function OutputNodeResults({
   issues,
   previewReady,
   modeNames,
-  expanded,
-  onToggle,
 }: {
   outputs: TokenGeneratorPreviewOutput[];
   diagnostics: TokenGeneratorPreviewResult["diagnostics"];
   issues: GraphIssue[];
   previewReady: boolean;
   modeNames: string[];
-  expanded: boolean;
-  onToggle: () => void;
 }) {
   const sortedOutputs = sortPreviewOutputs(outputs);
-  const visibleOutputs = expanded ? sortedOutputs : sortedOutputs.slice(0, 3);
-  const issueIds = new Set(
-    [
-      ...issues
-        .filter((issue) => issue.severity === "error")
-        .map((issue) => issue.id),
-      ...diagnostics
-        .filter((diagnostic) => diagnostic.severity === "error")
-        .map((diagnostic) => diagnostic.id),
-    ],
+  const visibleOutputs = sortedOutputs.slice(0, 5);
+  const hiddenOutputCount = Math.max(
+    0,
+    sortedOutputs.length - visibleOutputs.length,
   );
-  const issueCount =
-    issueIds.size + outputs.filter((output) => output.collision).length;
-  const issueMessages = uniqueStrings([
-    ...issues
-      .filter((issue) => issue.severity === "error")
-      .map((issue) => issue.message),
-    ...diagnostics
-      .filter((diagnostic) => diagnostic.severity === "error")
-      .map((diagnostic) => diagnostic.message),
-  ]);
-  const hasMore = sortedOutputs.length > visibleOutputs.length;
+  const issueCount = [
+    ...issues.filter((issue) => issue.severity === "error"),
+    ...diagnostics.filter((diagnostic) => diagnostic.severity === "error"),
+  ].length + outputs.filter((output) => output.collision).length;
+  const hasBlockingIssues = issueCount > 0;
 
   return (
     <div className="tm-graph-node__result nowheel nodrag nopan">
@@ -4507,51 +4546,19 @@ function OutputNodeResults({
             ? "No generated tokens"
             : `${outputs.length} generated ${outputs.length === 1 ? "token" : "tokens"}`}
         </span>
-        <span className="tm-graph-node__result-actions">
-          {issueCount > 0 ? (
-            <span className="tm-graph-node__result-warning">
-              {issueCount} need{issueCount === 1 ? "s" : ""} attention
-            </span>
-          ) : null}
-          {sortedOutputs.length > 3 ? (
-            <button
-              type="button"
-              className="tm-graph-node__result-toggle nodrag nopan"
-              aria-expanded={expanded}
-              aria-label={expanded ? "Collapse generated results" : "Expand generated results"}
-              onClick={(event) => {
-                event.stopPropagation();
-                onToggle();
-              }}
-            >
-              {expanded
-                ? "Show less"
-                : hasMore
-                  ? `Show ${sortedOutputs.length - visibleOutputs.length} more`
-                  : "Show less"}
-            </button>
-          ) : null}
-        </span>
       </div>
       {!previewReady ? (
         <div className="tm-graph-node__result-empty">
           Preparing preview.
         </div>
-      ) : outputs.length === 0 && issueMessages.length === 0 ? (
+      ) : outputs.length === 0 ? (
         <div className="tm-graph-node__result-empty">
-          Connect a value and wait for preview.
+          {hasBlockingIssues
+            ? "Resolve issues to preview output."
+            : "Connect a value and wait for preview."}
         </div>
       ) : (
         <div className="tm-graph-node__result-list">
-          {issueMessages.map((message) => (
-            <div
-              key={message}
-              className="tm-graph-node__result-issue"
-              title={message}
-            >
-              {message}
-            </div>
-          ))}
           {visibleOutputs.map((output) => (
             <OutputPreviewRow
               key={output.path}
@@ -4559,8 +4566,37 @@ function OutputNodeResults({
               modeNames={modeNames}
             />
           ))}
+          {hiddenOutputCount > 0 ? (
+            <div className="tm-graph-node__result-more">
+              {hiddenOutputCount} more in Outputs
+            </div>
+          ) : null}
         </div>
       )}
+    </div>
+  );
+}
+
+function NodeIssueList({
+  messages,
+  hasErrors,
+}: {
+  messages: string[];
+  hasErrors: boolean;
+}) {
+  return (
+    <div
+      className={`tm-graph-node__issues ${
+        hasErrors
+          ? "tm-graph-node__issues--error"
+          : "tm-graph-node__issues--warning"
+      }`}
+    >
+      {messages.map((message) => (
+        <div key={message} className="tm-graph-node__issue-message">
+          {message}
+        </div>
+      ))}
     </div>
   );
 }
@@ -4598,6 +4634,16 @@ function OutputPreviewRow({
   );
 }
 
+function NodePreviewPending() {
+  return (
+    <div className="tm-graph-node__result tm-graph-node__result--intermediate nowheel nodrag nopan">
+      <div className="tm-graph-node__result-empty">
+        Preparing preview.
+      </div>
+    </div>
+  );
+}
+
 function NodeRuntimePreview({
   preview,
   modeNames,
@@ -4605,7 +4651,8 @@ function NodeRuntimePreview({
   preview: { modeValues: Record<string, TokenGeneratorNodePreviewValue> };
   modeNames: string[];
 }) {
-  const modes = modeNames.length > 0 ? modeNames : Object.keys(preview.modeValues);
+  const modes =
+    modeNames.length > 0 ? modeNames : Object.keys(preview.modeValues);
   return (
     <div className="tm-graph-node__result tm-graph-node__result--intermediate nowheel nodrag nopan">
       <div className="tm-graph-node__result-header">
@@ -5520,10 +5567,16 @@ function groupPreviewOutputs(outputs: TokenGeneratorPreviewResult["outputs"]) {
   ].filter((group) => group.outputs.length > 0);
 }
 
+function previewRelevantNodes(nodes: TokenGeneratorDocumentNode[]) {
+  return nodes.map(({ position: _position, ...node }) => node);
+}
+
 function toFlowNodes(
   generator: TokenGeneratorDocument,
   preview: TokenGeneratorPreviewResult | null,
   issues: GraphIssue[] = [],
+  expandedNodeIds: Set<string> = new Set(),
+  onToggleDetailsExpanded?: (nodeId: string) => void,
 ): GraphFlowNode[] {
   return generator.nodes.map((graphNode) => ({
     id: graphNode.id,
@@ -5533,6 +5586,8 @@ function toFlowNodes(
       graphNode,
       preview: preview ?? undefined,
       issues: issues.filter((issue) => issue.nodeId === graphNode.id),
+      detailsExpanded: expandedNodeIds.has(graphNode.id),
+      onToggleDetailsExpanded,
     },
   }));
 }
@@ -5711,6 +5766,18 @@ function hasStructuralNodeChange(
       change.type === "add" ||
       change.type === "remove" ||
       (change.type === "position" && Boolean(change.dragging === false)),
+  );
+}
+
+function changesOnlyCommitNodePositions(
+  changes: NodeChange<GraphFlowNode>[],
+): boolean {
+  return (
+    changes.length > 0 &&
+    changes.every(
+      (change) =>
+        change.type === "position" && Boolean(change.dragging === false),
+    )
   );
 }
 

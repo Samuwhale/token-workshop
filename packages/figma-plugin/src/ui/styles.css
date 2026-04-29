@@ -2745,7 +2745,8 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node__summary,
-.tm-graph-node__status,
+.tm-graph-node__issue-count,
+.tm-graph-node__details-toggle,
 .tm-graph-node__output-path,
 .tm-graph-node__output-more {
   min-inline-size: 0;
@@ -2763,19 +2764,90 @@ button.tm-token-details__text-button:disabled:hover {
   -webkit-line-clamp: 2;
 }
 
-.tm-graph-node__status {
-  display: -webkit-box;
-  margin-block-start: 2px;
-  font-weight: 500;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+.tm-graph-node__issue-count {
+  display: inline-flex;
+  max-inline-size: 98px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.tm-graph-node__status--error {
+.tm-graph-node__issue-count svg {
+  flex: 0 0 auto;
+}
+
+.tm-graph-node__issue-count span {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tm-graph-node__issue-count--error {
   color: var(--color-figma-error);
 }
 
-.tm-graph-node__status--warning {
+.tm-graph-node__issue-count--warning {
+  color: var(--color-figma-warning);
+}
+
+.tm-graph-node__details-toggle {
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-block-size: 24px;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-figma-text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.tm-graph-node__details-toggle:hover {
+  color: var(--color-figma-text);
+}
+
+.tm-graph-node__details-toggle svg {
+  flex: 0 0 auto;
+}
+
+.tm-graph-node__details-toggle span {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-graph-node__issues {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 72%, transparent);
+  padding: 7px;
+}
+
+.tm-graph-node__issue-message {
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
+.tm-graph-node__issues--error {
+  color: var(--color-figma-error);
+}
+
+.tm-graph-node__issues--warning {
   color: var(--color-figma-warning);
 }
 
@@ -2801,7 +2873,8 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-graph-node__result {
   display: flex;
   min-inline-size: 0;
-  max-block-size: 260px;
+  block-size: 220px;
+  max-block-size: 220px;
   flex-direction: column;
   gap: 6px;
   margin-block-start: 4px;
@@ -2812,7 +2885,8 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node__result--intermediate {
-  max-block-size: 220px;
+  block-size: 180px;
+  max-block-size: 180px;
 }
 
 .tm-graph-node__result-header {
@@ -2832,11 +2906,10 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph-node__result-summary,
-  .tm-graph-node__result-warning,
-  .tm-graph-node__result-empty,
-  .tm-graph-node__result-issue,
-  .tm-graph-node__result-change,
-  .tm-graph-node__result-toggle,
+.tm-graph-node__result-warning,
+.tm-graph-node__result-empty,
+.tm-graph-node__result-change,
+.tm-graph-node__result-more,
 .tm-graph-node__runtime-mode-name,
 .tm-graph-node__runtime-item-label,
 .tm-graph-node__mode-name,
@@ -2863,11 +2936,10 @@ button.tm-token-details__text-button:disabled:hover {
   color: var(--color-figma-text-secondary);
 }
 
-.tm-graph-node__result-issue {
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-figma-error) 8%, transparent);
-  color: var(--color-figma-error);
-  padding: 6px;
+.tm-graph-node__result-more {
+  color: var(--color-figma-text-tertiary);
+  font-weight: 550;
+  padding: 2px 1px;
 }
 
 .tm-graph-node__result-list {
@@ -2907,21 +2979,6 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-graph-node__runtime-mode-name {
   color: var(--color-figma-text-secondary);
   font-weight: 550;
-}
-
-.tm-graph-node__result-toggle {
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-figma-text-secondary);
-  cursor: pointer;
-  font-weight: 600;
-  padding: 2px 3px;
-}
-
-.tm-graph-node__result-toggle:hover {
-  background: var(--color-figma-bg-hover);
-  color: var(--color-figma-text);
 }
 
 .tm-graph-node__mode-stack,
