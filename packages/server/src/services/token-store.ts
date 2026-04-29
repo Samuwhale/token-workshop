@@ -13,9 +13,11 @@ import {
   isReference,
   flattenTokenGroup,
   readGeneratorProvenance,
+  readTokenCollectionModeValues,
   readTokenScopes,
   stableStringify,
   TokenResolver,
+  buildTokenExtensionsWithCollectionModes,
 } from "@tokenmanager/core";
 import { NotFoundError, ConflictError, BadRequestError } from "../errors.js";
 import type { TokenPathRename } from "./operation-log.js";
@@ -1811,6 +1813,32 @@ export class TokenStore {
     };
   }
 
+  private cloneTokenForCollectionTransfer(
+    token: Token,
+    fromCollection: string,
+    toCollection: string,
+  ): Token {
+    const nextToken = structuredClone(token);
+    const modesByCollection = readTokenCollectionModeValues(nextToken);
+    const sourceModes =
+      modesByCollection[fromCollection] ?? modesByCollection[toCollection];
+    const nextModes = sourceModes
+      ? { [toCollection]: { ...sourceModes } }
+      : {};
+    const nextExtensions = buildTokenExtensionsWithCollectionModes(
+      nextToken,
+      nextModes,
+    );
+
+    if (nextExtensions) {
+      nextToken.$extensions = nextExtensions;
+    } else {
+      delete nextToken.$extensions;
+    }
+
+    return nextToken;
+  }
+
   // ----- Group operations -----
 
   async renameGroup(
@@ -1920,7 +1948,15 @@ export class TokenStore {
         setGroupAtPath(plan.target.tokens, groupPath, plan.groupObject);
       } else {
         for (const { relativePath, token } of plan.leafTokens) {
-          setTokenAtPath(plan.target.tokens, `${groupPath}.${relativePath}`, token);
+          setTokenAtPath(
+            plan.target.tokens,
+            `${groupPath}.${relativePath}`,
+            this.cloneTokenForCollectionTransfer(
+              token,
+              fromCollection,
+              toCollection,
+            ),
+          );
         }
       }
 
@@ -1948,7 +1984,11 @@ export class TokenStore {
           setTokenAtPath(
             plan.target.tokens,
             `${groupPath}.${relativePath}`,
-            structuredClone(token),
+            this.cloneTokenForCollectionTransfer(
+              token,
+              fromCollection,
+              toCollection,
+            ),
           );
         }
       }
@@ -1977,7 +2017,15 @@ export class TokenStore {
     );
     await this.runStructuralMutation([fromCollection, toCollection], async () => {
       for (const { sourcePath, targetPath, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, targetPath, token);
+        setTokenAtPath(
+          plan.target.tokens,
+          targetPath,
+          this.cloneTokenForCollectionTransfer(
+            token,
+            fromCollection,
+            toCollection,
+          ),
+        );
         deleteTokenAtPath(plan.source.tokens, sourcePath);
       }
       await this.saveCollections([fromCollection, toCollection]);
@@ -2003,7 +2051,15 @@ export class TokenStore {
     );
     await this.runStructuralMutation([toCollection], async () => {
       for (const { targetPath, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, targetPath, structuredClone(token));
+        setTokenAtPath(
+          plan.target.tokens,
+          targetPath,
+          this.cloneTokenForCollectionTransfer(
+            token,
+            fromCollection,
+            toCollection,
+          ),
+        );
       }
       await this.saveCollection(toCollection);
     });
@@ -2125,7 +2181,15 @@ export class TokenStore {
     );
     return this.runStructuralMutation([fromCollection, toCollection], async () => {
       for (const { sourcePath, targetPath, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, targetPath, token);
+        setTokenAtPath(
+          plan.target.tokens,
+          targetPath,
+          this.cloneTokenForCollectionTransfer(
+            token,
+            fromCollection,
+            toCollection,
+          ),
+        );
         deleteTokenAtPath(plan.source.tokens, sourcePath);
       }
       await this.saveCollections([fromCollection, toCollection]);
@@ -2152,7 +2216,15 @@ export class TokenStore {
     );
     return this.runStructuralMutation([toCollection], async () => {
       for (const { targetPath, token } of plan.plannedTransfers) {
-        setTokenAtPath(plan.target.tokens, targetPath, structuredClone(token));
+        setTokenAtPath(
+          plan.target.tokens,
+          targetPath,
+          this.cloneTokenForCollectionTransfer(
+            token,
+            fromCollection,
+            toCollection,
+          ),
+        );
       }
       await this.saveCollection(toCollection);
       return { copied: plan.plannedTransfers.length };

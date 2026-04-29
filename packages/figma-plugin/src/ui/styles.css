@@ -3180,3 +3180,53 @@ button.tm-token-details__text-button:disabled:hover {
   height: 11px;
   fill: currentColor;
 }
+
+@media (max-width: 520px) {
+  .tm-graph {
+    --tm-graph-node-width: 320px;
+    --tm-graph-port-column: 72px;
+  }
+
+  .tm-graph-node__content {
+    gap: 5px;
+    padding: 10px var(--tm-graph-port-column);
+  }
+
+  .tm-graph-node__title {
+    font-size: var(--font-size-sm);
+  }
+
+  .tm-graph-node__result {
+    block-size: 168px;
+    max-block-size: 168px;
+  }
+
+  .tm-graph-node__result--intermediate {
+    block-size: 144px;
+    max-block-size: 144px;
+  }
+
+  .tm-graph-node__port-label {
+    gap: 1px;
+  }
+}
+
+@media (max-width: 360px) {
+  .tm-graph {
+    --tm-graph-node-width: 288px;
+    --tm-graph-port-column: 62px;
+  }
+
+  .tm-graph-node__content {
+    padding: 9px var(--tm-graph-port-column);
+  }
+
+  .tm-graph-node__port-meta {
+    display: none;
+  }
+
+  .tm-graph-node__result {
+    block-size: 148px;
+    max-block-size: 148px;
+  }
+}

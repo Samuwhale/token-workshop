@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
@@ -8,6 +8,15 @@ import { StepperInput } from './DimensionEditor';
 export const NumberEditor = memo(function NumberEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string>; autoFocus?: boolean }) {
   const isFormulaValue = typeof value === 'string' && isFormula(value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
+  useEffect(() => {
+    if (isFormulaValue) {
+      setFormulaMode(true);
+      return;
+    }
+    if (typeof value !== 'string') {
+      setFormulaMode(false);
+    }
+  }, [isFormulaValue, value]);
   const numVal = formulaMode ? 0 : (parseFloat(value) || 0);
   const formulaStr = formulaMode ? (typeof value === 'string' ? value : '') : '';
   const preview = formulaMode && formulaStr ? resolveFormulaPreview(formulaStr, allTokensFlat) : null;
@@ -17,7 +26,6 @@ export const NumberEditor = memo(function NumberEditor({ value, onChange, allTok
       onChange(preview?.result ?? 0);
       setFormulaMode(false);
     } else {
-      onChange(String(numVal));
       setFormulaMode(true);
     }
   };

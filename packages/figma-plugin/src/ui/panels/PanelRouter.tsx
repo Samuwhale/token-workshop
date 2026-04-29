@@ -322,7 +322,7 @@ export function PanelRouter({
   const [pendingGeneratorFocus, setPendingGeneratorFocus] =
     useState<GeneratorPanelFocus | null>(null);
   const [pendingGeneratorInitialView, setPendingGeneratorInitialView] =
-    useState<"setup" | "graph" | null>(null);
+    useState<"overview" | "graph" | null>(null);
   const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
     useState<string | null>(null);
   const [generatorCreateOutputPrefix, setGeneratorCreateOutputPrefix] =

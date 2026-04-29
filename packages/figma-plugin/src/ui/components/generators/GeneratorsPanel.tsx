@@ -228,14 +228,14 @@ type GraphFlowNode = Node<
   "graphNode"
 >;
 type GraphFlowEdge = Edge<Record<string, never>>;
-type GeneratorEditorMode = "setup" | "graph";
+type GeneratorEditorMode = "overview" | "graph";
 const COMPACT_GENERATORS_WIDTH = 860;
 
 const GENERATOR_VIEW_OPTIONS: Array<{
   value: GeneratorEditorMode;
   label: string;
 }> = [
-  { value: "setup", label: "Presets" },
+  { value: "overview", label: "Overview" },
   { value: "graph", label: "Graph" },
 ];
 
@@ -437,13 +437,13 @@ export function GeneratorsPanel({
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
-  const [setupPanelOpen, setSetupPanelOpen] = useState(false);
+  const [overviewPanelOpen, setOverviewPanelOpen] = useState(false);
   const [floatingPreviewOpen, setFloatingPreviewOpen] = useState(true);
   const [floatingPreviewCollapsed, setFloatingPreviewCollapsed] =
     useState(false);
   const [floatingPreviewPosition, setFloatingPreviewPosition] = useState({
-    x: 24,
-    y: 72,
+    x: 8,
+    y: 56,
   });
   const [generatorListOpen, setGeneratorListOpen] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
@@ -452,7 +452,7 @@ export function GeneratorsPanel({
   );
   const [pendingPresetConversion, setPendingPresetConversion] =
     useState<PendingPresetConversion | null>(null);
-  const [editorMode, setEditorMode] = useState<GeneratorEditorMode>("setup");
+  const [editorMode, setEditorMode] = useState<GeneratorEditorMode>("overview");
   const [activeInitialFocus, setActiveInitialFocus] =
     useState<GeneratorPanelFocus | null>(null);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<
@@ -472,6 +472,7 @@ export function GeneratorsPanel({
   const dirtyRef = useRef(false);
   const dirtyGeneratorIdRef = useRef<string | null>(null);
   const graphRevisionRef = useRef(0);
+  const suppressedViewportCommitCountRef = useRef(0);
   const autoPreviewRunRef = useRef(0);
   const latestPreviewSignatureRef = useRef("");
   const panelRef = useRef<HTMLDivElement>(null);
@@ -677,7 +678,12 @@ export function GeneratorsPanel({
       dirtyGeneratorIdRef.current = null;
       setExternalPreviewInvalidated(false);
     }
-    if (initialView === "graph" || focus?.nodeId || focus?.edgeId) {
+    if (initialView === "overview") {
+      setEditorMode("overview");
+      setNodeLibraryOpen(false);
+      setInspectorOpen(false);
+      setGraphMenu(null);
+    } else if (initialView === "graph" || focus?.nodeId || focus?.edgeId) {
       setEditorMode("graph");
     }
     if (focus?.nodeId) {
@@ -975,6 +981,10 @@ export function GeneratorsPanel({
   const commitViewport = useCallback(
     (viewport: Viewport) => {
       if (!activeGenerator) return;
+      if (suppressedViewportCommitCountRef.current > 0) {
+        suppressedViewportCommitCountRef.current -= 1;
+        return;
+      }
       const currentViewport = activeGenerator.viewport;
       if (
         currentViewport.x === viewport.x &&
@@ -1290,7 +1300,7 @@ export function GeneratorsPanel({
       setActiveInitialFocus(null);
       setExternalPreviewInvalidated(false);
       setLastApply(null);
-      setEditorMode("setup");
+      setEditorMode("overview");
       setPreview(null);
       setDirty(false);
       dirtyRef.current = false;
@@ -1337,7 +1347,7 @@ export function GeneratorsPanel({
       setGraphMenu(null);
       dirtyRef.current = false;
       dirtyGeneratorIdRef.current = null;
-      setEditorMode("setup");
+      setEditorMode("overview");
     },
     [busy, dirty, setActiveGeneratorSelection],
   );
@@ -2049,13 +2059,13 @@ export function GeneratorsPanel({
 
   useEffect(() => {
     if (!compactGenerators) {
-      setSetupPanelOpen(false);
+      setOverviewPanelOpen(false);
       setGeneratorListOpen(false);
       setActionsMenuOpen(false);
       return;
     }
     if (editorMode === "graph") {
-      setSetupPanelOpen(false);
+      setOverviewPanelOpen(false);
     } else {
       setNodeLibraryOpen(false);
       setInspectorOpen(false);
@@ -2065,12 +2075,20 @@ export function GeneratorsPanel({
   useEffect(() => {
     if (!compactGenerators || editorMode !== "graph" || !flowInstance) return;
     let timeoutId = 0;
+    let resetTimeoutId = 0;
     const fitCompactGraph = () => {
+      suppressedViewportCommitCountRef.current += 1;
       flowInstance.fitView({ padding: 0.14, duration: 150 });
     };
     window.requestAnimationFrame(fitCompactGraph);
     timeoutId = window.setTimeout(fitCompactGraph, 220);
-    return () => window.clearTimeout(timeoutId);
+    resetTimeoutId = window.setTimeout(() => {
+      suppressedViewportCommitCountRef.current = 0;
+    }, 700);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(resetTimeoutId);
+    };
   }, [
     activeGeneratorId,
     compactGenerators,
@@ -2079,6 +2097,21 @@ export function GeneratorsPanel({
     nodes.length,
     panelWidth,
   ]);
+
+  useEffect(() => {
+    if (!compactGenerators || panelWidth === null) return;
+    const previewWidth = Math.min(320, Math.max(0, panelWidth - 16));
+    const maxX = Math.max(8, panelWidth - previewWidth - 8);
+    const panelHeight = panelRef.current?.clientHeight ?? 0;
+    const maxY = panelHeight > 0 ? Math.max(8, panelHeight - 220) : Number.POSITIVE_INFINITY;
+    setFloatingPreviewPosition((position) => {
+      const next = {
+        x: Math.min(Math.max(8, position.x), maxX),
+        y: Math.min(Math.max(8, position.y), maxY),
+      };
+      return next.x === position.x && next.y === position.y ? position : next;
+    });
+  }, [compactGenerators, panelWidth]);
 
   useEffect(() => {
     if (editorMode !== "graph" || !inspectorOpen || graphMenu) return;
@@ -2338,7 +2371,7 @@ export function GeneratorsPanel({
               }
               onClose={() => setFloatingPreviewOpen(false)}
               onOpenFull={() => {
-                setEditorMode("setup");
+                setEditorMode("overview");
                 setNodeLibraryOpen(false);
                 setInspectorOpen(false);
               }}
@@ -2440,10 +2473,10 @@ export function GeneratorsPanel({
     );
   };
 
-  const renderSetupSummary = (showHeader = true) => {
+  const renderOverviewSummary = (showHeader = true) => {
     if (!activeGenerator) return null;
     return (
-      <GeneratorSetupSummary
+      <GeneratorOverviewSummary
         generator={activeGenerator}
         targetCollection={targetCollection}
         collections={collections}
@@ -2456,7 +2489,7 @@ export function GeneratorsPanel({
         onChangeStructuredDraft={updateStructuredDraft}
         onEditGraph={() => {
           setEditorMode("graph");
-          setSetupPanelOpen(false);
+          setOverviewPanelOpen(false);
         }}
         onFocusGraphIssue={focusGraphIssue}
         showHeader={showHeader}
@@ -2471,6 +2504,7 @@ export function GeneratorsPanel({
         preview={preview}
         targetCollection={targetCollection}
         focusedDiagnosticId={activeInitialFocus?.diagnosticId}
+        compact={compactGenerators}
         onNavigateToToken={(path) =>
           onNavigateToToken(
             path,
@@ -2481,7 +2515,7 @@ export function GeneratorsPanel({
     );
   };
 
-  const renderSetupWorkspace = () => {
+  const renderOverviewWorkspace = () => {
     if (!activeGenerator) return null;
     if (compactGenerators) {
       return (
@@ -2489,12 +2523,12 @@ export function GeneratorsPanel({
           <section className="h-full min-w-0 overflow-auto p-3">
             {renderPreviewPanel()}
           </section>
-          {setupPanelOpen ? (
+          {overviewPanelOpen ? (
             <GeneratorOverlayPanel
-              title="Presets"
-              onClose={() => setSetupPanelOpen(false)}
+              title="Overview settings"
+              onClose={() => setOverviewPanelOpen(false)}
             >
-              <section className="p-3">{renderSetupSummary(false)}</section>
+              <section className="p-3">{renderOverviewSummary(false)}</section>
             </GeneratorOverlayPanel>
           ) : null}
         </div>
@@ -2503,7 +2537,7 @@ export function GeneratorsPanel({
     return (
       <div className="flex h-full min-h-0 overflow-hidden max-[900px]:flex-col max-[900px]:overflow-y-auto">
         <aside className="w-[360px] shrink-0 overflow-y-auto border-r border-[var(--color-figma-border)] p-3 max-[900px]:max-h-none max-[900px]:w-full max-[900px]:border-b max-[900px]:border-r-0">
-          {renderSetupSummary()}
+          {renderOverviewSummary()}
         </aside>
         <section className="min-w-0 flex-1 overflow-auto p-3">
           {renderPreviewPanel()}
@@ -2513,7 +2547,7 @@ export function GeneratorsPanel({
   };
 
   const renderGeneratorSelector = () => (
-    <div className="flex min-w-0 basis-full items-center gap-2">
+    <div className="flex min-w-0 flex-1 items-center gap-2">
       <Button
         type="button"
         variant="ghost"
@@ -2521,7 +2555,7 @@ export function GeneratorsPanel({
         onClick={() => {
           setGeneratorListOpen(true);
           setActionsMenuOpen(false);
-          setSetupPanelOpen(false);
+          setOverviewPanelOpen(false);
           setNodeLibraryOpen(false);
           setInspectorOpen(false);
         }}
@@ -2540,6 +2574,79 @@ export function GeneratorsPanel({
     </div>
   );
 
+  const changeEditorMode = (mode: GeneratorEditorMode) => {
+    if (mode === "overview") {
+      setEditorMode("overview");
+      setNodeLibraryOpen(false);
+      setInspectorOpen(false);
+      return;
+    }
+    setEditorMode("graph");
+    if (compactGenerators) {
+      suppressedViewportCommitCountRef.current += 4;
+    }
+    setOverviewPanelOpen(false);
+  };
+
+  const renderViewControl = () => (
+    <SegmentedControl
+      value={editorMode}
+      options={GENERATOR_VIEW_OPTIONS}
+      ariaLabel="Generator view"
+      onChange={changeEditorMode}
+    />
+  );
+
+  const renderStatusIndicator = (compact = false) => {
+    if (busy) {
+      const busyLabel = `${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`;
+      return (
+        <span
+          id="generator-status-label"
+          className={
+            compact
+              ? "max-w-[116px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
+              : "text-secondary text-[color:var(--color-figma-text-secondary)]"
+          }
+          title={busyLabel}
+        >
+          {busyLabel}
+        </span>
+      );
+    }
+    if (graphHasErrors) {
+      return (
+        <button
+          id="generator-status-label"
+          type="button"
+          onClick={focusFirstGraphIssue}
+          className={
+            compact
+              ? "inline-flex h-7 max-w-[128px] items-center gap-1.5 rounded-md px-2 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+              : "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+          }
+          title={statusLabel}
+        >
+          <AlertTriangle size={13} />
+          <span className={compact ? "truncate" : ""}>{statusLabel}</span>
+        </button>
+      );
+    }
+    return (
+      <span
+        id="generator-status-label"
+        className={
+          compact
+            ? "max-w-[128px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
+            : "text-secondary text-[color:var(--color-figma-text-secondary)]"
+        }
+        title={statusLabel}
+      >
+        {statusLabel}
+      </span>
+    );
+  };
+
   const renderActionsMenu = () =>
     actionsMenuOpen ? (
       <>
@@ -2553,6 +2660,41 @@ export function GeneratorsPanel({
           <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {statusLabel}
           </div>
+          {editorMode === "graph" ? (
+            <>
+              <ActionRow
+                onClick={() => {
+                  setActionsMenuOpen(false);
+                  setNodeLibraryOpen(true);
+                  setInspectorOpen(false);
+                }}
+              >
+                Add node
+              </ActionRow>
+              {selectedNode ? (
+                <ActionRow
+                  onClick={() => {
+                    setActionsMenuOpen(false);
+                    setInspectorOpen(true);
+                    setNodeLibraryOpen(false);
+                  }}
+                >
+                  Node settings
+                </ActionRow>
+              ) : null}
+              {!floatingPreviewOpen ? (
+                <ActionRow
+                  onClick={() => {
+                    setActionsMenuOpen(false);
+                    setFloatingPreviewOpen(true);
+                    setFloatingPreviewCollapsed(false);
+                  }}
+                >
+                  Show preview
+                </ActionRow>
+              ) : null}
+            </>
+          ) : null}
           <ActionRow
             onClick={() => {
               setActionsMenuOpen(false);
@@ -2595,6 +2737,177 @@ export function GeneratorsPanel({
       </>
     ) : null;
 
+  const renderGeneratorActions = (compact = false) => (
+    <div
+      className={
+        compact
+          ? "ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1"
+          : "ml-auto flex min-w-0 items-center gap-1"
+      }
+    >
+      {editorMode === "overview" && compact ? (
+        <IconButton
+          title="Overview settings"
+          aria-label="Overview settings"
+          onClick={() => {
+            setOverviewPanelOpen((open) => !open);
+            setActionsMenuOpen(false);
+          }}
+          size="md"
+        >
+          <Settings2 size={14} />
+        </IconButton>
+      ) : null}
+      {editorMode === "graph" && !compact ? (
+        <>
+          <IconButton
+            title={nodeLibraryOpen ? "Hide node library" : "Add node"}
+            aria-label={nodeLibraryOpen ? "Hide node library" : "Add node"}
+            onClick={() => {
+              setNodeLibraryOpen((open) => !open);
+              setInspectorOpen(false);
+              setActionsMenuOpen(false);
+            }}
+            size={compact ? "md" : "lg"}
+          >
+            <Plus size={14} />
+          </IconButton>
+          {selectedNode ? (
+            <IconButton
+              title={inspectorOpen ? "Hide settings" : "Show settings"}
+              aria-label={inspectorOpen ? "Hide settings" : "Show settings"}
+              onClick={() => {
+                setInspectorOpen((open) => !open);
+                setNodeLibraryOpen(false);
+                setActionsMenuOpen(false);
+              }}
+              size={compact ? "md" : "lg"}
+            >
+              <PanelRight size={14} />
+            </IconButton>
+          ) : null}
+        </>
+      ) : null}
+      {compact && dirty ? (
+        <Button
+          title="Save generator"
+          aria-label="Save generator"
+          onClick={saveGenerator}
+          disabled={busy !== null || graphHasErrors}
+          variant="secondary"
+          size="sm"
+        >
+          <Save size={14} />
+          <span className="sr-only">Save</span>
+        </Button>
+      ) : null}
+      {!compact ? (
+        <Button
+          title="Save generator"
+          aria-label="Save generator"
+          onClick={saveGenerator}
+          disabled={!dirty || busy !== null || graphHasErrors}
+          variant={dirty ? "secondary" : "ghost"}
+          size="sm"
+        >
+          <Save size={14} />
+          <span className="max-[760px]:sr-only">Save</span>
+        </Button>
+      ) : null}
+      {!compact && dirty ? (
+        <Button
+          title="Discard changes"
+          aria-label="Discard changes"
+          onClick={discardGeneratorDraft}
+          disabled={busy !== null}
+          variant="ghost"
+          size="sm"
+        >
+          <X size={14} />
+          <span className="max-[760px]:sr-only">Discard</span>
+        </Button>
+      ) : null}
+      {editorMode === "graph" && preview && !compact ? (
+        <Button
+          title={`Open output review: ${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`}
+          aria-label={`Open output review: ${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`}
+          onClick={() => {
+            setEditorMode("overview");
+            setNodeLibraryOpen(false);
+            setInspectorOpen(false);
+          }}
+          variant="ghost"
+          size="sm"
+        >
+          <span>
+            {preview.outputs.length}
+            <span className={compact ? "sr-only" : ""}>
+              {" "}
+              {preview.outputs.length === 1 ? "output" : "outputs"}
+            </span>
+          </span>
+        </Button>
+      ) : null}
+      {editorMode === "graph" && !floatingPreviewOpen ? (
+        <Button
+          title="Show floating output preview"
+          aria-label="Show floating output preview"
+          onClick={() => {
+            setFloatingPreviewOpen(true);
+            setFloatingPreviewCollapsed(false);
+          }}
+          variant="ghost"
+          size="sm"
+        >
+          Preview
+        </Button>
+      ) : null}
+      <Button
+        title="Apply generator"
+        aria-label="Apply generator"
+        aria-describedby="generator-status-label"
+        onClick={applyGenerator}
+        disabled={
+          busy !== null ||
+          graphHasErrors ||
+          !preview ||
+          Boolean(preview.blocking) ||
+          previewHasCollisions ||
+          previewHasNoOutputs
+        }
+        variant="primary"
+        size="sm"
+      >
+        <Sparkles size={14} />
+        <span className={compact ? "" : "max-[760px]:sr-only"}>Apply</span>
+      </Button>
+      {compact ? (
+        <div className="relative">
+          <IconButton
+            title="More generator actions"
+            aria-label="More generator actions"
+            onClick={() => setActionsMenuOpen((open) => !open)}
+            size="md"
+          >
+            <MoreHorizontal size={14} />
+          </IconButton>
+          {renderActionsMenu()}
+        </div>
+      ) : (
+        <IconButton
+          title="Delete generator"
+          aria-label="Delete generator"
+          onClick={requestDeleteGenerator}
+          disabled={busy !== null}
+          size="lg"
+          tone="danger"
+        >
+          <Trash2 size={14} />
+        </IconButton>
+      )}
+    </div>
+  );
+
   return (
     <div
       ref={panelRef}
@@ -2616,7 +2929,7 @@ export function GeneratorsPanel({
                 return;
               }
               setCreatePanelOpen(true);
-              setEditorMode("setup");
+              setEditorMode("overview");
               setError(null);
             }}
             onSelect={(generatorId) => {
@@ -2640,7 +2953,7 @@ export function GeneratorsPanel({
                 return;
               }
               setCreatePanelOpen(true);
-              setEditorMode("setup");
+              setEditorMode("overview");
               setError(null);
             }}
             onSelect={(generatorId) => {
@@ -2671,10 +2984,10 @@ export function GeneratorsPanel({
               }
               if (collectionId === workingCollectionId) {
                 setActiveGeneratorSelection(generatorId);
-                setEditorMode(initialView ?? "setup");
+                setEditorMode(initialView ?? "overview");
                 void loadGenerators().then(() => {
                   setActiveGeneratorSelection(generatorId);
-                  setEditorMode(initialView ?? "setup");
+                  setEditorMode(initialView ?? "overview");
                 });
               } else {
                 setError(
@@ -2687,299 +3000,62 @@ export function GeneratorsPanel({
           />
         ) : (
           <>
-            <div
-              className={
-                compactGenerators
-                  ? "flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-2"
-                  : "flex h-12 shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] px-3"
-              }
-            >
-              {!compactGenerators ? (
-                <IconButton
-                  title={leftPanelOpen ? "Hide generator list" : "Show generator list"}
-                  aria-label={leftPanelOpen ? "Hide generator list" : "Show generator list"}
-                  onClick={() => setLeftPanelOpen((open) => !open)}
-                  size="lg"
-                >
-                  <PanelLeft size={14} />
-                </IconButton>
-              ) : null}
-
-              {activeGenerator ? (
-                <>
-                  {compactGenerators ? (
-                    renderGeneratorSelector()
-                  ) : (
-                    <>
-                      <input
-                        value={activeGenerator.name}
-                        onChange={(event) =>
-                          patchActiveGraph({ name: event.target.value })
-                        }
-                        className="min-w-[150px] max-w-[300px] rounded-md bg-transparent px-2 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)] max-[760px]:min-w-0 max-[760px]:max-w-[140px]"
-                      />
-                      <span
-                        className="max-w-[220px] truncate text-secondary text-[color:var(--color-figma-text-secondary)] max-[760px]:hidden"
-                        title={activeGenerator.targetCollectionId}
-                      >
-                        {targetCollection?.publishRouting?.collectionName?.trim() ||
-                          activeGenerator.targetCollectionId}
-                      </span>
-                    </>
-                  )}
-                  <SegmentedControl
-                    value={editorMode}
-                    options={GENERATOR_VIEW_OPTIONS}
-                    ariaLabel="Generator view"
-                    onChange={(mode) => {
-                      if (mode === "setup") {
-                        setEditorMode("setup");
-                        setNodeLibraryOpen(false);
-                        setInspectorOpen(false);
-                        return;
-                      }
-                      setEditorMode("graph");
-                      setSetupPanelOpen(false);
-                    }}
-                  />
-                  {!compactGenerators ? (
-                    busy ? (
-                      <span
-                        id="generator-status-label"
-                        className="text-secondary text-[color:var(--color-figma-text-secondary)]"
-                      >
-                        {`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
-                      </span>
-                    ) : graphHasErrors ? (
-                      <button
-                        id="generator-status-label"
-                        type="button"
-                        onClick={focusFirstGraphIssue}
-                        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
-                      >
-                        <AlertTriangle size={13} />
-                        {statusLabel}
-                      </button>
-                    ) : (
-                      <span
-                        id="generator-status-label"
-                        className="text-secondary text-[color:var(--color-figma-text-secondary)]"
-                      >
-                        {statusLabel}
-                      </span>
-                    )
-                  ) : busy ? (
-                    <span
-                      id="generator-status-label"
-                      className="max-w-[104px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
-                      title={`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
-                    >
-                      {`${busy.charAt(0).toUpperCase()}${busy.slice(1)}...`}
-                    </span>
-                  ) : graphHasErrors ? (
-                    <button
-                      id="generator-status-label"
-                      type="button"
-                      onClick={focusFirstGraphIssue}
-                      className="inline-flex h-7 max-w-[118px] items-center gap-1.5 rounded-md px-2 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
-                      title={statusLabel}
-                    >
-                      <AlertTriangle size={13} />
-                      <span className="truncate max-[560px]:sr-only">
-                        {statusLabel}
-                      </span>
-                    </button>
-                  ) : (
-                    <span
-                      id="generator-status-label"
-                      className="max-w-[112px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
-                      title={statusLabel}
-                    >
-                      {statusLabel}
-                    </span>
-                  )}
-                  <div className="ml-auto flex items-center gap-1.5">
-                    {editorMode === "setup" && compactGenerators ? (
-                      <IconButton
-                        title="Presets"
-                        aria-label="Presets"
-                        onClick={() => {
-                          setSetupPanelOpen((open) => !open);
-                          setActionsMenuOpen(false);
-                        }}
-                        size="lg"
-                      >
-                        <Settings2 size={14} />
-                      </IconButton>
-                    ) : null}
-                    {editorMode === "graph" ? (
-                      <>
-                        <IconButton
-                          title={nodeLibraryOpen ? "Hide node library" : "Add node"}
-                          aria-label={nodeLibraryOpen ? "Hide node library" : "Add node"}
-                          onClick={() => {
-                            setNodeLibraryOpen((open) => !open);
-                            setInspectorOpen(false);
-                            setActionsMenuOpen(false);
-                          }}
-                          size="lg"
-                        >
-                          <Plus size={14} />
-                        </IconButton>
-                        {selectedNode ? (
-                          <IconButton
-                            title={inspectorOpen ? "Hide settings" : "Show settings"}
-                            aria-label={inspectorOpen ? "Hide settings" : "Show settings"}
-                            onClick={() => {
-                              setInspectorOpen((open) => !open);
-                              setNodeLibraryOpen(false);
-                              setActionsMenuOpen(false);
-                            }}
-                            size="lg"
-                          >
-                            <PanelRight size={14} />
-                          </IconButton>
-                        ) : null}
-                      </>
-                    ) : null}
-                    {compactGenerators && dirty ? (
-                      <Button
-                        title="Save generator"
-                        aria-label="Save generator"
-                        onClick={saveGenerator}
-                        disabled={busy !== null || graphHasErrors}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        <Save size={14} />
-                        <span className="sr-only">Save</span>
-                      </Button>
-                    ) : null}
-                    {!compactGenerators ? (
-                      <Button
-                        title="Save generator"
-                        aria-label="Save generator"
-                        onClick={saveGenerator}
-                        disabled={!dirty || busy !== null || graphHasErrors}
-                        variant={dirty ? "secondary" : "ghost"}
-                        size="sm"
-                      >
-                        <Save size={14} />
-                        <span className="max-[760px]:sr-only">Save</span>
-                      </Button>
-                    ) : null}
-                    {!compactGenerators && dirty ? (
-                      <Button
-                        title="Discard changes"
-                        aria-label="Discard changes"
-                        onClick={discardGeneratorDraft}
-                        disabled={busy !== null}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        <X size={14} />
-                        <span className="max-[760px]:sr-only">Discard</span>
-                      </Button>
-                    ) : null}
-                    {editorMode === "graph" && preview ? (
-                      <Button
-                        title={`Open output review: ${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`}
-                        aria-label={`Open output review: ${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`}
-                        onClick={() => {
-                          setEditorMode("setup");
-                          setNodeLibraryOpen(false);
-                          setInspectorOpen(false);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        <span>
-                          {preview.outputs.length}
-                          <span className={compactGenerators ? "sr-only" : ""}>
-                            {" "}
-                            {preview.outputs.length === 1 ? "output" : "outputs"}
-                          </span>
-                        </span>
-                      </Button>
-                    ) : null}
-                    {editorMode === "graph" && !floatingPreviewOpen ? (
-                      <Button
-                        title="Show floating output preview"
-                        aria-label="Show floating output preview"
-                        onClick={() => {
-                          setFloatingPreviewOpen(true);
-                          setFloatingPreviewCollapsed(false);
-                        }}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        Preview
-                      </Button>
-                    ) : null}
-                    <Button
-                      title="Apply generator"
-                      aria-label="Apply generator"
-                      aria-describedby="generator-status-label"
-                      onClick={applyGenerator}
-                      disabled={
-                        busy !== null ||
-                        graphHasErrors ||
-                        !preview ||
-                        Boolean(preview.blocking) ||
-                        previewHasCollisions ||
-                        previewHasNoOutputs
-                      }
-                      variant="primary"
-                      size="sm"
-                    >
-                      <Sparkles size={14} />
-                      <span className={compactGenerators ? "" : "max-[760px]:sr-only"}>
-                        Apply
-                      </span>
-                    </Button>
-                    {compactGenerators ? (
-                      <div className="relative">
-                        <IconButton
-                          title="More generator actions"
-                          aria-label="More generator actions"
-                          onClick={() => setActionsMenuOpen((open) => !open)}
-                          size="lg"
-                        >
-                          <MoreHorizontal size={14} />
-                        </IconButton>
-                        {renderActionsMenu()}
-                      </div>
-                    ) : (
-                      <IconButton
-                        title="Delete generator"
-                        aria-label="Delete generator"
-                        onClick={requestDeleteGenerator}
-                        disabled={busy !== null}
-                        size="lg"
-                        tone="danger"
-                      >
-                        <Trash2 size={14} />
-                      </IconButton>
-                    )}
+            {activeGenerator ? (
+              compactGenerators ? (
+                <div className="flex shrink-0 flex-col gap-2 border-b border-[var(--color-figma-border)] px-2 py-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    {renderGeneratorSelector()}
+                    {renderStatusIndicator(true)}
                   </div>
-                </>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="min-w-0 flex-1">{renderViewControl()}</div>
+                    {renderGeneratorActions(true)}
+                  </div>
+                </div>
               ) : (
-                <>
-                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    Create a generator for this collection.
-                  </span>
-                  <Button
-                    onClick={() => setCreatePanelOpen(true)}
-                    variant="primary"
-                    size="sm"
-                    className="ml-auto"
+                <div className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] px-3">
+                  <IconButton
+                    title={leftPanelOpen ? "Hide generator list" : "Show generator list"}
+                    aria-label={leftPanelOpen ? "Hide generator list" : "Show generator list"}
+                    onClick={() => setLeftPanelOpen((open) => !open)}
+                    size="lg"
                   >
-                    <Plus size={14} />
-                    Create
-                  </Button>
-                </>
-              )}
-            </div>
+                    <PanelLeft size={14} />
+                  </IconButton>
+                  <input
+                    value={activeGenerator.name}
+                    onChange={(event) =>
+                      patchActiveGraph({ name: event.target.value })
+                    }
+                    className="min-w-[150px] max-w-[300px] rounded-md bg-transparent px-2 py-1 text-primary font-semibold outline-none hover:bg-[var(--color-figma-bg-hover)] focus:bg-[var(--color-figma-bg-secondary)] max-[760px]:min-w-0 max-[760px]:max-w-[140px]"
+                  />
+                  <span
+                    className="max-w-[220px] truncate text-secondary text-[color:var(--color-figma-text-secondary)] max-[760px]:hidden"
+                    title={activeGenerator.targetCollectionId}
+                  >
+                    {targetCollection?.publishRouting?.collectionName?.trim() ||
+                      activeGenerator.targetCollectionId}
+                  </span>
+                  {renderViewControl()}
+                  {renderStatusIndicator()}
+                  {renderGeneratorActions()}
+                </div>
+              )
+            ) : (
+              <div className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] px-3">
+                <span className="min-w-0 flex-1 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Create a generator for this collection.
+                </span>
+                <Button
+                  onClick={() => setCreatePanelOpen(true)}
+                  variant="primary"
+                  size="sm"
+                >
+                  <Plus size={14} />
+                  Create
+                </Button>
+              </div>
+            )}
 
             {error ? (
               <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
@@ -3001,7 +3077,7 @@ export function GeneratorsPanel({
                 editorMode === "graph" ? (
                   renderGraphWorkspace()
                 ) : (
-                  renderSetupWorkspace()
+                  renderOverviewWorkspace()
                 )
               ) : (
                 <div className="flex h-full items-center justify-center p-6">
@@ -3063,7 +3139,7 @@ export function GeneratorsPanel({
               }
               setGeneratorListOpen(false);
               setCreatePanelOpen(true);
-              setEditorMode("setup");
+              setEditorMode("overview");
               setError(null);
             }}
             onSelect={(generatorId) => {
@@ -3114,7 +3190,7 @@ function GraphIssueCallout({
         : `${issues.length} warnings`;
 
   return (
-    <div className="absolute left-3 top-3 z-10 max-w-[420px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2 shadow-sm">
+    <div className="absolute left-3 right-3 top-3 z-10 max-w-[420px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2 shadow-sm">
       <div className="flex items-start gap-2">
         <AlertTriangle
           size={14}
@@ -3231,17 +3307,18 @@ function PresetConversionDialog({
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-4">
       <section className="w-full max-w-[380px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
         <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-          Convert to custom graph?
+          Edit as custom graph?
         </h2>
         <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          This structural graph edit will replace preset controls with a custom graph. Existing preview and apply behavior stay the same.
+          This unlocks node-level editing. Overview will still show outputs,
+          status, and apply behavior for this generator.
         </p>
         <div className="mt-3 flex justify-end gap-2">
           <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="button" size="sm" variant="primary" onClick={onConfirm}>
-            Convert
+            Continue
           </Button>
         </div>
       </section>
@@ -3890,7 +3967,7 @@ function GeneratorDockedPanel({
   );
 }
 
-function GeneratorSetupSummary({
+function GeneratorOverviewSummary({
   generator,
   targetCollection,
   collections,
@@ -3937,7 +4014,7 @@ function GeneratorSetupSummary({
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-                Presets
+                Generator settings
               </h3>
               <button
                 type="button"
@@ -3945,7 +4022,7 @@ function GeneratorSetupSummary({
                 className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 <Workflow size={13} />
-                Edit graph
+                Edit nodes
               </button>
             </div>
           </section>
@@ -3965,7 +4042,7 @@ function GeneratorSetupSummary({
 
         <section className="space-y-3">
           {structuredDraft ? (
-            <StructuredGeneratorSetup
+            <StructuredGeneratorSettings
               draft={structuredDraft}
               targetCollectionId={generator.targetCollectionId}
               targetCollection={targetCollection}
@@ -3974,8 +4051,21 @@ function GeneratorSetupSummary({
               onChange={onChangeStructuredDraft}
             />
           ) : (
-            <div className="py-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              Custom graph. Edit the graph to change the nodes.
+            <div className="space-y-1 py-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              <div>
+                Custom generator with {generator.nodes.length}{" "}
+                {generator.nodes.length === 1 ? "node" : "nodes"} and{" "}
+                {generator.edges.length}{" "}
+                {generator.edges.length === 1 ? "connection" : "connections"}.
+              </div>
+              <button
+                type="button"
+                onClick={onEditGraph}
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                <Workflow size={13} />
+                Edit nodes
+              </button>
             </div>
           )}
         </section>
@@ -4041,7 +4131,7 @@ function GeneratorSetupSummary({
   );
 }
 
-function StructuredGeneratorSetup({
+function StructuredGeneratorSettings({
   draft,
   targetCollectionId,
   targetCollection,
@@ -4098,7 +4188,7 @@ function StructuredGeneratorSetup({
     <div className="space-y-3">
       <label className="block">
         <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Preset
+          Template
         </span>
         <select
           value={draft.kind}
@@ -4125,7 +4215,7 @@ function StructuredGeneratorSetup({
           ))}
         </select>
         <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-          Changing preset replaces preset-specific settings.
+          Changing template replaces template-specific settings.
         </span>
       </label>
 
@@ -4247,7 +4337,7 @@ function StructuredGeneratorSetup({
             values={asNumberArray(draft.config.steps)}
             onChange={(steps) => setConfig({ steps })}
           />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 min-[420px]:grid-cols-2">
             <ReferenceableField
               fieldKey="lightEnd"
               refs={configRefs}
@@ -4294,7 +4384,7 @@ function StructuredGeneratorSetup({
               onChange={(chromaBoost) => setConfig({ chromaBoost })}
             />
           </ReferenceableField>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 min-[420px]:grid-cols-2">
             <GeneratorBooleanField
               label="Include source"
               value={draft.config.includeSource}
@@ -4330,7 +4420,7 @@ function StructuredGeneratorSetup({
       ) : null}
       {draft.kind === "type" ? (
         <>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 min-[420px]:grid-cols-2">
             <ReferenceableField
               fieldKey="ratio"
               refs={configRefs}
@@ -4405,7 +4495,7 @@ function StructuredGeneratorSetup({
             pathToCollectionId={pathToCollectionId}
             onChange={(formula) => setConfig({ formula })}
           />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 min-[420px]:grid-cols-2">
             <label className="block">
               <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                 Output type
@@ -5469,7 +5559,7 @@ function NodeInspector({
       )}
       {node.kind === "colorRamp" && (
         <>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 min-[420px]:grid-cols-2">
             <ReferenceableField
               fieldKey="lightEnd"
               refs={nodeRefs}
@@ -5745,11 +5835,13 @@ function PreviewPanel({
   preview,
   targetCollection,
   focusedDiagnosticId,
+  compact = false,
   onNavigateToToken,
 }: {
   preview: TokenGeneratorPreviewResult | null;
   targetCollection: TokenCollection | undefined;
   focusedDiagnosticId?: string;
+  compact?: boolean;
   onNavigateToToken: (path: string) => void;
 }) {
   if (!preview) {
@@ -5823,89 +5915,98 @@ function PreviewPanel({
                 {group.outputs.length}
               </span>
             </div>
-            <div className="overflow-x-auto rounded-md bg-[var(--color-figma-bg-secondary)]">
-              <table className="min-w-full border-separate border-spacing-0 text-left text-secondary">
-                <thead>
-                  <tr className="text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                    <th className="sticky left-0 z-[1] min-w-[200px] bg-[var(--color-figma-bg-secondary)] px-2 py-2 font-medium">
-                      Token
-                    </th>
-                    {modes.map((modeName) => (
-                      <th
-                        key={modeName}
-                        className="min-w-[150px] px-2 py-2 font-medium"
-                      >
-                        {modeName}
+            {compact ? (
+              <PreviewOutputStack
+                outputs={group.outputs}
+                modes={modes}
+                focusedNodeId={focusedDiagnostic?.nodeId}
+                onNavigateToToken={onNavigateToToken}
+              />
+            ) : (
+              <div className="overflow-x-auto rounded-md bg-[var(--color-figma-bg-secondary)]">
+                <table className="min-w-full border-separate border-spacing-0 text-left text-secondary">
+                  <thead>
+                    <tr className="text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                      <th className="sticky left-0 z-[1] min-w-[200px] bg-[var(--color-figma-bg-secondary)] px-2 py-2 font-medium">
+                        Token
                       </th>
-                    ))}
-                    <th className="min-w-[90px] px-2 py-2 font-medium">
-                      Change
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.outputs.map((output) => (
-                    <tr
-                      key={output.path}
-                      className={
-                        focusedDiagnostic?.nodeId === output.nodeId
-                          ? "ring-1 ring-[var(--color-figma-accent)]"
-                          : ""
-                      }
-                    >
-                      <td className="sticky left-0 z-[1] max-w-[260px] bg-[var(--color-figma-bg-secondary)] px-2 py-2 align-top">
-                        {output.change === "created" ? (
-                          <span className="block truncate font-medium">
-                            {output.path}
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => onNavigateToToken(output.path)}
-                            className="block max-w-full truncate text-left font-medium hover:underline"
-                          >
-                            {output.path}
-                          </button>
-                        )}
-                        {output.collision ? (
-                          <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
-                            Manual token exists
-                          </span>
-                        ) : null}
-                      </td>
                       {modes.map((modeName) => (
-                        <td
+                        <th
                           key={modeName}
-                          className="px-2 py-2 align-top text-[color:var(--color-figma-text)]"
+                          className="min-w-[150px] px-2 py-2 font-medium"
                         >
-                          <span className="flex min-w-0 items-center gap-1.5">
-                            {previewIsValueBearing(output.type) ? (
-                              <ValuePreview
-                                type={output.type}
-                                value={output.modeValues[modeName]}
-                                size={14}
-                              />
-                            ) : null}
-                            <span className="truncate">
-                              {formatValue(output.modeValues[modeName])}
-                            </span>
-                          </span>
-                        </td>
+                          {modeName}
+                        </th>
                       ))}
-                      <td
-                        className={`px-2 py-2 align-top text-tertiary ${
-                          output.collision
-                            ? "text-[color:var(--color-figma-text-error)]"
-                            : "text-[color:var(--color-figma-text-secondary)]"
-                        }`}
-                      >
-                        {output.collision ? "manual token" : output.change}
-                      </td>
+                      <th className="min-w-[90px] px-2 py-2 font-medium">
+                        Change
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {group.outputs.map((output) => (
+                      <tr
+                        key={output.path}
+                        className={
+                          focusedDiagnostic?.nodeId === output.nodeId
+                            ? "ring-1 ring-[var(--color-figma-accent)]"
+                            : ""
+                        }
+                      >
+                        <td className="sticky left-0 z-[1] max-w-[260px] bg-[var(--color-figma-bg-secondary)] px-2 py-2 align-top">
+                          {output.change === "created" ? (
+                            <span className="block truncate font-medium">
+                              {output.path}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onNavigateToToken(output.path)}
+                              className="block max-w-full truncate text-left font-medium hover:underline"
+                            >
+                              {output.path}
+                            </button>
+                          )}
+                          {output.collision ? (
+                            <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
+                              Manual token exists
+                            </span>
+                          ) : null}
+                        </td>
+                        {modes.map((modeName) => (
+                          <td
+                            key={modeName}
+                            className="px-2 py-2 align-top text-[color:var(--color-figma-text)]"
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              {previewIsValueBearing(output.type) ? (
+                                <ValuePreview
+                                  type={output.type}
+                                  value={output.modeValues[modeName]}
+                                  size={14}
+                                />
+                              ) : null}
+                              <span className="truncate">
+                                {formatValue(output.modeValues[modeName])}
+                              </span>
+                            </span>
+                          </td>
+                        ))}
+                        <td
+                          className={`px-2 py-2 align-top text-tertiary ${
+                            output.collision
+                              ? "text-[color:var(--color-figma-text-error)]"
+                              : "text-[color:var(--color-figma-text-secondary)]"
+                          }`}
+                        >
+                          {output.collision ? "manual token" : output.change}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         ))}
         {preview.outputs.length === 0 && (
@@ -5914,6 +6015,89 @@ function PreviewPanel({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PreviewOutputStack({
+  outputs,
+  modes,
+  focusedNodeId,
+  onNavigateToToken,
+}: {
+  outputs: TokenGeneratorPreviewOutput[];
+  modes: string[];
+  focusedNodeId?: string;
+  onNavigateToToken: (path: string) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      {outputs.map((output) => (
+        <div
+          key={output.path}
+          className={`rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2 text-secondary ${
+            focusedNodeId === output.nodeId
+              ? "ring-1 ring-[var(--color-figma-accent)]"
+              : ""
+          }`}
+        >
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              {output.change === "created" ? (
+                <span className="block truncate font-semibold text-[color:var(--color-figma-text)]">
+                  {output.path}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onNavigateToToken(output.path)}
+                  className="block max-w-full truncate text-left font-semibold text-[color:var(--color-figma-text)] hover:underline"
+                >
+                  {output.path}
+                </button>
+              )}
+              {output.collision ? (
+                <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
+                  Manual token exists
+                </span>
+              ) : null}
+            </div>
+            <span
+              className={`shrink-0 text-tertiary ${
+                output.collision
+                  ? "text-[color:var(--color-figma-text-error)]"
+                  : "text-[color:var(--color-figma-text-secondary)]"
+              }`}
+            >
+              {output.collision ? "manual" : output.change}
+            </span>
+          </div>
+          <div className="mt-2 grid gap-1">
+            {modes.map((modeName) => (
+              <div
+                key={modeName}
+                className="flex min-w-0 items-center justify-between gap-2"
+              >
+                <span className="min-w-0 truncate text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+                  {modeName}
+                </span>
+                <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-[color:var(--color-figma-text)]">
+                  {previewIsValueBearing(output.type) ? (
+                    <ValuePreview
+                      type={output.type}
+                      value={output.modeValues[modeName]}
+                      size={13}
+                    />
+                  ) : null}
+                  <span className="truncate text-right">
+                    {formatValue(output.modeValues[modeName])}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -5949,8 +6133,7 @@ function FloatingPreviewPanel({
     targetCollection?.modes.map((mode) => mode.name) ??
     preview?.targetModes ??
     [];
-  const visibleModes = modes.slice(0, 2);
-  const visibleOutputs = preview?.outputs.slice(0, 8) ?? [];
+  const visibleOutputs = preview?.outputs.slice(0, 5) ?? [];
 
   const startDrag = (event: PointerEvent<HTMLElement>) => {
     if ((event.target as HTMLElement).closest("button")) return;
@@ -5979,17 +6162,17 @@ function FloatingPreviewPanel({
 
   return (
     <section
-      className="absolute z-20 overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
+      className="absolute z-20 overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] shadow-[0_14px_28px_rgba(0,0,0,0.16)]"
       style={{
         left: position.x,
         top: position.y,
-        width: "min(520px, calc(100% - 24px))",
+        width: "min(320px, calc(100% - 16px))",
       }}
       onClick={(event) => event.stopPropagation()}
       onContextMenu={(event) => event.stopPropagation()}
     >
       <header
-        className="flex h-10 cursor-move items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-2"
+        className="flex h-8 cursor-move items-center justify-between gap-1.5 border-b border-[var(--color-figma-border)] px-2"
         onPointerDown={startDrag}
         onPointerMove={drag}
         onPointerUp={stopDrag}
@@ -6001,7 +6184,7 @@ function FloatingPreviewPanel({
             event.stopPropagation();
             onToggleCollapsed();
           }}
-          className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-left text-secondary font-semibold text-[color:var(--color-figma-text)]"
+          className="inline-flex min-w-0 flex-1 items-center gap-1 text-left text-[11px] font-semibold text-[color:var(--color-figma-text)]"
         >
           {collapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
           <span className="truncate">Output preview</span>
@@ -6012,7 +6195,7 @@ function FloatingPreviewPanel({
             event.stopPropagation();
             onOpenFull();
           }}
-          className="rounded px-2 py-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          className="rounded px-1.5 py-0.5 text-[11px] font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
         >
           Full
         </button>
@@ -6021,7 +6204,7 @@ function FloatingPreviewPanel({
         </IconButton>
       </header>
       {collapsed ? null : (
-        <div className="max-h-[300px] overflow-auto p-2">
+        <div className="max-h-[188px] overflow-auto p-1.5">
           {!preview ? (
             <div className="py-6 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
               Preparing preview.
@@ -6031,76 +6214,78 @@ function FloatingPreviewPanel({
               No generated tokens.
             </div>
           ) : (
-            <table className="min-w-full border-separate border-spacing-0 text-left text-tertiary">
-              <thead className="text-[color:var(--color-figma-text-secondary)]">
-                <tr>
-                  <th className="min-w-[150px] px-2 py-1 font-medium">Token</th>
-                  {visibleModes.map((modeName) => (
-                    <th key={modeName} className="min-w-[110px] px-2 py-1 font-medium">
-                      {modeName}
-                    </th>
-                  ))}
-                  <th className="px-2 py-1 font-medium">Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleOutputs.map((output) => (
-                  <tr key={output.path}>
-                    <td className="max-w-[180px] px-2 py-1.5 align-top">
+            <div className="space-y-1">
+              {visibleOutputs.map((output) => (
+                <div
+                  key={output.path}
+                  className="rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-1.5"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-1.5">
+                    <div className="min-w-0 flex-1">
                       {output.change === "created" ? (
-                        <span className="block truncate font-medium text-[color:var(--color-figma-text)]">
+                        <span className="block truncate font-semibold text-[color:var(--color-figma-text)]">
                           {output.path}
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => onNavigateToToken(output.path)}
-                          className="block max-w-full truncate text-left font-medium text-[color:var(--color-figma-text)] hover:underline"
+                          className="block max-w-full truncate text-left font-semibold text-[color:var(--color-figma-text)] hover:underline"
                         >
                           {output.path}
                         </button>
                       )}
-                    </td>
-                    {visibleModes.map((modeName) => (
-                      <td
-                        key={modeName}
-                        className="max-w-[140px] px-2 py-1.5 align-top text-[color:var(--color-figma-text)]"
-                      >
-                        <span className="flex min-w-0 items-center gap-1.5">
-                          {previewIsValueBearing(output.type) ? (
-                            <ValuePreview
-                              type={output.type}
-                              value={output.modeValues[modeName]}
-                              size={12}
-                            />
-                          ) : null}
-                          <span className="truncate">
-                            {formatValue(output.modeValues[modeName])}
-                          </span>
+                      {output.collision ? (
+                        <span className="mt-0.5 block text-[10px] text-[color:var(--color-figma-text-error)]">
+                          Manual token exists
                         </span>
-                      </td>
-                    ))}
-                    <td
-                      className={`px-2 py-1.5 align-top ${
+                      ) : null}
+                    </div>
+                    <span
+                      className={`shrink-0 text-[10px] ${
                         output.collision
                           ? "text-[color:var(--color-figma-text-error)]"
                           : "text-[color:var(--color-figma-text-secondary)]"
                       }`}
                     >
                       {output.collision ? "manual" : output.change}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+                  <div className="mt-1 grid gap-0.5">
+                    {modes.map((modeName) => (
+                      <div
+                        key={modeName}
+                        className="flex min-w-0 items-center justify-between gap-1.5"
+                      >
+                        <span className="min-w-0 truncate font-medium text-[color:var(--color-figma-text-secondary)]">
+                          {modeName}
+                        </span>
+                        <span className="flex min-w-0 flex-1 items-center justify-end gap-1 text-[color:var(--color-figma-text)]">
+                          {previewIsValueBearing(output.type) ? (
+                            <ValuePreview
+                              type={output.type}
+                              value={output.modeValues[modeName]}
+                              size={10}
+                            />
+                          ) : null}
+                          <span className="truncate text-right">
+                            {formatValue(output.modeValues[modeName])}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
           {preview && preview.outputs.length > visibleOutputs.length ? (
             <button
               type="button"
               onClick={onOpenFull}
-              className="mt-2 rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              className="mt-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
-              {preview.outputs.length - visibleOutputs.length} more in Presets
+              {preview.outputs.length - visibleOutputs.length} more in Overview
             </button>
           ) : null}
         </div>

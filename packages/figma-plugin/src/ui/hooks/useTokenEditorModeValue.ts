@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import type { TokenEditorModeValues, TokenEditorValue } from "../shared/tokenEditorTypes";
 
@@ -14,7 +14,7 @@ export interface UseTokenEditorModeValueParams {
   value: TokenEditorValue;
   setValue: (v: TokenEditorValue) => void;
   modeValues: TokenEditorModeValues;
-  setModeValues: (v: TokenEditorModeValues) => void;
+  setModeValues: Dispatch<SetStateAction<TokenEditorModeValues>>;
 }
 
 export function useTokenEditorModeValue({
@@ -36,16 +36,16 @@ export function useTokenEditorModeValue({
       if (collection.modes[0]?.name === modeName) {
         setValue(newValue);
       } else {
-        setModeValues({
-          ...modeValues,
+        setModeValues((currentModeValues) => ({
+          ...currentModeValues,
           [collectionId]: {
-            ...(modeValues[collectionId] ?? {}),
+            ...(currentModeValues[collectionId] ?? {}),
             [modeName]: newValue,
           },
-        });
+        }));
       }
     },
-    [collection, collectionId, modeValues, setModeValues, setValue],
+    [collection, collectionId, setModeValues, setValue],
   );
 
   const modes: ModeValueEntry[] = useMemo(() => {

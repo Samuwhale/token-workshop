@@ -53,7 +53,7 @@ interface GeneratorCreatePanelProps {
   onOpenGenerator: (
     generatorId: string,
     collectionId: string,
-    initialView?: "setup" | "graph",
+    initialView?: "overview" | "graph",
   ) => void;
 }
 
@@ -339,7 +339,7 @@ export function GeneratorCreatePanel({
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
-        "setup",
+        "overview",
       );
     } catch (createError) {
       setError(
@@ -394,7 +394,7 @@ export function GeneratorCreatePanel({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: option ? `${option.label} graph` : "Custom graph",
+            name: option ? `${option.label} generator` : "Custom generator",
             authoringMode: "graph",
             targetCollectionId,
             ...(templateDraft
@@ -457,7 +457,7 @@ export function GeneratorCreatePanel({
             />
             <span className="min-w-0">
               <span className="block text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                Start from preset
+                Preset
               </span>
               <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
                 Configure a ready-made token group.
@@ -479,21 +479,45 @@ export function GeneratorCreatePanel({
             />
             <span className="min-w-0">
               <span className="block text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                Start with graph
+                Graph
               </span>
               <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                Build directly with nodes and connections.
+                Edit the same generator as nodes and connections.
               </span>
             </span>
           </button>
         </div>
+
+        <label className="mb-4 block">
+          <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+            Target collection
+          </span>
+          <select
+            value={targetCollectionId}
+            onChange={(event) => {
+              const nextCollectionId = event.target.value;
+              setTargetCollectionId(nextCollectionId);
+              if (!sourceAdvancedOpen) {
+                setSourceCollectionId(nextCollectionId);
+                setSourceTokenPath("");
+              }
+            }}
+            className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
+          >
+            {collectionOptions.map((collection) => (
+              <option key={collection.id} value={collection.id}>
+                {collection.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {startMode === "preset" ? (
         <div className="grid gap-4 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
           <div className="space-y-2">
             <div className="px-1">
               <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                Presets
+                Preset templates
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Choose the pattern that matches the token group you want.
@@ -545,35 +569,12 @@ export function GeneratorCreatePanel({
           <div className="space-y-3">
             <div>
               <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                Setup
+                Generator details
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Pick where the generated tokens live and what they come from.
               </p>
             </div>
-            <label className="block">
-              <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                Collection
-              </span>
-              <select
-                value={targetCollectionId}
-                onChange={(event) => {
-                  const nextCollectionId = event.target.value;
-                  setTargetCollectionId(nextCollectionId);
-                  if (!sourceAdvancedOpen) {
-                    setSourceCollectionId(nextCollectionId);
-                    setSourceTokenPath("");
-                  }
-                }}
-                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
-              >
-                {collectionOptions.map((collection) => (
-                  <option key={collection.id} value={collection.id}>
-                    {collection.label}
-                  </option>
-                ))}
-              </select>
-            </label>
 
             <GeneratorPathField
               label="Output group"
@@ -759,7 +760,7 @@ export function GeneratorCreatePanel({
                 values={paletteSteps}
                 onChange={setPaletteSteps}
               />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 min-[420px]:grid-cols-2">
                 <GeneratorNumberField
                   label="Light end"
                   value={paletteLightEnd}
@@ -775,7 +776,7 @@ export function GeneratorCreatePanel({
           ) : null}
 
           {kind === "spacing" || kind === "type" || kind === "radius" ? (
-            <div className={kind === "type" ? "grid grid-cols-2 gap-2" : ""}>
+            <div className={kind === "type" ? "grid gap-2 min-[420px]:grid-cols-2" : ""}>
               {kind === "type" ? (
                 <GeneratorNumberField
                   label="Ratio"
@@ -805,7 +806,7 @@ export function GeneratorCreatePanel({
                 pathToCollectionId={pathToCollectionId}
                 onChange={setFormula}
               />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 min-[420px]:grid-cols-2">
                 <label className="block">
                   <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                     Output type
@@ -834,41 +835,14 @@ export function GeneratorCreatePanel({
           </div>
         </div>
         ) : (
-          <div className="grid gap-4 min-[760px]:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="space-y-3">
             <div className="space-y-3">
               <div>
                 <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                  Graph target
+                  Graph templates
                 </h4>
                 <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Choose where this graph will write generated tokens.
-                </p>
-              </div>
-              <label className="block">
-                <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                  Collection
-                </span>
-                <select
-                  value={targetCollectionId}
-                  onChange={(event) => setTargetCollectionId(event.target.value)}
-                  className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
-                >
-                  {collectionOptions.map((collection) => (
-                    <option key={collection.id} value={collection.id}>
-                      {collection.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                  Graph start
-                </h4>
-                <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Start empty or use a graph-native template.
+                  Start empty or open a preset shape as editable nodes.
                 </p>
               </div>
               <div className="grid gap-2 min-[720px]:grid-cols-2">

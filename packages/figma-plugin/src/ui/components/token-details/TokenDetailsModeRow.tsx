@@ -107,6 +107,7 @@ export function TokenDetailsModeRow({
       setAliasQuery(extractAliasPath(value) ?? "");
       return;
     }
+    previousLiteralValueRef.current = value;
     setAliasMode(false);
   }, [value]);
 
@@ -149,6 +150,15 @@ export function TokenDetailsModeRow({
 
   const handleAliasSelect = (path: string) => {
     if (!onChange) return;
+    onChange(`{${path}}`);
+    setAliasQuery(path);
+    setAutocompleteOpen(false);
+  };
+
+  const commitAliasQuery = () => {
+    if (!onChange) return;
+    const path = aliasQuery.trim();
+    if (!path || !allTokensFlat[path]) return;
     onChange(`{${path}}`);
     setAliasQuery(path);
     setAutocompleteOpen(false);
@@ -245,9 +255,16 @@ export function TokenDetailsModeRow({
                   setAutocompleteOpen(true);
                 }}
                 onFocus={() => setAutocompleteOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(commitAliasQuery, 120);
+                }}
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
                     setAutocompleteOpen(false);
+                  }
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    commitAliasQuery();
                   }
                 }}
                 autoFocus={autoFocus}

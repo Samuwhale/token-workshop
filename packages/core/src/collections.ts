@@ -23,6 +23,13 @@ function isModeValuesRecord(value: unknown): value is TokenModeValues {
   return isPlainObject(value);
 }
 
+function hasOwnValue(
+  values: Record<string, unknown>,
+  modeName: string,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(values, modeName);
+}
+
 type ExtensionsReadableToken = {
   $extensions?: unknown;
 };
@@ -156,8 +163,7 @@ export function sanitizeModeValuesForCollection(
     Object.entries(modeValues).filter(
       ([modeName, value]) =>
         secondaryModeNames.has(modeName) &&
-        value !== undefined &&
-        value !== null,
+        value !== undefined,
     ),
   );
 }
@@ -220,9 +226,7 @@ export function readTokenModeValuesForCollection(
   };
 
   for (const mode of collection.modes.slice(1)) {
-    if (mode.name in secondaryModes) {
-      values[mode.name] = secondaryModes[mode.name];
-    }
+    values[mode.name] = secondaryModes[mode.name];
   }
 
   return values;
@@ -237,10 +241,16 @@ export function writeTokenModeValuesForCollection(
   if (!primaryModeName) {
     throw new Error(`Collection "${collection.id}" must define at least one mode`);
   }
-  if (!(primaryModeName in modeValues)) {
-    throw new Error(
-      `Missing value for primary mode "${primaryModeName}" in collection "${collection.id}"`,
-    );
+  for (const mode of collection.modes) {
+    if (
+      !hasOwnValue(modeValues, mode.name) ||
+      modeValues[mode.name] === undefined ||
+      modeValues[mode.name] === null
+    ) {
+      throw new Error(
+        `Missing value for mode "${mode.name}" in collection "${collection.id}"`,
+      );
+    }
   }
 
   token.$value = modeValues[primaryModeName] as Token["$value"];

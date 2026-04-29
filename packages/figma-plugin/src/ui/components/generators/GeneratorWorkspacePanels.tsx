@@ -86,7 +86,7 @@ export function GeneratorListSidebar({
                 {readGeneratorOutputLabel(generator)}
               </span>
               <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                {generator.lastAppliedAt ? "Applied" : "Not applied"}
+                {readGeneratorStatusLabel(generator)}
               </span>
             </span>
           </button>
@@ -167,6 +167,17 @@ function readGeneratorOutputLabel(generator: TokenGeneratorDocument): string {
     (node) => node.kind === "groupOutput" || node.kind === "output",
   );
   return String(output?.data.pathPrefix ?? output?.data.path ?? "No output");
+}
+
+function readGeneratorStatusLabel(generator: TokenGeneratorDocument): string {
+  const diagnostics = generator.lastApplyDiagnostics ?? [];
+  if (diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+    return "Needs attention";
+  }
+  if (diagnostics.some((diagnostic) => diagnostic.severity === "warning")) {
+    return "Applied with warnings";
+  }
+  return generator.lastAppliedAt ? "Applied" : "Not applied";
 }
 
 function GeneratorIcon({ generator }: { generator: TokenGeneratorDocument }) {

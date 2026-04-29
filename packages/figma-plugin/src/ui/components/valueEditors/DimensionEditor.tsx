@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
@@ -76,6 +76,15 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
   const val = typeof value === 'object' && value !== null ? value : { value: value ?? 0, unit: 'px' };
   const isFormulaValue = allowFormula && typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
+  useEffect(() => {
+    if (isFormulaValue) {
+      setFormulaMode(true);
+      return;
+    }
+    if (!allowFormula || typeof val.value !== 'string') {
+      setFormulaMode(false);
+    }
+  }, [allowFormula, isFormulaValue, val.value]);
   const [conversionWarning, setConversionWarning] = useState<string | null>(null);
   const numVal = formulaMode ? 0 : (parseFloat(val.value) || 0);
   const formulaStr = formulaMode ? (typeof val.value === 'string' ? val.value : '') : '';
@@ -105,7 +114,6 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
       onChange({ value: preview?.result ?? 0, unit: val.unit });
       setFormulaMode(false);
     } else {
-      onChange({ value: String(numVal), unit: val.unit });
       setFormulaMode(true);
     }
   };

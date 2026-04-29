@@ -1716,7 +1716,7 @@ export function TokenDetails({
 
                   return (
                     <TokenDetailsModeRow
-                      key={mode.name}
+                      key={`${ownerCollectionId}:${tokenPath}:${mode.name}`}
                       modeName={mode.name}
                       tokenType={tokenType}
                       value={modeVal}

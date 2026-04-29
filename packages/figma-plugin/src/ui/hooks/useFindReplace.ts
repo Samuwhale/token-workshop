@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { UndoSlot } from './useUndo';
 import { getErrorMessage } from '../shared/utils';
@@ -124,7 +124,7 @@ function computeValueReplacements(
 }
 
 export function useFindReplace({
-  connected: _connected,
+  connected,
   serverUrl,
   collectionId,
   tokens,
@@ -143,6 +143,13 @@ export function useFindReplace({
   const [frError, setFrError] = useState('');
   const [frBusy, setFrBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (connected) return;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setFrBusy(false);
+  }, [connected]);
 
   const frRegexError = useMemo(() => {
     if (!frIsRegex || !frFind) return null;
@@ -190,25 +197,25 @@ export function useFindReplace({
       return computeRenamesForPaths(currentSetPaths, frFind, frReplace, pattern).map(r => ({ ...r, collectionId }));
     }
 
-    // All collections mode: compute per-collection renames
+    // All collections mode: compute per-collection renames.
     const allRenames: Array<{ oldPath: string; newPath: string; conflict: boolean; collectionId: string }> = [];
     const collectionsToScan = allCollectionIds ?? (perCollectionFlat ? Object.keys(perCollectionFlat) : [collectionId]);
-    for (const sn of collectionsToScan) {
+    for (const currentCollectionId of collectionsToScan) {
       let paths: string[];
-      if (sn === collectionId) {
-        const snTokens = flattenTokenPaths(tokens, collectionId);
-        const filtered = frTypeFilter === 'all' ? snTokens : snTokens.filter(t => t.$type === frTypeFilter);
+      if (currentCollectionId === collectionId) {
+        const currentCollectionTokens = flattenTokenPaths(tokens, collectionId);
+        const filtered = frTypeFilter === 'all' ? currentCollectionTokens : currentCollectionTokens.filter(t => t.$type === frTypeFilter);
         paths = filtered.map(t => t.path);
       } else {
-        const flatMap = perCollectionFlat?.[sn];
+        const flatMap = perCollectionFlat?.[currentCollectionId];
         if (!flatMap) continue;
         paths = frTypeFilter === 'all'
           ? Object.keys(flatMap)
           : Object.entries(flatMap).filter(([, e]) => e.$type === frTypeFilter).map(([p]) => p);
       }
-      const setRenames = computeRenamesForPaths(paths, frFind, frReplace, pattern);
-      for (const r of setRenames) {
-        allRenames.push({ ...r, collectionId: sn });
+      const collectionRenames = computeRenamesForPaths(paths, frFind, frReplace, pattern);
+      for (const rename of collectionRenames) {
+        allRenames.push({ ...rename, collectionId: currentCollectionId });
       }
       // Reset pattern lastIndex for stateful regex
       if (pattern) pattern.lastIndex = 0;
@@ -231,21 +238,21 @@ export function useFindReplace({
       return computeValueReplacements(filtered, frFind, frReplace, pattern);
     }
 
-    // All sets mode
+    // All collections mode.
     const allResults: Array<{ path: string; collectionId: string; oldValue: string; newValue: string; originalValue: unknown }> = [];
     const collectionsToScan = allCollectionIds ?? (perCollectionFlat ? Object.keys(perCollectionFlat) : [collectionId]);
-    for (const sn of collectionsToScan) {
+    for (const currentCollectionId of collectionsToScan) {
       let tokenList: Array<{ path: string; $type?: string; $value: unknown; collectionId: string }>;
-      if (sn === collectionId) {
+      if (currentCollectionId === collectionId) {
         tokenList = flattenTokenPaths(tokens, collectionId);
       } else {
-        const flatMap = perCollectionFlat?.[sn];
+        const flatMap = perCollectionFlat?.[currentCollectionId];
         if (!flatMap) continue;
-        tokenList = Object.entries(flatMap).map(([path, entry]) => ({ path, $type: entry.$type, $value: entry.$value, collectionId: sn }));
+        tokenList = Object.entries(flatMap).map(([path, entry]) => ({ path, $type: entry.$type, $value: entry.$value, collectionId: currentCollectionId }));
       }
       const filtered = frTypeFilter === 'all' ? tokenList : tokenList.filter(t => t.$type === frTypeFilter);
       const results = computeValueReplacements(filtered, frFind, frReplace, pattern);
-      for (const r of results) allResults.push({ ...r, collectionId: sn });
+      for (const result of results) allResults.push({ ...result, collectionId: currentCollectionId });
       if (pattern) pattern.lastIndex = 0;
     }
     return allResults;
@@ -270,12 +277,12 @@ export function useFindReplace({
     const collectionsToScan = allCollectionIds ?? (perCollectionFlat ? Object.keys(perCollectionFlat) : [collectionId]);
     const currentCollectionFlat = Object.fromEntries(flattenTokenPaths(tokens, collectionId).map(t => [t.path, t]));
 
-    for (const sn of collectionsToScan) {
-      const flatMap: Record<string, { $value?: unknown }> = sn === collectionId
+    for (const currentCollectionId of collectionsToScan) {
+      const flatMap: Record<string, { $value?: unknown }> = currentCollectionId === collectionId
         ? currentCollectionFlat
-        : (perCollectionFlat?.[sn] ?? {});
+        : (perCollectionFlat?.[currentCollectionId] ?? {});
       for (const [tokenPath, entry] of Object.entries(flatMap)) {
-        if (renamedKeys.has(`${sn}:${tokenPath}`)) continue; // skip the renamed tokens themselves
+        if (renamedKeys.has(`${currentCollectionId}:${tokenPath}`)) continue; // skip the renamed tokens themselves
         if (valueHasAliasToAny(entry.$value, renamedPaths)) {
           tokenCount++;
         }
@@ -294,6 +301,10 @@ export function useFindReplace({
 
   const handleFindReplace = useCallback(async () => {
     if (!frFind || frBusy) return;
+    if (!connected || !serverUrl) {
+      setFrError('Connect to the local server before running find and replace.');
+      return;
+    }
     setFrError('');
     setFrBusy(true);
     const capturedFind = frFind;
@@ -362,10 +373,10 @@ export function useFindReplace({
           let totalRenamed = 0;
           const renamedByCollection: Record<string, number> = {};
           let renameAborted = false;
-          for (const sn of affectedCollectionIds) {
+          for (const currentCollectionId of affectedCollectionIds) {
             if (ac.signal.aborted) { renameAborted = true; break; }
             try {
-              const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[] }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+              const data = await apiFetch<{ ok: true; renamed?: number; skipped?: string[] }>(`${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/bulk-rename`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
@@ -373,7 +384,7 @@ export function useFindReplace({
               });
               const count = data.renamed ?? 0;
               totalRenamed += count;
-              if (count > 0) renamedByCollection[sn] = count;
+              if (count > 0) renamedByCollection[currentCollectionId] = count;
             } catch (err) {
               if (ac.signal.aborted) { renameAborted = true; break; }
               throw err;
@@ -397,8 +408,8 @@ export function useFindReplace({
               description: `Rename ${capturedTotal} token${capturedTotal !== 1 ? 's' : ''} across ${capturedCollections.length} collection${capturedCollections.length !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
               restore: async () => {
                 try {
-                  for (const sn of capturedCollections) {
-                    await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+                  for (const currentCollectionId of capturedCollections) {
+                    await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/bulk-rename`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
@@ -412,8 +423,8 @@ export function useFindReplace({
               },
               redo: async () => {
                 try {
-                  for (const sn of capturedCollections) {
-                    await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/bulk-rename`, {
+                  for (const currentCollectionId of capturedCollections) {
+                    await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/bulk-rename`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
@@ -453,21 +464,21 @@ export function useFindReplace({
         const updatedByCollection: Record<string, Array<{ path: string; oldValue: string; newValue: string; originalValue: unknown }>> = {};
         let valuesAborted = false;
 
-        for (const [sn, matches] of matchesByCollection) {
+        for (const [currentCollectionId, matches] of matchesByCollection) {
           if (ac.signal.aborted) { valuesAborted = true; break; }
           try {
             const patches = matches.map(m => ({
               path: m.path,
               patch: { $value: deserializeValue(m.originalValue, m.newValue) },
             }));
-            await apiFetch<{ ok: true; updated: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
+            await apiFetch<{ ok: true; updated: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/batch-update`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ patches }),
               signal: ac.signal,
             });
             totalUpdated += matches.length;
-            updatedByCollection[sn] = matches;
+            updatedByCollection[currentCollectionId] = matches;
           } catch (err) {
             if (ac.signal.aborted) { valuesAborted = true; break; }
             throw err;
@@ -491,12 +502,12 @@ export function useFindReplace({
           onPushUndo({
             description: `Update ${capturedTotal} token value${capturedTotal !== 1 ? 's' : ''} across ${collectionCount} collection${collectionCount !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
             restore: async () => {
-              for (const [sn, matches] of Object.entries(capturedUpdatedByCollection)) {
+              for (const [currentCollectionId, matches] of Object.entries(capturedUpdatedByCollection)) {
                 const patches = matches.map(m => ({
                   path: m.path,
                   patch: { $value: m.originalValue },
                 }));
-                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
+                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/batch-update`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ patches }),
@@ -506,12 +517,12 @@ export function useFindReplace({
               onRefresh();
             },
             redo: async () => {
-              for (const [sn, matches] of Object.entries(capturedUpdatedByCollection)) {
+              for (const [currentCollectionId, matches] of Object.entries(capturedUpdatedByCollection)) {
                 const patches = matches.map(m => ({
                   path: m.path,
                   patch: { $value: deserializeValue(m.originalValue, m.newValue) },
                 }));
-                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(sn)}/batch-update`, {
+                await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}/batch-update`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ patches }),
@@ -553,7 +564,7 @@ export function useFindReplace({
       abortRef.current = null;
       setFrBusy(false);
     }
-  }, [frFind, frReplace, frIsRegex, frScope, frTarget, frBusy, frPreview, frValuePreview, serverUrl, collectionId, onRefresh, onPushUndo]);
+  }, [frFind, frReplace, frIsRegex, frScope, frTarget, frBusy, frPreview, frValuePreview, connected, serverUrl, collectionId, onRefresh, onPushUndo]);
 
   const frConflictCount = useMemo(() => frPreview.filter(r => r.conflict).length, [frPreview]);
   const frRenameCount = useMemo(() => frPreview.filter(r => !r.conflict).length, [frPreview]);

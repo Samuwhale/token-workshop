@@ -4,6 +4,7 @@ import {
   CROSS_COLLECTION_SEARCH_HAS_VALUES,
   SUPPORTED_SEARCH_SCOPE_VALUES,
   buildTokenExtensionsWithCollectionModes,
+  collectTokenReferencePaths,
   normalizeTokenScopeValues,
   sanitizeModeValuesForCollection,
   stableStringify,
@@ -15,10 +16,12 @@ import {
   parseReference,
   readGeneratorProvenance,
   readTokenCollectionModeValues,
+  readTokenModeValuesForCollection,
   readTokenScopes,
   type Token,
   type TokenCollection,
   type TokenGroup,
+  writeTokenModeValuesForCollection,
 } from '@tokenmanager/core';
 import { BadRequestError, ConflictError, handleRouteError } from '../errors.js';
 import type { SnapshotEntry } from '../services/operation-log.js';
@@ -498,6 +501,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       tokenPath,
       token,
     );
+  }
+
+  function findMissingTokenReference(
+    collectionId: string,
+    token: Token,
+  ): string | null {
+    const references = collectTokenReferencePaths(token, {
+      collectionId,
+      includeExtends: true,
+    });
+    return references.find(
+      (referencePath) => !fastify.tokenStore.tokenPathExists(referencePath),
+    ) ?? null;
   }
 
   async function validateTokenGroupModesForCollectionWrite(
@@ -1069,12 +1085,15 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               const valueErr = validateTokenValue(patchVal, effectiveType, p.path);
               if (valueErr) return reply.status(400).send({ error: `Invalid $value for "${p.path}" (type "${effectiveType}"): ${valueErr}` });
             }
-            if (isReference(patchVal)) {
-              const targetPath = parseReference(patchVal as string);
-              if (!fastify.tokenStore.tokenPathExists(targetPath)) {
-                return reply.status(400).send({ error: `Alias target "${targetPath}" in "${p.path}" does not exist` });
-              }
-            }
+          }
+          const missingReference = findMissingTokenReference(
+            collectionId,
+            candidateToken,
+          );
+          if (missingReference) {
+            return reply.status(400).send({
+              error: `Alias target "${missingReference}" in "${p.path}" does not exist`,
+            });
           }
         }
 
@@ -1145,12 +1164,22 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.status(409).send({ error: `Token "${primitivePath}" already exists in collection "${primitiveCollectionId}"` });
         }
 
+        const collectionDefinitions = new Map<string, TokenCollection>();
+        const primitiveCollection =
+          await loadCollectionDefinition(primitiveCollectionId);
+        collectionDefinitions.set(primitiveCollectionId, primitiveCollection);
+
         const resolvedSources: Array<{ collectionId: string; path: string; token: Token }> = [];
-        let canonicalValue: unknown = undefined;
-        let canonicalType: string | undefined = undefined;
+        let canonicalModeValues: Record<string, unknown> | null = null;
+        let canonicalType: Token["$type"] | undefined = undefined;
         let canonicalSerialized: string | null = null;
 
         for (const sourceToken of sourceTokens) {
+          let sourceCollection = collectionDefinitions.get(sourceToken.collectionId);
+          if (!sourceCollection) {
+            sourceCollection = await loadCollectionDefinition(sourceToken.collectionId);
+            collectionDefinitions.set(sourceToken.collectionId, sourceCollection);
+          }
           const token = await fastify.tokenStore.getToken(sourceToken.collectionId, sourceToken.path);
           if (!token) {
             return reply.status(404).send({ error: `Source token "${sourceToken.path}" not found in collection "${sourceToken.collectionId}"` });
@@ -1160,18 +1189,27 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               `Cannot promote generator-managed token "${sourceToken.path}" in "${sourceToken.collectionId}". Detach from the generator first.`,
             );
           }
-          if (isReference(token.$value)) {
-            return reply.status(400).send({ error: `Source token "${sourceToken.path}" in "${sourceToken.collectionId}" is already an alias` });
+          const modeValues = readTokenModeValuesForCollection(
+            token,
+            sourceCollection,
+          );
+          const aliasedMode = Object.entries(modeValues).find(([, modeValue]) =>
+            isReference(modeValue),
+          )?.[0];
+          if (aliasedMode) {
+            return reply.status(400).send({
+              error: `Source token "${sourceToken.path}" in "${sourceToken.collectionId}" is already an alias in mode "${aliasedMode}"`,
+            });
           }
 
-          const serializedValue = stableStringify(token.$value);
+          const serializedValue = stableStringify(modeValues);
           if (canonicalSerialized === null) {
-            canonicalValue = token.$value;
+            canonicalModeValues = modeValues;
             canonicalType = token.$type;
             canonicalSerialized = serializedValue;
           } else if (serializedValue !== canonicalSerialized || token.$type !== canonicalType) {
             return reply.status(400).send({
-              error: `Source token "${sourceToken.path}" in "${sourceToken.collectionId}" does not match the group's shared raw value`,
+              error: `Source token "${sourceToken.path}" in "${sourceToken.collectionId}" does not match the group's shared mode values`,
             });
           }
 
@@ -1199,21 +1237,58 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           mergeCollectionSnapshot(beforeSnapshot, collectionId, snapshot);
         }
 
+        if (!canonicalModeValues) {
+          return reply.status(400).send({ error: 'No source token values found' });
+        }
+
+        const primitiveInitialValue = Object.values(canonicalModeValues)[0] as Token["$value"];
+        const primitiveToken = {
+          ...(canonicalType ? { $type: canonicalType } : {}),
+          $value: primitiveInitialValue,
+        };
+        try {
+          writeTokenModeValuesForCollection(
+            primitiveToken,
+            primitiveCollection,
+            canonicalModeValues,
+          );
+        } catch (err) {
+          return reply.status(400).send({
+            error:
+              err instanceof Error
+                ? err.message
+                : 'Primitive collection modes do not match the source token modes',
+          });
+        }
+
         await fastify.tokenStore.createToken(
           primitiveCollectionId,
           primitivePath,
-          {
-            ...(canonicalType ? { $type: canonicalType } : {}),
-            $value: canonicalValue,
-          } as Token,
+          primitiveToken,
         );
 
         const sourceTokensByCollection = new Map<string, Array<{ path: string; patch: Record<string, unknown> }>>();
         for (const sourceToken of resolvedSources) {
+          const sourceCollection = collectionDefinitions.get(sourceToken.collectionId);
+          if (!sourceCollection) {
+            throw new Error(`Collection "${sourceToken.collectionId}" not found`);
+          }
+          const aliasModeValues = Object.fromEntries(
+            sourceCollection.modes.map((mode) => [mode.name, `{${primitivePath}}`]),
+          );
+          const nextSourceToken = structuredClone(sourceToken.token);
+          writeTokenModeValuesForCollection(
+            nextSourceToken,
+            sourceCollection,
+            aliasModeValues,
+          );
           const patches = sourceTokensByCollection.get(sourceToken.collectionId) ?? [];
           patches.push({
             path: sourceToken.path,
-            patch: { $value: `{${primitivePath}}` },
+            patch: {
+              $value: nextSourceToken.$value,
+              $extensions: nextSourceToken.$extensions,
+            },
           });
           sourceTokensByCollection.set(sourceToken.collectionId, patches);
         }
@@ -2078,12 +2153,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.status(409).send({ error: `Token "${tokenPath}" already exists in collection "${collectionId}"` });
           }
 
-          // Check alias target existence
-          if (isReference(normalizedBody.$value)) {
-            const targetPath = parseReference(normalizedBody.$value as string);
-            if (!fastify.tokenStore.tokenPathExists(targetPath)) {
-              return reply.status(400).send({ error: `Alias target "${targetPath}" does not exist` });
-            }
+          const missingReference = findMissingTokenReference(
+            collectionId,
+            normalizedBody,
+          );
+          if (missingReference) {
+            return reply.status(400).send({
+              error: `Alias target "${missingReference}" in "${tokenPath}" does not exist`,
+            });
           }
 
           const before = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);
@@ -2173,13 +2250,15 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
               const valueErr = validateTokenValue(normalizedBody.$value, effectiveType, tokenPath);
               if (valueErr) return reply.status(400).send({ error: `Invalid $value for type "${effectiveType}": ${valueErr}` });
             }
-            // Check alias target existence
-            if (isReference(normalizedBody.$value)) {
-              const targetPath = parseReference(normalizedBody.$value as string);
-              if (!fastify.tokenStore.tokenPathExists(targetPath)) {
-                return reply.status(400).send({ error: `Alias target "${targetPath}" does not exist` });
-              }
-            }
+          }
+          const missingReference = findMissingTokenReference(
+            collectionId,
+            candidateToken,
+          );
+          if (missingReference) {
+            return reply.status(400).send({
+              error: `Alias target "${missingReference}" in "${tokenPath}" does not exist`,
+            });
           }
 
           const before = await snapshotPaths(fastify.tokenStore, collectionId, [tokenPath]);

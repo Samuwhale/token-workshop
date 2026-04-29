@@ -319,9 +319,11 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
   // Sync from prop changes
   const prevValue = useRef(value);
+  const suppressNextEmitRef = useRef(true);
   useEffect(() => {
     if (value !== prevValue.current) {
       prevValue.current = value;
+      suppressNextEmitRef.current = true;
       // Try hex first, then CSS Color 4
       let hsl = hexToHsl(value);
       let newAlpha = parseAlpha(value);
@@ -351,6 +353,11 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   emitRef.current = onChange;
   useEffect(() => {
     const out = applyAlpha(hslToHex(hue, sat, lit), alpha);
+    if (suppressNextEmitRef.current) {
+      suppressNextEmitRef.current = false;
+      if (!alphaEditing.current) setAlphaInput(Math.round(alpha * 100) + '%');
+      return;
+    }
     if (out !== prevValue.current) {
       prevValue.current = out;
       setHexInput(out);
