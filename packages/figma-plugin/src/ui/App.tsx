@@ -735,12 +735,10 @@ export function App() {
     max: 240,
     axis: "x",
     mode: "px",
-    snap: { below: 56, to: 40 },
+    snap: { below: 112, to: 40 },
   });
   const sidebarCollapsed = sidebarBoundary.size <= 40;
-  const sidebarCompact =
-    sidebarBoundary.size > 40 && sidebarBoundary.size < 112;
-  const sidebarIconOnly = sidebarCollapsed || sidebarCompact;
+  const sidebarIconOnly = sidebarCollapsed;
   const toggleSidebarCollapsed = useCallback(() => {
     sidebarBoundary.setSize(sidebarBoundary.size <= 40 ? 120 : 40);
   }, [sidebarBoundary]);

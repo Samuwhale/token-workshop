@@ -178,7 +178,7 @@ export function TokenDetailsModeRow({
         <button
           type="button"
           onClick={onCopyFromPrevious}
-          className="tm-token-mode-row__action-button"
+          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
           title="Copy from previous mode"
           aria-label="Copy from previous mode"
         >
@@ -190,7 +190,7 @@ export function TokenDetailsModeRow({
         <button
           type="button"
           onClick={onCopyToAll}
-          className="tm-token-mode-row__action-button"
+          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
           title="Copy to all other modes"
           aria-label="Copy to all other modes"
         >

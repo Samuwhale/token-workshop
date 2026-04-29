@@ -8,7 +8,7 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
 import { resolveCollectionIdForPath } from "@tokenmanager/core";
@@ -85,6 +85,9 @@ import {
 import { GeneratorCreatePanel } from "../components/GeneratorCreatePanel";
 
 const DEFAULT_CREATE_TYPE = "color";
+const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
+const CONTEXTUAL_PANEL_MIN_WIDTH = 280;
+const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 520;
 
 function readLastCreateGroup(): string {
   return lsGet(STORAGE_KEYS.LAST_CREATE_GROUP, "");
@@ -145,6 +148,10 @@ export function PanelRouter({
     mode: "px",
     measureFrom: "end",
   });
+  const libraryShellRef = useRef<HTMLDivElement>(null);
+  const [libraryShellWidth, setLibraryShellWidth] = useState<number | null>(
+    null,
+  );
   const shell = useShellWorkspaceController();
   const editorShell = useEditorShellController();
   const tokensController = useTokensWorkspaceController();
@@ -188,6 +195,22 @@ export function PanelRouter({
     openNotifications,
     closeNotifications,
   } = useNavigationContext();
+  useLayoutEffect(() => {
+    const element = libraryShellRef.current;
+    if (!element) {
+      setLibraryShellWidth(null);
+      return;
+    }
+
+    const updateWidth = () => {
+      setLibraryShellWidth(element.clientWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [activeTopTab, activeSubTab, activeSecondarySurface]);
   const {
     tokenDetails,
     setTokenDetails,
@@ -1376,8 +1399,43 @@ export function PanelRouter({
     header?: ReactNode;
     contextualPanel?: ReactNode;
   }): ReactNode {
+    const shouldOverlayContextualPanel =
+      contextualPanel !== undefined &&
+      contextualPanel !== null &&
+      libraryShellWidth !== null &&
+      libraryShellWidth - sideEditorBoundary.size < LIBRARY_MAIN_PANE_MIN_WIDTH;
+    const contextualPanelIsFullWidth =
+      shouldOverlayContextualPanel &&
+      libraryShellWidth !== null &&
+      libraryShellWidth < CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT;
+    const splitPanelWidth =
+      libraryShellWidth === null
+        ? sideEditorBoundary.size
+        : Math.min(
+            sideEditorBoundary.size,
+            Math.max(
+              CONTEXTUAL_PANEL_MIN_WIDTH,
+              libraryShellWidth - LIBRARY_MAIN_PANE_MIN_WIDTH,
+            ),
+          );
+    const overlayPanelWidth =
+      libraryShellWidth === null
+        ? sideEditorBoundary.size
+        : contextualPanelIsFullWidth
+          ? libraryShellWidth
+          : Math.min(
+              sideEditorBoundary.size,
+              Math.max(
+                CONTEXTUAL_PANEL_MIN_WIDTH,
+                libraryShellWidth - 64,
+              ),
+            );
+
     return (
-      <div className="flex h-full min-h-0 overflow-hidden bg-[var(--color-figma-bg)]">
+      <div
+        ref={libraryShellRef}
+        className="relative flex h-full min-h-0 overflow-hidden bg-[var(--color-figma-bg)]"
+      >
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           {tabs}
           {(fetchError || tokensError) && (
@@ -1405,23 +1463,34 @@ export function PanelRouter({
         </div>
 
         {contextualPanel ? (
-          <>
-            <ResizeDivider
-              axis="x"
-              ariaLabel="Resize contextual panel"
-              ariaValueNow={sideEditorBoundary.ariaValueNow}
-              onMouseDown={sideEditorBoundary.onMouseDown}
-              onKeyDown={sideEditorBoundary.onKeyDown}
-            />
+          shouldOverlayContextualPanel ? (
             <div
-              className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-              style={{
-                width: `clamp(240px, 42%, ${sideEditorBoundary.size}px)`,
-              }}
+              className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.24)] ${
+                contextualPanelIsFullWidth
+                  ? "inset-x-0 border-l-0"
+                  : "border-l border-[var(--color-figma-border)]"
+              }`}
+              style={{ width: overlayPanelWidth }}
             >
               {contextualPanel}
             </div>
-          </>
+          ) : (
+            <>
+              <ResizeDivider
+                axis="x"
+                ariaLabel="Resize contextual panel"
+                ariaValueNow={sideEditorBoundary.ariaValueNow}
+                onMouseDown={sideEditorBoundary.onMouseDown}
+                onKeyDown={sideEditorBoundary.onKeyDown}
+              />
+              <div
+                className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
+                style={{ width: splitPanelWidth }}
+              >
+                {contextualPanel}
+              </div>
+            </>
+          )
         ) : null}
       </div>
     );

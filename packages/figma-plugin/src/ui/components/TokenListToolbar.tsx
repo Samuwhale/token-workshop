@@ -494,7 +494,7 @@ export function TokenListToolbar({
                   }`}
                 >
                   <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
-                  <span className="tm-token-toolbar__button-label whitespace-nowrap">
+                  <span className="tm-token-toolbar__button-label tm-token-toolbar__secondary-label whitespace-nowrap">
                     {sortStateLabel ?? "Sort"}
                   </span>
                 </button>
@@ -536,7 +536,7 @@ export function TokenListToolbar({
                       className="inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-accent)] px-2 text-secondary font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
                       <Plus size={12} strokeWidth={2} aria-hidden />
-                      <span className="tm-token-toolbar__button-label whitespace-nowrap">
+                      <span className="tm-token-toolbar__button-label tm-token-toolbar__primary-label whitespace-nowrap">
                         New token
                       </span>
                     </button>
@@ -567,7 +567,7 @@ export function TokenListToolbar({
                     className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`}
                   >
                     <Plus size={12} strokeWidth={2} aria-hidden />
-                    <span className="tm-token-toolbar__button-label whitespace-nowrap">
+                    <span className="tm-token-toolbar__button-label tm-token-toolbar__primary-label whitespace-nowrap">
                       Create
                     </span>
                     <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
