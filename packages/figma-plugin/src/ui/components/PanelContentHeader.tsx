@@ -58,7 +58,7 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
   if (!visibleHandoff && !primaryAction) return null;
 
   return (
-    <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-1.5">
+    <div className="shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2">
       <div className="tm-panel-bar">
         <div className="tm-panel-bar__leading">
           {visibleHandoff && returnFromHandoff && (

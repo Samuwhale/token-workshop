@@ -22,10 +22,13 @@ export function ResizeDivider({
 }: ResizeDividerProps) {
   const isVertical = axis === 'y';
   const base =
-    'flex-shrink-0 bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors';
+    'group relative z-[1] flex-shrink-0 bg-transparent outline-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)]';
   const orientation = isVertical
-    ? 'h-1 w-full cursor-row-resize'
-    : 'w-1 h-full cursor-col-resize';
+    ? '-my-1 h-3 w-full cursor-row-resize'
+    : '-mx-1 h-full w-3 cursor-col-resize';
+  const railClass = isVertical
+    ? 'h-px w-full'
+    : 'h-full w-px';
   return (
     <div
       role="separator"
@@ -38,6 +41,13 @@ export function ResizeDivider({
       className={`${orientation} ${base}`}
       onMouseDown={onMouseDown}
       onKeyDown={onKeyDown}
-    />
+    >
+      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span
+          aria-hidden="true"
+          className={`${railClass} rounded-full bg-[var(--color-figma-border)] transition-colors group-hover:bg-[var(--color-figma-accent)] group-focus-visible:bg-[var(--color-figma-accent)]`}
+        />
+      </span>
+    </div>
   );
 }

@@ -11,7 +11,10 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
   { invalid, size = "md", className = "", ...rest },
   ref,
 ) {
-  const sizeClass = size === "sm" ? "min-h-6 px-1.5 py-0.5" : "min-h-7 px-2 py-1";
+  const sizeClass =
+    size === "sm"
+      ? "min-h-7 px-2 py-1"
+      : "min-h-8 px-3 py-1.5";
   const stateClass = invalid
     ? "border border-[var(--color-figma-error)] bg-[color-mix(in_srgb,var(--color-figma-error)_8%,var(--color-figma-bg))] pr-7 focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-error)]"
     : "border border-transparent focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]";

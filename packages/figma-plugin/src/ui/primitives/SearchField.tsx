@@ -13,13 +13,13 @@ export interface SearchFieldProps
 }
 
 const SIZE_CLASS: Record<NonNullable<SearchFieldProps["size"]>, string> = {
-  sm: "min-h-7 pl-6 pr-6 py-0.5",
-  md: "min-h-7 pl-7 pr-7 py-1",
+  sm: "min-h-7 pl-7 pr-7 py-1",
+  md: "min-h-8 pl-8 pr-8 py-1.5",
 };
 
 const ICON_SIZE_CLASS: Record<NonNullable<SearchFieldProps["size"]>, string> = {
   sm: "h-3 w-3 left-2",
-  md: "h-3.5 w-3.5 left-2.5",
+  md: "h-3.5 w-3.5 left-3",
 };
 
 export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(

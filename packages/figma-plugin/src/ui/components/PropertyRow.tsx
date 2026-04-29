@@ -412,7 +412,7 @@ export function PropertyRow({
         </div>
 
         {showActionRail && (
-          <div className={`mt-2 flex flex-wrap items-center gap-1 pl-6 transition-opacity ${isThisPropActive ? '' : 'opacity-0 group-hover/proprow:opacity-100'}`}>
+          <div className="mt-2 flex flex-wrap items-center gap-1 pl-6">
             {canBind && (
               <PropertyActionButton
                 label={isMixed ? 'Bind token' : 'Bind'}

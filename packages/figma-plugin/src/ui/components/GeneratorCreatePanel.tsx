@@ -27,6 +27,18 @@ import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { Button, IconButton, SegmentedControl } from "../primitives";
 import { ValuePreview, previewIsValueBearing } from "./ValuePreview";
+import {
+  GeneratorColorField,
+  GeneratorDimensionField,
+  GeneratorFormulaField,
+  GeneratorNumberField,
+  GeneratorPathField,
+  GeneratorUnitField,
+  NumberStepTable,
+  formatGeneratorDimensionInput,
+  parseGeneratorDimensionInput,
+  validateGeneratorTokenPath,
+} from "./generators/GeneratorFieldControls";
 
 type BusyState = "create" | "custom" | null;
 
@@ -46,13 +58,6 @@ interface GeneratorCreatePanelProps {
 
 interface GeneratorResponse {
   generator: TokenGeneratorDocument;
-}
-
-function parseNumberList(value: string): number[] {
-  return value
-    .split(",")
-    .map((step) => Number(step.trim()))
-    .filter(Number.isFinite);
 }
 
 function readCollectionLabel(collection: TokenCollection): string {
@@ -107,9 +112,7 @@ export function GeneratorCreatePanel({
   const [sourceTokenPath, setSourceTokenPath] = useState("");
   const [sourceQuery, setSourceQuery] = useState("");
   const [sourceAdvancedOpen, setSourceAdvancedOpen] = useState(false);
-  const [paletteSteps, setPaletteSteps] = useState(
-    COLOR_RAMP_DEFAULT.steps.join(", "),
-  );
+  const [paletteSteps, setPaletteSteps] = useState(COLOR_RAMP_DEFAULT.steps);
   const [paletteLightEnd, setPaletteLightEnd] = useState(
     COLOR_RAMP_DEFAULT.lightEnd,
   );
@@ -128,6 +131,16 @@ export function GeneratorCreatePanel({
   >(FORMULA_DEFAULT.outputType);
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
+  const allTargetTokensFlat = perCollectionFlat[targetCollectionId] ?? {};
+  const pathToCollectionId = useMemo(() => {
+    const result: Record<string, string> = {};
+    for (const [collectionId, tokens] of Object.entries(perCollectionFlat)) {
+      for (const path of Object.keys(tokens)) {
+        result[path] = collectionId;
+      }
+    }
+    return result;
+  }, [perCollectionFlat]);
 
   const selectedOption =
     GENERATOR_PRESET_OPTIONS.find((item) => item.id === kind) ??
@@ -179,7 +192,7 @@ export function GeneratorCreatePanel({
     if (kind === "colorRamp") {
       return {
         ...generatorDefaultConfig("colorRamp"),
-        steps: parseNumberList(paletteSteps),
+        steps: paletteSteps,
         lightEnd: paletteLightEnd,
         darkEnd: paletteDarkEnd,
       };
@@ -247,8 +260,9 @@ export function GeneratorCreatePanel({
       setError("Choose a collection first.");
       return;
     }
-    if (!outputPrefix.trim()) {
-      setError("Choose an output group.");
+    const outputPathError = validateGeneratorTokenPath(outputPrefix);
+    if (outputPathError) {
+      setError(outputPathError);
       return;
     }
     if (
@@ -273,8 +287,13 @@ export function GeneratorCreatePanel({
       );
       return;
     }
-    if (kind === "colorRamp" && parseNumberList(paletteSteps).length === 0) {
+    if (kind === "colorRamp" && paletteSteps.length === 0) {
       setError("Add at least one numeric palette step.");
+      return;
+    }
+    const duplicatePaletteStep = findDuplicateNumber(paletteSteps);
+    if (kind === "colorRamp" && duplicatePaletteStep !== null) {
+      setError(`Palette step ${duplicatePaletteStep} must be unique.`);
       return;
     }
 
@@ -479,16 +498,12 @@ export function GeneratorCreatePanel({
 
             <ModeSummary modes={targetModes} />
 
-            <label className="block">
-              <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                Output group
-              </span>
-              <input
-                value={outputPrefix}
-                onChange={(event) => setOutputPrefix(event.target.value)}
-                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-              />
-            </label>
+            <GeneratorPathField
+              label="Output group"
+              value={outputPrefix}
+              series
+              onChange={setOutputPrefix}
+            />
 
           {!SOURCELESS_GENERATOR_PRESETS.has(kind) ? (
             <div className="space-y-2">
@@ -505,16 +520,28 @@ export function GeneratorCreatePanel({
               />
 
               {sourceMode === "literal" ? (
-                <label className="block">
-                  <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                    Source value
-                  </span>
-                  <input
+                kind === "colorRamp" ? (
+                  <GeneratorColorField
+                    label="Source value"
                     value={sourceValue}
-                    onChange={(event) => setSourceValue(event.target.value)}
-                    className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
+                    allTokensFlat={allTargetTokensFlat}
+                    onChange={setSourceValue}
                   />
-                </label>
+                ) : kind === "formula" ? (
+                  <GeneratorNumberField
+                    label="Source value"
+                    value={sourceValue}
+                    onChange={(value) => setSourceValue(String(value))}
+                  />
+                ) : (
+                  <GeneratorDimensionField
+                    label="Source value"
+                    value={parseGeneratorDimensionInput(sourceValue)}
+                    allTokensFlat={allTargetTokensFlat}
+                    pathToCollectionId={pathToCollectionId}
+                    onChange={(value) => setSourceValue(formatGeneratorDimensionInput(value))}
+                  />
+                )
               ) : (
                 <div className="space-y-2">
                   <div>
@@ -649,18 +676,19 @@ export function GeneratorCreatePanel({
 
           {kind === "colorRamp" ? (
             <>
-              <TextInput
+              <NumberStepTable
                 label="Steps"
-                value={paletteSteps}
+                pathPrefix={outputPrefix}
+                values={paletteSteps}
                 onChange={setPaletteSteps}
               />
               <div className="grid grid-cols-2 gap-2">
-                <NumberInput
+                <GeneratorNumberField
                   label="Light end"
                   value={paletteLightEnd}
                   onChange={setPaletteLightEnd}
                 />
-                <NumberInput
+                <GeneratorNumberField
                   label="Dark end"
                   value={paletteDarkEnd}
                   onChange={setPaletteDarkEnd}
@@ -672,28 +700,34 @@ export function GeneratorCreatePanel({
           {kind === "spacing" || kind === "type" || kind === "radius" ? (
             <div className={kind === "type" ? "grid grid-cols-2 gap-2" : ""}>
               {kind === "type" ? (
-                <NumberInput
+                <GeneratorNumberField
                   label="Ratio"
                   value={typeRatio}
-                  step="0.01"
                   onChange={setTypeRatio}
                 />
               ) : null}
-              <TextInput label="Unit" value={scaleUnit} onChange={setScaleUnit} />
+              <GeneratorUnitField label="Unit" value={scaleUnit} onChange={setScaleUnit} />
             </div>
           ) : null}
 
           {kind === "shadow" ? (
-            <TextInput
+            <GeneratorColorField
               label="Shadow color"
               value={shadowColor}
+              allTokensFlat={allTargetTokensFlat}
               onChange={setShadowColor}
             />
           ) : null}
 
           {kind === "formula" ? (
             <>
-              <TextInput label="Formula" value={formula} onChange={setFormula} />
+              <GeneratorFormulaField
+                label="Formula"
+                value={formula}
+                allTokensFlat={allTargetTokensFlat}
+                pathToCollectionId={pathToCollectionId}
+                onChange={setFormula}
+              />
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
                   <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
@@ -712,7 +746,7 @@ export function GeneratorCreatePanel({
                     <option value="dimension">Dimension</option>
                   </select>
                 </label>
-                <NumberInput
+                <GeneratorNumberField
                   label="Round to"
                   value={formulaRoundTo}
                   onChange={setFormulaRoundTo}
@@ -751,6 +785,15 @@ export function GeneratorCreatePanel({
   );
 }
 
+function findDuplicateNumber(values: number[]): number | null {
+  const seen = new Set<number>();
+  for (const value of values) {
+    if (seen.has(value)) return value;
+    seen.add(value);
+  }
+  return null;
+}
+
 function readPresetUnit(kind: GeneratorPresetKind): string {
   const config = generatorDefaultConfig(kind) as { unit?: unknown };
   return typeof config.unit === "string" ? config.unit : "px";
@@ -784,7 +827,7 @@ function readTokenModeValues(
   const collectionModes = token.$extensions?.tokenmanager?.modes?.[collectionId];
   return modes.map((modeName, index) => [
     modeName,
-    index === 0 ? token.$value : collectionModes?.[modeName] ?? token.$value,
+    index === 0 ? token.$value : collectionModes?.[modeName],
   ]);
 }
 
@@ -815,7 +858,7 @@ function TokenModePreview({
 }
 
 function formatCompactValue(value: unknown): string {
-  if (value == null) return "";
+  if (value == null) return "No value";
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean")
     return String(value);
@@ -848,56 +891,6 @@ function ModeSummary({ modes }: { modes: string[] }) {
         )}
       </div>
     </div>
-  );
-}
-
-function TextInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-        {label}
-      </span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-      />
-    </label>
-  );
-}
-
-function NumberInput({
-  label,
-  value,
-  onChange,
-  step,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  step?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-        {label}
-      </span>
-      <input
-        type="number"
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[var(--color-figma-text)] outline-none"
-      />
-    </label>
   );
 }
 

@@ -3,6 +3,7 @@ import {
   readTokenCollectionModeValues,
   readTokenModeValuesForCollection,
 } from './collections.js';
+import { makeReferenceGlobalRegex } from './constants.js';
 import {
   opAdd,
   opAlpha,
@@ -177,11 +178,35 @@ export interface TokenGeneratorPreviewOutput {
   collision: boolean;
 }
 
+export type TokenGeneratorNodePreviewValue =
+  | {
+      kind: 'scalar';
+      type: TokenGeneratorPortType;
+      value: TokenValue | TokenReference;
+    }
+  | {
+      kind: 'list';
+      type: TokenGeneratorPortType;
+      values: Array<{
+        key: string;
+        label: string;
+        value: TokenValue | TokenReference;
+        type?: TokenType;
+      }>;
+    };
+
+export interface TokenGeneratorNodePreview {
+  nodeId: string;
+  modeValues: Record<string, TokenGeneratorNodePreviewValue>;
+}
+
 export interface TokenGeneratorPreviewResult {
   generatorId: string;
   targetCollectionId: string;
   targetModes: string[];
   outputs: TokenGeneratorPreviewOutput[];
+  nodePreviews: Record<string, TokenGeneratorNodePreview>;
+  nodePreviewDiagnostics: TokenGeneratorDiagnostic[];
   diagnostics: TokenGeneratorDiagnostic[];
   blocking: boolean;
   hash: string;
@@ -212,6 +237,12 @@ type GeneratorRuntimeValue =
     };
 
 type ModeRuntimeValues = Record<string, GeneratorRuntimeValue | undefined>;
+type GeneratorTokenRefMap = Record<string, string>;
+type ResolvedGeneratorTokenRef = {
+  path: string;
+  token: Token;
+  value: unknown;
+};
 
 export function getTokenGeneratorInputPorts(
   node: TokenGeneratorNode,
@@ -684,6 +715,7 @@ export function evaluateTokenGeneratorDocument({
       });
     }
   }
+  validateUnsupportedTokenRefs(document, diagnostics);
   if (diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
     return emptyPreview(document, diagnostics, previewedAt, modeNames);
   }
@@ -737,11 +769,49 @@ export function evaluateTokenGeneratorDocument({
   }
 
   const hash = generatorProvenanceHash(document, outputs);
+  const nodePreviewCache = new Map(cache);
+  const previewDiagnostics: TokenGeneratorDiagnostic[] = [];
+  const evaluatePreviewNode = (nodeId: string): ModeRuntimeValues => {
+    const cached = nodePreviewCache.get(nodeId);
+    if (cached) return cached;
+    const node = nodeById.get(nodeId);
+    if (!node) return {};
+    const result = evaluateNodeForModes({
+      node,
+      modeNames,
+      targetCollection,
+      collections,
+      tokensByCollection,
+      input: (port) => {
+        const edge = incoming.get(`${node.id}:${port}`)?.[0];
+        if (!edge) return {};
+        return evaluatePreviewNode(edge.from.nodeId);
+      },
+      diagnostics: previewDiagnostics,
+    });
+    nodePreviewCache.set(nodeId, result);
+    return result;
+  };
+  const nodePreviews = Object.fromEntries(
+    document.nodes
+      .filter((node) => node.kind !== 'output' && node.kind !== 'groupOutput')
+      .map((node) => [node.id, evaluatePreviewNode(node.id)] as const)
+      .filter(([, valuesByMode]) => Object.keys(valuesByMode).length > 0)
+      .map(([nodeId, valuesByMode]) => [
+        nodeId,
+        {
+          nodeId,
+          modeValues: serializeNodePreviewModeValues(valuesByMode),
+        },
+      ]),
+  );
   return {
     generatorId: document.id,
     targetCollectionId: targetCollection.id,
     targetModes: modeNames,
     outputs,
+    nodePreviews,
+    nodePreviewDiagnostics: previewDiagnostics,
     diagnostics,
     blocking: diagnostics.some((diagnostic) => diagnostic.severity === 'error'),
     hash,
@@ -760,11 +830,43 @@ function emptyPreview(
     targetCollectionId: document.targetCollectionId,
     targetModes,
     outputs: [],
+    nodePreviews: {},
+    nodePreviewDiagnostics: [],
     diagnostics,
     blocking: diagnostics.some((diagnostic) => diagnostic.severity === 'error'),
     hash: stableStringify({ generatorId: document.id, diagnostics }),
     previewedAt,
   };
+}
+
+function serializeNodePreviewModeValues(
+  valuesByMode: ModeRuntimeValues,
+): Record<string, TokenGeneratorNodePreviewValue> {
+  return Object.fromEntries(
+    Object.entries(valuesByMode)
+      .filter((entry): entry is [string, GeneratorRuntimeValue] =>
+        Boolean(entry[1]),
+      )
+      .map(([modeName, value]) => [
+        modeName,
+        value.kind === 'list'
+          ? {
+              kind: 'list' as const,
+              type: value.type,
+              values: value.values.map((item) => ({
+                key: item.key,
+                label: item.label,
+                value: item.value,
+                ...(item.type ? { type: item.type } : {}),
+              })),
+            }
+          : {
+              kind: 'scalar' as const,
+              type: value.type,
+              value: value.value,
+            },
+      ]),
+  );
 }
 
 function evaluateNodeForModes({
@@ -830,7 +932,7 @@ function evaluateNodeForMode({
 }): GeneratorRuntimeValue | undefined {
   switch (node.kind) {
     case 'literal':
-      return literalValue(node);
+      return literalValue(node, modeName, targetCollection, tokensByCollection);
     case 'tokenInput':
       return tokenInputValue(node, modeName, targetCollection, collections, tokensByCollection);
     case 'alias':
@@ -838,25 +940,25 @@ function evaluateNodeForMode({
     case 'math':
       return mathValue(node, source);
     case 'formula':
-      return formulaValue(node, modeName, source, input);
+      return formulaValue(node, modeName, source, targetCollection, tokensByCollection, input);
     case 'color':
       return colorValue(node, source);
     case 'colorRamp':
-      return colorRampValue(node, source);
+      return colorRampValue(node, modeName, source, targetCollection, tokensByCollection);
     case 'spacingScale':
-      return spacingScaleValue(node, source);
+      return spacingScaleValue(node, modeName, source, targetCollection, tokensByCollection);
     case 'typeScale':
-      return typeScaleValue(node, source);
+      return typeScaleValue(node, modeName, source, targetCollection, tokensByCollection);
     case 'borderRadiusScale':
-      return borderRadiusScaleValue(node, source);
+      return borderRadiusScaleValue(node, modeName, source, targetCollection, tokensByCollection);
     case 'opacityScale':
-      return opacityScaleValue(node);
+      return opacityScaleValue(node, modeName, targetCollection, tokensByCollection);
     case 'shadowScale':
-      return shadowScaleValue(node);
+      return shadowScaleValue(node, modeName, targetCollection, tokensByCollection);
     case 'zIndexScale':
-      return zIndexScaleValue(node);
+      return zIndexScaleValue(node, modeName, targetCollection, tokensByCollection);
     case 'customScale':
-      return customScaleValue(node, source);
+      return customScaleValue(node, modeName, source, targetCollection, tokensByCollection);
     case 'list':
       return listValue(node);
     case 'output':
@@ -867,8 +969,41 @@ function evaluateNodeForMode({
   }
 }
 
-function literalValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
+function literalValue(
+  node: TokenGeneratorNode,
+  modeName: string,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+): GeneratorRuntimeValue {
   const type = String(node.data.type ?? 'string') as TokenGeneratorPortType;
+  const refs = readTokenRefMap(node);
+  const hasTokenRef = Object.prototype.hasOwnProperty.call(refs, 'value');
+  const resolvedRef = hasTokenRef
+    ? resolveGeneratorTokenRef(refs.value, modeName, targetCollection, tokensByCollection, 'value')
+    : undefined;
+  if (resolvedRef !== undefined) {
+    if (type === 'number') {
+      validateResolvedTokenRefType(resolvedRef, ['number', 'dimension'], 'value');
+      return { kind: 'scalar', type, value: coerceNumberValue(resolvedRef.value, 'value') };
+    }
+    if (type === 'dimension') {
+      validateResolvedTokenRefType(resolvedRef, ['dimension', 'number'], 'value');
+      const fallbackUnit = String(node.data.unit ?? 'px');
+      return {
+        kind: 'scalar',
+        type,
+        value: isDimensionLike(resolvedRef.value)
+          ? resolvedRef.value
+          : { value: coerceNumberValue(resolvedRef.value, 'value'), unit: fallbackUnit },
+      };
+    }
+    if (type === 'boolean') {
+      validateResolvedTokenRefType(resolvedRef, ['boolean'], 'value');
+      return { kind: 'scalar', type, value: Boolean(resolvedRef.value) };
+    }
+    validateResolvedTokenRefType(resolvedRef, [type], 'value');
+    return { kind: 'scalar', type, value: String(resolvedRef.value ?? '') };
+  }
   const raw = node.data.value;
   if (type === 'number') return { kind: 'scalar', type, value: Number(raw ?? 0) };
   if (type === 'dimension') {
@@ -970,6 +1105,114 @@ function resolveModeValue({
   });
 }
 
+function readTokenRefMap(node: TokenGeneratorNode): GeneratorTokenRefMap {
+  const fromData =
+    node.data.$tokenRefs &&
+    typeof node.data.$tokenRefs === 'object' &&
+    !Array.isArray(node.data.$tokenRefs)
+      ? (node.data.$tokenRefs as Record<string, unknown>)
+      : {};
+  const config =
+    node.data.config &&
+    typeof node.data.config === 'object' &&
+    !Array.isArray(node.data.config)
+      ? (node.data.config as Record<string, unknown>)
+      : {};
+  const fromConfig =
+    config.$tokenRefs &&
+    typeof config.$tokenRefs === 'object' &&
+    !Array.isArray(config.$tokenRefs)
+      ? (config.$tokenRefs as Record<string, unknown>)
+      : {};
+  return Object.fromEntries(
+    Object.entries({ ...fromConfig, ...fromData })
+      .filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  );
+}
+
+function validateUnsupportedTokenRefs(
+  document: TokenGeneratorDocument,
+  diagnostics: TokenGeneratorDiagnostic[],
+): void {
+  for (const node of document.nodes) {
+    const supportedKeys = supportedTokenRefKeysForNode(node.kind);
+    for (const key of Object.keys(readTokenRefMap(node))) {
+      if (supportedKeys.has(key)) continue;
+      diagnostics.push({
+        id: `${node.id}-unsupported-token-ref-${key}`,
+        severity: 'error',
+        nodeId: node.id,
+        message: `${node.label}: "${key}" cannot use a token reference.`,
+      });
+    }
+  }
+}
+
+function supportedTokenRefKeysForNode(kind: TokenGeneratorNodeKind): Set<string> {
+  if (kind === 'literal') return new Set(['value']);
+  if (kind === 'colorRamp') return new Set(['lightEnd', 'darkEnd', 'chromaBoost']);
+  if (kind === 'typeScale') return new Set(['ratio']);
+  if (kind === 'shadowScale') return new Set(['color']);
+  return new Set();
+}
+
+function resolveGeneratorTokenRef(
+  path: string,
+  modeName: string,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+  fieldName: string,
+): ResolvedGeneratorTokenRef {
+  const cleanPath = path.trim().replace(/^\{|\}$/g, '');
+  if (!cleanPath) {
+    throw new Error(`Choose a token for "${fieldName}".`);
+  }
+  const token = tokensByCollection[targetCollection.id]?.[cleanPath];
+  if (!token) {
+    throw new Error(`Token "${cleanPath}" was not found in "${targetCollection.id}".`);
+  }
+  const modeValues = readTokenModeValuesForCollection(token, targetCollection);
+  if (!(modeName in modeValues)) {
+    throw new Error(`Token "${cleanPath}" has no value for mode "${modeName}".`);
+  }
+  const value = resolveModeValue({
+    collection: targetCollection,
+    tokenPath: cleanPath,
+    value: modeValues[modeName],
+    modeName,
+    tokensByCollection,
+    visited: new Set([cleanPath]),
+  });
+  return { path: cleanPath, token, value };
+}
+
+function validateResolvedTokenRefType(
+  resolved: ResolvedGeneratorTokenRef,
+  acceptedTypes: TokenGeneratorPortType[],
+  fieldName: string,
+): void {
+  const tokenType = resolved.token.$type as TokenGeneratorPortType | undefined;
+  if (!tokenType || !acceptedTypes.includes(tokenType)) {
+    throw new Error(
+      `Token "${resolved.path}" cannot drive "${fieldName}". Expected ${acceptedTypes.join(' or ')}, got ${tokenType ?? 'unknown'}.`,
+    );
+  }
+  if (!resolvedValueMatchesPortTypes(resolved.value, acceptedTypes)) {
+    throw new Error(
+      `Token "${resolved.path}" cannot drive "${fieldName}" because its resolved value does not match ${acceptedTypes.join(' or ')}.`,
+    );
+  }
+}
+
+function coerceNumberValue(value: unknown, fieldName: string): number {
+  const raw = isDimensionLike(value) ? value.value : value;
+  const numeric = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(numeric)) {
+    throw new Error(`Token reference for "${fieldName}" did not resolve to a finite number.`);
+  }
+  return numeric;
+}
+
 function aliasValue(
   node: TokenGeneratorNode,
   targetCollection: TokenCollection,
@@ -1059,12 +1302,14 @@ function formulaValue(
   node: TokenGeneratorNode,
   modeName: string,
   source: GeneratorRuntimeValue | undefined,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
   input: (port: string) => ModeRuntimeValues,
 ): GeneratorRuntimeValue {
   const vars: Record<string, number> = {};
   if (source) {
     const scalar = requireScalar(source, 'Formula input has no value.');
-    const numberValue = Number(scalar);
+    const numberValue = coerceNumberValue(scalar, 'value');
     vars.value = numberValue;
     vars.x = numberValue;
     vars.var1 = numberValue;
@@ -1081,9 +1326,16 @@ function formulaValue(
     const value = node.data[key];
     const portSource = input(key)[modeName];
     const scalar = portSource ? requireScalar(portSource, `Formula input "${key}" has no value.`) : Number(value ?? 0);
-    vars[key] = Number(scalar);
+    vars[key] = coerceNumberValue(scalar, key);
   }
-  const expression = substituteVars(String(node.data.expression ?? '0'), vars);
+  const expressionWithRefs = resolveFormulaTokenReferences(
+    String(node.data.expression ?? '0'),
+    modeName,
+    targetCollection,
+    tokensByCollection,
+    'formula',
+  );
+  const expression = substituteVars(expressionWithRefs, vars);
   return { kind: 'scalar', type: 'number', value: evalExpr(expression) };
 }
 
@@ -1111,19 +1363,25 @@ function colorValue(
 
 function colorRampValue(
   node: TokenGeneratorNode,
+  modeName: string,
   source: GeneratorRuntimeValue | undefined,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
 ): GeneratorRuntimeValue {
   const sourceColor = String(requireScalar(source, 'Color ramps need a source color.'));
-  const config = readNodeConfig<ColorRampConfig>(node, DEFAULT_COLOR_RAMP_CONFIG);
+  const config = readNodeConfigForMode<ColorRampConfig>(node, DEFAULT_COLOR_RAMP_CONFIG, modeName, targetCollection, tokensByCollection);
   const generated = computeColorRampTokens(sourceColor, config, 'output');
   return generatedResultsToList('color', generated);
 }
 
 function spacingScaleValue(
   node: TokenGeneratorNode,
+  modeName: string,
   source: GeneratorRuntimeValue | undefined,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
 ): GeneratorRuntimeValue {
-  const config = readNodeConfig<SpacingScaleConfig>(node, DEFAULT_SPACING_SCALE_CONFIG);
+  const config = readNodeConfigForMode<SpacingScaleConfig>(node, DEFAULT_SPACING_SCALE_CONFIG, modeName, targetCollection, tokensByCollection);
   return generatedResultsToList(
     'dimension',
     computeSpacingScaleTokens(requireDimensionSource(source, 'Spacing scales need a base size.'), config, 'output'),
@@ -1132,9 +1390,12 @@ function spacingScaleValue(
 
 function typeScaleValue(
   node: TokenGeneratorNode,
+  modeName: string,
   source: GeneratorRuntimeValue | undefined,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
 ): GeneratorRuntimeValue {
-  const config = readNodeConfig<TypeScaleConfig>(node, DEFAULT_TYPE_SCALE_CONFIG);
+  const config = readNodeConfigForMode<TypeScaleConfig>(node, DEFAULT_TYPE_SCALE_CONFIG, modeName, targetCollection, tokensByCollection);
   return generatedResultsToList(
     'dimension',
     computeTypeScaleTokens(requireDimensionSource(source, 'Type scales need a base font size.'), config, 'output'),
@@ -1143,37 +1404,68 @@ function typeScaleValue(
 
 function borderRadiusScaleValue(
   node: TokenGeneratorNode,
+  modeName: string,
   source: GeneratorRuntimeValue | undefined,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
 ): GeneratorRuntimeValue {
-  const config = readNodeConfig<BorderRadiusScaleConfig>(node, DEFAULT_BORDER_RADIUS_SCALE_CONFIG);
+  const config = readNodeConfigForMode<BorderRadiusScaleConfig>(node, DEFAULT_BORDER_RADIUS_SCALE_CONFIG, modeName, targetCollection, tokensByCollection);
   return generatedResultsToList(
     'dimension',
     computeBorderRadiusScaleTokens(requireDimensionSource(source, 'Radius scales need a base radius.'), config, 'output'),
   );
 }
 
-function opacityScaleValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
-  const config = readNodeConfig<OpacityScaleConfig>(node, DEFAULT_OPACITY_SCALE_CONFIG);
+function opacityScaleValue(
+  node: TokenGeneratorNode,
+  modeName: string,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+): GeneratorRuntimeValue {
+  const config = readNodeConfigForMode<OpacityScaleConfig>(node, DEFAULT_OPACITY_SCALE_CONFIG, modeName, targetCollection, tokensByCollection);
   return generatedResultsToList('number', computeOpacityScaleTokens(config, 'output'));
 }
 
-function shadowScaleValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
-  const config = readNodeConfig<ShadowScaleConfig>(node, DEFAULT_SHADOW_SCALE_CONFIG);
+function shadowScaleValue(
+  node: TokenGeneratorNode,
+  modeName: string,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+): GeneratorRuntimeValue {
+  const config = readNodeConfigForMode<ShadowScaleConfig>(node, DEFAULT_SHADOW_SCALE_CONFIG, modeName, targetCollection, tokensByCollection);
   return generatedResultsToList('token', computeShadowScaleTokens(config, 'output'));
 }
 
-function zIndexScaleValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
-  const config = readNodeConfig<ZIndexScaleConfig>(node, DEFAULT_Z_INDEX_SCALE_CONFIG);
+function zIndexScaleValue(
+  node: TokenGeneratorNode,
+  modeName: string,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+): GeneratorRuntimeValue {
+  const config = readNodeConfigForMode<ZIndexScaleConfig>(node, DEFAULT_Z_INDEX_SCALE_CONFIG, modeName, targetCollection, tokensByCollection);
   return generatedResultsToList('number', computeZIndexScaleTokens(config, 'output'));
 }
 
 function customScaleValue(
   node: TokenGeneratorNode,
+  modeName: string,
   source: GeneratorRuntimeValue | undefined,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
 ): GeneratorRuntimeValue {
-  const config = readNodeConfig<CustomScaleConfig>(node, DEFAULT_CUSTOM_SCALE_CONFIG);
+  const config = readNodeConfigForMode<CustomScaleConfig>(node, DEFAULT_CUSTOM_SCALE_CONFIG, modeName, targetCollection, tokensByCollection);
   const outputPortType = readCustomScaleOutputType(config.outputType);
-  const normalizedConfig = { ...config, outputType: outputPortType };
+  const normalizedConfig = {
+    ...config,
+    outputType: outputPortType,
+    formula: resolveFormulaTokenReferences(
+      String(config.formula ?? ''),
+      modeName,
+      targetCollection,
+      tokensByCollection,
+      'formula',
+    ),
+  };
   return generatedResultsToList(
     outputPortType,
     computeCustomScaleTokens(
@@ -1194,6 +1486,89 @@ function readNodeConfig<T extends object>(
       ? rawConfig as Partial<T>
       : {};
   return JSON.parse(JSON.stringify({ ...defaults, ...node.data, ...explicitConfig })) as T;
+}
+
+function readNodeConfigForMode<T extends object>(
+  node: TokenGeneratorNode,
+  defaults: T,
+  modeName: string,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+): T {
+  const config = readNodeConfig<T>(node, defaults) as Record<string, unknown>;
+  const refs = readTokenRefMap(node);
+  const supportedRefKeys = configTokenRefKeysForNodeKind(node.kind);
+  for (const [key, path] of Object.entries(refs)) {
+    if (key === 'value') continue;
+    if (!supportedRefKeys.has(key)) {
+      throw new Error(`"${key}" cannot use a token reference on ${formatNodeKindForDiagnostic(node.kind)}.`);
+    }
+    const resolved = resolveGeneratorTokenRef(path, modeName, targetCollection, tokensByCollection, key);
+    config[key] = coerceConfigReferenceValue(key, config[key] ?? (defaults as Record<string, unknown>)[key], resolved);
+  }
+  delete config.$tokenRefs;
+  return JSON.parse(JSON.stringify(config)) as T;
+}
+
+function coerceConfigReferenceValue(
+  fieldName: string,
+  currentValue: unknown,
+  resolved: ResolvedGeneratorTokenRef,
+): unknown {
+  if (typeof currentValue === 'number') {
+    validateResolvedTokenRefType(resolved, ['number', 'dimension'], fieldName);
+    return coerceNumberValue(resolved.value, fieldName);
+  }
+  if (typeof currentValue === 'boolean') {
+    validateResolvedTokenRefType(resolved, ['boolean'], fieldName);
+    return resolved.value;
+  }
+  if (typeof currentValue === 'string') {
+    const acceptedTypes: TokenGeneratorPortType[] =
+      fieldName === 'color' || fieldName === 'mixWith' ? ['color'] : ['string'];
+    validateResolvedTokenRefType(resolved, acceptedTypes, fieldName);
+    return resolved.value;
+  }
+  throw new Error(`"${fieldName}" cannot use a token reference.`);
+}
+
+function configTokenRefKeysForNodeKind(kind: TokenGeneratorNodeKind): Set<string> {
+  if (kind === 'colorRamp') return new Set(['lightEnd', 'darkEnd', 'chromaBoost']);
+  if (kind === 'typeScale') return new Set(['ratio']);
+  if (kind === 'shadowScale') return new Set(['color']);
+  return new Set();
+}
+
+function formatNodeKindForDiagnostic(kind: TokenGeneratorNodeKind): string {
+  return kind.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+}
+
+function resolveFormulaTokenReferences(
+  formula: string,
+  modeName: string,
+  targetCollection: TokenCollection,
+  tokensByCollection: Record<string, Record<string, Token>>,
+  fieldName: string,
+): string {
+  return formula.replace(makeReferenceGlobalRegex(), (_match, path: string) => {
+    const resolved = resolveGeneratorTokenRef(path, modeName, targetCollection, tokensByCollection, fieldName);
+    validateResolvedTokenRefType(resolved, ['number', 'dimension'], fieldName);
+    return String(coerceNumberValue(resolved.value, fieldName));
+  });
+}
+
+function resolvedValueMatchesPortTypes(
+  value: unknown,
+  acceptedTypes: TokenGeneratorPortType[],
+): boolean {
+  return acceptedTypes.some((type) => {
+    if (type === 'number') return typeof value === 'number' && Number.isFinite(value);
+    if (type === 'dimension') return isDimensionLike(value);
+    if (type === 'boolean') return typeof value === 'boolean';
+    if (type === 'color' || type === 'string') return typeof value === 'string';
+    if (type === 'token') return isReference(value);
+    return true;
+  });
 }
 
 function generatedResultsToList(
@@ -1240,9 +1615,12 @@ function requireNumericSource(source: GeneratorRuntimeValue): number {
 
 function listValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
   const items = Array.isArray(node.data.items) ? node.data.items : [];
+  const listType = String(node.data.type ?? 'number') as TokenGeneratorPortType;
+  const listItemType = tokenTypeForListType(listType);
+  const tokenListItemType = node.data.tokenType as TokenType | undefined;
   return {
     kind: 'list',
-    type: String(node.data.type ?? 'number') as TokenGeneratorPortType,
+    type: listType,
     values: items.map((item, index) => {
       if (isListItemRecord(item)) {
         const key = String(item.key ?? index + 1);
@@ -1250,17 +1628,32 @@ function listValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
           key,
           label: String(item.label ?? key),
           value: item.value as TokenValue,
-          type: (item.type ?? node.data.tokenType) as TokenType | undefined,
+          type: listType === 'token'
+            ? (item.type as TokenType | undefined) ?? tokenListItemType
+            : listItemType,
         };
       }
       return {
         key: String(index + 1),
         label: String(index + 1),
         value: item as TokenValue,
-        type: node.data.tokenType as TokenType | undefined,
+        type: listType === 'token' ? tokenListItemType : listItemType,
       };
     }),
   };
+}
+
+function tokenTypeForListType(type: TokenGeneratorPortType): TokenType | undefined {
+  if (
+    type === 'color' ||
+    type === 'number' ||
+    type === 'dimension' ||
+    type === 'string' ||
+    type === 'boolean'
+  ) {
+    return type;
+  }
+  return undefined;
 }
 
 function isListItemRecord(item: unknown): item is Record<string, unknown> {

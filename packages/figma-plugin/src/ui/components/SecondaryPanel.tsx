@@ -36,7 +36,7 @@ export function SecondaryPanel({
       </div>
       {beforeBody}
       <div className={`tm-secondary-panel__body ${bodyClassName}`}>{children}</div>
-      {footer ? <div className="shrink-0">{footer}</div> : null}
+      {footer ? <div className="tm-secondary-panel__footer shrink-0">{footer}</div> : null}
     </div>
   );
 }

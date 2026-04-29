@@ -402,12 +402,18 @@ export const TokenGroupNode = memo(
               />
             ) : (
               isCategoryHeader ? (
-                <span className="flex-1 text-body font-medium text-[var(--color-figma-text-secondary)]">
+                <span
+                  className="flex-1 text-body font-medium text-[var(--color-figma-text-secondary)]"
+                  title={node.path}
+                >
                   {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                 </span>
               ) : (
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="tm-token-tree-row__name truncate text-body font-medium text-[var(--color-figma-text)]">
+                  <span
+                    className="tm-token-tree-row__name truncate text-body font-medium text-[var(--color-figma-text)]"
+                    title={node.path}
+                  >
                     {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                   </span>
                   {groupMetadataSegments.length > 0 && (

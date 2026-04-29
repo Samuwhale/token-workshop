@@ -300,6 +300,8 @@ export type {
   TokenGeneratorPortShape,
   TokenGeneratorPortType,
   TokenGeneratorPosition,
+  TokenGeneratorNodePreview,
+  TokenGeneratorNodePreviewValue,
   TokenGeneratorPreviewOutput,
   TokenGeneratorPreviewResult,
   TokenGeneratorViewport,

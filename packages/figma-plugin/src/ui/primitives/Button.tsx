@@ -19,8 +19,8 @@ const VARIANT_CLASS: Record<NonNullable<ButtonProps["variant"]>, string> = {
 };
 
 const SIZE_CLASS: Record<NonNullable<ButtonProps["size"]>, string> = {
-  sm: "min-h-7 px-2 py-1 text-secondary",
-  md: "min-h-7 px-2.5 py-1 text-body",
+  sm: "min-h-7 px-2.5 py-1 text-secondary",
+  md: "min-h-8 px-3 py-1.5 text-body",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

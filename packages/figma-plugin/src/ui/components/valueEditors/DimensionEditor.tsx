@@ -72,9 +72,9 @@ const UNIT_CONVERSIONS: Record<string, Record<string, ((v: number) => number) | 
   '%': { px: null, rem: null, em: null },
 };
 
-export const DimensionEditor = memo(function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string>; autoFocus?: boolean }) {
+export const DimensionEditor = memo(function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {}, autoFocus, allowFormula = true }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string>; autoFocus?: boolean; allowFormula?: boolean }) {
   const val = typeof value === 'object' && value !== null ? value : { value: value ?? 0, unit: 'px' };
-  const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
+  const isFormulaValue = allowFormula && typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
   const [conversionWarning, setConversionWarning] = useState<string | null>(null);
   const numVal = formulaMode ? 0 : (parseFloat(val.value) || 0);
@@ -140,14 +140,16 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
           <option value="em">em</option>
           <option value="%">%</option>
         </select>
-        <button
-          type="button"
-          onClick={toggleFormulaMode}
-          title={formulaMode ? 'Switch to literal value' : 'Enter expression'}
-          className={`shrink-0 px-1.5 py-1 rounded text-secondary font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
-        >
-          fx
-        </button>
+        {allowFormula ? (
+          <button
+            type="button"
+            onClick={toggleFormulaMode}
+            title={formulaMode ? 'Switch to literal value' : 'Enter expression'}
+            className={`shrink-0 px-1.5 py-1 rounded text-secondary font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+          >
+            fx
+          </button>
+        ) : null}
       </div>
       {formulaMode && formulaStr && (
         <div className={`px-2 py-1 rounded text-secondary font-mono ${preview?.error ? 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>

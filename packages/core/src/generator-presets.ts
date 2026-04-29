@@ -14,6 +14,7 @@ import type {
   TokenGeneratorNode,
   TokenGeneratorNodeKind,
 } from './token-generator-documents.js';
+import { DIMENSION_UNITS, type DimensionUnit } from './constants.js';
 
 export type GeneratorPresetKind =
   | 'colorRamp'
@@ -120,7 +121,8 @@ export function makeGeneratorLiteralData(kind: GeneratorPresetKind, raw: string)
   if (kind === 'formula') {
     return { type: 'number', value: Number(raw) || 0 };
   }
-  return { type: 'dimension', value: Number(raw) || 0, unit: 'px' };
+  const dimension = parseGeneratorDimensionSource(raw);
+  return { type: 'dimension', value: dimension.value, unit: dimension.unit };
 }
 
 export function buildGeneratorNodesFromStructuredDraft(
@@ -240,7 +242,21 @@ export function readStructuredGeneratorDraft(
 
 function readSourceValue(data: Record<string, unknown>): string {
   const value = data.value;
+  if (data.type === 'dimension' && typeof value === 'number' && typeof data.unit === 'string') {
+    return `${value}${data.unit}`;
+  }
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return '';
+}
+
+function parseGeneratorDimensionSource(raw: string): { value: number; unit: DimensionUnit } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^(-?\d+(?:\.\d+)?)([a-zA-Z%]+)?$/);
+  const value = match ? Number(match[1]) : Number(trimmed);
+  const unit = match?.[2];
+  return {
+    value: Number.isFinite(value) ? value : 0,
+    unit: DIMENSION_UNITS.includes(unit as DimensionUnit) ? unit as DimensionUnit : 'px',
+  };
 }

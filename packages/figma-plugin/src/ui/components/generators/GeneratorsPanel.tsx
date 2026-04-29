@@ -48,7 +48,9 @@ import type {
   TokenGeneratorDocument,
   TokenGeneratorEdge,
   TokenGeneratorDocumentNode,
+  TokenGeneratorNodePreviewValue,
   TokenGeneratorPortDescriptor,
+  TokenGeneratorPreviewOutput,
   TokenGeneratorPreviewResult,
 } from "@tokenmanager/core";
 import {
@@ -69,6 +71,7 @@ import {
   getTokenGeneratorInputPorts,
   getTokenGeneratorOutputPorts,
   readStructuredGeneratorDraft,
+  validateStepName as validateGeneratorStepName,
   type GeneratorPresetKind,
   type GeneratorStructuredDraft,
 } from "@tokenmanager/core";
@@ -83,6 +86,27 @@ import {
   NodeLibraryPanel,
   type GeneratorPaletteItem,
 } from "./GeneratorWorkspacePanels";
+import {
+  FieldBlock,
+  GeneratorBooleanField,
+  GeneratorColorField,
+  GeneratorDimensionField,
+  GeneratorFormulaField,
+  GeneratorListValueEditor,
+  GeneratorNumberField,
+  GeneratorPathField,
+  GeneratorTextField,
+  GeneratorTokenPicker,
+  GeneratorUnitField,
+  NamedNumberStepTable,
+  NumberStepTable,
+  ReferenceableField,
+  ShadowStepTable,
+  formatGeneratorDimensionInput,
+  parseGeneratorDimensionInput,
+  type GeneratorTokenRefs,
+  validateGeneratorTokenPath,
+} from "./GeneratorFieldControls";
 import "@xyflow/react/dist/style.css";
 
 interface GeneratorsPanelProps {
@@ -178,6 +202,8 @@ type GraphFlowNode = Node<
     graphNode: TokenGeneratorDocumentNode;
     preview?: TokenGeneratorPreviewResult;
     issues?: GraphIssue[];
+    outputExpanded?: boolean;
+    onToggleOutputExpanded?: (nodeId: string) => void;
   },
   "graphNode"
 >;
@@ -373,6 +399,9 @@ export function GeneratorsPanel({
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [expandedOutputNodeIds, setExpandedOutputNodeIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [graphMenu, setGraphMenu] = useState<GraphMenuState | null>(null);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -466,6 +495,7 @@ export function GeneratorsPanel({
               perCollectionFlat,
             ),
             preview,
+            perCollectionFlat,
           )
         : [],
     [activeGenerator, perCollectionFlat, preview],
@@ -505,6 +535,22 @@ export function GeneratorsPanel({
         : "",
     [activeGenerator],
   );
+
+  const toggleOutputNodeExpanded = useCallback((nodeId: string) => {
+    setExpandedOutputNodeIds((current) => {
+      const next = new Set(current);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    setExpandedOutputNodeIds(new Set());
+  }, [activeGeneratorId]);
 
   const loadGenerators = useCallback(async () => {
     const data = await apiFetch<GeneratorListResponse>(
@@ -699,7 +745,11 @@ export function GeneratorsPanel({
       localGraphEditRef.current = false;
       return;
     }
-    setNodes(toFlowNodes(activeGenerator, previewRef.current));
+    const activePreview =
+      previewRef.current?.generatorId === activeGenerator.id
+        ? previewRef.current
+        : null;
+    setNodes(toFlowNodes(activeGenerator, activePreview));
     setEdges(toFlowEdges(activeGenerator.edges));
     setSelectedNodeId((current) =>
       current && activeGenerator.nodes.some((node) => node.id === current)
@@ -724,10 +774,19 @@ export function GeneratorsPanel({
           issues: graphIssues.filter(
             (issue) => issue.nodeId === node.id,
           ),
+          outputExpanded: expandedOutputNodeIds.has(node.id),
+          onToggleOutputExpanded: toggleOutputNodeExpanded,
         },
       })),
     );
-  }, [activeGenerator, graphIssues, preview, setNodes]);
+  }, [
+    activeGenerator,
+    expandedOutputNodeIds,
+    graphIssues,
+    preview,
+    setNodes,
+    toggleOutputNodeExpanded,
+  ]);
 
   const patchActiveGraph = useCallback(
     (patch: Partial<TokenGeneratorDocument>) => {
@@ -829,11 +888,15 @@ export function GeneratorsPanel({
   const updateStructuredDraft = useCallback(
     (patch: Partial<GeneratorStructuredDraft>) => {
       if (!activeGenerator || !structuredDraft) return;
+      const replacesDraftConfig =
+        patch.kind !== undefined && patch.kind !== structuredDraft.kind;
       const nextDraft: GeneratorStructuredDraft = {
         ...structuredDraft,
         ...patch,
         config: patch.config
-          ? { ...structuredDraft.config, ...patch.config }
+          ? replacesDraftConfig
+            ? patch.config
+            : { ...structuredDraft.config, ...patch.config }
           : structuredDraft.config,
       };
       const generated = buildGeneratorNodesFromStructuredDraft(nextDraft);
@@ -1816,9 +1879,12 @@ export function GeneratorsPanel({
     activeGeneratorId,
     compactGenerators,
     editorMode,
+    expandedOutputNodeIds,
     flowInstance,
     nodes.length,
     panelWidth,
+    preview?.hash,
+    selectedNodeId,
   ]);
 
   const renderGraphWorkspace = () => {
@@ -2565,6 +2631,27 @@ export function GeneratorsPanel({
                         <span className="max-[760px]:sr-only">Discard</span>
                       </Button>
                     ) : null}
+                    {editorMode === "graph" && preview ? (
+                      <Button
+                        title={`Open output review: ${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`}
+                        aria-label={`Open output review: ${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`}
+                        onClick={() => {
+                          setEditorMode("setup");
+                          setNodeLibraryOpen(false);
+                          setInspectorOpen(false);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                      >
+                        <span>
+                          {preview.outputs.length}
+                          <span className={compactGenerators ? "sr-only" : ""}>
+                            {" "}
+                            {preview.outputs.length === 1 ? "output" : "outputs"}
+                          </span>
+                        </span>
+                      </Button>
+	                    ) : null}
                     <Button
                       title="Apply generator"
                       aria-label="Apply generator"
@@ -3674,6 +3761,9 @@ function StructuredGeneratorSetup({
   const [crossCollectionOpen, setCrossCollectionOpen] = useState(
     crossCollectionSource,
   );
+  const configRefs = readGeneratorTokenRefs(draft.config.$tokenRefs);
+  const allTokensFlat = allTokensForCollection(perCollectionFlat, targetCollectionId);
+  const pathToCollectionId = pathToCollectionIdMap(perCollectionFlat);
 
   useEffect(() => {
     if (crossCollectionSource) {
@@ -3710,16 +3800,12 @@ function StructuredGeneratorSetup({
         </select>
       </label>
 
-      <label className="block">
-        <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-          Series path
-        </span>
-        <input
-          value={draft.outputPrefix}
-          onChange={(event) => onChange({ outputPrefix: event.target.value })}
-          className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
-        />
-      </label>
+      <GeneratorPathField
+        label="Series path"
+        value={draft.outputPrefix}
+        series
+        onChange={(outputPrefix) => onChange({ outputPrefix })}
+      />
 
       {!SOURCELESS_GENERATOR_PRESETS.has(draft.kind) ? (
         <div className="space-y-2">
@@ -3740,18 +3826,28 @@ function StructuredGeneratorSetup({
             }
           />
           {draft.sourceMode === "literal" ? (
-            <label className="block">
-              <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-                Source value
-              </span>
-              <input
+            draft.kind === "colorRamp" ? (
+              <GeneratorColorField
+                label="Source value"
                 value={draft.sourceValue}
-                onChange={(event) =>
-                  onChange({ sourceValue: event.target.value })
-                }
-                className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+                allTokensFlat={allTokensFlat}
+                onChange={(sourceValue) => onChange({ sourceValue })}
               />
-            </label>
+            ) : draft.kind === "formula" ? (
+              <GeneratorNumberField
+                label="Source value"
+                value={draft.sourceValue}
+                onChange={(sourceValue) => onChange({ sourceValue: String(sourceValue) })}
+              />
+            ) : (
+              <GeneratorDimensionField
+                label="Source value"
+                value={parseGeneratorDimensionInput(draft.sourceValue)}
+                allTokensFlat={allTokensFlat}
+                pathToCollectionId={pathToCollectionId}
+                onChange={(sourceValue) => onChange({ sourceValue: formatGeneratorDimensionInput(sourceValue) })}
+              />
+            )
           ) : (
             <div className="space-y-2">
               <TokenSourcePicker
@@ -3816,21 +3912,69 @@ function StructuredGeneratorSetup({
 
       {draft.kind === "colorRamp" ? (
         <>
-          <NumberStepList
+          <NumberStepTable
             label="Steps"
+            pathPrefix={draft.outputPrefix}
             values={asNumberArray(draft.config.steps)}
             onChange={(steps) => setConfig({ steps })}
           />
           <div className="grid grid-cols-2 gap-2">
-            <NumberField
-              label="Light end"
-              value={draft.config.lightEnd}
-              onChange={(value) => setConfig({ lightEnd: value })}
+            <ReferenceableField
+              fieldKey="lightEnd"
+              refs={configRefs}
+              collectionId={targetCollectionId}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              tokenTypes={["number", "dimension"]}
+              onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
+            >
+              <GeneratorNumberField
+                label="Light end"
+                value={draft.config.lightEnd}
+                onChange={(lightEnd) => setConfig({ lightEnd })}
+              />
+            </ReferenceableField>
+            <ReferenceableField
+              fieldKey="darkEnd"
+              refs={configRefs}
+              collectionId={targetCollectionId}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              tokenTypes={["number", "dimension"]}
+              onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
+            >
+              <GeneratorNumberField
+                label="Dark end"
+                value={draft.config.darkEnd}
+                onChange={(darkEnd) => setConfig({ darkEnd })}
+              />
+            </ReferenceableField>
+          </div>
+          <ReferenceableField
+            fieldKey="chromaBoost"
+            refs={configRefs}
+            collectionId={targetCollectionId}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            tokenTypes={["number", "dimension"]}
+            onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
+          >
+            <GeneratorNumberField
+              label="Chroma"
+              value={draft.config.chromaBoost}
+              onChange={(chromaBoost) => setConfig({ chromaBoost })}
             />
-            <NumberField
-              label="Dark end"
-              value={draft.config.darkEnd}
-              onChange={(value) => setConfig({ darkEnd: value })}
+          </ReferenceableField>
+          <div className="grid grid-cols-2 gap-2">
+            <GeneratorBooleanField
+              label="Include source"
+              value={draft.config.includeSource}
+              onChange={(includeSource) => setConfig({ includeSource })}
+            />
+            <GeneratorNumberField
+              label="Source step"
+              value={draft.config.sourceStep}
+              onChange={(sourceStep) => setConfig({ sourceStep })}
             />
           </div>
         </>
@@ -3838,13 +3982,14 @@ function StructuredGeneratorSetup({
 
       {draft.kind === "spacing" || draft.kind === "radius" ? (
         <>
-          <TextField
+          <GeneratorUnitField
             label="Unit"
             value={draft.config.unit}
-            onChange={(value) => setConfig({ unit: value })}
+            onChange={(unit) => setConfig({ unit })}
           />
-          <NamedNumberStepList
+          <NamedNumberStepTable
             label="Steps"
+            pathPrefix={draft.outputPrefix}
             values={asNamedNumberSteps(
               draft.config.steps,
               draft.kind === "radius" ? "multiplier" : "multiplier",
@@ -3857,20 +4002,40 @@ function StructuredGeneratorSetup({
       {draft.kind === "type" ? (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <NumberField
-              label="Ratio"
-              value={draft.config.ratio}
-              onChange={(value) => setConfig({ ratio: value })}
-              step="0.01"
-            />
-            <TextField
+            <ReferenceableField
+              fieldKey="ratio"
+              refs={configRefs}
+              collectionId={targetCollectionId}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              tokenTypes={["number", "dimension"]}
+              onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
+            >
+              <GeneratorNumberField
+                label="Ratio"
+                value={draft.config.ratio}
+                onChange={(ratio) => setConfig({ ratio })}
+              />
+            </ReferenceableField>
+            <GeneratorUnitField
               label="Unit"
               value={draft.config.unit}
-              onChange={(value) => setConfig({ unit: value })}
+              onChange={(unit) => setConfig({ unit })}
             />
           </div>
-          <NamedNumberStepList
+          <GeneratorTextField
+            label="Base step"
+            value={draft.config.baseStep}
+            onChange={(baseStep) => setConfig({ baseStep })}
+          />
+          <GeneratorNumberField
+            label="Round to"
+            value={draft.config.roundTo}
+            onChange={(roundTo) => setConfig({ roundTo })}
+          />
+          <NamedNumberStepTable
             label="Steps"
+            pathPrefix={draft.outputPrefix}
             values={asNamedNumberSteps(draft.config.steps, "exponent")}
             valueKey="exponent"
             onChange={(steps) => setConfig({ steps })}
@@ -3879,12 +4044,24 @@ function StructuredGeneratorSetup({
       ) : null}
       {draft.kind === "shadow" ? (
         <>
-          <TextField
-            label="Shadow color"
-            value={draft.config.color}
-            onChange={(value) => setConfig({ color: value })}
-          />
-          <ShadowStepList
+          <ReferenceableField
+            fieldKey="color"
+            refs={configRefs}
+            collectionId={targetCollectionId}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            tokenTypes={["color"]}
+            onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
+          >
+            <GeneratorColorField
+              label="Shadow color"
+              value={draft.config.color}
+              allTokensFlat={allTokensFlat}
+              onChange={(color) => setConfig({ color })}
+            />
+          </ReferenceableField>
+          <ShadowStepTable
+            pathPrefix={draft.outputPrefix}
             values={asRecordArray(draft.config.steps)}
             onChange={(steps) => setConfig({ steps })}
           />
@@ -3892,10 +4069,12 @@ function StructuredGeneratorSetup({
       ) : null}
       {draft.kind === "formula" ? (
         <>
-          <TextField
+          <GeneratorFormulaField
             label="Formula"
             value={draft.config.formula}
-            onChange={(value) => setConfig({ formula: value })}
+            allTokensFlat={allTokensFlat}
+            pathToCollectionId={pathToCollectionId}
+            onChange={(formula) => setConfig({ formula })}
           />
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
@@ -3913,14 +4092,15 @@ function StructuredGeneratorSetup({
                 <option value="dimension">Dimension</option>
               </select>
             </label>
-            <NumberField
+            <GeneratorNumberField
               label="Round to"
               value={draft.config.roundTo}
-              onChange={(value) => setConfig({ roundTo: value })}
+              onChange={(roundTo) => setConfig({ roundTo })}
             />
           </div>
-          <NamedNumberStepList
+          <NamedNumberStepTable
             label="Steps"
+            pathPrefix={draft.outputPrefix}
             values={asNamedNumberSteps(draft.config.steps, "index")}
             valueKey="index"
             optionalValueKey="multiplier"
@@ -3929,8 +4109,9 @@ function StructuredGeneratorSetup({
         </>
       ) : null}
       {draft.kind === "opacity" || draft.kind === "zIndex" ? (
-        <NamedNumberStepList
+        <NamedNumberStepTable
           label="Steps"
+          pathPrefix={draft.outputPrefix}
           values={asNamedNumberSteps(draft.config.steps, "value")}
           valueKey="value"
           onChange={(steps) => setConfig({ steps })}
@@ -4079,264 +4260,6 @@ function readTokenModeValues(
   ]);
 }
 
-function NumberStepList({
-  label,
-  values,
-  onChange,
-}: {
-  label: string;
-  values: number[];
-  onChange: (values: number[]) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <StepListHeader label={label} onAdd={() => onChange([...values, 0])} />
-      <div className="space-y-1">
-        {values.map((value, index) => (
-          <StepRow key={index}>
-            <input
-              type="number"
-              value={value}
-              onChange={(event) =>
-                onChange(
-                  values.map((item, itemIndex) =>
-                    itemIndex === index ? Number(event.target.value) : item,
-                  ),
-                )
-              }
-              className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
-            />
-            <RemoveStepButton
-              onClick={() =>
-                onChange(values.filter((_item, itemIndex) => itemIndex !== index))
-              }
-            />
-          </StepRow>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function NamedNumberStepList({
-  label,
-  values,
-  valueKey,
-  optionalValueKey,
-  onChange,
-}: {
-  label: string;
-  values: Record<string, unknown>[];
-  valueKey: string;
-  optionalValueKey?: string;
-  onChange: (values: Record<string, unknown>[]) => void;
-}) {
-  const addStep = () =>
-    onChange([
-      ...values,
-      { name: `step-${values.length + 1}`, [valueKey]: 0 },
-    ]);
-  return (
-    <div className="space-y-1.5">
-      <StepListHeader label={label} onAdd={addStep} />
-      <div className="space-y-1">
-        {values.map((step, index) => (
-          <StepRow key={index}>
-            <input
-              value={String(step.name ?? "")}
-              onChange={(event) =>
-                onChange(
-                  values.map((item, itemIndex) =>
-                    itemIndex === index
-                      ? { ...item, name: event.target.value }
-                      : item,
-                  ),
-                )
-              }
-              className="min-w-0 flex-[1.2] bg-transparent text-secondary outline-none"
-              placeholder="name"
-            />
-            <input
-              type="number"
-              value={Number(step[valueKey] ?? 0)}
-              onChange={(event) =>
-                onChange(
-                  values.map((item, itemIndex) =>
-                    itemIndex === index
-                      ? { ...item, [valueKey]: Number(event.target.value) }
-                      : item,
-                  ),
-                )
-              }
-              className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
-              title={valueKey}
-            />
-            {optionalValueKey ? (
-              <input
-                type="number"
-                value={
-                  step[optionalValueKey] == null
-                    ? ""
-                    : String(step[optionalValueKey])
-                }
-                onChange={(event) =>
-                  onChange(
-                    values.map((item, itemIndex) =>
-                      itemIndex === index
-                        ? applyOptionalNumberField(
-                            item,
-                            optionalValueKey,
-                            event.target.value,
-                          )
-                        : item,
-                    ),
-                  )
-                }
-                className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
-                title={optionalValueKey}
-              />
-            ) : null}
-            <RemoveStepButton
-              onClick={() =>
-                onChange(values.filter((_item, itemIndex) => itemIndex !== index))
-              }
-            />
-          </StepRow>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ShadowStepList({
-  values,
-  onChange,
-}: {
-  values: Record<string, unknown>[];
-  onChange: (values: Record<string, unknown>[]) => void;
-}) {
-  const fields = ["offsetX", "offsetY", "blur", "spread", "opacity"];
-  return (
-    <div className="space-y-1.5">
-      <StepListHeader
-        label="Steps"
-        onAdd={() =>
-          onChange([
-            ...values,
-            {
-              name: `step-${values.length + 1}`,
-              offsetX: 0,
-              offsetY: 2,
-              blur: 8,
-              spread: 0,
-              opacity: 0.2,
-            },
-          ])
-        }
-      />
-      <div className="space-y-1">
-        {values.map((step, index) => (
-          <div
-            key={index}
-            className="border-t border-[var(--color-figma-border)] px-0 py-2 first:border-t-0"
-          >
-            <div className="mb-1 flex items-center gap-2">
-              <input
-                value={String(step.name ?? "")}
-                onChange={(event) =>
-                  onChange(
-                    values.map((item, itemIndex) =>
-                      itemIndex === index
-                        ? { ...item, name: event.target.value }
-                        : item,
-                    ),
-                  )
-                }
-                className="min-w-0 flex-1 bg-transparent text-secondary font-medium outline-none"
-                placeholder="name"
-              />
-              <RemoveStepButton
-                onClick={() =>
-                  onChange(
-                    values.filter((_item, itemIndex) => itemIndex !== index),
-                  )
-                }
-              />
-            </div>
-            <div className="grid grid-cols-5 gap-1">
-              {fields.map((fieldName) => (
-                <input
-                  key={fieldName}
-                  type="number"
-                  value={Number(step[fieldName] ?? 0)}
-                  onChange={(event) =>
-                    onChange(
-                      values.map((item, itemIndex) =>
-                        itemIndex === index
-                          ? { ...item, [fieldName]: Number(event.target.value) }
-                          : item,
-                      ),
-                    )
-                  }
-                  className="min-w-0 rounded bg-[var(--color-figma-bg)] px-1 py-1 text-tertiary outline-none"
-                  title={fieldName}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StepListHeader({
-  label,
-  onAdd,
-}: {
-  label: string;
-  onAdd: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-        {label}
-      </span>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-        title={`Add ${label.toLowerCase()}`}
-        aria-label={`Add ${label.toLowerCase()}`}
-      >
-        <Plus size={13} />
-      </button>
-    </div>
-  );
-}
-
-function StepRow({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex min-h-8 items-center gap-2 py-1">
-      {children}
-    </div>
-  );
-}
-
-function RemoveStepButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-      title="Remove step"
-      aria-label="Remove step"
-    >
-      <Trash2 size={12} />
-    </button>
-  );
-}
-
 function generatorAcceptsTokenType(
   kind: GeneratorPresetKind,
   tokenType?: string,
@@ -4345,19 +4268,6 @@ function generatorAcceptsTokenType(
   if (kind === "formula")
     return tokenType === "number" || tokenType === "dimension";
   return tokenType === "dimension" || tokenType === "number";
-}
-
-function applyOptionalNumberField(
-  item: Record<string, unknown>,
-  key: string,
-  rawValue: string,
-): Record<string, unknown> {
-  if (rawValue.trim() === "") {
-    const next = { ...item };
-    delete next[key];
-    return next;
-  }
-  return { ...item, [key]: Number(rawValue) };
 }
 
 function asNumberArray(value: unknown): number[] {
@@ -4383,54 +4293,33 @@ function asNamedNumberSteps(
   }));
 }
 
-function TextField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: unknown;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-        {label}
-      </span>
-      <input
-        value={String(value ?? "")}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
-      />
-    </label>
-  );
+function readGeneratorTokenRefs(value: unknown): GeneratorTokenRefs {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).filter(
+          (entry): entry is [string, string] => typeof entry[1] === "string",
+        ),
+      )
+    : {};
 }
 
-function NumberField({
-  label,
-  value,
-  onChange,
-  step,
-}: {
-  label: string;
-  value: unknown;
-  onChange: (value: number) => void;
-  step?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-        {label}
-      </span>
-      <input
-        type="number"
-        step={step}
-        value={Number(value ?? 0)}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
-      />
-    </label>
-  );
+function allTokensForCollection(
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
+  collectionId: string,
+): Record<string, TokenMapEntry> {
+  return perCollectionFlat[collectionId] ?? {};
+}
+
+function pathToCollectionIdMap(
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [collectionId, tokens] of Object.entries(perCollectionFlat)) {
+    for (const path of Object.keys(tokens)) {
+      result[path] = collectionId;
+    }
+  }
+  return result;
 }
 
 function SummaryMetric({ label, value }: { label: string; value: string }) {
@@ -4454,10 +4343,14 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
   const relatedOutputs =
     data.preview?.outputs.filter((output) => output.nodeId === graphNode.id) ??
     [];
+  const nodePreview = data.preview?.nodePreviews[graphNode.id];
   const diagnostics =
-    data.preview?.diagnostics.filter(
+    [
+      ...(data.preview?.diagnostics ?? []),
+      ...(data.preview?.nodePreviewDiagnostics ?? []),
+    ].filter(
       (diagnostic) => diagnostic.nodeId === graphNode.id,
-    ) ?? [];
+    );
   const issues = data.issues ?? [];
   const inputPorts = getNodeInputPorts(graphNode);
   const outputPorts = getNodeOutputPorts(graphNode);
@@ -4478,6 +4371,9 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
     minBlockSize: graphNodeMinBlockSize(inputPorts.length, outputPorts.length),
     "--tm-graph-node-accent": graphNodeAccent(graphNode),
   };
+  const isOutputNode =
+    graphNode.kind === "output" || graphNode.kind === "groupOutput";
+  const showIntermediatePreview = selected && !isOutputNode && nodePreview;
 
   return (
     <div
@@ -4538,27 +4434,293 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
             {statusMessage}
           </div>
         ) : null}
-        {relatedOutputs.length > 0 && (
-          <div className="tm-graph-node__outputs">
-            {relatedOutputs.slice(0, 3).map((output) => (
-              <div
-                key={output.path}
-                className="tm-graph-node__output-path"
-                title={output.path}
-              >
-                {output.path}
-              </div>
-            ))}
-            {relatedOutputs.length > 3 && (
-              <div className="tm-graph-node__output-more">
-                +{relatedOutputs.length - 3} more
-              </div>
-            )}
-          </div>
-        )}
+        {isOutputNode ? (
+          <OutputNodeResults
+            outputs={relatedOutputs}
+            diagnostics={diagnostics}
+            issues={issues}
+            previewReady={Boolean(data.preview)}
+            modeNames={data.preview?.targetModes ?? []}
+            expanded={Boolean(data.outputExpanded)}
+            onToggle={() => data.onToggleOutputExpanded?.(graphNode.id)}
+          />
+        ) : null}
+        {showIntermediatePreview ? (
+          <NodeRuntimePreview
+            preview={nodePreview}
+            modeNames={data.preview?.targetModes ?? []}
+          />
+        ) : null}
       </div>
     </div>
   );
+}
+
+function OutputNodeResults({
+  outputs,
+  diagnostics,
+  issues,
+  previewReady,
+  modeNames,
+  expanded,
+  onToggle,
+}: {
+  outputs: TokenGeneratorPreviewOutput[];
+  diagnostics: TokenGeneratorPreviewResult["diagnostics"];
+  issues: GraphIssue[];
+  previewReady: boolean;
+  modeNames: string[];
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const sortedOutputs = sortPreviewOutputs(outputs);
+  const visibleOutputs = expanded ? sortedOutputs : sortedOutputs.slice(0, 3);
+  const issueIds = new Set(
+    [
+      ...issues
+        .filter((issue) => issue.severity === "error")
+        .map((issue) => issue.id),
+      ...diagnostics
+        .filter((diagnostic) => diagnostic.severity === "error")
+        .map((diagnostic) => diagnostic.id),
+    ],
+  );
+  const issueCount =
+    issueIds.size + outputs.filter((output) => output.collision).length;
+  const issueMessages = uniqueStrings([
+    ...issues
+      .filter((issue) => issue.severity === "error")
+      .map((issue) => issue.message),
+    ...diagnostics
+      .filter((diagnostic) => diagnostic.severity === "error")
+      .map((diagnostic) => diagnostic.message),
+  ]);
+  const hasMore = sortedOutputs.length > visibleOutputs.length;
+
+  return (
+    <div className="tm-graph-node__result nowheel nodrag nopan">
+      <div className="tm-graph-node__result-header">
+        <span className="tm-graph-node__result-summary">
+          {!previewReady
+            ? "Output preview"
+            : outputs.length === 0
+            ? "No generated tokens"
+            : `${outputs.length} generated ${outputs.length === 1 ? "token" : "tokens"}`}
+        </span>
+        <span className="tm-graph-node__result-actions">
+          {issueCount > 0 ? (
+            <span className="tm-graph-node__result-warning">
+              {issueCount} need{issueCount === 1 ? "s" : ""} attention
+            </span>
+          ) : null}
+          {sortedOutputs.length > 3 ? (
+            <button
+              type="button"
+              className="tm-graph-node__result-toggle nodrag nopan"
+              aria-expanded={expanded}
+              aria-label={expanded ? "Collapse generated results" : "Expand generated results"}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggle();
+              }}
+            >
+              {expanded
+                ? "Show less"
+                : hasMore
+                  ? `Show ${sortedOutputs.length - visibleOutputs.length} more`
+                  : "Show less"}
+            </button>
+          ) : null}
+        </span>
+      </div>
+      {!previewReady ? (
+        <div className="tm-graph-node__result-empty">
+          Preparing preview.
+        </div>
+      ) : outputs.length === 0 && issueMessages.length === 0 ? (
+        <div className="tm-graph-node__result-empty">
+          Connect a value and wait for preview.
+        </div>
+      ) : (
+        <div className="tm-graph-node__result-list">
+          {issueMessages.map((message) => (
+            <div
+              key={message}
+              className="tm-graph-node__result-issue"
+              title={message}
+            >
+              {message}
+            </div>
+          ))}
+          {visibleOutputs.map((output) => (
+            <OutputPreviewRow
+              key={output.path}
+              output={output}
+              modeNames={modeNames}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OutputPreviewRow({
+  output,
+  modeNames,
+}: {
+  output: TokenGeneratorPreviewOutput;
+  modeNames: string[];
+}) {
+  const modes = modeNames.length > 0 ? modeNames : Object.keys(output.modeValues);
+  return (
+    <div
+      className={`tm-graph-node__result-row ${
+        output.collision ? "tm-graph-node__result-row--warning" : ""
+      }`}
+    >
+      <div className="tm-graph-node__result-path" title={output.path}>
+        {output.path}
+      </div>
+      <div
+        className={`tm-graph-node__result-change ${
+          output.collision ? "tm-graph-node__result-change--warning" : ""
+        }`}
+      >
+        {output.collision ? "manual token" : output.change}
+      </div>
+      <ModeValueStack
+        modeNames={modes}
+        values={output.modeValues}
+        type={output.type}
+      />
+    </div>
+  );
+}
+
+function NodeRuntimePreview({
+  preview,
+  modeNames,
+}: {
+  preview: { modeValues: Record<string, TokenGeneratorNodePreviewValue> };
+  modeNames: string[];
+}) {
+  const modes = modeNames.length > 0 ? modeNames : Object.keys(preview.modeValues);
+  return (
+    <div className="tm-graph-node__result tm-graph-node__result--intermediate nowheel nodrag nopan">
+      <div className="tm-graph-node__result-header">
+        <span className="tm-graph-node__result-summary">Preview</span>
+      </div>
+      <div className="tm-graph-node__result-list">
+        {modes.map((modeName) => {
+          const value = preview.modeValues[modeName];
+          return (
+            <div key={modeName} className="tm-graph-node__runtime-mode">
+              <div className="tm-graph-node__runtime-mode-name">
+                {modeName}
+              </div>
+              {!value ? (
+                <ModeValueLine value={undefined} />
+              ) : value.kind === "scalar" ? (
+                <ModeValueLine
+                  type={value.type}
+                  value={value.value}
+                />
+              ) : (
+                <div className="tm-graph-node__runtime-list">
+                  {value.values.slice(0, 3).map((item) => (
+                    <div key={item.key} className="tm-graph-node__runtime-item">
+                      <span
+                        className="tm-graph-node__runtime-item-label"
+                        title={item.label}
+                      >
+                        {item.label}
+                      </span>
+                      <ModeValueLine
+                        type={item.type ?? value.type}
+                        value={item.value}
+                      />
+                    </div>
+                  ))}
+                  {value.values.length > 3 ? (
+                    <div className="tm-graph-node__output-more">
+                      +{value.values.length - 3} more
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ModeValueStack({
+  modeNames,
+  values,
+  type,
+}: {
+  modeNames: string[];
+  values: Record<string, unknown>;
+  type?: string;
+}) {
+  return (
+    <div className="tm-graph-node__mode-stack">
+      {modeNames.map((modeName) => (
+        <div key={modeName} className="tm-graph-node__mode-line">
+          <span className="tm-graph-node__mode-name">{modeName}</span>
+          <ModeValueLine type={type} value={values[modeName]} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ModeValueLine({
+  type,
+  value,
+}: {
+  type?: string;
+  value: unknown;
+}) {
+  return (
+    <span className="tm-graph-node__mode-value">
+      {previewIsValueBearing(type) ? (
+        <ValuePreview type={type} value={value} size={12} />
+      ) : null}
+      <span className="tm-graph-node__mode-value-text" title={formatValue(value)}>
+        {formatValue(value) || "No value"}
+      </span>
+    </span>
+  );
+}
+
+function sortPreviewOutputs(
+  outputs: TokenGeneratorPreviewOutput[],
+): TokenGeneratorPreviewOutput[] {
+  const changeRank: Record<TokenGeneratorPreviewOutput["change"], number> = {
+    updated: 0,
+    created: 1,
+    unchanged: 2,
+  };
+  return outputs
+    .map((output, index) => ({ output, index }))
+    .sort((a, b) => {
+      if (a.output.collision !== b.output.collision) {
+        return a.output.collision ? -1 : 1;
+      }
+      const changeDelta =
+        changeRank[a.output.change] - changeRank[b.output.change];
+      if (changeDelta !== 0) return changeDelta;
+      return a.index - b.index;
+    })
+    .map(({ output }) => output);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
 }
 
 function PortLabelColumn({
@@ -4664,28 +4826,23 @@ function NodeInspector({
     node.kind === "alias"
       ? defaultCollectionId
       : String(node.data.collectionId ?? defaultCollectionId);
-  const tokenOptions = Object.keys(
-    perCollectionFlat[selectedCollectionId] ?? {},
-  ).sort();
+  const nodeRefs = readGeneratorTokenRefs(node.data.$tokenRefs);
+  const allTokensFlat = allTokensForCollection(perCollectionFlat, defaultCollectionId);
+  const pathToCollectionId = pathToCollectionIdMap(perCollectionFlat);
   const field = (key: string, label: string, type = "text") => (
-    <label className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-        {label}
-      </span>
-      <input
-        type={type}
-        value={String(node.data[key] ?? "")}
-        onChange={(event) =>
-          onChange({
-            [key]:
-              type === "number"
-                ? Number(event.target.value)
-                : event.target.value,
-          })
-        }
-        className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+    type === "number" ? (
+      <GeneratorNumberField
+        label={label}
+        value={node.data[key]}
+        onChange={(value) => onChange({ [key]: value })}
       />
-    </label>
+    ) : (
+      <GeneratorTextField
+        label={label}
+        value={node.data[key]}
+        onChange={(value) => onChange({ [key]: value })}
+      />
+    )
   );
 
   return (
@@ -4724,41 +4881,27 @@ function NodeInspector({
               ))}
             </select>
           </label>
-          <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-              Token
-            </span>
-            <input
-              list={`graph-token-options-${node.id}`}
+          <FieldBlock label="Token">
+            <GeneratorTokenPicker
               value={String(node.data.path ?? "")}
-              onChange={(event) => onChange({ path: event.target.value })}
-              className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+              collectionId={selectedCollectionId}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              onChange={(path) => onChange({ path })}
             />
-            <datalist id={`graph-token-options-${node.id}`}>
-              {tokenOptions.map((path) => (
-                <option key={path} value={path} />
-              ))}
-            </datalist>
-          </label>
+          </FieldBlock>
         </>
       )}
       {node.kind === "alias" && (
-        <label className="block">
-          <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-            Token
-          </span>
-          <input
-            list={`graph-token-options-${node.id}`}
+        <FieldBlock label="Token">
+          <GeneratorTokenPicker
             value={String(node.data.path ?? "")}
-            onChange={(event) => onChange({ path: event.target.value })}
-            className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+            collectionId={selectedCollectionId}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            onChange={(path) => onChange({ path })}
           />
-          <datalist id={`graph-token-options-${node.id}`}>
-            {tokenOptions.map((path) => (
-              <option key={path} value={path} />
-            ))}
-          </datalist>
-        </label>
+        </FieldBlock>
       )}
       {node.kind === "literal" && (
         <>
@@ -4778,14 +4921,59 @@ function NodeInspector({
               <option value="boolean">Boolean</option>
             </select>
           </label>
-          {field(
-            "value",
-            "Value",
-            node.data.type === "number" || node.data.type === "dimension"
-              ? "number"
-              : "text",
-          )}
-          {node.data.type === "dimension" && field("unit", "Unit")}
+          <ReferenceableField
+            fieldKey="value"
+            refs={nodeRefs}
+            collectionId={defaultCollectionId}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            tokenTypes={
+              node.data.type === "dimension"
+                ? ["dimension", "number"]
+                : node.data.type === "number"
+                  ? ["number", "dimension"]
+                  : typeof node.data.type === "string"
+                    ? [node.data.type]
+                    : undefined
+            }
+            onRefsChange={($tokenRefs) => onChange({ $tokenRefs })}
+          >
+            {node.data.type === "color" ? (
+              <GeneratorColorField
+                label="Value"
+                value={node.data.value}
+                allTokensFlat={allTokensFlat}
+                onChange={(value) => onChange({ value })}
+              />
+            ) : node.data.type === "dimension" ? (
+              <GeneratorDimensionField
+                label="Value"
+                value={node.data.value}
+                unit={node.data.unit}
+                allTokensFlat={allTokensFlat}
+                pathToCollectionId={pathToCollectionId}
+                onChange={(dimension) => onChange({ value: dimension.value, unit: dimension.unit })}
+              />
+            ) : node.data.type === "number" ? (
+              <GeneratorNumberField
+                label="Value"
+                value={node.data.value}
+                onChange={(value) => onChange({ value })}
+              />
+            ) : node.data.type === "boolean" ? (
+              <GeneratorBooleanField
+                label="Value"
+                value={node.data.value}
+                onChange={(value) => onChange({ value })}
+              />
+            ) : (
+              <GeneratorTextField
+                label="Value"
+                value={node.data.value}
+                onChange={(value) => onChange({ value })}
+              />
+            )}
+          </ReferenceableField>
         </>
       )}
       {node.kind === "math" && (
@@ -4838,43 +5026,78 @@ function NodeInspector({
           {field("amount", "Amount", "number")}
           {node.data.operation === "mix" && (
             <>
-              {field("mixWith", "Mix with")}
+              <GeneratorColorField
+                label="Mix with"
+                value={node.data.mixWith}
+                allTokensFlat={allTokensFlat}
+                onChange={(mixWith) => onChange({ mixWith })}
+              />
               {field("ratio", "Ratio", "number")}
             </>
           )}
         </>
       )}
-      {node.kind === "formula" && field("expression", "Formula")}
+      {node.kind === "formula" && (
+        <GeneratorFormulaField
+          label="Formula"
+          value={node.data.expression}
+          allTokensFlat={allTokensFlat}
+          pathToCollectionId={pathToCollectionId}
+          onChange={(expression) => onChange({ expression })}
+        />
+      )}
       {node.kind === "colorRamp" && (
         <>
-          {field("lightEnd", "Light end", "number")}
-          {field("darkEnd", "Dark end", "number")}
-          {field("chromaBoost", "Chroma", "number")}
-          <label className="block">
-            <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-              Steps
-            </span>
-            <input
-              value={
-                Array.isArray(node.data.steps) ? node.data.steps.join(", ") : ""
-              }
-              onChange={(event) =>
-                onChange({
-                  steps: event.target.value
-                    .split(",")
-                    .map((item) => Number(item.trim()))
-                    .filter(Number.isFinite),
-                })
-              }
-              className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <ReferenceableField
+              fieldKey="lightEnd"
+              refs={nodeRefs}
+              collectionId={defaultCollectionId}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              tokenTypes={["number", "dimension"]}
+              onRefsChange={($tokenRefs) => onChange({ $tokenRefs })}
+            >
+              {field("lightEnd", "Light end", "number")}
+            </ReferenceableField>
+            <ReferenceableField
+              fieldKey="darkEnd"
+              refs={nodeRefs}
+              collectionId={defaultCollectionId}
+              collections={collections}
+              perCollectionFlat={perCollectionFlat}
+              tokenTypes={["number", "dimension"]}
+              onRefsChange={($tokenRefs) => onChange({ $tokenRefs })}
+            >
+              {field("darkEnd", "Dark end", "number")}
+            </ReferenceableField>
+          </div>
+          <ReferenceableField
+            fieldKey="chromaBoost"
+            refs={nodeRefs}
+            collectionId={defaultCollectionId}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            tokenTypes={["number", "dimension"]}
+            onRefsChange={($tokenRefs) => onChange({ $tokenRefs })}
+          >
+            {field("chromaBoost", "Chroma", "number")}
+          </ReferenceableField>
+          <NumberStepTable
+            label="Steps"
+            values={asNumberArray(node.data.steps)}
+            onChange={(steps) => onChange({ steps })}
+          />
         </>
       )}
       {node.kind === "spacingScale" && (
         <>
-          {field("unit", "Unit")}
-          <NamedNumberStepList
+          <GeneratorUnitField
+            label="Unit"
+            value={node.data.unit}
+            onChange={(unit) => onChange({ unit })}
+          />
+          <NamedNumberStepTable
             label="Steps"
             values={asNamedNumberSteps(node.data.steps, "multiplier")}
             valueKey="multiplier"
@@ -4884,11 +5107,25 @@ function NodeInspector({
       )}
       {node.kind === "typeScale" && (
         <>
-          {field("ratio", "Ratio", "number")}
-          {field("unit", "Unit")}
+          <ReferenceableField
+            fieldKey="ratio"
+            refs={nodeRefs}
+            collectionId={defaultCollectionId}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            tokenTypes={["number", "dimension"]}
+            onRefsChange={($tokenRefs) => onChange({ $tokenRefs })}
+          >
+            {field("ratio", "Ratio", "number")}
+          </ReferenceableField>
+          <GeneratorUnitField
+            label="Unit"
+            value={node.data.unit}
+            onChange={(unit) => onChange({ unit })}
+          />
           {field("baseStep", "Base step")}
           {field("roundTo", "Round to", "number")}
-          <NamedNumberStepList
+          <NamedNumberStepTable
             label="Steps"
             values={asNamedNumberSteps(node.data.steps, "exponent")}
             valueKey="exponent"
@@ -4898,8 +5135,12 @@ function NodeInspector({
       )}
       {node.kind === "borderRadiusScale" && (
         <>
-          {field("unit", "Unit")}
-          <NamedNumberStepList
+          <GeneratorUnitField
+            label="Unit"
+            value={node.data.unit}
+            onChange={(unit) => onChange({ unit })}
+          />
+          <NamedNumberStepTable
             label="Steps"
             values={asNamedNumberSteps(node.data.steps, "multiplier")}
             valueKey="multiplier"
@@ -4909,7 +5150,7 @@ function NodeInspector({
         </>
       )}
       {node.kind === "opacityScale" && (
-        <NamedNumberStepList
+        <NamedNumberStepTable
           label="Steps"
           values={asNamedNumberSteps(node.data.steps, "value")}
           valueKey="value"
@@ -4918,15 +5159,30 @@ function NodeInspector({
       )}
       {node.kind === "shadowScale" && (
         <>
-          {field("color", "Color")}
-          <ShadowStepList
+          <ReferenceableField
+            fieldKey="color"
+            refs={nodeRefs}
+            collectionId={defaultCollectionId}
+            collections={collections}
+            perCollectionFlat={perCollectionFlat}
+            tokenTypes={["color"]}
+            onRefsChange={($tokenRefs) => onChange({ $tokenRefs })}
+          >
+            <GeneratorColorField
+              label="Color"
+              value={node.data.color}
+              allTokensFlat={allTokensFlat}
+              onChange={(color) => onChange({ color })}
+            />
+          </ReferenceableField>
+          <ShadowStepTable
             values={asRecordArray(node.data.steps)}
             onChange={(steps) => onChange({ steps })}
           />
         </>
       )}
       {node.kind === "zIndexScale" && (
-        <NamedNumberStepList
+        <NamedNumberStepTable
           label="Steps"
           values={asNamedNumberSteps(node.data.steps, "value")}
           valueKey="value"
@@ -4948,10 +5204,20 @@ function NodeInspector({
               <option value="dimension">Dimension</option>
             </select>
           </label>
-          {field("unit", "Unit")}
-          {field("formula", "Formula")}
+          <GeneratorUnitField
+            label="Unit"
+            value={node.data.unit}
+            onChange={(unit) => onChange({ unit })}
+          />
+          <GeneratorFormulaField
+            label="Formula"
+            value={node.data.formula}
+            allTokensFlat={allTokensFlat}
+            pathToCollectionId={pathToCollectionId}
+            onChange={(formula) => onChange({ formula })}
+          />
           {field("roundTo", "Round to", "number")}
-          <NamedNumberStepList
+          <NamedNumberStepTable
             label="Steps"
             values={asNamedNumberSteps(node.data.steps, "index")}
             valueKey="index"
@@ -4960,11 +5226,26 @@ function NodeInspector({
           />
         </>
       )}
+      {node.kind === "list" && (
+        <GeneratorListValueEditor
+          type={String(node.data.type ?? "number")}
+          items={Array.isArray(node.data.items) ? node.data.items : []}
+          collectionId={defaultCollectionId}
+          collections={collections}
+          perCollectionFlat={perCollectionFlat}
+          onTypeChange={(type, items) => onChange({ type, items })}
+          onChange={(items) => onChange({ items })}
+        />
+      )}
       {(node.kind === "output" || node.kind === "groupOutput") &&
-        field(
-          node.kind === "output" ? "path" : "pathPrefix",
-          node.kind === "output" ? "Token path" : "Series path",
-        )}
+        <GeneratorPathField
+          label={node.kind === "output" ? "Token path" : "Series path"}
+          value={node.kind === "output" ? node.data.path : node.data.pathPrefix}
+          series={node.kind === "groupOutput"}
+          onChange={(value) =>
+            onChange({ [node.kind === "output" ? "path" : "pathPrefix"]: value })
+          }
+        />}
       <button
         type="button"
         onClick={onDelete}
@@ -5491,10 +5772,12 @@ function contextualPaletteItems(
 function collectGraphIssues(
   generator: TokenGeneratorDocument,
   preview: TokenGeneratorPreviewResult | null,
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
 ): GraphIssue[] {
   const issues: GraphIssue[] = [];
   const nodeById = new Map(generator.nodes.map((node) => [node.id, node]));
   const incomingEdgesByPort = new Map<string, TokenGeneratorEdge[]>();
+  const targetTokens = perCollectionFlat[generator.targetCollectionId] ?? {};
   for (const node of generator.nodes) {
     if (node.kind === "tokenInput" && !String(node.data.path ?? "").trim()) {
       issues.push({
@@ -5506,6 +5789,7 @@ function collectGraphIssues(
     }
     if (
       node.kind === "literal" &&
+      !Object.prototype.hasOwnProperty.call(readNodeTokenRefs(node), "value") &&
       String(node.data.value ?? "").trim() === ""
     ) {
       issues.push({
@@ -5515,25 +5799,32 @@ function collectGraphIssues(
         message: "Add a source value",
       });
     }
-    if (
-      node.kind === "groupOutput" &&
-      !String(node.data.pathPrefix ?? "").trim()
-    ) {
-      issues.push({
-        id: `${node.id}-output`,
-        nodeId: node.id,
-        severity: "error",
-        message: "Add an output group",
-      });
+    if (node.kind === "groupOutput") {
+      const pathError = validateGeneratorTokenPath(String(node.data.pathPrefix ?? ""));
+      if (pathError) {
+        issues.push({
+          id: `${node.id}-output`,
+          nodeId: node.id,
+          severity: "error",
+          message: pathError,
+        });
+      }
     }
-    if (node.kind === "output" && !String(node.data.path ?? "").trim()) {
-      issues.push({
-        id: `${node.id}-path`,
-        nodeId: node.id,
-        severity: "error",
-        message: "Add an output path",
-      });
+    if (node.kind === "output") {
+      const pathError = validateGeneratorTokenPath(String(node.data.path ?? ""));
+      if (pathError) {
+        issues.push({
+          id: `${node.id}-path`,
+          nodeId: node.id,
+          severity: "error",
+          message: pathError,
+        });
+      }
     }
+    collectTokenRefIssues(node, issues, targetTokens);
+    collectFormulaIssues(node, issues, targetTokens);
+    collectStepIssues(node, issues);
+    collectListIssues(node, issues, targetTokens);
     if (
       (node.kind === "output" || node.kind === "groupOutput") &&
       !generator.edges.some((edge) => edge.to.nodeId === node.id)
@@ -5657,6 +5948,363 @@ function collectGraphIssues(
     });
   }
   return issues;
+}
+
+function collectTokenRefIssues(
+  node: TokenGeneratorDocumentNode,
+  issues: GraphIssue[],
+  targetTokens: Record<string, TokenMapEntry>,
+): void {
+  const supportedFields = supportedTokenRefTypes(node);
+  for (const [field, path] of Object.entries(readNodeTokenRefs(node))) {
+    const supportedTypes = supportedFields[field];
+    if (!supportedTypes) {
+      issues.push({
+        id: `${node.id}-token-ref-${field}-unsupported`,
+        nodeId: node.id,
+        severity: "error",
+        message: `${field} cannot use a token reference`,
+      });
+      continue;
+    }
+    const cleanPath = cleanTokenRefPath(path);
+    if (!cleanPath) {
+      issues.push({
+        id: `${node.id}-token-ref-${field}`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Choose a token for ${field}`,
+      });
+      continue;
+    }
+    const token = targetTokens[cleanPath];
+    if (!token) {
+      issues.push({
+        id: `${node.id}-token-ref-${field}-missing`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Token "${cleanPath}" was not found`,
+      });
+      continue;
+    }
+    if (!supportedTypes.includes(token.$type)) {
+      issues.push({
+        id: `${node.id}-token-ref-${field}-type`,
+        nodeId: node.id,
+        severity: "error",
+        message: `${field} needs ${supportedTypes.join(" or ")}, not ${token.$type}`,
+      });
+    }
+  }
+}
+
+function supportedTokenRefTypes(node: TokenGeneratorDocumentNode): Record<string, string[]> {
+  if (node.kind === "literal") {
+    const type = String(node.data.type ?? "string");
+    if (type === "number") return { value: ["number", "dimension"] };
+    if (type === "dimension") return { value: ["dimension", "number"] };
+    return { value: [type] };
+  }
+  if (node.kind === "colorRamp") {
+    return {
+      lightEnd: ["number", "dimension"],
+      darkEnd: ["number", "dimension"],
+      chromaBoost: ["number", "dimension"],
+    };
+  }
+  if (node.kind === "typeScale") return { ratio: ["number", "dimension"] };
+  if (node.kind === "shadowScale") return { color: ["color"] };
+  return {};
+}
+
+function collectFormulaIssues(
+  node: TokenGeneratorDocumentNode,
+  issues: GraphIssue[],
+  targetTokens: Record<string, TokenMapEntry>,
+): void {
+  const formula =
+    node.kind === "formula"
+      ? String(node.data.expression ?? "")
+      : node.kind === "customScale"
+        ? String(node.data.formula ?? "")
+        : "";
+  if (!formula) return;
+  const openCount = (formula.match(/\{/g) ?? []).length;
+  const closeCount = (formula.match(/\}/g) ?? []).length;
+  if (openCount !== closeCount) {
+    issues.push({
+      id: `${node.id}-formula-braces`,
+      nodeId: node.id,
+      severity: "error",
+      message: "Formula has an unclosed token reference",
+    });
+    return;
+  }
+  for (const path of formula.matchAll(/\{([^}]+)\}/g)) {
+    const cleanPath = cleanTokenRefPath(path[1] ?? "");
+    const token = targetTokens[cleanPath];
+    if (!token) {
+      issues.push({
+        id: `${node.id}-formula-${cleanPath || "empty"}-missing`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Formula token "${cleanPath || "empty"}" was not found`,
+      });
+      continue;
+    }
+    if (token.$type !== "number" && token.$type !== "dimension") {
+      issues.push({
+        id: `${node.id}-formula-${cleanPath}-type`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Formula token "${cleanPath}" needs number or dimension, not ${token.$type}`,
+      });
+    }
+  }
+}
+
+function collectStepIssues(
+  node: TokenGeneratorDocumentNode,
+  issues: GraphIssue[],
+): void {
+  if (node.kind === "colorRamp") {
+    validateNumberStepRows(node, issues, node.data.steps);
+    return;
+  }
+  if (node.kind === "spacingScale") {
+    validateNamedStepRows(node, issues, node.data.steps, ["multiplier"]);
+    return;
+  }
+  if (node.kind === "typeScale") {
+    validateNamedStepRows(node, issues, node.data.steps, ["exponent"]);
+    return;
+  }
+  if (node.kind === "borderRadiusScale") {
+    validateNamedStepRows(
+      node,
+      issues,
+      node.data.steps,
+      ["multiplier"],
+      ["exactValue"],
+    );
+    return;
+  }
+  if (node.kind === "opacityScale" || node.kind === "zIndexScale") {
+    validateNamedStepRows(node, issues, node.data.steps, ["value"]);
+    return;
+  }
+  if (node.kind === "shadowScale") {
+    validateNamedStepRows(
+      node,
+      issues,
+      node.data.steps,
+      ["offsetX", "offsetY", "blur", "spread", "opacity"],
+    );
+    return;
+  }
+  if (node.kind === "customScale") {
+    validateNamedStepRows(node, issues, node.data.steps, ["index"], ["multiplier"]);
+  }
+}
+
+function collectListIssues(
+  node: TokenGeneratorDocumentNode,
+  issues: GraphIssue[],
+  targetTokens: Record<string, TokenMapEntry>,
+): void {
+  if (node.kind !== "list") return;
+  const items = Array.isArray(node.data.items) ? node.data.items : [];
+  const keys = items.map((item, index) => listItemKey(item, index));
+  const duplicates = duplicateStrings(keys);
+  const type = String(node.data.type ?? "number");
+  items.forEach((item, index) => {
+    const key = keys[index];
+    const pathIssue = validatePathSegment(key, duplicates);
+    if (pathIssue) {
+      issues.push({
+        id: `${node.id}-list-${index}-key`,
+        nodeId: node.id,
+        severity: "error",
+        message: `List item ${index + 1}: ${pathIssue}`,
+      });
+    }
+    const value = listItemValue(item);
+    const valueIssue = validateListValue(type, value, item, targetTokens);
+    if (valueIssue) {
+      issues.push({
+        id: `${node.id}-list-${index}-value`,
+        nodeId: node.id,
+        severity: "error",
+        message: `List item ${index + 1}: ${valueIssue}`,
+      });
+    }
+  });
+}
+
+function readNodeTokenRefs(node: TokenGeneratorDocumentNode): Record<string, string> {
+  const dataRefs = readGeneratorTokenRefs(node.data.$tokenRefs);
+  const config =
+    node.data.config &&
+    typeof node.data.config === "object" &&
+    !Array.isArray(node.data.config)
+      ? node.data.config as Record<string, unknown>
+      : {};
+  return { ...readGeneratorTokenRefs(config.$tokenRefs), ...dataRefs };
+}
+
+function validateNumberStepRows(
+  node: TokenGeneratorDocumentNode,
+  issues: GraphIssue[],
+  value: unknown,
+): void {
+  const steps = Array.isArray(value) ? value : [];
+  const names = steps.map((step) => String(step ?? ""));
+  const duplicates = duplicateStrings(names);
+  steps.forEach((step, index) => {
+    if (!isFiniteNumberLike(step)) {
+      issues.push({
+        id: `${node.id}-step-${index}-value`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Step ${index + 1}: value must be a finite number`,
+      });
+      return;
+    }
+    const pathIssue = validatePathSegment(String(step), duplicates);
+    if (pathIssue) {
+      issues.push({
+        id: `${node.id}-step-${index}-path`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Step ${index + 1}: ${pathIssue}`,
+      });
+    }
+  });
+}
+
+function validateNamedStepRows(
+  node: TokenGeneratorDocumentNode,
+  issues: GraphIssue[],
+  value: unknown,
+  numberKeys: string[],
+  optionalNumberKeys: string[] = [],
+): void {
+  const steps = asRecordArray(value);
+  const names = steps.map((step) => String(step.name ?? ""));
+  const duplicates = duplicateStrings(names);
+  steps.forEach((step, index) => {
+    const name = names[index];
+    const pathIssue = validatePathSegment(name, duplicates);
+    if (pathIssue) {
+      issues.push({
+        id: `${node.id}-step-${index}-name`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Step "${name || index + 1}": ${pathIssue}`,
+      });
+    }
+    for (const key of numberKeys) {
+      if (isFiniteNumberLike(step[key])) continue;
+      issues.push({
+        id: `${node.id}-step-${index}-${key}`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Step "${name || index + 1}": ${key} must be a finite number`,
+      });
+    }
+    for (const key of optionalNumberKeys) {
+      if (step[key] == null || step[key] === "" || isFiniteNumberLike(step[key])) continue;
+      issues.push({
+        id: `${node.id}-step-${index}-${key}`,
+        nodeId: node.id,
+        severity: "error",
+        message: `Step "${name || index + 1}": ${key} must be a finite number`,
+      });
+    }
+  });
+}
+
+function validatePathSegment(name: string, duplicates: Set<string>): string | null {
+  try {
+    validateGeneratorStepName(name);
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  if (duplicates.has(name)) return "name must be unique";
+  return null;
+}
+
+function cleanTokenRefPath(path: string): string {
+  return path.trim().replace(/^\{|\}$/g, "");
+}
+
+function duplicateStrings(values: string[]): Set<string> {
+  const seen = new Set<string>();
+  const duplicate = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) duplicate.add(value);
+    seen.add(value);
+  }
+  return duplicate;
+}
+
+function isFiniteNumberLike(value: unknown): boolean {
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric);
+}
+
+function listItemKey(item: unknown, index: number): string {
+  if (item && typeof item === "object" && !Array.isArray(item)) {
+    const record = item as Record<string, unknown>;
+    return String(record.key ?? record.label ?? index + 1);
+  }
+  return String(index + 1);
+}
+
+function listItemValue(item: unknown): unknown {
+  return item &&
+    typeof item === "object" &&
+    !Array.isArray(item) &&
+    "value" in item
+    ? (item as Record<string, unknown>).value
+    : item;
+}
+
+function validateListValue(
+  type: string,
+  value: unknown,
+  item: unknown,
+  targetTokens: Record<string, TokenMapEntry>,
+): string | null {
+  if (type === "number" && !isFiniteNumberLike(value)) {
+    return "value must be a finite number";
+  }
+  if (type === "dimension") {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return "value must be a dimension";
+    }
+    const record = value as Record<string, unknown>;
+    if (
+      !isFiniteNumberLike(record.value) ||
+      typeof record.unit !== "string" ||
+      !record.unit.trim()
+    ) {
+      return "value must be a finite dimension";
+    }
+  }
+  if (type === "token") {
+    if (!/^\{[^}]+\}$/.test(String(value ?? ""))) return "choose a token";
+    const path = cleanTokenRefPath(String(value ?? ""));
+    const token = targetTokens[path];
+    if (!token) return `token "${path}" was not found`;
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      const itemType = (item as Record<string, unknown>).type;
+      if (typeof itemType === "string" && itemType !== "token" && itemType !== token.$type) {
+        return `token "${path}" is ${token.$type}, not ${itemType}`;
+      }
+    }
+  }
+  return null;
 }
 
 function nodeSummary(node: TokenGeneratorDocumentNode): string {
