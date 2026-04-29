@@ -152,12 +152,12 @@ export function ExportPreviewModal({
                   {file.platform}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono leading-snug" title={file.path}>
+                  <span className="tm-modal-tab__title font-mono leading-snug" title={file.path}>
                     {fileName}
                   </span>
                   {directory ? (
                     <span
-                      className="block truncate pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]"
+                      className="tm-modal-tab__meta pt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]"
                       title={directory}
                     >
                       {directory}

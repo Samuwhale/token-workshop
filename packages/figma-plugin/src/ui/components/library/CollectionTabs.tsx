@@ -366,7 +366,7 @@ export function CollectionTabs({
                 }`}
               >
                 <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-collection-toolbar__optional-label truncate">
+                <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
                   Manage
                 </span>
               </button>
@@ -380,7 +380,7 @@ export function CollectionTabs({
                 className="tm-collection-toolbar__action tm-collection-toolbar__action--primary inline-flex h-7 shrink-0 items-center gap-1 rounded bg-[var(--color-figma-accent)] px-2.5 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
               >
                 <Plus size={12} strokeWidth={1.7} aria-hidden />
-                <span className="truncate">New collection</span>
+                <span className="tm-toolbar-action__label">New collection</span>
               </button>
             ) : null}
 
@@ -392,7 +392,7 @@ export function CollectionTabs({
                 className="tm-collection-toolbar__action inline-flex h-7 shrink-0 items-center gap-1 rounded px-2 text-secondary font-medium text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               >
                 <Upload size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-collection-toolbar__optional-label truncate">
+                <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
                   Import
                 </span>
               </button>

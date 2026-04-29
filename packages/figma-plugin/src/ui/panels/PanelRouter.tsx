@@ -1454,7 +1454,7 @@ export function PanelRouter({
                 className="shrink-0 text-[var(--color-figma-error)]"
                 aria-hidden
               />
-              <span className="flex-1 truncate text-secondary text-[var(--color-figma-text-secondary)]">
+              <span className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-secondary text-[var(--color-figma-text-secondary)]">
                 Failed to load tokens: {fetchError || tokensError}
               </span>
               <button

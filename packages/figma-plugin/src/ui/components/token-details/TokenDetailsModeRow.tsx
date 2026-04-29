@@ -252,7 +252,7 @@ export function TokenDetailsModeRow({
                 }}
                 autoFocus={autoFocus}
                 placeholder="Search tokens…"
-                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                className="tm-token-mode-row__alias-input w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
               />
               {autocompleteOpen && (
                 <AliasAutocomplete

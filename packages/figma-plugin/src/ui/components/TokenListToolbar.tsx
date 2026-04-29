@@ -499,7 +499,7 @@ export function TokenListToolbar({
                   }`}
                 >
                   <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
-                  <span className="tm-token-toolbar__button-label tm-token-toolbar__secondary-label whitespace-nowrap">
+                  <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
                     {sortStateLabel ?? "Sort"}
                   </span>
                 </button>
@@ -531,17 +531,17 @@ export function TokenListToolbar({
             {showCreate ? (
               <div className="relative shrink-0">
                 {showPrimaryCreateAction ? (
-                  <div className="inline-flex min-h-[26px] overflow-hidden rounded">
+                  <div className="tm-token-toolbar__split-button">
                     <button
                       type="button"
                       onClick={() => onCreateToken?.()}
                       disabled={!connected}
                       title="New token"
                       aria-label="New token"
-                      className="inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-accent)] px-2 text-secondary font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      className="tm-token-toolbar__split-button-primary inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-accent)] px-2 text-secondary font-medium text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
                       <Plus size={12} strokeWidth={2} aria-hidden />
-                      <span className="tm-token-toolbar__button-label tm-token-toolbar__primary-label whitespace-nowrap">
+                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
                         New token
                       </span>
                     </button>
@@ -554,7 +554,7 @@ export function TokenListToolbar({
                       aria-haspopup="menu"
                       aria-label="More create actions"
                       title="More create actions"
-                      className="inline-flex min-h-[26px] w-6 items-center justify-center border-l border-white/25 bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      className="tm-token-toolbar__split-button-toggle inline-flex min-h-[26px] w-6 items-center justify-center border-l border-white/25 bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
                       <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                     </button>
@@ -572,7 +572,7 @@ export function TokenListToolbar({
                     className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-accent)] text-[var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40`}
                   >
                     <Plus size={12} strokeWidth={2} aria-hidden />
-                    <span className="tm-token-toolbar__button-label tm-token-toolbar__primary-label whitespace-nowrap">
+                    <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
                       Create
                     </span>
                     <ChevronDown size={12} strokeWidth={1.8} aria-hidden />

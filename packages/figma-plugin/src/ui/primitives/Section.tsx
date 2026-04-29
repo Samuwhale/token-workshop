@@ -31,10 +31,12 @@ export function Section({
 }: SectionProps) {
   const showHeader = Boolean(title || description || actions);
   return (
-    <section className={`flex min-w-0 flex-col gap-2.5 ${TOP_PADDING[emphasis]} ${className}`}>
+    <section
+      className={`tm-section flex min-w-0 flex-col gap-2.5 ${TOP_PADDING[emphasis]} ${className}`}
+    >
       {showHeader ? (
-        <header className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <header className="tm-section__header flex flex-wrap items-start justify-between gap-3">
+          <div className="tm-section__copy flex min-w-0 flex-1 flex-col gap-1">
             {title ? (
               <h3
                 className={`m-0 font-semibold leading-[var(--leading-tight)] text-[var(--color-figma-text)] ${TITLE_SIZE[emphasis]}`}
@@ -49,11 +51,13 @@ export function Section({
             ) : null}
           </div>
           {actions ? (
-            <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
+            <div className="tm-section__actions flex min-w-0 flex-wrap items-center gap-2">
+              {actions}
+            </div>
           ) : null}
         </header>
       ) : null}
-      <div className="flex min-w-0 flex-col gap-2">{children}</div>
+      <div className="tm-section__body flex min-w-0 flex-col gap-2">{children}</div>
     </section>
   );
 }
