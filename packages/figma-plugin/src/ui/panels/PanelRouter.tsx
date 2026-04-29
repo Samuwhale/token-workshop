@@ -8,7 +8,7 @@
  * directly so callers only pass App-local state as props.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
 import { resolveCollectionIdForPath } from "@tokenmanager/core";
@@ -22,6 +22,7 @@ import { TokenDetails } from "../components/TokenDetails";
 import { CollectionDetailsPanel } from "../components/CollectionDetailsPanel";
 import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 import { useResizableBoundary } from "../hooks/useResizableBoundary";
+import { useElementWidth } from "../hooks/useElementWidth";
 import { ResizeDivider } from "../components/ResizeDivider";
 import { ImportPanel } from "../components/ImportPanel";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
@@ -89,6 +90,56 @@ const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
 const CONTEXTUAL_PANEL_MIN_WIDTH = 280;
 const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 520;
 
+interface ContextualPanelLayout {
+  renderAsOverlay: boolean;
+  isFullWidthOverlay: boolean;
+  splitWidth: number;
+  overlayWidth: number;
+}
+
+function resolveContextualPanelLayout({
+  shellWidth,
+  requestedWidth,
+  hasContextualPanel,
+}: {
+  shellWidth: number | null;
+  requestedWidth: number;
+  hasContextualPanel: boolean;
+}): ContextualPanelLayout {
+  const splitWidth =
+    shellWidth === null
+      ? requestedWidth
+      : Math.min(
+          requestedWidth,
+          Math.max(
+            CONTEXTUAL_PANEL_MIN_WIDTH,
+            shellWidth - LIBRARY_MAIN_PANE_MIN_WIDTH,
+          ),
+        );
+  const renderAsOverlay =
+    hasContextualPanel &&
+    shellWidth !== null &&
+    shellWidth - requestedWidth < LIBRARY_MAIN_PANE_MIN_WIDTH;
+  const isFullWidthOverlay =
+    renderAsOverlay && shellWidth < CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT;
+  const overlayWidth =
+    shellWidth === null
+      ? requestedWidth
+      : isFullWidthOverlay
+        ? shellWidth
+        : Math.min(
+            requestedWidth,
+            Math.max(CONTEXTUAL_PANEL_MIN_WIDTH, shellWidth - 64),
+          );
+
+  return {
+    renderAsOverlay,
+    isFullWidthOverlay,
+    splitWidth,
+    overlayWidth,
+  };
+}
+
 function readLastCreateGroup(): string {
   return lsGet(STORAGE_KEYS.LAST_CREATE_GROUP, "");
 }
@@ -149,9 +200,7 @@ export function PanelRouter({
     measureFrom: "end",
   });
   const libraryShellRef = useRef<HTMLDivElement>(null);
-  const [libraryShellWidth, setLibraryShellWidth] = useState<number | null>(
-    null,
-  );
+  const libraryShellWidth = useElementWidth(libraryShellRef);
   const shell = useShellWorkspaceController();
   const editorShell = useEditorShellController();
   const tokensController = useTokensWorkspaceController();
@@ -195,22 +244,6 @@ export function PanelRouter({
     openNotifications,
     closeNotifications,
   } = useNavigationContext();
-  useLayoutEffect(() => {
-    const element = libraryShellRef.current;
-    if (!element) {
-      setLibraryShellWidth(null);
-      return;
-    }
-
-    const updateWidth = () => {
-      setLibraryShellWidth(element.clientWidth);
-    };
-
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [activeTopTab, activeSubTab, activeSecondarySurface]);
   const {
     tokenDetails,
     setTokenDetails,
@@ -1399,37 +1432,12 @@ export function PanelRouter({
     header?: ReactNode;
     contextualPanel?: ReactNode;
   }): ReactNode {
-    const shouldOverlayContextualPanel =
-      contextualPanel !== undefined &&
-      contextualPanel !== null &&
-      libraryShellWidth !== null &&
-      libraryShellWidth - sideEditorBoundary.size < LIBRARY_MAIN_PANE_MIN_WIDTH;
-    const contextualPanelIsFullWidth =
-      shouldOverlayContextualPanel &&
-      libraryShellWidth !== null &&
-      libraryShellWidth < CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT;
-    const splitPanelWidth =
-      libraryShellWidth === null
-        ? sideEditorBoundary.size
-        : Math.min(
-            sideEditorBoundary.size,
-            Math.max(
-              CONTEXTUAL_PANEL_MIN_WIDTH,
-              libraryShellWidth - LIBRARY_MAIN_PANE_MIN_WIDTH,
-            ),
-          );
-    const overlayPanelWidth =
-      libraryShellWidth === null
-        ? sideEditorBoundary.size
-        : contextualPanelIsFullWidth
-          ? libraryShellWidth
-          : Math.min(
-              sideEditorBoundary.size,
-              Math.max(
-                CONTEXTUAL_PANEL_MIN_WIDTH,
-                libraryShellWidth - 64,
-              ),
-            );
+    const contextualPanelLayout = resolveContextualPanelLayout({
+      shellWidth: libraryShellWidth,
+      requestedWidth: sideEditorBoundary.size,
+      hasContextualPanel:
+        contextualPanel !== undefined && contextualPanel !== null,
+    });
 
     return (
       <div
@@ -1463,14 +1471,14 @@ export function PanelRouter({
         </div>
 
         {contextualPanel ? (
-          shouldOverlayContextualPanel ? (
+          contextualPanelLayout.renderAsOverlay ? (
             <div
               className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.24)] ${
-                contextualPanelIsFullWidth
+                contextualPanelLayout.isFullWidthOverlay
                   ? "inset-x-0 border-l-0"
                   : "border-l border-[var(--color-figma-border)]"
               }`}
-              style={{ width: overlayPanelWidth }}
+              style={{ width: contextualPanelLayout.overlayWidth }}
             >
               {contextualPanel}
             </div>
@@ -1485,7 +1493,7 @@ export function PanelRouter({
               />
               <div
                 className="flex min-h-0 shrink-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-                style={{ width: splitPanelWidth }}
+                style={{ width: contextualPanelLayout.splitWidth }}
               >
                 {contextualPanel}
               </div>
