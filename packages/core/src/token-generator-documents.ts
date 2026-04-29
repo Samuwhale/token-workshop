@@ -284,7 +284,7 @@ export function getTokenGeneratorInputPorts(
       ];
     case 'groupOutput':
       return [
-        { id: 'value', label: 'Steps', shape: 'list', type: 'any', accepts: ['any'] },
+        { id: 'value', label: 'Series', shape: 'list', type: 'any', accepts: ['any'] },
       ];
     default:
       return [];
@@ -300,45 +300,34 @@ export function getTokenGeneratorOutputPorts(
       return [];
     case 'colorRamp':
       return [
-        { id: 'value', label: 'Value', shape: 'list', type: 'color' },
-        { id: 'steps', label: 'Steps', shape: 'list', type: 'color' },
+        { id: 'value', label: 'Series', shape: 'list', type: 'color' },
       ];
     case 'spacingScale':
     case 'typeScale':
     case 'borderRadiusScale':
       return [
-        { id: 'value', label: 'Value', shape: 'list', type: 'dimension' },
-        { id: 'steps', label: 'Steps', shape: 'list', type: 'dimension' },
+        { id: 'value', label: 'Series', shape: 'list', type: 'dimension' },
       ];
     case 'opacityScale':
     case 'zIndexScale':
       return [
-        { id: 'value', label: 'Value', shape: 'list', type: 'number' },
-        { id: 'steps', label: 'Steps', shape: 'list', type: 'number' },
+        { id: 'value', label: 'Series', shape: 'list', type: 'number' },
       ];
     case 'shadowScale':
       return [
-        { id: 'value', label: 'Value', shape: 'list', type: 'token' },
-        { id: 'steps', label: 'Steps', shape: 'list', type: 'token' },
+        { id: 'value', label: 'Series', shape: 'list', type: 'token' },
       ];
     case 'customScale': {
       const type = readCustomScaleOutputType(node.data.outputType);
       return [
-        { id: 'value', label: 'Value', shape: 'list', type },
-        { id: 'steps', label: 'Steps', shape: 'list', type },
+        { id: 'value', label: 'Series', shape: 'list', type },
       ];
     }
     case 'list':
       return [
         {
           id: 'value',
-          label: 'Items',
-          shape: 'list',
-          type: readNodeOutputType(node),
-        },
-        {
-          id: 'steps',
-          label: 'Steps',
+          label: 'Series',
           shape: 'list',
           type: readNodeOutputType(node),
         },
@@ -530,7 +519,7 @@ export function createDefaultTokenGeneratorDocument(
       {
         id: 'output',
         kind: 'groupOutput',
-        label: 'Output tokens',
+        label: 'Series output',
         position: { x: 650, y: 150 },
         data: { pathPrefix: 'color.brand' },
       },
@@ -543,7 +532,7 @@ export function createDefaultTokenGeneratorDocument(
       },
       {
         id: 'ramp-output',
-        from: { nodeId: 'ramp', port: 'steps' },
+        from: { nodeId: 'ramp', port: 'value' },
         to: { nodeId: 'output', port: 'value' },
       },
     ],
@@ -1327,7 +1316,7 @@ function materializeOutputs({
       id: `${node.id}-scalar-group-output`,
       severity: 'error',
       nodeId: node.id,
-      message: `${node.label}: group outputs need a list input. Use Token output for one token.`,
+      message: `${node.label}: series outputs need a series input. Use Token output for one token.`,
     });
     return [];
   }
@@ -1337,7 +1326,7 @@ function materializeOutputs({
       id: `${node.id}-list-token-output`,
       severity: 'error',
       nodeId: node.id,
-      message: `${node.label}: token outputs need one value. Use Group output for lists.`,
+      message: `${node.label}: token outputs need one value. Use Series output for ramps and scales.`,
     });
     return [];
   }
@@ -1438,7 +1427,7 @@ function materializeOutputs({
         id: `${node.id}-non-scalar-${modeName}`,
         severity: 'error',
         nodeId: node.id,
-        message: `${node.label}: ${modeName} produces a list. Use Group output or pick one item first.`,
+        message: `${node.label}: ${modeName} produces a series. Use Series output or pick one item first.`,
       });
       continue;
     }

@@ -23,6 +23,7 @@ export interface GeneratorPaletteItem {
   kind: TokenGeneratorNodeKind;
   category: string;
   label: string;
+  description?: string;
   defaults: Record<string, unknown>;
 }
 
@@ -203,13 +204,20 @@ export function NodeLibraryPanel({
                       event.dataTransfer.effectAllowed = "copy";
                     }}
                     onClick={() => onAddNode(item)}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
+                    className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
                   >
                     <Plus
                       size={12}
-                      className="text-[var(--color-figma-text-secondary)]"
+                      className="mt-0.5 shrink-0 text-[var(--color-figma-text-secondary)]"
                     />
-                    {item.label}
+                    <span className="min-w-0">
+                      <span className="block truncate">{item.label}</span>
+                      {item.description ? (
+                        <span className="block text-tertiary text-[var(--color-figma-text-secondary)]">
+                          {item.description}
+                        </span>
+                      ) : null}
+                    </span>
                   </button>
                 ))}
               </div>

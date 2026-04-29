@@ -2627,8 +2627,8 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-graph {
-  --tm-graph-node-width: 320px;
-  --tm-graph-port-column: 72px;
+  --tm-graph-node-width: 376px;
+  --tm-graph-port-column: 90px;
 }
 
 .tm-graph-node {

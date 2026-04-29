@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Spinner } from "./Spinner";
 import type { ExportResultFile } from "../hooks/useExportResults";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { exportFileId, splitExportFilePath } from "../shared/exportFileHelpers";
 
 export interface ExportPreviewModalProps {
   results: ExportResultFile[];
@@ -18,18 +19,6 @@ export interface ExportPreviewModalProps {
   onDownloadFile: (file: ExportResultFile) => void;
   onCopyFile: (file: ExportResultFile) => void;
   onClose: () => void;
-}
-
-function splitPreviewPath(path: string): { fileName: string; directory: string | null } {
-  const normalized = path.replace(/\\/g, "/");
-  const lastSlash = normalized.lastIndexOf("/");
-  if (lastSlash < 0) {
-    return { fileName: normalized, directory: null };
-  }
-  return {
-    fileName: normalized.slice(lastSlash + 1),
-    directory: normalized.slice(0, lastSlash) || null,
-  };
 }
 
 export function ExportPreviewModal({
@@ -138,10 +127,10 @@ export function ExportPreviewModal({
           className="tm-modal-tablist"
         >
           {results.map((file, i) => {
-            const { fileName, directory } = splitPreviewPath(file.path);
+            const { fileName, directory } = splitExportFilePath(file.path);
             return (
               <button
-                key={file.path}
+                key={exportFileId(file)}
                 type="button"
                 role="tab"
                 aria-selected={i === fileIndex}
@@ -203,7 +192,7 @@ export function ExportPreviewModal({
               className="flex min-w-[140px] flex-1 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
               title={`Copy ${activeFile?.path}`}
             >
-              {copiedFile === activeFile?.path ? (
+              {activeFile && copiedFile === exportFileId(activeFile) ? (
                 <>
                   <svg
                     width="9"

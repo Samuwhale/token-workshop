@@ -3,6 +3,12 @@ import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { downloadBlob, getErrorMessage } from '../shared/utils';
 import { buildZipBlobAsync } from '../shared/zipUtils';
+import {
+  exportDownloadFileName,
+  exportFileId,
+  summarizeExportMessages,
+  summarizeExportPlatformErrors,
+} from '../shared/exportFileHelpers';
 import type { PlatformConfig } from './usePlatformConfig';
 import type { DiffState } from './useDiffState';
 
@@ -69,37 +75,6 @@ function getNoChangedTokensMessage(isGitRepo: boolean | undefined, lastExportTim
   return isGitRepo === false && lastExportTimestamp !== null
     ? `No changed tokens found since ${new Date(lastExportTimestamp).toLocaleString()}.`
     : 'No changed tokens found. All tokens are up to date since the last commit.';
-}
-
-function summarizePlatformErrors(results: ExportPlatformResult[]): string | null {
-  const failures = results
-    .filter(
-      (result): result is ExportPlatformResult & { error: string } =>
-        typeof result.error === "string" && result.error.trim().length > 0,
-    )
-    .map((result) => `${result.platform}: ${result.error.trim()}`);
-
-  if (failures.length === 0) {
-    return null;
-  }
-
-  const visibleFailures = failures.slice(0, 3);
-  const remainingCount = failures.length - visibleFailures.length;
-  return remainingCount > 0
-    ? `${visibleFailures.join(" | ")} | ${remainingCount} more`
-    : visibleFailures.join(" | ");
-}
-
-function summarizeWarnings(warnings: string[] | undefined): string | null {
-  if (!warnings || warnings.length === 0) {
-    return null;
-  }
-
-  const visibleWarnings = warnings.slice(0, 2);
-  const remainingCount = warnings.length - visibleWarnings.length;
-  return remainingCount > 0
-    ? `${visibleWarnings.join(" | ")} | ${remainingCount} more`
-    : visibleWarnings.join(" | ");
 }
 
 export function useExportResults({
@@ -221,8 +196,8 @@ export function useExportResults({
         }
       }
 
-      const platformErrorSummary = summarizePlatformErrors(platformResults);
-      const warningSummary = summarizeWarnings(data.warnings);
+      const platformErrorSummary = summarizeExportPlatformErrors(platformResults);
+      const warningSummary = summarizeExportMessages(data.warnings, 2);
 
       if (flatFiles.length === 0) {
         setResults([]);
@@ -292,6 +267,11 @@ export function useExportResults({
       dispatchToast(`Downloaded ${results.length} file(s) as ZIP`, 'success', {
         destination: { kind: "workspace", topTab: "publish", subTab: "publish-code" },
       });
+    } catch (err) {
+      setError(`Failed to prepare ZIP: ${getErrorMessage(err)}`);
+      dispatchToast('Failed to prepare ZIP', 'error', {
+        destination: { kind: "workspace", topTab: "publish", subTab: "publish-code" },
+      });
     } finally {
       setZipProgress(null);
     }
@@ -299,13 +279,13 @@ export function useExportResults({
 
   const handleDownloadFile = (file: ExportResultFile) => {
     const blob = new Blob([file.content], { type: 'text/plain' });
-    downloadBlob(blob, file.path.split('/').pop() || 'tokens.txt');
+    downloadBlob(blob, exportDownloadFileName(file.path));
   };
 
   const handleCopyFile = async (file: ExportResultFile) => {
     try {
       await navigator.clipboard.writeText(file.content);
-      setCopiedFile(file.path);
+      setCopiedFile(exportFileId(file));
       setTimeout(() => setCopiedFile(null), 1500);
       dispatchToast('Copied to clipboard', 'success');
     } catch (err) {

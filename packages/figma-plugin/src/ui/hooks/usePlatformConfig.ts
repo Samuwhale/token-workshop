@@ -21,8 +21,8 @@ export interface PlatformConfig {
   pathPrefix: string;
   setPathPrefix: Dispatch<SetStateAction<string>>;
   // Filter section collapse state
-  setsOpen: boolean;
-  setSetsOpen: Dispatch<SetStateAction<boolean>>;
+  collectionsOpen: boolean;
+  setCollectionsOpen: Dispatch<SetStateAction<boolean>>;
   typesOpen: boolean;
   setTypesOpen: Dispatch<SetStateAction<boolean>>;
   pathPrefixOpen: boolean;
@@ -74,7 +74,7 @@ export function usePlatformConfig(): PlatformConfig {
   );
 
   // Filter section collapse states — open if the filter is non-default so active filters are visible on load
-  const [setsOpen, setSetsOpen] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [typesOpen, setTypesOpen] = useState(() => selectedTypes !== null);
   const [pathPrefixOpen, setPathPrefixOpen] = useState(() => pathPrefix !== '');
   const [cssSelectorOpen, setCssSelectorOpen] = useState(() => cssSelector !== ':root');
@@ -94,8 +94,8 @@ export function usePlatformConfig(): PlatformConfig {
     setSelectedTypes,
     pathPrefix,
     setPathPrefix,
-    setsOpen,
-    setSetsOpen,
+    collectionsOpen,
+    setCollectionsOpen,
     typesOpen,
     setTypesOpen,
     pathPrefixOpen,

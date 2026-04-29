@@ -336,12 +336,14 @@ const PALETTE: GeneratorPaletteItem[] = [
     category: "Outputs",
     kind: "output",
     label: "Token output",
+    description: "Creates one token.",
     defaults: { path: "semantic.token" },
   },
   {
     category: "Outputs",
     kind: "groupOutput",
-    label: "Group output",
+    label: "Series output",
+    description: "Creates one token per step.",
     defaults: { pathPrefix: "generated.group" },
   },
 ];
@@ -1618,12 +1620,8 @@ export function GeneratorsPanel({
         .sort((a, b) => b.position.x - a.position.x)[0] ??
       null;
     const sourcePorts = sourceNode ? getNodeOutputPorts(sourceNode) : [];
-    const sourcePortIds = sourcePorts.map((port) => port.id);
-    const outputKind =
-      sourcePortIds.includes("steps") ||
-      sourceNode?.kind === "list"
-        ? "groupOutput"
-        : "output";
+    const listSourcePort = sourcePorts.find((port) => port.shape === "list");
+    const outputKind = listSourcePort ? "groupOutput" : "output";
     const paletteItem = PALETTE.find((item) => item.kind === outputKind);
     if (!paletteItem) return;
     const id = `${paletteItem.kind}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1647,7 +1645,7 @@ export function GeneratorsPanel({
       position,
       data: { graphNode, preview: preview ?? undefined },
     };
-    const sourcePort = sourcePortIds.includes("steps") ? "steps" : "value";
+    const sourcePort = listSourcePort?.id ?? "value";
     const nextEdges =
       sourceNode && sourcePorts.length > 0
         ? addSingleInputEdge(edges, {
@@ -3596,7 +3594,7 @@ function GeneratorSetupSummary({
 
         <section className="space-y-2">
           <h3 className="text-primary font-semibold text-[var(--color-figma-text)]">
-            Output groups
+            Outputs
           </h3>
           {outputNodes.length > 0 ? (
             <div className="space-y-1">
@@ -3714,7 +3712,7 @@ function StructuredGeneratorSetup({
 
       <label className="block">
         <span className="mb-1 block text-tertiary font-medium text-[var(--color-figma-text-secondary)]">
-          Output group
+          Series path
         </span>
         <input
           value={draft.outputPrefix}
@@ -4625,7 +4623,7 @@ function formatNodeKind(kind: TokenGeneratorDocumentNode["kind"]): string {
     case "tokenInput":
       return "Token input";
     case "groupOutput":
-      return "Group output";
+      return "Series output";
     case "colorRamp":
       return "Color ramp";
     case "spacingScale":
@@ -4702,6 +4700,7 @@ function NodeInspector({
           className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
         />
       </label>
+      <NodeInspectorNote node={node} />
       {node.kind === "tokenInput" && (
         <>
           <label className="block">
@@ -4964,7 +4963,7 @@ function NodeInspector({
       {(node.kind === "output" || node.kind === "groupOutput") &&
         field(
           node.kind === "output" ? "path" : "pathPrefix",
-          node.kind === "output" ? "Token path" : "Group path",
+          node.kind === "output" ? "Token path" : "Series path",
         )}
       <button
         type="button"
@@ -4990,6 +4989,29 @@ function getNodeOutputPorts(
   return getTokenGeneratorOutputPorts(node);
 }
 
+function NodeInspectorNote({ node }: { node: TokenGeneratorDocumentNode }) {
+  const note = nodeInspectorNote(node);
+  if (!note) return null;
+  return (
+    <p className="m-0 rounded-md bg-[var(--surface-muted)] px-2 py-1.5 text-secondary leading-[var(--leading-body)] text-[var(--color-figma-text-secondary)]">
+      {note}
+    </p>
+  );
+}
+
+function nodeInspectorNote(node: TokenGeneratorDocumentNode): string | null {
+  if (node.kind === "output") {
+    return "Use this when the graph ends in one value. It creates one token at the path below.";
+  }
+  if (node.kind === "groupOutput") {
+    return "Use this for ramps and scales. It creates one token per item in the connected series.";
+  }
+  if (getNodeOutputPorts(node).some((port) => port.shape === "list")) {
+    return "This step outputs a series. Connect it to Series output to create one token per step.";
+  }
+  return null;
+}
+
 function portHandleStyle(total: number, index: number): CSSProperties {
   const verticalPosition =
     total <= 1 ? "50%" : `${Math.round(((index + 1) / (total + 1)) * 100)}%`;
@@ -5011,9 +5033,10 @@ function formatPortLabel(port: TokenGeneratorPortDescriptor): string {
 }
 
 function formatPortMeta(port: TokenGeneratorPortDescriptor): string {
-  const shape = port.shape === "list" ? "list" : "value";
-  if (port.type === "any") return shape;
-  return port.shape === "list" ? `${port.type} list` : port.type;
+  if (port.type === "any") {
+    return port.shape === "list" ? "series" : "value";
+  }
+  return port.shape === "list" ? `${port.type} series` : port.type;
 }
 
 function PreviewPanel({
@@ -5644,17 +5667,17 @@ function nodeSummary(node: TokenGeneratorDocumentNode): string {
     return `${node.data.operation ?? "add"} ${node.data.amount ?? ""}`.trim();
   if (node.kind === "color") return String(node.data.operation ?? "lighten");
   if (node.kind === "formula") return String(node.data.expression ?? "Formula");
-  if (node.kind === "colorRamp") return "Mode-aware steps";
-  if (node.kind === "spacingScale") return "Spacing steps";
-  if (node.kind === "typeScale") return "Type steps";
-  if (node.kind === "borderRadiusScale") return "Radius steps";
-  if (node.kind === "opacityScale") return "Opacity steps";
-  if (node.kind === "shadowScale") return "Shadow steps";
-  if (node.kind === "zIndexScale") return "Z-index steps";
-  if (node.kind === "customScale") return "Formula steps";
+  if (node.kind === "colorRamp") return "Mode-aware color series";
+  if (node.kind === "spacingScale") return "Spacing series";
+  if (node.kind === "typeScale") return "Type series";
+  if (node.kind === "borderRadiusScale") return "Radius series";
+  if (node.kind === "opacityScale") return "Opacity series";
+  if (node.kind === "shadowScale") return "Shadow series";
+  if (node.kind === "zIndexScale") return "Z-index series";
+  if (node.kind === "customScale") return "Formula series";
   if (node.kind === "output") return String(node.data.path || "Output path");
   if (node.kind === "groupOutput")
-    return String(node.data.pathPrefix || "Output group");
+    return String(node.data.pathPrefix || "Output series");
   return node.kind;
 }
 

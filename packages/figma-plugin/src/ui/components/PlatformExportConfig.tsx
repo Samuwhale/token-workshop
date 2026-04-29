@@ -8,6 +8,7 @@ import type { DiffState } from '../hooks/useDiffState';
 import type { ExportPresetsState, ExportPreset } from '../hooks/useExportPresets';
 import type { ExportResultFile } from '../hooks/useExportResults';
 import { CheckboxRow, DisclosureRow } from '../primitives';
+import { exportFileId, splitExportFilePath } from '../shared/exportFileHelpers';
 
 interface PlatformExportConfigProps {
   platformConfig: PlatformConfig;
@@ -33,16 +34,75 @@ interface PlatformExportConfigProps {
   savePresetInputRef: RefObject<HTMLInputElement>;
 }
 
-function splitPreviewPath(path: string): { fileName: string; directory: string | null } {
-  const normalized = path.replace(/\\/g, '/');
-  const lastSlash = normalized.lastIndexOf('/');
-  if (lastSlash < 0) {
-    return { fileName: normalized, directory: null };
-  }
-  return {
-    fileName: normalized.slice(lastSlash + 1),
-    directory: normalized.slice(0, lastSlash) || null,
-  };
+interface ExportPreviewFileTabProps {
+  file: ExportResultFile;
+  selected: boolean;
+  copied: boolean;
+  onSelect: () => void;
+  onCopy: () => void;
+}
+
+function ExportPreviewFileTab({
+  file,
+  selected,
+  copied,
+  onSelect,
+  onCopy,
+}: ExportPreviewFileTabProps) {
+  const { fileName, directory } = splitExportFilePath(file.path);
+
+  return (
+    <div
+      className={`group flex shrink-0 items-stretch overflow-hidden rounded-t-md border border-b-0 transition-colors ${
+        selected
+          ? 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]'
+          : 'border-transparent bg-transparent hover:bg-[var(--color-figma-bg-hover)]'
+      }`}
+    >
+      <button
+        onClick={onSelect}
+        title={file.path}
+        className={`flex min-w-[172px] flex-col items-start gap-0.5 px-2 py-1.5 text-secondary transition-colors ${
+          selected
+            ? 'text-[var(--color-figma-text)]'
+            : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
+        }`}
+      >
+        <span className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-1 py-0.5 font-sans text-[var(--font-size-xs)] font-medium text-[var(--color-figma-accent)]">
+          {file.platform}
+        </span>
+        <span className="block max-w-[220px] text-left font-mono leading-snug [overflow-wrap:anywhere]">
+          {fileName}
+        </span>
+        {directory ? (
+          <span className="block max-w-[220px] text-left text-[var(--font-size-xs)] leading-snug text-[var(--color-figma-text-tertiary)] [overflow-wrap:anywhere]">
+            {directory}
+          </span>
+        ) : null}
+      </button>
+      <button
+        onClick={onCopy}
+        className={`shrink-0 px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-accent)] ${
+          selected
+            ? 'opacity-100'
+            : 'opacity-70 group-hover:opacity-100 group-focus-within:opacity-100'
+        }`}
+        title={`Copy ${file.path} to clipboard`}
+        aria-label={`Copy ${file.path}`}
+      >
+        {copied ? (
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        ) : (
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+          </svg>
+        )}
+      </button>
+    </div>
+  );
 }
 
 export function PlatformExportConfig({
@@ -73,7 +133,7 @@ export function PlatformExportConfig({
     selectedCollections, setSelectedCollections,
     selectedTypes, setSelectedTypes,
     pathPrefix, setPathPrefix,
-    setsOpen, setSetsOpen,
+    collectionsOpen, setCollectionsOpen,
     typesOpen, setTypesOpen,
     pathPrefixOpen, setPathPrefixOpen,
     cssSelectorOpen, setCssSelectorOpen,
@@ -323,9 +383,9 @@ export function PlatformExportConfig({
                   ? <span className="text-[var(--color-figma-warning)]">None selected</span>
                   : `${selectedCollections.size} of ${collectionIds.length}`
             }
-            open={setsOpen}
-            onToggle={() => setSetsOpen(v => !v)}
-            action={setsOpen ? (
+            open={collectionsOpen}
+            onToggle={() => setCollectionsOpen(v => !v)}
+            action={collectionsOpen ? (
               <button
                 onClick={() => {
                   if (selectedCollections === null) {
@@ -343,7 +403,7 @@ export function PlatformExportConfig({
             ) : undefined}
             className="mb-1"
           />
-          {setsOpen && (
+          {collectionsOpen && (
             <div className="flex flex-col gap-0.5">
               {collectionIds.map((collectionId) => {
                 const isSelected =
@@ -669,61 +729,16 @@ export function PlatformExportConfig({
 
             {/* File tabs */}
             <div className="flex gap-0.5 overflow-x-auto pb-1 mb-1 scrollbar-thin">
-              {results.map((file, i) => {
-                const { fileName, directory } = splitPreviewPath(file.path);
-                return (
-                <div
-                  key={file.path}
-                  className={`group flex items-stretch rounded-t-md border border-b-0 shrink-0 overflow-hidden transition-colors ${
-                    i === previewFileIndex
-                      ? 'bg-[var(--color-figma-bg)] border-[var(--color-figma-border)]'
-                      : 'bg-transparent border-transparent hover:bg-[var(--color-figma-bg-hover)]'
-                  }`}
-                >
-                  <button
-                    onClick={() => setPreviewFileIndex(i)}
-                    title={file.path}
-                    className={`flex min-w-[172px] flex-col items-start gap-0.5 px-2 py-1.5 text-secondary min-w-0 transition-colors ${
-                      i === previewFileIndex
-                        ? 'text-[var(--color-figma-text)]'
-                        : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'
-                    }`}
-                  >
-                    <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[var(--font-size-xs)] font-medium font-sans shrink-0">
-                      {file.platform}
-                    </span>
-                    <span className="block max-w-[220px] text-left font-mono leading-snug [overflow-wrap:anywhere]">
-                      {fileName}
-                    </span>
-                    {directory ? (
-                      <span className="block max-w-[220px] text-left text-[var(--font-size-xs)] leading-snug text-[var(--color-figma-text-tertiary)] [overflow-wrap:anywhere]">
-                        {directory}
-                      </span>
-                    ) : null}
-                  </button>
-                  <button
-                    onClick={() => handleCopyFile(file)}
-                    className={`px-1.5 py-1.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] shrink-0 transition-colors ${
-                      i === previewFileIndex
-                        ? 'opacity-100'
-                        : 'opacity-70 group-hover:opacity-100 group-focus-within:opacity-100'
-                    }`}
-                    title={`Copy ${file.path} to clipboard`}
-                    aria-label={`Copy ${file.path}`}
-                  >
-                    {copiedFile === file.path ? (
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    ) : (
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <rect x="9" y="9" width="13" height="13" rx="2" />
-                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              )})}
+              {results.map((file, i) => (
+                <ExportPreviewFileTab
+                  key={exportFileId(file)}
+                  file={file}
+                  selected={i === previewFileIndex}
+                  copied={copiedFile === exportFileId(file)}
+                  onSelect={() => setPreviewFileIndex(i)}
+                  onCopy={() => handleCopyFile(file)}
+                />
+              ))}
             </div>
 
             {/* Code preview */}
@@ -767,7 +782,7 @@ export function PlatformExportConfig({
                     className="flex items-center gap-1 text-secondary text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                     title="Copy to clipboard"
                   >
-                    {copiedFile === activeFile.path ? (
+                    {copiedFile === exportFileId(activeFile) ? (
                       <>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M20 6L9 17l-5-5" />

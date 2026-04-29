@@ -160,13 +160,13 @@ export function buildGeneratorNodesFromStructuredDraft(
   nodes.push({
     id: outputId,
     kind: 'groupOutput',
-    label: 'Output tokens',
+    label: 'Series output',
     position: { x: hasSource ? 650 : 430, y: 150 },
     data: { pathPrefix: draft.outputPrefix },
   });
   edges.push({
     id: 'generation-output',
-    from: { nodeId: generationId, port: 'steps' },
+    from: { nodeId: generationId, port: 'value' },
     to: { nodeId: outputId, port: 'value' },
   });
 
