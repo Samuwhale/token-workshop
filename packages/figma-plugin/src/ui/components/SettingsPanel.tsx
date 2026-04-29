@@ -755,7 +755,8 @@ export function SettingsPanel({
                 </div>
                 <ul className="list-inside list-disc space-y-0.5 leading-relaxed text-[color:var(--color-figma-text-secondary)]">
                   <li>
-                    Run <span className="font-mono">npm start</span> in the
+                    Run <span className="font-mono">pnpm server</span> or{" "}
+                    <span className="font-mono">pnpm preview</span> in the
                     TokenManager directory
                   </li>
                   <li>Check the URL and port</li>
