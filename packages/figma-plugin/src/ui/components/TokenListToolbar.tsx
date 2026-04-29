@@ -21,7 +21,12 @@ import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
 import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
-import { Chip, MenuRadioGroup, type SegmentedOption } from "../primitives";
+import {
+  Chip,
+  IconButton,
+  MenuRadioGroup,
+  type SegmentedOption,
+} from "../primitives";
 
 interface QualifierHint {
   id: string;
@@ -278,15 +283,15 @@ export function TokenListToolbar({
         <div className="tm-responsive-toolbar__row tm-token-toolbar__row">
           <div className="tm-responsive-toolbar__leading">
             {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
-              <button
-                type="button"
+              <IconButton
                 onClick={onNavigateBack}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                size="md"
+                className="shrink-0"
                 title="Back (Alt+←)"
                 aria-label="Back"
               >
                 <ArrowLeft size={12} strokeWidth={1.5} aria-hidden />
-              </button>
+              </IconButton>
             ) : null}
 
             {zoomRootPath ? (
@@ -396,19 +401,19 @@ export function TokenListToolbar({
                     className="min-w-[40px] flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
                   />
                   {searchQuery ? (
-                    <button
-                      type="button"
+                    <IconButton
                       onClick={() => {
                         setSearchQuery("");
                         setHintIndex(0);
                         searchRef.current?.focus();
                       }}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
+                      size="sm"
+                      className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]"
                       title="Clear search"
                       aria-label="Clear search"
                     >
                       <X size={10} strokeWidth={1.5} aria-hidden />
-                    </button>
+                    </IconButton>
                   ) : null}
                 </div>
 

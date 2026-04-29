@@ -25,6 +25,7 @@ import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
+import { IconButton } from "../../primitives";
 
 interface AllCollectionsScope {
   selected: boolean;
@@ -236,17 +237,17 @@ export function CollectionTabs({
                     className="min-w-0 flex-1 bg-transparent py-1 text-body text-[var(--color-figma-text)] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
                   />
                   {query ? (
-                    <button
-                      type="button"
+                    <IconButton
                       onClick={() => {
                         setQuery("");
                         requestAnimationFrame(() => searchInputRef.current?.focus());
                       }}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
+                      size="sm"
+                      className="text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)]"
                       aria-label="Clear collection search"
                     >
                       <X size={10} strokeWidth={1.5} aria-hidden />
-                    </button>
+                    </IconButton>
                   ) : null}
                 </div>
 

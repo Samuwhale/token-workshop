@@ -296,7 +296,8 @@ a[role="menuitem"] {
 }
 
 .tm-modal-panel--wide {
-  inline-size: min(100%, 520px);
+  inline-size: min(100%, 640px);
+  max-inline-size: min(680px, calc(100vw - 24px));
 }
 
 .tm-modal-panel--paste {
@@ -320,6 +321,7 @@ a[role="menuitem"] {
   flex-direction: row;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -334,6 +336,7 @@ a[role="menuitem"] {
 .tm-modal-header__actions {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -385,7 +388,7 @@ a[role="menuitem"] {
 }
 
 .tm-modal-footer > * {
-  flex: 1 1 120px;
+  flex: 1 1 112px;
   min-inline-size: 0;
 }
 
@@ -406,8 +409,8 @@ a[role="menuitem"] {
 
 .tm-modal-tab {
   display: flex;
-  min-inline-size: 160px;
-  max-inline-size: min(320px, 80vw);
+  min-inline-size: 136px;
+  max-inline-size: min(280px, 72vw);
   flex: 0 0 auto;
   align-items: flex-start;
   gap: 6px;
@@ -421,6 +424,12 @@ a[role="menuitem"] {
     background-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard);
+}
+
+@container (max-width: 420px) {
+  .tm-modal-tab {
+    min-inline-size: 112px;
+  }
 }
 
 .tm-modal-tab:hover {
@@ -567,7 +576,7 @@ a[role="menuitem"] {
 .tm-authoring-body-stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   padding: 12px;
 }
 
@@ -660,7 +669,7 @@ a[role="menuitem"] {
   margin-left: auto;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 520px) {
   .tm-panel-bar__actions {
     flex-basis: 100%;
     justify-content: flex-start;
@@ -708,6 +717,7 @@ a[role="menuitem"] {
   font-size: var(--font-size-sm);
   line-height: var(--leading-body);
   color: var(--color-figma-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .tm-secondary-panel__actions {
@@ -726,7 +736,7 @@ a[role="menuitem"] {
   min-block-size: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   overflow-y: auto;
   padding: 12px;
 }
@@ -805,7 +815,7 @@ a[role="menuitem"] {
   text-align: center;
 }
 
-@container (max-width: 420px) {
+@container (max-width: 520px) {
   .tm-secondary-panel__actions {
     flex-basis: 100%;
     justify-content: flex-start;
@@ -927,7 +937,7 @@ a[role="menuitem"] {
   }
 }
 
-@container (max-width: 440px) {
+@container (max-width: 560px) {
   .tm-responsive-toolbar__search {
     flex-basis: 100%;
   }
@@ -982,7 +992,7 @@ a[role="menuitem"] {
   }
 }
 
-@container (max-width: 520px) {
+@container (max-width: 640px) {
   .tm-collection-toolbar__row {
     flex-wrap: wrap;
   }
@@ -1007,8 +1017,12 @@ a[role="menuitem"] {
 
   .tm-collection-toolbar__summary-title,
   .tm-collection-toolbar__summary-meta {
-    white-space: normal;
+    display: -webkit-box;
     text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 }
 
@@ -1053,13 +1067,13 @@ a[role="menuitem"] {
   white-space: nowrap;
 }
 
-@container (max-width: 520px) {
+@container (max-width: 560px) {
   .tm-token-toolbar__secondary-label {
     display: none;
   }
 }
 
-@container (max-width: 640px) {
+@container (max-width: 760px) {
   .tm-token-toolbar__row {
     flex-wrap: wrap;
   }
@@ -1095,7 +1109,7 @@ a[role="menuitem"] {
   }
 }
 
-@container (max-width: 520px) {
+@container (max-width: 560px) {
   .tm-token-toolbar .tm-responsive-toolbar__search {
     min-inline-size: 0;
     flex-basis: 100%;
@@ -1212,6 +1226,17 @@ a[role="menuitem"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@container (max-width: 140px) {
+  .tm-value-cell__line {
+    display: -webkit-box;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
 }
 
 /* Token details surface */
@@ -2113,7 +2138,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 }
 
-@container authoring-surface (max-width: 360px) {
+@container authoring-surface (max-width: 420px) {
   .tm-authoring-surface__header-actions {
     inline-size: 100%;
     justify-content: flex-start;
@@ -2145,7 +2170,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 }
 
-@container authoring-surface (max-width: 420px) {
+@container authoring-surface (max-width: 520px) {
   .tm-token-details__header-mainline,
   .tm-token-details__header-context {
     flex-wrap: wrap;
@@ -2174,6 +2199,12 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__inline-controls {
     align-self: flex-start;
+  }
+}
+
+@media (max-height: 640px) {
+  .tm-modal-shell {
+    align-items: flex-start;
   }
 }
 

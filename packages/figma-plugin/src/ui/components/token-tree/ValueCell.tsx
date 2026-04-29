@@ -192,7 +192,7 @@ export function ValueCell({
               e.stopPropagation();
               openQuickEdit();
             }}
-            aria-label="Add mode value"
+            aria-label={`Add ${optionName} value`}
           >
             +
           </button>
@@ -204,7 +204,7 @@ export function ValueCell({
               e.stopPropagation();
               onEdit();
             }}
-            aria-label="Add mode value"
+            aria-label={`Add ${optionName} value`}
           >
             +
           </button>

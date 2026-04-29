@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode, Ref } from "react";
+import { IconButton } from "../primitives";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -73,12 +74,12 @@ export function EditorShell({
         )}
       >
         {onBack && (
-          <button
-            type="button"
+          <IconButton
             onClick={onBack}
             aria-label={backAriaLabel}
             title={backTitle}
-            className="flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--color-figma-bg-hover)] focus-visible:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
+            size="md"
+            className="text-[var(--color-figma-text-secondary)] focus-visible:bg-[var(--color-figma-bg-hover)]"
           >
             <svg
               width="12"
@@ -93,7 +94,7 @@ export function EditorShell({
             >
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
-          </button>
+          </IconButton>
         )}
         <div
           className={joinClasses(

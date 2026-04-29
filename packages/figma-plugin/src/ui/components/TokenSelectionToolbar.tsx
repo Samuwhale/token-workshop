@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useDropdownMenu } from '../hooks/useDropdownMenu';
+import { useAnchoredFloatingStyle } from '../shared/floatingPosition';
 import { FLOATING_MENU_WIDE_CLASS } from '../shared/menuClasses';
 import type { BatchActionType } from './batch-actions/types';
+import { Button, IconButton } from '../primitives';
 
 export interface TokenSelectionToolbarProps {
   selectedPaths: Set<string>;
@@ -34,7 +36,7 @@ export interface TokenSelectionToolbarProps {
 const menuItemClass =
   'w-full flex items-center gap-2 px-2.5 py-1 text-left text-secondary text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40';
 const menuSeparator = 'border-t border-[var(--color-figma-border)] my-1';
-const menuPanel = `absolute right-0 top-full mt-1 ${FLOATING_MENU_WIDE_CLASS}`;
+const menuPanel = FLOATING_MENU_WIDE_CLASS;
 
 function ToolbarDropdown({
   label,
@@ -46,28 +48,41 @@ function ToolbarDropdown({
   disabled?: boolean;
 }) {
   const { open, menuRef, triggerRef, toggle, close } = useDropdownMenu();
+  const menuStyle = useAnchoredFloatingStyle({
+    triggerRef,
+    open,
+    preferredWidth: 220,
+    preferredHeight: 320,
+    align: 'end',
+  });
   return (
     <div className="relative shrink-0">
-      <button
+      <Button
         ref={triggerRef}
-        type="button"
         onClick={toggle}
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="menu"
-        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
+        variant="ghost"
+        size="sm"
+        className={
           open
             ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
-            : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
-        } disabled:opacity-40 disabled:pointer-events-none`}
+            : ''
+        }
       >
         {label}
         <svg width="10" height="10" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
           <path d="M1.5 3L4 5.5L6.5 3" />
         </svg>
-      </button>
+      </Button>
       {open && (
-        <div ref={menuRef} className={menuPanel} role="menu">
+        <div
+          ref={menuRef}
+          style={menuStyle ?? { visibility: 'hidden' }}
+          className={menuPanel}
+          role="menu"
+        >
           {children(close)}
         </div>
       )}
@@ -139,16 +154,16 @@ export function TokenSelectionToolbar({
             ) : null}
           </div>
           <div className="tm-responsive-toolbar__actions">
-            <button
+            <IconButton
               onClick={onClearSelection}
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              size="md"
               aria-label="Clear selection"
               title="Clear selection"
             >
               <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                 <path d="M2 2l6 6M8 2l-6 6" />
               </svg>
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -255,13 +270,15 @@ export function TokenSelectionToolbar({
           )}
 
           {hasSelection && (
-            <button
+            <Button
               onClick={onRequestBulkDelete}
               disabled={!!operationLoading}
-              className="inline-flex min-h-[26px] shrink-0 items-center rounded px-2 text-secondary font-medium text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:pointer-events-none disabled:opacity-50"
+              variant="ghost"
+              size="md"
+              className="text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
             >
               Delete
-            </button>
+            </Button>
           )}
           </div>
         </div>

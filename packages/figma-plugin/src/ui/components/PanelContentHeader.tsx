@@ -1,5 +1,6 @@
 import { useNavigationContext } from "../contexts/NavigationContext";
 import type { NavigationHandoff } from "../contexts/NavigationContext";
+import { Button } from "../primitives";
 
 interface PrimaryAction {
   label: string;
@@ -61,26 +62,30 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
       <div className="tm-panel-bar">
         <div className="tm-panel-bar__leading">
           {visibleHandoff && returnFromHandoff && (
-            <button
+            <Button
               onClick={returnFromHandoff}
               aria-label={visibleHandoff.returnLabel}
-              className="flex min-w-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-left text-secondary text-[var(--color-figma-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+              variant="ghost"
+              size="sm"
+              className="min-w-0 justify-start px-1.5 text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]"
             >
               <span aria-hidden="true">&larr;</span>
               <span className="truncate">{visibleHandoff.returnLabel}</span>
-            </button>
+            </Button>
           )}
         </div>
 
         <div className="tm-panel-bar__actions">
         {primaryAction && (
-          <button
+          <Button
             onClick={primaryAction.onClick}
             disabled={primaryAction.disabled}
-              className="min-w-0 rounded-md bg-[var(--color-figma-accent)] px-2.5 py-1 text-secondary font-medium text-white transition-colors outline-none hover:bg-[var(--color-figma-accent-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-figma-accent)]/35 disabled:opacity-40"
+            variant="primary"
+            size="md"
+            className="max-w-full"
           >
-              <span className="block truncate">{primaryAction.label}</span>
-          </button>
+            <span className="block truncate">{primaryAction.label}</span>
+          </Button>
         )}
         </div>
       </div>
