@@ -21,6 +21,7 @@ import {
   useTokenTreeSharedData,
 } from "../TokenTreeContext";
 import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
+import { InlineRenameRow } from "../../primitives";
 import {
   getLifecycleLabel,
   readTokenPresentationMetadata,
@@ -415,54 +416,20 @@ export const TokenGroupNode = memo(
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
             {renamingGroup ? (
-              <div
-                className="flex flex-col flex-1 min-w-0 gap-0.5"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center gap-1">
-                  <input
-                    ref={renameGroupInputRef}
-                    value={renameGroupVal}
-                    onChange={(e) => {
-                      setRenameGroupVal(e.target.value);
-                      setRenameGroupError("");
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.stopPropagation();
-                        confirmGroupRename();
-                      }
-                      if (e.key === "Escape") {
-                        e.stopPropagation();
-                        cancelGroupRename();
-                      }
-                    }}
-                    aria-label="Rename group"
-                    className={`flex-1 text-body font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameGroupError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
-                  />
-                  <button
-                    onClick={confirmGroupRename}
-                    disabled={!renameGroupVal.trim()}
-                    className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={cancelGroupRename}
-                    className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                {renameGroupError && (
-                  <p
-                    role="alert"
-                    className="text-secondary text-[var(--color-figma-error)]"
-                  >
-                    {renameGroupError}
-                  </p>
-                )}
-              </div>
+              <InlineRenameRow
+                inputRef={renameGroupInputRef}
+                value={renameGroupVal}
+                ariaLabel="Rename group"
+                error={renameGroupError}
+                confirmDisabled={!renameGroupVal.trim()}
+                inputClassName="font-medium"
+                onChange={(nextValue) => {
+                  setRenameGroupVal(nextValue);
+                  setRenameGroupError("");
+                }}
+                onConfirm={confirmGroupRename}
+                onCancel={cancelGroupRename}
+              />
             ) : (
               isCategoryHeader ? (
                 <span className="flex-1 text-body font-medium text-[var(--color-figma-text-secondary)]">

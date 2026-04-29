@@ -19,6 +19,7 @@ import type { TokenCollection } from "@tokenmanager/core";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import { FLOATING_MENU_WIDE_CLASS } from "../../shared/menuClasses";
+import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
 import type { CollectionReviewSummary } from "../../shared/reviewSummary";
 import {
   filterCollections,
@@ -268,10 +269,10 @@ export function CollectionTabs({
                         ) : null}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-body font-medium">
+                        <span className={`block text-body font-medium ${LONG_TEXT_CLASSES.textPrimary}`}>
                           All collections
                         </span>
-                        <span className="block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                        <span className={`block text-secondary ${LONG_TEXT_CLASSES.textTertiary}`}>
                           {collections.length}{" "}
                           {collections.length === 1 ? "collection" : "collections"}
                         </span>
@@ -325,10 +326,10 @@ export function CollectionTabs({
                             ) : null}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-body font-medium">
+                            <span className={`block text-body font-medium ${LONG_TEXT_CLASSES.textPrimary}`}>
                               {displayName}
                             </span>
-                            <span className="block truncate text-secondary text-[var(--color-figma-text-tertiary)]">
+                            <span className={`block text-secondary ${LONG_TEXT_CLASSES.textTertiary}`}>
                               {meta}
                             </span>
                           </span>
@@ -347,6 +348,11 @@ export function CollectionTabs({
                 type="button"
                 onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
                 aria-label={
+                  activeCollectionSettings?.open === true
+                    ? "Hide collection management"
+                    : "Manage collection"
+                }
+                title={
                   activeCollectionSettings?.open === true
                     ? "Hide collection management"
                     : "Manage collection"

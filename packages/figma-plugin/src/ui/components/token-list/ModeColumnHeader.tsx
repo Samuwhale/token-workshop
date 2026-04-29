@@ -185,7 +185,7 @@ export function ModeColumnHeader({
   );
 
   return (
-    <div ref={cellRef} className="relative min-w-0">
+    <div ref={cellRef} className="tm-mode-column-header relative min-w-0">
       <div
         role="separator"
         aria-orientation="vertical"
@@ -221,7 +221,7 @@ export function ModeColumnHeader({
           type="button"
           onClick={openMenu}
           disabled={!connected}
-          className="block w-full truncate rounded-sm px-1.5 py-1 text-body font-medium text-left text-[var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[var(--color-figma-text-secondary)]"
+          className="tm-mode-column-header__label block w-full rounded-sm px-1.5 py-1 text-body font-medium text-left text-[var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[var(--color-figma-text-secondary)]"
           title={modeName}
         >
           {modeName}

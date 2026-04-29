@@ -55,6 +55,7 @@ import { useNearbyTokenMatch } from "../../hooks/useNearbyTokenMatch";
 import { TokenNudge } from "../TokenNudge";
 import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import { matchesShortcut } from "../../shared/shortcutRegistry";
+import { InlineRenameRow } from "../../primitives";
 import {
   getLifecycleLabel,
   readTokenPresentationMetadata,
@@ -910,54 +911,19 @@ export const TokenLeafNode = memo(
           >
             <div className="flex items-center gap-1 min-w-0 overflow-hidden">
               {renamingToken ? (
-                <div
-                  className="flex flex-col gap-0.5 flex-1 min-w-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center gap-1">
-                    <input
-                      ref={renameTokenInputRef}
-                      value={renameTokenVal}
-                      onChange={(e) => {
-                        setRenameTokenVal(e.target.value);
-                        setRenameTokenError("");
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          confirmTokenRename();
-                        }
-                        if (e.key === "Escape") {
-                          e.stopPropagation();
-                          cancelTokenRename();
-                        }
-                      }}
-                      aria-label="Rename token"
-                      className={`flex-1 text-body text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border rounded px-1 outline-none min-w-0 focus-visible:border-[var(--color-figma-accent)] ${renameTokenError ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
-                    />
-                    <button
-                      onClick={confirmTokenRename}
-                      disabled={!renameTokenVal.trim()}
-                      className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 shrink-0"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={cancelTokenRename}
-                      className="px-1.5 py-0.5 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                  {renameTokenError && (
-                    <p
-                      role="alert"
-                      className="text-secondary text-[var(--color-figma-error)]"
-                    >
-                      {renameTokenError}
-                    </p>
-                  )}
-                </div>
+                <InlineRenameRow
+                  inputRef={renameTokenInputRef}
+                  value={renameTokenVal}
+                  ariaLabel="Rename token"
+                  error={renameTokenError}
+                  confirmDisabled={!renameTokenVal.trim()}
+                  onChange={(nextValue) => {
+                    setRenameTokenVal(nextValue);
+                    setRenameTokenError("");
+                  }}
+                  onConfirm={confirmTokenRename}
+                  onCancel={cancelTokenRename}
+                />
               ) : (
                 <>
                   {node.$type && !previewIsValueBearing(node.$type) && (

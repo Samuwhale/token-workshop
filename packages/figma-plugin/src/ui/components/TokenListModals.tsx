@@ -6,8 +6,80 @@ import { extractAliasPath, isAlias } from '../../shared/resolveAlias';
 import type { AffectedRef, ModeImpact } from './tokenListTypes';
 import { useTokenListModals } from './TokenListModalsContext';
 import { FieldMessage } from '../shared/FieldMessage';
+import { LONG_TEXT_CLASSES } from '../shared/longTextStyles';
 import { NoticePill } from '../shared/noticeSystem';
 import { fieldBorderClass } from '../shared/editorClasses';
+
+function joinClasses(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(' ');
+}
+
+function ModalFrame({
+  dialogRef,
+  title,
+  titleId,
+  onClose,
+  wide = false,
+  meta,
+  afterHeader,
+  children,
+  footer,
+  panelClassName,
+  bodyClassName,
+  footerClassName,
+}: {
+  dialogRef?: React.Ref<HTMLDivElement>;
+  title: React.ReactNode;
+  titleId: string;
+  onClose: () => void;
+  wide?: boolean;
+  meta?: React.ReactNode;
+  afterHeader?: React.ReactNode;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  panelClassName?: string;
+  bodyClassName?: string;
+  footerClassName?: string;
+}) {
+  return (
+    <div
+      className="tm-modal-shell"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        ref={dialogRef}
+        className={joinClasses(
+          'tm-modal-panel',
+          wide && 'tm-modal-panel--wide',
+          panelClassName,
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <div className="tm-modal-header">
+          <h3 id={titleId} className="tm-dialog-title">
+            {title}
+          </h3>
+          {meta ? <div className="tm-modal-meta">{meta}</div> : null}
+        </div>
+        {afterHeader}
+        <div className={joinClasses('tm-modal-body', bodyClassName)}>
+          {children}
+        </div>
+        {footer ? (
+          <div className={joinClasses('tm-modal-footer', footerClassName)}>
+            {footer}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpacts, onConfirm, onCancel }: {
   kind: 'token' | 'group';
@@ -45,91 +117,108 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpact
   })();
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
-    >
-      <div ref={dialogRef} className="w-[340px] rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="rename-confirm-dialog-title">
-        <div className="px-4 pt-4 pb-3">
-          <h3 id="rename-confirm-dialog-title" className="text-heading font-semibold text-[var(--color-figma-text)]">
-            Rename {kind} &ldquo;{label}&rdquo;?
-          </h3>
-          <p className="mt-1.5 text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
-            <span className="font-mono text-[var(--color-figma-text)]">{oldPath}</span>
-            <span className="mx-1 text-[var(--color-figma-text-tertiary)]">&rarr;</span>
-            <span className="font-mono text-[var(--color-figma-text)]">{newPath}</span>
+    <ModalFrame
+      dialogRef={dialogRef}
+      titleId="rename-confirm-dialog-title"
+      title={`Rename ${kind} “${label}”?`}
+      onClose={onCancel}
+      wide={hasImpacts}
+      meta={
+        <div className="flex flex-col gap-2">
+          <p className={LONG_TEXT_CLASSES.monoPrimary}>
+            {oldPath}
+            <span className="mx-1 text-[var(--color-figma-text-tertiary)]">
+              &rarr;
+            </span>
+            {newPath}
           </p>
-          <p className="mt-2 text-body text-[var(--color-figma-text-secondary)] leading-relaxed">
+          <p className="text-body leading-relaxed text-[var(--color-figma-text-secondary)]">
             {summary}
           </p>
-          {hasImpacts && (
-            <>
-              <button
-                type="button"
-                onClick={() => setDetailsOpen((v) => !v)}
-                className="mt-1.5 text-secondary text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] underline-offset-2 hover:underline transition-colors"
-                aria-expanded={detailsOpen}
-              >
-                {detailsOpen ? 'Hide details' : 'View details'}
-              </button>
-              {detailsOpen && (
-                <div className="mt-2 flex flex-col gap-2 text-secondary">
-                  {deps.length > 0 && (
-                    <div>
-                      <div className="mb-1 text-[var(--color-figma-text-secondary)]">Alias references</div>
-                      <ul className="max-h-[120px] overflow-y-auto flex flex-col gap-1 font-mono">
-                        {deps.map((dep, i) => (
-                          <li key={i} className="text-[var(--color-figma-text-secondary)] truncate" title={`${dep.collectionId}: ${dep.tokenPath}`}>
-                            <span className="text-[var(--color-figma-text-tertiary)]">{dep.collectionId}/</span>{dep.tokenPath}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {modeCount > 0 && (
-                    <div>
-                      <div className="mb-1 text-[var(--color-figma-text-secondary)]">Mode values</div>
-                      <ul className="max-h-[80px] overflow-y-auto flex flex-col gap-0.5 font-mono">
-                        {modeImpacts!.map((impact, i) => (
-                          <li key={i} className="truncate" title={`${impact.collectionName} / ${impact.optionName}`}>
-                            <span className="text-[var(--color-figma-text-tertiary)]">{impact.collectionName} / </span>
-                            <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
         </div>
-        <div className="px-4 pb-4 flex flex-col gap-2">
+      }
+      footerClassName={depCount > 0 ? 'items-start' : undefined}
+      footer={
+        <>
           <button
+            type="button"
+            onClick={onCancel}
+            className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
             onClick={() => onConfirm(true)}
-            className="w-full px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)]"
           >
             Rename
           </button>
-          <div className="flex items-center justify-between gap-2 text-secondary">
+          {depCount > 0 ? (
             <button
-              onClick={onCancel}
-              className="px-2 py-1 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+              type="button"
+              onClick={() => onConfirm(false)}
+              className="w-full rounded px-3 py-1.5 text-left text-body text-[var(--color-figma-error)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
             >
-              Cancel
+              Rename without updating references
             </button>
-            {depCount > 0 && (
-              <button
-                onClick={() => onConfirm(false)}
-                className="px-2 py-1 rounded text-[var(--color-figma-text-danger)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Rename without updating references
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+          ) : null}
+        </>
+      }
+    >
+      {hasImpacts ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((v) => !v)}
+            className="text-secondary text-[var(--color-figma-text-tertiary)] transition-colors hover:text-[var(--color-figma-text-secondary)] hover:underline"
+            aria-expanded={detailsOpen}
+          >
+            {detailsOpen ? 'Hide details' : 'View details'}
+          </button>
+          {detailsOpen ? (
+            <div className="flex flex-col gap-2 text-secondary">
+              {deps.length > 0 ? (
+                <div>
+                  <div className="mb-1 text-[var(--color-figma-text-secondary)]">
+                    Alias references
+                  </div>
+                  <ul className="max-h-[120px] overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] p-2">
+                    {deps.map((dep, index) => (
+                      <li key={index} className={LONG_TEXT_CLASSES.monoSecondary}>
+                        <span className="text-[var(--color-figma-text-tertiary)]">
+                          {dep.collectionId}/
+                        </span>
+                        {dep.tokenPath}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {modeCount > 0 ? (
+                <div>
+                  <div className="mb-1 text-[var(--color-figma-text-secondary)]">
+                    Mode values
+                  </div>
+                  <ul className="max-h-[96px] overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] p-2">
+                    {modeImpacts!.map((impact, index) => (
+                      <li key={index} className={LONG_TEXT_CLASSES.monoSecondary}>
+                        <span className="text-[var(--color-figma-text-tertiary)]">
+                          {impact.collectionName} /{' '}
+                        </span>
+                        <span className="text-[var(--color-figma-text)]">
+                          {impact.optionName}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </ModalFrame>
   );
 }
 
@@ -171,35 +260,56 @@ function ExtractToAliasModal() {
     .slice(0, 40);
 
   return (
-    <div
-      className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onSetExtractToken(null); }}
-    >
-      <div ref={dialogRef} className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col" style={{ maxHeight: '80vh' }} role="dialog" aria-modal="true" aria-labelledby="extract-to-alias-dialog-title">
-        <div className="p-4 border-b border-[var(--color-figma-border)]">
-          <div id="extract-to-alias-dialog-title" className="tm-dialog-title">Link to token</div>
-          <div className="text-secondary text-[var(--color-figma-text-secondary)] mt-0.5 truncate">
-            <span className="font-mono text-[var(--color-figma-text)]">{extractToken.path}</span>
-          </div>
-        </div>
-
-        {/* Mode tabs */}
-        <div className="flex border-b border-[var(--color-figma-border)]">
+    <ModalFrame
+      dialogRef={dialogRef}
+      titleId="extract-to-alias-dialog-title"
+      title="Link to token"
+      onClose={() => onSetExtractToken(null)}
+      wide
+      meta={<span className={LONG_TEXT_CLASSES.monoPrimary}>{extractToken.path}</span>}
+      afterHeader={
+        <div className="tm-modal-tablist border-b border-[var(--color-figma-border)]">
           <button
             onClick={() => onSetExtractMode('new')}
-            className={`flex-1 py-1.5 text-secondary font-medium transition-colors ${extractMode === 'new' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+            className={joinClasses(
+              'tm-modal-tab',
+              extractMode === 'new' && 'tm-modal-tab--active',
+            )}
           >
             Create new primitive
           </button>
           <button
             onClick={() => onSetExtractMode('existing')}
-            className={`flex-1 py-1.5 text-secondary font-medium transition-colors ${extractMode === 'existing' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+            className={joinClasses(
+              'tm-modal-tab',
+              extractMode === 'existing' && 'tm-modal-tab--active',
+            )}
           >
             Use existing token
           </button>
         </div>
-
-        <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
+      }
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={() => onSetExtractToken(null)}
+            className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmExtractToAlias}
+            className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+            disabled={extractMode === 'existing' && !existingAlias}
+          >
+            Extract
+          </button>
+        </>
+      }
+    >
+        <div className="flex flex-col gap-3">
           {extractMode === 'new' ? (
             <>
               <div className="flex flex-col gap-1">
@@ -248,7 +358,7 @@ function ExtractToAliasModal() {
                     className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${existingAlias === path ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'}`}
                   >
                     <ValuePreview type={t.$type} value={t.$value} />
-                    <span className="text-secondary font-mono flex-1 truncate">{path}</span>
+                    <span className={`flex-1 ${LONG_TEXT_CLASSES.mono}`}>{path}</span>
                   </button>
                 ))}
               </div>
@@ -257,24 +367,7 @@ function ExtractToAliasModal() {
 
           <FieldMessage error={extractError} />
         </div>
-
-        <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
-          <button
-            onClick={() => onSetExtractToken(null)}
-            className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirmExtractToAlias}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-            disabled={extractMode === 'existing' && !existingAlias}
-          >
-            Extract
-          </button>
-        </div>
-      </div>
-    </div>
+    </ModalFrame>
   );
 }
 
@@ -332,7 +425,7 @@ function DeleteImpactDetails({
         >
           <div className="max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {pathList!.slice(0, 20).map(p => (
-              <div key={p} className="px-2 py-0.5 text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate" title={p}>{p}</div>
+              <div key={p} className={`px-2 py-0.5 text-secondary ${LONG_TEXT_CLASSES.monoSecondary}`} title={p}>{p}</div>
             ))}
             {tokenCount > 20 && (
               <div className="px-2 py-0.5 text-secondary text-[var(--color-figma-text-secondary)] italic">and {tokenCount - 20} more…</div>
@@ -350,7 +443,7 @@ function DeleteImpactDetails({
         >
           <div className="max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {affectedRefs!.slice(0, 20).map((ref, i) => (
-              <div key={i} className="px-2 py-0.5 text-secondary font-mono text-[var(--color-figma-text-secondary)] truncate" title={`${ref.collectionId}/${ref.path}`}>
+              <div key={i} className={`px-2 py-0.5 text-secondary ${LONG_TEXT_CLASSES.monoSecondary}`} title={`${ref.collectionId}/${ref.path}`}>
                 <span className="text-[var(--color-figma-text-tertiary)]">{ref.collectionId}/</span>{ref.path}
               </div>
             ))}
@@ -370,7 +463,7 @@ function DeleteImpactDetails({
         >
           <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {modeImpacts!.map((impact, i) => (
-              <div key={i} className="px-2 py-0.5 text-secondary font-mono border-b border-[var(--color-figma-border)] last:border-b-0 truncate">
+              <div key={i} className={`px-2 py-0.5 text-secondary border-b border-[var(--color-figma-border)] last:border-b-0 ${LONG_TEXT_CLASSES.monoSecondary}`}>
                 <span className="text-[var(--color-figma-text-tertiary)]">{impact.collectionName} / </span>
                 <span className="text-[var(--color-figma-text)]">{impact.optionName}</span>
               </div>
@@ -457,7 +550,7 @@ function MoveScopePreview({
     <div className="flex flex-col gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
       <div className={rowClass}>
         <span className={labelClass}>From</span>
-        <span className={`${valueClass} truncate font-mono`} title={fromCollection}>
+        <span className={`${valueClass} ${LONG_TEXT_CLASSES.mono}`}>
           {fromCollection}
           {fromGroup ? (
             <>
@@ -468,7 +561,7 @@ function MoveScopePreview({
         </span>
         <span className={labelClass}>Moving</span>
         <span className={`${valueClass} min-w-0`}>
-          <span className="truncate font-mono">
+          <span className={LONG_TEXT_CLASSES.mono}>
             {samples.join(", ")}
           </span>
           {remaining > 0 && (
@@ -478,7 +571,7 @@ function MoveScopePreview({
           )}
         </span>
         <span className={labelClass}>To</span>
-        <span className={`${valueClass} truncate font-mono`} title={toLabel ?? ""}>
+        <span className={`${valueClass} ${LONG_TEXT_CLASSES.mono}`}>
           {toLabel ? (
             toLabel
           ) : (
@@ -608,14 +701,45 @@ export function TokenListModals() {
 
       {/* New group dialog */}
       {newGroupDialogParent !== null && (
-        <div className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50" onMouseDown={(e) => { if (e.target === e.currentTarget) { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); } }}>
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3" role="dialog" aria-modal="true" aria-labelledby="new-group-dialog-title">
-            <div id="new-group-dialog-title" className="tm-dialog-title">New group</div>
-            {newGroupDialogParent && (
-              <div className="text-secondary text-[var(--color-figma-text-secondary)]">
-                Inside <span className="font-mono text-[var(--color-figma-text)]">{newGroupDialogParent}</span>
-              </div>
-            )}
+        <ModalFrame
+          titleId="new-group-dialog-title"
+          title="New group"
+          onClose={() => {
+            onSetNewGroupDialogParent(null);
+            onSetNewGroupName('');
+            onSetNewGroupError('');
+          }}
+          meta={
+            newGroupDialogParent ? (
+              <span>
+                Inside <span className={LONG_TEXT_CLASSES.monoPrimary}>{newGroupDialogParent}</span>
+              </span>
+            ) : undefined
+          }
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  onSetNewGroupDialogParent(null);
+                  onSetNewGroupName('');
+                  onSetNewGroupError('');
+                }}
+                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1 text-secondary text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCreateGroup(newGroupDialogParent ?? '', newGroupName)}
+                disabled={!newGroupName.trim() || !!newGroupError}
+                className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1 text-secondary font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+              >
+                Create
+              </button>
+            </>
+          }
+        >
             <input
               type="text"
               placeholder={newGroupDialogParent ? 'subgroup-name' : 'group-name'}
@@ -635,23 +759,7 @@ export function TokenListModals() {
               autoFocus
             />
             <FieldMessage error={newGroupError} />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); }}
-                className="px-3 py-1 rounded text-secondary text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleCreateGroup(newGroupDialogParent ?? '', newGroupName)}
-                disabled={!newGroupName.trim() || !!newGroupError}
-                className="px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white text-secondary font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-              >
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalFrame>
       )}
 
       {/* Rename token confirmation modal */}
@@ -702,12 +810,30 @@ export function TokenListModals() {
           ? `${outboundAliasCount} alias${outboundAliasCount === 1 ? "" : "es"} inside this group will become cross-collection references to ${collectionId}.`
           : null;
         return (
-          <div
-            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-            onMouseDown={e => { if (e.target === e.currentTarget) onSetMovingGroup(null); }}
+          <ModalFrame
+            titleId="move-group-dialog-title"
+            title="Move group to collection"
+            onClose={() => onSetMovingGroup(null)}
+            footer={
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSetMovingGroup(null)}
+                  className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmMoveGroup}
+                  disabled={!moveTargetCollectionId}
+                  className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >
+                  Move
+                </button>
+              </>
+            }
           >
-            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
-              <div className="tm-dialog-title">Move group to collection</div>
               <MoveScopePreview
                 fromCollection={collectionId}
                 fromGroup={movingGroup}
@@ -728,23 +854,7 @@ export function TokenListModals() {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => onSetMovingGroup(null)}
-                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmMoveGroup}
-                  disabled={!moveTargetCollectionId}
-                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-                >
-                  Move
-                </button>
-              </div>
-            </div>
-          </div>
+          </ModalFrame>
         );
       })()}
 
@@ -763,12 +873,30 @@ export function TokenListModals() {
           : "";
         const outboundAliasNote = `Originals stay in ${collectionId}.${aliasPart}`;
         return (
-          <div
-            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-            onMouseDown={e => { if (e.target === e.currentTarget) onSetCopyingGroup(null); }}
+          <ModalFrame
+            titleId="copy-group-dialog-title"
+            title="Copy group to collection"
+            onClose={() => onSetCopyingGroup(null)}
+            footer={
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSetCopyingGroup(null)}
+                  className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCopyGroup}
+                  disabled={!copyTargetCollectionId}
+                  className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >
+                  Copy
+                </button>
+              </>
+            }
           >
-            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
-              <div className="tm-dialog-title">Copy group to collection</div>
               <MoveScopePreview
                 fromCollection={collectionId}
                 fromGroup={copyingGroup}
@@ -789,23 +917,7 @@ export function TokenListModals() {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => onSetCopyingGroup(null)}
-                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmCopyGroup}
-                  disabled={!copyTargetCollectionId}
-                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          </div>
+          </ModalFrame>
         );
       })()}
 
@@ -827,12 +939,30 @@ export function TokenListModals() {
             }, 0)
           : 0;
         return (
-          <div
-            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-            onMouseDown={e => { if (e.target === e.currentTarget) { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); } }}
+          <ModalFrame
+            titleId="move-to-group-dialog-title"
+            title={`Move ${selectedMoveCount} token${selectedMoveCount !== 1 ? 's' : ''} to group`}
+            onClose={() => { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }}
+            footer={
+              <>
+                <button
+                  type="button"
+                  onClick={() => { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }}
+                  className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBatchMoveToGroup}
+                  disabled={!moveToGroupTarget.trim()}
+                  className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >
+                  Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''}
+                </button>
+              </>
+            }
           >
-            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
-              <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to group</div>
               <MoveScopePreview
                 fromCollection={collectionId}
                 fromGroup={fromGroup}
@@ -854,23 +984,7 @@ export function TokenListModals() {
                 autoFocus
               />
               <FieldMessage error={moveToGroupError} />
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => { onSetShowMoveToGroup(false); onSetMoveToGroupError(''); }}
-                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBatchMoveToGroup}
-                  disabled={!moveToGroupTarget.trim()}
-                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-                >
-                  Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''}
-                </button>
-              </div>
-            </div>
-          </div>
+          </ModalFrame>
         );
       })()}
 
@@ -887,16 +1001,30 @@ export function TokenListModals() {
             )
           : 0;
         return (
-          <div
-            className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-            onMouseDown={e => {
-              if (e.target === e.currentTarget) {
-                onSetShowBatchMoveToCollection(false);
-              }
-            }}
+          <ModalFrame
+            titleId="batch-move-collection-dialog-title"
+            title={`Move ${selectedMoveCount} token${selectedMoveCount !== 1 ? 's' : ''} to another collection`}
+            onClose={() => onSetShowBatchMoveToCollection(false)}
+            footer={
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSetShowBatchMoveToCollection(false)}
+                  className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBatchMoveToCollection}
+                  disabled={!batchMoveToCollectionTarget}
+                  className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >
+                  Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''}
+                </button>
+              </>
+            }
           >
-            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 p-4 flex flex-col gap-3">
-              <div className="tm-dialog-title">Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
               <MoveScopePreview
                 fromCollection={collectionId}
                 fromGroup={fromGroup}
@@ -919,38 +1047,36 @@ export function TokenListModals() {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => onSetShowBatchMoveToCollection(false)}
-                  className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBatchMoveToCollection}
-                  disabled={!batchMoveToCollectionTarget}
-                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-                >
-                  Move {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''}
-                </button>
-              </div>
-            </div>
-          </div>
+          </ModalFrame>
         );
       })()}
 
       {/* Batch copy selected tokens to another collection */}
       {showBatchCopyToCollection && (
-        <div
-          className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-center justify-center z-50"
-          onMouseDown={e => {
-            if (e.target === e.currentTarget) {
-              onSetShowBatchCopyToCollection(false);
-            }
-          }}
+        <ModalFrame
+          titleId="batch-copy-collection-dialog-title"
+          title={`Copy ${selectedMoveCount} token${selectedMoveCount !== 1 ? 's' : ''} to another collection`}
+          onClose={() => onSetShowBatchCopyToCollection(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => onSetShowBatchCopyToCollection(false)}
+                className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-3 py-1.5 text-body text-[var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchCopyToCollection}
+                disabled={!batchCopyToCollectionTarget}
+                className="w-full rounded bg-[var(--color-figma-accent)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+              >
+                Copy
+              </button>
+            </>
+          }
         >
-          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
-            <div className="tm-dialog-title">Copy {selectedMoveCount} token{selectedMoveCount !== 1 ? 's' : ''} to another collection</div>
             <div className="text-secondary text-[var(--color-figma-text-secondary)]">
               Tokens will be duplicated into the target collection. Originals in <span className="font-mono text-[var(--color-figma-text)]">{collectionId}</span> are kept.
             </div>
@@ -968,23 +1094,7 @@ export function TokenListModals() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => onSetShowBatchCopyToCollection(false)}
-                className="px-3 py-1.5 rounded text-body text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBatchCopyToCollection}
-                disabled={!batchCopyToCollectionTarget}
-                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-body font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-              >
-                Copy
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalFrame>
       )}
     </>
   );

@@ -143,7 +143,7 @@ export function ValueCell({
     },
   ) => (
     <div
-      className={`min-w-0 flex-1 overflow-hidden ${interactiveTextClass}`}
+      className={`tm-value-cell__text ${interactiveTextClass}`}
       onClick={
         canQuickEdit
           ? (e) => {
@@ -154,7 +154,7 @@ export function ValueCell({
       }
     >
       <div
-        className={`truncate text-[11px] leading-[1.08] ${
+        className={`tm-value-cell__line text-[11px] leading-[1.08] ${
           options?.primaryMonospace ? "font-mono" : ""
         } ${options?.primaryClassName ?? "text-[var(--color-figma-text)]"}`}
         style={options?.primaryStyle}
@@ -163,7 +163,7 @@ export function ValueCell({
       </div>
       {secondary ? (
         <div
-          className={`truncate text-[10px] leading-[1.08] ${
+          className={`tm-value-cell__line text-[10px] leading-[1.08] ${
             options?.secondaryMonospace ? "font-mono" : ""
           } ${
             options?.secondaryClassName ??
@@ -180,7 +180,7 @@ export function ValueCell({
   return (
     <div
       ref={cellRef}
-      className={wrapperClass}
+      className={`tm-value-cell ${wrapperClass}`}
       title={titleLines.join("\n")}
     >
       {!value ? (

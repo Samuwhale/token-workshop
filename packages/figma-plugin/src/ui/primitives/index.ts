@@ -12,6 +12,7 @@ export { Button } from "./Button";
 export { Chip } from "./Chip";
 export { Field } from "./Field";
 export { IconButton } from "./IconButton";
+export { InlineRenameRow } from "./InlineRenameRow";
 export { ListItem } from "./ListItem";
 export { MenuRadioGroup } from "./MenuRadioGroup";
 export { SegmentedControl, type SegmentedOption } from "./SegmentedControl";

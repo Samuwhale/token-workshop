@@ -291,11 +291,13 @@ export function TokenListToolbar({
 
             {zoomRootPath ? (
               <span
-                className="tm-token-toolbar__scope inline-flex min-w-0 shrink items-center gap-1 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
+                className="tm-token-toolbar__scope inline-flex min-w-0 shrink items-start gap-1 text-secondary text-[var(--color-figma-text-tertiary)]"
                 title={`Scoped to ${zoomRootPath}`}
               >
                 <ChevronRight size={10} strokeWidth={1.5} aria-hidden />
-                <span className="truncate">{zoomRootPath}</span>
+                <span className="tm-token-toolbar__scope-text">
+                  {zoomRootPath}
+                </span>
               </span>
             ) : null}
 
