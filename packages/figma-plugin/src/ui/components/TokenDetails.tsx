@@ -1315,7 +1315,7 @@ export function TokenDetails({
     !valueIsAlias && COMPOSITE_TOKEN_TYPES.has(tokenType) ? (
       <div className="flex flex-col gap-1">
         <label className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Inherits from
+          Reuse properties from
         </label>
         {extendsPath ? (
           <div className="flex items-center gap-1.5">
@@ -1335,8 +1335,8 @@ export function TokenDetails({
               <button
                 type="button"
                 onClick={() => setExtendsPath("")}
-                title="Remove base token"
-                aria-label="Remove base token"
+                title="Remove source token"
+                aria-label="Remove source token"
                 className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
               >
                 <X size={10} strokeWidth={1.5} aria-hidden />
@@ -1353,7 +1353,7 @@ export function TokenDetails({
           />
         ) : (
           <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            No base token
+            No source token
           </p>
         )}
         {extendsPath &&
@@ -1368,17 +1368,17 @@ export function TokenDetails({
                 </p>
               );
             }
-            const base = allTokensFlat[extendsPath];
-            if (!base) {
+            const source = allTokensFlat[extendsPath];
+            if (!source) {
               return (
                 <p className="text-secondary text-[color:var(--color-figma-text-error)]">
-                  Base token not found
+                  Source token not found
                 </p>
               );
             }
             return (
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Base properties merged with overrides.
+                Properties are combined from this referenced token.
               </p>
             );
           })()}

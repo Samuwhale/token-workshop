@@ -65,9 +65,9 @@ export const TOP_TABS: {
     label: "Library",
     subTabs: [
       { id: "tokens", label: "Tokens" },
+      { id: "generators", label: "Generators" },
       { id: "health", label: "Review" },
       { id: "history", label: "History" },
-      { id: "generators", label: "Generators" },
     ],
   },
   {
@@ -289,9 +289,9 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     subTab: "tokens",
     sections: [
       { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
+      { id: "generators", label: "Generators", topTab: "library", subTab: "generators" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
       { id: "history", label: "History", topTab: "library", subTab: "history" },
-      { id: "generators", label: "Generators", topTab: "library", subTab: "generators" },
     ],
     matchRoutes: [
       route("library", "tokens"),

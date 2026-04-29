@@ -1792,7 +1792,9 @@ export function PanelRouter({
                 nodeId: issue.generatorNodeId,
                 edgeId: issue.generatorEdgeId,
               });
-              setPendingGeneratorInitialView(null);
+              setPendingGeneratorInitialView(
+                issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "overview",
+              );
               navigateTo("library", "generators");
             }}
             scope={healthScope}
@@ -1807,7 +1809,9 @@ export function PanelRouter({
                   nodeId: issue.generatorNodeId,
                   edgeId: issue.generatorEdgeId,
                 });
-                setPendingGeneratorInitialView(null);
+                setPendingGeneratorInitialView(
+                  issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "overview",
+                );
                 navigateTo("library", "generators");
                 return;
               }

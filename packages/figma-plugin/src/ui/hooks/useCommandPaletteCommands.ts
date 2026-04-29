@@ -526,9 +526,9 @@ export function useCommandPaletteCommands(): {
         ? [
             {
               id: "compare-across-modes",
-              label: `Compare across modes: ${highlightedToken}`,
+              label: `Compare collection modes: ${highlightedToken}`,
               description:
-                "See how this token’s value varies across all collection modes",
+                "See how this token’s value varies across collection modes",
               category: "Modes" as const,
               handler: () =>
                 tokens.handleOpenCrossCollectionCompare(highlightedToken),

@@ -689,6 +689,11 @@ export function GeneratorsPanel({
       setGraphMenu(null);
     } else if (initialView === "graph" || focus?.nodeId || focus?.edgeId) {
       setEditorMode("graph");
+    } else if (focus?.diagnosticId) {
+      setEditorMode("overview");
+      setNodeLibraryOpen(false);
+      setInspectorOpen(false);
+      setGraphMenu(null);
     }
     if (focus?.nodeId) {
       setSelectedNodeId(focus.nodeId);
@@ -2456,7 +2461,7 @@ export function GeneratorsPanel({
                 <span className="truncate">
                   {preview
                     ? `${preview.outputs.length} ${preview.outputs.length === 1 ? "output" : "outputs"}`
-                    : "Outputs"}
+                    : "Overview"}
                 </span>
               </button>
             </div>
@@ -2781,7 +2786,7 @@ export function GeneratorsPanel({
                     setInspectorOpen(false);
                   }}
                 >
-                  Review outputs
+                  Open Overview
                 </ActionRow>
               ) : null}
             </>
@@ -6673,7 +6678,7 @@ function FloatingPreviewPanel({
               onClick={onOpenFull}
               className="mt-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
-              {preview.outputs.length - visibleOutputs.length} more in Overview
+              Open Overview for {preview.outputs.length - visibleOutputs.length} more
             </button>
           ) : null}
         </div>

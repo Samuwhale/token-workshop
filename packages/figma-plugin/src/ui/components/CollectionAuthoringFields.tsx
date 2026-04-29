@@ -10,12 +10,19 @@ export interface CollectionAuthoringDraft {
   modeNames: string[];
 }
 
+const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
+  { label: "Default", modes: ["Default"] },
+  { label: "Light / Dark", modes: ["Light", "Dark"] },
+  { label: "Mobile / Desktop", modes: ["Mobile", "Desktop"] },
+];
+
 interface CollectionAuthoringFieldsProps {
   draft: CollectionAuthoringDraft;
   pending?: boolean;
   error?: string;
   nameInputRef?: Ref<HTMLInputElement>;
   onNameChange: (value: string) => void;
+  onModeNamesChange?: (modeNames: string[]) => void;
   onModeNameChange: (index: number, value: string) => void;
   onAddMode: () => void;
   onRemoveMode: (index: number) => void;
@@ -67,6 +74,7 @@ export function CollectionAuthoringFields({
   error,
   nameInputRef,
   onNameChange,
+  onModeNamesChange,
   onModeNameChange,
   onAddMode,
   onRemoveMode,
@@ -87,7 +95,7 @@ export function CollectionAuthoringFields({
           className={COLLECTION_INPUT_CLASS}
         />
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Keep this simple. Use `/` only when your library already groups collections that way.
+          Use the name designers expect to see in Figma Variables. Use `/` only when your library already groups collections that way.
         </span>
       </label>
 
@@ -107,9 +115,25 @@ export function CollectionAuthoringFields({
           </button>
         </div>
 
+        {onModeNamesChange ? (
+          <div className="flex flex-wrap gap-1.5" aria-label="Mode starters">
+            {MODE_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => onModeNamesChange(preset.modes)}
+                disabled={pending}
+                className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-2">
           {draft.modeNames.map((modeName, index) => (
-            <label className="flex flex-col gap-1">
+            <label key={index} className="flex flex-col gap-1">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {`Mode ${index + 1}`}
               </span>
@@ -139,7 +163,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Modes are equal contexts for every token in the collection. Add only the ones you need right now, like Default and Dark.
+          Modes are equal value contexts for every token in this collection. Add only the contexts you need right now.
         </span>
       </div>
 

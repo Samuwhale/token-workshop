@@ -853,9 +853,9 @@ export function SelectionInspector({
               onClick={() => onSync("selection")}
               disabled={syncing}
               className="min-h-7 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
-              title="Apply to selection"
+              title="Update bound values on the current selection"
             >
-              Apply
+              Update selection
             </button>
           )}
           {(connected || totalBindings > 0) && (
@@ -885,9 +885,9 @@ export function SelectionInspector({
                 }}
                 disabled={syncing}
                 className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
-                title="Apply bindings to every page layer"
+                title="Update bound values on every page layer"
               >
-                Apply to page
+                Update page
               </button>
             )}
             {totalBindings > 0 && (

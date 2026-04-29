@@ -1125,7 +1125,7 @@ export const TokenLeafNode = memo(
                         className={MENU_ITEM_CLASS}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-                        <span className="flex-1">Apply to selection</span>
+                        <span className="flex-1">Bind to selection</span>
                         {quickBindTargets?.length === 1 && (
                           <span className={MENU_SHORTCUT_CLASS}>{PROPERTY_LABELS[quickBindTargets[0]]}</span>
                         )}
@@ -1266,7 +1266,7 @@ export const TokenLeafNode = memo(
                       className={MENU_ITEM_CLASS}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
-                      <span className="flex-1">Compare across modes</span>
+                      <span className="flex-1">Compare across collections</span>
                     </button>
                   )}
                   {onViewTokenHistory && (

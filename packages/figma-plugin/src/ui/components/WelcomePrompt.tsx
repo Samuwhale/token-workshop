@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  MousePointer2,
+  Plus,
+  Upload,
+  X,
+} from "lucide-react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { NoticeBanner } from "../shared/noticeSystem";
 import { QuickStartWizard } from "./QuickStartWizard";
@@ -14,11 +22,11 @@ type StartHereBranchCopy = {
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
     title: "Start with a collection",
-    description: "Create one, import tokens, or extract from the current selection.",
+    description: "Collections match Figma variable collections: tokens live inside them, and modes define their value contexts.",
   },
   "start-new": {
     title: "Create your first collection",
-    description: "Collections hold tokens and modes.",
+    description: "Name the collection, then choose the modes every token in it should support.",
   },
 };
 
@@ -32,6 +40,7 @@ interface WelcomePromptProps {
   serverUrl: string;
   currentCollectionId: string;
   collectionIds: string[];
+  selectedNodeCount?: number;
   initialBranch?: StartHereBranch;
   onRetryConnection?: () => void;
   onClose: () => void;
@@ -96,20 +105,12 @@ function ActionRow({
           {description}
         </span>
       </span>
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <ChevronRight
+        size={12}
+        strokeWidth={2}
         className="shrink-0 mt-0.5 text-[color:var(--color-figma-text-tertiary)]"
-        aria-hidden="true"
-      >
-        <path d="M9 6l6 6-6 6" />
-      </svg>
+        aria-hidden
+      />
     </button>
   );
 }
@@ -120,6 +121,7 @@ export function WelcomePrompt({
   serverUrl,
   currentCollectionId,
   collectionIds,
+  selectedNodeCount = 0,
   initialBranch = "root",
   onRetryConnection,
   onClose,
@@ -146,67 +148,27 @@ export function WelcomePrompt({
     <div>
       <ActionRow
         title="Create your first collection"
-        description="Add the collection and its modes."
+        description="Start clean with a Figma-style collection and mode setup."
         onClick={() => setBranch("start-new")}
         emphasized
-        icon={
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-        }
+        icon={<Plus size={14} strokeWidth={1.75} aria-hidden />}
       />
       <ActionRow
         title="Import existing tokens"
-        description="Use variables, styles, or token files."
+        description="Bring in Figma variables, styles, JSON, CSS, or Tokens Studio files."
         onClick={() => handleAction(onImportExistingSystem)}
-        icon={
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 3v12" />
-            <path d="M7 10l5 5 5-5" />
-            <path d="M5 21h14" />
-          </svg>
-        }
+        icon={<Upload size={14} strokeWidth={1.75} aria-hidden />}
       />
       <ActionRow
         title="Start from current selection"
-        description="Extract colors, type, and spacing."
-        onClick={() => handleAction(onStartFromSelection)}
-        icon={
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M4 4l7.07 17 2.51-7.39L21 11.07z" />
-          </svg>
+        description={
+          selectedNodeCount > 0
+            ? "Inspect selected layers and turn design values into tokens."
+            : "Select layers in Figma to extract tokens from the canvas."
         }
+        disabled={selectedNodeCount === 0}
+        onClick={() => handleAction(onStartFromSelection)}
+        icon={<MousePointer2 size={14} strokeWidth={1.75} aria-hidden />}
       />
     </div>
   );
@@ -243,17 +205,7 @@ export function WelcomePrompt({
                   className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                   aria-label="Go back"
                 >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                  >
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
+                  <ArrowLeft size={12} strokeWidth={1.75} aria-hidden />
                 </button>
               )}
               <h2
@@ -269,17 +221,7 @@ export function WelcomePrompt({
               className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
               aria-label="Close"
             >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden="true"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+              <X size={12} strokeWidth={2} aria-hidden />
             </button>
           </div>
           {branchCopy.description ? (

@@ -47,7 +47,7 @@ export function ImportConflictResolver() {
   const getFilteredPaths = () => conflictPaths.filter(path => {
     if (searchLower && !path.toLowerCase().includes(searchLower)) return false;
     if (conflictStatusFilter !== 'all') {
-      const d = conflictDecisions.get(path) ?? 'accept';
+      const d = conflictDecisions.get(path) ?? 'merge';
       if (d !== conflictStatusFilter) return false;
     }
     if (conflictTypeFilter !== 'all') {
@@ -172,7 +172,7 @@ export function ImportConflictResolver() {
       ) : (
         <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
           {filteredConflictPaths.map(path => {
-            const decision = conflictDecisions.get(path) ?? 'accept';
+            const decision = conflictDecisions.get(path) ?? 'merge';
             const incoming = tokens.find(t => t.path === path);
             const existing = conflictExistingValues?.get(path);
             return (

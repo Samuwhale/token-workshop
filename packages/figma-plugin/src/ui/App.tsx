@@ -2320,6 +2320,7 @@ export function App() {
           serverUrl={serverUrl}
           currentCollectionId={currentCollectionId}
           collectionIds={collectionIds}
+          selectedNodeCount={selectedNodes.length}
           initialBranch={startHereState.initialBranch}
           onClose={finishStartHere}
           onRetryConnection={retryConnection}

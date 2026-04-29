@@ -133,6 +133,10 @@ function CollectionCreateDialogContent({
               setDraft((current) => ({ ...current, name: value }));
               setError("");
             }}
+            onModeNamesChange={(modeNames) => {
+              setDraft((current) => ({ ...current, modeNames }));
+              setError("");
+            }}
             onModeNameChange={(index, value) => {
               setDraft((current) => ({
                 ...current,

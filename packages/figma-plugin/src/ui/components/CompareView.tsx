@@ -536,10 +536,10 @@ function CrossCollectionMode({
     return (
       <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">Compare across modes</span>
+          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">Compare collection modes</span>
           <button onClick={onClose} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">Close</button>
         </div>
-        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">No modes found. Add modes in the Modes workspace to compare across options.</p>
+        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">No modes found. Add modes to a collection before comparing values.</p>
       </div>
     );
   }
@@ -557,7 +557,7 @@ function CrossCollectionMode({
               {tokenType}
             </span>
           )}
-          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] shrink-0">across modes</span>
+          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] shrink-0">collection modes</span>
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
           <button
@@ -1537,7 +1537,7 @@ export function CompareView({
                 </p>
               ) : (
                 <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-                  Right-click any token in the Tokens tab and choose <strong>Compare across modes</strong> to see how its value changes across each option.
+                  Right-click any token in the Tokens tab and choose <strong>Compare across collections</strong> to see how its value changes across collection modes.
                 </p>
               )}
               <button
