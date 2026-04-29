@@ -518,6 +518,23 @@ export function CollectionDetailsPanel({
     }
   }, [renaming]);
 
+  const collectionId = collection?.id ?? "";
+  const tokenCount = collection ? (collectionTokenCounts[collection.id] ?? 0) : 0;
+  const modeCount = collection?.modes.length ?? 0;
+  const displayName = collection
+    ? getCollectionDisplayName(collection.id, collectionDisplayNames)
+    : "";
+  const showRawId = !!collection && displayName !== collection.id;
+  const savedDescription = collection ? (collectionDescriptions[collection.id] ?? "") : "";
+  const currentDescription =
+    collection && editingMetadataCollectionId === collection.id
+      ? metadataDescription
+      : savedDescription;
+  const descriptionDirty =
+    !!collection &&
+    editingMetadataCollectionId === collection.id &&
+    metadataDescription !== savedDescription;
+
   const startRename = useCallback(() => {
     if (!collection) return;
     setRenameValue(collection.id);
@@ -587,6 +604,18 @@ export function CollectionDetailsPanel({
       ? "mx-auto flex h-full w-full max-w-[720px] flex-col overflow-hidden"
       : "flex h-full w-full flex-col overflow-hidden";
 
+  const saveDescription = useCallback(async () => {
+    if (!descriptionDirty || !onMetadataSave) {
+      return;
+    }
+    setMetadataSaving(true);
+    try {
+      await onMetadataSave();
+    } finally {
+      setMetadataSaving(false);
+    }
+  }, [descriptionDirty, onMetadataSave]);
+
   if (!collection) {
     return (
       <div className={`${shellClass} tm-collection-details`}>
@@ -611,29 +640,8 @@ export function CollectionDetailsPanel({
     );
   }
 
-  const tokenCount = collectionTokenCounts[collection.id] ?? 0;
-  const modeCount = collection.modes.length;
-  const displayName = getCollectionDisplayName(collection.id, collectionDisplayNames);
-  const showRawId = displayName !== collection.id;
-  const savedDescription = collectionDescriptions[collection.id] ?? "";
-  const currentDescription =
-    editingMetadataCollectionId === collection.id ? metadataDescription : savedDescription;
-  const descriptionDirty =
-    editingMetadataCollectionId === collection.id && metadataDescription !== savedDescription;
-  const saveDescription = useCallback(async () => {
-    if (!descriptionDirty || !onMetadataSave) {
-      return;
-    }
-    setMetadataSaving(true);
-    try {
-      await onMetadataSave();
-    } finally {
-      setMetadataSaving(false);
-    }
-  }, [descriptionDirty, onMetadataSave]);
-
   const canMerge =
-    !!onMerge && collectionIds.some((collectionId) => collectionId !== collection.id);
+    !!onMerge && collectionIds.some((candidateCollectionId) => candidateCollectionId !== collectionId);
 
   if (
     mergingCollectionId === collection.id &&

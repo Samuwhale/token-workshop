@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useImportReviewContext, useImportSourceContext } from './ImportPanelContext';
 import { renderConflictValue } from './importPanelHelpers';
+
+type ConflictDecision = 'accept' | 'merge' | 'reject';
+
+const DEFAULT_CONFLICT_DECISION: ConflictDecision = 'merge';
+const CONFLICT_DECISIONS: readonly ConflictDecision[] = ['accept', 'merge', 'reject'];
 
 export function ImportConflictResolver() {
   const { tokens, selectedTokens } = useImportSourceContext();
@@ -34,32 +39,40 @@ export function ImportConflictResolver() {
 
   handlerRef.current = null;
 
-  if (!conflictPaths || conflictPaths.length === 0) return null;
+  const incomingTokenByPath = useMemo(
+    () => new Map(tokens.map((token) => [token.path, token])),
+    [tokens],
+  );
+  const safeConflictPaths = conflictPaths ?? [];
+  const decisionForPath = (path: string): ConflictDecision =>
+    conflictDecisions.get(path) ?? DEFAULT_CONFLICT_DECISION;
 
-  const newCount = selectedTokens.size - conflictPaths.length;
-  const overwriteCount = [...conflictDecisions.values()].filter(v => v === 'accept').length;
-  const mergeCount = [...conflictDecisions.values()].filter(v => v === 'merge').length;
-  const keepExistingCount = conflictPaths.length - overwriteCount - mergeCount;
+  if (safeConflictPaths.length === 0) return null;
+
+  const newCount = Math.max(0, selectedTokens.size - safeConflictPaths.length);
+  const overwriteCount = safeConflictPaths.filter(path => decisionForPath(path) === 'accept').length;
+  const mergeCount = safeConflictPaths.filter(path => decisionForPath(path) === 'merge').length;
+  const keepExistingCount = safeConflictPaths.filter(path => decisionForPath(path) === 'reject').length;
   const totalToImport = newCount + overwriteCount + mergeCount;
   const hasActiveFilter = conflictSearch !== '' || conflictStatusFilter !== 'all' || conflictTypeFilter !== 'all';
   const searchLower = conflictSearch.toLowerCase();
 
-  const getFilteredPaths = () => conflictPaths.filter(path => {
+  const getFilteredPaths = () => safeConflictPaths.filter(path => {
     if (searchLower && !path.toLowerCase().includes(searchLower)) return false;
     if (conflictStatusFilter !== 'all') {
-      const d = conflictDecisions.get(path) ?? 'merge';
+      const d = decisionForPath(path);
       if (d !== conflictStatusFilter) return false;
     }
     if (conflictTypeFilter !== 'all') {
-      const t = tokens.find(tk => tk.path === path);
+      const t = incomingTokenByPath.get(path);
       if (t?.$type !== conflictTypeFilter) return false;
     }
     return true;
   });
 
-  const applyToVisible = (decision: 'accept' | 'merge' | 'reject') => {
+  const applyToVisible = (decision: ConflictDecision) => {
     const next = new Map(conflictDecisions);
-    const targets = hasActiveFilter ? getFilteredPaths() : conflictPaths;
+    const targets = hasActiveFilter ? getFilteredPaths() : safeConflictPaths;
     for (const p of targets) next.set(p, decision);
     setConflictDecisions(next);
   };
@@ -77,8 +90,8 @@ export function ImportConflictResolver() {
   };
 
   const conflictTypes = new Set<string>();
-  for (const p of conflictPaths) {
-    const t = tokens.find(tk => tk.path === p);
+  for (const p of safeConflictPaths) {
+    const t = incomingTokenByPath.get(p);
     if (t?.$type) conflictTypes.add(t.$type);
   }
   const sortedConflictTypes = [...conflictTypes].sort();
@@ -89,11 +102,11 @@ export function ImportConflictResolver() {
       {/* Summary + bulk actions */}
       <div className="flex items-center justify-between gap-2">
         <div className="text-secondary text-[color:var(--color-figma-text)]">
-          <span className="font-medium">{conflictPaths.length}</span> conflict{conflictPaths.length !== 1 ? 's' : ''}
+          <span className="font-medium">{safeConflictPaths.length}</span> conflict{safeConflictPaths.length !== 1 ? 's' : ''}
           {newCount > 0 && <span className="text-[color:var(--color-figma-text-secondary)]"> + {newCount} new</span>}
         </div>
         <div className="flex items-center gap-0.5">
-          {(['accept', 'merge', 'reject'] as const).map(d => (
+          {CONFLICT_DECISIONS.map(d => (
             <button
               key={d}
               onClick={() => applyToVisible(d)}
@@ -126,7 +139,7 @@ export function ImportConflictResolver() {
           placeholder="Search..."
           className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-tertiary)] focus:border-[var(--color-figma-accent)] focus:outline-none"
         />
-        {(sortedConflictTypes.length > 1 || conflictPaths.length > 5) && (
+        {(sortedConflictTypes.length > 1 || safeConflictPaths.length > 5) && (
           <button
             onClick={() => setShowFilters(v => !v)}
             className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
@@ -172,8 +185,8 @@ export function ImportConflictResolver() {
       ) : (
         <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
           {filteredConflictPaths.map(path => {
-            const decision = conflictDecisions.get(path) ?? 'merge';
-            const incoming = tokens.find(t => t.path === path);
+            const decision = decisionForPath(path);
+            const incoming = incomingTokenByPath.get(path);
             const existing = conflictExistingValues?.get(path);
             return (
               <div key={path} className="px-2 py-1 bg-[var(--color-figma-bg)]">
@@ -186,7 +199,7 @@ export function ImportConflictResolver() {
                     aria-label={`Resolution for ${path}`}
                     className="shrink-0 flex items-center rounded overflow-hidden border border-[var(--color-figma-border)]"
                   >
-                    {(['accept', 'merge', 'reject'] as const).map((d, i) => (
+                    {CONFLICT_DECISIONS.map((d, i) => (
                       <button
                         key={d}
                         onClick={() => {
@@ -239,10 +252,10 @@ export function ImportConflictResolver() {
       <button
         onClick={() => {
           const rejected = new Set(
-            [...conflictDecisions.entries()].filter(([, v]) => v === 'reject').map(([k]) => k)
+            safeConflictPaths.filter((path) => decisionForPath(path) === 'reject')
           );
           const merged = new Set(
-            [...conflictDecisions.entries()].filter(([, v]) => v === 'merge').map(([k]) => k)
+            safeConflictPaths.filter((path) => decisionForPath(path) === 'merge')
           );
           executeImport('overwrite', rejected, merged.size > 0 ? merged : undefined);
         }}
