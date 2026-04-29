@@ -1,4 +1,6 @@
-import type { TableRow } from "../hooks/useTableCreate";
+import { useEffect, useMemo, useRef } from "react";
+import { Folder, Plus, X } from "lucide-react";
+import type { NewTableRowFields, TableRow } from "../hooks/useTableCreate";
 import { inferTypeFromValue } from "./tokenListHelpers";
 import { InlineBanner } from "./InlineBanner";
 import { NoticeFieldMessage } from "../shared/noticeSystem";
@@ -18,7 +20,7 @@ export interface TableCreateFormProps {
   connected: boolean;
   allGroupPaths: string[];
   tableSuggestions: Array<{ value: string; label: string; source: string }>;
-  onAddRow: () => void;
+  onAddRow: (fields?: NewTableRowFields) => void;
   onRemoveRow: (id: string) => void;
   onUpdateRow: (id: string, field: TableRowField, value: string) => void;
   onClose: () => void;
@@ -47,6 +49,41 @@ export function TableCreateForm({
   onDismissDraft,
   onCreateAll,
 }: TableCreateFormProps) {
+  const nameInputRefs = useRef(new Map<string, HTMLInputElement>());
+  const pendingFocusLastRowRef = useRef(false);
+  const creatableRowCount = useMemo(
+    () => tableRows.filter((r) => r.name.trim()).length,
+    [tableRows],
+  );
+  const hasNamedRows = creatableRowCount > 0;
+
+  useEffect(() => {
+    if (!pendingFocusLastRowRef.current) return;
+    const lastRow = tableRows[tableRows.length - 1];
+    if (!lastRow) return;
+    const input = nameInputRefs.current.get(lastRow.id);
+    if (!input) return;
+    input.focus();
+    pendingFocusLastRowRef.current = false;
+  }, [tableRows]);
+
+  const setNameInputRef = (id: string) => (node: HTMLInputElement | null) => {
+    if (node) {
+      nameInputRefs.current.set(id, node);
+    } else {
+      nameInputRefs.current.delete(id);
+    }
+  };
+
+  const addSuggestedName = (leafName: string) => {
+    const emptyRow = tableRows.find((r) => !r.name.trim());
+    if (emptyRow) {
+      onUpdateRow(emptyRow.id, "name", leafName);
+      return;
+    }
+    onAddRow({ name: leafName });
+  };
+
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
       <div className="flex flex-col gap-2">
@@ -72,22 +109,9 @@ export function TableCreateForm({
             </span>
           </InlineBanner>
         )}
-        {/* Active set indicator */}
+        {/* Collection indicator */}
         <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="shrink-0 text-[var(--color-figma-text-secondary)]"
-          >
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-          </svg>
+          <Folder aria-hidden="true" size={12} className="shrink-0 text-[var(--color-figma-text-secondary)]" />
           <span className="text-secondary text-[var(--color-figma-text-secondary)]">
             Bulk create in:
           </span>
@@ -134,27 +158,7 @@ export function TableCreateForm({
                   key={s.value}
                   type="button"
                   title={s.source}
-                  onClick={() => {
-                    const emptyRow = tableRows.find((r) => !r.name.trim());
-                    if (emptyRow) {
-                      onUpdateRow(emptyRow.id, "name", leafName);
-                    } else {
-                      onAddRow();
-                      requestAnimationFrame(() => {
-                        const inputs =
-                          document.querySelectorAll<HTMLInputElement>(
-                            "[data-table-name-input]",
-                          );
-                        const last = inputs[inputs.length - 1];
-                        if (last) {
-                          last.value = leafName;
-                          last.dispatchEvent(
-                            new Event("input", { bubbles: true }),
-                          );
-                        }
-                      });
-                    }
-                  }}
+                  onClick={() => addSuggestedName(leafName)}
                   className="px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
                 >
                   {s.label}
@@ -193,6 +197,7 @@ export function TableCreateForm({
                 }}
               >
                 <input
+                  ref={setNameInputRef(row.id)}
                   type="text"
                   placeholder="name"
                   value={row.name}
@@ -203,7 +208,6 @@ export function TableCreateForm({
                     if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
                       onCreateAll();
                   }}
-                  data-table-name-input="true"
                   aria-label={`Token ${idx + 1} name`}
                   autoFocus={idx === 0}
                   className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? "border-[var(--color-figma-error)]" : "border-[var(--color-figma-border)]"}`}
@@ -231,14 +235,8 @@ export function TableCreateForm({
                       idx === tableRows.length - 1
                     ) {
                       e.preventDefault();
+                      pendingFocusLastRowRef.current = true;
                       onAddRow();
-                      requestAnimationFrame(() => {
-                        const inputs =
-                          document.querySelectorAll<HTMLInputElement>(
-                            "[data-table-name-input]",
-                          );
-                        inputs[inputs.length - 1]?.focus();
-                      });
                     }
                     if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
                       onCreateAll();
@@ -253,21 +251,7 @@ export function TableCreateForm({
                   aria-label={`Remove row ${idx + 1}`}
                   className="w-[18px] h-[18px] flex items-center justify-center rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 8 8"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M1 1l6 6M7 1L1 7"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      fill="none"
-                    />
-                  </svg>
+                  <X size={12} aria-hidden="true" />
                 </button>
               </div>
               {rowErrors[row.id] && (
@@ -280,9 +264,10 @@ export function TableCreateForm({
           <button
             type="button"
             onClick={() => onAddRow()}
-            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+            className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors inline-flex items-center justify-center gap-1"
           >
-            + Add Row
+            <Plus size={12} aria-hidden="true" />
+            Add Row
           </button>
         </div>
         {createAllError && (
@@ -296,10 +281,10 @@ export function TableCreateForm({
             disabled={
               busy ||
               !connected ||
-              tableRows.every((r) => !r.name.trim())
+              !hasNamedRows
             }
             title={
-              tableRows.every((r) => !r.name.trim())
+              !hasNamedRows
                 ? "Enter at least one token name"
                 : "Create all tokens (Ctrl+Enter)"
             }
@@ -307,7 +292,7 @@ export function TableCreateForm({
           >
             {busy
               ? "Creating\u2026"
-              : `Create ${tableRows.filter((r) => r.name.trim()).length > 0 ? tableRows.filter((r) => r.name.trim()).length + " " : ""}Token${tableRows.filter((r) => r.name.trim()).length !== 1 ? "s" : ""}`}
+              : `Create ${creatableRowCount > 0 ? `${creatableRowCount} ` : ""}Token${creatableRowCount !== 1 ? "s" : ""}`}
           </button>
           <button
             onClick={onClose}

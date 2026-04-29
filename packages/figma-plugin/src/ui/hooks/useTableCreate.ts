@@ -18,10 +18,17 @@ export interface TableRow {
   value: string;
 }
 
+export type NewTableRowFields = Partial<Omit<TableRow, 'id'>>;
+
 let rowCounter = 0;
 function newRowId() { return `trow-${++rowCounter}`; }
-function makeRow(type = 'color'): TableRow {
-  return { id: newRowId(), name: '', type, value: '' };
+function makeRow(fields: NewTableRowFields = {}): TableRow {
+  return {
+    id: newRowId(),
+    name: fields.name ?? '',
+    type: fields.type ?? 'color',
+    value: fields.value ?? '',
+  };
 }
 
 function getDraftStorageKey(collectionId: string): string {
@@ -31,6 +38,16 @@ function getDraftStorageKey(collectionId: string): string {
 interface TableDraft {
   group: string;
   rows: TableRow[];
+}
+
+function normalizeDraftRow(row: unknown): TableRow | null {
+  if (!row || typeof row !== 'object') return null;
+  const source = row as Partial<Record<keyof TableRow, unknown>>;
+  const name = typeof source.name === 'string' ? source.name : '';
+  const type = typeof source.type === 'string' && source.type.trim() ? source.type : 'color';
+  const value = typeof source.value === 'string' ? source.value : '';
+  if (!name.trim() && !value.trim()) return null;
+  return makeRow({ name, type, value });
 }
 
 function saveDraft(collectionId: string, group: string, rows: TableRow[]): void {
@@ -47,10 +64,15 @@ function loadDraft(collectionId: string): TableDraft | null {
   try {
     const draft = ssGetJson<TableDraft | null>(getDraftStorageKey(collectionId), null);
     if (!draft) return null;
-    if (!Array.isArray(draft.rows) || draft.rows.length === 0) return null;
-    // Re-assign IDs to avoid collisions with current counter
-    draft.rows = draft.rows.map(r => ({ ...r, id: newRowId() }));
-    return draft;
+    if (!Array.isArray(draft.rows)) return null;
+    const rows = draft.rows
+      .map(normalizeDraftRow)
+      .filter((row): row is TableRow => row !== null);
+    if (rows.length === 0) return null;
+    return {
+      group: typeof draft.group === 'string' ? draft.group : '',
+      rows,
+    };
   } catch {
     ssRemove(getDraftStorageKey(collectionId));
     return null;
@@ -100,16 +122,16 @@ export function useTableCreate({
     }
   }, [collectionId, showTableCreate, tableGroup, tableRows]);
 
-  const addRow = useCallback((inheritType?: string) => {
+  const addRow = useCallback((fields: NewTableRowFields = {}) => {
     setTableRows(prev => {
       const lastType = prev.length > 0 ? prev[prev.length - 1].type : 'color';
-      return [...prev, makeRow(inheritType ?? lastType)];
+      return [...prev, makeRow({ type: lastType, ...fields })];
     });
   }, []);
 
   const removeRow = useCallback((id: string) => {
     setTableRows(prev => {
-      if (prev.length <= 1) return [makeRow(prev[0]?.type)];
+      if (prev.length <= 1) return [makeRow({ type: prev[0]?.type })];
       return prev.filter(r => r.id !== id);
     });
     setRowErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
