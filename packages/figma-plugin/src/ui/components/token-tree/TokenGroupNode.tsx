@@ -399,7 +399,7 @@ export const TokenGroupNode = memo(
           }}
         >
           <div
-            className={`${hasModeColumns ? "sticky left-0 z-[1] min-w-0" : ""} flex items-center gap-1 px-1.5 py-1 ${hasModeColumns ? (dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "bg-[var(--color-figma-error)]/10" : "bg-[var(--color-figma-accent)]/10") : "bg-[var(--color-figma-bg)] group-hover/group:bg-[var(--color-figma-bg-hover)]") : ""}`}
+            className={`tm-token-tree-row__main ${hasModeColumns ? "sticky left-0 z-[1] min-w-0" : ""} flex items-center gap-1 px-1.5 py-1 ${hasModeColumns ? (dragOverGroup === node.path ? (dragOverGroupIsInvalid ? "bg-[var(--color-figma-error)]/10" : "bg-[var(--color-figma-accent)]/10") : "bg-[var(--color-figma-bg)] group-hover/group:bg-[var(--color-figma-bg-hover)]") : ""}`}
             style={{
               paddingLeft: `${computePaddingLeft(depth, 8)}px`,
             }}
@@ -437,11 +437,11 @@ export const TokenGroupNode = memo(
                 </span>
               ) : (
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-body font-medium text-[var(--color-figma-text)]">
+                  <span className="tm-token-tree-row__name truncate text-body font-medium text-[var(--color-figma-text)]">
                     {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                   </span>
                   {groupMetadataSegments.length > 0 && (
-                    <div className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
+                    <div className="tm-token-tree-row__meta mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
                       {renderRowMetadataSegments(groupMetadataSegments)}
                     </div>
                   )}
@@ -454,7 +454,7 @@ export const TokenGroupNode = memo(
                   collectionCoverageSummary.total > 0 &&
                   collectionCoverageSummary.totalMissing > 0 && (
                     <span
-                      className="shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
+                      className="tm-token-tree-row__summary shrink-0 text-micro font-normal text-[var(--color-figma-text-tertiary)]"
                       title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
                     >
                       {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled

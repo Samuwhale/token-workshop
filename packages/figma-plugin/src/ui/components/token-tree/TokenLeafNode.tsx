@@ -846,7 +846,7 @@ export const TokenLeafNode = memo(
             <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--color-figma-accent)] pointer-events-none z-10" />
           )}
           <div
-            className={`sticky left-0 z-[1] flex min-w-0 items-center gap-1.5 pr-1 ${stickyCellStateClass}`}
+            className={`tm-token-tree-row__main sticky left-0 z-[1] flex min-w-0 items-center gap-1.5 pr-1 ${stickyCellStateClass}`}
             style={{ paddingLeft: `${computePaddingLeft(depth, 14)}px` }}
           >
           <DepthBar depth={depth} />
@@ -870,7 +870,7 @@ export const TokenLeafNode = memo(
               });
             }}
             className={`shrink-0 w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-opacity ${
-              selectMode || hovered
+              selectMode || hovered || isSelected
                 ? "opacity-100"
                 : "opacity-0 pointer-events-none"
             } ${
@@ -933,7 +933,7 @@ export const TokenLeafNode = memo(
                   )}
                   {ancestorPathLabel && (
                     <span
-                      className="shrink min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
+                      className="tm-token-tree-row__context shrink min-w-0 truncate text-secondary text-[var(--color-figma-text-tertiary)]"
                       title={`In ${ancestorPathLabel}`}
                     >
                       {ancestorPathLabel}
@@ -941,7 +941,7 @@ export const TokenLeafNode = memo(
                     </span>
                   )}
                   <span
-                    className="min-w-0 truncate text-body text-[var(--color-figma-text)]"
+                    className="tm-token-tree-row__name min-w-0 truncate text-body text-[var(--color-figma-text)]"
                     title={formatDisplayPath(node.path, node.name)}
                   >
                     {highlightMatch(
@@ -952,7 +952,7 @@ export const TokenLeafNode = memo(
                     )}
                   </span>
                   {leafMetadataSegments.length > 0 && (
-                    <span className="flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
+                    <span className="tm-token-tree-row__meta flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
                       {renderRowMetadataSegments(leafMetadataSegments)}
                     </span>
                   )}

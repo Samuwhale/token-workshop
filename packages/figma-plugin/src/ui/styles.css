@@ -1321,13 +1321,37 @@ a[role="menuitem"] {
 
 @container (max-width: 180px) {
   .tm-value-cell__line {
-    display: -webkit-box;
-    text-overflow: clip;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    line-height: 1.2;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    font-size: 10px;
+  }
+}
+
+@container (max-width: 96px) {
+  .tm-value-cell__line + .tm-value-cell__line {
+    display: none;
+  }
+}
+
+.tm-token-tree-row__main {
+  container-type: inline-size;
+}
+
+.tm-token-tree-row__name,
+.tm-token-tree-row__context,
+.tm-token-tree-row__meta,
+.tm-token-tree-row__summary {
+  min-inline-size: 0;
+}
+
+@container (max-width: 320px) {
+  .tm-token-tree-row__summary {
+    display: none;
+  }
+}
+
+@container (max-width: 280px) {
+  .tm-token-tree-row__context,
+  .tm-token-tree-row__meta {
+    display: none;
   }
 }
 

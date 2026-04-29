@@ -3,6 +3,7 @@ import { SkeletonTimelineRow } from '../Skeleton';
 import { apiFetch } from '../../shared/apiFetch';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
+import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { SnapshotsSource } from './SnapshotsSource';
 import type {
   SnapshotSummary,
@@ -124,7 +125,9 @@ export function HistorySavedView({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate min-w-0">{snapshot.label}</span>
+                <span className={`block text-secondary font-medium ${LONG_TEXT_CLASSES.textPrimary}`}>
+                  {snapshot.label}
+                </span>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                   <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{snapshot.tokenCount} tokens</span>
                   <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>

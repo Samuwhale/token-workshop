@@ -4,7 +4,7 @@ import { useDropdownMenu } from '../hooks/useDropdownMenu';
 import { useAnchoredFloatingStyle } from '../shared/floatingPosition';
 import { FLOATING_MENU_WIDE_CLASS } from '../shared/menuClasses';
 import type { BatchActionType } from './batch-actions/types';
-import { Button, IconButton } from '../primitives';
+import { Button } from '../primitives';
 
 export interface TokenSelectionToolbarProps {
   selectedPaths: Set<string>;
@@ -154,16 +154,17 @@ export function TokenSelectionToolbar({
             ) : null}
           </div>
           <div className="tm-responsive-toolbar__actions">
-            <IconButton
+            <Button
               onClick={onClearSelection}
-              size="md"
-              aria-label="Clear selection"
-              title="Clear selection"
+              variant="ghost"
+              size="sm"
+              className="justify-start"
             >
               <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                 <path d="M2 2l6 6M8 2l-6 6" />
               </svg>
-            </IconButton>
+              <span className="tm-toolbar-action__label">Clear</span>
+            </Button>
           </div>
         </div>
 

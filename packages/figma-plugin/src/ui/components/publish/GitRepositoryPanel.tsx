@@ -8,6 +8,7 @@ import { CommitCompareView } from '../history/CommitCompareView';
 import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import { apiFetch } from '../../shared/apiFetch';
+import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { TokenChangeRow } from './PublishShared';
 import type { CommitEntry, UndoSlot } from '../history/types';
 import type { GitPreview, TokenChange } from '../../hooks/useGitDiff';
@@ -395,7 +396,9 @@ function RepositoryTimeline({
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {isA && <span className="shrink-0 text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] text-[var(--color-figma-accent)]">A</span>}
                     {isB && <span className="shrink-0 text-secondary font-bold px-1 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] text-[var(--color-figma-success)]">B</span>}
-                    <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
+                    <span className={`text-secondary font-medium text-[var(--color-figma-text)] min-w-0 ${LONG_TEXT_CLASSES.text}`}>
+                      {commit.message}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
@@ -449,7 +452,9 @@ function RepositoryTimeline({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-secondary font-medium text-[var(--color-figma-text)] truncate min-w-0">{commit.message}</span>
+                <span className={`text-secondary font-medium text-[var(--color-figma-text)] min-w-0 ${LONG_TEXT_CLASSES.text}`}>
+                  {commit.message}
+                </span>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-secondary text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
                   <span className="text-secondary text-[var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
@@ -573,7 +578,9 @@ function GitPreviewModal({
                     {preview.commits.map(commit => (
                       <div key={commit.hash} className="flex items-baseline gap-1.5">
                         <span className="text-secondary font-mono text-[var(--color-figma-text-tertiary)] shrink-0">{commit.hash.slice(0, 7)}</span>
-                        <span className="text-secondary text-[var(--color-figma-text)] truncate">{commit.message}</span>
+                        <span className={`text-secondary text-[var(--color-figma-text)] ${LONG_TEXT_CLASSES.text}`}>
+                          {commit.message}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -599,7 +606,9 @@ function GitPreviewModal({
                         <div key={collectionId} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                           <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors" onClick={() => toggleSet(collectionId)}>
                             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[var(--color-figma-text-tertiary)] shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3V1z" /></svg>
-                            <span className="text-secondary font-medium text-[var(--color-figma-text)] flex-1 truncate">{collectionId}</span>
+                            <span className={`text-secondary font-medium text-[var(--color-figma-text)] flex-1 ${LONG_TEXT_CLASSES.text}`}>
+                              {collectionId}
+                            </span>
                             <span className="flex items-center gap-2 text-secondary font-mono shrink-0">
                               {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length}</span>}
                               {modified.length > 0 && <span className="text-[var(--color-figma-warning)]">~{modified.length}</span>}
@@ -739,7 +748,9 @@ function CommitPreviewModal({
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isExpanded ? 'rotate-90' : ''} text-[var(--color-figma-text-tertiary)]`}><path d="M2 1l4 3-4 3V1z" /></svg>
                       </span>
                       <span className={`text-secondary font-mono font-bold w-3 shrink-0 ${change.status === 'M' ? 'text-[var(--color-figma-warning)]' : change.status === 'A' ? 'text-[var(--color-figma-success)]' : change.status === 'D' ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-text-secondary)]'}`}>{change.status}</span>
-                      <span className="text-secondary font-mono text-[var(--color-figma-text)] truncate flex-1 min-w-0">{change.file}</span>
+                      <span className={`text-secondary font-mono text-[var(--color-figma-text)] flex-1 min-w-0 ${LONG_TEXT_CLASSES.mono}`}>
+                        {change.file}
+                      </span>
                       {hasTokenChanges && (
                         <span className="flex gap-1.5 text-secondary font-mono shrink-0">
                           {addedCount > 0 && <span className="text-[var(--color-figma-success)]">+{addedCount}</span>}
@@ -822,7 +833,15 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
                 <div key={section.label} className="mb-3">
                   <div className="text-secondary font-medium text-[var(--color-figma-text-secondary)] mb-1">{section.arrow} {section.label} ({section.files.length})</div>
                   <div className="max-h-28 overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-                    {section.files.map(file => <div key={file} className="px-2 py-1 text-secondary font-mono text-[var(--color-figma-text)] truncate" title={file}>{file}</div>)}
+                    {section.files.map(file => (
+                      <div
+                        key={file}
+                        className={`px-2 py-1 text-secondary font-mono text-[var(--color-figma-text)] ${LONG_TEXT_CLASSES.mono}`}
+                        title={file}
+                      >
+                        {file}
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

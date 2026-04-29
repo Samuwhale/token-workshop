@@ -22,6 +22,7 @@ import { HealthAliasOpportunitiesView } from "./health/HealthAliasOpportunitiesV
 import { HealthDuplicatesView } from "./health/HealthDuplicatesView";
 import { HealthRulesView } from "./health/HealthRulesView";
 import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
+import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 import type { CollectionReviewSummary } from "../shared/reviewSummary";
 
 interface GeneratorStatusItem {
@@ -486,11 +487,13 @@ export function HealthPanel({
           onClick={() => openCollectionScope(collectionId)}
           className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)]"
         >
-          <span className="min-w-0 flex-1 truncate text-body text-[var(--color-figma-text)]">
-            {collectionDisplayNames?.[collectionId] ?? collectionId}
-          </span>
-          <span className="shrink-0 text-secondary text-[var(--color-figma-text-tertiary)]">
-            {meta}
+          <span className="min-w-0 flex-1">
+            <span className={`block text-body font-medium ${LONG_TEXT_CLASSES.textPrimary}`}>
+              {collectionDisplayNames?.[collectionId] ?? collectionId}
+            </span>
+            <span className={`block text-secondary ${LONG_TEXT_CLASSES.textTertiary}`}>
+              {meta}
+            </span>
           </span>
         </button>
       );
