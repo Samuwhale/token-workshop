@@ -3300,6 +3300,74 @@ button.tm-token-details__text-button:disabled:hover {
   stroke-width: 2;
 }
 
+.tm-graph-floating-panel-shell {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  max-block-size: min(72vh, 560px);
+}
+
+.tm-graph-floating-panel {
+  display: flex;
+  inline-size: min(320px, calc(100vw - 56px));
+  max-block-size: min(72vh, 560px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-figma-border);
+  border-radius: 6px;
+  background: var(--color-figma-bg);
+  box-shadow: 0 18px 36px rgb(0 0 0 / 0.18);
+}
+
+.tm-graph-floating-panel__header {
+  display: flex;
+  min-block-size: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  border-block-end: 1px solid var(--color-figma-border);
+  padding: 6px 8px;
+}
+
+.tm-graph-inspector-tab-shell {
+  position: absolute;
+  inset-inline-end: 8px;
+  z-index: 20;
+}
+
+.tm-graph-inspector-tab-shell--top {
+  inset-block-start: 8px;
+}
+
+.tm-graph-inspector-tab-shell--bottom {
+  inset-block-end: 8px;
+}
+
+.tm-graph-inspector-tab {
+  display: inline-flex;
+  inline-size: min(220px, calc(100vw - 56px));
+  min-block-size: 34px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-figma-border);
+  border-radius: 6px;
+  background: var(--color-figma-bg);
+  color: var(--color-figma-text);
+  cursor: pointer;
+  padding: 6px 8px;
+  text-align: start;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.16);
+}
+
+.tm-graph-inspector-tab:hover,
+.tm-graph-inspector-tab:focus-visible {
+  background: var(--color-figma-bg-hover);
+  outline: none;
+}
+
 .tm-graph .react-flow__connection-path {
   stroke: var(--color-figma-accent);
   stroke-width: 2;

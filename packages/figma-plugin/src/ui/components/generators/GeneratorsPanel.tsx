@@ -213,11 +213,11 @@ type PendingPresetConversion = {
 type GraphStructureCommitUiState = {
   selectedNodeId?: string | null;
   selectedEdgeId?: string | null;
-  inspectorOpen?: boolean;
-  nodeLibraryOpen?: boolean;
+  graphPanelState?: GraphPanelState;
   graphMenu?: GraphMenuState | null;
   editorMode?: GeneratorEditorMode;
 };
+type GraphPanelState = "none" | "inspector" | "nodeLibrary";
 
 type GraphFlowNode = Node<
   {
@@ -447,11 +447,12 @@ export function GeneratorsPanel({
   const [lastApply, setLastApply] = useState<GeneratorApplyResponse | null>(
     null,
   );
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [graphPanelState, setGraphPanelState] =
+    useState<GraphPanelState>("none");
+  const [inspectorMinimized, setInspectorMinimized] = useState(false);
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [createOutputPrefix, setCreateOutputPrefix] = useState<string | null>(null);
-  const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
   const [generatorSwitcherOpen, setGeneratorSwitcherOpen] = useState(false);
   const [generatorSwitcherQuery, setGeneratorSwitcherQuery] = useState("");
   const [outputDockOpen, setOutputDockOpen] = useState(false);
@@ -747,18 +748,18 @@ export function GeneratorsPanel({
     } else {
       setEditorMode("overview");
       setOutputDockOpen(Boolean(opensOutputs));
-      setNodeLibraryOpen(false);
-      setInspectorOpen(false);
+      setGraphPanelState("none");
       setGraphMenu(null);
     }
     if (focus?.nodeId) {
       setSelectedNodeId(focus.nodeId);
       setSelectedEdgeId(null);
-      setInspectorOpen(true);
+      setExpandedGraphNodeIds((current) => new Set(current).add(focus.nodeId!));
+      setGraphPanelState("inspector");
     } else if (focus?.edgeId) {
       setSelectedNodeId(null);
       setSelectedEdgeId(focus.edgeId);
-      setInspectorOpen(false);
+      setGraphPanelState("none");
     }
     if (preservingDirtyGenerator) {
       onInitialGeneratorHandled?.();
@@ -986,11 +987,8 @@ export function GeneratorsPanel({
       if ("selectedEdgeId" in state) {
         setSelectedEdgeId(state.selectedEdgeId ?? null);
       }
-      if (state.inspectorOpen !== undefined) {
-        setInspectorOpen(state.inspectorOpen);
-      }
-      if (state.nodeLibraryOpen !== undefined) {
-        setNodeLibraryOpen(state.nodeLibraryOpen);
+      if (state.graphPanelState !== undefined) {
+        setGraphPanelState(state.graphPanelState);
       }
       if ("graphMenu" in state) {
         setGraphMenu(state.graphMenu ?? null);
@@ -1671,8 +1669,7 @@ export function GeneratorsPanel({
           afterCommit: {
             selectedNodeId: id,
             selectedEdgeId: null,
-            inspectorOpen: true,
-            nodeLibraryOpen: false,
+            graphPanelState: inspectorMinimized ? "none" : "inspector",
             graphMenu: null,
           },
         })
@@ -1680,12 +1677,19 @@ export function GeneratorsPanel({
         return;
       setSelectedNodeId(id);
       setSelectedEdgeId(null);
-      setInspectorOpen(true);
-      setNodeLibraryOpen(false);
+      setGraphPanelState(inspectorMinimized ? "none" : "inspector");
       setGraphMenu(null);
       setError(null);
     },
-    [activeGenerator, commitGraphStructure, edges, nodes, perCollectionFlat, preview],
+    [
+      activeGenerator,
+      commitGraphStructure,
+      edges,
+      inspectorMinimized,
+      nodes,
+      perCollectionFlat,
+      preview,
+    ],
   );
 
   const onConnect = useCallback(
@@ -1954,7 +1958,7 @@ export function GeneratorsPanel({
           afterCommit: {
             selectedNodeId: id,
             selectedEdgeId: null,
-            inspectorOpen: true,
+            graphPanelState: inspectorMinimized ? "none" : "inspector",
             graphMenu: null,
           },
         })
@@ -1962,10 +1966,10 @@ export function GeneratorsPanel({
         return;
       setSelectedNodeId(id);
       setSelectedEdgeId(null);
-      setInspectorOpen(true);
+      setGraphPanelState(inspectorMinimized ? "none" : "inspector");
       setGraphMenu(null);
     },
-    [activeGenerator, commitGraphStructure, edges, nodes, preview],
+    [activeGenerator, commitGraphStructure, edges, inspectorMinimized, nodes, preview],
   );
 
   const addOutputStep = useCallback(() => {
@@ -2022,21 +2026,20 @@ export function GeneratorsPanel({
       !commitGraphStructure(nextNodes, nextEdges, {
         afterCommit: {
           selectedNodeId: id,
-          inspectorOpen: true,
-          nodeLibraryOpen: false,
+          graphPanelState: inspectorMinimized ? "none" : "inspector",
           editorMode: "graph",
         },
       })
     )
       return;
     setSelectedNodeId(id);
-    setInspectorOpen(true);
-    setNodeLibraryOpen(false);
+    setGraphPanelState(inspectorMinimized ? "none" : "inspector");
     setEditorMode("graph");
   }, [
     activeGenerator,
     commitGraphStructure,
     edges,
+    inspectorMinimized,
     nodes,
     preview,
     selectedNode,
@@ -2045,9 +2048,32 @@ export function GeneratorsPanel({
   const focusGraphIssue = useCallback(
     (issue: GraphIssue) => {
       setEditorMode("graph");
-      setNodeLibraryOpen(false);
+      setGraphPanelState("none");
       if (issue.id === "missing-output") {
         addOutputStep();
+        return;
+      }
+      if (issue.nodeId) {
+        const issueNode = activeGenerator?.nodes.find(
+          (node) => node.id === issue.nodeId,
+        );
+        setSelectedNodeId(issue.nodeId);
+        setSelectedEdgeId(null);
+        setExpandedGraphNodeIds((current) => new Set(current).add(issue.nodeId!));
+        setGraphPanelState(inspectorMinimized ? "none" : "inspector");
+        if (
+          issueNode &&
+          (issue.message === "Connect an input" || issue.targetPort)
+        ) {
+          setGraphMenu({
+            kind: "connect-to-input",
+            targetNodeId: issue.nodeId,
+            targetPort: issue.targetPort ?? "value",
+            ...graphMenuPointFromNode(issueNode),
+          });
+        } else {
+          setGraphMenu(null);
+        }
         return;
       }
       if (issue.edgeId) {
@@ -2059,7 +2085,7 @@ export function GeneratorsPanel({
           : null;
         setSelectedNodeId(null);
         setSelectedEdgeId(issue.edgeId);
-        setInspectorOpen(false);
+        setGraphPanelState("none");
         if (edgeTargetNode) {
           setGraphMenu({
             kind: "edge",
@@ -2069,31 +2095,8 @@ export function GeneratorsPanel({
         }
         return;
       }
-      if (issue.nodeId) {
-        const issueNode = activeGenerator?.nodes.find(
-          (node) => node.id === issue.nodeId,
-        );
-        if (
-          issueNode &&
-          (issue.message === "Connect an input" || issue.targetPort)
-        ) {
-          setSelectedNodeId(issue.nodeId);
-          setSelectedEdgeId(null);
-          setInspectorOpen(false);
-          setGraphMenu({
-            kind: "connect-to-input",
-            targetNodeId: issue.nodeId,
-            targetPort: issue.targetPort ?? "value",
-            ...graphMenuPointFromNode(issueNode),
-          });
-          return;
-        }
-        setSelectedNodeId(issue.nodeId);
-        setSelectedEdgeId(null);
-        setInspectorOpen(true);
-      }
     },
-    [activeGenerator, addOutputStep, graphMenuPointFromNode],
+    [activeGenerator, addOutputStep, graphMenuPointFromNode, inspectorMinimized],
   );
 
   const focusFirstGraphIssue = useCallback(() => {
@@ -2155,6 +2158,14 @@ export function GeneratorsPanel({
               ? "Preparing preview"
               : "No generator";
 
+  const openNodeLibraryPanel = useCallback(() => {
+    if (selectedNode) {
+      setInspectorMinimized(true);
+    }
+    setGraphPanelState("nodeLibrary");
+    setActionsMenuOpen(false);
+  }, [selectedNode]);
+
   useEffect(() => {
     if (!compactGenerators) {
       setActionsMenuOpen(false);
@@ -2163,8 +2174,7 @@ export function GeneratorsPanel({
     if (editorMode === "graph") {
       setActionsMenuOpen(false);
     } else {
-      setNodeLibraryOpen(false);
-      setInspectorOpen(false);
+      setGraphPanelState("none");
     }
   }, [compactGenerators, editorMode]);
 
@@ -2191,33 +2201,11 @@ export function GeneratorsPanel({
     panelWidth,
   ]);
 
-  useEffect(() => {
-    if (editorMode !== "graph" || !inspectorOpen || graphMenu) return;
-    const closeInspectorOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      setInspectorOpen(false);
-    };
-    window.addEventListener("keydown", closeInspectorOnEscape);
-    return () => window.removeEventListener("keydown", closeInspectorOnEscape);
-  }, [editorMode, graphMenu, inspectorOpen]);
-
   const renderGraphWorkspace = () => {
     if (!activeGenerator) return null;
     return (
-      <div
-        className={
-          compactGenerators
-            ? "relative h-full min-h-0 overflow-hidden"
-            : "flex h-full min-h-0 overflow-x-auto"
-        }
-      >
-        <section
-          className={
-            compactGenerators
-              ? "relative h-full min-h-0 w-full min-w-0"
-              : "relative min-w-[420px] flex-1"
-          }
-        >
+      <div className="relative h-full min-h-0 overflow-hidden">
+        <section className="relative h-full min-h-0 w-full min-w-0">
           {graphIssues.length > 0 ? (
             <GraphIssueCallout
               issues={graphIssues}
@@ -2355,7 +2343,7 @@ export function GeneratorsPanel({
               }
               setSelectedNodeId(null);
               setSelectedEdgeId(null);
-              setInspectorOpen(false);
+              setGraphPanelState("none");
               setGraphMenu(null);
             }}
             onPaneContextMenu={(event) => {
@@ -2371,12 +2359,13 @@ export function GeneratorsPanel({
               setSelectedNodeId(node.id);
               setSelectedEdgeId(null);
               setGraphMenu(null);
-              setNodeLibraryOpen(false);
+              setGraphPanelState(inspectorMinimized ? "none" : "inspector");
             }}
             onNodeDoubleClick={(_event, node) => {
               setSelectedNodeId(node.id);
               setSelectedEdgeId(null);
-              setInspectorOpen(true);
+              setInspectorMinimized(false);
+              setGraphPanelState("inspector");
               setGraphMenu(null);
             }}
             onNodeContextMenu={(event, node) => {
@@ -2393,14 +2382,14 @@ export function GeneratorsPanel({
               event.stopPropagation();
               setSelectedNodeId(null);
               setSelectedEdgeId(edge.id);
-              setInspectorOpen(false);
+              setGraphPanelState("none");
               setGraphMenu(null);
             }}
             onEdgeContextMenu={(event, edge) => {
               event.preventDefault();
               setSelectedNodeId(null);
               setSelectedEdgeId(edge.id);
-              setInspectorOpen(false);
+              setGraphPanelState("none");
               setGraphMenu({
                 kind: "edge",
                 edgeId: edge.id,
@@ -2455,7 +2444,8 @@ export function GeneratorsPanel({
               onOpenSettings={(nodeId) => {
                 setSelectedNodeId(nodeId);
                 setSelectedEdgeId(null);
-                setInspectorOpen(true);
+                setInspectorMinimized(false);
+                setGraphPanelState("inspector");
                 setGraphMenu(null);
               }}
               onDeleteNode={(nodeId) => {
@@ -2467,23 +2457,11 @@ export function GeneratorsPanel({
             />
           ) : null}
         </section>
-        {nodeLibraryOpen ? (
-          compactGenerators ? (
-            <GeneratorOverlayPanel
-              title="Add node"
-              onClose={() => setNodeLibraryOpen(false)}
-            >
-              <NodeLibraryPanel
-                allNodesOpen={allNodesOpen}
-                paletteQuery={paletteQuery}
-                paletteItems={filteredPalette}
-                onToggleAllNodes={() => setAllNodesOpen((open) => !open)}
-                onPaletteQueryChange={setPaletteQuery}
-                onAddNode={addPaletteNode}
-                presentation="overlay"
-              />
-            </GeneratorOverlayPanel>
-          ) : (
+        {graphPanelState === "nodeLibrary" ? (
+          <GraphFloatingPanel
+            title="Add node"
+            onClose={() => setGraphPanelState("none")}
+          >
             <NodeLibraryPanel
               allNodesOpen={allNodesOpen}
               paletteQuery={paletteQuery}
@@ -2491,43 +2469,41 @@ export function GeneratorsPanel({
               onToggleAllNodes={() => setAllNodesOpen((open) => !open)}
               onPaletteQueryChange={setPaletteQuery}
               onAddNode={addPaletteNode}
+              presentation="overlay"
             />
-          )
+          </GraphFloatingPanel>
         ) : null}
-        {inspectorOpen && selectedNode ? (
-          compactGenerators ? (
-            <GeneratorDockedPanel
-              title="Graph node"
-              onClose={() => setInspectorOpen(false)}
-            >
-              <section className="p-2">
-                <NodeInspector
-                  node={selectedNode}
-                  collections={collections}
-                  perCollectionFlat={perCollectionFlat}
-                  defaultCollectionId={activeGenerator.targetCollectionId}
-                  onChange={(data) => updateNodeData(selectedNode.id, data)}
-                  onDelete={deleteSelectedNode}
-                />
-              </section>
-            </GeneratorDockedPanel>
-          ) : (
-            <aside className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)]">
-              <section className="p-2">
-                <h2 className="mb-2 text-primary font-semibold">
-                  Graph node
-                </h2>
-                <NodeInspector
-                  node={selectedNode}
-                  collections={collections}
-                  perCollectionFlat={perCollectionFlat}
-                  defaultCollectionId={activeGenerator.targetCollectionId}
-                  onChange={(data) => updateNodeData(selectedNode.id, data)}
-                  onDelete={deleteSelectedNode}
-                />
-              </section>
-            </aside>
-          )
+        {graphPanelState === "inspector" && selectedNode && !inspectorMinimized ? (
+          <GraphFloatingPanel
+            title="Node settings"
+            subtitle={`${selectedNode.label} · ${formatNodeKind(selectedNode.kind)}`}
+            onMinimize={() => {
+              setInspectorMinimized(true);
+              setGraphPanelState("none");
+            }}
+          >
+            <section className="p-2">
+              <NodeInspector
+                node={selectedNode}
+                collections={collections}
+                perCollectionFlat={perCollectionFlat}
+                defaultCollectionId={activeGenerator.targetCollectionId}
+                onChange={(data) => updateNodeData(selectedNode.id, data)}
+                onDelete={deleteSelectedNode}
+              />
+            </section>
+          </GraphFloatingPanel>
+        ) : null}
+        {selectedNode &&
+        inspectorMinimized ? (
+          <GraphInspectorMinimizedTab
+            node={selectedNode}
+            placement={graphPanelState === "nodeLibrary" ? "bottom" : "top"}
+            onExpand={() => {
+              setInspectorMinimized(false);
+              setGraphPanelState("inspector");
+            }}
+          />
         ) : null}
       </div>
     );
@@ -2593,8 +2569,7 @@ export function GeneratorsPanel({
         onClick={() => {
           setGeneratorSwitcherOpen((open) => !open);
           setActionsMenuOpen(false);
-          setNodeLibraryOpen(false);
-          setInspectorOpen(false);
+          setGraphPanelState("none");
         }}
         aria-expanded={generatorSwitcherOpen}
         aria-haspopup="dialog"
@@ -2619,8 +2594,7 @@ export function GeneratorsPanel({
       }
       return;
     }
-    setNodeLibraryOpen(false);
-    setInspectorOpen(false);
+    setGraphPanelState("none");
     setGraphMenu(null);
   };
 
@@ -2809,9 +2783,7 @@ export function GeneratorsPanel({
             <>
               <ActionRow
                 onClick={() => {
-                  setActionsMenuOpen(false);
-                  setNodeLibraryOpen(true);
-                  setInspectorOpen(false);
+                  openNodeLibraryPanel();
                 }}
               >
                 Add node
@@ -2820,8 +2792,8 @@ export function GeneratorsPanel({
                 <ActionRow
                   onClick={() => {
                     setActionsMenuOpen(false);
-                    setInspectorOpen(true);
-                    setNodeLibraryOpen(false);
+                    setInspectorMinimized(false);
+                    setGraphPanelState("inspector");
                   }}
                 >
                   Node settings
@@ -2891,12 +2863,15 @@ export function GeneratorsPanel({
         <>
           <Button
             type="button"
-            title={nodeLibraryOpen ? "Hide node library" : "Add node"}
-            aria-label={nodeLibraryOpen ? "Hide node library" : "Add node"}
+            title={graphPanelState === "nodeLibrary" ? "Hide node library" : "Add node"}
+            aria-label={graphPanelState === "nodeLibrary" ? "Hide node library" : "Add node"}
             onClick={() => {
-              setNodeLibraryOpen((open) => !open);
-              setInspectorOpen(false);
-              setActionsMenuOpen(false);
+              if (graphPanelState === "nodeLibrary") {
+                setGraphPanelState("none");
+                setActionsMenuOpen(false);
+              } else {
+                openNodeLibraryPanel();
+              }
             }}
             size="sm"
             variant="secondary"
@@ -2907,18 +2882,23 @@ export function GeneratorsPanel({
           {selectedNode && !compact ? (
             <Button
               type="button"
-              title={inspectorOpen ? "Hide settings" : "Show settings"}
-              aria-label={inspectorOpen ? "Hide settings" : "Show settings"}
+              title={inspectorMinimized ? "Expand node settings" : "Minimize node settings"}
+              aria-label={inspectorMinimized ? "Expand node settings" : "Minimize node settings"}
               onClick={() => {
-                setInspectorOpen((open) => !open);
-                setNodeLibraryOpen(false);
+                if (inspectorMinimized) {
+                  setInspectorMinimized(false);
+                  setGraphPanelState("inspector");
+                } else {
+                  setInspectorMinimized(true);
+                  setGraphPanelState("none");
+                }
                 setActionsMenuOpen(false);
               }}
               size="sm"
               variant="ghost"
             >
               <PanelRight size={14} />
-              Settings
+              {inspectorMinimized ? "Expand" : "Minimize"}
             </Button>
           ) : null}
         </>
@@ -4014,25 +3994,49 @@ function makeGraphFlowEdge(
   };
 }
 
-function GeneratorOverlayPanel({
+function GraphFloatingPanel({
   title,
+  subtitle,
   onClose,
+  onMinimize,
   children,
 }: {
   title: string;
-  onClose: () => void;
+  subtitle?: string;
+  onClose?: () => void;
+  onMinimize?: () => void;
   children: ReactNode;
 }) {
   return (
-    <div className="absolute inset-0 z-20 flex justify-end bg-[var(--color-figma-overlay)]">
+    <div className="tm-graph-floating-panel-shell pointer-events-none">
       <aside
-        className="flex h-full w-full max-w-[360px] flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.24)] max-[640px]:max-w-none"
+        className="tm-graph-floating-panel pointer-events-auto"
+        onClick={(event) => event.stopPropagation()}
+        onContextMenu={(event) => event.stopPropagation()}
       >
-        <header className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-2">
-          <h2 className="min-w-0 truncate text-primary font-semibold">{title}</h2>
-          <IconButton title="Close" aria-label="Close" onClick={onClose}>
-            <X size={14} />
-          </IconButton>
+        <header className="tm-graph-floating-panel__header">
+          <div className="min-w-0 flex-1">
+            <h2 className="m-0 truncate text-primary font-semibold">{title}</h2>
+            {subtitle ? (
+              <p className="m-0 truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+          {onMinimize ? (
+            <IconButton
+              title="Minimize node settings"
+              aria-label="Minimize node settings"
+              onClick={onMinimize}
+            >
+              <PanelRight size={14} />
+            </IconButton>
+          ) : null}
+          {onClose ? (
+            <IconButton title="Close" aria-label="Close" onClick={onClose}>
+              <X size={14} />
+            </IconButton>
+          ) : null}
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </aside>
@@ -4040,31 +4044,37 @@ function GeneratorOverlayPanel({
   );
 }
 
-function GeneratorDockedPanel({
-  title,
-  onClose,
-  children,
+function GraphInspectorMinimizedTab({
+  node,
+  placement,
+  onExpand,
 }: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
+  node: TokenGeneratorDocumentNode;
+  placement: "top" | "bottom";
+  onExpand: () => void;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex justify-end p-1.5">
-      <aside
-        className="pointer-events-auto flex h-full flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
-        style={{ width: "min(340px, calc(100% - 12px))" }}
-        onClick={(event) => event.stopPropagation()}
-        onContextMenu={(event) => event.stopPropagation()}
+    <div
+      className={`tm-graph-inspector-tab-shell tm-graph-inspector-tab-shell--${placement} pointer-events-none`}
+    >
+      <button
+        type="button"
+        className="tm-graph-inspector-tab pointer-events-auto"
+        onClick={(event) => {
+          event.stopPropagation();
+          onExpand();
+        }}
+        title={`Expand settings for ${node.label}`}
+        aria-label={`Expand settings for ${node.label}`}
       >
-        <header className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-2">
-          <h2 className="min-w-0 truncate text-primary font-semibold">{title}</h2>
-          <IconButton title="Close" aria-label="Close" onClick={onClose}>
-            <X size={14} />
-          </IconButton>
-        </header>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-      </aside>
+        <PanelRight size={14} aria-hidden />
+        <span className="min-w-0">
+          <span className="block truncate font-semibold">{node.label}</span>
+          <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+            {formatNodeKind(node.kind)}
+          </span>
+        </span>
+      </button>
     </div>
   );
 }
