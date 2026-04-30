@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { DeprecatedUsageEntry } from "../../shared/deprecatedUsage";
 import { TokenPickerDropdown } from "../TokenPicker";
+import type { ScopedTokenCandidate } from "../../shared/scopedTokenCandidates";
 import { Spinner } from "../Spinner";
 import { HealthSubViewHeader } from "./HealthSubViewHeader";
 
@@ -11,8 +12,16 @@ export interface HealthDeprecatedViewProps {
   error: string | null;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
-  onReplace: (entry: DeprecatedUsageEntry, replacementPath: string) => Promise<void>;
+  onReplace: (
+    entry: DeprecatedUsageEntry,
+    replacement: DeprecatedReplacementSelection,
+  ) => Promise<void>;
   onBack: () => void;
+}
+
+interface DeprecatedReplacementSelection {
+  path: string;
+  collectionId: string;
 }
 
 function formatCount(count: number, singular: string, plural = `${singular}s`): string {
@@ -32,7 +41,7 @@ export function HealthDeprecatedView({
   onReplace,
   onBack,
 }: HealthDeprecatedViewProps) {
-  const [replacementPaths, setReplacementPaths] = useState<Record<string, string>>({});
+  const [replacementSelections, setReplacementSelections] = useState<Record<string, DeprecatedReplacementSelection>>({});
   const [openPickerKey, setOpenPickerKey] = useState<string | null>(null);
   const [replacingKey, setReplacingKey] = useState<string | null>(null);
   const entryKeys = useMemo(
@@ -41,14 +50,16 @@ export function HealthDeprecatedView({
   );
 
   useEffect(() => {
-    setReplacementPaths((currentPaths) => {
-      const nextPaths = Object.fromEntries(
-        Object.entries(currentPaths).filter(([entryKey]) => entryKeys.has(entryKey)),
+    setReplacementSelections((currentSelections) => {
+      const nextSelections = Object.fromEntries(
+        Object.entries(currentSelections).filter(([entryKey]) => entryKeys.has(entryKey)),
       );
       const changed =
-        Object.keys(nextPaths).length !== Object.keys(currentPaths).length ||
-        Object.keys(nextPaths).some((entryKey) => nextPaths[entryKey] !== currentPaths[entryKey]);
-      return changed ? nextPaths : currentPaths;
+        Object.keys(nextSelections).length !== Object.keys(currentSelections).length ||
+        Object.keys(nextSelections).some(
+          (entryKey) => nextSelections[entryKey] !== currentSelections[entryKey],
+        );
+      return changed ? nextSelections : currentSelections;
     });
     setOpenPickerKey((currentKey) =>
       currentKey && !entryKeys.has(currentKey) ? null : currentKey,
@@ -60,12 +71,12 @@ export function HealthDeprecatedView({
 
   const handleReplace = async (entry: DeprecatedUsageEntry) => {
     const entryKey = getEntryKey(entry);
-    const replacement = replacementPaths[entryKey]?.trim();
+    const replacement = replacementSelections[entryKey];
     if (!replacement) return;
     setReplacingKey(entryKey);
     try {
       await onReplace(entry, replacement);
-      setReplacementPaths((prev) => {
+      setReplacementSelections((prev) => {
         const next = { ...prev };
         delete next[entryKey];
         return next;
@@ -102,7 +113,7 @@ export function HealthDeprecatedView({
         ) : (
           entries.map((entry) => {
             const entryKey = getEntryKey(entry);
-            const selectedReplacement = replacementPaths[entryKey];
+            const selectedReplacement = replacementSelections[entryKey];
             const isPickerOpen = openPickerKey === entryKey;
             const isReplacing = replacingKey === entryKey;
             const dependentPreview = entry.dependents.slice(0, 3);
@@ -137,7 +148,11 @@ export function HealthDeprecatedView({
                   </div>
                   {selectedReplacement && (
                     <div className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                      Replace with <span className="font-mono text-[color:var(--color-figma-text)]">{selectedReplacement}</span>
+                      Replace with{" "}
+                      <span className="font-mono text-[color:var(--color-figma-text)]">
+                        {selectedReplacement.path}
+                      </span>{" "}
+                      <span className="opacity-70">({selectedReplacement.collectionId})</span>
                     </div>
                   )}
                   {isPickerOpen && (
@@ -149,8 +164,13 @@ export function HealthDeprecatedView({
                         includeDeprecated={false}
                         excludePaths={[entry.deprecatedPath]}
                         placeholder="Search replacement token…"
-                        onSelect={(path) => {
-                          setReplacementPaths((prev) => ({ ...prev, [entryKey]: path }));
+                        onSelect={(path, _resolvedValue, _tokenEntry, selection?: ScopedTokenCandidate) => {
+                          const collectionId = selection?.collectionId ?? pathToCollectionId[path] ?? "";
+                          if (!collectionId) return;
+                          setReplacementSelections((prev) => ({
+                            ...prev,
+                            [entryKey]: { path, collectionId },
+                          }));
                           setOpenPickerKey(null);
                         }}
                         onClose={() => setOpenPickerKey(null)}

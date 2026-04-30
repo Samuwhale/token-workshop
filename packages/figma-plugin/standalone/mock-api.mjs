@@ -256,7 +256,7 @@ export async function handleMockApiRequest(req, res, url) {
         sendMethodNotAllowed(res, ['POST', 'HEAD'], method);
         return true;
       }
-      sendJson(res, 200, { ok: true, replacedCount: 0, operationId: null }, method);
+      sendJson(res, 200, { ok: true, updated: 0, operationId: null }, method);
       return true;
     }
 

@@ -17,6 +17,7 @@ import {
   readGeneratorProvenance,
   readTokenCollectionModeValues,
   readTokenModeValuesForCollection,
+  resolveCollectionIdForPath,
   readTokenScopes,
   type Token,
   type TokenCollection,
@@ -456,6 +457,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     tokenPath: string,
   ): TokenDefinitionEntry | undefined {
     return fastify.tokenStore.getTokenDefinitions(tokenPath)[0];
+  }
+
+  function buildTokenPathIndex(): {
+    pathToCollectionId: Record<string, string>;
+    collectionIdsByPath: Record<string, string[]>;
+  } {
+    const pathToCollectionId: Record<string, string> = {};
+    const collectionIdsByPath: Record<string, string[]> = {};
+
+    for (const { path, collectionId } of fastify.tokenStore.getAllFlatTokens()) {
+      pathToCollectionId[path] ??= collectionId;
+      const collectionIds = collectionIdsByPath[path] ?? [];
+      if (!collectionIds.includes(collectionId)) {
+        collectionIds.push(collectionId);
+        collectionIdsByPath[path] = collectionIds;
+      }
+    }
+
+    return { pathToCollectionId, collectionIdsByPath };
   }
 
   function listActiveDependents(
@@ -1643,17 +1663,25 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/tokens/deprecated-usage/replace — replace all direct alias references to a deprecated token
   fastify.post<{
-    Body: { collectionId?: string; deprecatedPath?: string; replacementPath?: string };
+    Body: {
+      collectionId?: string;
+      deprecatedPath?: string;
+      replacementPath?: string;
+      replacementCollectionId?: string;
+    };
   }>('/tokens/deprecated-usage/replace', async (request, reply) => {
-    const { collectionId, deprecatedPath, replacementPath } = request.body ?? {};
+    const { collectionId, deprecatedPath, replacementPath, replacementCollectionId } = request.body ?? {};
     if (!isValidCollectionId(collectionId)) {
       return reply.status(400).send({ error: 'collectionId must be a valid non-empty collection id' });
+    }
+    if (!isValidCollectionId(replacementCollectionId)) {
+      return reply.status(400).send({ error: 'replacementCollectionId must be a valid non-empty collection id' });
     }
     if (!isValidTokenPath(deprecatedPath) || !isValidTokenPath(replacementPath)) {
       return reply.status(400).send({ error: 'deprecatedPath and replacementPath must be valid non-empty token paths' });
     }
-    if (deprecatedPath === replacementPath) {
-      return reply.status(400).send({ error: 'replacementPath must be different from deprecatedPath' });
+    if (deprecatedPath === replacementPath && collectionId === replacementCollectionId) {
+      return reply.status(400).send({ error: 'replacement token must be different from deprecated token' });
     }
 
     return withLock(async () => {
@@ -1681,14 +1709,19 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
-        const replacementDefinitions = fastify.tokenStore.getTokenDefinitions(replacementPath);
-        const replacementToken = replacementDefinitions[0]?.token;
-        if (!replacementToken) {
-          return reply.status(404).send({ error: `Replacement token "${replacementPath}" not found` });
+        const replacementDefinition = getTokenDefinitionInCollection(
+          replacementPath,
+          replacementCollectionId,
+        );
+        if (!replacementDefinition) {
+          return reply.status(404).send({
+            error: `Replacement token "${replacementPath}" not found in collection "${replacementCollectionId}"`,
+          });
         }
+        const replacementToken = replacementDefinition.token;
         if (getTokenLifecycle(replacementToken) === 'deprecated') {
           return reply.status(400).send({
-            error: `Replacement token "${replacementPath}" is deprecated`,
+            error: `Replacement token "${replacementPath}" in collection "${replacementCollectionId}" is deprecated`,
           });
         }
 
@@ -1703,6 +1736,30 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const dependents = listActiveDependents(deprecatedPath);
         if (dependents.length === 0) {
           return { ok: true, updated: 0 };
+        }
+
+        const pathIndex = buildTokenPathIndex();
+        const unresolvedDependents = dependents.filter((dependent) => {
+          const resolution = resolveCollectionIdForPath({
+            path: replacementPath,
+            preferredCollectionId: dependent.collectionId,
+            pathToCollectionId: pathIndex.pathToCollectionId,
+            collectionIdsByPath: pathIndex.collectionIdsByPath,
+          });
+          return resolution.collectionId !== replacementCollectionId;
+        });
+        if (unresolvedDependents.length > 0) {
+          const preview = unresolvedDependents
+            .slice(0, 5)
+            .map((dependent) => `"${dependent.path}" in "${dependent.collectionId}"`)
+            .join(', ');
+          const more =
+            unresolvedDependents.length > 5
+              ? ` and ${unresolvedDependents.length - 5} more`
+              : '';
+          throw new ConflictError(
+            `Replacement token "${replacementPath}" from "${replacementCollectionId}" cannot be used because that path resolves to a different collection from ${preview}${more}. Choose a replacement that resolves from every dependent collection.`,
+          );
         }
 
         const patchesByCollection = new Map<string, Array<{ path: string; patch: Partial<Token> }>>();

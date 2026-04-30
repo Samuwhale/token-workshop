@@ -349,7 +349,10 @@ export function HealthPanel({
     }
   };
 
-  const handleReplaceDeprecated = async (entry: DeprecatedUsageEntry, replacementPath: string) => {
+  const handleReplaceDeprecated = async (
+    entry: DeprecatedUsageEntry,
+    replacement: { path: string; collectionId: string },
+  ) => {
     try {
       const result = await apiFetch<{ ok: true; updated: number; operationId?: string }>(
         `${serverUrl}/api/tokens/deprecated-usage/replace`,
@@ -359,7 +362,8 @@ export function HealthPanel({
           body: JSON.stringify({
             collectionId: entry.collectionId,
             deprecatedPath: entry.deprecatedPath,
-            replacementPath,
+            replacementPath: replacement.path,
+            replacementCollectionId: replacement.collectionId,
           }),
         },
       );
