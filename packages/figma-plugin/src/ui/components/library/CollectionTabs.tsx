@@ -33,7 +33,7 @@ import { Button, SearchField } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 420;
+const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 480;
 
 interface AllCollectionsScope {
   selected: boolean;

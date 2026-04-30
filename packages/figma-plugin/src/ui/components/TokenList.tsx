@@ -2150,6 +2150,7 @@ export function TokenList({
             navigation={{
               onNavigateToCollection,
               onCreateNew,
+              onCreateGroup: handleOpenNewGroupDialog,
               onOpenImportPanel,
               onExtractFromSelection,
               hasSelection: selectedNodes.length > 0,

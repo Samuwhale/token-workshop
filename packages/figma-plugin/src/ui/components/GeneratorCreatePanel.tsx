@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Circle,
   Droplet,
@@ -15,12 +15,12 @@ import {
 } from "lucide-react";
 import type { TokenCollection, TokenGeneratorDocument } from "@tokenmanager/core";
 import {
-  GENERATOR_PRESET_OPTIONS,
-  SOURCELESS_GENERATOR_PRESETS,
+  GENERATOR_TEMPLATE_OPTIONS,
+  SOURCELESS_GENERATOR_TEMPLATES,
   buildGeneratorNodesFromStructuredDraft,
   generatorDefaultConfig,
   generatorDefaultSourceValue,
-  type GeneratorPresetKind,
+  type GeneratorConfiguredTemplateKind,
   type GeneratorSourceMode,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../shared/types";
@@ -41,9 +41,11 @@ import {
 } from "./generators/GeneratorFieldControls";
 import type { GeneratorEditorMode } from "./generators/generatorEditorTypes";
 
-type BusyState = "create" | "custom" | null;
-type CreateStartMode = "preset" | "graph";
-type GraphTemplateSelection = "blank" | GeneratorPresetKind;
+type BusyState = "create" | null;
+type CreateStep = "type" | "details";
+type CreateTypeSelection =
+  | { mode: "configured"; kind: GeneratorConfiguredTemplateKind }
+  | { mode: "graph"; template: "blank" | GeneratorConfiguredTemplateKind };
 
 interface GeneratorCreatePanelProps {
   serverUrl: string;
@@ -88,9 +90,9 @@ const SOURCE_MODE_OPTIONS: Array<{ value: GeneratorSourceMode; label: string }> 
   { value: "literal", label: "Value" },
   { value: "token", label: "Token" },
 ];
-const PRESET_GROUPS: Array<{
+const GENERATOR_TYPE_GROUPS: Array<{
   label: string;
-  ids: GeneratorPresetKind[];
+  ids: GeneratorConfiguredTemplateKind[];
 }> = [
   { label: "Color", ids: ["colorRamp"] },
   { label: "Size", ids: ["spacing", "radius"] },
@@ -108,16 +110,17 @@ export function GeneratorCreatePanel({
   onClose,
   onOpenGenerator,
 }: GeneratorCreatePanelProps) {
-  const initialKind: GeneratorPresetKind = "colorRamp";
+  const initialKind: GeneratorConfiguredTemplateKind = "colorRamp";
   const initialCollectionId = workingCollectionId || collections[0]?.id || "";
-  const [startMode, setStartMode] = useState<CreateStartMode>("preset");
-  const [kind, setKind] = useState<GeneratorPresetKind>(initialKind);
-  const [graphTemplate, setGraphTemplate] =
-    useState<GraphTemplateSelection>("blank");
+  const initialOutputPrefixValue = initialOutputPrefix?.trim() || "";
+  const [step, setStep] = useState<CreateStep>("type");
+  const [kind, setKind] = useState<GeneratorConfiguredTemplateKind>(initialKind);
+  const [typeSelection, setTypeSelection] =
+    useState<CreateTypeSelection | null>(null);
   const [targetCollectionId, setTargetCollectionId] =
     useState(initialCollectionId);
   const [outputPrefix, setOutputPrefix] = useState(
-    initialOutputPrefix?.trim() || "color.brand",
+    initialOutputPrefixValue || "color.brand",
   );
   const [sourceMode, setSourceMode] = useState<GeneratorSourceMode>("literal");
   const [sourceValue, setSourceValue] = useState(
@@ -135,7 +138,7 @@ export function GeneratorCreatePanel({
   const [paletteDarkEnd, setPaletteDarkEnd] = useState(
     COLOR_RAMP_DEFAULT.darkEnd,
   );
-  const [scaleUnit, setScaleUnit] = useState(readPresetUnit(initialKind));
+  const [scaleUnit, setScaleUnit] = useState(readTemplateUnit(initialKind));
   const [typeRatio, setTypeRatio] = useState(TYPE_SCALE_DEFAULT.ratio);
   const [shadowColor, setShadowColor] = useState(SHADOW_SCALE_DEFAULT.color);
   const [formula, setFormula] = useState(FORMULA_DEFAULT.formula);
@@ -147,6 +150,8 @@ export function GeneratorCreatePanel({
   >(FORMULA_DEFAULT.outputType);
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const createRequestIdRef = useRef(0);
   const allTargetTokensFlat = perCollectionFlat[targetCollectionId] ?? {};
   const pathToCollectionId = useMemo(() => {
     const result: Record<string, string> = {};
@@ -159,8 +164,14 @@ export function GeneratorCreatePanel({
   }, [perCollectionFlat]);
 
   const selectedOption =
-    GENERATOR_PRESET_OPTIONS.find((item) => item.id === kind) ??
-    GENERATOR_PRESET_OPTIONS[0];
+    GENERATOR_TEMPLATE_OPTIONS.find((item) => item.id === kind) ??
+    GENERATOR_TEMPLATE_OPTIONS[0];
+  const selectedGraphOption =
+    typeSelection?.mode === "graph" && typeSelection.template !== "blank"
+      ? GENERATOR_TEMPLATE_OPTIONS.find(
+          (item) => item.id === typeSelection.template,
+        )
+      : null;
   const targetCollection = collections.find(
     (collection) => collection.id === targetCollectionId,
   );
@@ -203,6 +214,17 @@ export function GeneratorCreatePanel({
   const selectedSourceToken = sourceTokenPath
     ? compatibleSourceTokenEntries.find(([path]) => path === sourceTokenPath)
     : undefined;
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      createRequestIdRef.current += 1;
+    };
+  }, []);
+
+  const isActiveCreateRequest = useCallback((requestId: number) => {
+    return mountedRef.current && createRequestIdRef.current === requestId;
+  }, []);
 
   const generationConfig = useMemo(() => {
     if (kind === "colorRamp") {
@@ -252,28 +274,91 @@ export function GeneratorCreatePanel({
   ]);
 
   const updateKind = useCallback(
-    (nextKind: GeneratorPresetKind) => {
+    (nextKind: GeneratorConfiguredTemplateKind) => {
       const option =
-        GENERATOR_PRESET_OPTIONS.find((item) => item.id === nextKind) ??
-        GENERATOR_PRESET_OPTIONS[0];
+        GENERATOR_TEMPLATE_OPTIONS.find((item) => item.id === nextKind) ??
+        GENERATOR_TEMPLATE_OPTIONS[0];
       setKind(nextKind);
-      setOutputPrefix(option.outputPrefix);
+      setTypeSelection({ mode: "configured", kind: nextKind });
+      setOutputPrefix(initialOutputPrefixValue || option.outputPrefix);
       setSourceMode(option.sourceMode);
       setSourceValue(generatorDefaultSourceValue(nextKind));
-      setScaleUnit(readPresetUnit(nextKind));
-      setTypeRatio(readPresetRatio(generatorDefaultConfig(nextKind)));
+      setScaleUnit(readTemplateUnit(nextKind));
+      setTypeRatio(readTemplateRatio(generatorDefaultConfig(nextKind)));
       setSourceCollectionId(targetCollectionId);
       setSourceTokenPath("");
       setSourceQuery("");
       setSourceAdvancedOpen(false);
       setError(null);
     },
-    [targetCollectionId],
+    [initialOutputPrefixValue, targetCollectionId],
   );
 
+  const updateGraphTemplate = useCallback(
+    (template: "blank" | GeneratorConfiguredTemplateKind) => {
+      setTypeSelection({ mode: "graph", template });
+      setError(null);
+    },
+    [],
+  );
+
+  const continueToDetails = useCallback(() => {
+    if (!templateSelection) {
+      setError("Choose a template.");
+      return;
+    }
+    setStep("details");
+    setError(null);
+  }, [templateSelection]);
+
+  const returnToTypeSelection = useCallback(() => {
+    setStep("type");
+    setError(null);
+  }, []);
+
   const createGenerator = useCallback(async () => {
+    if (!templateSelection) {
+      setError("Choose a template.");
+      return;
+    }
     if (!targetCollectionId) {
       setError("Choose a collection first.");
+      return;
+    }
+    if (templateSelection === "blank") {
+      const requestId = createRequestIdRef.current + 1;
+      createRequestIdRef.current = requestId;
+      setBusy("create");
+      setError(null);
+      try {
+        const created = await apiFetch<GeneratorResponse>(
+          `${serverUrl}/api/generators`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: "New generator",
+              targetCollectionId,
+              template: "blank",
+            }),
+          },
+        );
+        if (!isActiveCreateRequest(requestId)) return;
+        onOpenGenerator(
+          created.generator.id,
+          created.generator.targetCollectionId,
+          "graph",
+        );
+      } catch (createError) {
+        if (!isActiveCreateRequest(requestId)) return;
+        setError(
+          createError instanceof Error ? createError.message : String(createError),
+        );
+      } finally {
+        if (isActiveCreateRequest(requestId)) {
+          setBusy(null);
+        }
+      }
       return;
     }
     const outputPathError = validateGeneratorTokenPath(outputPrefix);
@@ -282,7 +367,7 @@ export function GeneratorCreatePanel({
       return;
     }
     if (
-      !SOURCELESS_GENERATOR_PRESETS.has(kind) &&
+      !SOURCELESS_GENERATOR_TEMPLATES.has(kind) &&
       sourceMode === "token" &&
       !sourceTokenPath.trim()
     ) {
@@ -290,7 +375,7 @@ export function GeneratorCreatePanel({
       return;
     }
     if (
-      !SOURCELESS_GENERATOR_PRESETS.has(kind) &&
+      !SOURCELESS_GENERATOR_TEMPLATES.has(kind) &&
       sourceMode === "token" &&
       !selectedSourceToken
     ) {
@@ -322,6 +407,8 @@ export function GeneratorCreatePanel({
       outputPrefix: outputPrefix.trim(),
       config: generationConfig,
     });
+    const requestId = createRequestIdRef.current + 1;
+    createRequestIdRef.current = requestId;
     setBusy("create");
     setError(null);
     try {
@@ -332,7 +419,6 @@ export function GeneratorCreatePanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: `${selectedOption.label} generator`,
-            authoringMode: "preset",
             targetCollectionId,
             nodes: generatedNodes.nodes,
             edges: generatedNodes.edges,
@@ -340,20 +426,25 @@ export function GeneratorCreatePanel({
           }),
         },
       );
+      if (!isActiveCreateRequest(requestId)) return;
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
         "overview",
       );
     } catch (createError) {
+      if (!isActiveCreateRequest(requestId)) return;
       setError(
         createError instanceof Error ? createError.message : String(createError),
       );
     } finally {
-      setBusy(null);
+      if (isActiveCreateRequest(requestId)) {
+        setBusy(null);
+      }
     }
   }, [
     generationConfig,
+    isActiveCreateRequest,
     kind,
     missingSourceModes,
     modeCompatibility,
@@ -368,62 +459,8 @@ export function GeneratorCreatePanel({
     sourceValue,
     targetCollectionId,
     selectedSourceToken,
+    templateSelection,
   ]);
-
-  const createGraphGenerator = useCallback(async (template?: GeneratorPresetKind) => {
-    if (!targetCollectionId) {
-      setError("Choose a collection first.");
-      return;
-    }
-    setBusy("custom");
-    setError(null);
-    try {
-      const option = template
-        ? GENERATOR_PRESET_OPTIONS.find((item) => item.id === template)
-        : null;
-      const templateDraft = option
-        ? buildGeneratorNodesFromStructuredDraft({
-            kind: option.id,
-            sourceMode: option.sourceMode,
-            sourceValue: generatorDefaultSourceValue(option.id),
-            sourceCollectionId: targetCollectionId,
-            sourceTokenPath: "",
-            outputPrefix: option.outputPrefix,
-            config: generatorDefaultConfig(option.id),
-          })
-        : null;
-      const created = await apiFetch<GeneratorResponse>(
-        `${serverUrl}/api/generators`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: option ? `${option.label} generator` : "Custom generator",
-            authoringMode: "graph",
-            targetCollectionId,
-            ...(templateDraft
-              ? {
-                  nodes: templateDraft.nodes,
-                  edges: templateDraft.edges,
-                  viewport: { x: 0, y: 0, zoom: 1 },
-                }
-              : { template: "blank" }),
-          }),
-        },
-      );
-      onOpenGenerator(
-        created.generator.id,
-        created.generator.targetCollectionId,
-        "overview",
-      );
-    } catch (createError) {
-      setError(
-        createError instanceof Error ? createError.message : String(createError),
-      );
-    } finally {
-      setBusy(null);
-    }
-  }, [onOpenGenerator, serverUrl, targetCollectionId]);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
@@ -438,6 +475,7 @@ export function GeneratorCreatePanel({
         </h3>
         <IconButton
           onClick={onClose}
+          disabled={busy !== null}
           aria-label="Close"
         >
           <X size={14} aria-hidden />
@@ -445,140 +483,122 @@ export function GeneratorCreatePanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        <div className="mb-4 grid gap-2 min-[720px]:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => setStartMode("preset")}
-            className={`flex items-start gap-3 rounded-md px-3 py-3 text-left transition-colors ${
-              startMode === "preset"
-                ? "bg-[var(--color-figma-bg-selected)]"
-                : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            }`}
-          >
-            <Sparkles
-              size={15}
-              className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
-            />
-            <span className="min-w-0">
-              <span className="block text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                Preset
-              </span>
-              <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                Configure a ready-made token group.
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setStartMode("graph")}
-            className={`flex items-start gap-3 rounded-md px-3 py-3 text-left transition-colors ${
-              startMode === "graph"
-                ? "bg-[var(--color-figma-bg-selected)]"
-                : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            }`}
-          >
-            <Workflow
-              size={15}
-              className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
-            />
-            <span className="min-w-0">
-              <span className="block text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                Graph
-              </span>
-              <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                Edit the same generator as nodes and connections.
-              </span>
-            </span>
-          </button>
-        </div>
-
-        <label className="mb-4 block">
-          <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-            Target collection
-          </span>
-          <select
-            value={targetCollectionId}
-            onChange={(event) => {
-              const nextCollectionId = event.target.value;
-              setTargetCollectionId(nextCollectionId);
-              if (!sourceAdvancedOpen) {
-                setSourceCollectionId(nextCollectionId);
-                setSourceTokenPath("");
-              }
-            }}
-            className="tm-generator-field text-secondary"
-          >
-            {collectionOptions.map((collection) => (
-              <option key={collection.id} value={collection.id}>
-                {collection.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {startMode === "preset" ? (
-        <div className="grid gap-3 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="space-y-2">
-            <div className="px-1">
-              <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                Preset templates
-              </h4>
-              <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Choose the pattern that matches the token group you want.
-              </p>
-            </div>
-            <div className="space-y-3">
-              {PRESET_GROUPS.map((group) => (
-                <div key={group.label}>
-                  <div className="mb-1 px-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                    {group.label}
-                  </div>
-                  <div className="space-y-1">
-                    {group.ids.map((id) => {
-                      const option = GENERATOR_PRESET_OPTIONS.find(
-                        (candidate) => candidate.id === id,
-                      );
-                      if (!option) return null;
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => updateKind(option.id)}
-                          className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
-                            option.id === kind
-                              ? "bg-[var(--color-figma-bg-selected)]"
-                              : "bg-transparent hover:bg-[var(--color-figma-bg-hover)]"
-                          }`}
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                              {option.label}
-                            </span>
-                            <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                              {presetSourceLabel(option.id)}
-                              {" -> "}
-                              {option.outputPrefix}
-                            </span>
-                          </span>
-                          <PresetIcon kind={option.id} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+        {step === "type" ? (
           <div className="space-y-3">
             <div>
               <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                Generator details
+                Choose a type
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Pick where the generated tokens live and what they come from.
+                Start with a ready-made setup or build from an empty graph.
               </p>
             </div>
+            <div className="space-y-3">
+              <div className="space-y-3">
+                <div>
+                  <h5 className="px-1 text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                    Configure values
+                  </h5>
+                  <p className="mt-0.5 px-1 text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                    Choose a generator and set its values next.
+                  </p>
+                </div>
+                {GENERATOR_TYPE_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="mb-1 px-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+                      {group.label}
+                    </div>
+                    <div className="space-y-1">
+                      {group.ids.map((id) => {
+                        const option = GENERATOR_TEMPLATE_OPTIONS.find(
+                          (candidate) => candidate.id === id,
+                        );
+                        if (!option) return null;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => updateKind(option.id)}
+                            aria-pressed={
+                              typeSelection?.mode === "configured" &&
+                              typeSelection.kind === option.id
+                            }
+                            className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
+                              typeSelection?.mode === "configured" &&
+                              typeSelection.kind === option.id
+                                ? "bg-[var(--color-figma-bg-selected)]"
+                                : "bg-transparent hover:bg-[var(--color-figma-bg-hover)]"
+                            }`}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                                {option.label}
+                              </span>
+                              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                                {templateSourceLabel(option.id)}
+                                {" -> "}
+                                {initialOutputPrefixValue || option.outputPrefix}
+                              </span>
+                            </span>
+                            <TemplateIcon kind={option.id} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
+                {typeSelection?.mode === "graph"
+                  ? selectedGraphOption
+                    ? `${selectedGraphOption.label} graph`
+                    : "Blank graph"
+                  : `${selectedOption.label} generator`}
+              </h4>
+              <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                {typeSelection?.mode === "graph"
+                  ? "Choose where this generator belongs before opening Graph."
+                  : "Fill in the values this generator needs."}
+              </p>
+            </div>
+
+            <label className="block">
+              <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+                Target collection
+              </span>
+              <select
+                value={targetCollectionId}
+                onChange={(event) => {
+                  const nextCollectionId = event.target.value;
+                  setTargetCollectionId(nextCollectionId);
+                  if (!sourceAdvancedOpen) {
+                    setSourceCollectionId(nextCollectionId);
+                    setSourceTokenPath("");
+                  }
+                }}
+                className="tm-generator-field text-secondary"
+              >
+                {collectionOptions.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {typeSelection?.mode === "graph" ? (
+              <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                {typeSelection.template === "blank"
+                  ? "The generator will open with no nodes. Add the source, transform, and output nodes there."
+                  : "The generator will open as editable nodes so you can adjust the graph directly."}
+              </p>
+            ) : (
+              <div className="space-y-3">
 
             <GeneratorPathField
               label="Output group"
@@ -587,7 +607,7 @@ export function GeneratorCreatePanel({
               onChange={setOutputPrefix}
             />
 
-          {!SOURCELESS_GENERATOR_PRESETS.has(kind) ? (
+          {!SOURCELESS_GENERATOR_TEMPLATES.has(kind) ? (
             <div className="space-y-2">
               <SegmentedControl
                 value={sourceMode}
@@ -627,15 +647,19 @@ export function GeneratorCreatePanel({
               ) : (
                 <div className="space-y-2">
                   <div>
-                    <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+                    <label
+                      htmlFor="generator-source-token-search"
+                      className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]"
+                    >
                       Source token
-                    </span>
+                    </label>
                     <div className="flex items-center gap-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
                       <Search
                         size={14}
                         className="text-[color:var(--color-figma-text-secondary)]"
                       />
                       <input
+                        id="generator-source-token-search"
                         value={sourceQuery}
                         onChange={(event) => setSourceQuery(event.target.value)}
                         placeholder={sourceTokenPath || "Search compatible tokens"}
@@ -836,78 +860,10 @@ export function GeneratorCreatePanel({
               </div>
             </>
           ) : null}
-          </div>
-        </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="space-y-3">
-              <div>
-                <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                  Graph templates
-                </h4>
-                <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Start empty or open a preset shape as editable nodes.
-                </p>
               </div>
-              <div className="grid gap-2 min-[720px]:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGraphTemplate("blank");
-                    setError(null);
-                  }}
-                  disabled={busy !== null || !targetCollectionId}
-                  aria-pressed={graphTemplate === "blank"}
-                  className={`flex min-h-[72px] items-start justify-between gap-3 rounded-md px-3 py-3 text-left transition-colors disabled:opacity-40 ${
-                    graphTemplate === "blank"
-                      ? "bg-[var(--color-figma-bg-selected)]"
-                      : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  }`}
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                      Blank graph
-                    </span>
-                    <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                      Add each node yourself.
-                    </span>
-                  </span>
-                  <Workflow
-                    size={14}
-                    className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
-                  />
-                </button>
-                {GENERATOR_PRESET_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => {
-                      setGraphTemplate(option.id);
-                      setError(null);
-                    }}
-                    disabled={busy !== null || !targetCollectionId}
-                    aria-pressed={graphTemplate === option.id}
-                    className={`flex min-h-[72px] items-start justify-between gap-3 rounded-md px-3 py-3 text-left transition-colors disabled:opacity-40 ${
-                      graphTemplate === option.id
-                        ? "bg-[var(--color-figma-bg-selected)]"
-                        : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                        {option.label}
-                      </span>
-                      <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                        Template graph for {option.outputPrefix}.
-                      </span>
-                    </span>
-                    <PresetIcon kind={option.id} />
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
-        )}
+          )}
 
         {error ? (
           <div className="mt-4 rounded bg-[color-mix(in_srgb,var(--color-figma-error)_10%,transparent)] px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
@@ -917,36 +873,39 @@ export function GeneratorCreatePanel({
       </div>
 
       <div className="flex items-center justify-end gap-2 border-t border-[var(--color-figma-border)] px-4 py-3">
+        {step === "details" ? (
+          <Button
+            onClick={returnToTypeSelection}
+            disabled={busy !== null}
+            variant="ghost"
+            size="sm"
+          >
+            Back
+          </Button>
+        ) : null}
         <Button
           onClick={onClose}
+          disabled={busy !== null}
           variant="ghost"
           size="sm"
         >
           Cancel
         </Button>
-        {startMode === "preset" ? (
-          <Button
-            onClick={createGenerator}
-            disabled={busy !== null || !targetCollectionId}
-            variant="primary"
-            size="sm"
-          >
-            {busy ? "Creating..." : "Create preset generator"}
-          </Button>
-        ) : (
-          <Button
-            onClick={() =>
-              createGraphGenerator(
-                graphTemplate === "blank" ? undefined : graphTemplate,
-              )
-            }
-            disabled={busy !== null || !targetCollectionId}
-            variant="primary"
-            size="sm"
-          >
-            {busy ? "Creating..." : "Create graph generator"}
-          </Button>
-        )}
+        <Button
+          onClick={step === "type" ? continueToDetails : createGenerator}
+          disabled={
+            busy !== null ||
+            (step === "type" ? !typeSelection : !targetCollectionId)
+          }
+          variant="primary"
+          size="sm"
+        >
+          {step === "type"
+            ? "Next"
+            : busy
+              ? "Creating..."
+              : "Create generator"}
+        </Button>
       </div>
     </div>
   );
@@ -961,12 +920,12 @@ function findDuplicateNumber(values: number[]): number | null {
   return null;
 }
 
-function readPresetUnit(kind: GeneratorPresetKind): string {
+function readTemplateUnit(kind: GeneratorConfiguredTemplateKind): string {
   const config = generatorDefaultConfig(kind) as { unit?: unknown };
   return typeof config.unit === "string" ? config.unit : "px";
 }
 
-function PresetIcon({ kind }: { kind: GeneratorPresetKind }) {
+function TemplateIcon({ kind }: { kind: GeneratorConfiguredTemplateKind }) {
   const className =
     "mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]";
   if (kind === "colorRamp") return <Palette size={13} className={className} />;
@@ -980,7 +939,7 @@ function PresetIcon({ kind }: { kind: GeneratorPresetKind }) {
   return <Workflow size={13} className={className} />;
 }
 
-function readPresetRatio(config: unknown): number {
+function readTemplateRatio(config: unknown): number {
   const ratio = (config as { ratio?: unknown }).ratio;
   return typeof ratio === "number" ? ratio : 1.25;
 }
@@ -1035,15 +994,15 @@ function formatCompactValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function presetSourceLabel(kind: GeneratorPresetKind): string {
-  if (SOURCELESS_GENERATOR_PRESETS.has(kind)) return "No source token";
+function templateSourceLabel(kind: GeneratorConfiguredTemplateKind): string {
+  if (SOURCELESS_GENERATOR_TEMPLATES.has(kind)) return "No source token";
   if (kind === "colorRamp") return "Color source";
   if (kind === "formula") return "Number source";
   return "Dimension source";
 }
 
 function generatorAcceptsTokenType(
-  kind: GeneratorPresetKind,
+  kind: GeneratorConfiguredTemplateKind,
   tokenType?: string,
 ): boolean {
   if (kind === "colorRamp") return tokenType === "color";

@@ -1002,8 +1002,25 @@ export function TokenDetails({
       return;
     }
     const newPath = parentPrefix ? `${parentPrefix}.${trimmed}` : trimmed;
-    if (allTokensFlat[newPath]) {
+    const sameCollectionConflict = pathExistsInCollection({
+      path: newPath,
+      collectionId: ownerCollectionId,
+      pathToCollectionId,
+      collectionIdsByPath,
+    });
+    if (sameCollectionConflict) {
       setRenameError(`A token named "${trimmed}" already exists here`);
+      return;
+    }
+    const otherCollectionConflicts = getCollectionIdsForPath({
+      path: newPath,
+      pathToCollectionId,
+      collectionIdsByPath,
+    }).filter((conflictCollectionId) => conflictCollectionId !== ownerCollectionId);
+    if (otherCollectionConflicts.length > 0) {
+      setRenameError(
+        `A token named "${trimmed}" already exists in ${formatCollectionIdList(otherCollectionConflicts)}. Choose a unique name before renaming.`,
+      );
       return;
     }
     setRenameSaving(true);
@@ -1026,7 +1043,8 @@ export function TokenDetails({
     renameInput,
     leafName,
     parentPrefix,
-    allTokensFlat,
+    collectionIdsByPath,
+    pathToCollectionId,
     serverUrl,
     ownerCollectionId,
     tokenPath,

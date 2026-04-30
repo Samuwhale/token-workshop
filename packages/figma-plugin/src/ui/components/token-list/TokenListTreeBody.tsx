@@ -125,6 +125,7 @@ export interface TokenListZoomGroup {
 export interface TokenListNavigationGroup {
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
   onCreateNew?: (initialPath?: string) => void;
+  onCreateGroup?: () => void;
   onOpenImportPanel?: () => void;
   onExtractFromSelection?: () => void;
   hasSelection?: boolean;
@@ -228,6 +229,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     onNavigateToCollection,
     onCreateNew,
+    onCreateGroup,
     onOpenImportPanel,
     onExtractFromSelection,
     hasSelection,
@@ -728,6 +730,15 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       });
     }
 
+    if (onCreateGroup) {
+      emptyCollectionActions.push({
+        label: "New group",
+        onClick: onCreateGroup,
+        disabled: !connected,
+        tone: "secondary",
+      });
+    }
+
     if (onOpenImportPanel) {
       emptyCollectionActions.push({
         label: "Import tokens",
@@ -762,8 +773,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             title="This collection is empty"
             description={
               hasSelection
-                ? "Create a token, import from a file, or extract from your Figma selection."
-                : "Create a token or import tokens into this collection."
+                ? "Create a group or token, import from a file, or extract from your Figma selection."
+                : "Create a group or token, or import tokens into this collection."
             }
             actions={emptyCollectionActions}
           />

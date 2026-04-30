@@ -11,6 +11,7 @@ import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
 import { formatTokenValueForDisplay } from "../../shared/tokenFormatting";
 import { getDefaultValue } from "../tokenListUtils";
+import { IconButton } from "../../primitives";
 import {
   buildTypographyPreviewStyle,
   getTypographyPreviewValue,
@@ -240,19 +241,18 @@ export function TokenDetailsModeRow({
       </button>
       {hasSecondaryActions ? (
         <div className="relative">
-          <button
+          <IconButton
             ref={actionsMenu.triggerRef}
-            type="button"
             onClick={actionsMenu.toggle}
             aria-expanded={actionsMenu.open}
             aria-haspopup="menu"
-            aria-label={`Reuse value for ${modeName}`}
-            title={`Reuse value for ${modeName}`}
-            className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
+            aria-label={`Copy value options for ${modeName}`}
+            title={`Copy value options for ${modeName}`}
+            size="sm"
+            className="tm-token-mode-row__overflow-button"
           >
             <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-            <span className="tm-token-mode-row__action-label">Reuse value</span>
-          </button>
+          </IconButton>
           {actionsMenu.open ? (
             <div
               ref={actionsMenu.menuRef}
@@ -272,8 +272,8 @@ export function TokenDetailsModeRow({
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
                   {previousModeName
-                    ? `Use ${previousModeName} value for ${modeName}`
-                    : `Use previous value for ${modeName}`}
+                    ? `Use ${previousModeName} value`
+                    : "Use previous mode value"}
                 </button>
               ) : null}
               {allowCopyToAll && onCopyToAll ? (
@@ -287,7 +287,7 @@ export function TokenDetailsModeRow({
                   className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                 >
                   <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-                  Use this value for all modes
+                  Copy to all modes
                 </button>
               ) : null}
             </div>

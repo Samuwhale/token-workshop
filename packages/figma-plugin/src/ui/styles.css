@@ -408,7 +408,7 @@ a[role="menuitem"] {
   min-inline-size: 0;
   gap: 4px;
   padding: 12px 12px 8px;
-  background: var(--surface-panel-header);
+  background: transparent;
 }
 
 .tm-modal-header--split {
@@ -1918,24 +1918,16 @@ button.tm-status-row:not(:disabled):hover {
 @container (max-width: 360px) {
   .tm-value-cell__line {
     font-size: var(--font-size-xs);
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    line-height: 1.15;
   }
 }
 
 @container (max-width: 360px) {
   .tm-value-cell__line + .tm-value-cell__line {
-    display: none;
-  }
-}
-
-@container (max-width: 360px) {
-  .tm-value-cell__preview {
-    display: none;
-  }
-}
-
-@container (max-width: 360px) {
-  .tm-value-cell__prefix {
-    display: none;
+    display: block;
   }
 }
 
@@ -1959,7 +1951,14 @@ button.tm-status-row:not(:disabled):hover {
 @container (max-width: 360px) {
   .tm-token-tree-row__context,
   .tm-token-tree-row__meta {
-    display: none;
+    display: -webkit-box;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.15;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
   }
 }
 
@@ -2577,10 +2576,11 @@ select.tm-generator-field {
 
 .tm-generator-overview {
   display: grid;
-  gap: 8px;
-  border-radius: var(--radius-md);
-  background: var(--workspace-library-surface);
-  padding: 8px;
+  gap: 10px;
+  padding: 0 2px 12px;
+  border-block-end: 1px solid
+    color-mix(in srgb, var(--workspace-library) 18%, var(--color-figma-border));
+  background: transparent;
 }
 
 .tm-generator-overview__facts {
@@ -3044,8 +3044,12 @@ button.tm-token-details__text-button:disabled:hover {
   color: var(--color-figma-text-accent);
 }
 
-.tm-token-mode-row__action-button--secondary {
+.tm-token-mode-row__overflow-button {
   color: var(--color-figma-text-tertiary);
+}
+
+.tm-token-mode-row__overflow-button:hover {
+  color: var(--color-figma-text);
 }
 
 .tm-token-mode-row__body {
@@ -3323,14 +3327,14 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__action-button {
     min-block-size: 28px;
-    flex: 1 1 calc(50% - 3px);
+    flex: 1 1 auto;
     justify-content: flex-start;
     padding-inline: 8px;
   }
 
-  .tm-token-mode-row__action-button--secondary {
-    justify-content: flex-start;
-    padding-inline: 8px;
+  .tm-token-mode-row__overflow-button {
+    flex: 0 0 auto;
+    align-self: flex-start;
   }
 
   .tm-token-mode-row__action-label {
@@ -3348,6 +3352,104 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__action-button {
     flex-basis: 100%;
+  }
+
+  .tm-token-mode-row__overflow-button {
+    flex-basis: auto;
+  }
+}
+
+@container (max-width: 480px) {
+  .tm-collection-toolbar__row {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .tm-collection-toolbar__leading,
+  .tm-collection-toolbar__actions {
+    flex-basis: 100%;
+  }
+
+  .tm-collection-toolbar__actions {
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .tm-collection-toolbar__actions > * {
+    flex: 0 0 auto;
+  }
+
+  .tm-collection-toolbar__action .tm-toolbar-action__label,
+  .tm-collection-toolbar__action--primary .tm-toolbar-action__label {
+    display: block;
+  }
+}
+
+@container (max-width: 480px) {
+  .tm-token-toolbar__row {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .tm-token-toolbar .tm-responsive-toolbar__leading {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tm-token-toolbar__scope {
+    order: 1;
+    flex: 1 1 140px;
+  }
+
+  .tm-token-toolbar .tm-responsive-toolbar__search {
+    order: 2;
+    flex-basis: 100%;
+    min-inline-size: 0;
+  }
+
+  .tm-token-toolbar .tm-responsive-toolbar__actions {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .tm-token-toolbar__filter,
+  .tm-token-toolbar__sort {
+    flex: 1 1 calc(50% - 2px);
+    min-inline-size: 0;
+  }
+
+  .tm-token-toolbar__filter > .relative,
+  .tm-token-toolbar__create > :first-child {
+    inline-size: 100%;
+  }
+
+  .tm-token-toolbar__filter > .relative > button,
+  .tm-token-toolbar__sort > button {
+    inline-size: 100%;
+    justify-content: space-between;
+  }
+
+  .tm-token-toolbar__create {
+    flex: 1 1 100%;
+    min-inline-size: 0;
+  }
+
+  .tm-token-toolbar__split-button {
+    inline-size: 100%;
+  }
+
+  .tm-token-toolbar__split-button-primary {
+    justify-content: flex-start;
+  }
+
+  .tm-token-toolbar__button-label,
+  .tm-token-toolbar__secondary-label,
+  .tm-token-toolbar__primary-label {
+    display: inline;
   }
 }
 

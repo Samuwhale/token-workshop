@@ -1,4 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
+import {
+  GENERATOR_TEMPLATE_OPTIONS,
+  type GeneratorTemplateKind,
+} from "@tokenmanager/core";
 import { BadRequestError, handleRouteError } from "../errors.js";
 import type {
   GeneratorCreateInput,
@@ -26,6 +30,11 @@ interface GeneratorHistoryBody {
 interface GeneratorDeleteQuery {
   recordHistory?: string;
 }
+
+const VALID_GENERATOR_TEMPLATES = new Set<string>([
+  "blank",
+  ...GENERATOR_TEMPLATE_OPTIONS.map((option) => option.id),
+]);
 
 async function restoreGeneratorsAfterHistoryFailure(
   generatorService: TokenGeneratorService,
@@ -306,14 +315,14 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
 function readGeneratorCreateBody(body: unknown): GeneratorCreateInput & GeneratorHistoryBody {
   const record = readGeneratorRouteRecord(body, "Generator create body");
+  rejectRemovedGeneratorFields(record);
   const input: GeneratorCreateInput & GeneratorHistoryBody = {
-    authoringMode: readGeneratorAuthoringMode(record.authoringMode),
     targetCollectionId: readRequiredGeneratorString(
       record.targetCollectionId,
       "targetCollectionId",
     ),
   };
-  copyOptionalGeneratorFields(record, input);
+  copyOptionalGeneratorFields(record, input, { allowTemplate: true });
   copyRecordHistory(record, input);
   return input;
 }
@@ -323,9 +332,10 @@ function readGeneratorUpdateBody(
   bodyName: string,
 ): GeneratorUpdateInput & GeneratorHistoryBody {
   const record = readGeneratorRouteRecord(body, bodyName);
+  rejectRemovedGeneratorFields(record);
   const input: GeneratorUpdateInput & GeneratorHistoryBody = {};
-  if (Object.prototype.hasOwnProperty.call(record, "authoringMode")) {
-    input.authoringMode = readGeneratorAuthoringMode(record.authoringMode);
+  if (Object.prototype.hasOwnProperty.call(record, "template")) {
+    throw new BadRequestError("template is only allowed when creating a generator.");
   }
   if (Object.prototype.hasOwnProperty.call(record, "targetCollectionId")) {
     input.targetCollectionId = readRequiredGeneratorString(
@@ -348,11 +358,10 @@ function readGeneratorRouteRecord(
   return body as Record<string, unknown>;
 }
 
-function readGeneratorAuthoringMode(
-  value: unknown,
-): GeneratorCreateInput["authoringMode"] {
-  if (value === "preset" || value === "graph") return value;
-  throw new BadRequestError('authoringMode must be "preset" or "graph".');
+function rejectRemovedGeneratorFields(record: Record<string, unknown>): void {
+  if (Object.prototype.hasOwnProperty.call(record, "authoringMode")) {
+    throw new BadRequestError("authoringMode has been removed from generators.");
+  }
 }
 
 function readRequiredGeneratorString(value: unknown, fieldName: string): string {
@@ -369,15 +378,19 @@ function readRequiredGeneratorString(value: unknown, fieldName: string): string 
 function copyOptionalGeneratorFields(
   record: Record<string, unknown>,
   input: GeneratorUpdateInput,
+  options: { allowTemplate?: boolean } = {},
 ): void {
   if (Object.prototype.hasOwnProperty.call(record, "name")) {
     input.name = readRequiredGeneratorString(record.name, "name");
   }
   if (Object.prototype.hasOwnProperty.call(record, "template")) {
+    if (!options.allowTemplate) {
+      throw new BadRequestError("template is only allowed when creating a generator.");
+    }
     if (typeof record.template !== "string") {
       throw new BadRequestError("template must be a string.");
     }
-    (input as GeneratorCreateInput).template = record.template as GeneratorCreateInput["template"];
+    (input as GeneratorCreateInput).template = readGeneratorTemplateKind(record.template);
   }
   if (Object.prototype.hasOwnProperty.call(record, "nodes")) {
     input.nodes = record.nodes as GeneratorUpdateInput["nodes"];
@@ -388,6 +401,15 @@ function copyOptionalGeneratorFields(
   if (Object.prototype.hasOwnProperty.call(record, "viewport")) {
     input.viewport = record.viewport as GeneratorUpdateInput["viewport"];
   }
+}
+
+function readGeneratorTemplateKind(value: string): GeneratorTemplateKind {
+  if (VALID_GENERATOR_TEMPLATES.has(value)) {
+    return value as GeneratorTemplateKind;
+  }
+  throw new BadRequestError(
+    `template must be one of ${Array.from(VALID_GENERATOR_TEMPLATES).join(", ")}.`,
+  );
 }
 
 function copyRecordHistory(

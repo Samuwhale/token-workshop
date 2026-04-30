@@ -72,7 +72,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
             aria-label="Clear search"
             onClick={onClear}
             disabled={disabled}
-            className="absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <X size={12} strokeWidth={1.5} aria-hidden="true" />
           </button>

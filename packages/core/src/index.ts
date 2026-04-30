@@ -236,23 +236,23 @@ export {
   DEFAULT_CUSTOM_SCALE_CONFIG,
 } from './generator-types.js';
 export {
-  GENERATOR_PRESET_OPTIONS,
-  SOURCELESS_GENERATOR_PRESETS,
+  GENERATOR_TEMPLATE_OPTIONS,
+  SOURCELESS_GENERATOR_TEMPLATES,
   buildGeneratorNodesFromStructuredDraft,
   generatorDefaultConfig,
   generatorDefaultOutputPrefix,
   generatorDefaultSourceValue,
-  generatorPresetLabel,
+  generatorTemplateLabel,
   makeDefaultStructuredGeneratorDraft,
   makeGeneratorLiteralData,
   readStructuredGeneratorDraft,
-} from './generator-presets.js';
+} from './generator-templates.js';
 export type {
-  GeneratorPresetKind,
+  GeneratorConfiguredTemplateKind,
   GeneratorSourceMode,
   GeneratorStructuredDraft,
   GeneratorTemplateKind,
-} from './generator-presets.js';
+} from './generator-templates.js';
 
 // Token resolution (mode-aware ancestor walker)
 export { resolveTokenAncestors } from './token-resolve.js';

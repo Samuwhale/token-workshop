@@ -16,7 +16,7 @@ import type {
 } from './token-generator-documents.js';
 import { DIMENSION_UNITS, type DimensionUnit } from './constants.js';
 
-export type GeneratorPresetKind =
+export type GeneratorConfiguredTemplateKind =
   | 'colorRamp'
   | 'spacing'
   | 'type'
@@ -26,19 +26,19 @@ export type GeneratorPresetKind =
   | 'zIndex'
   | 'formula';
 
-export type GeneratorTemplateKind = GeneratorPresetKind | 'blank';
+export type GeneratorTemplateKind = GeneratorConfiguredTemplateKind | 'blank';
 
 export type GeneratorSourceMode = 'literal' | 'token';
 
-export interface GeneratorPresetOption {
-  id: GeneratorPresetKind;
+export interface GeneratorTemplateOption {
+  id: GeneratorConfiguredTemplateKind;
   label: string;
   outputPrefix: string;
   sourceMode: GeneratorSourceMode;
 }
 
 export interface GeneratorStructuredDraft {
-  kind: GeneratorPresetKind;
+  kind: GeneratorConfiguredTemplateKind;
   sourceMode: GeneratorSourceMode;
   sourceValue: string;
   sourceCollectionId: string;
@@ -47,7 +47,7 @@ export interface GeneratorStructuredDraft {
   config: Record<string, unknown>;
 }
 
-export const GENERATOR_PRESET_OPTIONS: GeneratorPresetOption[] = [
+export const GENERATOR_TEMPLATE_OPTIONS: GeneratorTemplateOption[] = [
   { id: 'colorRamp', label: 'Color ramp', outputPrefix: 'color.brand', sourceMode: 'literal' },
   { id: 'spacing', label: 'Spacing scale', outputPrefix: 'spacing', sourceMode: 'literal' },
   { id: 'type', label: 'Type scale', outputPrefix: 'fontSize', sourceMode: 'literal' },
@@ -58,13 +58,13 @@ export const GENERATOR_PRESET_OPTIONS: GeneratorPresetOption[] = [
   { id: 'formula', label: 'Formula scale', outputPrefix: 'scale', sourceMode: 'literal' },
 ];
 
-export const SOURCELESS_GENERATOR_PRESETS = new Set<GeneratorPresetKind>([
+export const SOURCELESS_GENERATOR_TEMPLATES = new Set<GeneratorConfiguredTemplateKind>([
   'opacity',
   'shadow',
   'zIndex',
 ]);
 
-const NODE_KIND_BY_PRESET: Record<GeneratorPresetKind, TokenGeneratorNodeKind> = {
+const NODE_KIND_BY_TEMPLATE: Record<GeneratorConfiguredTemplateKind, TokenGeneratorNodeKind> = {
   colorRamp: 'colorRamp',
   spacing: 'spacingScale',
   type: 'typeScale',
@@ -75,7 +75,7 @@ const NODE_KIND_BY_PRESET: Record<GeneratorPresetKind, TokenGeneratorNodeKind> =
   formula: 'customScale',
 };
 
-const PRESET_BY_NODE_KIND: Partial<Record<TokenGeneratorNodeKind, GeneratorPresetKind>> = {
+const TEMPLATE_BY_NODE_KIND: Partial<Record<TokenGeneratorNodeKind, GeneratorConfiguredTemplateKind>> = {
   colorRamp: 'colorRamp',
   spacingScale: 'spacing',
   typeScale: 'type',
@@ -86,20 +86,20 @@ const PRESET_BY_NODE_KIND: Partial<Record<TokenGeneratorNodeKind, GeneratorPrese
   customScale: 'formula',
 };
 
-export function generatorPresetLabel(kind: GeneratorTemplateKind | undefined): string {
+export function generatorTemplateLabel(kind: GeneratorTemplateKind | undefined): string {
   if (!kind || kind === 'colorRamp') return 'Color ramp';
   if (kind === 'blank') return 'New token generator';
-  return GENERATOR_PRESET_OPTIONS.find((option) => option.id === kind)?.label ?? 'New token generator';
+  return GENERATOR_TEMPLATE_OPTIONS.find((option) => option.id === kind)?.label ?? 'New token generator';
 }
 
-export function generatorDefaultSourceValue(kind: GeneratorPresetKind): string {
+export function generatorDefaultSourceValue(kind: GeneratorConfiguredTemplateKind): string {
   if (kind === 'colorRamp') return '#6366f1';
   if (kind === 'formula') return '8';
   if (kind === 'type') return '16';
   return '4';
 }
 
-export function generatorDefaultConfig(kind: GeneratorPresetKind): Record<string, unknown> {
+export function generatorDefaultConfig(kind: GeneratorConfiguredTemplateKind): Record<string, unknown> {
   if (kind === 'colorRamp') return { ...DEFAULT_COLOR_RAMP_CONFIG };
   if (kind === 'spacing') return { ...DEFAULT_SPACING_SCALE_CONFIG };
   if (kind === 'type') return { ...DEFAULT_TYPE_SCALE_CONFIG };
@@ -110,11 +110,11 @@ export function generatorDefaultConfig(kind: GeneratorPresetKind): Record<string
   return { ...DEFAULT_CUSTOM_SCALE_CONFIG };
 }
 
-export function generatorDefaultOutputPrefix(kind: GeneratorPresetKind): string {
-  return GENERATOR_PRESET_OPTIONS.find((option) => option.id === kind)?.outputPrefix ?? 'generated';
+export function generatorDefaultOutputPrefix(kind: GeneratorConfiguredTemplateKind): string {
+  return GENERATOR_TEMPLATE_OPTIONS.find((option) => option.id === kind)?.outputPrefix ?? 'generated';
 }
 
-export function makeGeneratorLiteralData(kind: GeneratorPresetKind, raw: string): Record<string, unknown> {
+export function makeGeneratorLiteralData(kind: GeneratorConfiguredTemplateKind, raw: string): Record<string, unknown> {
   if (kind === 'colorRamp') {
     return { type: 'color', value: raw.trim() || generatorDefaultSourceValue(kind) };
   }
@@ -132,7 +132,7 @@ export function buildGeneratorNodesFromStructuredDraft(
   const outputId = 'output';
   const nodes: TokenGeneratorNode[] = [];
   const edges: TokenGeneratorEdge[] = [];
-  const hasSource = !SOURCELESS_GENERATOR_PRESETS.has(draft.kind);
+  const hasSource = !SOURCELESS_GENERATOR_TEMPLATES.has(draft.kind);
 
   if (hasSource) {
     nodes.push({
@@ -154,8 +154,8 @@ export function buildGeneratorNodesFromStructuredDraft(
 
   nodes.push({
     id: generationId,
-    kind: NODE_KIND_BY_PRESET[draft.kind],
-    label: generatorPresetLabel(draft.kind),
+    kind: NODE_KIND_BY_TEMPLATE[draft.kind],
+    label: generatorTemplateLabel(draft.kind),
     position: { x: hasSource ? 360 : 130, y: 140 },
     data: { ...draft.config },
   });
@@ -176,7 +176,7 @@ export function buildGeneratorNodesFromStructuredDraft(
 }
 
 export function makeDefaultStructuredGeneratorDraft(
-  kind: GeneratorPresetKind,
+  kind: GeneratorConfiguredTemplateKind,
   collectionId: string,
 ): GeneratorStructuredDraft {
   return {
@@ -191,37 +191,51 @@ export function makeDefaultStructuredGeneratorDraft(
 }
 
 export function readStructuredGeneratorDraft(
-  generator: Pick<TokenGeneratorDocument, 'authoringMode' | 'nodes' | 'edges'>,
+  generator: Pick<TokenGeneratorDocument, 'nodes' | 'edges'>,
 ): GeneratorStructuredDraft | null {
-  if (generator.authoringMode !== 'preset') return null;
+  const generationNodes = generator.nodes.filter((node) => TEMPLATE_BY_NODE_KIND[node.kind]);
+  const outputNodes = generator.nodes.filter((node) => node.kind === 'groupOutput');
+  if (generationNodes.length !== 1 || outputNodes.length !== 1) return null;
 
-  const generationNode = generator.nodes.find((node) => PRESET_BY_NODE_KIND[node.kind]);
-  const outputNode = generator.nodes.find((node) => node.kind === 'groupOutput');
-  if (!generationNode || !outputNode) return null;
-
-  const kind = PRESET_BY_NODE_KIND[generationNode.kind];
+  const generationNode = generationNodes[0]!;
+  const outputNode = outputNodes[0]!;
+  const kind = TEMPLATE_BY_NODE_KIND[generationNode.kind];
   if (!kind) return null;
 
-  const sourceNode = generator.nodes.find((node) => node.id !== generationNode.id && (node.kind === 'literal' || node.kind === 'tokenInput'));
-  const expectedNodeCount = SOURCELESS_GENERATOR_PRESETS.has(kind) ? 2 : 3;
+  const hasSource = !SOURCELESS_GENERATOR_TEMPLATES.has(kind);
+  const sourceNodes = generator.nodes.filter((node) => node.kind === 'literal' || node.kind === 'tokenInput');
+  const sourceNode = sourceNodes[0];
+  if (hasSource ? sourceNodes.length !== 1 : sourceNodes.length !== 0) return null;
+
+  const expectedNodeCount = hasSource ? 3 : 2;
   if (generator.nodes.length !== expectedNodeCount) return null;
 
-  const generationToOutput = generator.edges.some(
-    (edge) => edge.from.nodeId === generationNode.id && edge.to.nodeId === outputNode.id,
-  );
-  if (!generationToOutput) return null;
+  const expectedEdges: TokenGeneratorEdge[] = [
+    {
+      id: 'generation-output',
+      from: { nodeId: generationNode.id, port: 'value' },
+      to: { nodeId: outputNode.id, port: 'value' },
+    },
+  ];
+  if (hasSource && sourceNode) {
+    expectedEdges.unshift({
+      id: 'source-generation',
+      from: { nodeId: sourceNode.id, port: 'value' },
+      to: { nodeId: generationNode.id, port: 'value' },
+    });
+  }
+  if (generator.edges.length !== expectedEdges.length) return null;
+  if (!expectedEdges.every((expected) => generator.edges.some((edge) => sameGeneratorEdge(edge, expected)))) {
+    return null;
+  }
 
   let sourceMode: GeneratorSourceMode = 'literal';
   let sourceValue = generatorDefaultSourceValue(kind);
   let sourceCollectionId = '';
   let sourceTokenPath = '';
 
-  if (!SOURCELESS_GENERATOR_PRESETS.has(kind)) {
+  if (hasSource) {
     if (!sourceNode) return null;
-    const sourceToGeneration = generator.edges.some(
-      (edge) => edge.from.nodeId === sourceNode.id && edge.to.nodeId === generationNode.id,
-    );
-    if (!sourceToGeneration) return null;
     if (sourceNode.kind === 'tokenInput') {
       sourceMode = 'token';
       sourceCollectionId = String(sourceNode.data.collectionId ?? '');
@@ -240,6 +254,15 @@ export function readStructuredGeneratorDraft(
     outputPrefix: String(outputNode.data.pathPrefix ?? ''),
     config: { ...generationNode.data },
   };
+}
+
+function sameGeneratorEdge(a: TokenGeneratorEdge, b: TokenGeneratorEdge): boolean {
+  return (
+    a.from.nodeId === b.from.nodeId &&
+    a.from.port === b.from.port &&
+    a.to.nodeId === b.to.nodeId &&
+    a.to.port === b.to.port
+  );
 }
 
 function readSourceValue(data: Record<string, unknown>): string {

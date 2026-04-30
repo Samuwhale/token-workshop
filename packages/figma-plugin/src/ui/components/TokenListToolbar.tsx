@@ -199,10 +199,10 @@ export function TokenListToolbar({
     overflowMenuProps?.crossCollectionSearch === true ? "all" : "collection";
   const searchPlaceholder =
     viewMode === "json"
-      ? "Search JSON text"
+      ? "Search JSON"
       : searchScope === "all"
-        ? "Search across collections"
-        : "Search name, value, or type";
+        ? "Search all collections"
+        : "Search tokens";
   const effectiveSearchTooltip =
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
 
@@ -455,17 +455,19 @@ export function TokenListToolbar({
 
           <div className="tm-responsive-toolbar__actions">
             {overflowMenuProps && viewMode === "tree" ? (
-              <FilterMenu
-                {...overflowMenuProps}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-              />
+              <div className="tm-token-toolbar__filter">
+                <FilterMenu
+                  {...overflowMenuProps}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
+              </div>
             ) : null}
 
             {overflowMenuProps &&
             viewMode === "tree" &&
             viewRadioGroups.length > 0 ? (
-              <div className="relative shrink-0">
+              <div className="tm-token-toolbar__sort relative shrink-0">
                 <Button
                   ref={sortMenu.triggerRef}
                   onClick={sortMenu.toggle}
@@ -512,7 +514,7 @@ export function TokenListToolbar({
             ) : null}
 
             {showCreate ? (
-              <div className="relative shrink-0">
+              <div className="tm-token-toolbar__create relative shrink-0">
                 {showPrimaryCreateAction ? (
                   <div className="tm-token-toolbar__split-button">
                     <button

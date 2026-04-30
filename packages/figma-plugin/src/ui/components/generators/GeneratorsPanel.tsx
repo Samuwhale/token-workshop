@@ -54,9 +54,6 @@ import type {
   TokenGeneratorPreviewResult,
 } from "@tokenmanager/core";
 import {
-  GENERATOR_PRESET_OPTIONS,
-  SOURCELESS_GENERATOR_PRESETS,
-  buildGeneratorNodesFromStructuredDraft,
   checkTokenGeneratorConnection,
   DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
   DEFAULT_COLOR_RAMP_CONFIG,
@@ -66,14 +63,10 @@ import {
   DEFAULT_SPACING_SCALE_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
   DEFAULT_Z_INDEX_SCALE_CONFIG,
-  generatorDefaultConfig,
-  generatorDefaultSourceValue,
   getTokenGeneratorInputPorts,
   getTokenGeneratorOutputPorts,
   readStructuredGeneratorDraft,
   validateStepName as validateGeneratorStepName,
-  type GeneratorPresetKind,
-  type GeneratorStructuredDraft,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
@@ -216,13 +209,6 @@ type PendingDeleteAction =
       connectedEdgeCount: number;
       reconnectCount: number;
     };
-
-type PendingPresetConversion = {
-  nodes: GraphFlowNode[];
-  edges: GraphFlowEdge[];
-  preservePreview?: boolean;
-  afterCommit?: GraphStructureCommitUiState;
-};
 
 type GraphStructureCommitUiState = {
   selectedNodeId?: string | null;
@@ -477,8 +463,6 @@ export function GeneratorsPanel({
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteAction | null>(
     null,
   );
-  const [pendingPresetConversion, setPendingPresetConversion] =
-    useState<PendingPresetConversion | null>(null);
   const [editorMode, setEditorMode] = useState<GeneratorEditorMode>("overview");
   const [activeInitialFocus, setActiveInitialFocus] =
     useState<GeneratorPanelFocus | null>(null);
@@ -595,11 +579,6 @@ export function GeneratorsPanel({
       activeGenerator?.nodes.find((node) => node.id === selectedNodeId) ?? null,
     [activeGenerator, selectedNodeId],
   );
-  const structuredDraft = useMemo(
-    () =>
-      activeGenerator ? readStructuredGeneratorDraft(activeGenerator) : null,
-    [activeGenerator],
-  );
   const graphIssues = useMemo(
     () =>
       activeGenerator
@@ -629,7 +608,6 @@ export function GeneratorsPanel({
       activeGenerator
         ? JSON.stringify({
             id: activeGenerator.id,
-            authoringMode: activeGenerator.authoringMode,
             name: activeGenerator.name,
             targetCollectionId: activeGenerator.targetCollectionId,
             nodes: previewRelevantNodes(activeGenerator.nodes),
@@ -644,7 +622,6 @@ export function GeneratorsPanel({
       activeGenerator
         ? JSON.stringify({
             id: activeGenerator.id,
-            authoringMode: activeGenerator.authoringMode,
             nodes: activeGenerator.nodes,
             edges: activeGenerator.edges,
           })
@@ -993,16 +970,12 @@ export function GeneratorsPanel({
       nextEdges: GraphFlowEdge[],
       options: {
         preservePreview?: boolean;
-        authoringMode?: TokenGeneratorDocument["authoringMode"];
       } = {},
     ) => {
       if (!activeGenerator) return;
       localGraphEditRef.current = true;
       graphRevisionRef.current += 1;
-      const nextGenerator = {
-        ...graphWithFlowState(activeGenerator, nextNodes, nextEdges),
-        authoringMode: options.authoringMode ?? activeGenerator.authoringMode,
-      };
+      const nextGenerator = graphWithFlowState(activeGenerator, nextNodes, nextEdges);
       setGenerators((current) =>
         current.map((graph) =>
           graph.id === activeGenerator.id
@@ -1050,23 +1023,9 @@ export function GeneratorsPanel({
       nextEdges: GraphFlowEdge[],
       options: {
         preservePreview?: boolean;
-        skipPresetConversion?: boolean;
         afterCommit?: GraphStructureCommitUiState;
       } = {},
     ) => {
-      if (
-        activeGenerator?.authoringMode === "preset" &&
-        structuredDraft &&
-        !options.skipPresetConversion
-      ) {
-        setPendingPresetConversion({
-          nodes: nextNodes,
-          edges: nextEdges,
-          preservePreview: options.preservePreview,
-          afterCommit: options.afterCommit,
-        });
-        return false;
-      }
       setNodes(nextNodes);
       setEdges(nextEdges);
       commitFlowState(nextNodes, nextEdges, {
@@ -1076,12 +1035,10 @@ export function GeneratorsPanel({
       return true;
     },
     [
-      activeGenerator?.authoringMode,
       applyGraphStructureUiState,
       commitFlowState,
       setEdges,
       setNodes,
-      structuredDraft,
     ],
   );
 
@@ -1125,29 +1082,6 @@ export function GeneratorsPanel({
     [activeGenerator],
   );
 
-  const updateStructuredDraft = useCallback(
-    (patch: Partial<GeneratorStructuredDraft>) => {
-      if (!activeGenerator || !structuredDraft) return;
-      const replacesDraftConfig =
-        patch.kind !== undefined && patch.kind !== structuredDraft.kind;
-      const nextDraft: GeneratorStructuredDraft = {
-        ...structuredDraft,
-        ...patch,
-        config: patch.config
-          ? replacesDraftConfig
-            ? patch.config
-            : { ...structuredDraft.config, ...patch.config }
-          : structuredDraft.config,
-      };
-      const generated = buildGeneratorNodesFromStructuredDraft(nextDraft);
-      patchActiveGraph({
-        nodes: generated.nodes,
-        edges: generated.edges,
-      });
-    },
-    [activeGenerator, patchActiveGraph, structuredDraft],
-  );
-
   const saveGenerator = useCallback(async () => {
     if (graphHasErrors) {
       setError("Fix graph issues before saving this generator.");
@@ -1167,7 +1101,6 @@ export function GeneratorsPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: generator.name,
-            authoringMode: generator.authoringMode,
             targetCollectionId: generator.targetCollectionId,
             nodes: generator.nodes,
             edges: generator.edges,
@@ -1312,7 +1245,6 @@ export function GeneratorsPanel({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   name: previewGenerator.name,
-                  authoringMode: previewGenerator.authoringMode,
                   targetCollectionId: previewGenerator.targetCollectionId,
                   nodes: previewGenerator.nodes,
                   edges: previewGenerator.edges,
@@ -1964,27 +1896,6 @@ export function GeneratorsPanel({
     setPendingDelete(null);
   }, [activeGenerator?.id, deleteGenerator, deleteNodeById, pendingDelete]);
 
-  const confirmPresetConversion = useCallback(() => {
-    if (!pendingPresetConversion) return;
-    setNodes(pendingPresetConversion.nodes);
-    setEdges(pendingPresetConversion.edges);
-    commitFlowState(pendingPresetConversion.nodes, pendingPresetConversion.edges, {
-      authoringMode: "graph",
-      preservePreview: pendingPresetConversion.preservePreview,
-    });
-    applyGraphStructureUiState({
-      editorMode: "graph",
-      ...pendingPresetConversion.afterCommit,
-    });
-    setPendingPresetConversion(null);
-  }, [
-    applyGraphStructureUiState,
-    commitFlowState,
-    pendingPresetConversion,
-    setEdges,
-    setNodes,
-  ]);
-
   const duplicateNodeById = useCallback(
     (nodeId: string) => {
       if (!activeGenerator) return;
@@ -2307,7 +2218,6 @@ export function GeneratorsPanel({
                 const nextNodes = applyNodeChanges(safeChanges, nodesRef.current);
                 commitGraphStructure(nextNodes, edgesRef.current, {
                   preservePreview: changesOnlyCommitNodePositions(safeChanges),
-                  skipPresetConversion: changesOnlyCommitNodePositions(safeChanges),
                 });
                 return;
               }
@@ -2588,16 +2498,18 @@ export function GeneratorsPanel({
     return (
       <GeneratorOverviewPanel
         generator={activeGenerator}
-        targetCollection={targetCollection}
         collections={collections}
         perCollectionFlat={perCollectionFlat}
         preview={preview}
         dirty={dirty}
         externalPreviewInvalidated={externalPreviewInvalidated}
-        structuredDraft={structuredDraft}
         graphIssues={graphIssues}
         onRename={(name) => patchActiveGraph({ name })}
-        onChangeStructuredDraft={updateStructuredDraft}
+        onChangeNode={updateNodeData}
+        onAddNode={() => {
+          setEditorMode("graph");
+          openNodeLibraryPanel();
+        }}
         onFocusGraphIssue={focusGraphIssue}
       />
     );
@@ -3174,21 +3086,6 @@ export function GeneratorsPanel({
             Automate token groups from values, tokens, or graphs.
           </p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="primary"
-          onClick={() => {
-            if (busy) {
-              setError("Wait for the current generator action to finish.");
-              return;
-            }
-            setCreatePanelOpen(true);
-          }}
-        >
-          <Plus size={14} />
-          Create
-        </Button>
       </div>
       <FeedbackPlaceholder
         variant="empty"
@@ -3196,6 +3093,16 @@ export function GeneratorsPanel({
         icon={null}
         title="No generators yet"
         description="Create a generator for repeated scales, ramps, and token groups in this collection."
+        primaryAction={{
+          label: "Create generator",
+          onClick: () => {
+            if (busy) {
+              setError("Wait for the current generator action to finish.");
+              return;
+            }
+            setCreatePanelOpen(true);
+          },
+        }}
       />
     </div>
   );
@@ -3324,12 +3231,6 @@ export function GeneratorsPanel({
           action={pendingDelete}
           onCancel={() => setPendingDelete(null)}
           onConfirm={confirmPendingDelete}
-        />
-      ) : null}
-      {pendingPresetConversion ? (
-        <PresetConversionDialog
-          onCancel={() => setPendingPresetConversion(null)}
-          onConfirm={confirmPresetConversion}
         />
       ) : null}
     </div>
@@ -3469,36 +3370,6 @@ function GeneratorDeleteDialog({
           </Button>
           <Button type="button" size="sm" variant="danger" onClick={onConfirm}>
             Delete
-          </Button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function PresetConversionDialog({
-  onCancel,
-  onConfirm,
-}: {
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--backdrop-sheet)] p-3">
-      <section className="w-full max-w-[380px] rounded-md border border-[var(--border-muted)] bg-[var(--surface-1)] p-3 shadow-[var(--shadow-dialog)]">
-        <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-          Edit as custom graph?
-        </h2>
-        <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          This unlocks node-level editing. Outputs, status, and apply behavior
-          stay available for this generator.
-        </p>
-        <div className="mt-3 flex justify-end gap-2">
-          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="button" size="sm" variant="primary" onClick={onConfirm}>
-            Continue
           </Button>
         </div>
       </section>
@@ -4248,7 +4119,7 @@ function formatGeneratorSwitcherMetadata(
 }
 
 function isGeneratorInputNode(node: TokenGeneratorDocumentNode): boolean {
-  return node.kind === "tokenInput" || node.kind === "literal";
+  return node.kind === "tokenInput" || node.kind === "literal" || node.kind === "alias";
 }
 
 function isGeneratorOutputNode(node: TokenGeneratorDocumentNode): boolean {
@@ -4268,86 +4139,69 @@ function readGeneratorStatusLabel(generator: TokenGeneratorDocument): string {
 
 function GeneratorOverviewPanel({
   generator,
-  targetCollection,
   collections,
   perCollectionFlat,
   preview,
   dirty,
   externalPreviewInvalidated,
-  structuredDraft,
   graphIssues,
   onRename,
-  onChangeStructuredDraft,
+  onChangeNode,
+  onAddNode,
   onFocusGraphIssue,
 }: {
   generator: TokenGeneratorDocument;
-  targetCollection: TokenCollection | undefined;
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   preview: TokenGeneratorPreviewResult | null;
   dirty: boolean;
   externalPreviewInvalidated: boolean;
-  structuredDraft: GeneratorStructuredDraft | null;
   graphIssues: GraphIssue[];
   onRename: (name: string) => void;
-  onChangeStructuredDraft: (patch: Partial<GeneratorStructuredDraft>) => void;
+  onChangeNode: (nodeId: string, data: Record<string, unknown>) => void;
+  onAddNode: () => void;
   onFocusGraphIssue: (issue: GraphIssue) => void;
 }) {
-  const outputNodes = generator.nodes.filter(
-    (node) => node.kind === "groupOutput" || node.kind === "output",
-  );
-  const status = dirty
-    ? "Unsaved changes"
-    : externalPreviewInvalidated
-      ? "Updating preview"
-      : preview
-        ? "Preview ready"
-        : "Preparing preview";
-  const templateLabel = structuredDraft
-    ? GENERATOR_PRESET_OPTIONS.find((option) => option.id === structuredDraft.kind)
-        ?.label ?? "Generator"
-    : "Custom graph";
+  const sourceNodes = generator.nodes.filter(isGeneratorInputNode);
+  const outputNodes = generator.nodes.filter(isGeneratorOutputNode);
+  const nodeGroups = overviewNodeGroups(generator.nodes);
+  const hasGraphErrors = graphIssues.some((issue) => issue.severity === "error");
   const destinationLabel =
-    structuredDraft?.outputPrefix ||
     outputNodes
       .map((node) => String(node.data.pathPrefix ?? node.data.path ?? ""))
       .filter(Boolean)
       .join(", ") ||
     "No output";
-  const sourceLabel = structuredDraft
-    ? SOURCELESS_GENERATOR_PRESETS.has(structuredDraft.kind)
-      ? "Generated"
-      : structuredDraft.sourceMode === "token"
-        ? structuredDraft.sourceTokenPath || "Choose token"
-        : formatValue(structuredDraft.sourceValue) || "Value"
-    : `${generator.nodes.length} ${generator.nodes.length === 1 ? "node" : "nodes"}`;
+  const sourceLabel =
+    sourceNodes
+      .map((node) =>
+        node.kind === "tokenInput" || node.kind === "alias"
+          ? String(node.data.path ?? "").trim()
+          : formatValue(node.data.value) || node.label,
+      )
+      .filter(Boolean)
+      .join(", ") ||
+    (generator.nodes.length === 0 ? "No nodes" : "Generated");
   const outputCount = preview?.outputs.length ?? 0;
+  const outputSummary =
+    hasGraphErrors
+      ? "Fix settings to preview output"
+      : outputCount > 0
+        ? `${outputCount} ${outputCount === 1 ? "output" : "outputs"} ready to review`
+        : "No generated output yet";
   return (
     <div className="min-w-0 shrink-0">
       <div className="space-y-3">
         <section className="tm-generator-overview">
-          <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
             <div className="min-w-0 space-y-1">
               <h2 className="m-0 truncate text-body font-semibold text-[color:var(--color-figma-text)]">
-                {templateLabel}
+                Generator
               </h2>
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {outputCount > 0
-                  ? `${outputCount} ${outputCount === 1 ? "output" : "outputs"} ready to review`
-                  : "No generated output yet"}
+                {outputSummary}
               </p>
             </div>
-            <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-tertiary font-medium ${
-                dirty || externalPreviewInvalidated
-                  ? "bg-[var(--surface-warning)] text-[color:var(--color-figma-text-warning)]"
-                  : preview
-                    ? "bg-[var(--surface-success)] text-[color:var(--color-figma-text-success)]"
-                    : "bg-[var(--surface-muted)] text-[color:var(--color-figma-text-secondary)]"
-              }`}
-            >
-              {status}
-            </span>
           </div>
           <div className="tm-generator-overview__facts">
             <span className="text-[color:var(--color-figma-text-secondary)]">
@@ -4376,632 +4230,141 @@ function GeneratorOverviewPanel({
             value={generator.name}
             onChange={onRename}
           />
-          {structuredDraft ? (
-            <StructuredGeneratorSettings
-              draft={structuredDraft}
-              targetCollectionId={generator.targetCollectionId}
-              targetCollection={targetCollection}
-              collections={collections}
-              perCollectionFlat={perCollectionFlat}
-              onChange={onChangeStructuredDraft}
-            />
-          ) : (
-            <div className="space-y-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              <p className="m-0">
-                Custom graph with {generator.nodes.length}{" "}
-                {generator.nodes.length === 1 ? "node" : "nodes"} and{" "}
-                {generator.edges.length}{" "}
-                {generator.edges.length === 1 ? "connection" : "connections"}.
+          {generator.nodes.length === 0 ? (
+            <div className="space-y-2 py-1">
+              <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                Add nodes to define what this generator creates.
               </p>
+              <Button type="button" size="sm" variant="secondary" onClick={onAddNode}>
+                <Plus size={14} />
+                Add node
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {nodeGroups.map((group) => (
+                <OverviewNodeGroup
+                  key={group.label}
+                  label={group.label}
+                  nodes={group.nodes}
+                  allNodes={generator.nodes}
+                  collections={collections}
+                  perCollectionFlat={perCollectionFlat}
+                  defaultCollectionId={generator.targetCollectionId}
+                  edges={generator.edges}
+                  onChangeNode={onChangeNode}
+                />
+              ))}
             </div>
           )}
         </section>
-
-        {!structuredDraft ? (
-          <section className="space-y-2">
-            <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-              Destination
-            </h3>
-            {outputNodes.length > 0 ? (
-              <div className="space-y-1">
-                {outputNodes.map((node) => (
-                  <div
-                    key={node.id}
-                    className="rounded px-1 py-1.5 text-secondary text-[color:var(--color-figma-text)]"
-                  >
-                    {String(
-                      node.data.pathPrefix ?? node.data.path ?? "Untitled output",
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-1 py-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                No output node
-              </div>
-            )}
-          </section>
-        ) : null}
       </div>
     </div>
   );
 }
 
-function StructuredGeneratorSettings({
-  draft,
-  targetCollectionId,
-  targetCollection,
+function OverviewNodeGroup({
+  label,
+  nodes,
+  allNodes,
   collections,
   perCollectionFlat,
-  onChange,
+  defaultCollectionId,
+  edges,
+  onChangeNode,
 }: {
-  draft: GeneratorStructuredDraft;
-  targetCollectionId: string;
-  targetCollection: TokenCollection | undefined;
+  label: string;
+  nodes: TokenGeneratorDocumentNode[];
+  allNodes: TokenGeneratorDocumentNode[];
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
-  onChange: (patch: Partial<GeneratorStructuredDraft>) => void;
+  defaultCollectionId: string;
+  edges: TokenGeneratorEdge[];
+  onChangeNode: (nodeId: string, data: Record<string, unknown>) => void;
 }) {
-  const setConfig = (patch: Record<string, unknown>) =>
-    onChange({ config: patch });
-  const sourceCollectionId = draft.sourceCollectionId || targetCollectionId;
-  const sourceCollection = collections.find(
-    (collection) => collection.id === sourceCollectionId,
-  );
-  const crossCollectionSource =
-    draft.sourceMode === "token" && sourceCollectionId !== targetCollectionId;
-  const sourceTokenEntries = useMemo(
-    () =>
-      Object.entries(perCollectionFlat[sourceCollectionId] ?? {})
-        .filter(([, token]) => generatorAcceptsTokenType(draft.kind, token.$type))
-        .sort(([a], [b]) => a.localeCompare(b)),
-    [draft.kind, perCollectionFlat, sourceCollectionId],
-  );
-  const targetModeNames = targetCollection?.modes.map((mode) => mode.name) ?? [];
-  const sourceModeNames = sourceCollection?.modes.map((mode) => mode.name) ?? [];
-  const missingSourceModes = targetModeNames.filter(
-    (modeName) => !sourceModeNames.includes(modeName),
-  );
-  const modeCompatibility =
-    !crossCollectionSource ||
-    !targetCollection ||
-    !sourceCollection ||
-    missingSourceModes.length === 0;
-  const [crossCollectionOpen, setCrossCollectionOpen] = useState(
-    crossCollectionSource,
-  );
-  const configRefs = readGeneratorTokenRefs(draft.config.$tokenRefs);
-  const allTokensFlat = allTokensForCollection(perCollectionFlat, targetCollectionId);
-  const pathToCollectionId = pathToCollectionIdMap(perCollectionFlat);
-
-  useEffect(() => {
-    if (crossCollectionSource) {
-      setCrossCollectionOpen(true);
-    }
-  }, [crossCollectionSource]);
-
+  if (nodes.length === 0) return null;
   return (
-    <div className="space-y-3">
-      <section className="tm-generator-section">
-        <label className="block">
-        <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Template
-        </span>
-        <select
-          value={draft.kind}
-            onChange={(event) => {
-              const kind = event.target.value as GeneratorPresetKind;
-              onChange({
-                kind,
-                outputPrefix:
-                  GENERATOR_PRESET_OPTIONS.find((option) => option.id === kind)
-                    ?.outputPrefix ?? draft.outputPrefix,
-                sourceMode: "literal",
-                sourceValue: generatorDefaultSourceValue(kind),
-                sourceCollectionId: targetCollectionId,
-                sourceTokenPath: "",
-                config: generatorDefaultConfig(kind),
-              });
-            }}
-          className="tm-generator-field text-secondary"
-        >
-          {GENERATOR_PRESET_OPTIONS.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-          Changing template replaces template-specific settings.
-        </span>
-        </label>
-      </section>
-
-      <section className="tm-generator-section">
-        <GeneratorPathField
-          label="Output group"
-          value={draft.outputPrefix}
-          series
-          onChange={(outputPrefix) => onChange({ outputPrefix })}
-        />
-      </section>
-
-      {!SOURCELESS_GENERATOR_PRESETS.has(draft.kind) ? (
-        <section className="tm-generator-section">
-          <h3 className="text-secondary font-semibold text-[color:var(--color-figma-text)]">
-            Source
-          </h3>
-          <div className="space-y-2">
-          <SegmentedControl
-            value={draft.sourceMode}
-            options={[
-              { value: "literal", label: "Value" },
-              { value: "token", label: "Token" },
-            ]}
-            ariaLabel="Generator source"
-            onChange={(mode) =>
-              onChange({
-                sourceMode: mode,
-                ...(mode === "token"
-                  ? { sourceCollectionId: targetCollectionId }
-                  : {}),
-              })
-            }
-          />
-          {draft.sourceMode === "literal" ? (
-            draft.kind === "colorRamp" ? (
-              <GeneratorColorField
-                label="Source value"
-                value={draft.sourceValue}
-                allTokensFlat={allTokensFlat}
-                onChange={(sourceValue) => onChange({ sourceValue })}
+    <section className="space-y-2">
+      <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
+        {label}
+      </h3>
+      <div className="space-y-3">
+        {nodes.map((node) => {
+          const description = overviewNodeDescription(node);
+          return (
+            <div key={node.id} className="space-y-2">
+              <div>
+                <h4 className="m-0 text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                  {node.label}
+                </h4>
+                <p className="m-0 text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                  {formatNodeKind(node.kind)}
+                  {description ? ` · ${description}` : ""}
+                </p>
+              </div>
+              <NodeInspector
+                node={node}
+                collections={collections}
+                perCollectionFlat={perCollectionFlat}
+                defaultCollectionId={defaultCollectionId}
+                onChange={(data) => onChangeNode(node.id, data)}
+                showDelete={false}
+                showIdentity={false}
+                showHelp={false}
+                outputPathPrefix={readConnectedGroupOutputPrefix(node, allNodes, edges)}
               />
-            ) : draft.kind === "formula" ? (
-              <GeneratorNumberField
-                label="Source value"
-                value={draft.sourceValue}
-                onChange={(sourceValue) => onChange({ sourceValue: String(sourceValue) })}
-              />
-            ) : (
-              <GeneratorDimensionField
-                label="Source value"
-                value={parseGeneratorDimensionInput(draft.sourceValue)}
-                allTokensFlat={allTokensFlat}
-                pathToCollectionId={pathToCollectionId}
-                onChange={(sourceValue) => onChange({ sourceValue: formatGeneratorDimensionInput(sourceValue) })}
-              />
-            )
-          ) : (
-            <div className="space-y-2">
-              <TokenSourcePicker
-                value={draft.sourceTokenPath}
-                entries={sourceTokenEntries}
-                sourceCollectionId={sourceCollectionId}
-                sourceModes={sourceModeNames}
-                onChange={(sourceTokenPath) => onChange({ sourceTokenPath })}
-              />
-              <details
-                open={crossCollectionOpen}
-                onToggle={(event) => {
-                  const open = event.currentTarget.open;
-                  setCrossCollectionOpen(open);
-                  if (open || sourceCollectionId === targetCollectionId) return;
-                  onChange({
-                    sourceCollectionId: targetCollectionId,
-                    sourceTokenPath: "",
-                  });
-                }}
-                className="py-1.5"
-              >
-                <summary className="cursor-pointer text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-                  Cross-collection source
-                </summary>
-                <label className="mt-2 block">
-                  <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                    Source collection
-                  </span>
-                  <select
-                    value={sourceCollectionId}
-                    onChange={(event) =>
-                      onChange({
-                        sourceCollectionId: event.target.value,
-                        sourceTokenPath: "",
-                      })
-                    }
-                    className="tm-generator-field text-secondary"
-                  >
-                    {collections.map((collection) => (
-                      <option key={collection.id} value={collection.id}>
-                        {collection.publishRouting?.collectionName?.trim() ||
-                          collection.id}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {crossCollectionSource ? (
-                  <div
-                    className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-text-error)]"}`}
-                  >
-                    {modeCompatibility
-                      ? "Source modes match the target collection."
-                      : `Missing source ${missingSourceModes.length === 1 ? "mode" : "modes"}: ${missingSourceModes.join(", ")}. Add matching modes to the source collection or choose a source from this collection.`}
-                  </div>
-                ) : null}
-              </details>
             </div>
-          )}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="tm-generator-section">
-        <h3 className="text-secondary font-semibold text-[color:var(--color-figma-text)]">
-          Parameters
-        </h3>
-
-      {draft.kind === "colorRamp" ? (
-        <>
-          <NumberStepTable
-            label="Steps"
-            pathPrefix={draft.outputPrefix}
-            values={asNumberArray(draft.config.steps)}
-            onChange={(steps) => setConfig({ steps })}
-          />
-          <div className="grid gap-2 min-[420px]:grid-cols-2">
-            <ReferenceableField
-              fieldKey="lightEnd"
-              refs={configRefs}
-              collectionId={targetCollectionId}
-              collections={collections}
-              perCollectionFlat={perCollectionFlat}
-              tokenTypes={["number", "dimension"]}
-              onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
-            >
-              <GeneratorNumberField
-                label="Light end"
-                value={draft.config.lightEnd}
-                onChange={(lightEnd) => setConfig({ lightEnd })}
-              />
-            </ReferenceableField>
-            <ReferenceableField
-              fieldKey="darkEnd"
-              refs={configRefs}
-              collectionId={targetCollectionId}
-              collections={collections}
-              perCollectionFlat={perCollectionFlat}
-              tokenTypes={["number", "dimension"]}
-              onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
-            >
-              <GeneratorNumberField
-                label="Dark end"
-                value={draft.config.darkEnd}
-                onChange={(darkEnd) => setConfig({ darkEnd })}
-              />
-            </ReferenceableField>
-          </div>
-          <ReferenceableField
-            fieldKey="chromaBoost"
-            refs={configRefs}
-            collectionId={targetCollectionId}
-            collections={collections}
-            perCollectionFlat={perCollectionFlat}
-            tokenTypes={["number", "dimension"]}
-            onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
-          >
-            <GeneratorNumberField
-              label="Chroma"
-              value={draft.config.chromaBoost}
-              onChange={(chromaBoost) => setConfig({ chromaBoost })}
-            />
-          </ReferenceableField>
-          <div className="grid gap-2 min-[420px]:grid-cols-2">
-            <GeneratorBooleanField
-              label="Include source"
-              value={draft.config.includeSource}
-              onChange={(includeSource) => setConfig({ includeSource })}
-            />
-            <GeneratorNumberField
-              label="Source step"
-              value={draft.config.sourceStep}
-              onChange={(sourceStep) => setConfig({ sourceStep })}
-            />
-          </div>
-        </>
-      ) : null}
-
-      {draft.kind === "spacing" || draft.kind === "radius" ? (
-        <>
-          <GeneratorUnitField
-            label="Unit"
-            value={draft.config.unit}
-            onChange={(unit) => setConfig({ unit })}
-          />
-          <NamedNumberStepTable
-            label="Steps"
-            pathPrefix={draft.outputPrefix}
-            values={asNamedNumberSteps(
-              draft.config.steps,
-              draft.kind === "radius" ? "multiplier" : "multiplier",
-            )}
-            valueKey="multiplier"
-            onChange={(steps) => setConfig({ steps })}
-          />
-        </>
-      ) : null}
-      {draft.kind === "type" ? (
-        <>
-          <div className="grid gap-2 min-[420px]:grid-cols-2">
-            <ReferenceableField
-              fieldKey="ratio"
-              refs={configRefs}
-              collectionId={targetCollectionId}
-              collections={collections}
-              perCollectionFlat={perCollectionFlat}
-              tokenTypes={["number", "dimension"]}
-              onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
-            >
-              <GeneratorNumberField
-                label="Ratio"
-                value={draft.config.ratio}
-                onChange={(ratio) => setConfig({ ratio })}
-              />
-            </ReferenceableField>
-            <GeneratorUnitField
-              label="Unit"
-              value={draft.config.unit}
-              onChange={(unit) => setConfig({ unit })}
-            />
-          </div>
-          <GeneratorTextField
-            label="Base step"
-            value={draft.config.baseStep}
-            onChange={(baseStep) => setConfig({ baseStep })}
-          />
-          <GeneratorNumberField
-            label="Round to"
-            value={draft.config.roundTo}
-            onChange={(roundTo) => setConfig({ roundTo })}
-          />
-          <NamedNumberStepTable
-            label="Steps"
-            pathPrefix={draft.outputPrefix}
-            values={asNamedNumberSteps(draft.config.steps, "exponent")}
-            valueKey="exponent"
-            onChange={(steps) => setConfig({ steps })}
-          />
-        </>
-      ) : null}
-      {draft.kind === "shadow" ? (
-        <>
-          <ReferenceableField
-            fieldKey="color"
-            refs={configRefs}
-            collectionId={targetCollectionId}
-            collections={collections}
-            perCollectionFlat={perCollectionFlat}
-            tokenTypes={["color"]}
-            onRefsChange={($tokenRefs) => setConfig({ $tokenRefs })}
-          >
-            <GeneratorColorField
-              label="Shadow color"
-              value={draft.config.color}
-              allTokensFlat={allTokensFlat}
-              onChange={(color) => setConfig({ color })}
-            />
-          </ReferenceableField>
-          <ShadowStepTable
-            pathPrefix={draft.outputPrefix}
-            values={asRecordArray(draft.config.steps)}
-            onChange={(steps) => setConfig({ steps })}
-          />
-        </>
-      ) : null}
-      {draft.kind === "formula" ? (
-        <>
-          <GeneratorFormulaField
-            label="Formula"
-            value={draft.config.formula}
-            allTokensFlat={allTokensFlat}
-            pathToCollectionId={pathToCollectionId}
-            onChange={(formula) => setConfig({ formula })}
-          />
-          <div className="grid gap-2 min-[420px]:grid-cols-2">
-            <label className="block">
-              <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                Output type
-              </span>
-              <select
-                value={String(draft.config.outputType ?? "number")}
-                onChange={(event) =>
-                  setConfig({ outputType: event.target.value })
-                }
-                className="tm-generator-field text-secondary"
-              >
-                <option value="number">Number</option>
-                <option value="dimension">Dimension</option>
-              </select>
-            </label>
-            <GeneratorNumberField
-              label="Round to"
-              value={draft.config.roundTo}
-              onChange={(roundTo) => setConfig({ roundTo })}
-            />
-          </div>
-          <NamedNumberStepTable
-            label="Steps"
-            pathPrefix={draft.outputPrefix}
-            values={asNamedNumberSteps(draft.config.steps, "index")}
-            valueKey="index"
-            optionalValueKey="multiplier"
-            onChange={(steps) => setConfig({ steps })}
-          />
-        </>
-      ) : null}
-      {draft.kind === "opacity" || draft.kind === "zIndex" ? (
-        <NamedNumberStepTable
-          label="Steps"
-          pathPrefix={draft.outputPrefix}
-          values={asNamedNumberSteps(draft.config.steps, "value")}
-          valueKey="value"
-          onChange={(steps) => setConfig({ steps })}
-        />
-      ) : null}
-      </section>
-    </div>
-  );
-}
-
-function TokenSourcePicker({
-  value,
-  entries,
-  sourceCollectionId,
-  sourceModes,
-  onChange,
-}: {
-  value: string;
-  entries: Array<[string, TokenMapEntry]>;
-  sourceCollectionId: string;
-  sourceModes: string[];
-  onChange: (value: string) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const filteredEntries = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return entries.filter(
-      ([path, token]) =>
-        !normalized ||
-        path.toLowerCase().includes(normalized) ||
-        token.$type.toLowerCase().includes(normalized),
-    );
-  }, [entries, query]);
-  const selected = value ? entries.find(([path]) => path === value) : undefined;
-
-  return (
-    <div className="space-y-2">
-      <div>
-        <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Source token
-        </span>
-        <div className="tm-generator-field">
-          <Search
-            size={14}
-            className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
-          />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={value || "Search compatible tokens"}
-            className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
-          />
-        </div>
+          );
+        })}
       </div>
-      {selected ? (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          className="flex w-full items-center gap-2 rounded bg-[var(--color-figma-bg-selected)] px-2 py-1.5 text-left text-secondary"
-          aria-label={`Clear source token ${selected[0]}`}
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-medium">{selected[0]}</span>
-            <TokenModeValueCell
-              token={selected[1]}
-              collectionId={sourceCollectionId}
-              modes={sourceModes}
-            />
-          </span>
-          <X
-            size={14}
-            className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
-            aria-hidden
-          />
-        </button>
-      ) : null}
-      <div className="max-h-[180px] overflow-y-auto py-1">
-        {filteredEntries.slice(0, 40).map(([path, token]) => (
-          <button
-            key={path}
-            type="button"
-            onClick={() => {
-              onChange(path);
-              setQuery("");
-            }}
-            className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{path}</span>
-              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                {token.$type}
-              </span>
-              <TokenModeValueCell
-                token={token}
-                collectionId={sourceCollectionId}
-                modes={sourceModes}
-              />
-            </span>
-          </button>
-        ))}
-        {filteredEntries.length === 0 ? (
-          <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            No compatible tokens in this collection.
-          </div>
-        ) : null}
-      </div>
-    </div>
+    </section>
   );
 }
 
-function TokenModeValueCell({
-  token,
-  collectionId,
-  modes,
-}: {
-  token: TokenMapEntry;
-  collectionId: string;
-  modes: string[];
-}) {
-  const modeValues = readTokenModeValues(token, collectionId, modes).slice(0, 3);
-  return (
-    <span className="mt-1 flex min-w-0 flex-col gap-0.5 text-tertiary text-[color:var(--color-figma-text-secondary)]">
-      {modeValues.map(([modeName, value]) => (
-        <span key={modeName} className="flex min-w-0 items-center gap-1">
-          {previewIsValueBearing(token.$type) ? (
-            <ValuePreview type={token.$type} value={value} size={12} />
-          ) : null}
-          <span
-            className={`truncate ${
-              value == null ? "text-[color:var(--color-figma-text-tertiary)]" : ""
-            }`}
-          >
-            {modeName}: {value == null ? "No value" : formatValue(value)}
-          </span>
-        </span>
-      ))}
-    </span>
-  );
+function overviewNodeGroups(nodes: TokenGeneratorDocumentNode[]): Array<{
+  label: string;
+  nodes: TokenGeneratorDocumentNode[];
+}> {
+  return [
+    { label: "Sources", nodes: nodes.filter(isGeneratorInputNode) },
+    {
+      label: "Steps",
+      nodes: nodes.filter(
+        (node) => !isGeneratorInputNode(node) && !isGeneratorOutputNode(node),
+      ),
+    },
+    { label: "Outputs", nodes: nodes.filter(isGeneratorOutputNode) },
+  ].filter((group) => group.nodes.length > 0);
 }
 
-function readTokenModeValues(
-  token: TokenMapEntry,
-  collectionId: string,
-  modes: string[],
-): Array<[string, unknown]> {
-  if (modes.length === 0) return [["Value", token.$value]];
-  const collectionModes = token.$extensions?.tokenmanager?.modes?.[collectionId];
-  return modes.map((modeName, index) => [
-    modeName,
-    index === 0 ? token.$value : collectionModes?.[modeName],
-  ]);
+function readConnectedGroupOutputPrefix(
+  node: TokenGeneratorDocumentNode,
+  nodes: TokenGeneratorDocumentNode[],
+  edges: TokenGeneratorEdge[],
+): string | undefined {
+  const edge = edges.find((candidate) => {
+    if (candidate.from.nodeId !== node.id) return false;
+    const target = nodes.find((nodeCandidate) => nodeCandidate.id === candidate.to.nodeId);
+    return target?.kind === "groupOutput";
+  });
+  if (!edge) return undefined;
+  const targetNode = nodes.find((candidate) => candidate.id === edge.to.nodeId);
+  if (targetNode?.kind !== "groupOutput") return undefined;
+  const pathPrefix = String(targetNode.data.pathPrefix ?? "").trim();
+  return pathPrefix || undefined;
 }
 
-function generatorAcceptsTokenType(
-  kind: GeneratorPresetKind,
-  tokenType?: string,
-): boolean {
-  if (kind === "colorRamp") return tokenType === "color";
-  if (kind === "formula")
-    return tokenType === "number" || tokenType === "dimension";
-  return tokenType === "dimension" || tokenType === "number";
+function overviewNodeDescription(node: TokenGeneratorDocumentNode): string {
+  if (node.kind === "groupOutput") {
+    return String(node.data.pathPrefix ?? "").trim();
+  }
+  if (node.kind === "output") {
+    return String(node.data.path ?? "").trim();
+  }
+  if (node.kind === "tokenInput" || node.kind === "alias") {
+    return String(node.data.path ?? "").trim();
+  }
+  return nodeSummary(node);
 }
 
 function asNumberArray(value: unknown): number[] {
@@ -5688,13 +5051,21 @@ function NodeInspector({
   defaultCollectionId,
   onChange,
   onDelete,
+  showDelete = true,
+  showIdentity = true,
+  showHelp = true,
+  outputPathPrefix,
 }: {
   node: TokenGeneratorDocumentNode;
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   defaultCollectionId: string;
   onChange: (data: Record<string, unknown>) => void;
-  onDelete: () => void;
+  onDelete?: () => void;
+  showDelete?: boolean;
+  showIdentity?: boolean;
+  showHelp?: boolean;
+  outputPathPrefix?: string;
 }) {
   const selectedCollectionId =
     node.kind === "alias"
@@ -5721,17 +5092,19 @@ function NodeInspector({
 
   return (
     <div className="space-y-3">
-      <label className="block">
-        <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Name
-        </span>
-        <input
-          value={node.label}
-          onChange={(event) => onChange({ label: event.target.value })}
-          className="tm-generator-field text-secondary"
-        />
-      </label>
-      <NodeInspectorNote node={node} />
+      {showIdentity ? (
+        <label className="block">
+          <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+            Name
+          </span>
+          <input
+            value={node.label}
+            onChange={(event) => onChange({ label: event.target.value })}
+            className="tm-generator-field text-secondary"
+          />
+        </label>
+      ) : null}
+      {showHelp ? <NodeInspectorNote node={node} /> : null}
       {node.kind === "tokenInput" && (
         <>
           <label className="block">
@@ -5960,6 +5333,7 @@ function NodeInspector({
           <NumberStepTable
             label="Steps"
             values={asNumberArray(node.data.steps)}
+            pathPrefix={outputPathPrefix}
             onChange={(steps) => onChange({ steps })}
           />
         </>
@@ -5975,6 +5349,7 @@ function NodeInspector({
             label="Steps"
             values={asNamedNumberSteps(node.data.steps, "multiplier")}
             valueKey="multiplier"
+            pathPrefix={outputPathPrefix}
             onChange={(steps) => onChange({ steps })}
           />
         </>
@@ -6003,6 +5378,7 @@ function NodeInspector({
             label="Steps"
             values={asNamedNumberSteps(node.data.steps, "exponent")}
             valueKey="exponent"
+            pathPrefix={outputPathPrefix}
             onChange={(steps) => onChange({ steps })}
           />
         </>
@@ -6019,6 +5395,7 @@ function NodeInspector({
             values={asNamedNumberSteps(node.data.steps, "multiplier")}
             valueKey="multiplier"
             optionalValueKey="exactValue"
+            pathPrefix={outputPathPrefix}
             onChange={(steps) => onChange({ steps })}
           />
         </>
@@ -6028,6 +5405,7 @@ function NodeInspector({
           label="Steps"
           values={asNamedNumberSteps(node.data.steps, "value")}
           valueKey="value"
+          pathPrefix={outputPathPrefix}
           onChange={(steps) => onChange({ steps })}
         />
       )}
@@ -6051,6 +5429,7 @@ function NodeInspector({
           </ReferenceableField>
           <ShadowStepTable
             values={asRecordArray(node.data.steps)}
+            pathPrefix={outputPathPrefix}
             onChange={(steps) => onChange({ steps })}
           />
         </>
@@ -6060,6 +5439,7 @@ function NodeInspector({
           label="Steps"
           values={asNamedNumberSteps(node.data.steps, "value")}
           valueKey="value"
+          pathPrefix={outputPathPrefix}
           onChange={(steps) => onChange({ steps })}
         />
       )}
@@ -6096,6 +5476,7 @@ function NodeInspector({
             values={asNamedNumberSteps(node.data.steps, "index")}
             valueKey="index"
             optionalValueKey="multiplier"
+            pathPrefix={outputPathPrefix}
             onChange={(steps) => onChange({ steps })}
           />
         </>
@@ -6120,14 +5501,16 @@ function NodeInspector({
             onChange({ [node.kind === "output" ? "path" : "pathPrefix"]: value })
           }
         />}
-      <button
-        type="button"
-        onClick={onDelete}
-        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-bg-hover)]"
-      >
-        <Trash2 size={14} />
-        Delete node
-      </button>
+      {showDelete ? (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          <Trash2 size={14} />
+          Delete node
+        </button>
+      ) : null}
     </div>
   );
 }

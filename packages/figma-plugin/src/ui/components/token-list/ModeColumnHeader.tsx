@@ -207,7 +207,7 @@ export function ModeColumnHeader({
   );
 
   return (
-    <div ref={cellRef} className="tm-mode-column-header relative min-w-0">
+    <div ref={cellRef} className="tm-mode-column-header group/mode-column relative min-w-0">
       <div
         role="separator"
         aria-orientation="vertical"
@@ -218,8 +218,13 @@ export function ModeColumnHeader({
         tabIndex={0}
         onMouseDown={handleResizeMouseDown}
         onKeyDown={handleResizeKeyDown}
-        className="absolute top-0 right-0 bottom-0 z-10 w-[8px] translate-x-1/2 cursor-col-resize bg-transparent hover:bg-[var(--color-figma-accent)]/60 focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
-      />
+        className="absolute top-0 right-0 bottom-0 z-10 w-[12px] translate-x-1/2 cursor-col-resize rounded bg-transparent transition-colors hover:bg-[var(--color-figma-accent)]/10 focus-visible:bg-[var(--color-figma-accent)]/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)]"
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-1 left-1/2 w-px -translate-x-1/2 rounded-full bg-[var(--color-figma-border)] transition-colors group-hover/mode-column:bg-[var(--color-figma-text-tertiary)] group-focus-within/mode-column:bg-[var(--color-figma-accent)]"
+        />
+      </div>
       {renaming ? (
         <TextInput
           ref={inputRef}

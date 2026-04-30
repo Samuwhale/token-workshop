@@ -8,11 +8,10 @@ import {
   generatorDefaultConfig,
   generatorDefaultOutputPrefix,
   generatorDefaultSourceValue,
-  generatorPresetLabel,
+  generatorTemplateLabel,
   makeDefaultStructuredGeneratorDraft,
   readTokenModeValuesForCollection,
   readGeneratorProvenance,
-  readStructuredGeneratorDraft,
   stableStringify,
   tokenFromGeneratorOutput,
   type Token,
@@ -63,7 +62,6 @@ const GENERATOR_NODE_KINDS = new Set<string>([
 
 export interface GeneratorCreateInput {
   name?: string;
-  authoringMode: TokenGeneratorDocument["authoringMode"];
   targetCollectionId: string;
   template?: GeneratorTemplateKind;
   nodes?: TokenGeneratorDocument["nodes"];
@@ -75,7 +73,6 @@ export type GeneratorUpdateInput = Partial<
   Pick<
     TokenGeneratorDocument,
     | "name"
-    | "authoringMode"
     | "targetCollectionId"
     | "nodes"
     | "edges"
@@ -85,7 +82,7 @@ export type GeneratorUpdateInput = Partial<
 
 type GeneratorDocumentInput = Pick<
   TokenGeneratorDocument,
-  "name" | "authoringMode" | "targetCollectionId" | "nodes" | "edges" | "viewport"
+  "name" | "targetCollectionId" | "nodes" | "edges" | "viewport"
 >;
 
 export interface GeneratorApplyResult {
@@ -186,7 +183,6 @@ export class TokenGeneratorService {
 
   async create(input: GeneratorCreateInput): Promise<TokenGeneratorDocument> {
     return this.lock.withLock(async () => {
-      const authoringMode = readGeneratorAuthoringMode(input.authoringMode);
       const hasDocumentPayload =
         input.nodes !== undefined ||
         input.edges !== undefined ||
@@ -203,15 +199,13 @@ export class TokenGeneratorService {
       }
       const generator = hasDocumentPayload
         ? buildGeneratorFromDocumentInput({
-            name: input.name ?? generatorPresetLabel(input.template),
-            authoringMode,
+            name: input.name ?? generatorTemplateLabel(input.template),
             targetCollectionId: input.targetCollectionId,
             nodes: input.nodes ?? [],
             edges: input.edges ?? [],
             viewport: input.viewport ?? { x: 0, y: 0, zoom: 1 },
           })
-        : buildTemplateGenerator({ ...input, authoringMode });
-      assertGeneratorAuthoringConsistency(generator);
+        : buildTemplateGenerator(input);
       this.generators.set(generator.id, generator);
       await this.persist();
       return cloneGenerator(generator);
@@ -238,21 +232,13 @@ export class TokenGeneratorService {
           );
         }
       }
-      const patch =
-        input.authoringMode === undefined
-          ? input
-          : {
-              ...input,
-              authoringMode: readGeneratorAuthoringMode(input.authoringMode),
-            };
       const updated = normalizeGeneratorDocument({
         ...existing,
-        ...patch,
+        ...input,
         id: existing.id,
         createdAt: existing.createdAt,
         updatedAt: new Date().toISOString(),
       });
-      assertGeneratorAuthoringConsistency(updated);
       this.generators.set(id, updated);
       await this.persist();
       return cloneGenerator(updated);
@@ -302,7 +288,6 @@ export class TokenGeneratorService {
         createdAt: existing.createdAt,
         updatedAt: existing.updatedAt,
       });
-      assertGeneratorAuthoringConsistency(generator);
     } catch (error) {
       throw new BadRequestError(
         error instanceof Error ? error.message : String(error),
@@ -898,10 +883,9 @@ function buildTemplateGenerator(
 ): TokenGeneratorDocument {
   const base = createDefaultTokenGeneratorDocument(
     input.targetCollectionId,
-    input.name ?? generatorPresetLabel(input.template),
+    input.name ?? generatorTemplateLabel(input.template),
   );
   base.id = randomUUID();
-  base.authoringMode = input.authoringMode;
   const now = new Date().toISOString();
   const template = input.template ?? "colorRamp";
   if (template === "blank") {
@@ -924,7 +908,6 @@ function buildGeneratorFromDocumentInput(
   return normalizeGeneratorDocument({
     id: randomUUID(),
     name: input.name,
-    authoringMode: input.authoringMode,
     targetCollectionId: input.targetCollectionId,
     nodes: input.nodes,
     edges: input.edges,
@@ -1033,23 +1016,6 @@ function validateGeneratorEdge(
   validateGeneratorEdgeEndpoint(generatorId, edge.id, "to", edge.to);
 }
 
-function readGeneratorAuthoringMode(
-  value: unknown,
-): TokenGeneratorDocument["authoringMode"] {
-  if (value === "preset" || value === "graph") return value;
-  throw new BadRequestError('authoringMode must be "preset" or "graph".');
-}
-
-function assertGeneratorAuthoringConsistency(
-  generator: TokenGeneratorDocument,
-): void {
-  if (generator.authoringMode !== "preset") return;
-  if (readStructuredGeneratorDraft(generator)) return;
-  throw new BadRequestError(
-    'Preset-authored generators must use a structured preset graph. Use authoringMode "graph" for custom graphs.',
-  );
-}
-
 function normalizeGeneratorDocument(
   generator: TokenGeneratorDocument,
 ): TokenGeneratorDocument {
@@ -1059,14 +1025,6 @@ function normalizeGeneratorDocument(
   if (!generator.id || !generator.name || !generator.targetCollectionId) {
     throw new Error(
       "Invalid generator document: id, name, and targetCollectionId are required",
-    );
-  }
-  if (
-    generator.authoringMode !== "preset" &&
-    generator.authoringMode !== "graph"
-  ) {
-    throw new Error(
-      `Invalid generator document "${generator.id}": authoringMode must be "preset" or "graph"`,
     );
   }
   if (!Array.isArray(generator.nodes) || !Array.isArray(generator.edges)) {
@@ -1090,7 +1048,6 @@ function normalizeGeneratorDocument(
   return {
     id: String(generator.id),
     name: String(generator.name),
-    authoringMode: generator.authoringMode,
     targetCollectionId: String(generator.targetCollectionId),
     nodes: generator.nodes,
     edges: generator.edges,
