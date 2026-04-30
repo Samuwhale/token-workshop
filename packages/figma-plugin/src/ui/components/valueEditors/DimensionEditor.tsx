@@ -11,11 +11,13 @@ export const StepperInput = memo(function StepperInput({
   onChange,
   className = '',
   autoFocus,
+  ariaLabel = 'Numeric value',
 }: {
   value: number;
   onChange: (v: number) => void;
   className?: string;
   autoFocus?: boolean;
+  ariaLabel?: string;
 }) {
   const [draftValue, setDraftValue] = useState(() => String(value));
   const [focused, setFocused] = useState(false);
@@ -69,7 +71,7 @@ export const StepperInput = memo(function StepperInput({
     <div className={`relative flex items-center ${className}`}>
       <input
         type="number"
-        aria-label="Numeric value"
+        aria-label={ariaLabel}
         value={draftValue}
         onChange={e => {
           const nextDraft = e.target.value;

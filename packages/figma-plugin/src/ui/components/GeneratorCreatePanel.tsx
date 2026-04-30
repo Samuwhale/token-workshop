@@ -54,7 +54,7 @@ interface GeneratorCreatePanelProps {
   onOpenGenerator: (
     generatorId: string,
     collectionId: string,
-    initialView?: "overview" | "graph",
+    initialView?: "setup" | "graph" | "review",
   ) => void;
 }
 
@@ -342,7 +342,7 @@ export function GeneratorCreatePanel({
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
-        "overview",
+        "setup",
       );
     } catch (createError) {
       setError(
@@ -413,7 +413,7 @@ export function GeneratorCreatePanel({
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
-        "graph",
+        "setup",
       );
     } catch (createError) {
       setError(

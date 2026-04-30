@@ -1,9 +1,9 @@
+import { useState } from "react";
 import {
   Circle,
   Droplet,
   Hash,
   Layers,
-  PanelLeft,
   Palette,
   Plus,
   Ruler,
@@ -11,6 +11,7 @@ import {
   Sigma,
   Type,
   Workflow,
+  X,
 } from "lucide-react";
 import type {
   GeneratorPresetKind,
@@ -19,6 +20,7 @@ import type {
   TokenGeneratorNodeKind,
 } from "@tokenmanager/core";
 import { readStructuredGeneratorDraft } from "@tokenmanager/core";
+import { Button } from "../../primitives";
 
 export interface GeneratorPaletteItem {
   kind: TokenGeneratorNodeKind;
@@ -28,135 +30,134 @@ export interface GeneratorPaletteItem {
   defaults: Record<string, unknown>;
 }
 
-export function GeneratorListSidebar({
+export function GeneratorBrowserPanel({
   generators,
   activeGeneratorId,
   createPanelOpen,
+  collectionLabel,
   onCreate,
   onSelect,
-  presentation = "sidebar",
+  onClose,
 }: {
   generators: TokenGeneratorDocument[];
   activeGeneratorId: string | null;
   createPanelOpen: boolean;
+  collectionLabel: string;
   onCreate: () => void;
   onSelect: (generatorId: string) => void;
-  presentation?: "sidebar" | "overlay";
+  onClose?: () => void;
 }) {
-  return (
-    <aside
-      className={
-        presentation === "overlay"
-          ? "flex h-full min-h-0 w-full flex-col overflow-y-auto px-2 py-2"
-          : "flex w-[260px] shrink-0 flex-col overflow-y-auto border-r border-[var(--color-figma-border)] px-2 py-2 max-[760px]:w-[220px]"
-      }
-    >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="px-1 text-primary font-semibold">
-          {presentation === "overlay" ? "Switch generator" : "Generators"}
-        </h2>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          title="Create generator"
-          aria-label="Create generator"
-        >
-          <Plus size={14} />
-        </button>
-      </div>
-      <div className="space-y-1">
-        {generators.map((generator) => (
-          <button
-            key={generator.id}
-            type="button"
-            onClick={() => onSelect(generator.id)}
-            className={`flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors ${
-              generator.id === activeGeneratorId && !createPanelOpen
-                ? "bg-[var(--color-figma-bg-selected)]"
-                : "hover:bg-[var(--color-figma-bg-hover)]"
-            }`}
-          >
-            <GeneratorIcon generator={generator} />
-            <span className="min-w-0">
-              <span className="block truncate text-secondary font-medium">
-                {generator.name}
-              </span>
-              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                {readGeneratorOutputLabel(generator)}
-              </span>
-              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                {readGeneratorStatusLabel(generator)}
-              </span>
-            </span>
-          </button>
-        ))}
-        {generators.length === 0 ? (
-          <div className="p-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Create generated tokens for this collection.
-          </div>
-        ) : null}
-      </div>
-    </aside>
-  );
-}
+  const [query, setQuery] = useState("");
+  const filteredGenerators = generators.filter((generator) => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return true;
+    return (
+      generator.name.toLowerCase().includes(normalized) ||
+      readGeneratorOutputLabel(generator).toLowerCase().includes(normalized) ||
+      readGeneratorStatusLabel(generator).toLowerCase().includes(normalized)
+    );
+  });
 
-export function GeneratorRail({
-  generators,
-  activeGeneratorId,
-  createPanelOpen,
-  onCreate,
-  onSelect,
-  onExpand,
-}: {
-  generators: TokenGeneratorDocument[];
-  activeGeneratorId: string | null;
-  createPanelOpen: boolean;
-  onCreate: () => void;
-  onSelect: (generatorId: string) => void;
-  onExpand: () => void;
-}) {
   return (
-    <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-[var(--color-figma-border)] px-1 py-2">
-      <button
-        type="button"
-        onClick={onExpand}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-        title="Show generators"
-        aria-label="Show generators"
-      >
-        <PanelLeft size={14} />
-      </button>
-      <button
-        type="button"
-        onClick={onCreate}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] ${
-          createPanelOpen ? "bg-[var(--color-figma-bg-selected)]" : ""
-        }`}
-        title="Create generator"
-        aria-label="Create generator"
-      >
-        <Plus size={14} />
-      </button>
-      <div className="mt-1 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
-        {generators.map((generator) => (
+    <section className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
+      <header className="flex min-h-12 shrink-0 items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-primary font-semibold text-[color:var(--color-figma-text)]">
+            Generators
+          </h2>
+          <div className="truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+            {collectionLabel}
+          </div>
+        </div>
+        <Button type="button" size="sm" variant="primary" onClick={onCreate}>
+          <Plus size={14} />
+          Create
+        </Button>
+        {onClose ? (
           <button
-            key={generator.id}
             type="button"
-            onClick={() => onSelect(generator.id)}
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${
-              generator.id === activeGeneratorId && !createPanelOpen
-                ? "bg-[var(--color-figma-bg-selected)]"
-                : "hover:bg-[var(--color-figma-bg-hover)]"
-            }`}
-            title={generator.name}
-            aria-label={generator.name}
+            className="inline-flex h-8 w-8 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+            aria-label="Close generator browser"
+            title="Close"
+            onClick={onClose}
           >
-            <GeneratorIcon generator={generator} />
+            <X size={14} />
           </button>
-        ))}
+        ) : null}
+      </header>
+      <div className="border-b border-[var(--color-figma-border)] px-3 py-2">
+        <div className="tm-generator-field tm-generator-field--search">
+          <Search
+            size={14}
+            className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
+            aria-hidden
+          />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search generators"
+            className="min-w-0 flex-1 bg-transparent text-secondary text-[color:var(--color-figma-text)] outline-none"
+          />
+        </div>
       </div>
-    </aside>
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+        {filteredGenerators.length > 0 ? (
+          <div className="grid gap-1">
+            {filteredGenerators.map((generator) => {
+              const selected = generator.id === activeGeneratorId && !createPanelOpen;
+              return (
+                <button
+                  key={generator.id}
+                  type="button"
+                  onClick={() => onSelect(generator.id)}
+                  className={`flex w-full min-w-0 items-start gap-2 rounded px-2 py-2 text-left transition-colors ${
+                    selected
+                      ? "bg-[var(--color-figma-bg-selected)]"
+                      : "hover:bg-[var(--color-figma-bg-hover)]"
+                  }`}
+                >
+                  <GeneratorIcon generator={generator} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                      {generator.name}
+                    </span>
+                    <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                      {readGeneratorOutputLabel(generator)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                    {readGeneratorStatusLabel(generator)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-2 py-8 text-center">
+            <div className="text-secondary font-semibold text-[color:var(--color-figma-text)]">
+              {generators.length === 0 ? "No generators yet" : "No matching generators"}
+            </div>
+            <div className="mx-auto mt-1 max-w-[260px] text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {generators.length === 0
+                ? "Create generated token groups for this collection."
+                : "Try a different generator name or output path."}
+            </div>
+            {generators.length === 0 ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="primary"
+                className="mt-3"
+                onClick={onCreate}
+              >
+                <Plus size={14} />
+                Create generator
+              </Button>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

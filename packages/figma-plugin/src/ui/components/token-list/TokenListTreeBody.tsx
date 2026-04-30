@@ -19,7 +19,7 @@ import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
 import { getGridMinWidth, getGridTemplate } from "../tokenListTypes";
 import { useModeColumnWidths } from "../../hooks/useModeColumnWidths";
-import { Button, IconButton, TextInput } from "../../primitives";
+import { Button, TextInput } from "../../primitives";
 import {
   addCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,

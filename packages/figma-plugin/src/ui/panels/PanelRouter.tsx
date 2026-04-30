@@ -327,7 +327,7 @@ export function PanelRouter({
   const [pendingGeneratorFocus, setPendingGeneratorFocus] =
     useState<GeneratorPanelFocus | null>(null);
   const [pendingGeneratorInitialView, setPendingGeneratorInitialView] =
-    useState<"overview" | "graph" | null>(null);
+    useState<"setup" | "graph" | "review" | null>(null);
   const [pendingGeneratorCreateOutputPrefix, setPendingGeneratorCreateOutputPrefix] =
     useState<string | null | undefined>(undefined);
   const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
@@ -1775,7 +1775,7 @@ export function PanelRouter({
                 edgeId: issue.generatorEdgeId,
               });
               setPendingGeneratorInitialView(
-                issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "overview",
+                issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "review",
               );
               navigateTo("library", "generators");
             }}
@@ -1792,7 +1792,7 @@ export function PanelRouter({
                   edgeId: issue.generatorEdgeId,
                 });
                 setPendingGeneratorInitialView(
-                  issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "overview",
+                  issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "review",
                 );
                 navigateTo("library", "generators");
                 return;

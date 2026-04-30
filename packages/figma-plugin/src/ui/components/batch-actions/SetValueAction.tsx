@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import type { BatchActionProps } from './types';
 import { apiFetch } from '../../shared/apiFetch';
 import { rollbackOperation, PREVIEW_MAX } from './transforms';
-import { PreviewCard, PreviewPath, ValueTransition, ActionFeedback } from './BatchActionPreview';
+import { PreviewCard, PreviewPath, ValueTransition, ActionFeedbackToast } from './BatchActionPreview';
 import { AUTHORING } from '../../shared/editorClasses';
 import { EditorShell, AUTHORING_SURFACE_CLASSES } from '../EditorShell';
 
@@ -88,9 +88,7 @@ export function SetValueAction({
       surface="authoring"
       footer={
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-            <ActionFeedback feedback={feedback} />
-          </div>
+          <ActionFeedbackToast feedback={feedback} />
           <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
             <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
               <button onClick={handleApply} disabled={!canApply} className={AUTHORING.footerBtnPrimary}>

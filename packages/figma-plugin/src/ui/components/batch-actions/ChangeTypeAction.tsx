@@ -7,7 +7,7 @@ import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { EditorShell, AUTHORING_SURFACE_CLASSES } from '../EditorShell';
 import type { BatchActionProps } from './types';
 import { PREVIEW_MAX, rollbackOperation } from './transforms';
-import { PreviewPath, ActionFeedback } from './BatchActionPreview';
+import { PreviewPath, ActionFeedbackToast } from './BatchActionPreview';
 import { TypePicker } from '../TypePicker';
 import { getTokenTypeLabel } from '../../shared/tokenTypeCategories';
 
@@ -95,9 +95,7 @@ export function ChangeTypeAction({
       surface="authoring"
       footer={
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-            <ActionFeedback feedback={feedback} />
-          </div>
+          <ActionFeedbackToast feedback={feedback} />
           <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
             <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
               <button

@@ -7,7 +7,7 @@ import { EditorShell, AUTHORING_SURFACE_CLASSES } from '../EditorShell';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import type { BatchActionProps } from './types';
 import { PREVIEW_MAX, rollbackOperation, formatBatchValue } from './transforms';
-import { PreviewPath, PreviewCard, ActionFeedback } from './BatchActionPreview';
+import { PreviewPath, PreviewCard, ActionFeedbackToast } from './BatchActionPreview';
 
 export function SetAliasAction({
   selectedPaths,
@@ -75,9 +75,7 @@ export function SetAliasAction({
       surface="authoring"
       footer={
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-            <ActionFeedback feedback={feedback} />
-          </div>
+          <ActionFeedbackToast feedback={feedback} />
           <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
             <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
               <button onClick={handleApply} disabled={applying || !connected || !aliasActive} className={AUTHORING.footerBtnPrimary}>

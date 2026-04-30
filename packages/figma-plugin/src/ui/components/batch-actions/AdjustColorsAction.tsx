@@ -9,7 +9,7 @@ import {
   COMPOSITE_SUB_PROPS_BY_TYPE, COMPOSITE_TOKEN_TYPES,
   PREVIEW_MAX, rollbackOperation,
 } from './transforms';
-import { PreviewPath, PreviewCard, ColorTransition, ActionFeedback } from './BatchActionPreview';
+import { PreviewPath, PreviewCard, ColorTransition, ActionFeedbackToast } from './BatchActionPreview';
 
 export function AdjustColorsAction({
   selectedPaths,
@@ -198,9 +198,7 @@ export function AdjustColorsAction({
       surface="authoring"
       footer={
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-            <ActionFeedback feedback={feedback} />
-          </div>
+          <ActionFeedbackToast feedback={feedback} />
           <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
             <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
               <button onClick={handleApply} disabled={applying || !connected || !hasAnyOp} className={AUTHORING.footerBtnPrimary}>

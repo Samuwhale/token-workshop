@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { apiFetch } from '../../shared/apiFetch';
 import { AUTHORING } from '../../shared/editorClasses';
 import { EditorShell, AUTHORING_SURFACE_CLASSES } from '../EditorShell';
-import { PreviewPath, PreviewCard, ActionFeedback } from './BatchActionPreview';
+import { PreviewPath, PreviewCard, ActionFeedbackToast } from './BatchActionPreview';
 import { rollbackOperation, PREVIEW_MAX } from './transforms';
 import type { BatchActionProps } from './types';
 
@@ -99,9 +99,7 @@ export function FindReplaceAction({
 
   const footer = (
     <div className={AUTHORING_SURFACE_CLASSES.footer}>
-      <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-        <ActionFeedback feedback={feedback} />
-      </div>
+      <ActionFeedbackToast feedback={feedback} />
       <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
         <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
           <button onClick={handleApply} disabled={!canApply} className={AUTHORING.footerBtnPrimary}>

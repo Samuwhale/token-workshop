@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { AUTHORING } from '../../shared/editorClasses';
 import { PREVIEW_MAX, formatBatchValue } from './transforms';
+import { dispatchToast } from '../../shared/toastBus';
 
 export function PreviewPath({ path, className }: { path: string; className?: string }) {
   return (
@@ -74,11 +75,13 @@ export function ColorTransition({ from, to }: { from: unknown; to: unknown }) {
   );
 }
 
-export function ActionFeedback({ feedback }: { feedback: { ok: boolean; msg: string } | null }) {
-  if (!feedback) return null;
-  return (
-    <span className={feedback.ok ? 'text-[color:var(--color-figma-text-secondary)]' : 'text-[color:var(--color-figma-text-error)]'}>
-      {feedback.msg}
-    </span>
-  );
+type ActionFeedbackState = { ok: boolean; msg: string } | null;
+
+export function ActionFeedbackToast({ feedback }: { feedback: ActionFeedbackState }) {
+  useEffect(() => {
+    if (!feedback) return;
+    dispatchToast(feedback.msg, feedback.ok ? 'success' : 'error');
+  }, [feedback]);
+
+  return null;
 }

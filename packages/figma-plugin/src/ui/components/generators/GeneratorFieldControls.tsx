@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronUp, Copy, Plus, Trash2 } from "lucide-react";
+import { useId, useMemo, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronUp, Copy, Plus, Trash2, X } from "lucide-react";
 import { DIMENSION_UNITS, type TokenCollection } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { Button, SegmentedControl } from "../../primitives";
@@ -27,14 +27,28 @@ export function FieldBlock({
   error?: string | null;
   children: ReactNode;
 }) {
+  const labelId = useId();
+  const errorId = useId();
   return (
     <div className="block">
-      <span className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+      <span
+        id={labelId}
+        className="mb-1 block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]"
+      >
         {label}
       </span>
-      {children}
+      <div
+        role="group"
+        aria-labelledby={labelId}
+        aria-describedby={error ? errorId : undefined}
+      >
+        {children}
+      </div>
       {error ? (
-        <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
+        <span
+          id={errorId}
+          className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]"
+        >
           {error}
         </span>
       ) : null}
@@ -61,7 +75,8 @@ export function GeneratorTextField({
         value={String(value ?? "")}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+        aria-label={label}
+        className="tm-generator-field text-secondary"
       />
     </FieldBlock>
   );
@@ -85,7 +100,8 @@ export function GeneratorPathField({
       <input
         value={text}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+        aria-label={label}
+        className="tm-generator-field text-secondary"
       />
       {text.trim() && !error ? (
         <div className="mt-1 truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
@@ -110,6 +126,7 @@ export function GeneratorNumberField({
       <StepperInput
         value={toFiniteNumber(value, 0)}
         onChange={onChange}
+        ariaLabel={label}
       />
     </FieldBlock>
   );
@@ -245,7 +262,8 @@ export function GeneratorUnitField({
       <select
         value={String(value ?? "px")}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+        aria-label={label}
+        className="tm-generator-field text-secondary"
       >
         {DIMENSION_UNITS.map((unit) => (
           <option key={unit} value={unit}>
@@ -376,11 +394,12 @@ export function GeneratorTokenPicker({
   const selected = value ? perCollectionFlat[collectionId]?.[value] : undefined;
   return (
     <div className="space-y-2">
-      <div className="rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+      <div className="tm-generator-field">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={value || "Search tokens"}
+          aria-label="Search tokens"
           className="w-full bg-transparent text-secondary outline-none"
         />
       </div>
@@ -388,9 +407,14 @@ export function GeneratorTokenPicker({
         <button
           type="button"
           onClick={() => onChange("")}
-          className="flex w-full items-start gap-2 rounded-md bg-[var(--color-figma-bg-selected)] px-2 py-1.5 text-left text-secondary"
+          aria-label={`Clear selected token ${value}`}
+          className="flex w-full items-start gap-2 rounded-md bg-[var(--color-figma-bg-selected)] px-2 py-1.5 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
         >
           <TokenPickerContent path={value} token={selected} collectionId={collectionId} modes={modes} />
+          <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+            <X size={12} />
+            Clear
+          </span>
         </button>
       ) : null}
       <div className="max-h-[180px] overflow-y-auto py-1">
@@ -466,6 +490,7 @@ export function NumberStepTable({
             <StepperInput
               value={toFiniteNumber(value, 0)}
               onChange={(nextValue) => onChange(replaceAt(values, index, nextValue))}
+              ariaLabel={`${label} step ${index + 1} value`}
             />
             <StepActions
               canMoveUp={index > 0}
@@ -516,17 +541,19 @@ export function NamedNumberStepTable({
           const name = String(step.name ?? "");
           const error = validateStepName(name, duplicateNames);
           return (
-            <div key={index} className="space-y-1 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+            <div key={index} className="space-y-1 py-1.5">
               <div className="grid grid-cols-[minmax(0,1fr)_minmax(80px,1fr)_72px] items-center gap-2">
                 <input
                   value={name}
                   onChange={(event) => onChange(updateStep(values, index, { name: event.target.value }))}
                   placeholder="name"
-                  className="min-w-0 bg-transparent text-secondary outline-none"
+                  aria-label={`${label} step ${index + 1} name`}
+                  className="tm-generator-field min-w-0 text-secondary"
                 />
                 <StepperInput
                   value={toFiniteNumber(step[valueKey], 0)}
                   onChange={(nextValue) => onChange(updateStep(values, index, { [valueKey]: nextValue }))}
+                  ariaLabel={`${label} step ${index + 1} ${valueKey}`}
                 />
                 <StepActions
                   canMoveUp={index > 0}
@@ -543,7 +570,8 @@ export function NamedNumberStepTable({
                   value={step[optionalValueKey] == null ? "" : String(step[optionalValueKey])}
                   onChange={(event) => onChange(updateStep(values, index, optionalNumberPatch(optionalValueKey, event.target.value)))}
                   placeholder={optionalValueKey}
-                  className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1 text-tertiary outline-none"
+                  aria-label={`${label} step ${index + 1} ${optionalValueKey}`}
+                  className="tm-generator-field text-tertiary"
                 />
               ) : null}
               {pathPrefix || error ? (
@@ -586,13 +614,14 @@ export function ShadowStepTable({
           const name = String(step.name ?? "");
           const error = validateStepName(name, duplicateNames);
           return (
-            <div key={index} className="space-y-1 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+            <div key={index} className="space-y-1 py-1.5">
               <div className="flex items-center gap-2">
                 <input
                   value={name}
                   onChange={(event) => onChange(updateStep(values, index, { name: event.target.value }))}
                   placeholder="name"
-                  className="min-w-0 flex-1 bg-transparent text-secondary font-medium outline-none"
+                  aria-label={`Shadow step ${index + 1} name`}
+                  className="tm-generator-field min-w-0 flex-1 text-secondary font-medium"
                 />
                 <StepActions
                   canMoveUp={index > 0}
@@ -610,8 +639,9 @@ export function ShadowStepTable({
                     type="number"
                     value={toFiniteNumber(step[field], 0)}
                     title={field}
+                    aria-label={`Shadow step ${index + 1} ${field}`}
                     onChange={(event) => onChange(updateStep(values, index, { [field]: Number(event.target.value) }))}
-                    className="min-w-0 rounded bg-[var(--color-figma-bg)] px-1 py-1 text-tertiary outline-none"
+                    className="tm-generator-field min-w-0 px-1 text-tertiary"
                   />
                 ))}
               </div>
@@ -655,7 +685,8 @@ export function GeneratorListValueEditor({
             const nextType = event.target.value;
             onTypeChange(nextType, retargetListRows(rows, nextType));
           }}
-          className="w-full rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary outline-none"
+          aria-label="List type"
+          className="tm-generator-field text-secondary"
         >
           {LIST_TYPE_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -670,7 +701,7 @@ export function GeneratorListValueEditor({
       />
       <div className="space-y-1">
         {rows.map((row, index) => (
-          <div key={index} className="space-y-1 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+          <div key={index} className="space-y-1 py-1.5">
             <div className="grid grid-cols-[minmax(0,1fr)_72px] items-start gap-2">
               <ListValueControl
                 type={type}
@@ -693,7 +724,8 @@ export function GeneratorListValueEditor({
               value={String(row.label ?? "")}
               onChange={(event) => onChange(replaceAt(rows, index, { ...row, label: event.target.value, key: event.target.value || row.key }))}
               placeholder="label"
-              className="w-full rounded bg-[var(--color-figma-bg)] px-2 py-1 text-tertiary outline-none"
+              aria-label={`List item ${index + 1} label`}
+              className="tm-generator-field text-tertiary"
             />
           </div>
         ))}
@@ -721,7 +753,7 @@ function ListValueControl({
     return <ColorEditor value={String(row.value ?? "#000000")} onChange={(value) => onChange({ ...row, value })} />;
   }
   if (type === "number") {
-    return <StepperInput value={toFiniteNumber(row.value, 0)} onChange={(value) => onChange({ ...row, value })} />;
+    return <StepperInput value={toFiniteNumber(row.value, 0)} onChange={(value) => onChange({ ...row, value })} ariaLabel="List item value" />;
   }
   if (type === "dimension") {
     return (

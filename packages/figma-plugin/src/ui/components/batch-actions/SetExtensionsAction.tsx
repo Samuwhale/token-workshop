@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import type { BatchActionProps } from './types';
 import { apiFetch } from '../../shared/apiFetch';
 import { rollbackOperation } from './transforms';
-import { ActionFeedback } from './BatchActionPreview';
+import { ActionFeedbackToast } from './BatchActionPreview';
 import { AUTHORING } from '../../shared/editorClasses';
 import { EditorShell, AUTHORING_SURFACE_CLASSES } from '../EditorShell';
 
@@ -89,9 +89,7 @@ export function SetExtensionsAction({
       surface="authoring"
       footer={
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
-          <div className={AUTHORING_SURFACE_CLASSES.footerMeta}>
-            <ActionFeedback feedback={feedback} />
-          </div>
+          <ActionFeedbackToast feedback={feedback} />
           <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
             <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
               <button onClick={handleApply} disabled={!canApply} className={AUTHORING.footerBtnPrimary}>
