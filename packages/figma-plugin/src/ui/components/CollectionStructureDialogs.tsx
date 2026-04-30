@@ -346,7 +346,7 @@ export function CollectionDeleteDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div
         ref={dialogRef}
-        className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
+        className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-1rem)] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-collection-dialog-title"
@@ -358,7 +358,7 @@ export function CollectionDeleteDialog({
           }
         }}
       >
-        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-3 py-2.5">
           <span id="delete-collection-dialog-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">
             Delete &ldquo;{deletingName}&rdquo;?
           </span>
@@ -380,7 +380,7 @@ export function CollectionDeleteDialog({
             </svg>
           </button>
         </div>
-        <div className="flex flex-col gap-3 overflow-y-auto p-4">
+        <div className="flex flex-col gap-3 overflow-y-auto p-3">
           <p id="delete-collection-dialog-description" className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Review linked previews and managed-token ownership before the
             collection is removed.
@@ -474,7 +474,7 @@ export function CollectionMergeInline({
           Copy tokens from &ldquo;{mergingName}&rdquo; into&hellip;
         </span>
       </div>
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
         <div className="flex flex-col gap-1">
           <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Target collection
@@ -667,7 +667,7 @@ export function CollectionSplitDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div
         ref={dialogRef}
-        className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-2rem)] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
+        className="flex max-h-[80vh] w-[34rem] max-w-[calc(100vw-1rem)] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="split-collection-dialog-title"
@@ -679,7 +679,7 @@ export function CollectionSplitDialog({
           }
         }}
       >
-        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-3 py-2.5">
           <span id="split-collection-dialog-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">
             Split &ldquo;{splittingName}&rdquo;
           </span>
@@ -701,7 +701,7 @@ export function CollectionSplitDialog({
             </svg>
           </button>
         </div>
-        <div className="flex flex-col gap-3 overflow-y-auto p-4">
+        <div className="flex flex-col gap-3 overflow-y-auto p-3">
           <p id="split-collection-dialog-description" className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Review the collections that will be created before splitting this collection.
           </p>

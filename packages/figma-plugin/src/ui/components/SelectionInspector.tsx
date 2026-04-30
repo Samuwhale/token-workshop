@@ -876,7 +876,7 @@ export function SelectionInspector({
         </div>
 
         {showSelectionActions && (
-          <div className="absolute right-3 top-[calc(100%-2px)] z-20 flex min-w-[168px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg">
+          <div className="absolute right-3 top-[calc(100%-2px)] z-20 flex min-w-[168px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]">
             {connected && (
               <button
                 onClick={() => {

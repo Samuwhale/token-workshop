@@ -366,7 +366,7 @@ export function FormulaInput({
       {showAutocomplete && acEntries.length > 0 && (
         <div
           ref={listRef}
-          className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
+          className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] overflow-y-auto max-h-48"
         >
           <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
             Token references
@@ -425,7 +425,7 @@ export function FormulaInput({
 
       {/* Operator hints bar */}
       {showOperatorHints && !showAutocomplete && (
-        <div className="absolute z-40 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg px-1 py-1 flex items-center gap-0.5 flex-wrap">
+        <div className="absolute z-40 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] px-1 py-1 flex items-center gap-0.5 flex-wrap">
           <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] mr-1">Operators:</span>
           {OPERATORS.map(({ op, label }) => (
             <button

@@ -191,7 +191,7 @@ export function AliasAutocomplete({
 
   if (entries.length === 0 && ambiguousEntries.length === 0) {
     return (
-      <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-2 px-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
+      <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-2 px-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
         No matching tokens with a unique path
       </div>
     );
@@ -200,7 +200,7 @@ export function AliasAutocomplete({
   return (
     <div
       ref={listRef}
-      className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-48"
+      className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] overflow-y-auto max-h-48"
     >
       {hasRecent && !query.trim() && (
         <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">

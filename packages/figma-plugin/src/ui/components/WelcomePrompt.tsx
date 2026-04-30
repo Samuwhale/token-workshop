@@ -194,7 +194,7 @@ export function WelcomePrompt({
     <div className="tm-start-overlay fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)] p-2">
       <div
         ref={dialogRef}
-        className="tm-start-dialog flex max-h-[calc(100vh-12px)] w-full max-w-[300px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
+        className="tm-start-dialog flex max-h-[calc(100vh-12px)] w-full max-w-[300px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();

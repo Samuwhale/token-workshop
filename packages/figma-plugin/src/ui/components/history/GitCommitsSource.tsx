@@ -261,7 +261,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
 
   if (error && commits.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 p-6 gap-3 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
         <p className="text-body text-[color:var(--color-figma-text-secondary)]">{error}</p>
         <button
           onClick={() => void fetchCommits()}
@@ -402,8 +402,8 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         {/* Restore confirmation dialog */}
         {pendingRestore && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
-            <div className="bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded-lg shadow-xl mx-4 max-w-[280px] w-full overflow-hidden">
-              <div className="px-4 pt-4 pb-3">
+            <div className="mx-4 w-full max-w-[280px] overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]">
+              <div className="px-3 pb-3 pt-3">
                 <p className="text-heading font-semibold text-[color:var(--color-figma-text)]">Confirm restore</p>
                 <p className="text-body text-[color:var(--color-figma-text-secondary)] mt-1.5 leading-relaxed">
                   {pendingRestore.summary.total === 1

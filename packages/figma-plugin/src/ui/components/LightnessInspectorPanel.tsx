@@ -51,7 +51,7 @@ export function LightnessInspectorPanel({
         </svg>
       </button>
       {showScaleInspector && (
-        <div className="divide-y divide-[var(--color-figma-border)] p-3 flex flex-col gap-4">
+        <div className="flex flex-col gap-3 divide-y divide-[var(--color-figma-border)] p-3">
           {colorScales.map(({ parent, collectionId, steps }) => {
             const lValues = steps.map((s) => ({
               label: s.label,

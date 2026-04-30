@@ -2182,7 +2182,11 @@ export function GeneratorsPanel({
     if (!compactGenerators || editorMode !== "graph" || !flowInstance) return;
     const setCompactGraphViewport = () => {
       suppressedViewportCommitCountRef.current += 1;
-      flowInstance.setViewport({ x: -42, y: 42, zoom: 0.64 }, { duration: 150 });
+      flowInstance.fitView({
+        duration: 150,
+        maxZoom: 0.62,
+        padding: 0.22,
+      });
     };
     const animationFrameId = window.requestAnimationFrame(setCompactGraphViewport);
     const resetTimeoutId = window.setTimeout(() => {
@@ -2416,7 +2420,7 @@ export function GeneratorsPanel({
               addPaletteNode(item, position);
             }}
             defaultViewport={activeGenerator.viewport}
-            minZoom={compactGenerators ? 0.45 : 0.35}
+            minZoom={0.35}
             maxZoom={1.6}
             deleteKeyCode={null}
             className="tm-graph"
@@ -2775,7 +2779,7 @@ export function GeneratorsPanel({
           aria-label="Close generator actions"
           onClick={() => setActionsMenuOpen(false)}
         />
-        <div className="absolute right-0 top-9 z-30 min-w-[176px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg">
+        <div className="absolute right-0 top-9 z-30 min-w-[176px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]">
           <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {statusLabel}
           </div>
@@ -3274,7 +3278,7 @@ function GraphIssueCallout({
         : `${issues.length} warnings`;
 
   return (
-    <div className="absolute left-3 right-3 top-3 z-10 max-w-[420px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2 shadow-sm">
+    <div className="absolute left-3 right-3 top-3 z-10 max-w-[420px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2 shadow-[var(--shadow-popover)]">
       <div className="flex items-start gap-2">
         <AlertTriangle
           size={14}
@@ -3359,8 +3363,8 @@ function GeneratorDeleteDialog({
           : `${action.connectedEdgeCount} connection${action.connectedEdgeCount === 1 ? "" : "s"} will be removed. Check the output preview before applying.`;
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-4">
-      <section className="w-full max-w-[360px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-3">
+      <section className="w-full max-w-[360px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-[var(--shadow-dialog)]">
         <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
           {title}
         </h2>
@@ -3388,8 +3392,8 @@ function PresetConversionDialog({
   onConfirm: () => void;
 }) {
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-4">
-      <section className="w-full max-w-[380px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-lg">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-3">
+      <section className="w-full max-w-[380px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-[var(--shadow-dialog)]">
         <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
           Edit as custom graph?
         </h2>
@@ -3494,7 +3498,7 @@ function GraphContextMenu({
         onClick={onClose}
       />
       <div
-        className="fixed z-30 w-[260px] max-w-[calc(100vw_-_16px)] overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
+        className="fixed z-30 w-[260px] max-w-[calc(100vw_-_16px)] overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]"
         style={{ left: menuLeft, top: menuTop }}
         onClick={(event) => event.stopPropagation()}
         onContextMenu={(event) => event.preventDefault()}
@@ -6038,7 +6042,7 @@ function PreviewPanel({
   if (!preview) {
     return (
       <div
-        className={`flex h-full items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_44%,var(--color-figma-bg))] p-4 text-center text-secondary text-[color:var(--color-figma-text-secondary)] ${
+        className={`flex h-full items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--color-figma-bg-secondary)_34%,var(--color-figma-bg))] p-3 text-center text-secondary text-[color:var(--color-figma-text-secondary)] ${
           compact ? "min-h-[120px]" : "min-h-[220px]"
         }`}
       >

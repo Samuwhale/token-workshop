@@ -172,7 +172,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
       {open && filtered.length > 0 && (
         <div
           ref={listRef}
-          className="absolute z-50 left-0 right-0 mt-0.5 max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg"
+          className="absolute z-50 left-0 right-0 mt-0.5 max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-[var(--shadow-popover)]"
           role="listbox"
         >
           {filtered.map((family, i) => (
@@ -218,7 +218,7 @@ export function FontFamilyPicker({ value, onChange, availableFonts, autoFocus, p
       )}
 
       {open && query.trim() && filtered.length === 0 && (
-        <div className="absolute z-50 left-0 right-0 mt-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg p-2">
+        <div className="absolute z-50 left-0 right-0 mt-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-[var(--shadow-popover)] p-2">
           <div className="text-secondary text-[color:var(--color-figma-text-secondary)] mb-1">No matching fonts</div>
           <button
             type="button"

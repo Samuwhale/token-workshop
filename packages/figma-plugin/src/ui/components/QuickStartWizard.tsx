@@ -221,7 +221,7 @@ function QuickStartShell({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
       <div
-        className="flex w-80 flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl"
+        className="flex w-80 flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
         style={{ maxHeight: "85vh" }}
       >
         {content}
@@ -272,7 +272,7 @@ export function QuickStartWizard({
   if (prereqPhase === "connect" || prereqPhase === "create-collection") {
     return (
       <QuickStartShell embedded={embedded} onClose={onClose}>
-        <div className="p-4">
+        <div className="p-3">
           {prereqPhase === "connect" ? (
             <ConnectStep
               serverUrl={serverUrl}

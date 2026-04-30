@@ -154,7 +154,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         title="Export files"
         description="Generate platform token files for apps, web, and developer handoff."
         className="h-full"
-        bodyClassName="gap-4"
+        bodyClassName="gap-3"
         actions={
           <PanelHelpIcon
             title="Export"

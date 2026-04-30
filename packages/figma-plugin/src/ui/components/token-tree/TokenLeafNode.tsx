@@ -1329,7 +1329,7 @@ export const TokenLeafNode = memo(
           {refsPopover && (
             <div
               ref={refsPopoverRef}
-              className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg w-60 overflow-hidden"
+              className="fixed z-50 w-60 overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
               style={{ top: refsPopover.pos.y, left: refsPopover.pos.x }}
               onClick={(e) => e.stopPropagation()}
             >

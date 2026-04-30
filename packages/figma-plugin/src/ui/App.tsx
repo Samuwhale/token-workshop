@@ -2148,7 +2148,7 @@ export function App() {
               onClick={() => setResponsiveSidebarFlyout(null)}
             />
             <div
-              className="tm-sidebar-flyout absolute left-10 z-30 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-lg"
+              className="tm-sidebar-flyout absolute left-10 z-30 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]"
               style={{ top: responsiveSidebarFlyout.top }}
             >
               <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">

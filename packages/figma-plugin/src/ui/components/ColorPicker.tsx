@@ -639,7 +639,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   return (
     <div
       ref={popoverRef}
-      className="fixed z-50 p-2 rounded-lg shadow-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2"
+      className="fixed z-50 flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2 shadow-[var(--shadow-popover)]"
       style={{ width: 240, ...(popoverPos ?? { top: 0, left: 0 }) }}
     >
       {/* Color area */}

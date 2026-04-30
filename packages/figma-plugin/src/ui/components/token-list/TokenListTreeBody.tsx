@@ -432,7 +432,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         </Button>
         {addModeMenuOpen && (
           <div
-            className="absolute right-0 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
+            className="absolute right-0 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col gap-2 px-2 py-2">

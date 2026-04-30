@@ -72,7 +72,7 @@ export function ReviewPanelOverlay({
         tabIndex={-1}
       />
       {/* Panel */}
-      <div className="w-[300px] shrink-0 border-l border-[var(--color-figma-border)] shadow-xl bg-[var(--color-figma-bg)]">
+      <div className="w-[300px] shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)]">
         {children}
       </div>
     </div>

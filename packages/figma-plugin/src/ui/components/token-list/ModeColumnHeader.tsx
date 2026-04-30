@@ -268,13 +268,13 @@ export function ModeColumnHeader({
         </button>
       )}
       {(renameError || actionError) && !menuOpen ? (
-        <div className="absolute left-0 right-0 top-full z-40 mt-0.5 rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-error)] shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-40 mt-0.5 rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-error)] shadow-[var(--shadow-popover)]">
           {renameError || actionError}
         </div>
       ) : null}
       {menuOpen && (
         <div
-          className="z-50 overflow-y-auto rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 text-body"
+          className="z-50 overflow-y-auto rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-1 text-body"
           style={menuStyle ?? { visibility: "hidden" }}
           onMouseDown={(e) => e.stopPropagation()}
         >

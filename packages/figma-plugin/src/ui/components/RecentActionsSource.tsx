@@ -130,7 +130,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
     )}
     <div className="flex-1 overflow-y-auto">
       {isEmpty && (
-        <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
+        <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)] opacity-40" aria-hidden="true">
             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
           </svg>

@@ -200,7 +200,7 @@ export function HealthIssuesView({
               {exportMenu.open && (
                 <div
                   ref={exportMenu.menuRef}
-                  className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-0.5"
+                  className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-0.5"
                   role="menu"
                 >
                   <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">

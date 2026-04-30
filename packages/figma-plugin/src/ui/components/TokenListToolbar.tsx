@@ -405,7 +405,7 @@ export function TokenListToolbar({
                     ref={qualifierHintsRef}
                     id="qualifier-hints-listbox"
                     role="listbox"
-                    className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                    className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-[var(--shadow-popover)]"
                   >
                     {qualifierHints.map((hint, index) => (
                       <button

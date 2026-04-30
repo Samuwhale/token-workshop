@@ -202,7 +202,7 @@ export function TokenPickerDropdown({
   }, [activeIdx]);
 
   return (
-    <div className="flex flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-hidden">
+    <div className="flex flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] overflow-hidden">
       {/* Search input */}
       <div className="px-2 pt-2 pb-1.5">
         <input

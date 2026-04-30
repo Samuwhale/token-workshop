@@ -113,7 +113,7 @@ export function InlineValuePopover({
   return (
     <div
       ref={popoverRef}
-      className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded-md shadow-xl flex flex-col"
+      className="fixed z-50 flex flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
       style={{
         top,
         left,

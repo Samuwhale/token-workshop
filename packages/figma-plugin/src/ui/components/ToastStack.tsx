@@ -77,7 +77,7 @@ function UndoRow({
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[color:var(--color-figma-bg)] shadow-lg animate-toast-in"
+      className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[color:var(--color-figma-bg)] shadow-[var(--shadow-popover)] animate-toast-in"
     >
       <span className="min-w-0 flex-1 break-words">{undoLabel}</span>
       <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
@@ -193,7 +193,7 @@ function MessageRow({
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[color:var(--color-figma-bg)] shadow-lg animate-toast-in"
+      className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[color:var(--color-figma-bg)] shadow-[var(--shadow-popover)] animate-toast-in"
     >
       {iconEl}
       <span className="min-w-0 flex-1 break-words">

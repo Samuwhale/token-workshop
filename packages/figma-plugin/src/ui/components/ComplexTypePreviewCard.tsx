@@ -59,7 +59,7 @@ function ShadowPreview({ value }: { value: unknown }) {
   return (
     <div className="flex items-center justify-center py-2">
       <div
-        className="w-24 h-14 rounded-lg bg-[var(--color-figma-bg)]"
+        className="w-24 h-14 rounded-md bg-[var(--color-figma-bg)]"
         style={{ boxShadow: css }}
       />
     </div>
@@ -188,7 +188,7 @@ function BorderPreview({ value }: { value: Record<string, unknown> }) {
   return (
     <div className="flex items-center gap-3">
       <div
-        className="w-20 h-14 rounded-lg bg-[var(--color-figma-bg)]"
+        className="w-20 h-14 rounded-md bg-[var(--color-figma-bg)]"
         style={{ border }}
       />
       <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
@@ -210,7 +210,7 @@ export function ComplexTypePreviewCard({ type, value }: { type: string; value: u
     if (type === 'gradient' && typeof value === 'string') {
       return (
         <div className="absolute left-4 right-4 bottom-full z-30 pointer-events-none" style={{ marginBottom: 2 }}>
-          <div className="rounded-lg shadow-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2.5 max-w-[280px]">
+          <div className="max-w-[280px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2.5 shadow-[var(--shadow-popover)]">
             <GradientPreview value={value} />
           </div>
         </div>
@@ -235,7 +235,7 @@ export function ComplexTypePreviewCard({ type, value }: { type: string; value: u
 
   return (
     <div className="absolute left-4 right-4 bottom-full z-30 pointer-events-none" style={{ marginBottom: 2 }}>
-      <div className="rounded-lg shadow-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2.5 max-w-[280px]">
+      <div className="max-w-[280px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2.5 shadow-[var(--shadow-popover)]">
         {content}
       </div>
     </div>

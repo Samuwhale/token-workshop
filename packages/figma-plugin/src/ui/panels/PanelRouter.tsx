@@ -1263,7 +1263,7 @@ export function PanelRouter({
             className="absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
             onClick={closeNotifications}
           />
-          <div className="absolute right-0 top-0 bottom-0 z-20 w-full max-w-[min(360px,calc(100vw-16px))] border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg panel-slide-in">
+          <div className="panel-slide-in absolute bottom-0 right-0 top-0 z-20 w-full max-w-[min(360px,calc(100vw-16px))] border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)]">
             <NotificationsPanel
               history={controller.notificationHistory}
               onClear={controller.clearNotificationHistory}
@@ -1462,7 +1462,7 @@ export function PanelRouter({
         {contextualPanel ? (
           contextualPanelLayout.renderAsOverlay ? (
             <div
-              className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.24)] ${
+              className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)] ${
                 contextualPanelLayout.isFullWidthOverlay
                   ? "inset-x-0 border-l-0"
                   : "border-l border-[var(--color-figma-border)]"

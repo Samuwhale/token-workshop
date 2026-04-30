@@ -450,7 +450,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
     >
       <div
         ref={dialogRef}
-        className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-2xl w-full mx-3 flex flex-col"
+        className="mx-3 flex w-full max-w-[560px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
         style={{ maxHeight: '60vh' }}
         onClick={e => e.stopPropagation()}
         role="dialog"

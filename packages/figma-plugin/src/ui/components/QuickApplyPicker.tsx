@@ -358,7 +358,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
       >
         <div
           ref={dialogRef}
-          className="mx-3 flex w-full max-w-[320px] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-2xl"
+          className="mx-3 flex w-full max-w-[320px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
           onClick={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
@@ -385,7 +385,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               </button>
             </div>
           </div>
-          <div className="px-3 py-5 text-center">
+          <div className="px-3 py-4 text-center">
             <p className="m-0 text-body font-medium text-[color:var(--color-figma-text)]">
               {rootNodes.length === 0
                 ? "Select a layer to apply tokens"
@@ -409,7 +409,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     >
       <div
         ref={dialogRef}
-        className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-2xl w-full mx-3 flex flex-col"
+        className="mx-3 flex w-full max-w-[560px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
         style={{ maxHeight: '70vh' }}
         onClick={e => e.stopPropagation()}
         role="dialog"

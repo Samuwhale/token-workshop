@@ -168,7 +168,7 @@ export const ColorEditor = memo(function ColorEditor({
           </button>
           {formatMenuOpen && (
             <div
-              className="absolute right-0 bottom-full mb-1 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-0.5 min-w-[56px]"
+              className="absolute bottom-full right-0 z-50 mb-1 min-w-[56px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-0.5 shadow-[var(--shadow-popover)]"
               onMouseLeave={() => setFormatMenuOpen(false)}
             >
               {FORMAT_CYCLE.map(f => (

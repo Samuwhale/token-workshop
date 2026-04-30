@@ -47,6 +47,10 @@
   --motion-base: 150ms;
   --motion-slow: 180ms;
   --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --shadow-soft: 0 2px 8px rgb(0 0 0 / 0.14);
+  --shadow-popover: 0 8px 22px rgb(0 0 0 / 0.22);
+  --shadow-panel: 0 12px 28px rgb(0 0 0 / 0.24);
+  --shadow-dialog: 0 16px 36px rgb(0 0 0 / 0.28);
 
   --color-figma-bg: #2c2c2c;
   --color-figma-bg-secondary: #383838;
@@ -170,6 +174,10 @@ html.figma-light {
 
   --color-figma-overlay: rgba(0, 0, 0, 0.25);
   --color-figma-overlay-heavy: rgba(0, 0, 0, 0.4);
+  --shadow-soft: 0 1px 5px rgb(0 0 0 / 0.1);
+  --shadow-popover: 0 6px 18px rgb(0 0 0 / 0.14);
+  --shadow-panel: 0 10px 24px rgb(0 0 0 / 0.14);
+  --shadow-dialog: 0 14px 32px rgb(0 0 0 / 0.16);
 }
 
 /* Light mode scrollbar */
@@ -334,7 +342,7 @@ a[role="menuitem"] {
   border: 1px solid var(--color-figma-border);
   border-radius: var(--radius-lg);
   background: var(--color-figma-bg);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-dialog);
   container-type: inline-size;
   margin: auto;
 }
@@ -2444,7 +2452,7 @@ select.tm-generator-field {
   border: 1px solid var(--color-figma-border);
   border-radius: var(--radius-md);
   background: var(--color-figma-bg);
-  box-shadow: 0 16px 36px rgb(0 0 0 / 0.22);
+  box-shadow: var(--shadow-popover);
 }
 
 .tm-generator-switcher__search {
@@ -2587,7 +2595,7 @@ select.tm-generator-field {
   overflow: hidden;
   border-inline-start: 1px solid var(--color-figma-border);
   background: var(--color-figma-bg);
-  box-shadow: 0 18px 44px rgb(0 0 0 / 0.24);
+  box-shadow: var(--shadow-panel);
 }
 
 @media (max-width: 560px) {
@@ -3276,13 +3284,7 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-graph {
   --tm-graph-node-width: 304px;
   --tm-graph-port-column: 64px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-figma-bg-secondary) 34%, var(--color-figma-bg)),
-      color-mix(in srgb, var(--color-figma-bg-secondary) 24%, var(--color-figma-bg))
-    ),
-    color-mix(in srgb, var(--color-figma-bg-secondary) 28%, var(--color-figma-bg));
+  background: color-mix(in srgb, var(--color-figma-bg-secondary) 26%, var(--color-figma-bg));
 }
 
 .tm-graph .react-flow__pane {
@@ -3319,7 +3321,7 @@ button.tm-token-details__text-button:disabled:hover {
   border: 1px solid var(--color-figma-border);
   border-radius: 6px;
   background: var(--color-figma-bg);
-  box-shadow: 0 18px 36px rgb(0 0 0 / 0.18);
+  box-shadow: var(--shadow-panel);
 }
 
 .tm-graph-floating-panel__header {
@@ -3359,7 +3361,7 @@ button.tm-token-details__text-button:disabled:hover {
   cursor: pointer;
   padding: 6px 8px;
   text-align: start;
-  box-shadow: 0 10px 24px rgb(0 0 0 / 0.16);
+  box-shadow: var(--shadow-popover);
 }
 
 .tm-graph-inspector-tab:hover,
@@ -3383,9 +3385,7 @@ button.tm-token-details__text-button:disabled:hover {
   border: 1px solid var(--color-figma-border);
   border-radius: 5px;
   background: var(--color-figma-bg);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--tm-graph-node-accent) 42%, transparent),
-    0 3px 8px rgb(0 0 0 / 0.08);
+  box-shadow: var(--shadow-soft);
   color: var(--color-figma-text);
   transition:
     border-color var(--motion-fast) var(--ease-standard),
@@ -3396,9 +3396,8 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-graph-node--selected {
   border-color: var(--color-figma-text-accent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--tm-graph-node-accent) 42%, transparent),
     0 0 0 1px color-mix(in srgb, var(--color-figma-accent) 64%, transparent),
-    0 5px 14px rgb(0 0 0 / 0.14);
+    var(--shadow-soft);
 }
 
 .tm-graph-node--error {

@@ -123,7 +123,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
     return (
       <div
         ref={ref}
-        className="fixed z-50 max-w-[calc(100vw-16px)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg p-2 text-secondary text-[color:var(--color-figma-text-secondary)]"
+        className="fixed z-50 max-w-[calc(100vw-16px)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-[var(--shadow-popover)] p-2 text-secondary text-[color:var(--color-figma-text-secondary)]"
         style={positionStyle}
       >
         No applicable properties for this layer
@@ -134,7 +134,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[140px] max-w-[calc(100vw-16px)]"
+      className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-[var(--shadow-popover)] py-1 min-w-[140px] max-w-[calc(100vw-16px)]"
       style={positionStyle}
       onKeyDown={handleKeyDown}
     >

@@ -128,7 +128,7 @@ export function RemapAutocompleteInput({
       {showDropdown && (
         <div
           ref={listRef}
-          className="absolute z-50 mt-0.5 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-[140px]"
+          className="absolute z-50 mt-0.5 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] overflow-y-auto max-h-[140px]"
         >
           {suggestions.map(({ path, entry }, idx) => {
             const isSelected = idx === selectedIdx;

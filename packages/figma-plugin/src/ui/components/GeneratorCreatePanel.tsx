@@ -506,7 +506,7 @@ export function GeneratorCreatePanel({
                 setSourceTokenPath("");
               }
             }}
-            className="w-full rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary text-[color:var(--color-figma-text)] outline-none"
+            className="tm-generator-field text-secondary"
           >
             {collectionOptions.map((collection) => (
               <option key={collection.id} value={collection.id}>
@@ -517,7 +517,7 @@ export function GeneratorCreatePanel({
         </label>
 
         {startMode === "preset" ? (
-        <div className="grid gap-4 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-3 min-[860px]:grid-cols-[320px_minmax(0,1fr)]">
           <div className="space-y-2">
             <div className="px-1">
               <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
@@ -544,10 +544,10 @@ export function GeneratorCreatePanel({
                           key={option.id}
                           type="button"
                           onClick={() => updateKind(option.id)}
-                          className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-2 text-left transition-colors ${
+                          className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
                             option.id === kind
                               ? "bg-[var(--color-figma-bg-selected)]"
-                              : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                              : "bg-transparent hover:bg-[var(--color-figma-bg-hover)]"
                           }`}
                         >
                           <span className="min-w-0">

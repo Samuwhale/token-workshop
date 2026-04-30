@@ -1094,7 +1094,7 @@ export function PublishPanel({
     <>
     <div className="flex h-full flex-col bg-[var(--color-figma-bg)]">
       <div className="flex-1 overflow-y-auto px-3 py-3">
-        <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-3">
 
           {/* ── Publish target ──────────────────────────────────────── */}
           <div ref={targetRef} className="flex flex-col gap-2">
