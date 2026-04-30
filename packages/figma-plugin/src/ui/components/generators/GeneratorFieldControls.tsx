@@ -7,6 +7,7 @@ import { AUTHORING } from "../../shared/editorClasses";
 import { BooleanEditor, ColorEditor, DimensionEditor, StepperInput } from "../ValueEditors";
 import { FormulaInput } from "../FormulaInput";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
+import { validateGeneratorTokenPath } from "./generatorValidation";
 
 export type GeneratorTokenRefs = Record<string, string>;
 export type GeneratorDimensionInputValue = { value: number | string; unit: string };
@@ -899,15 +900,6 @@ function formatCompactValue(value: unknown): string {
 function toFiniteNumber(value: unknown, fallback: number): number {
   const numeric = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
-}
-
-export function validateGeneratorTokenPath(path: string): string | null {
-  const text = path.trim();
-  if (!text) return "Path is required.";
-  if (text.split(".").some((segment) => !segment)) return "Path segments cannot be empty.";
-  if (/[\\/]/.test(text)) return "Use dots instead of slashes.";
-  if (text.split(".").some((segment) => segment.startsWith("$"))) return "Path segments cannot start with $.";
-  return null;
 }
 
 function validateStepName(name: string, duplicateNames: Set<string>): string | null {

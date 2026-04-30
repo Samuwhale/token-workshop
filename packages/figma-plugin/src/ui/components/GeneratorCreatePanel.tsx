@@ -37,8 +37,8 @@ import {
   NumberStepTable,
   formatGeneratorDimensionInput,
   parseGeneratorDimensionInput,
-  validateGeneratorTokenPath,
 } from "./generators/GeneratorFieldControls";
+import { validateGeneratorTokenPath } from "./generators/generatorValidation";
 import type { GeneratorEditorMode } from "./generators/generatorEditorTypes";
 
 type BusyState = "create" | null;
