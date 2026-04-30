@@ -224,8 +224,8 @@ export function HealthDashboard({
       : `${totalIssueCount} item${totalIssueCount === 1 ? "" : "s"} need attention. Start with Fix next, then clean up library hygiene.`;
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto px-4 py-4" style={{ scrollbarWidth: "thin" }}>
-      <div className="mb-5 flex items-start gap-2">
+    <div className="flex h-full flex-col overflow-y-auto px-2.5 py-2.5" style={{ scrollbarWidth: "thin" }}>
+      <div className="mb-3 flex items-start gap-2">
         <span className={`shrink-0 ${statusColor(overallStatus)}`}>
           <StatusIcon status={overallStatus} />
         </span>
@@ -244,7 +244,7 @@ export function HealthDashboard({
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <ReviewSection
           title="Fix next"
           description="Items that can block confident handoff or publish."
@@ -257,7 +257,7 @@ export function HealthDashboard({
         />
       </div>
 
-      <div className="mt-auto pt-6">
+      <div className="mt-auto pt-4">
         <StatusRow
           tone="neutral"
           label="Rules"

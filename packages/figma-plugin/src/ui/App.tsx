@@ -1835,9 +1835,6 @@ export function App() {
                               : inactiveTextClass
                         }`}
                       >
-                        {isWorkspaceActive && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[var(--color-figma-accent)]" />
-                        )}
                         {workspaceIcon(item.id)}
                         {showCanvasSelectionAdornment && (
                           <span
@@ -1877,9 +1874,6 @@ export function App() {
                             : inactiveTextClass
                       }`}
                     >
-                      {isWorkspaceActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-[var(--color-figma-accent)]" />
-                      )}
                       {sections.length > 0 && (
                         <ChevronRight
                           size={10}

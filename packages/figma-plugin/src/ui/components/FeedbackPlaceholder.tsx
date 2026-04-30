@@ -37,14 +37,14 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   description: string;
 }> = {
   full: {
-    container: 'flex h-full w-full flex-1 flex-col justify-center px-3 py-3',
-    content: 'flex w-full max-w-[360px] min-w-0 flex-col gap-2',
+    container: 'flex h-full w-full flex-1 flex-col justify-center px-3 py-2',
+    content: 'flex w-full max-w-[340px] min-w-0 flex-col gap-1.5',
     title: 'text-body font-medium',
     description: 'text-body leading-[var(--leading-body)]',
   },
   section: {
-    container: 'flex w-full flex-col justify-center px-3 py-2',
-    content: 'flex w-full max-w-[340px] min-w-0 flex-col gap-1.5',
+    container: 'flex w-full flex-col justify-center px-2 py-1.5',
+    content: 'flex w-full max-w-[320px] min-w-0 flex-col gap-1.5',
     title: 'text-secondary font-medium',
     description: 'text-body leading-[var(--leading-body)]',
   },

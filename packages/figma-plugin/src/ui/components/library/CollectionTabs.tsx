@@ -33,7 +33,7 @@ import { Button, SearchField } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 560;
+const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 420;
 
 interface AllCollectionsScope {
   selected: boolean;
@@ -217,7 +217,7 @@ export function CollectionTabs({
   return (
     <div
       ref={toolbarRef}
-      className="flex min-w-0 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5"
+      className="flex min-w-0 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1"
     >
       <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
         <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
@@ -231,7 +231,7 @@ export function CollectionTabs({
               aria-expanded={switcherOpen}
               aria-label={triggerAriaLabel}
               title={currentCollection ? currentDisplayName : "Choose collection"}
-              className={`tm-collection-toolbar__trigger flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
+              className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
                 switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                   : "bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"

@@ -125,8 +125,8 @@ export function StatusRow({
   );
 
   const rowClassName = cx(
-    "flex min-w-0 items-start gap-2 py-1.5 text-left transition-colors",
-    onClick && !disabled && "w-full rounded px-2 hover:bg-[var(--color-figma-bg-hover)]",
+    "flex min-w-0 items-start gap-2 py-1 text-left transition-colors",
+    onClick && !disabled && "w-full rounded px-1.5 hover:bg-[var(--color-figma-bg-hover)]",
     onClick && disabled && "w-full cursor-default opacity-60",
     className,
   );

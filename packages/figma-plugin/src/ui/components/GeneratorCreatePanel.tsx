@@ -39,6 +39,7 @@ import {
   parseGeneratorDimensionInput,
   validateGeneratorTokenPath,
 } from "./generators/GeneratorFieldControls";
+import type { GeneratorEditorMode } from "./generators/generatorEditorTypes";
 
 type BusyState = "create" | "custom" | null;
 type CreateStartMode = "preset" | "graph";
@@ -54,7 +55,7 @@ interface GeneratorCreatePanelProps {
   onOpenGenerator: (
     generatorId: string,
     collectionId: string,
-    initialView?: "setup" | "graph" | "review",
+    initialView?: GeneratorEditorMode,
   ) => void;
 }
 
@@ -342,7 +343,7 @@ export function GeneratorCreatePanel({
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
-        "setup",
+        "overview",
       );
     } catch (createError) {
       setError(
@@ -413,7 +414,7 @@ export function GeneratorCreatePanel({
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
-        "setup",
+        "overview",
       );
     } catch (createError) {
       setError(

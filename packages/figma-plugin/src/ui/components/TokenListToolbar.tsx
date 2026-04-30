@@ -281,7 +281,7 @@ export function TokenListToolbar({
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-      <div className="tm-responsive-toolbar tm-token-toolbar px-2 py-1.5">
+      <div className="tm-responsive-toolbar tm-token-toolbar px-2 py-1">
         <div className="tm-responsive-toolbar__row tm-token-toolbar__row">
           <div className="tm-responsive-toolbar__leading">
             {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (

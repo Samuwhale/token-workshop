@@ -91,6 +91,7 @@ import {
   GeneratorsPanel,
   type GeneratorPanelFocus,
 } from "../components/generators/GeneratorsPanel";
+import type { GeneratorEditorMode } from "../components/generators/generatorEditorTypes";
 
 const DEFAULT_CREATE_TYPE = "color";
 const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
@@ -327,7 +328,7 @@ export function PanelRouter({
   const [pendingGeneratorFocus, setPendingGeneratorFocus] =
     useState<GeneratorPanelFocus | null>(null);
   const [pendingGeneratorInitialView, setPendingGeneratorInitialView] =
-    useState<"setup" | "graph" | "review" | null>(null);
+    useState<GeneratorEditorMode | null>(null);
   const [pendingGeneratorCreateOutputPrefix, setPendingGeneratorCreateOutputPrefix] =
     useState<string | null | undefined>(undefined);
   const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
@@ -1775,7 +1776,7 @@ export function PanelRouter({
                 edgeId: issue.generatorEdgeId,
               });
               setPendingGeneratorInitialView(
-                issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "review",
+                issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "overview",
               );
               navigateTo("library", "generators");
             }}
@@ -1792,7 +1793,7 @@ export function PanelRouter({
                   edgeId: issue.generatorEdgeId,
                 });
                 setPendingGeneratorInitialView(
-                  issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "review",
+                  issue.generatorNodeId || issue.generatorEdgeId ? "graph" : "overview",
                 );
                 navigateTo("library", "generators");
                 return;

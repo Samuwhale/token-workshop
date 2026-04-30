@@ -560,10 +560,10 @@ export function HealthPanel({
 
     content = (
       <div
-        className="flex h-full flex-col overflow-y-auto px-4 py-4"
+        className="flex h-full flex-col overflow-y-auto px-2.5 py-2.5"
         style={{ scrollbarWidth: "thin" }}
       >
-        <div className="mb-5">
+        <div className="mb-3">
           <h2 className="text-body font-semibold text-[color:var(--color-figma-text)]">
             {allScopeStatusTitle}
           </h2>
@@ -579,7 +579,7 @@ export function HealthPanel({
         ) : null}
 
         {collectionSummaries.length > 0 ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <section>
               <div className="mb-1.5 px-1">
                 <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
@@ -627,7 +627,7 @@ export function HealthPanel({
           </p>
         )}
 
-        <div className="mt-auto pt-6">
+        <div className="mt-auto pt-4">
           <button
             type="button"
             onClick={openRulesView}
