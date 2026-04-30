@@ -15,7 +15,7 @@ const VARIANT_CLASS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   ghost:
     "border border-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:text-[color:var(--color-figma-text)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:text-[color:var(--color-figma-text)] disabled:opacity-50",
   danger:
-    "border border-transparent bg-[var(--color-figma-error)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 aria-expanded:opacity-90 disabled:opacity-50",
+    "border border-transparent bg-[var(--workspace-danger)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 aria-expanded:opacity-90 disabled:opacity-50",
 };
 
 const SIZE_CLASS: Record<NonNullable<ButtonProps["size"]>, string> = {

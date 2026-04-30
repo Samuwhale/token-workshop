@@ -66,7 +66,7 @@ export function ConfirmModal({
 
   return (
     <div
-      className="tm-modal-shell"
+      className={`tm-modal-shell ${danger ? 'tm-modal-shell--danger' : ''}`}
       onMouseDown={(e) => {
         if (canCancel && e.target === e.currentTarget) onCancel();
       }}

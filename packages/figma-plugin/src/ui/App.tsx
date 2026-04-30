@@ -1740,7 +1740,7 @@ export function App() {
       <h1 className="sr-only">TokenManager</h1>
       {/* Sidebar */}
       <nav
-        className={`flex shrink-0 flex-col bg-[var(--color-figma-bg)] ${sidebarBoundary.isDragging ? '' : 'transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]'}`}
+        className={`flex shrink-0 flex-col bg-[var(--surface-app)] ${sidebarBoundary.isDragging ? '' : 'transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]'}`}
         style={{ width: effectiveSidebarWidth }}
         aria-label="Workspaces"
       >
@@ -1826,8 +1826,10 @@ export function App() {
                             ? responsiveSidebarFlyout?.itemId === item.id
                             : undefined
                         }
+                        aria-current={isWorkspaceActive ? "page" : undefined}
                         aria-label={item.label}
-                        className={`relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md outline-none transition-colors ${
+                        data-workspace={item.id}
+                        className={`tm-sidebar-workspace-button relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md outline-none transition-colors ${
                           isWorkspaceActive
                             ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text-accent)]"
                             : requiresSetup
@@ -1866,7 +1868,8 @@ export function App() {
                       aria-expanded={sections.length > 0 ? expandedWorkspaces.has(item.workspaceId) : undefined}
                       aria-controls={sections.length > 0 ? sectionListId : undefined}
                       title={requiresSetup ? "Set up a collection first" : undefined}
-                      className={`relative flex min-h-7 w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
+                      data-workspace={item.id}
+                      className={`tm-sidebar-workspace-button relative flex min-h-7 w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
                         isWorkspaceActive
                           ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
                           : requiresSetup
@@ -1943,7 +1946,8 @@ export function App() {
                                     ? "page"
                                     : undefined
                                 }
-                                className={`flex min-h-7 w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
+                                data-workspace={item.id}
+                                className={`tm-sidebar-section-button flex min-h-7 w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
                                   activeSubTab === section.subTab && isWorkspaceActive
                                     ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
                                     : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
@@ -1972,7 +1976,7 @@ export function App() {
         </div>
 
         {/* Bottom utilities */}
-        <div className={`flex flex-col gap-px border-t border-[var(--color-figma-border)] ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
+        <div className={`flex flex-col gap-px border-t border-[var(--border-muted)] bg-[var(--surface-panel-header)] ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
           {sidebarCollapsed ? (
             <>
               <div className="flex flex-col items-center gap-0.5">
@@ -2006,7 +2010,7 @@ export function App() {
                   </button>
                 </Tooltip>
               </div>
-              <div className="my-1 w-5 border-t border-[var(--color-figma-border)]" />
+              <div className="my-1 w-5 border-t border-[var(--border-muted)]" />
               <div className="flex flex-col items-center gap-0.5">
                 <Tooltip label={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"} position="right">
                   <button onClick={executeUndo} disabled={!canUndo} className="flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo">
@@ -2052,7 +2056,7 @@ export function App() {
                   <Settings size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Settings</span>
                 </button>
-                <div className="my-1 h-px w-full bg-[var(--color-figma-border)]" />
+                <div className="my-1 h-px w-full bg-[var(--border-muted)]" />
                 <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
                   <Undo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Undo</span>
@@ -2086,7 +2090,7 @@ export function App() {
           )}
           {responsiveSidebarCollapsed ? (
             <>
-              <div className="my-1 w-5 mx-auto border-t border-[var(--color-figma-border)]" />
+              <div className="my-1 w-5 mx-auto border-t border-[var(--border-muted)]" />
               <Tooltip label="Workspace sections" position="right">
                 <button
                   type="button"
@@ -2101,7 +2105,7 @@ export function App() {
             </>
           ) : (
             <>
-              <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--color-figma-border)]`} />
+              <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--border-muted)]`} />
               <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
                 <button
                   onClick={toggleSidebarCollapsed}
@@ -2148,7 +2152,7 @@ export function App() {
               onClick={() => setResponsiveSidebarFlyout(null)}
             />
             <div
-              className="tm-sidebar-flyout absolute left-10 z-30 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]"
+              className="tm-sidebar-flyout absolute left-10 z-30 rounded-md border border-[var(--border-muted)] bg-[var(--surface-panel-header)] p-1 shadow-[var(--shadow-popover)]"
               style={{ top: responsiveSidebarFlyout.top }}
             >
               <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">

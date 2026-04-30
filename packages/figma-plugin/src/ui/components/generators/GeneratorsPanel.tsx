@@ -2179,16 +2179,16 @@ export function GeneratorsPanel({
   }, [compactGenerators, editorMode]);
 
   useEffect(() => {
-    if (!compactGenerators || editorMode !== "graph" || !flowInstance) return;
-    const setCompactGraphViewport = () => {
+    if (editorMode !== "graph" || !flowInstance) return;
+    const setGraphViewport = () => {
       suppressedViewportCommitCountRef.current += 1;
       flowInstance.fitView({
         duration: 150,
-        maxZoom: 0.62,
-        padding: 0.22,
+        maxZoom: compactGenerators ? 0.62 : 0.82,
+        padding: compactGenerators ? 0.22 : 0.18,
       });
     };
-    const animationFrameId = window.requestAnimationFrame(setCompactGraphViewport);
+    const animationFrameId = window.requestAnimationFrame(setGraphViewport);
     const resetTimeoutId = window.setTimeout(() => {
       suppressedViewportCommitCountRef.current = 0;
     }, 300);
@@ -2881,7 +2881,7 @@ export function GeneratorsPanel({
             variant="secondary"
           >
             <Plus size={14} />
-            Add
+            <span className={compact ? "sr-only" : ""}>Add</span>
           </Button>
           {selectedNode && !compact ? (
             <Button
@@ -2917,7 +2917,7 @@ export function GeneratorsPanel({
           size="sm"
         >
           <Save size={14} />
-          Save
+          <span className="sr-only">Save</span>
         </Button>
       ) : null}
       {!compact ? (
@@ -3118,7 +3118,7 @@ export function GeneratorsPanel({
   return (
     <div
       ref={panelRef}
-      className="relative flex h-full min-h-0 bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)]"
+      className="relative flex h-full min-h-0 bg-[var(--surface-app)] text-[color:var(--color-figma-text)]"
     >
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         {!activeGenerator ? (
@@ -3126,7 +3126,7 @@ export function GeneratorsPanel({
         ) : (
           <>
             {compactGenerators ? (
-              <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-figma-border)] px-2 py-1">
+              <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1">
                 <div className="flex min-w-0 items-center gap-2">
                   {renderGeneratorIdentity(true)}
                   <div className="flex shrink-0 items-center justify-end gap-1">
@@ -3141,7 +3141,7 @@ export function GeneratorsPanel({
                 </div>
               </div>
             ) : (
-              <div className="flex min-h-10 shrink-0 flex-col gap-1.5 border-b border-[var(--color-figma-border)] px-2 py-1.5">
+              <div className="flex min-h-10 shrink-0 flex-col gap-1.5 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1.5">
                 <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                   {renderGeneratorIdentity()}
                   {renderStatusIndicator()}
