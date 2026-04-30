@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, Rows3 } from "lucide-react";
+import { Copy, Link2, MoreHorizontal, Rows3 } from "lucide-react";
 import { resolveRefValue } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath, isAlias } from "../../../shared/resolveAlias";
+import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ValuePreview } from "../ValuePreview";
 import { ModeValueEditor } from "../token-editor/ModeValueEditor";
+import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
+import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
 import { formatTokenValueForDisplay } from "../../shared/tokenFormatting";
 import { getDefaultValue } from "../tokenListUtils";
 import {
@@ -98,6 +101,7 @@ export function TokenDetailsModeRow({
   onCopyToAll,
 }: TokenDetailsModeRowProps) {
   const previousLiteralValueRef = useRef<unknown>(value);
+  const actionsMenu = useDropdownMenu();
   const [aliasMode, setAliasMode] = useState(
     typeof value === "string" && isAlias(value),
   );
@@ -136,6 +140,16 @@ export function TokenDetailsModeRow({
       : null;
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
+  const actionsMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: actionsMenu.triggerRef,
+    open: actionsMenu.open,
+    preferredWidth: 180,
+    preferredHeight: 160,
+    align: "end",
+  });
+  const hasSecondaryActions =
+    (allowCopyFromPrevious && onCopyFromPrevious) ||
+    (allowCopyToAll && onCopyToAll);
 
   const readOnly = useMemo(
     () => resolveReadOnlyPresentation(value, tokenType, allTokensFlat),
@@ -199,33 +213,59 @@ export function TokenDetailsModeRow({
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
         <span className="tm-token-mode-row__action-label">Reference</span>
       </button>
-      {allowCopyFromPrevious && onCopyFromPrevious ? (
-        <button
-          type="button"
-          onClick={onCopyFromPrevious}
-          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
-          title="Copy from previous mode"
-          aria-label="Copy from previous mode"
-        >
-          <Copy size={12} strokeWidth={1.5} aria-hidden />
-          <span className="tm-token-mode-row__action-label">
-            Copy previous
-          </span>
-        </button>
-      ) : null}
-      {allowCopyToAll && onCopyToAll ? (
-        <button
-          type="button"
-          onClick={onCopyToAll}
-          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
-          title="Copy to all other modes"
-          aria-label="Copy to all other modes"
-        >
-          <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-          <span className="tm-token-mode-row__action-label">
-            Copy to all
-          </span>
-        </button>
+      {hasSecondaryActions ? (
+        <div className="relative">
+          <button
+            ref={actionsMenu.triggerRef}
+            type="button"
+            onClick={actionsMenu.toggle}
+            aria-expanded={actionsMenu.open}
+            aria-haspopup="menu"
+            aria-label="More mode actions"
+            title="More mode actions"
+            className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
+          >
+            <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
+            <span className="tm-token-mode-row__action-label">More</span>
+          </button>
+          {actionsMenu.open ? (
+            <div
+              ref={actionsMenu.menuRef}
+              style={actionsMenuStyle ?? { visibility: "hidden" }}
+              className={FLOATING_MENU_CLASS}
+              role="menu"
+            >
+              {allowCopyFromPrevious && onCopyFromPrevious ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onCopyFromPrevious();
+                    actionsMenu.close({ restoreFocus: false });
+                  }}
+                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <Copy size={12} strokeWidth={1.5} aria-hidden />
+                  Copy previous
+                </button>
+              ) : null}
+              {allowCopyToAll && onCopyToAll ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onCopyToAll();
+                    actionsMenu.close({ restoreFocus: false });
+                  }}
+                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <Rows3 size={12} strokeWidth={1.5} aria-hidden />
+                  Copy to all
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
   ) : null;

@@ -238,6 +238,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const [addingModeSaving, setAddingModeSaving] = useState(false);
   const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
   const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
+  const tableHeaderRef = useRef<HTMLDivElement>(null);
+  const [tableHeaderHeight, setTableHeaderHeight] = useState(0);
 
   const addModeTargetId = multiModeDimId ?? collections[0]?.id ?? null;
   const modeNames = useMemo(
@@ -330,11 +332,41 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     setAddModeError("");
   }, []);
 
+  useLayoutEffect(() => {
+    const headerElement = tableHeaderRef.current;
+    if (!headerElement) {
+      setTableHeaderHeight(0);
+      return;
+    }
+
+    const measure = () => {
+      const nextHeight = headerElement.offsetHeight;
+      setTableHeaderHeight((currentHeight) =>
+        currentHeight === nextHeight ? currentHeight : nextHeight,
+      );
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+
+    const observer = new ResizeObserver(() => {
+      requestAnimationFrame(measure);
+    });
+
+    observer.observe(headerElement);
+    return () => observer.disconnect();
+  }, [gridTemplate, multiModeData, modeNames.length, viewMode]);
+
   // Unified table header — always shown for the tree view. For single-mode
   // collections this renders one mode column; multi-mode collections render
   // one column per mode. The trailing + button adds new modes via a popover.
   const tableHeader = multiModeData && viewMode === "tree" ? (
     <div
+      ref={tableHeaderRef}
       className="sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
       style={{ display: "grid", gridTemplateColumns: gridTemplate }}
     >
@@ -748,7 +780,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       {tableHeader}
       <div className="py-1">
         {zoomBreadcrumb ? (
-          <div className="sticky top-0 z-10 bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary">
+          <div
+            className="sticky z-10 bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary"
+            style={{ top: tableHeaderHeight }}
+          >
             <div className="flex items-center gap-1">
               <button
                 onClick={handleZoomUpOneLevel}

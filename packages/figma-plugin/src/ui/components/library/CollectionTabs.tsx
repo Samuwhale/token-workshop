@@ -9,14 +9,19 @@ import {
 import {
   Check,
   ChevronDown,
+  MoreHorizontal,
   Plus,
   Settings2,
   Upload,
 } from "lucide-react";
 import type { TokenCollection } from "@tokenmanager/core";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
+import { useElementWidth } from "../../hooks/useElementWidth";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
-import { FLOATING_MENU_WIDE_CLASS } from "../../shared/menuClasses";
+import {
+  FLOATING_MENU_CLASS,
+  FLOATING_MENU_WIDE_CLASS,
+} from "../../shared/menuClasses";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
 import type { CollectionReviewSummary } from "../../shared/reviewSummary";
 import {
@@ -79,6 +84,8 @@ export function CollectionTabs({
   onOpenCreateCollection,
   onOpenImport,
 }: CollectionTabsProps) {
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const toolbarWidth = useElementWidth(toolbarRef);
   const {
     open: switcherOpen,
     setOpen: setSwitcherOpen,
@@ -93,6 +100,14 @@ export function CollectionTabs({
     preferredWidth: 340,
     preferredHeight: 380,
     align: "start",
+  });
+  const actionsMenu = useDropdownMenu();
+  const actionsMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: actionsMenu.triggerRef,
+    open: actionsMenu.open,
+    preferredWidth: 220,
+    preferredHeight: 220,
+    align: "end",
   });
 
   const [query, setQuery] = useState("");
@@ -132,6 +147,10 @@ export function CollectionTabs({
     allCollectionsScope?.selected !== true;
   const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
+  const hasSecondaryActions =
+    showManageButton || showCreateButton || showImportButton;
+  const collapseSecondaryActions =
+    hasSecondaryActions && toolbarWidth !== null && toolbarWidth < 620;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
 
   const closeSwitcher = useCallback(() => {
@@ -173,7 +192,10 @@ export function CollectionTabs({
   }, [query.length, switcherOpen]);
 
   return (
-    <div className="flex min-w-0 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5">
+    <div
+      ref={toolbarRef}
+      className="flex min-w-0 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5"
+    >
       <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
         <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
           <div className="tm-responsive-toolbar__leading tm-collection-toolbar__leading">
@@ -338,66 +360,140 @@ export function CollectionTabs({
           </div>
 
           <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
-            {showManageButton ? (
-              <Button
-                onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
-                aria-label={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection management"
-                    : "Manage collection"
-                }
-                title={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection management"
-                    : "Manage collection"
-                }
-                aria-pressed={activeCollectionSettings?.open === true}
-                variant="ghost"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start ${
-                  activeCollectionSettings?.open === true
-                    ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                }`}
-              >
-                <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                  Collection details
-                </span>
-              </Button>
-            ) : null}
+            {collapseSecondaryActions ? (
+              <div className="relative">
+                <Button
+                  ref={actionsMenu.triggerRef}
+                  onClick={actionsMenu.toggle}
+                  aria-expanded={actionsMenu.open}
+                  aria-haspopup="menu"
+                  aria-label="Collection actions"
+                  title="Collection actions"
+                  variant="ghost"
+                  size="sm"
+                  className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                >
+                  <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
+                  <span className="tm-toolbar-action__label">Actions</span>
+                </Button>
+                {actionsMenu.open ? (
+                  <div
+                    ref={actionsMenu.menuRef}
+                    style={actionsMenuStyle ?? { visibility: "hidden" }}
+                    className={FLOATING_MENU_CLASS}
+                    role="menu"
+                  >
+                    {showManageButton ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          activeCollectionSettings?.onToggle(currentCollectionId!);
+                          actionsMenu.close({ restoreFocus: false });
+                        }}
+                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+                        {activeCollectionSettings?.open === true
+                          ? "Hide collection details"
+                          : "Collection details"}
+                      </button>
+                    ) : null}
+                    {showCreateButton ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onOpenCreateCollection?.();
+                          actionsMenu.close({ restoreFocus: false });
+                        }}
+                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        <Plus size={12} strokeWidth={1.5} aria-hidden />
+                        New collection
+                      </button>
+                    ) : null}
+                    {showImportButton ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onOpenImport?.();
+                          actionsMenu.close({ restoreFocus: false });
+                        }}
+                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        <Upload size={12} strokeWidth={1.5} aria-hidden />
+                        Import
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <>
+                {showManageButton ? (
+                  <Button
+                    onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
+                    aria-label={
+                      activeCollectionSettings?.open === true
+                        ? "Hide collection management"
+                        : "Manage collection"
+                    }
+                    title={
+                      activeCollectionSettings?.open === true
+                        ? "Hide collection management"
+                        : "Manage collection"
+                    }
+                    aria-pressed={activeCollectionSettings?.open === true}
+                    variant="ghost"
+                    size="sm"
+                    className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start ${
+                      activeCollectionSettings?.open === true
+                        ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
+                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                    }`}
+                  >
+                    <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+                    <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
+                      Collection details
+                    </span>
+                  </Button>
+                ) : null}
 
-            {showCreateButton ? (
-              <Button
-                onClick={onOpenCreateCollection}
-                aria-label="Create collection"
-                title="Create collection"
-                variant="ghost"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-              >
-                <Plus size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                  New collection
-                </span>
-              </Button>
-            ) : null}
+                {showCreateButton ? (
+                  <Button
+                    onClick={onOpenCreateCollection}
+                    aria-label="Create collection"
+                    title="Create collection"
+                    variant="ghost"
+                    size="sm"
+                    className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                  >
+                    <Plus size={12} strokeWidth={1.5} aria-hidden />
+                    <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
+                      New collection
+                    </span>
+                  </Button>
+                ) : null}
 
-            {showImportButton ? (
-              <Button
-                onClick={onOpenImport}
-                aria-label="Import collections"
-                title="Import collections"
-                variant="ghost"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-              >
-                <Upload size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                  Import
-                </span>
-              </Button>
-            ) : null}
+                {showImportButton ? (
+                  <Button
+                    onClick={onOpenImport}
+                    aria-label="Import collections"
+                    title="Import collections"
+                    variant="ghost"
+                    size="sm"
+                    className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                  >
+                    <Upload size={12} strokeWidth={1.5} aria-hidden />
+                    <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
+                      Import
+                    </span>
+                  </Button>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       </div>

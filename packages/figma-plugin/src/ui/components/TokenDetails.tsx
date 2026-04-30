@@ -75,7 +75,7 @@ import type { LintViolation } from "../hooks/useLint";
 import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
-import { Field, ListItem, Section, Stack } from "../primitives";
+import { Field, IconButton, ListItem, Section, Stack } from "../primitives";
 import { Collapsible } from "./Collapsible";
 interface TokenDetailsProps {
   tokenPath: string;
@@ -1149,11 +1149,11 @@ export function TokenDetails({
   const headerActions = (
     <>
       {!isCreateMode && (
-        <button
-          type="button"
+        <IconButton
           onClick={handleCopyPath}
           title="Copy token path"
           aria-label="Copy token path"
+          size="sm"
           className="tm-token-details__header-icon"
         >
           {copied ? (
@@ -1161,29 +1161,30 @@ export function TokenDetails({
           ) : (
             <Copy size={12} strokeWidth={1.5} aria-hidden />
           )}
-        </button>
+        </IconButton>
       )}
       {!isCreateMode && onDuplicate && (
-        <button
-          type="button"
+        <IconButton
           onClick={onDuplicate}
           title="Duplicate token"
           aria-label="Duplicate token"
+          size="sm"
           className="tm-token-details__header-icon"
         >
           <Files size={12} strokeWidth={1.5} aria-hidden />
-        </button>
+        </IconButton>
       )}
-	      {!isCreateMode && !activeGeneratorProvenance && (
-        <button
-          type="button"
+      {!isCreateMode && !activeGeneratorProvenance && (
+        <IconButton
           onClick={() => setShowDeleteConfirm(true)}
           title="Delete token"
           aria-label="Delete token"
+          size="sm"
+          tone="danger"
           className="tm-token-details__header-icon tm-token-details__header-icon--danger"
         >
           <Trash2 size={12} strokeWidth={1.5} aria-hidden />
-        </button>
+        </IconButton>
       )}
       {valueIsAlias &&
         tokenType === "color" &&

@@ -92,9 +92,9 @@ export const IMPORT_SOURCE_DEFINITIONS: Record<ImportSource, ImportSourceDefinit
     family: 'figma',
     label: 'Figma Variables',
     shortLabel: 'Variables',
-    description: 'Read variables and map to token collections',
+    description: 'Read variable collections and modes',
     destinationLabel: 'Map collections to collections',
-    destinationDescription: 'Each enabled mode maps to a token collection.',
+    destinationDescription: 'Each Figma collection stays together; modes import as mode values.',
   },
   styles: {
     source: 'styles',

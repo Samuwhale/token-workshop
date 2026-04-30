@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowUp, ArrowDown, X, Plus, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, X, Plus, Pencil, MoreHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
 import {
@@ -12,6 +12,9 @@ import {
 } from "../shared/collectionModes";
 import { getCollectionDisplayName } from "../shared/libraryCollections";
 import { getErrorMessage } from "../shared/utils";
+import { useDropdownMenu } from "../hooks/useDropdownMenu";
+import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
+import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
 import { ActionRow, Button, IconButton, TextInput } from "../primitives";
 import {
   CollectionMergeInline,
@@ -120,12 +123,20 @@ function ModeRow({
   tokenCount: number;
   onMutated?: () => void;
 }) {
+  const actionsMenu = useDropdownMenu();
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(modeName);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const actionsMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: actionsMenu.triggerRef,
+    open: actionsMenu.open,
+    preferredWidth: 180,
+    preferredHeight: 180,
+    align: "end",
+  });
 
   useEffect(() => {
     if (renaming) {
@@ -286,34 +297,68 @@ function ModeRow({
           >
             <Pencil size={11} strokeWidth={1.5} aria-hidden />
           </IconButton>
-          <IconButton
-            size="sm"
-            onClick={() => void handleReorder(-1)}
-            disabled={!canMoveUp || saving}
-            aria-label="Move up"
-            title="Move mode up"
-          >
-            <ArrowUp size={10} strokeWidth={2} aria-hidden />
-          </IconButton>
-          <IconButton
-            size="sm"
-            onClick={() => void handleReorder(1)}
-            disabled={!canMoveDown || saving}
-            aria-label="Move down"
-            title="Move mode down"
-          >
-            <ArrowDown size={10} strokeWidth={2} aria-hidden />
-          </IconButton>
-          <IconButton
-            size="sm"
-            tone="danger"
-            onClick={() => setConfirmingDelete(true)}
-            disabled={allModeNames.length <= 1 || saving}
-            aria-label="Delete mode"
-            title="Delete mode"
-          >
-            <X size={10} strokeWidth={2} aria-hidden />
-          </IconButton>
+          <div className="relative">
+            <IconButton
+              ref={actionsMenu.triggerRef}
+              size="sm"
+              onClick={actionsMenu.toggle}
+              disabled={saving}
+              aria-label="More mode actions"
+              title="More mode actions"
+              aria-haspopup="menu"
+              aria-expanded={actionsMenu.open}
+            >
+              <MoreHorizontal size={12} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+            {actionsMenu.open ? (
+              <div
+                ref={actionsMenu.menuRef}
+                style={actionsMenuStyle ?? { visibility: "hidden" }}
+                className={FLOATING_MENU_CLASS}
+                role="menu"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    void handleReorder(-1);
+                    actionsMenu.close({ restoreFocus: false });
+                  }}
+                  disabled={!canMoveUp || saving}
+                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                >
+                  <ArrowUp size={10} strokeWidth={2} aria-hidden />
+                  Move up
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    void handleReorder(1);
+                    actionsMenu.close({ restoreFocus: false });
+                  }}
+                  disabled={!canMoveDown || saving}
+                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                >
+                  <ArrowDown size={10} strokeWidth={2} aria-hidden />
+                  Move down
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setConfirmingDelete(true);
+                    actionsMenu.close({ restoreFocus: false });
+                  }}
+                  disabled={allModeNames.length <= 1 || saving}
+                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40"
+                >
+                  <X size={10} strokeWidth={2} aria-hidden />
+                  Delete mode
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
       {error ? (

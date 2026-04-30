@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { Search, X, Zap } from 'lucide-react';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
@@ -267,9 +268,14 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               <span className="text-body font-medium text-[color:var(--color-figma-text)]">
                 Apply token
               </span>
-              <kbd className="ml-auto shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                ESC
-              </kbd>
+              <button
+                type="button"
+                onClick={onClose}
+                className="ml-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                aria-label="Close"
+              >
+                <X size={12} strokeWidth={2} aria-hidden />
+              </button>
             </div>
           </div>
           <div className="px-3 py-5 text-center">
@@ -306,15 +312,23 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
         {/* Header: layer name + property tabs */}
         <div className="px-3 pt-2.5 pb-0 border-b border-[var(--color-figma-border)]">
           <div className="flex items-center gap-1.5 mb-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-accent)] shrink-0" aria-hidden="true">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
+            <Zap
+              size={12}
+              strokeWidth={2}
+              className="shrink-0 text-[color:var(--color-figma-text-accent)]"
+              aria-hidden
+            />
             <span className="text-body font-medium text-[color:var(--color-figma-text)] truncate" title={layerSummary}>
               Apply token to {layerSummary}
             </span>
-            <kbd className="ml-auto text-secondary text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
-              ESC
-            </kbd>
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+              aria-label="Close"
+            >
+              <X size={12} strokeWidth={2} aria-hidden />
+            </button>
           </div>
           {/* Property tab pills */}
           <div className="flex gap-0.5 overflow-x-auto">
@@ -344,10 +358,12 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
 
         {/* Search input */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)]">
-          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[color:var(--color-figma-text-secondary)] shrink-0">
-            <circle cx="6" cy="6" r="4" />
-            <path d="M9 9l3 3" />
-          </svg>
+          <Search
+            size={12}
+            strokeWidth={1.5}
+            className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
+            aria-hidden
+          />
           <input
             ref={inputRef}
             type="text"
@@ -367,12 +383,10 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
           {currentBinding && (
             <button
               onClick={handleUnbind}
-              title={`Unbind ${PROPERTY_LABELS[activeProp]} (Backspace)`}
+              title={`Unbind ${PROPERTY_LABELS[activeProp]}`}
               className="shrink-0 flex items-center gap-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
             >
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+              <X size={8} strokeWidth={2.5} aria-hidden />
               Unbind
             </button>
           )}
@@ -553,15 +567,6 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             )}
           </div>
         )}
-
-        {/* Footer hints */}
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex gap-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          <span>↑↓ navigate</span>
-          <span>↵ apply</span>
-          <span>Tab switch property</span>
-          {currentBinding && <span>⌫ unbind</span>}
-          <span>ESC close</span>
-        </div>
       </div>
     </div>
   );

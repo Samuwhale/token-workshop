@@ -4,7 +4,6 @@ import {
   type TokenMutationBody,
 } from "./tokenMutations";
 import {
-  completeEditorCollectionModeValues,
   sanitizeEditorCollectionModeValues,
 } from "./collectionModeUtils";
 import {
@@ -60,10 +59,7 @@ function buildTokenEditorExtensions({
     delete tokenManagerExtensions.derivation;
   }
 
-  const cleanModes = sanitizeEditorCollectionModeValues(
-    completeEditorCollectionModeValues(modeValues, collection, value),
-    collection,
-  );
+  const cleanModes = sanitizeEditorCollectionModeValues(modeValues, collection);
   if (Object.keys(cleanModes).length > 0) {
     tokenManagerExtensions.modes = cleanModes;
   } else {

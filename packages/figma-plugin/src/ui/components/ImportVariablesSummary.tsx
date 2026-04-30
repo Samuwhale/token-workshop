@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CheckCircle2, ChevronLeft } from 'lucide-react';
 import {
   useImportDestinationContext,
   useImportReviewContext,
@@ -82,11 +83,18 @@ export function ImportVariablesSummary() {
         onClick={handleBack}
         className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors self-start"
       >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 2L3 5l3 3" />
-        </svg>
+        <ChevronLeft size={12} strokeWidth={1.75} aria-hidden />
         Back
       </button>
+
+      <div>
+        <div className="text-body font-medium text-[color:var(--color-figma-text)]">
+          Review Figma variable collections
+        </div>
+        <div className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+          Each Figma collection stays a TokenManager collection. Its modes import as mode values on the same tokens.
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2">
         {collectionSummaries.map(summary => (
@@ -96,12 +104,15 @@ export function ImportVariablesSummary() {
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="flex min-w-0 flex-[999_1_220px] items-start gap-2">
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="var(--color-figma-success)" aria-hidden="true">
-                  <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.5 5.5L7 10 4.5 7.5l1-1L7 8l3.5-3.5 1 1Z" />
-                </svg>
+                <CheckCircle2
+                  size={12}
+                  strokeWidth={1.75}
+                  className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-success)]"
+                  aria-hidden
+                />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                    Destination collection
+                    {summary.name} {"->"} destination collection
                   </div>
                   {editingCollection === summary.name ? (
                     <input

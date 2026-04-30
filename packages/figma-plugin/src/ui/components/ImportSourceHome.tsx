@@ -1,4 +1,26 @@
-import { useImportSourceContext } from './ImportPanelContext';
+import { FileCode2, Layers3, Table2, Upload } from "lucide-react";
+import type { ReactNode } from "react";
+import { useImportSourceContext } from "./ImportPanelContext";
+
+const SOURCE_BUTTON_CLASS =
+  "flex flex-1 items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-body font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]";
+
+function SourceButton({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className={SOURCE_BUTTON_CLASS}>
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 export function ImportSourceHome() {
   const {
@@ -24,7 +46,7 @@ export function ImportSourceHome() {
           Bring tokens into this library
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Start from this Figma file or import token files you already maintain elsewhere.
+          Start from this Figma file, a token file, or code values that should become tokens.
         </div>
       </div>
 
@@ -36,44 +58,32 @@ export function ImportSourceHome() {
           Keep existing collection and mode structure when importing variables.
         </div>
         <div className="tm-import-home__actions">
-          <button
+          <SourceButton
+            icon={<Table2 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadVariables}
-            className="flex-1 flex items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-body font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-            </svg>
-            Variables
-          </button>
-          <button
+            label="Variables"
+          />
+          <SourceButton
+            icon={<Layers3 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadStyles}
-            className="flex-1 flex items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-body font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-            Styles
-          </button>
+            label="Styles"
+          />
         </div>
       </div>
 
       <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          From a file
+          From token or code files
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Use this for JSON, CSS, Tailwind, or Tokens Studio exports.
+          Drop one file to detect DTCG JSON, CSS variables, Tailwind config, or Tokens Studio exports.
         </div>
         <div
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className={`tm-import-home__dropzone flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${
+          className={`tm-import-home__dropzone flex flex-col items-center justify-center gap-1 rounded border border-dashed transition-colors cursor-pointer ${
             isDragging
               ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
               : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)]'
@@ -83,11 +93,21 @@ export function ImportSourceHome() {
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleBrowseFile(); }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isDragging ? 'var(--color-figma-accent)' : 'var(--color-figma-text-tertiary)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 3v12" />
-            <path d="M7 10l5 5 5-5" />
-            <path d="M5 21h14" />
-          </svg>
+          {isDragging ? (
+            <Upload
+              size={20}
+              strokeWidth={1.5}
+              className="text-[color:var(--color-figma-text-accent)]"
+              aria-hidden
+            />
+          ) : (
+            <FileCode2
+              size={20}
+              strokeWidth={1.5}
+              className="text-[color:var(--color-figma-text-tertiary)]"
+              aria-hidden
+            />
+          )}
           <span className={`text-body ${isDragging ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
             {isDragging ? 'Drop to import' : 'Drop a file or click to browse'}
           </span>

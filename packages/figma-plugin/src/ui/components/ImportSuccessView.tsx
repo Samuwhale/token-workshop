@@ -1,5 +1,11 @@
 import { useImportResultContext } from "./ImportPanelContext";
 
+function getRecommendationButtonLabel(label: string, index: number): string {
+  if (index > 0) return label;
+  if (label.startsWith("Open ") || label.startsWith("Review ")) return label;
+  return `Open ${label}`;
+}
+
 export function ImportSuccessView() {
   const {
     successMessage,
@@ -125,7 +131,7 @@ export function ImportSuccessView() {
             }
             title={recommendation.rationale}
           >
-            {index === 0 ? `Review in ${recommendation.label}` : recommendation.label}
+            {getRecommendationButtonLabel(recommendation.label, index)}
           </button>
         ))}
         <button onClick={clearSuccessState} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">

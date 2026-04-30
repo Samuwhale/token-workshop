@@ -19,7 +19,7 @@ interface QuickStartWizardProps {
   checking?: boolean;
   onClose: () => void;
   onComplete: () => void;
-  onCollectionCreated?: (name: string) => void;
+  onCollectionCreated?: (collectionId: string) => void;
   onRetryConnection?: () => void;
   onAuthorFirstToken?: (collectionId: string) => void;
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
@@ -246,9 +246,9 @@ export function QuickStartWizard({
     setPrereqPhase(hasCollections ? null : "create-collection");
   }, [connected, hasCollections]);
 
-  const handleCollectionCreated = useCallback((name: string) => {
-    setWizardCreatedCollection(name);
-    onCollectionCreated?.(name);
+  const handleCollectionCreated = useCallback((collectionId: string) => {
+    setWizardCreatedCollection(collectionId);
+    onCollectionCreated?.(collectionId);
     setPrereqPhase(null);
   }, [onCollectionCreated]);
 

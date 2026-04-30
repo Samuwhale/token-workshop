@@ -2359,8 +2359,8 @@ export function App() {
             });
           }}
           onCreateCollection={createCollectionByName}
-          onCollectionCreated={(name) => {
-            setCurrentCollectionId(name);
+          onCollectionCreated={(collectionId) => {
+            setCurrentCollectionId(collectionId);
           }}
         />
       )}

@@ -50,7 +50,7 @@ interface WelcomePromptProps {
   onAuthorFirstToken?: (collectionId: string) => void;
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   onGuidedSetupComplete: () => void;
-  onCollectionCreated?: (name: string) => void;
+  onCollectionCreated?: (collectionId: string) => void;
 }
 
 interface ActionRowProps {
