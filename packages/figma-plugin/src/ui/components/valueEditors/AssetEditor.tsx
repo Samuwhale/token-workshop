@@ -1,7 +1,11 @@
 import { useState, useRef, memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import type { BasicValueEditorProps } from './valueEditorShared';
 
-export const AssetEditor = memo(function AssetEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const AssetEditor = memo(function AssetEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<string>) {
   const url = typeof value === 'string' ? value : '';
   const isValidUrl = url.length > 0 && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:'));
   const [dragging, setDragging] = useState(false);
@@ -103,7 +107,7 @@ export const AssetEditor = memo(function AssetEditor({ value, onChange }: { valu
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*,application/pdf"
           onChange={handleFileSelect}
           className="sr-only"
         />

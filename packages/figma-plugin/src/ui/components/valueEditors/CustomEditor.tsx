@@ -1,5 +1,6 @@
 import { useEffect, useState, memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import type { BasicValueEditorProps } from './valueEditorShared';
 
 function formatCustomValue(value: unknown): string {
   return typeof value === 'object' && value !== null
@@ -7,7 +8,19 @@ function formatCustomValue(value: unknown): string {
     : String(value ?? '');
 }
 
-export const CustomEditor = memo(function CustomEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function getJsonParseError(raw: string): string | null {
+  try {
+    JSON.parse(raw);
+    return null;
+  } catch {
+    return 'Not valid JSON - will be saved as string';
+  }
+}
+
+export const CustomEditor = memo(function CustomEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps) {
   const [text, setText] = useState(() => formatCustomValue(value));
   const [parseError, setParseError] = useState<string | null>(null);
 
@@ -21,8 +34,7 @@ export const CustomEditor = memo(function CustomEditor({ value, onChange }: { va
       const parsed = JSON.parse(raw);
       onChange(parsed);
       setParseError(null);
-    } catch (e) {
-      console.debug('[CustomEditor] JSON parse failed, treating as string:', e);
+    } catch {
       onChange(raw);
       setParseError(null);
     }
@@ -34,13 +46,7 @@ export const CustomEditor = memo(function CustomEditor({ value, onChange }: { va
         value={text}
         onChange={e => {
           setText(e.target.value);
-          try {
-            JSON.parse(e.target.value);
-            setParseError(null);
-          } catch (e) {
-            console.debug('[CustomEditor] live JSON validation failed:', e);
-            setParseError('Not valid JSON — will be saved as string');
-          }
+          setParseError(getJsonParseError(e.target.value));
         }}
         onBlur={e => commit(e.target.value)}
         rows={4}

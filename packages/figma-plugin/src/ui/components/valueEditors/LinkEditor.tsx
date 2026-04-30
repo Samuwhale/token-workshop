@@ -1,7 +1,11 @@
 import { memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import type { BasicValueEditorProps } from './valueEditorShared';
 
-export const LinkEditor = memo(function LinkEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const LinkEditor = memo(function LinkEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<string>) {
   const url = typeof value === 'string' ? value : '';
   return (
     <div className="flex gap-2 items-center">

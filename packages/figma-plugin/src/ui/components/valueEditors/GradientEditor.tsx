@@ -4,10 +4,18 @@ import { AUTHORING } from '../../shared/editorClasses';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { ColorSwatchButton } from './ColorEditor';
 import { StepperInput } from './DimensionEditor';
+import { isValueRecord, type TokenValueRecord, type ValueChangeHandler } from './valueEditorShared';
 
 interface GradientStop {
   color: string;
   position: number;
+}
+
+interface GradientEditorProps {
+  value: unknown;
+  onChange: ValueChangeHandler<TokenValueRecord>;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToCollectionId: Record<string, string>;
 }
 
 function gradientStopColor(stop: GradientStop): string {
@@ -303,30 +311,36 @@ function GradientStopRow({ stop, isSelected, canRemove, allTokensFlat, pathToCol
   );
 }
 
-export const GradientEditor = memo(function GradientEditor({ value, onChange, allTokensFlat, pathToCollectionId }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string> }) {
-  const stops: GradientStop[] = Array.isArray(value?.stops) && value.stops.length >= 2
-    ? value.stops
+export const GradientEditor = memo(function GradientEditor({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToCollectionId,
+}: GradientEditorProps) {
+  const valueRecord = isValueRecord(value) ? value : {};
+  const stops: GradientStop[] = Array.isArray(valueRecord.stops) && valueRecord.stops.length >= 2
+    ? valueRecord.stops
     : [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }];
-  const gradientType: string = value?.type || 'linear';
+  const gradientType = typeof valueRecord.type === 'string' ? valueRecord.type : 'linear';
   const [selectedIdx, setSelectedIdx] = useState(0);
   const safeSelectedIdx = Math.min(selectedIdx, stops.length - 1);
 
   const updateStop = (idx: number, patch: Partial<GradientStop>) => {
     const next = stops.map((s, i) => i === idx ? { ...s, ...patch } : s);
-    onChange({ ...value, stops: next });
+    onChange({ ...valueRecord, stops: next });
   };
 
   const addStop = (pos?: number) => {
     const newPos = pos ?? 0.5;
     const newStops = [...stops, { color: '#808080', position: newPos }];
-    onChange({ ...value, stops: newStops });
+    onChange({ ...valueRecord, stops: newStops });
     setSelectedIdx(newStops.length - 1);
   };
 
   const removeStop = (idx: number) => {
     if (stops.length <= 2) return;
     const newStops = stops.filter((_, i) => i !== idx);
-    onChange({ ...value, stops: newStops });
+    onChange({ ...valueRecord, stops: newStops });
     setSelectedIdx(Math.min(idx, newStops.length - 1));
   };
 
@@ -336,7 +350,7 @@ export const GradientEditor = memo(function GradientEditor({ value, onChange, al
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">Type</div>
         <select
           value={gradientType}
-          onChange={e => onChange({ ...value, type: e.target.value })}
+          onChange={e => onChange({ ...valueRecord, type: e.target.value })}
           className={AUTHORING.input + ' flex-1'}
         >
           <option value="linear">Linear</option>

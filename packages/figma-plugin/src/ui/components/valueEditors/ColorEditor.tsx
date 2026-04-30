@@ -9,6 +9,7 @@ import { STORAGE_KEYS, lsGet, lsSet } from '../../shared/storage';
 import { useSettingsListener } from '../SettingsPanel';
 import { AUTHORING } from '../../shared/editorClasses';
 import { dispatchToast } from '../../shared/toastBus';
+import type { BasicValueEditorProps } from './valueEditorShared';
 
 const EYEDROPPER_REQUEST_TIMEOUT_MS = 8000;
 
@@ -33,7 +34,16 @@ export const ColorSwatchButton = memo(function ColorSwatchButton({ color, onChan
 
 const FORMAT_CYCLE: ColorFormat[] = ['hex', 'rgb', 'hsl', 'oklch', 'p3'];
 
-export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; allTokensFlat?: Record<string, TokenMapEntry> }) {
+interface ColorEditorProps extends BasicValueEditorProps<string> {
+  allTokensFlat?: Record<string, TokenMapEntry>;
+}
+
+export const ColorEditor = memo(function ColorEditor({
+  value,
+  onChange,
+  autoFocus,
+  allTokensFlat,
+}: ColorEditorProps) {
   const colorStr = typeof value === 'string' ? value : '#000000';
   const [pickerOpen, setPickerOpen] = useState(false);
   const [format, setFormat] = useState<ColorFormat>(() => {

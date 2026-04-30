@@ -12,18 +12,43 @@ import {
   FontFamilySubProp,
   resolveTypographyValue,
   FONT_WEIGHTS,
+  isValueRecord,
+  type TokenValueRecord,
+  type ValueChangeHandler,
 } from './valueEditorShared';
 
-export const TypographyEditor = memo(function TypographyEditor({ value, onChange, allTokensFlat, pathToCollectionId, fontFamilyRef, fontSizeRef, inheritedValue, availableFonts, fontWeightsByFamily }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; inheritedValue?: any; availableFonts?: string[]; fontWeightsByFamily?: Record<string, number[]> }) {
-  const rawVal = typeof value === 'object' ? value : {};
-  const inherited = typeof inheritedValue === 'object' && inheritedValue !== null ? inheritedValue : undefined;
+interface TypographyEditorProps {
+  value: unknown;
+  onChange: ValueChangeHandler<TokenValueRecord>;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToCollectionId: Record<string, string>;
+  fontFamilyRef?: Ref<HTMLInputElement>;
+  fontSizeRef?: Ref<HTMLInputElement>;
+  inheritedValue?: unknown;
+  availableFonts?: string[];
+  fontWeightsByFamily?: Record<string, number[]>;
+}
+
+export const TypographyEditor = memo(function TypographyEditor({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToCollectionId,
+  fontFamilyRef,
+  fontSizeRef,
+  inheritedValue,
+  availableFonts,
+  fontWeightsByFamily,
+}: TypographyEditorProps) {
+  const rawVal = isValueRecord(value) ? value : {};
+  const inherited = isValueRecord(inheritedValue) ? inheritedValue : undefined;
   const val = inherited ? { ...inherited, ...rawVal } : rawVal;
   const isInherited = (key: string) => inherited && !(key in rawVal) && key in inherited;
-  const update = (key: string, v: any) => {
+  const update = (key: string, nextValue: unknown) => {
     if (inherited) {
-      onChange({ ...rawVal, [key]: v });
+      onChange({ ...rawVal, [key]: nextValue });
     } else {
-      onChange({ ...val, [key]: v });
+      onChange({ ...val, [key]: nextValue });
     }
   };
   const revertToInherited = (key: string) => {
@@ -42,7 +67,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
     return fontWeightsByFamily[family] ?? null;
   }, [fontWeightsByFamily, val.fontFamily]);
 
-  const currentWeight = typeof val.fontWeight === 'number' ? val.fontWeight : (parseInt(String(val.fontWeight)) || 400);
+  const currentWeight = typeof val.fontWeight === 'number' ? val.fontWeight : (parseInt(String(val.fontWeight), 10) || 400);
   const weightUnavailable = !isFontWeightAlias && availableWeights !== null && !availableWeights.includes(currentWeight);
 
   const [sampleText, setSampleText] = useState('The quick brown fox jumps over the lazy dog');
@@ -139,8 +164,8 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
             <>
               <div className="flex min-w-0 flex-wrap items-center gap-1">
                 <select
-                  value={val.fontWeight ?? 400}
-                  onChange={e => update('fontWeight', parseInt(e.target.value))}
+                  value={currentWeight}
+                  onChange={e => update('fontWeight', parseInt(e.target.value, 10))}
                   className={`${AUTHORING.input} min-w-[120px] flex-1 ${fieldBorderClass(false, weightUnavailable)}`}
                 >
                   {FONT_WEIGHTS.map(fw => {
@@ -169,7 +194,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
       <Stack direction="row" gap={3} wrap>
         <Field label={labelWithBadge('Line Height', 'lineHeight')} className="flex-1">
           <SubPropInput
-            value={typeof val.lineHeight === 'object' ? val.lineHeight.value : (val.lineHeight ?? 1.5)}
+            value={isValueRecord(val.lineHeight) ? val.lineHeight.value : (val.lineHeight ?? 1.5)}
             onChange={v => update('lineHeight', v)}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
@@ -178,7 +203,7 @@ export const TypographyEditor = memo(function TypographyEditor({ value, onChange
         </Field>
         <Field label={labelWithBadge('Letter Spacing', 'letterSpacing')} className="flex-1">
           <SubPropInput
-            value={typeof val.letterSpacing === 'object' ? val.letterSpacing.value : (val.letterSpacing ?? 0)}
+            value={isValueRecord(val.letterSpacing) ? val.letterSpacing.value : (val.letterSpacing ?? 0)}
             onChange={v => update('letterSpacing', typeof v === 'string' && v.startsWith('{') ? v : { value: typeof v === 'number' ? v : parseFloat(String(v)) || 0, unit: 'px' })}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}

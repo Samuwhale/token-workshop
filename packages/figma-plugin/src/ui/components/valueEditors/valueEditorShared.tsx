@@ -17,6 +17,12 @@ const REFERENCE_BUTTON_CLASS =
 export type TokenValueRecord = Record<string, unknown>;
 export type ValueChangeHandler<T = unknown> = (value: T) => void;
 
+export interface BasicValueEditorProps<TChange = unknown> {
+  value: unknown;
+  onChange: ValueChangeHandler<TChange>;
+  autoFocus?: boolean;
+}
+
 export function isValueRecord(value: unknown): value is TokenValueRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

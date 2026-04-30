@@ -1,7 +1,11 @@
 import { memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import type { BasicValueEditorProps } from './valueEditorShared';
 
-export const PercentageEditor = memo(function PercentageEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const PercentageEditor = memo(function PercentageEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<number>) {
   const num = typeof value === 'number' ? value : 0;
   return (
     <div className="flex gap-2 items-center">

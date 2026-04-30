@@ -1,9 +1,13 @@
 import { memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import type { BasicValueEditorProps } from './valueEditorShared';
 
 const FONT_STYLES = ['normal', 'italic', 'oblique'];
 
-export const FontStyleEditor = memo(function FontStyleEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const FontStyleEditor = memo(function FontStyleEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<string>) {
   return (
     <select
       value={typeof value === 'string' ? value : 'normal'}
@@ -19,7 +23,10 @@ export const FontStyleEditor = memo(function FontStyleEditor({ value, onChange }
 
 const TEXT_DECORATIONS = ['none', 'underline', 'overline', 'line-through'];
 
-export const TextDecorationEditor = memo(function TextDecorationEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const TextDecorationEditor = memo(function TextDecorationEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<string>) {
   return (
     <select
       value={typeof value === 'string' ? value : 'none'}
@@ -35,7 +42,10 @@ export const TextDecorationEditor = memo(function TextDecorationEditor({ value, 
 
 const TEXT_TRANSFORMS = ['none', 'uppercase', 'lowercase', 'capitalize'];
 
-export const TextTransformEditor = memo(function TextTransformEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const TextTransformEditor = memo(function TextTransformEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<string>) {
   return (
     <select
       value={typeof value === 'string' ? value : 'none'}

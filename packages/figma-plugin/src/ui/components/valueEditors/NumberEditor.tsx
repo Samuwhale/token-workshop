@@ -2,10 +2,21 @@ import { useEffect, useState, memo } from 'react';
 import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
-import { resolveFormulaPreview } from './valueEditorShared';
+import { resolveFormulaPreview, type BasicValueEditorProps } from './valueEditorShared';
 import { StepperInput } from './DimensionEditor';
 
-export const NumberEditor = memo(function NumberEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string>; autoFocus?: boolean }) {
+interface NumberEditorProps extends BasicValueEditorProps<number | string> {
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToCollectionId?: Record<string, string>;
+}
+
+export const NumberEditor = memo(function NumberEditor({
+  value,
+  onChange,
+  allTokensFlat = {},
+  pathToCollectionId = {},
+  autoFocus,
+}: NumberEditorProps) {
   const isFormulaValue = typeof value === 'string' && isFormula(value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
   useEffect(() => {
@@ -17,7 +28,8 @@ export const NumberEditor = memo(function NumberEditor({ value, onChange, allTok
       setFormulaMode(false);
     }
   }, [isFormulaValue, value]);
-  const numVal = formulaMode ? 0 : (parseFloat(value) || 0);
+  const numericSource = typeof value === 'number' || typeof value === 'string' ? value : 0;
+  const numVal = formulaMode ? 0 : (parseFloat(String(numericSource)) || 0);
   const formulaStr = formulaMode ? (typeof value === 'string' ? value : '') : '';
   const preview = formulaMode && formulaStr ? resolveFormulaPreview(formulaStr, allTokensFlat) : null;
 

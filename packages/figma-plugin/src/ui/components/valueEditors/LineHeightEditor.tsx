@@ -1,12 +1,22 @@
 import { memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import { isValueRecord, type BasicValueEditorProps } from './valueEditorShared';
 
 const LINE_HEIGHT_UNITS = ['px', 'rem', 'em', '%'];
 
-export const LineHeightEditor = memo(function LineHeightEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-  const isDimension = typeof value === 'object' && value !== null && 'value' in value;
-  const num = isDimension ? (value.value ?? 0) : (typeof value === 'number' ? value : 1.5);
-  const unit: string = isDimension ? (value.unit || 'px') : '';
+type LineHeightValue = number | { value: number; unit: string };
+
+export const LineHeightEditor = memo(function LineHeightEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<LineHeightValue>) {
+  const isDimension = isValueRecord(value) && 'value' in value;
+  const num = isDimension && typeof value.value === 'number'
+    ? value.value
+    : typeof value === 'number'
+      ? value
+      : 1.5;
+  const unit = isDimension && typeof value.unit === 'string' ? value.unit : '';
 
   const setUnitless = (n: number) => onChange(n);
   const setDimension = (patch: { value?: number; unit?: string }) => {

@@ -9,7 +9,7 @@ import { FormulaInput } from "../FormulaInput";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 
 export type GeneratorTokenRefs = Record<string, string>;
-export type GeneratorDimensionInputValue = { value: number; unit: string };
+export type GeneratorDimensionInputValue = { value: number | string; unit: string };
 
 const TOKEN_REF_OPTIONS = [
   { value: "literal", label: "Literal" },
@@ -148,7 +148,7 @@ export function GeneratorDimensionField({
   label: string;
   value: unknown;
   unit?: unknown;
-  onChange: (value: { value: number; unit: string }) => void;
+  onChange: (value: GeneratorDimensionInputValue) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
 }) {

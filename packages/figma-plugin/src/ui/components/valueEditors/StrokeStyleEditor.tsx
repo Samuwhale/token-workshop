@@ -1,9 +1,13 @@
 import { memo } from 'react';
 import { AUTHORING } from '../../shared/editorClasses';
+import type { BasicValueEditorProps } from './valueEditorShared';
 
 const STROKE_STYLES = ['solid', 'dashed', 'dotted', 'double', 'groove', 'ridge', 'outset', 'inset'];
 
-export const StrokeStyleEditor = memo(function StrokeStyleEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export const StrokeStyleEditor = memo(function StrokeStyleEditor({
+  value,
+  onChange,
+}: BasicValueEditorProps<string>) {
   return (
     <select
       value={typeof value === 'string' ? value : 'solid'}

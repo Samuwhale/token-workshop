@@ -4,7 +4,7 @@ import { isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
 import { AUTHORING } from '../../shared/editorClasses';
-import { resolveFormulaPreview } from './valueEditorShared';
+import { isValueRecord, resolveFormulaPreview, type BasicValueEditorProps } from './valueEditorShared';
 
 export const StepperInput = memo(function StepperInput({
   value,
@@ -120,8 +120,40 @@ const UNIT_CONVERSIONS: Record<string, Record<string, ((v: number) => number) | 
   '%': { px: null, rem: null, em: null },
 };
 
-export const DimensionEditor = memo(function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToCollectionId = {}, autoFocus, allowFormula = true }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToCollectionId?: Record<string, string>; autoFocus?: boolean; allowFormula?: boolean }) {
-  const val = typeof value === 'object' && value !== null ? value : { value: value ?? 0, unit: 'px' };
+interface DimensionEditorValue {
+  value: number | string;
+  unit: string;
+}
+
+interface DimensionEditorProps extends BasicValueEditorProps<DimensionEditorValue> {
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToCollectionId?: Record<string, string>;
+  allowFormula?: boolean;
+}
+
+function normalizeDimensionEditorValue(value: unknown): DimensionEditorValue {
+  if (!isValueRecord(value)) {
+    return {
+      value: typeof value === 'number' || typeof value === 'string' ? value : 0,
+      unit: 'px',
+    };
+  }
+
+  return {
+    value: typeof value.value === 'number' || typeof value.value === 'string' ? value.value : 0,
+    unit: typeof value.unit === 'string' ? value.unit : 'px',
+  };
+}
+
+export const DimensionEditor = memo(function DimensionEditor({
+  value,
+  onChange,
+  allTokensFlat = {},
+  pathToCollectionId = {},
+  autoFocus,
+  allowFormula = true,
+}: DimensionEditorProps) {
+  const val = normalizeDimensionEditorValue(value);
   const isFormulaValue = allowFormula && typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
   useEffect(() => {
@@ -134,7 +166,7 @@ export const DimensionEditor = memo(function DimensionEditor({ value, onChange, 
     }
   }, [allowFormula, isFormulaValue, val.value]);
   const [conversionWarning, setConversionWarning] = useState<string | null>(null);
-  const numVal = formulaMode ? 0 : (parseFloat(val.value) || 0);
+  const numVal = formulaMode ? 0 : (parseFloat(String(val.value)) || 0);
   const formulaStr = formulaMode ? (typeof val.value === 'string' ? val.value : '') : '';
   const preview = formulaMode && formulaStr ? resolveFormulaPreview(formulaStr, allTokensFlat) : null;
 

@@ -78,13 +78,13 @@ interface ClusterDraft {
   severity: PublishPreflightCluster['severity'];
   affectedCount?: number;
   detail?: string;
-	  recommendedActionLabel?: string;
-	  recommendedActionId?: PublishPreflightActionId;
-	  recommendedGeneratorId?: string;
-	  recommendedGeneratorDiagnosticId?: string;
-	  recommendedGeneratorNodeId?: string;
-	  recommendedGeneratorEdgeId?: string;
-	}
+  recommendedActionLabel?: string;
+  recommendedActionId?: PublishPreflightActionId;
+  recommendedGeneratorId?: string;
+  recommendedGeneratorDiagnosticId?: string;
+  recommendedGeneratorNodeId?: string;
+  recommendedGeneratorEdgeId?: string;
+}
 
 type VariableSyncSnapshot = Awaited<ReturnType<typeof loadVariableSyncSnapshot>>;
 
@@ -278,16 +278,16 @@ export function useReadinessChecks({
       }
       const activeValidationIssues =
         validationSnapshot?.issues.filter((issue) => issue.collectionId === currentCollectionId && issue.severity === 'error') ?? [];
-	      const generatorIssues = generatorStatuses.filter((item) =>
-	        item.generator.targetCollectionId === currentCollectionId &&
-	        (item.blocking ||
-	          item.stale ||
-	          item.unapplied ||
-	          item.preview.diagnostics.length > 0 ||
-	          item.preview.outputs.some((output) => output.collision))
-	      );
-	      const recommendedGeneratorIssue = generatorIssues[0];
-	      const recommendedGeneratorDiagnostic = recommendedGeneratorIssue?.preview.diagnostics[0];
+      const generatorIssues = generatorStatuses.filter((item) =>
+        item.generator.targetCollectionId === currentCollectionId &&
+        (item.blocking ||
+          item.stale ||
+          item.unapplied ||
+          item.preview.diagnostics.length > 0 ||
+          item.preview.outputs.some((output) => output.collision))
+      );
+      const recommendedGeneratorIssue = generatorIssues[0];
+      const recommendedGeneratorDiagnostic = recommendedGeneratorIssue?.preview.diagnostics[0];
       const { localOnly: missingInFigma, figmaOnly: rawOrphans } = getSyncRowsByCategory(snapshot.rows);
       const resolverOrphanPlan = compareMode === 'resolver-publish' && resolverPublishMappings
         ? buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings)
@@ -317,7 +317,7 @@ export function useReadinessChecks({
           detail: missingInFigma.length > 0
             ? compareMode === 'resolver-publish'
               ? 'Some mapped resolver outputs are still missing in their target Figma modes. Sync the resolver mappings before compare/apply can reflect the saved mode routing.'
-              : 'Some local tokens are not yet published as Figma variables. Push them first so compare/apply runs against the full collection.'
+              : 'Some local tokens are not yet available as Figma variables. Push them first so compare/apply runs against the full collection.'
             : undefined,
           recommendedActionLabel: missingInFigma.length > 0
             ? compareMode === 'resolver-publish'
@@ -408,13 +408,13 @@ export function useReadinessChecks({
             : generatorIssues.length > 0
             ? `${formatCount(generatorIssues.length, 'generator')} need preview, apply, or diagnostic review before applying this collection to Figma.`
             : undefined,
-	          recommendedActionLabel: generatorStatusError || generatorIssues.length > 0 ? 'Open Generators' : undefined,
-	          recommendedActionId: generatorStatusError || generatorIssues.length > 0 ? 'review-generator-issues' : undefined,
-	          recommendedGeneratorId: recommendedGeneratorIssue?.generator.id,
-	          recommendedGeneratorDiagnosticId: recommendedGeneratorDiagnostic?.id,
-	          recommendedGeneratorNodeId: recommendedGeneratorDiagnostic?.nodeId,
-	          recommendedGeneratorEdgeId: recommendedGeneratorDiagnostic?.edgeId,
-	        },
+          recommendedActionLabel: generatorStatusError || generatorIssues.length > 0 ? 'Open Generators' : undefined,
+          recommendedActionId: generatorStatusError || generatorIssues.length > 0 ? 'review-generator-issues' : undefined,
+          recommendedGeneratorId: recommendedGeneratorIssue?.generator.id,
+          recommendedGeneratorDiagnosticId: recommendedGeneratorDiagnostic?.id,
+          recommendedGeneratorNodeId: recommendedGeneratorDiagnostic?.nodeId,
+          recommendedGeneratorEdgeId: recommendedGeneratorDiagnostic?.edgeId,
+        },
         {
           id: 'draft-tokens',
           label: 'Draft lifecycle tokens',
@@ -435,13 +435,13 @@ export function useReadinessChecks({
         status: draft.affectedCount && draft.affectedCount > 0 ? 'fail' : 'pass',
         affectedCount: draft.affectedCount,
         detail: draft.detail,
-	        recommendedActionLabel: draft.recommendedActionLabel,
-	        recommendedActionId: draft.recommendedActionId,
-	        recommendedGeneratorId: draft.recommendedGeneratorId,
-	        recommendedGeneratorDiagnosticId: draft.recommendedGeneratorDiagnosticId,
-	        recommendedGeneratorNodeId: draft.recommendedGeneratorNodeId,
-	        recommendedGeneratorEdgeId: draft.recommendedGeneratorEdgeId,
-	      })));
+        recommendedActionLabel: draft.recommendedActionLabel,
+        recommendedActionId: draft.recommendedActionId,
+        recommendedGeneratorId: draft.recommendedGeneratorId,
+        recommendedGeneratorDiagnosticId: draft.recommendedGeneratorDiagnosticId,
+        recommendedGeneratorNodeId: draft.recommendedGeneratorNodeId,
+        recommendedGeneratorEdgeId: draft.recommendedGeneratorEdgeId,
+      })));
 
       const runKey = tokenChangeKey ?? 0;
       setChecksRunAtKey(runKey);
