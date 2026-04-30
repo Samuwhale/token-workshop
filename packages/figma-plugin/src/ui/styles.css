@@ -1269,6 +1269,72 @@ a[role="menuitem"] {
   gap: 6px;
 }
 
+.tm-selection-toolbar {
+  gap: 6px;
+}
+
+.tm-selection-toolbar__selection-toggle {
+  display: inline-flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 8px;
+  min-block-size: 28px;
+  padding-inline: 8px;
+  border-radius: var(--radius-md);
+  color: var(--color-figma-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-base) var(--ease-standard),
+    color var(--motion-base) var(--ease-standard);
+}
+
+.tm-selection-toolbar__selection-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--color-figma-text);
+}
+
+.tm-selection-toolbar__selection-toggle:focus-within {
+  outline: var(--ring-width) solid var(--ring-color);
+  outline-offset: 1px;
+}
+
+.tm-selection-toolbar__selection-toggle--active {
+  background: var(--surface-selected);
+  color: var(--color-figma-text);
+}
+
+.tm-selection-toolbar__selection-count {
+  min-inline-size: 0;
+}
+
+.tm-selection-toolbar__summary-copy {
+  min-inline-size: 0;
+  flex: 1 1 180px;
+  overflow-wrap: anywhere;
+}
+
+.tm-selection-toolbar__menu,
+.tm-selection-toolbar__bulk-actions > button {
+  min-inline-size: 0;
+}
+
+.tm-selection-toolbar__action-button {
+  min-inline-size: 0;
+}
+
+.tm-token-table__add-mode {
+  min-inline-size: 0;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.tm-token-table__add-mode-label {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tm-token-toolbar__row {
   flex-wrap: nowrap;
 }
@@ -1404,6 +1470,35 @@ a[role="menuitem"] {
   }
 }
 
+@container (max-width: 760px) {
+  .tm-selection-toolbar__bulk-actions {
+    gap: 6px;
+  }
+
+  .tm-selection-toolbar__menu,
+  .tm-selection-toolbar__bulk-actions > button {
+    flex: 1 1 calc(50% - 3px);
+  }
+
+  .tm-selection-toolbar__menu > button,
+  .tm-selection-toolbar__bulk-actions > button {
+    inline-size: 100%;
+    justify-content: space-between;
+  }
+}
+
+@container (max-width: 560px) {
+  .tm-selection-toolbar__selection-toggle,
+  .tm-selection-toolbar__summary-copy {
+    flex-basis: 100%;
+  }
+
+  .tm-selection-toolbar__menu,
+  .tm-selection-toolbar__bulk-actions > button {
+    flex-basis: 100%;
+  }
+}
+
 @container (max-width: 720px) {
   .tm-token-toolbar__secondary-label {
     white-space: normal;
@@ -1498,6 +1593,16 @@ a[role="menuitem"] {
     line-height: 1.15;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+}
+
+@container (max-width: 180px) {
+  .tm-token-table__add-mode-label {
+    display: none;
+  }
+
+  .tm-token-table__add-mode {
+    justify-content: center;
   }
 }
 

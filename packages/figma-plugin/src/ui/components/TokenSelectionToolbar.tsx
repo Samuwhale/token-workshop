@@ -56,7 +56,7 @@ function ToolbarDropdown({
     align: 'end',
   });
   return (
-    <div className="relative shrink-0">
+    <div className="tm-selection-toolbar__menu relative">
       <Button
         ref={triggerRef}
         onClick={toggle}
@@ -65,11 +65,7 @@ function ToolbarDropdown({
         aria-haspopup="menu"
         variant="ghost"
         size="sm"
-        className={
-          open
-            ? 'bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]'
-            : ''
-        }
+        className="tm-selection-toolbar__action-button justify-between gap-2"
       >
         {label}
         <svg width="10" height="10" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
@@ -117,6 +113,13 @@ export function TokenSelectionToolbar({
   searchQuery,
 }: TokenSelectionToolbarProps) {
   const hasSelection = selectedPaths.size > 0;
+  const displayedSelectionCount = displayedLeafPaths.size;
+  const allDisplayedSelected =
+    displayedSelectionCount > 0 &&
+    [...displayedLeafPaths].every((path) => selectedPaths.has(path));
+  const partiallySelected =
+    selectedPaths.size > 0 && !allDisplayedSelected;
+  const selectionSummary = `${selectedPaths.size} of ${displayedSelectionCount} selected`;
 
   const openAction = useCallback(
     (action: BatchActionType, close: () => void) => {
@@ -128,27 +131,40 @@ export function TokenSelectionToolbar({
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-      <div className="tm-responsive-toolbar px-3 py-2">
+      <div className="tm-responsive-toolbar tm-selection-toolbar px-3 py-2">
         <div className="tm-responsive-toolbar__row">
           <div className="tm-responsive-toolbar__leading">
-            <input
-              type="checkbox"
-              checked={displayedLeafPaths.size > 0 && [...displayedLeafPaths].every(p => selectedPaths.has(p))}
-              ref={el => { if (el) el.indeterminate = selectedPaths.size > 0 && selectedPaths.size < displayedLeafPaths.size; }}
-              onChange={onSelectAll}
-              aria-label="Toggle select all"
-              className="shrink-0 accent-[var(--color-figma-accent)]"
-            />
-            <span className="shrink-0 min-w-[3ch] text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)]">
-              {selectedPaths.size}/{displayedLeafPaths.size}
-            </span>
+            <label
+              className={`tm-selection-toolbar__selection-toggle ${
+                hasSelection ? 'tm-selection-toolbar__selection-toggle--active' : ''
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={allDisplayedSelected}
+                ref={(el) => {
+                  if (el) {
+                    el.indeterminate = partiallySelected;
+                  }
+                }}
+                onChange={onSelectAll}
+                aria-label="Select or clear all visible tokens"
+                className="shrink-0 accent-[var(--color-figma-accent)]"
+              />
+              <span className="tm-selection-toolbar__selection-count text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)]">
+                {selectionSummary}
+              </span>
+            </label>
             {searchQuery ? (
-              <span className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]" title={`matching "${searchQuery}"`}>
+              <span
+                className="tm-selection-toolbar__summary-copy text-secondary text-[color:var(--color-figma-text-secondary)]"
+                title={`Matching "${searchQuery}"`}
+              >
                 matching &ldquo;{searchQuery}&rdquo;
               </span>
             ) : null}
             {selectedPaths.size === 1 && !searchQuery ? (
-              <span className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
+              <span className="tm-selection-toolbar__summary-copy text-secondary text-[color:var(--color-figma-text-tertiary)]">
                 Shift-click to add a range
               </span>
             ) : null}
@@ -169,7 +185,7 @@ export function TokenSelectionToolbar({
         </div>
 
         <div className="tm-responsive-toolbar__row">
-          <div className="tm-responsive-toolbar__actions">
+          <div className="tm-responsive-toolbar__actions tm-selection-toolbar__bulk-actions">
           {hasSelection && (
             <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
               {(close) => (
@@ -275,8 +291,8 @@ export function TokenSelectionToolbar({
               onClick={onRequestBulkDelete}
               disabled={!!operationLoading}
               variant="ghost"
-              size="md"
-              className="text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
+              size="sm"
+              className="tm-selection-toolbar__action-button justify-start text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
             >
               Delete
             </Button>

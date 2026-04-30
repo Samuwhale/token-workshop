@@ -54,7 +54,10 @@ export function HealthHiddenView({
             {keys.map(({ key, parsed }) => {
               const { rule, collectionId, path } = parsed;
               return (
-                <div key={key} className="group flex items-center gap-2 py-1.5">
+                <div
+                  key={key}
+                  className="flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 hover:bg-[var(--surface-hover)]"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
                       <span className="text-secondary font-mono text-[color:var(--color-figma-text)] truncate">
@@ -71,7 +74,7 @@ export function HealthHiddenView({
                   <button
                     onClick={() => onUnsuppress(key)}
                     disabled={suppressingKey === key}
-                    className="shrink-0 text-secondary px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 disabled:opacity-40 disabled:cursor-wait"
+                    className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:cursor-wait disabled:opacity-40"
                   >
                     {suppressingKey === key ? "…" : "Show again"}
                   </button>

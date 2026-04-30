@@ -409,7 +409,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         ref={addModeMenuContainerRef}
         className="sticky right-0 z-20 bg-[var(--color-figma-bg-secondary)] flex items-stretch"
       >
-        <IconButton
+        <Button
           onClick={() => {
             if (addModeMenuOpen) {
               closeAddModeMenu();
@@ -419,22 +419,31 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             setAddModeError("");
           }}
           disabled={!connected}
+          variant="ghost"
           size="sm"
-          className="h-full w-full rounded-none text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)]"
+          className="tm-token-table__add-mode h-full rounded-none px-2 text-[color:var(--color-figma-text-secondary)]"
           title="Add mode"
           aria-label="Add mode"
           aria-haspopup="menu"
           aria-expanded={addModeMenuOpen}
         >
           <Plus size={12} strokeWidth={2} aria-hidden />
-        </IconButton>
+          <span className="tm-token-table__add-mode-label">Add mode</span>
+        </Button>
         {addModeMenuOpen && (
           <div
-            className="absolute right-0 top-full z-30 mt-0.5 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1"
+            className="absolute right-0 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <div className="px-2 py-1">
+            <div className="flex flex-col gap-2 px-2 py-2">
+              <label
+                htmlFor="token-table-new-mode-name"
+                className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
+              >
+                New mode
+              </label>
               <TextInput
+                id="token-table-new-mode-name"
                 size="sm"
                 value={newModeName}
                 onChange={(e) => {
@@ -458,14 +467,32 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 className={addModeError ? "" : "focus-visible:border-[var(--color-figma-accent)]"}
               />
               {addModeError ? (
-                <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
+                <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
                   {addModeError}
                 </p>
               ) : (
-                <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  Existing tokens will show empty cells for this mode until values are added.
+                <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                  Existing tokens get an empty cell in this mode until values are added.
                 </p>
               )}
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={closeAddModeMenu}
+                  disabled={addingModeSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void handleAddMode()}
+                  disabled={!newModeName.trim() || addingModeSaving}
+                >
+                  Add mode
+                </Button>
+              </div>
             </div>
           </div>
         )}
