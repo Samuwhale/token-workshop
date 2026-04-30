@@ -2,6 +2,7 @@ import { AlertCircle, AlertTriangle, Check, SlidersHorizontal } from "lucide-rea
 import { StatusRow } from "../../primitives";
 import type { HealthView } from "./types";
 import type { HealthStatus } from "../../hooks/useHealthSignals";
+import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 
 interface ReviewRow {
   id: string;
@@ -124,11 +125,12 @@ export function HealthDashboard({
 }: HealthDashboardProps) {
   if (!connected) {
     return (
-      <div className="flex h-full items-center justify-center px-4 text-center">
-        <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-          Connect to check review items.
-        </p>
-      </div>
+      <FeedbackPlaceholder
+        variant="disconnected"
+        title="Connect to review this library"
+        description="Review needs an active token server connection before it can check issues, usage, and generators."
+        align="start"
+      />
     );
   }
 

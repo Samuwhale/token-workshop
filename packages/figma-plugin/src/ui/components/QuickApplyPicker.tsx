@@ -48,7 +48,6 @@ interface QuickApplyPickerProps {
     targetProperty: BindableProperty,
     resolvedValue: unknown,
   ) => void;
-  onUnbind: (targetProperty: BindableProperty) => void;
   onClose: () => void;
 }
 
@@ -195,13 +194,12 @@ function QuickApplyCandidateRow({
 // Component
 // ---------------------------------------------------------------------------
 
-export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId, onApply, onUnbind, onClose }: QuickApplyPickerProps) {
+export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId, onApply, onClose }: QuickApplyPickerProps) {
   const rootNodes = useMemo(() => selectedNodes.filter(n => n.depth === 0), [selectedNodes]);
   const eligibleProps = useMemo(() => getEligibleProperties(rootNodes), [rootNodes]);
   const [activeProp, setActiveProp] = useState<BindableProperty>(() => inferPrimaryProperty(eligibleProps, rootNodes) ?? 'fill');
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
-  const [ignoreScope, setIgnoreScope] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -220,12 +218,11 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
 
   useEffect(() => {
     setActiveIdx(0);
-    setIgnoreScope(false);
   }, [query, activeProp]);
 
   // Build scored candidates for the active property
   const currentBindingForProp = getBindingForProperty(rootNodes, activeProp);
-  const { candidates, totalCount, hiddenByScope } = useMemo(() => {
+  const { candidates, totalCount } = useMemo(() => {
     const compatTypes = getCompatibleTokenTypes(activeProp);
     const currentPropValue = getCurrentValue(rootNodes, activeProp);
     const siblingBindings = collectSiblingBindings(rootNodes, activeProp);
@@ -236,7 +233,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     const scopeCompatible = typeCompatible
       .filter(([, entry]) => isTokenScopeCompatible(entry, activeProp));
 
-    const all: QuickApplyCandidate[] = (ignoreScope ? typeCompatible : scopeCompatible)
+    const all: QuickApplyCandidate[] = scopeCompatible
       .map(([path, entry]) => {
         const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
         const score = scoreBindCandidate(path, entry, activeProp, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
@@ -263,9 +260,8 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     return {
       candidates: filtered.slice(0, MAX_CANDIDATES),
       totalCount: filtered.length,
-      hiddenByScope: Math.max(0, typeCompatible.length - scopeCompatible.length),
     };
-  }, [tokenMap, activeProp, rootNodes, query, currentBindingForProp, ignoreScope]);
+  }, [tokenMap, activeProp, rootNodes, query, currentBindingForProp]);
 
   // Recently-used tokens: filter global recents to those present in the current candidate list
   const { recentCandidates, mainCandidates } = useMemo(() => {
@@ -302,18 +298,8 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     onApply(candidate.path, candidate.entry.$type, activeProp, candidate.resolved);
   };
 
-  const handleUnbind = () => {
-    onUnbind(activeProp);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
-    // Backspace/Delete with empty query unbinds the current binding
-    if ((e.key === 'Backspace' || e.key === 'Delete') && query === '' && hasSingleCurrentBinding) {
-      e.preventDefault();
-      handleUnbind();
-      return;
-    }
     if (e.key === 'Tab') {
       e.preventDefault();
       const idx = eligibleProps.indexOf(activeProp);
@@ -490,16 +476,6 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               {currentBinding}
             </span>
           )}
-          {hasSingleCurrentBinding && (
-            <button
-              onClick={handleUnbind}
-              title={`Unbind ${PROPERTY_LABELS[activeProp]}`}
-              className="shrink-0 flex items-center gap-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1.5 py-0.5 transition-colors"
-            >
-              <X size={8} strokeWidth={2.5} aria-hidden />
-              Unbind
-            </button>
-          )}
         </div>
 
         {/* Token candidates */}
@@ -578,33 +554,6 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             </>
           )}
         </div>
-        {hiddenByScope > 0 && (
-          <div className="border-t border-[var(--color-figma-border)] px-3 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {ignoreScope ? (
-              <>
-                Showing compatible and incompatible tokens{" "}
-                <button
-                  type="button"
-                  onClick={() => setIgnoreScope(false)}
-                  className="text-[color:var(--color-figma-text-accent)] hover:underline"
-                >
-                  Hide incompatible
-                </button>
-              </>
-            ) : (
-              <>
-                {hiddenByScope} incompatible with this selection{" "}
-                <button
-                  type="button"
-                  onClick={() => setIgnoreScope(true)}
-                  className="text-[color:var(--color-figma-text-accent)] hover:underline"
-                >
-                  Show anyway
-                </button>
-              </>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

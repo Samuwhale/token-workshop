@@ -457,6 +457,9 @@ export function GeneratorsPanel({
   const [generatorSwitcherOpen, setGeneratorSwitcherOpen] = useState(false);
   const [generatorSwitcherQuery, setGeneratorSwitcherQuery] = useState("");
   const [outputDockOpen, setOutputDockOpen] = useState(false);
+  const [reviewedPreviewHash, setReviewedPreviewHash] = useState<string | null>(
+    null,
+  );
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteAction | null>(
     null,
@@ -516,6 +519,13 @@ export function GeneratorsPanel({
   const closeCreatePanel = useCallback(() => {
     setCreateOutputPrefix(null);
     setCreatePanelOpen(false);
+  }, []);
+
+  const openOutputReview = useCallback(() => {
+    setOutputDockOpen(true);
+    if (previewRef.current) {
+      setReviewedPreviewHash(previewRef.current.hash);
+    }
   }, []);
 
   useEffect(() => {
@@ -721,6 +731,12 @@ export function GeneratorsPanel({
 
   useEffect(() => {
     previewRef.current = preview;
+  }, [preview]);
+
+  useEffect(() => {
+    if (!preview) {
+      setReviewedPreviewHash(null);
+    }
   }, [preview]);
 
   useEffect(() => {
@@ -1312,6 +1328,12 @@ export function GeneratorsPanel({
       setError("Wait for the latest output preview before applying.");
       return;
     }
+    if (reviewedPreviewHash !== preview.hash) {
+      setOutputDockOpen(true);
+      setReviewedPreviewHash(preview.hash);
+      setError("Review the latest outputs before applying.");
+      return;
+    }
     if (!saved) return;
     setBusy("apply");
     setError(null);
@@ -1348,6 +1370,7 @@ export function GeneratorsPanel({
     loadGenerators,
     preview,
     refreshGeneratorStatuses,
+    reviewedPreviewHash,
     saveGenerator,
     serverUrl,
   ]);
@@ -2845,13 +2868,21 @@ export function GeneratorsPanel({
       </>
     ) : null;
 
-  const canApplyGenerator =
+  const canUseGeneratorOutputAction =
     busy === null &&
     !graphHasErrors &&
     Boolean(preview) &&
     !preview?.blocking &&
     !previewHasCollisions &&
     !previewHasNoOutputs;
+  const previewReviewed =
+    Boolean(preview) && reviewedPreviewHash === preview?.hash;
+  const generatorPrimaryActionLabel = previewReviewed
+    ? "Apply"
+    : "Review outputs";
+  const generatorPrimaryActionTitle = previewReviewed
+    ? "Apply reviewed generator outputs"
+    : "Review generator outputs before applying";
 
   const renderGeneratorActions = (compact = false) => (
     <div
@@ -2931,11 +2962,11 @@ export function GeneratorsPanel({
           <span className="max-[760px]:sr-only">Save</span>
         </Button>
       ) : null}
-      {preview && preview.outputs.length > 0 && !outputDockOpen ? (
+      {preview && preview.outputs.length > 0 && !outputDockOpen && previewReviewed ? (
         <Button
           title="Review generator outputs"
           aria-label="Review generator outputs"
-          onClick={() => setOutputDockOpen(true)}
+          onClick={openOutputReview}
           variant="secondary"
           size="sm"
         >
@@ -2944,16 +2975,18 @@ export function GeneratorsPanel({
         </Button>
       ) : null}
       <Button
-        title="Apply generator"
-        aria-label="Apply generator"
+        title={generatorPrimaryActionTitle}
+        aria-label={generatorPrimaryActionTitle}
         aria-describedby="generator-status-label"
-        onClick={applyGenerator}
-        disabled={!canApplyGenerator}
+        onClick={previewReviewed ? applyGenerator : openOutputReview}
+        disabled={!canUseGeneratorOutputAction}
         variant="primary"
         size="sm"
       >
-        <Sparkles size={14} />
-        <span className={compact ? "sr-only" : ""}>Apply</span>
+        {previewReviewed ? <Sparkles size={14} /> : <PanelRight size={14} />}
+        <span className={compact ? "sr-only" : ""}>
+          {generatorPrimaryActionLabel}
+        </span>
       </Button>
       {editorMode === "graph" && !compact && dirty ? (
         <Button
@@ -3014,7 +3047,15 @@ export function GeneratorsPanel({
           <button
             type="button"
             className="tm-generator-output-dock__summary"
-            onClick={() => setOutputDockOpen((open) => !open)}
+            onClick={() => {
+              setOutputDockOpen((open) => {
+                const nextOpen = !open;
+                if (nextOpen && preview) {
+                  setReviewedPreviewHash(preview.hash);
+                }
+                return nextOpen;
+              });
+            }}
             aria-expanded={outputDockOpen}
           >
             <ChevronDown

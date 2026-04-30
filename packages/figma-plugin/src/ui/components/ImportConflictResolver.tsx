@@ -4,8 +4,34 @@ import { renderConflictValue } from './importPanelHelpers';
 
 type ConflictDecision = 'accept' | 'merge' | 'reject';
 
-const DEFAULT_CONFLICT_DECISION: ConflictDecision = 'merge';
-const CONFLICT_DECISIONS: readonly ConflictDecision[] = ['accept', 'merge', 'reject'];
+const DEFAULT_CONFLICT_DECISION: ConflictDecision = 'reject';
+const CONFLICT_DECISIONS: readonly ConflictDecision[] = ['reject', 'merge', 'accept'];
+
+function getDecisionLabel(decision: ConflictDecision): string {
+  if (decision === 'accept') return 'Replace';
+  if (decision === 'merge') return 'Merge';
+  return 'Keep';
+}
+
+function getDecisionTone(decision: ConflictDecision): string {
+  if (decision === 'accept') {
+    return 'text-[color:var(--color-figma-text-warning)] hover:bg-[var(--color-figma-warning)]/10';
+  }
+  if (decision === 'merge') {
+    return 'text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10';
+  }
+  return 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30';
+}
+
+function getSelectedDecisionTone(decision: ConflictDecision): string {
+  if (decision === 'accept') {
+    return 'bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)]';
+  }
+  if (decision === 'merge') {
+    return 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)]';
+  }
+  return 'bg-[var(--color-figma-border)]/30 text-[color:var(--color-figma-text-secondary)]';
+}
 
 export function ImportConflictResolver() {
   const { tokens, selectedTokens } = useImportSourceContext();
@@ -18,7 +44,6 @@ export function ImportConflictResolver() {
     conflictTypeFilter,
     importing,
     importProgress,
-    reviewActionCopy,
     setConflictSearch,
     setConflictStatusFilter,
     setConflictTypeFilter,
@@ -80,13 +105,7 @@ export function ImportConflictResolver() {
   handlerRef.current = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       if (!importing) clearConflictState();
-      return;
     }
-    const tag = (e.target as HTMLElement).tagName;
-    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
-    if (e.key === 'a' || e.key === 'A') { e.preventDefault(); applyToVisible('accept'); }
-    else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); applyToVisible('merge'); }
-    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); applyToVisible('reject'); }
   };
 
   const conflictTypes = new Set<string>();
@@ -99,35 +118,34 @@ export function ImportConflictResolver() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      {/* Summary + bulk actions */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-1">
         <div className="text-secondary text-[color:var(--color-figma-text)]">
-          <span className="font-medium">{safeConflictPaths.length}</span> conflict{safeConflictPaths.length !== 1 ? 's' : ''}
-          {newCount > 0 && <span className="text-[color:var(--color-figma-text-secondary)]"> + {newCount} new</span>}
+          Review <span className="font-medium">{safeConflictPaths.length}</span> existing token{safeConflictPaths.length !== 1 ? 's' : ''}
+          {newCount > 0 && <span className="text-[color:var(--color-figma-text-secondary)]"> and {newCount} new token{newCount === 1 ? '' : 's'}</span>}
         </div>
-        <div className="flex items-center gap-0.5">
-          {CONFLICT_DECISIONS.map(d => (
-            <button
-              key={d}
-              onClick={() => applyToVisible(d)}
-              title={`${d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}${hasActiveFilter ? ' visible' : ' all'}`}
-              className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${
-                d === 'accept'
-                  ? 'text-[color:var(--color-figma-text-success)] hover:bg-[var(--color-figma-success)]/10'
-                  : d === 'merge'
-                    ? 'text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10'
-                    : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30'
-              }`}
-            >
-              {d === 'accept' ? reviewActionCopy.overwrite.label : d === 'merge' ? reviewActionCopy.merge.label : reviewActionCopy.skip.label}
-            </button>
-          ))}
+        <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+          Current library values are kept unless you choose Merge or Replace.
         </div>
       </div>
 
-      {/* Compact status line */}
-      <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-        {overwriteCount} overwrite, {mergeCount} merge, {keepExistingCount} keep{newCount > 0 ? ` + ${newCount} new` : ''}
+      {/* Summary + bulk actions */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+          {keepExistingCount} keep, {mergeCount} merge, {overwriteCount} replace{newCount > 0 ? ` + ${newCount} new` : ''}
+        </div>
+        <div className="flex flex-wrap items-center gap-0.5">
+          {CONFLICT_DECISIONS.map(d => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => applyToVisible(d)}
+              title={`${getDecisionLabel(d)} ${hasActiveFilter ? 'visible conflicts' : 'all conflicts'}`}
+              className={`px-1.5 py-0.5 rounded text-secondary font-medium transition-colors ${getDecisionTone(d)}`}
+            >
+              {getDecisionLabel(d)} {hasActiveFilter ? 'visible' : 'all'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search + filter toggle — show search inline, filters on demand */}
@@ -160,9 +178,9 @@ export function ImportConflictResolver() {
             className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[color:var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
           >
             <option value="all">All status</option>
-            <option value="accept">{reviewActionCopy.overwrite.label}</option>
-            <option value="merge">{reviewActionCopy.merge.label}</option>
-            <option value="reject">{reviewActionCopy.skip.label}</option>
+            <option value="reject">Keep</option>
+            <option value="merge">Merge</option>
+            <option value="accept">Replace</option>
           </select>
           {sortedConflictTypes.length > 1 && (
             <select
@@ -202,6 +220,7 @@ export function ImportConflictResolver() {
                     {CONFLICT_DECISIONS.map((d, i) => (
                       <button
                         key={d}
+                        type="button"
                         onClick={() => {
                           const next = new Map(conflictDecisions);
                           next.set(path, d);
@@ -212,30 +231,32 @@ export function ImportConflictResolver() {
                           i > 0 ? 'border-l border-[var(--color-figma-border)]' : ''
                         } ${
                           decision === d
-                            ? d === 'accept'
-                              ? 'bg-[var(--color-figma-success)]/15 text-[color:var(--color-figma-text-success)]'
-                              : d === 'merge'
-                                ? 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)]'
-                                : 'bg-[var(--color-figma-border)]/30 text-[color:var(--color-figma-text-secondary)]'
+                            ? getSelectedDecisionTone(d)
                             : 'bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)]'
                         }`}
                       >
-                        {d === 'accept' ? 'Replace' : d === 'merge' ? 'Merge' : 'Skip'}
+                        {getDecisionLabel(d)}
                       </button>
                     ))}
                   </div>
                 </div>
                 {/* Value diff */}
-                <div className="grid grid-cols-2 gap-x-1 text-secondary font-mono rounded overflow-hidden">
-                  <div className="flex items-center gap-1 min-w-0 px-1 py-0.5 bg-[var(--color-figma-error)]/5">
-                    <span className="text-[color:var(--color-figma-text-secondary)] truncate flex items-center gap-1">
+                <div className="grid grid-cols-2 gap-x-1 rounded overflow-hidden text-secondary">
+                  <div className="min-w-0 px-1 py-0.5 bg-[var(--color-figma-bg-secondary)]">
+                    <div className="mb-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)]">
+                      Current in library
+                    </div>
+                    <span className="text-[color:var(--color-figma-text-secondary)] truncate flex items-center gap-1 font-mono">
                       {renderConflictValue(existing?.$type ?? 'unknown', existing?.$value)}
                     </span>
                   </div>
-                  <div className={`flex items-center gap-1 min-w-0 px-1 py-0.5 ${
-                    decision === 'reject' ? 'opacity-40' : 'bg-[var(--color-figma-success)]/5'
+                  <div className={`min-w-0 px-1 py-0.5 ${
+                    decision === 'reject' ? 'bg-[var(--color-figma-bg-secondary)] opacity-60' : 'bg-[var(--color-figma-accent)]/8'
                   }`}>
-                    <span className={`truncate flex items-center gap-1 ${
+                    <div className="mb-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)]">
+                      Incoming import
+                    </div>
+                    <span className={`truncate flex items-center gap-1 font-mono ${
                       decision === 'reject' ? 'text-[color:var(--color-figma-text-secondary)] line-through' : 'text-[color:var(--color-figma-text)]'
                     }`}>
                       {renderConflictValue(incoming?.$type ?? 'unknown', incoming?.$value)}

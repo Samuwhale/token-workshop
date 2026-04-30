@@ -287,12 +287,12 @@ export const TokenLeafNode = memo(
     const selectionControlVisibilityClass =
       selectMode || hovered || isSelected || isRowActive
         ? "opacity-100"
-        : "opacity-75";
+        : "opacity-85";
     const overflowActionVisibilityClass = selectMode
       ? "hidden"
       : isRowActive
         ? "opacity-100"
-        : "opacity-60 group-hover:opacity-100 group-focus-within:opacity-100";
+        : "opacity-75 group-hover:opacity-100 group-focus-within:opacity-100";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected

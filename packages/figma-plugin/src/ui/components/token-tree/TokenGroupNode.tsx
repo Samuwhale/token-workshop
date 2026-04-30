@@ -448,7 +448,7 @@ export const TokenGroupNode = memo(
                       ? "hidden"
                       : isGroupActive
                         ? "opacity-100"
-                        : "opacity-45 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
+                        : "opacity-70 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
                   }`}
                 >
                   <button

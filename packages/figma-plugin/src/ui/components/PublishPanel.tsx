@@ -10,6 +10,7 @@ import { dispatchToast } from '../shared/toastBus';
 import { describeError } from '../shared/utils';
 import { Spinner } from './Spinner';
 import { ConfirmModal } from './ConfirmModal';
+import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useFigmaMessage } from '../hooks/useFigmaMessage';
@@ -1082,8 +1083,13 @@ export function PublishPanel({
 
   if (!connected) {
     return (
-      <div className="flex items-center justify-center py-3 text-[color:var(--color-figma-text-secondary)] text-body">
-        Connect to server to sync with Figma
+      <div className="flex h-full">
+        <FeedbackPlaceholder
+          variant="disconnected"
+          title="Connect to sync with Figma"
+          description="Publish and compare require an active token server connection."
+          align="start"
+        />
       </div>
     );
   }

@@ -1461,8 +1461,7 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 560px) {
-  .tm-collection-toolbar__optional-label,
-  .tm-collection-toolbar__summary-meta {
+  .tm-collection-toolbar__optional-label {
     display: none;
   }
 
@@ -1501,6 +1500,12 @@ button.tm-status-row:not(:disabled):hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+@container (max-width: 420px) {
+  .tm-collection-toolbar__summary-meta {
+    display: none;
   }
 }
 
@@ -3325,27 +3330,26 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__header {
-    align-items: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
   .tm-token-mode-row__controls {
-    flex-wrap: nowrap;
-    gap: 3px;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px;
+    margin-left: 0;
   }
 
   .tm-token-mode-row__body {
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: stretch;
   }
 }
 
 @container authoring-surface (max-width: 480px) {
-  .tm-token-mode-row__header {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
   .tm-token-mode-row__header-main {
     flex-basis: 100%;
   }
@@ -3357,9 +3361,25 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__controls {
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    margin-left: auto;
+    flex-basis: 100%;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .tm-token-mode-row__action-button {
+    inline-size: auto;
+    min-inline-size: 28px;
+    padding-inline: 8px;
+  }
+
+  .tm-token-mode-row__overflow-button {
+    flex: 0 0 auto;
+    align-self: auto;
+  }
+}
+
+@container authoring-surface (max-width: 400px) {
+  .tm-token-mode-row__controls {
     gap: 2px;
   }
 
@@ -3367,11 +3387,6 @@ button.tm-token-details__text-button:disabled:hover {
     inline-size: 28px;
     min-inline-size: 28px;
     padding-inline: 0;
-  }
-
-  .tm-token-mode-row__overflow-button {
-    flex: 0 0 auto;
-    align-self: flex-start;
   }
 
   .tm-token-mode-row__action-label {

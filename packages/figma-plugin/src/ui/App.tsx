@@ -2307,19 +2307,6 @@ export function App() {
             setShowQuickApply(false);
             setSuccessToast(`Bound "${tokenPath}" to ${targetProperty}`);
           }}
-          onUnbind={(targetProperty) => {
-            parent.postMessage(
-              {
-                pluginMessage: {
-                  type: "remove-binding",
-                  property: targetProperty,
-                },
-              },
-              "*",
-            );
-            setShowQuickApply(false);
-            setSuccessToast(`Unbound ${targetProperty}`);
-          }}
           onClose={() => setShowQuickApply(false)}
         />
       )}
