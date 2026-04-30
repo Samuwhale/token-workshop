@@ -769,6 +769,7 @@ export function evaluateTokenGeneratorDocument({
       }),
     );
   }
+  validateDuplicateOutputPaths(outputs, diagnostics);
 
   const hash = generatorProvenanceHash(document, outputs);
   const nodePreviewCache = new Map(cache);
@@ -819,6 +820,34 @@ export function evaluateTokenGeneratorDocument({
     hash,
     previewedAt,
   };
+}
+
+function validateDuplicateOutputPaths(
+  outputs: TokenGeneratorPreviewOutput[],
+  diagnostics: TokenGeneratorDiagnostic[],
+): void {
+  const outputsByPath = new Map<string, TokenGeneratorPreviewOutput[]>();
+  for (const output of outputs) {
+    outputsByPath.set(output.path, [
+      ...(outputsByPath.get(output.path) ?? []),
+      output,
+    ]);
+  }
+
+  let duplicateGroupIndex = 0;
+  for (const [path, pathOutputs] of outputsByPath) {
+    if (pathOutputs.length <= 1) continue;
+    duplicateGroupIndex += 1;
+    const nodeIds = [...new Set(pathOutputs.map((output) => output.nodeId))];
+    for (const nodeId of nodeIds) {
+      diagnostics.push({
+        id: `duplicate-output-${duplicateGroupIndex}-${nodeId}`,
+        severity: 'error',
+        nodeId,
+        message: `Multiple outputs target "${path}". Choose a unique output path for each output.`,
+      });
+    }
+  }
 }
 
 function emptyPreview(

@@ -146,6 +146,19 @@ interface GeneratorPreviewResponse {
   preview: TokenGeneratorPreviewResult;
 }
 
+interface GeneratorStatusItem {
+  generator: TokenGeneratorDocument;
+  preview: TokenGeneratorPreviewResult;
+  stale: boolean;
+  unapplied: boolean;
+  blocking: boolean;
+  managedTokenCount: number;
+}
+
+interface GeneratorStatusResponse {
+  generators: GeneratorStatusItem[];
+}
+
 interface GeneratorApplyResponse {
   preview: TokenGeneratorPreviewResult;
   operationId?: string;
@@ -432,6 +445,9 @@ export function GeneratorsPanel({
   const [preview, setPreview] = useState<TokenGeneratorPreviewResult | null>(
     null,
   );
+  const [generatorStatusesById, setGeneratorStatusesById] = useState<
+    Record<string, GeneratorStatusItem>
+  >({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [expandedGraphNodeIds, setExpandedGraphNodeIds] = useState<Set<string>>(
@@ -490,8 +506,10 @@ export function GeneratorsPanel({
   const dirtyGeneratorIdRef = useRef<string | null>(null);
   const graphRevisionRef = useRef(0);
   const suppressedViewportCommitCountRef = useRef(0);
+  const lastGraphAutoFitKeyRef = useRef<string | null>(null);
   const autoPreviewRunRef = useRef(0);
   const latestPreviewSignatureRef = useRef("");
+  const tokenChangeInitializedRef = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const generatorSwitcherSearchRef = useRef<HTMLInputElement | null>(null);
   const createSheetPanelRef = useRef<HTMLElement | null>(null);
@@ -555,7 +573,7 @@ export function GeneratorsPanel({
     const query = generatorSwitcherQuery.trim().toLowerCase();
     if (!query) return scopedGenerators;
     return scopedGenerators.filter((generator) => {
-      const outputLabel = readGeneratorOutputLabel(generator).toLowerCase();
+      const outputLabel = readGeneratorDestinationSearchLabel(generator).toLowerCase();
       const status = readGeneratorStatusLabel(generator).toLowerCase();
       return (
         generator.name.toLowerCase().includes(query) ||
@@ -645,6 +663,25 @@ export function GeneratorsPanel({
     });
   }, []);
 
+  const loadGeneratorStatuses = useCallback(async () => {
+    const data = await apiFetch<GeneratorStatusResponse>(
+      `${serverUrl}/api/generators/status`,
+    );
+    setGeneratorStatusesById(
+      Object.fromEntries(
+        data.generators.map((status) => [status.generator.id, status]),
+      ),
+    );
+  }, [serverUrl]);
+
+  const refreshGeneratorStatuses = useCallback(() => {
+    void loadGeneratorStatuses().catch((statusError) => {
+      setError(
+        statusError instanceof Error ? statusError.message : String(statusError),
+      );
+    });
+  }, [loadGeneratorStatuses]);
+
   const loadGenerators = useCallback(async () => {
     const data = await apiFetch<GeneratorListResponse>(
       `${serverUrl}/api/generators`,
@@ -691,7 +728,8 @@ export function GeneratorsPanel({
         loadError instanceof Error ? loadError.message : String(loadError),
       ),
     );
-  }, [loadGenerators]);
+    refreshGeneratorStatuses();
+  }, [loadGenerators, refreshGeneratorStatuses]);
 
   useEffect(() => {
     previewRef.current = preview;
@@ -828,11 +866,16 @@ export function GeneratorsPanel({
   ]);
 
   useEffect(() => {
+    if (!tokenChangeInitializedRef.current) {
+      tokenChangeInitializedRef.current = true;
+      return;
+    }
+    refreshGeneratorStatuses();
     if (!previewRef.current) return;
     setPreview(null);
     setLastApply(null);
     setExternalPreviewInvalidated(true);
-  }, [tokenChangeKey]);
+  }, [refreshGeneratorStatuses, tokenChangeKey]);
 
   useLayoutEffect(() => {
     if (!activeGenerator) {
@@ -1146,6 +1189,7 @@ export function GeneratorsPanel({
       dirtyRef.current = false;
       dirtyGeneratorIdRef.current = null;
       setExternalPreviewInvalidated(false);
+      refreshGeneratorStatuses();
       return data.generator;
     } catch (saveError) {
       setError(
@@ -1155,7 +1199,7 @@ export function GeneratorsPanel({
     } finally {
       setBusy(null);
     }
-  }, [graphHasErrors, serverUrl, syncFlowToGenerator]);
+  }, [graphHasErrors, refreshGeneratorStatuses, serverUrl, syncFlowToGenerator]);
 
   const discardGeneratorDraft = useCallback(async () => {
     const generatorId = activeGeneratorIdRef.current;
@@ -1351,6 +1395,7 @@ export function GeneratorsPanel({
       setPreview(data.preview);
       setLastApply(data);
       await loadGenerators();
+      refreshGeneratorStatuses();
     } catch (applyError) {
       setError(
         applyError instanceof Error ? applyError.message : String(applyError),
@@ -1364,6 +1409,7 @@ export function GeneratorsPanel({
     graphHasErrors,
     loadGenerators,
     preview,
+    refreshGeneratorStatuses,
     saveGenerator,
     serverUrl,
   ]);
@@ -1401,6 +1447,12 @@ export function GeneratorsPanel({
       setDirty(false);
       dirtyRef.current = false;
       dirtyGeneratorIdRef.current = null;
+      setGeneratorStatusesById((current) => {
+        const next = { ...current };
+        delete next[deletedGeneratorId];
+        return next;
+      });
+      refreshGeneratorStatuses();
     } catch (deleteError) {
       setError(
         deleteError instanceof Error
@@ -1410,7 +1462,13 @@ export function GeneratorsPanel({
     } finally {
       setBusy(null);
     }
-  }, [activeGenerator, generators, serverUrl, setActiveGeneratorSelection]);
+  }, [
+    activeGenerator,
+    generators,
+    refreshGeneratorStatuses,
+    serverUrl,
+    setActiveGeneratorSelection,
+  ]);
 
   const requestDeleteGenerator = useCallback(() => {
     if (!activeGenerator) return;
@@ -2179,7 +2237,20 @@ export function GeneratorsPanel({
   }, [compactGenerators, editorMode]);
 
   useEffect(() => {
-    if (editorMode !== "graph" || !flowInstance) return;
+    if (editorMode !== "graph" || !flowInstance || !activeGenerator) {
+      if (editorMode !== "graph") {
+        lastGraphAutoFitKeyRef.current = null;
+      }
+      return;
+    }
+    const viewportIsDefault =
+      activeGenerator.viewport.x === 0 &&
+      activeGenerator.viewport.y === 0 &&
+      activeGenerator.viewport.zoom === 1;
+    if (!viewportIsDefault) return;
+    const autoFitKey = `${activeGenerator.id}:${compactGenerators ? "compact" : "full"}`;
+    if (lastGraphAutoFitKeyRef.current === autoFitKey) return;
+    lastGraphAutoFitKeyRef.current = autoFitKey;
     const setGraphViewport = () => {
       suppressedViewportCommitCountRef.current += 1;
       flowInstance.fitView({
@@ -2197,12 +2268,10 @@ export function GeneratorsPanel({
       window.clearTimeout(resetTimeoutId);
     };
   }, [
-    activeGeneratorId,
+    activeGenerator,
     compactGenerators,
     editorMode,
     flowInstance,
-    nodes.length,
-    panelWidth,
   ]);
 
   const renderGraphWorkspace = () => {
@@ -2593,9 +2662,6 @@ export function GeneratorsPanel({
     setActionsMenuOpen(false);
     setGeneratorSwitcherOpen(false);
     if (mode === "graph") {
-      if (compactGenerators) {
-        suppressedViewportCommitCountRef.current += 4;
-      }
       return;
     }
     setGraphPanelState("none");
@@ -2644,6 +2710,17 @@ export function GeneratorsPanel({
             {filteredScopedGenerators.length > 0 ? (
               filteredScopedGenerators.map((generator) => {
                 const selected = generator.id === activeGeneratorId;
+                const status = generatorStatusesById[generator.id];
+                const currentPreview =
+                  preview?.generatorId === generator.id ? preview : null;
+                const producedTokenCount =
+                  currentPreview?.outputs.length ?? status?.preview.outputs.length;
+                const destinationLabel = readGeneratorOutputLabel(generator);
+                const destinationTitle = readGeneratorDestinationSearchLabel(generator);
+                const metadataLabel = formatGeneratorSwitcherMetadata(
+                  generator,
+                  producedTokenCount,
+                );
                 return (
                   <button
                     key={generator.id}
@@ -2674,12 +2751,20 @@ export function GeneratorsPanel({
                       <span className="block truncate font-semibold">
                         {generator.name}
                       </span>
-                      <span className="block truncate text-[color:var(--color-figma-text-secondary)]">
-                        {readGeneratorOutputLabel(generator)}
+                      <span
+                        className="block truncate text-[color:var(--color-figma-text-secondary)]"
+                        title={destinationTitle}
+                      >
+                        {destinationLabel}
                       </span>
                     </span>
-                    <span className="shrink-0 text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                      {readGeneratorStatusLabel(generator)}
+                    <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                      <span className="text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                        {readGeneratorStatusLabel(generator)}
+                      </span>
+                      <span className="whitespace-nowrap text-tertiary text-[color:var(--color-figma-text-tertiary)]">
+                        {metadataLabel}
+                      </span>
                     </span>
                   </button>
                 );
@@ -2779,7 +2864,7 @@ export function GeneratorsPanel({
           aria-label="Close generator actions"
           onClick={() => setActionsMenuOpen(false)}
         />
-        <div className="absolute right-0 top-9 z-30 min-w-[176px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]">
+        <div className="absolute right-0 top-9 z-30 min-w-[176px] rounded-md border border-[var(--border-muted)] bg-[var(--surface-panel-header)] p-1 shadow-[var(--shadow-popover)]">
           <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {statusLabel}
           </div>
@@ -3217,12 +3302,13 @@ export function GeneratorsPanel({
                     void loadGenerators().then(() => {
                       setActiveGeneratorSelection(generatorId);
                       setEditorMode(nextEditorMode);
+                      refreshGeneratorStatuses();
                     });
                   } else {
                     setError(
                       `Created in ${collectionId}. Switch collections to edit it.`,
                     );
-                    void loadGenerators();
+                    void loadGenerators().then(refreshGeneratorStatuses);
                   }
                   closeCreatePanel();
                   setGeneratorSwitcherOpen(false);
@@ -3278,7 +3364,13 @@ function GraphIssueCallout({
         : `${issues.length} warnings`;
 
   return (
-    <div className="absolute left-3 right-3 top-3 z-10 max-w-[420px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-2 shadow-[var(--shadow-popover)]">
+    <div
+      className={`absolute left-3 right-3 top-3 z-10 max-w-[420px] rounded-md border border-[var(--border-muted)] p-2 shadow-[var(--shadow-popover)] ${
+        primaryIssue.severity === "error"
+          ? "bg-[var(--surface-error)]"
+          : "bg-[var(--surface-warning)]"
+      }`}
+    >
       <div className="flex items-start gap-2">
         <AlertTriangle
           size={14}
@@ -3363,8 +3455,8 @@ function GeneratorDeleteDialog({
           : `${action.connectedEdgeCount} connection${action.connectedEdgeCount === 1 ? "" : "s"} will be removed. Check the output preview before applying.`;
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-3">
-      <section className="w-full max-w-[360px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-[var(--shadow-dialog)]">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--backdrop-danger)] p-3">
+      <section className="w-full max-w-[360px] rounded-md border border-[var(--border-muted)] bg-[var(--surface-1)] p-3 shadow-[var(--shadow-dialog)]">
         <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
           {title}
         </h2>
@@ -3392,8 +3484,8 @@ function PresetConversionDialog({
   onConfirm: () => void;
 }) {
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--color-figma-overlay)] p-3">
-      <section className="w-full max-w-[380px] rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 shadow-[var(--shadow-dialog)]">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--backdrop-sheet)] p-3">
+      <section className="w-full max-w-[380px] rounded-md border border-[var(--border-muted)] bg-[var(--surface-1)] p-3 shadow-[var(--shadow-dialog)]">
         <h2 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
           Edit as custom graph?
         </h2>
@@ -3498,7 +3590,7 @@ function GraphContextMenu({
         onClick={onClose}
       />
       <div
-        className="fixed z-30 w-[260px] max-w-[calc(100vw_-_16px)] overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]"
+        className="fixed z-30 w-[260px] max-w-[calc(100vw_-_16px)] overflow-hidden rounded-md border border-[var(--border-muted)] bg-[var(--surface-panel-header)] p-1 shadow-[var(--shadow-popover)]"
         style={{ left: menuLeft, top: menuTop }}
         onClick={(event) => event.stopPropagation()}
         onContextMenu={(event) => event.preventDefault()}
@@ -4103,8 +4195,8 @@ function ReviewIssueList({
           onClick={() => onFocusIssue(issue)}
           className={`block w-full rounded px-2 py-1.5 text-left text-secondary ${
             issue.severity === "error"
-              ? "text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
-              : "text-[color:var(--color-figma-text-warning)] hover:bg-[color-mix(in_srgb,var(--color-figma-warning)_10%,var(--color-figma-bg))]"
+              ? "text-[color:var(--color-figma-text-error)] hover:bg-[var(--surface-error)]"
+              : "text-[color:var(--color-figma-text-warning)] hover:bg-[var(--surface-warning)]"
           }`}
         >
           {issue.message}
@@ -4117,10 +4209,50 @@ function ReviewIssueList({
 function readGeneratorOutputLabel(generator: TokenGeneratorDocument): string {
   const structured = readStructuredGeneratorDraft(generator);
   if (structured?.outputPrefix) return structured.outputPrefix;
-  const output = generator.nodes.find(
-    (node) => node.kind === "groupOutput" || node.kind === "output",
-  );
-  return String(output?.data.pathPrefix ?? output?.data.path ?? "No output");
+  const destinations = readGeneratorDestinationLabels(generator);
+  if (destinations.length === 0) return "No output";
+  if (destinations.length === 1) return destinations[0];
+  return `${destinations[0]} + ${destinations.length - 1} more`;
+}
+
+function readGeneratorDestinationSearchLabel(
+  generator: TokenGeneratorDocument,
+): string {
+  const structured = readStructuredGeneratorDraft(generator);
+  if (structured?.outputPrefix) return structured.outputPrefix;
+  return readGeneratorDestinationLabels(generator).join(" ");
+}
+
+function readGeneratorDestinationLabels(
+  generator: TokenGeneratorDocument,
+): string[] {
+  return generator.nodes
+    .filter(isGeneratorOutputNode)
+    .map((node) => String(node.data.pathPrefix ?? node.data.path ?? "").trim())
+    .filter(Boolean);
+}
+
+function formatGeneratorSwitcherMetadata(
+  generator: TokenGeneratorDocument,
+  producedTokenCount: number | undefined,
+): string {
+  const inputCount = generator.nodes.filter(isGeneratorInputNode).length;
+  const outputCount = generator.nodes.filter(isGeneratorOutputNode).length;
+  const parts = [`${inputCount} in`, `${outputCount} out`];
+  if (producedTokenCount !== undefined) {
+    parts.push(
+      `${producedTokenCount} ${producedTokenCount === 1 ? "token" : "tokens"}`,
+    );
+  }
+  return parts.join(" · ");
+}
+
+function isGeneratorInputNode(node: TokenGeneratorDocumentNode): boolean {
+  return node.kind === "tokenInput" || node.kind === "literal";
+}
+
+function isGeneratorOutputNode(node: TokenGeneratorDocumentNode): boolean {
+  return node.kind === "groupOutput" || node.kind === "output";
 }
 
 function readGeneratorStatusLabel(generator: TokenGeneratorDocument): string {
@@ -4208,9 +4340,9 @@ function GeneratorOverviewPanel({
             <span
               className={`shrink-0 rounded px-1.5 py-0.5 text-tertiary font-medium ${
                 dirty || externalPreviewInvalidated
-                  ? "bg-[color-mix(in_srgb,var(--color-figma-warning)_14%,transparent)] text-[color:var(--color-figma-text-warning)]"
+                  ? "bg-[var(--surface-warning)] text-[color:var(--color-figma-text-warning)]"
                   : preview
-                    ? "bg-[color-mix(in_srgb,var(--color-figma-success)_15%,transparent)] text-[color:var(--color-figma-text-success)]"
+                    ? "bg-[var(--surface-success)] text-[color:var(--color-figma-text-success)]"
                     : "bg-[var(--surface-muted)] text-[color:var(--color-figma-text-secondary)]"
               }`}
             >
@@ -6591,15 +6723,11 @@ function contextualPaletteItems(
       (item) => item.category === "Inputs" || item.category === "Scales",
     );
   if (!selectedNode) {
-    const hasNodes = generator.nodes.length > 0;
-    const hasOutput = generator.nodes.some(
-      (node) => node.kind === "output" || node.kind === "groupOutput",
-    );
     return palette.filter((item) => {
       if (item.category === "Inputs" || item.category === "Scales") {
         return true;
       }
-      return item.category === "Outputs" && (!hasNodes || !hasOutput);
+      return item.category === "Outputs";
     });
   }
   if (

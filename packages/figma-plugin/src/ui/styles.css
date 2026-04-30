@@ -139,6 +139,8 @@
   --surface-error: color-mix(in srgb, var(--workspace-danger) 16%, transparent);
   --border-muted: color-mix(in srgb, var(--color-figma-border) 72%, var(--workspace-library) 28%);
   --border-accent: color-mix(in srgb, var(--workspace-library) 48%, var(--color-figma-border));
+  --scrollbar-thumb: var(--color-figma-border);
+  --scrollbar-thumb-hover: var(--color-figma-text-secondary);
   --surface-muted: color-mix(
     in srgb,
     var(--color-figma-bg-secondary) 40%,
@@ -170,7 +172,7 @@ html.figma-light {
   --color-figma-error: #b83118;
   --color-figma-text-accent: #006fbd;
   --color-figma-text-success: #0b7a3b;
-  --color-figma-text-warning: #9a6200;
+  --color-figma-text-warning: #7a4b00;
   --color-figma-text-error: #b83118;
 
   --workspace-library: #006fbd;
@@ -225,18 +227,12 @@ html.figma-light {
   --surface-error: color-mix(in srgb, var(--workspace-danger) 10%, transparent);
   --border-muted: color-mix(in srgb, var(--color-figma-border) 76%, var(--workspace-library) 24%);
   --border-accent: color-mix(in srgb, var(--workspace-library) 36%, var(--color-figma-border));
+  --scrollbar-thumb: color-mix(in srgb, var(--color-figma-border) 82%, var(--workspace-library) 18%);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--color-figma-text-tertiary) 82%, var(--workspace-library) 18%);
   --shadow-soft: 0 1px 5px rgb(0 0 0 / 0.1);
   --shadow-popover: 0 6px 18px rgb(0 0 0 / 0.14);
   --shadow-panel: 0 10px 24px rgb(0 0 0 / 0.14);
   --shadow-dialog: 0 14px 32px rgb(0 0 0 / 0.16);
-}
-
-/* Light mode scrollbar */
-html.figma-light ::-webkit-scrollbar-thumb {
-  background: #d4d4d4;
-}
-html.figma-light ::-webkit-scrollbar-thumb:hover {
-  background: #999999;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -318,26 +314,6 @@ a[role="menuitem"] {
   outline-offset: -1px;
 }
 
-@media (pointer: coarse) {
-  :where(
-    button,
-    a[href],
-    input,
-    textarea,
-    select,
-    [role="button"],
-    [role="tab"],
-    [role="menuitem"],
-    [role="menuitemradio"],
-    [role="menuitemcheckbox"],
-    [role="slider"],
-    [role="combobox"]
-  ) {
-    min-inline-size: 44px;
-    min-block-size: 44px;
-  }
-}
-
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
@@ -346,11 +322,11 @@ a[role="menuitem"] {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-figma-border);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-figma-text-secondary);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Semantic typography utilities */
