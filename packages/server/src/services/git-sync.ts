@@ -248,7 +248,12 @@ function resolveConflictContent(
   )) {
     result.push(...beforeLines);
     if (region) {
-      const choice = choices[region.regionIndex] ?? "ours";
+      const choice = choices[region.regionIndex];
+      if (!choice) {
+        throw new BadRequestError(
+          `Missing choice for conflict region ${region.regionIndex}`,
+        );
+      }
       result.push(
         ...(choice === "theirs" ? region.theirsLines : region.oursLines),
       );
@@ -460,33 +465,17 @@ export class GitSync {
     return results;
   }
 
-  /** Resolve conflicts in a file by choosing ours/theirs per region, then stage it. */
-  async resolveFileConflict(
-    file: string,
-    choices: Record<number, "ours" | "theirs">,
-  ): Promise<void> {
-    return this.lock.withLock(async () => {
-      this.validatePaths([file]);
-      const filePath = path.resolve(this.dir, file);
-      const content = await fs.readFile(filePath, "utf-8");
-      const resolved = resolveConflictContent(content, choices);
-      const tmp = `${filePath}.tmp`;
-      await fs.writeFile(tmp, resolved, "utf-8");
-      await fs.rename(tmp, filePath);
-      await this.git.add([file]);
-    });
-  }
-
   /**
    * Validate, resolve, and stage all conflict resolutions atomically.
    *
    * Before touching any files:
    *   1. Validates that every requested file is actually conflicted.
-   *   2. Validates that every region index is within range.
-   *   3. Validates that every choice value is 'ours' or 'theirs'.
-   *   4. Resolves all file contents in memory.
+   *   2. Validates that every currently conflicted file is included.
+   *   3. Validates that every region index is within range.
+   *   4. Validates that every choice value is 'ours' or 'theirs'.
+   *   5. Resolves all file contents in memory.
    *
-   * Only then writes and stages. If any write/stage fails, already-staged
+   * Only then writes and stages. If any write/stage fails, already-mutated
    * files are restored to their conflicted state via `git checkout -m`.
    */
   async resolveAllConflicts(
@@ -497,12 +486,19 @@ export class GitSync {
   ): Promise<void> {
     return this.lock.withLock(async () => {
       // --- 1. Validate structure of each resolution entry ---
+      const requestedFiles = new Set<string>();
       for (const res of resolutions) {
         if (!res || typeof res.file !== "string" || !res.file) {
           throw new BadRequestError(
             'Each resolution must have a non-empty "file" string',
           );
         }
+        if (requestedFiles.has(res.file)) {
+          throw new BadRequestError(
+            `Duplicate conflict resolution for "${res.file}"`,
+          );
+        }
+        requestedFiles.add(res.file);
         if (
           !res.choices ||
           typeof res.choices !== "object" ||
@@ -527,6 +523,14 @@ export class GitSync {
       // --- 3. Load current conflict state and cross-validate ---
       const currentConflicts = await this.getConflicts();
       const conflictMap = new Map(currentConflicts.map((c) => [c.file, c]));
+      const omittedFiles = currentConflicts
+        .map((conflict) => conflict.file)
+        .filter((file) => !requestedFiles.has(file));
+      if (omittedFiles.length > 0) {
+        throw new BadRequestError(
+          `Incomplete conflict resolution: missing ${omittedFiles.join(", ")}`,
+        );
+      }
 
       for (const { file, choices } of resolutions) {
         const conflict = conflictMap.get(file);
@@ -573,20 +577,20 @@ export class GitSync {
       }
 
       // --- 5. Write and stage; rollback on partial failure ---
-      const staged: string[] = [];
+      const mutatedFiles: string[] = [];
       try {
         for (const { file, filePath, content } of resolved) {
           const tmp = `${filePath}.tmp`;
           await fs.writeFile(tmp, content, "utf-8");
           await fs.rename(tmp, filePath);
+          mutatedFiles.push(file);
           await this.git.add([file]);
-          staged.push(file);
         }
       } catch (err) {
-        // Restore already-staged files to their conflicted state so the
+        // Restore already-mutated files to their conflicted state so the
         // repository is left in a clean "fully conflicted" state that the
         // client can retry, rather than a partial merge.
-        for (const f of staged) {
+        for (const f of mutatedFiles) {
           try {
             await this.git.raw(["checkout", "-m", "--", f]);
           } catch (rollbackErr) {

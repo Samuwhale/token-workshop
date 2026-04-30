@@ -264,7 +264,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // POST /api/sync/conflicts/resolve — resolve conflicts for specific files
+  // POST /api/sync/conflicts/resolve — resolve every conflicted file in one atomic pass
   fastify.post<{
     Body: {
       resolutions: Array<{
@@ -318,7 +318,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
       }
-      // Validate, resolve, and stage all files atomically (with rollback on failure).
+      // Validate, resolve, and stage all conflicted files atomically (with rollback on failure).
       // resolveAllConflicts throws BadRequestError (400) for invalid inputs.
       await fastify.gitSync.resolveAllConflicts(resolutions);
       // Finalize merge if no conflicts remain
