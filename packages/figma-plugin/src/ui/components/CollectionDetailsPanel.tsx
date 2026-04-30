@@ -1,9 +1,17 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowUp, ArrowDown, X, Plus, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { TokenCollection } from "@tokenmanager/core";
-import { apiFetch } from "../shared/apiFetch";
+import {
+  addCollectionMode,
+  deleteCollectionMode,
+  DUPLICATE_MODE_NAME_MESSAGE,
+  isModeNameTaken,
+  renameCollectionMode,
+  reorderCollectionModes,
+} from "../shared/collectionModes";
 import { getCollectionDisplayName } from "../shared/libraryCollections";
+import { getErrorMessage } from "../shared/utils";
 import { ActionRow, Button, IconButton, TextInput } from "../primitives";
 import {
   CollectionMergeInline,
@@ -132,38 +140,38 @@ function ModeRow({
       setRenameValue(modeName);
       return;
     }
+    if (isModeNameTaken(allModeNames, trimmed, modeName)) {
+      setError(DUPLICATE_MODE_NAME_MESSAGE);
+      inputRef.current?.focus();
+      return;
+    }
     setSaving(true);
     setError("");
     try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: trimmed }),
-        },
-      );
+      await renameCollectionMode({
+        serverUrl,
+        collectionId,
+        modeName,
+        name: trimmed,
+      });
       setRenaming(false);
       onMutated?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Rename failed");
+      setError(getErrorMessage(err, "Could not rename this mode."));
     } finally {
       setSaving(false);
     }
-  }, [collectionId, modeName, onMutated, renameValue, serverUrl]);
+  }, [allModeNames, collectionId, modeName, onMutated, renameValue, serverUrl]);
 
   const handleDelete = useCallback(async () => {
     setSaving(true);
     setError("");
     try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
-        { method: "DELETE" },
-      );
+      await deleteCollectionMode({ serverUrl, collectionId, modeName });
       setConfirmingDelete(false);
       onMutated?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      setError(getErrorMessage(err, "Could not delete this mode."));
     } finally {
       setSaving(false);
     }
@@ -179,17 +187,14 @@ function ModeRow({
       setSaving(true);
       setError("");
       try {
-        await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes-order`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ modes: reordered }),
-          },
-        );
+        await reorderCollectionModes({
+          serverUrl,
+          collectionId,
+          modes: reordered,
+        });
         onMutated?.();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Reorder failed");
+        setError(getErrorMessage(err, "Could not move this mode."));
       } finally {
         setSaving(false);
       }
@@ -335,6 +340,10 @@ function ModesSection({
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
   const addInputRef = useRef<HTMLInputElement>(null);
+  const allModeNames = useMemo(
+    () => collection.modes.map((mode) => mode.name),
+    [collection.modes],
+  );
 
   useEffect(() => {
     if (adding) {
@@ -349,28 +358,28 @@ function ModesSection({
       setAddValue("");
       return;
     }
+    if (isModeNameTaken(allModeNames, trimmed)) {
+      setAddError(DUPLICATE_MODE_NAME_MESSAGE);
+      addInputRef.current?.focus();
+      return;
+    }
     setAddSaving(true);
     setAddError("");
     try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(collection.id)}/modes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: trimmed }),
-        },
-      );
+      await addCollectionMode({
+        serverUrl,
+        collectionId: collection.id,
+        name: trimmed,
+      });
       setAdding(false);
       setAddValue("");
       onModeMutated?.();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Add failed");
+      setAddError(getErrorMessage(err, "Could not add this mode."));
     } finally {
       setAddSaving(false);
     }
-  }, [addValue, collection.id, onModeMutated, serverUrl]);
-
-  const allModeNames = collection.modes.map((m) => m.name);
+  }, [addValue, allModeNames, collection.id, onModeMutated, serverUrl]);
 
   return (
     <div>

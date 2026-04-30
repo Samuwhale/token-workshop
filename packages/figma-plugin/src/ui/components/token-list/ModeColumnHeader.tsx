@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { apiFetch } from "../../shared/apiFetch";
+import {
+  deleteCollectionMode,
+  DUPLICATE_MODE_NAME_MESSAGE,
+  isModeNameTaken,
+  renameCollectionMode,
+  reorderCollectionModes,
+} from "../../shared/collectionModes";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import { getErrorMessage } from "../../shared/utils";
 import { ConfirmModal } from "../ConfirmModal";
@@ -85,14 +91,8 @@ export function ModeColumnHeader({
       setRenameError("");
       return;
     }
-    if (
-      allModeNames.some(
-        (name) =>
-          name !== modeName &&
-          name.toLocaleLowerCase() === trimmed.toLocaleLowerCase(),
-      )
-    ) {
-      setRenameError("Mode names must be different.");
+    if (isModeNameTaken(allModeNames, trimmed, modeName)) {
+      setRenameError(DUPLICATE_MODE_NAME_MESSAGE);
       inputRef.current?.focus();
       return;
     }
@@ -100,14 +100,12 @@ export function ModeColumnHeader({
     setRenameError("");
     setActionError("");
     try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: trimmed }),
-        },
-      );
+      await renameCollectionMode({
+        serverUrl,
+        collectionId,
+        modeName,
+        name: trimmed,
+      });
       setRenaming(false);
       onMutated?.();
     } catch (error) {
@@ -122,10 +120,7 @@ export function ModeColumnHeader({
     setBusy(true);
     setActionError("");
     try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
-        { method: "DELETE" },
-      );
+      await deleteCollectionMode({ serverUrl, collectionId, modeName });
       setConfirmDelete(false);
       onMutated?.();
     } catch (error) {
@@ -145,14 +140,11 @@ export function ModeColumnHeader({
       setBusy(true);
       setActionError("");
       try {
-        await apiFetch(
-          `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes-order`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ modes: reordered }),
-          },
-        );
+        await reorderCollectionModes({
+          serverUrl,
+          collectionId,
+          modes: reordered,
+        });
         onMutated?.();
       } catch (error) {
         setActionError(getErrorMessage(error, "Could not move this mode."));

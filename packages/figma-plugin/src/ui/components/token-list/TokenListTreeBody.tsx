@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Layers, MousePointer2, X, ChevronUp } from "lucide-react";
+import { Layers, MousePointer2, X, ChevronUp, Plus } from "lucide-react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
 import type { MultiModeValue } from "../tokenListTypes";
@@ -18,8 +18,13 @@ import { TokenListFilteredEmptyState } from "./TokenListStates";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
 import { getGridMinWidth, getGridTemplate } from "../tokenListTypes";
-import { apiFetch } from "../../shared/apiFetch";
 import { useModeColumnWidths } from "../../hooks/useModeColumnWidths";
+import {
+  addCollectionMode,
+  DUPLICATE_MODE_NAME_MESSAGE,
+  isModeNameTaken,
+} from "../../shared/collectionModes";
+import { getErrorMessage } from "../../shared/utils";
 
 type VisibleTokenRow = {
   node: TokenNode;
@@ -230,40 +235,36 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const [newModeName, setNewModeName] = useState("");
   const [addModeError, setAddModeError] = useState("");
   const [addingModeSaving, setAddingModeSaving] = useState(false);
+  const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
+  const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
 
   const addModeTargetId = multiModeDimId ?? collections[0]?.id ?? null;
-  const modeNames = multiModeData?.results.map((r) => r.optionName) ?? [];
+  const modeNames = useMemo(
+    () => multiModeData?.results.map((result) => result.optionName) ?? [],
+    [multiModeData?.results],
+  );
 
   const handleAddMode = useCallback(async () => {
     const name = newModeName.trim();
     if (!name || !addModeTargetId) return;
-    if (
-      modeNames.some(
-        (modeName) => modeName.toLocaleLowerCase() === name.toLocaleLowerCase(),
-      )
-    ) {
-      setAddModeError("Mode names must be different.");
+    if (isModeNameTaken(modeNames, name)) {
+      setAddModeError(DUPLICATE_MODE_NAME_MESSAGE);
       return;
     }
     setAddingModeSaving(true);
     setAddModeError("");
     try {
-      await apiFetch(
-        `${serverUrl}/api/collections/${encodeURIComponent(addModeTargetId)}/modes`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
-        },
-      );
+      await addCollectionMode({
+        serverUrl,
+        collectionId: addModeTargetId,
+        name,
+      });
       setNewModeName("");
       setAddModeError("");
       setAddModeMenuOpen(false);
       onModeMutated?.();
     } catch (error) {
-      setAddModeError(
-        error instanceof Error ? error.message : "Could not add this mode.",
-      );
+      setAddModeError(getErrorMessage(error, "Could not add this mode."));
     } finally {
       setAddingModeSaving(false);
     }
@@ -294,8 +295,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const tableMinWidth = multiModeData
     ? getGridMinWidth(modeColumnWidths)
     : null;
-  const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
-  const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
   const crossCollectionSections = useMemo(() => {
     if (!crossCollectionResults) {
       return [];
@@ -318,6 +317,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       if (addModeMenuContainerRef.current?.contains(e.target as Node)) return;
       setAddModeMenuOpen(false);
       setNewModeName("");
+      setAddModeError("");
     };
     window.addEventListener("mousedown", onDocMouseDown);
     return () => window.removeEventListener("mousedown", onDocMouseDown);
@@ -391,9 +391,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           aria-haspopup="menu"
           aria-expanded={addModeMenuOpen}
         >
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <path d="M8 3v10M3 8h10" />
-          </svg>
+          <Plus size={12} strokeWidth={2} aria-hidden />
         </button>
         {addModeMenuOpen && (
           <div
