@@ -217,7 +217,7 @@ export function CollectionTabs({
   return (
     <div
       ref={toolbarRef}
-      className="flex min-w-0 shrink-0 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1"
+      className="flex min-w-0 shrink-0 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1"
     >
       <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
         <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
@@ -234,7 +234,7 @@ export function CollectionTabs({
               className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
                 switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                  : "bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                  : "bg-[var(--surface-group-quiet)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
               }`}
             >
               <span className="tm-collection-toolbar__summary min-w-0 flex-1">
@@ -293,7 +293,7 @@ export function CollectionTabs({
                     placeholder="Search collections"
                     aria-label="Search collections"
                     containerClassName="w-full"
-                    className="bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-secondary)]"
+                    className="bg-[var(--surface-group-quiet)] hover:bg-[var(--surface-group-quiet)]"
                   />
                 </div>
 

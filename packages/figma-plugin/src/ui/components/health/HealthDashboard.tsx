@@ -74,8 +74,8 @@ function ReviewSection({
 }) {
   if (rows.length === 0) return null;
   return (
-    <section>
-      <div className="mb-1.5 px-1">
+    <section className="tm-health-section">
+      <div className="tm-health-section__header">
         <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
           {title}
         </h3>
@@ -83,7 +83,7 @@ function ReviewSection({
           {description}
         </p>
       </div>
-      <div>
+      <div className="tm-health-section__rows">
         {rows.map((row) => (
           <StatusRow
             key={row.id}
@@ -224,8 +224,8 @@ export function HealthDashboard({
       : `${totalIssueCount} item${totalIssueCount === 1 ? "" : "s"} need attention. Start with Fix next, then clean up library hygiene.`;
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto px-2.5 py-2.5" style={{ scrollbarWidth: "thin" }}>
-      <div className="mb-3 flex items-start gap-2">
+    <div className="tm-health-dashboard" style={{ scrollbarWidth: "thin" }}>
+      <div className="tm-health-summary">
         <span className={`shrink-0 ${statusColor(overallStatus)}`}>
           <StatusIcon status={overallStatus} />
         </span>
@@ -244,7 +244,7 @@ export function HealthDashboard({
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="tm-health-sections">
         <ReviewSection
           title="Fix next"
           description="Items that can block confident handoff or publish."
@@ -257,7 +257,7 @@ export function HealthDashboard({
         />
       </div>
 
-      <div className="mt-auto pt-4">
+      <div className="tm-health-rules">
         <StatusRow
           tone="neutral"
           label="Rules"

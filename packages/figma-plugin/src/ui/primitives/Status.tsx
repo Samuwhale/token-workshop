@@ -126,9 +126,9 @@ export function StatusRow({
   );
 
   const rowClassName = cx(
-    "tm-status-row flex min-w-0 items-start gap-2 py-1 text-left transition-colors",
+    "tm-status-row flex min-w-0 items-start gap-2 py-1.5 text-left transition-colors",
     `tm-status-row--${tone}`,
-    onClick && !disabled && "w-full rounded px-1.5 hover:bg-[var(--color-figma-bg-hover)]",
+    onClick && !disabled && "w-full rounded px-1.5",
     onClick && disabled && "w-full cursor-default opacity-60",
     className,
   );

@@ -150,6 +150,7 @@ export function FeedbackPlaceholder({
     secondaryAction,
     primaryAction,
   ].filter((action): action is FeedbackPlaceholderAction => action !== undefined);
+  const usingActionList = actions !== undefined;
 
   return (
     <div
@@ -190,7 +191,16 @@ export function FeedbackPlaceholder({
               <FeedbackActionButton
                 key={`${action.label}-${index}`}
                 action={action}
-                defaultTone={action.tone ?? (index === resolvedActions.length - 1 ? 'primary' : 'secondary')}
+                defaultTone={
+                  action.tone ??
+                  (usingActionList
+                    ? index === 0
+                      ? 'primary'
+                      : 'secondary'
+                    : index === resolvedActions.length - 1
+                      ? 'primary'
+                      : 'secondary')
+                }
                 align={align}
               />
             ))}

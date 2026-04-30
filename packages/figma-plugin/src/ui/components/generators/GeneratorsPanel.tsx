@@ -81,6 +81,7 @@ import { useElementWidth } from "../../hooks/useElementWidth";
 import { apiFetch } from "../../shared/apiFetch";
 import { ActionRow, Button, IconButton, SegmentedControl } from "../../primitives";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
+import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 import { GeneratorCreatePanel } from "../GeneratorCreatePanel";
 import {
   NodeLibraryPanel,
@@ -3189,14 +3190,13 @@ export function GeneratorsPanel({
           Create
         </Button>
       </div>
-      <div className="flex min-h-0 flex-1 items-center justify-center px-4">
-        <div className="max-w-[320px] text-center">
-          <div className="text-primary font-semibold">No generators yet</div>
-          <p className="m-0 mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Create a generator for repeated scales, ramps, and token groups in this collection.
-          </p>
-        </div>
-      </div>
+      <FeedbackPlaceholder
+        variant="empty"
+        size="full"
+        icon={null}
+        title="No generators yet"
+        description="Create a generator for repeated scales, ramps, and token groups in this collection."
+      />
     </div>
   );
 
@@ -5333,39 +5333,75 @@ function CompactNodePreview({
         ? "No generated tokens"
         : `${outputs.length} ${outputs.length === 1 ? "token" : "tokens"}`;
     return (
-      <div className="tm-graph-node__summary" title={label}>
-        {firstOutput ? `${label}: ${firstOutput.path}` : label}
+      <div className="tm-graph-node__compact-preview" title={firstOutput?.path ?? label}>
+        <div className="tm-graph-node__compact-preview-row">
+          <span className="tm-graph-node__mode-name">Output</span>
+          <span className="tm-graph-node__compact-output-value">
+            <span className="tm-graph-node__result-summary">{label}</span>
+            {firstOutput ? (
+              <span className="tm-graph-node__compact-output-path">
+                {firstOutput.path}
+              </span>
+            ) : null}
+          </span>
+        </div>
       </div>
     );
   }
   if (!nodePreview) {
     return (
-      <div className="tm-graph-node__summary">
+      <div className="tm-graph-node__compact-preview tm-graph-node__compact-preview--empty">
         {previewReady ? "No preview" : "Preparing preview"}
       </div>
     );
   }
   const modes = modeNames.length > 0 ? modeNames : Object.keys(nodePreview.modeValues);
-  const firstMode = modes[0];
-  const value = firstMode ? nodePreview.modeValues[firstMode] : undefined;
-  const label = compactRuntimeValueLabel(value);
   return (
-    <div className="tm-graph-node__summary" title={label}>
-      {firstMode ? `${firstMode}: ${label}` : label}
+    <div className="tm-graph-node__compact-preview">
+      {modes.length > 0 ? (
+        modes.map((modeName) => (
+          <div key={modeName} className="tm-graph-node__compact-preview-row">
+            <span className="tm-graph-node__mode-name">{modeName}</span>
+            <CompactRuntimeValue value={nodePreview.modeValues[modeName]} />
+          </div>
+        ))
+      ) : (
+        <div className="tm-graph-node__compact-preview--empty">No preview</div>
+      )}
     </div>
   );
 }
 
-function compactRuntimeValueLabel(
+function CompactRuntimeValue({
+  value,
+}: {
   value: TokenGeneratorNodePreviewValue | undefined,
-): string {
-  if (!value) return "No value";
+}) {
+  if (!value) return <ModeValueLine value={undefined} />;
+  if (value.kind === "scalar") {
+    return <ModeValueLine type={value.type} value={value.value} />;
+  }
   if (value.kind === "list") {
     const first = value.values[0];
-    if (!first) return "Empty series";
-    return `${value.values.length} items, first ${formatValue(first.value)}`;
+    if (!first) {
+      return (
+        <span className="tm-graph-node__mode-value">
+          <span className="tm-graph-node__mode-value-text">Empty series</span>
+        </span>
+      );
+    }
+    const label = `${value.values.length} ${value.values.length === 1 ? "item" : "items"}`;
+    const title = `${label}, first ${formatValue(first.value) || "No value"}`;
+    return (
+      <span className="tm-graph-node__mode-value" title={title}>
+        {previewIsValueBearing(first.type ?? value.type) ? (
+          <ValuePreview type={first.type ?? value.type} value={first.value} size={16} />
+        ) : null}
+        <span className="tm-graph-node__mode-value-text">{label}</span>
+      </span>
+    );
   }
-  return formatValue(value.value) || "No value";
+  return <ModeValueLine value={undefined} />;
 }
 
 function NodeIssueList({
@@ -5526,7 +5562,7 @@ function ModeValueLine({
   return (
     <span className="tm-graph-node__mode-value">
       {previewIsValueBearing(type) ? (
-        <ValuePreview type={type} value={value} size={12} />
+        <ValuePreview type={type} value={value} size={16} />
       ) : null}
       <span className="tm-graph-node__mode-value-text" title={formatValue(value)}>
         {formatValue(value) || "No value"}

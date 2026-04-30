@@ -1,8 +1,9 @@
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import type {
   TokenGeneratorDocumentNode,
   TokenGeneratorNodeKind,
 } from "@tokenmanager/core";
+import { Button, SearchField } from "../../primitives";
 
 export interface GeneratorPaletteItem {
   kind: TokenGeneratorNodeKind;
@@ -45,28 +46,25 @@ export function NodeLibraryPanel({
         ) : (
           <span />
         )}
-        <button
+        <Button
           type="button"
           onClick={onToggleAllNodes}
-          className="rounded px-2 py-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+          variant="ghost"
+          size="sm"
+          className="px-2"
         >
           {allNodesOpen ? "Suggested" : "All nodes"}
-        </button>
+        </Button>
       </div>
-      <div className="mb-1.5 flex items-center gap-2 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1">
-        <Search
-          size={14}
-          className="text-[color:var(--color-figma-text-secondary)]"
-        />
-        <input
-          value={paletteQuery}
-          onChange={(event) => onPaletteQueryChange(event.target.value)}
-          placeholder={
-          allNodesOpen ? "Search all nodes" : "Search suggested nodes"
-          }
-          className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
-        />
-      </div>
+      <SearchField
+        size="sm"
+        value={paletteQuery}
+        onChange={(event) => onPaletteQueryChange(event.target.value)}
+        onClear={paletteQuery ? () => onPaletteQueryChange("") : undefined}
+        placeholder={allNodesOpen ? "Search all nodes" : "Search suggested nodes"}
+        aria-label={allNodesOpen ? "Search all nodes" : "Search suggested nodes"}
+        containerClassName="mb-1.5"
+      />
       <div className="space-y-2">
         {Object.entries(groupBy(paletteItems, (item) => item.category)).map(
           ([category, items]) => (
