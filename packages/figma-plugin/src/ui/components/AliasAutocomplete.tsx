@@ -10,6 +10,8 @@ import {
   getRecentScopedTokenCandidates,
   type ScopedTokenCandidate,
 } from '../shared/scopedTokenCandidates';
+import { clampListIndex } from '../shared/listNavigation';
+import { formatTokenValuePreview } from '../shared/tokenValuePreview';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
@@ -23,25 +25,6 @@ interface AliasAutocompleteProps {
 
 const MAX_RESULTS = 24;
 const MAX_AMBIGUOUS_RESULTS = 6;
-
-/** Format a token value as a short preview string. */
-function formatValuePreview(value: unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'object') {
-    // Composite tokens (typography, shadow, etc.) — show key fields concisely
-    const obj = value as Record<string, unknown>;
-    const parts: string[] = [];
-    for (const [k, v] of Object.entries(obj)) {
-      if (k.startsWith('$')) continue; // skip $type, $description, etc.
-      if (typeof v === 'string' || typeof v === 'number') parts.push(String(v));
-      if (parts.length >= 3) break;
-    }
-    return parts.join(' / ') || '';
-  }
-  return String(value);
-}
 
 export function AliasAutocomplete({
   query,
@@ -190,10 +173,10 @@ export function AliasAutocomplete({
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIdx(i => Math.min(i + 1, entries.length - 1));
+        setActiveIdx(i => clampListIndex(i + 1, entries.length));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIdx(i => Math.max(i - 1, 0));
+        setActiveIdx(i => clampListIndex(i - 1, entries.length));
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (entries[activeIdx]) handleSelect(entries[activeIdx]);
@@ -237,8 +220,8 @@ export function AliasAutocomplete({
       {entries.map((candidate, idx) => {
         const { path, entry, resolvedEntry: resolved } = candidate;
         const isAliasToken = isAlias(entry.$value);
-        const previewValue = formatValuePreview(resolved.$value);
-        const rawPreview = isAliasToken ? formatValuePreview(entry.$value) : '';
+        const previewValue = formatTokenValuePreview(resolved.$value);
+        const rawPreview = isAliasToken ? formatTokenValuePreview(entry.$value) : '';
         return (
         <button
           key={candidate.key}

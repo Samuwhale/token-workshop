@@ -17,6 +17,8 @@ import {
   getRecentScopedTokenCandidates,
   type ScopedTokenCandidate,
 } from '../shared/scopedTokenCandidates';
+import { clampListIndex } from '../shared/listNavigation';
+import { formatTokenValuePreview } from '../shared/tokenValuePreview';
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -53,23 +55,6 @@ export interface TokenPickerProps {
 // ---------------------------------------------------------------------------
 
 const MAX_RESULTS = 24;
-
-function formatValuePreview(value: unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'object') {
-    const obj = value as Record<string, unknown>;
-    const parts: string[] = [];
-    for (const [k, v] of Object.entries(obj)) {
-      if (k.startsWith('$')) continue;
-      if (typeof v === 'string' || typeof v === 'number') parts.push(String(v));
-      if (parts.length >= 3) break;
-    }
-    return parts.join(' / ') || '';
-  }
-  return String(value);
-}
 
 // ---------------------------------------------------------------------------
 // TokenPickerDropdown — The searchable list (core primitive)
@@ -178,10 +163,10 @@ export function TokenPickerDropdown({
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIdx(i => Math.min(i + 1, entries.length - 1));
+        setActiveIdx(i => clampListIndex(i + 1, entries.length));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIdx(i => Math.max(i - 1, 0));
+        setActiveIdx(i => clampListIndex(i - 1, entries.length));
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (entries[activeIdx]) handleSelect(entries[activeIdx]);
@@ -234,8 +219,8 @@ export function TokenPickerDropdown({
         {entries.map((candidate, idx) => {
           const { path, entry, resolvedEntry: resolved } = candidate;
           const isAliasToken = isAlias(entry.$value);
-          const previewValue = formatValuePreview(resolved.$value);
-          const rawPreview = isAliasToken ? formatValuePreview(entry.$value) : '';
+          const previewValue = formatTokenValuePreview(resolved.$value);
+          const rawPreview = isAliasToken ? formatTokenValuePreview(entry.$value) : '';
           const isColor = resolved.$type === 'color' && typeof resolved.$value === 'string';
           return (
             <button

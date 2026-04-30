@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
 import { fuzzyScore } from "../shared/fuzzyMatch";
+import { formatTokenValuePreview } from "../shared/tokenValuePreview";
 
 interface RemapAutocompleteInputProps {
   value: string;
@@ -11,24 +12,6 @@ interface RemapAutocompleteInputProps {
 }
 
 const MAX_SUGGESTIONS = 16;
-
-/** Format a token value as a short preview string. */
-function formatValuePreview(value: unknown): string {
-  if (value == null) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  if (typeof value === "object") {
-    const obj = value as Record<string, unknown>;
-    const parts: string[] = [];
-    for (const [k, v] of Object.entries(obj)) {
-      if (k.startsWith("$")) continue;
-      if (typeof v === "string" || typeof v === "number") parts.push(String(v));
-      if (parts.length >= 3) break;
-    }
-    return parts.join(" / ") || "";
-  }
-  return String(value);
-}
 
 export function RemapAutocompleteInput({
   value,
@@ -132,7 +115,7 @@ export function RemapAutocompleteInput({
         >
           {suggestions.map(({ path, entry }, idx) => {
             const isSelected = idx === selectedIdx;
-            const preview = entry ? formatValuePreview(entry.$value) : "";
+            const preview = entry ? formatTokenValuePreview(entry.$value) : "";
             return (
               <button
                 key={path}

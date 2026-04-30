@@ -9,26 +9,13 @@ import { FieldMessage } from '../shared/FieldMessage';
 import { LONG_TEXT_CLASSES } from '../shared/longTextStyles';
 import { NoticePill } from '../shared/noticeSystem';
 import { fieldBorderClass } from '../shared/editorClasses';
+import {
+  getGroupPathPreview,
+  getGroupPathValidationError,
+} from '../shared/groupPath';
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
-}
-
-function normalizeGroupPathPreview(parent: string, value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return parent;
-  return (parent ? `${parent}.${trimmed}` : trimmed)
-    .split('.')
-    .map((segment) => segment.trim())
-    .join('.');
-}
-
-function getGroupPathInputError(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-  return trimmed.split('.').some((segment) => segment.trim().length === 0)
-    ? 'Remove empty path segments'
-    : '';
 }
 
 function ModalFrame({
@@ -695,7 +682,7 @@ export function TokenListModals() {
     handleBatchCopyToCollection,
   } = useTokenListModals();
   const newGroupParent = newGroupDialogParent ?? '';
-  const newGroupPathPreview = normalizeGroupPathPreview(
+  const newGroupPathPreview = getGroupPathPreview(
     newGroupParent,
     newGroupName,
   );
@@ -775,7 +762,9 @@ export function TokenListModals() {
               onChange={e => {
                 const v = e.target.value;
                 onSetNewGroupName(v);
-                onSetNewGroupError(getGroupPathInputError(v));
+                onSetNewGroupError(
+                  getGroupPathValidationError(v, { allowEmpty: true }) ?? '',
+                );
               }}
               onKeyDown={e => {
                 if (e.key === 'Enter') handleCreateGroup(newGroupParent, newGroupName);
