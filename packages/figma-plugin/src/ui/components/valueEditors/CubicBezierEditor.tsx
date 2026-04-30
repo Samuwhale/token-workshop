@@ -1,8 +1,10 @@
 import { memo } from 'react';
+import type { CubicBezierValue } from '@tokenmanager/core';
 import { AUTHORING } from '../../shared/editorClasses';
 import { Field, Stack } from '../../primitives';
+import { normalizeCubicBezierValue, type ValueChangeHandler } from './valueEditorShared';
 
-const BEZIER_PRESETS: { label: string; value: [number, number, number, number] }[] = [
+const BEZIER_PRESETS: { label: string; value: CubicBezierValue }[] = [
   { label: 'linear', value: [0, 0, 1, 1] },
   { label: 'ease', value: [0.25, 0.1, 0.25, 1] },
   { label: 'ease-in', value: [0.42, 0, 1, 1] },
@@ -10,13 +12,16 @@ const BEZIER_PRESETS: { label: string; value: [number, number, number, number] }
   { label: 'ease-in-out', value: [0.42, 0, 0.58, 1] },
 ];
 
-export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-  const pts: [number, number, number, number] = Array.isArray(value) && value.length === 4
-    ? value as [number, number, number, number]
-    : [0, 0, 1, 1];
+type CubicBezierEditorProps = {
+  value: unknown;
+  onChange: ValueChangeHandler<CubicBezierValue>;
+};
+
+export const CubicBezierEditor = memo(function CubicBezierEditor({ value, onChange }: CubicBezierEditorProps) {
+  const pts = normalizeCubicBezierValue(value);
 
   const update = (idx: number, v: number) => {
-    const next = [...pts] as [number, number, number, number];
+    const next = [...pts] as CubicBezierValue;
     next[idx] = v;
     onChange(next);
   };

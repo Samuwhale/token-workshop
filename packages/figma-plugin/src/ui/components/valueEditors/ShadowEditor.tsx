@@ -1,24 +1,61 @@
 import { memo } from 'react';
+import type { ShadowValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AUTHORING } from '../../shared/editorClasses';
 import { Field, Stack } from '../../primitives';
 import { ColorSwatchButton } from './ColorEditor';
-import { SubPropInput } from './valueEditorShared';
+import {
+  SubPropInput,
+  getDimensionNumber,
+  getStringProp,
+  isReferenceDraft,
+  mergeInheritedValue,
+  toPxDimensionValue,
+  type TokenValueRecord,
+  type ValueChangeHandler,
+} from './valueEditorShared';
 
-export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTokensFlat, pathToCollectionId, inheritedValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; inheritedValue?: any }) {
-  const rawVal = typeof value === 'object' ? value : {};
-  const inherited = typeof inheritedValue === 'object' && inheritedValue !== null ? inheritedValue : undefined;
-  const val = inherited ? { ...inherited, ...rawVal } : rawVal;
-  const update = (key: string, v: any) => {
-    if (inherited) {
-      onChange({ ...rawVal, [key]: v });
-    } else {
-      onChange({ ...val, [key]: v });
-    }
+type ShadowEditorProps = {
+  value: unknown;
+  onChange: ValueChangeHandler<TokenValueRecord>;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToCollectionId: Record<string, string>;
+  inheritedValue?: unknown;
+};
+
+type ShadowDimensionKey = keyof Pick<ShadowValue, 'offsetX' | 'offsetY' | 'blur' | 'spread'>;
+
+const SHADOW_DIMENSION_FIELDS: Array<{ key: ShadowDimensionKey; label: string }> = [
+  { key: 'offsetX', label: 'Offset X' },
+  { key: 'offsetY', label: 'Offset Y' },
+  { key: 'blur', label: 'Blur' },
+  { key: 'spread', label: 'Spread' },
+];
+
+function isShadowType(value: unknown): value is NonNullable<ShadowValue['type']> {
+  return value === 'dropShadow' || value === 'innerShadow';
+}
+
+export const ShadowEditor = memo(function ShadowEditor({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToCollectionId,
+  inheritedValue,
+}: ShadowEditorProps) {
+  const { ownValue, effectiveValue, hasInheritedValue } = mergeInheritedValue(value, inheritedValue);
+  const update = (key: keyof ShadowValue, nextValue: unknown) => {
+    onChange({
+      ...(hasInheritedValue ? ownValue : effectiveValue),
+      [key]: nextValue,
+    });
   };
-  const getDim = (v: any) => (typeof v === 'string' && v.startsWith('{') ? v : (typeof v === 'object' ? v.value : (v ?? 0)));
-  const setDim = (key: string, v: any) => update(key, typeof v === 'string' && v.startsWith('{') ? v : { value: typeof v === 'number' ? v : parseFloat(String(v)) || 0, unit: 'px' });
-  const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
+  const setDimension = (key: ShadowDimensionKey, nextValue: unknown) => {
+    update(key, toPxDimensionValue(nextValue));
+  };
+  const color = getStringProp(effectiveValue, 'color', '#00000040');
+  const shadowType = isShadowType(effectiveValue.type) ? effectiveValue.type : 'dropShadow';
+  const isColorAlias = isReferenceDraft(color);
 
   return (
     <Stack gap={3}>
@@ -26,12 +63,12 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
         <Stack direction="row" gap={2} align="center">
           {!isColorAlias && (
             <ColorSwatchButton
-              color={val.color || '#000000'}
+              color={color}
               onChange={v => update('color', v)}
             />
           )}
           <SubPropInput
-            value={val.color || '#00000040'}
+            value={color}
             onChange={v => update('color', v)}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
@@ -42,22 +79,21 @@ export const ShadowEditor = memo(function ShadowEditor({ value, onChange, allTok
         </Stack>
       </Field>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-2">
-        <Field label="Offset X">
-          <SubPropInput value={getDim(val.offsetX)} onChange={v => setDim('offsetX', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </Field>
-        <Field label="Offset Y">
-          <SubPropInput value={getDim(val.offsetY)} onChange={v => setDim('offsetY', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </Field>
-        <Field label="Blur">
-          <SubPropInput value={getDim(val.blur)} onChange={v => setDim('blur', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </Field>
-        <Field label="Spread">
-          <SubPropInput value={getDim(val.spread)} onChange={v => setDim('spread', v)} allTokensFlat={allTokensFlat} pathToCollectionId={pathToCollectionId} placeholder="0" />
-        </Field>
+        {SHADOW_DIMENSION_FIELDS.map(({ key, label }) => (
+          <Field key={key} label={label}>
+            <SubPropInput
+              value={getDimensionNumber(effectiveValue[key])}
+              onChange={v => setDimension(key, v)}
+              allTokensFlat={allTokensFlat}
+              pathToCollectionId={pathToCollectionId}
+              placeholder="0"
+            />
+          </Field>
+        ))}
       </div>
       <Field label="Type">
         <select
-          value={val.type || 'dropShadow'}
+          value={shadowType}
           onChange={e => update('type', e.target.value)}
           className={AUTHORING.input}
         >

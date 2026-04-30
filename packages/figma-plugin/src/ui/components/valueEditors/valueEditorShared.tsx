@@ -4,6 +4,7 @@
 import { useState, useRef, memo, type Ref } from 'react';
 import { Link2 } from 'lucide-react';
 import { evalExpr } from '@tokenmanager/core';
+import type { CubicBezierValue, DimensionValue, TokenValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { isAlias, extractAliasPath } from '../../../shared/resolveAlias';
@@ -12,6 +13,81 @@ import { AUTHORING } from '../../shared/editorClasses';
 
 const REFERENCE_BUTTON_CLASS =
   'flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors';
+
+export type TokenValueRecord = Record<string, unknown>;
+export type ValueChangeHandler<T = unknown> = (value: T) => void;
+
+export function isValueRecord(value: unknown): value is TokenValueRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function toValueRecord(value: unknown): TokenValueRecord {
+  return isValueRecord(value) ? value : {};
+}
+
+export function mergeInheritedValue(
+  value: unknown,
+  inheritedValue: unknown,
+): {
+  ownValue: TokenValueRecord;
+  effectiveValue: TokenValueRecord;
+  hasInheritedValue: boolean;
+} {
+  const ownValue = toValueRecord(value);
+  const inheritedRecord = isValueRecord(inheritedValue) ? inheritedValue : undefined;
+
+  return {
+    ownValue,
+    effectiveValue: inheritedRecord ? { ...inheritedRecord, ...ownValue } : ownValue,
+    hasInheritedValue: inheritedRecord !== undefined,
+  };
+}
+
+export function isReferenceDraft(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith('{');
+}
+
+export function getStringProp(record: TokenValueRecord, key: string, fallback: string): string {
+  const value = record[key];
+  return typeof value === 'string' ? value : fallback;
+}
+
+export function getDimensionNumber(value: unknown): string | number {
+  if (isReferenceDraft(value)) return value;
+  if (isValueRecord(value)) {
+    return typeof value.value === 'number' ? value.value : 0;
+  }
+  return typeof value === 'number' ? value : 0;
+}
+
+export function toPxDimensionValue(value: unknown): DimensionValue | string {
+  if (isReferenceDraft(value)) return value;
+  const numberValue = typeof value === 'number' ? value : parseFloat(String(value));
+  return { value: Number.isFinite(numberValue) ? numberValue : 0, unit: 'px' };
+}
+
+function normalizeDimensionDraft(value: unknown, fallbackUnit: string): { value: number; unit: string } {
+  if (!isValueRecord(value)) {
+    return { value: typeof value === 'number' ? value : 0, unit: fallbackUnit };
+  }
+
+  return {
+    value: typeof value.value === 'number' ? value.value : 0,
+    unit: typeof value.unit === 'string' ? value.unit : fallbackUnit,
+  };
+}
+
+export function normalizeCubicBezierValue(
+  value: unknown,
+  fallback: CubicBezierValue = [0, 0, 1, 1],
+): CubicBezierValue {
+  if (!Array.isArray(value) || value.length !== 4) return fallback;
+
+  const [x1, y1, x2, y2] = value;
+  return [x1, y1, x2, y2].every(point => typeof point === 'number' && Number.isFinite(point))
+    ? [x1, y1, x2, y2]
+    : fallback;
+}
 
 export const InheritedBadge = memo(function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
   return (
@@ -71,8 +147,8 @@ export const SubPropInput = memo(function SubPropInput({
   inputRef,
   autoFocus,
 }: {
-  value: any;
-  onChange: (v: any) => void;
+  value: unknown;
+  onChange: ValueChangeHandler;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   filterType?: string;
@@ -82,7 +158,7 @@ export const SubPropInput = memo(function SubPropInput({
   inputRef?: Ref<HTMLInputElement>;
   autoFocus?: boolean;
 }) {
-  const isAliasVal = typeof value === 'string' && value.startsWith('{');
+  const isAliasVal = isReferenceDraft(value);
   const displayValue = isAliasVal ? value : String(value ?? '');
   // Auto-show autocomplete when mounted mid-typing an alias (e.g. value === '{')
   const [showAC, setShowAC] = useState(() => typeof value === 'string' && value.includes('{') && !value.endsWith('}'));
@@ -174,16 +250,16 @@ export const DimensionSubProp = memo(function DimensionSubProp({
   placeholder = '0',
   inputRef,
 }: {
-  value: any;
-  onChange: (v: any) => void;
+  value: unknown;
+  onChange: ValueChangeHandler;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   units?: string[];
   placeholder?: string;
   inputRef?: Ref<HTMLInputElement>;
 }) {
-  const isAliasVal = typeof value === 'string' && value.startsWith('{');
-  const dim = !isAliasVal && typeof value === 'object' && value !== null ? value : { value: typeof value === 'number' ? value : 0, unit: units[0] };
+  const isAliasVal = isReferenceDraft(value);
+  const dim = normalizeDimensionDraft(value, units[0]);
 
   if (isAliasVal) {
     return (
@@ -247,8 +323,8 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
   availableFonts,
   inputRef,
 }: {
-  value: any;
-  onChange: (v: any) => void;
+  value: unknown;
+  onChange: ValueChangeHandler;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   availableFonts: string[];
@@ -335,8 +411,8 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
 });
 
 export function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, TokenMapEntry>): unknown {
-  if (isAlias(raw as import('@tokenmanager/core').TokenValue | undefined)) {
-    const entry = allTokensFlat[extractAliasPath(raw as import('@tokenmanager/core').TokenValue)!];
+  if (isAlias(raw as TokenValue | undefined)) {
+    const entry = allTokensFlat[extractAliasPath(raw as TokenValue)!];
     if (entry) return entry.$value;
   }
   return raw;

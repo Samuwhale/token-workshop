@@ -1,22 +1,43 @@
 import { memo } from 'react';
+import type { BorderValue } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AUTHORING } from '../../shared/editorClasses';
 import { Field, Stack } from '../../primitives';
 import { ColorSwatchButton } from './ColorEditor';
-import { SubPropInput, DimensionSubProp } from './valueEditorShared';
+import {
+  DimensionSubProp,
+  SubPropInput,
+  getStringProp,
+  isReferenceDraft,
+  mergeInheritedValue,
+  type ValueChangeHandler,
+} from './valueEditorShared';
 
-export const BorderEditor = memo(function BorderEditor({ value, onChange, allTokensFlat, pathToCollectionId, inheritedValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToCollectionId: Record<string, string>; inheritedValue?: any }) {
-  const rawVal = typeof value === 'object' ? value : {};
-  const inherited = typeof inheritedValue === 'object' && inheritedValue !== null ? inheritedValue : undefined;
-  const val = inherited ? { ...inherited, ...rawVal } : rawVal;
-  const update = (key: string, v: any) => {
-    if (inherited) {
-      onChange({ ...rawVal, [key]: v });
-    } else {
-      onChange({ ...val, [key]: v });
-    }
+type BorderEditorProps = {
+  value: unknown;
+  onChange: ValueChangeHandler<Partial<BorderValue>>;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToCollectionId: Record<string, string>;
+  inheritedValue?: unknown;
+};
+
+export const BorderEditor = memo(function BorderEditor({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToCollectionId,
+  inheritedValue,
+}: BorderEditorProps) {
+  const { ownValue, effectiveValue, hasInheritedValue } = mergeInheritedValue(value, inheritedValue);
+  const update = (key: keyof BorderValue, nextValue: unknown) => {
+    onChange({
+      ...(hasInheritedValue ? ownValue : effectiveValue),
+      [key]: nextValue,
+    } as Partial<BorderValue>);
   };
-  const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
+  const color = getStringProp(effectiveValue, 'color', '#000000');
+  const style = getStringProp(effectiveValue, 'style', 'solid');
+  const isColorAlias = isReferenceDraft(color);
 
   return (
     <Stack gap={3}>
@@ -24,12 +45,12 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
         <Stack direction="row" gap={2} align="center">
           {!isColorAlias && (
             <ColorSwatchButton
-              color={val.color || '#000000'}
+              color={color}
               onChange={v => update('color', v)}
             />
           )}
           <SubPropInput
-            value={val.color || '#000000'}
+            value={color}
             onChange={v => update('color', v)}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
@@ -42,7 +63,7 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
       <Stack direction="row" gap={3}>
         <Field label="Width" className="flex-1">
           <DimensionSubProp
-            value={val.width ?? { value: 1, unit: 'px' }}
+            value={effectiveValue.width ?? { value: 1, unit: 'px' }}
             onChange={v => update('width', v)}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
@@ -50,7 +71,7 @@ export const BorderEditor = memo(function BorderEditor({ value, onChange, allTok
         </Field>
         <Field label="Style" className="flex-1">
           <select
-            value={val.style || 'solid'}
+            value={style}
             onChange={e => update('style', e.target.value)}
             className={AUTHORING.input}
           >
