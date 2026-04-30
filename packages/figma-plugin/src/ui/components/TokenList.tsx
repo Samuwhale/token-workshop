@@ -380,42 +380,46 @@ export function TokenList({
   // produces at least one column — single-mode collections get one result,
   // multi-mode collections get N. Returns null only when no collection is
   // selected yet (e.g. during initial load).
+  const currentCollection = useMemo(
+    () =>
+      activeCollections.find((candidate) => candidate.id === collectionId) ??
+      null,
+    [activeCollections, collectionId],
+  );
+
   const multiModeData = useMemo(() => {
     if (
       Object.keys(currentCollectionFlat).length === 0 ||
-      activeCollections.length === 0
+      !currentCollection
     )
       return null;
-    const collection = activeCollections.find(
-      (candidate) => candidate.id === collectionId,
-    );
-    if (!collection || collection.modes.length === 0) return null;
+    if (currentCollection.modes.length === 0) return null;
 
     const results: Array<{
       optionName: string;
       collectionId: string;
       resolved: Record<string, TokenMapEntry>;
     }> = [];
-    for (const option of collection.modes) {
+    const currentCollectionPathMap = Object.fromEntries(
+      Object.keys(currentCollectionFlat).map((path) => [
+        path,
+        currentCollection.id,
+      ]),
+    );
+    for (const option of currentCollection.modes) {
       results.push({
         optionName: option.name,
-        collectionId: collection.id,
+        collectionId: currentCollection.id,
         resolved: applyModeSelectionsToTokens(
           currentCollectionFlat,
-          [collection],
-          { [collection.id]: option.name },
-          Object.fromEntries(
-            Object.keys(currentCollectionFlat).map((path) => [path, collection.id]),
-          ),
+          [currentCollection],
+          { [currentCollection.id]: option.name },
+          currentCollectionPathMap,
         ),
       });
     }
-    return { collection, results };
-  }, [
-    collectionId,
-    currentCollectionFlat,
-    activeCollections,
-  ]);
+    return { collection: currentCollection, results };
+  }, [currentCollection, currentCollectionFlat]);
 
   // Build mode values for a given token path. Always returns at least one entry
   // — single-mode collections get one, multi-mode collections get N.
@@ -435,85 +439,54 @@ export function TokenList({
     [multiModeData],
   );
 
-  // Pre-compute per-group collection coverage and per-token missing mode counts.
-  const totalOptionCount = useMemo(
-    () =>
-      activeCollections.length > 0
-        ? activeCollections.reduce((sum, collection) => sum + collection.modes.length, 0)
-        : 0,
-    [activeCollections],
-  );
-
+  // Pre-compute per-group missing mode counts for the active collection.
   const tokenModeMissing = useMemo(() => {
-    if (activeCollections.length === 0 || totalOptionCount === 0)
-      return undefined;
+    if (!currentCollection || currentCollection.modes.length === 0) return undefined;
+
     const map = new Map<string, number>();
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
+    const totalModeCount = currentCollection.modes.length;
+    for (const [path, entry] of Object.entries(currentCollectionFlat)) {
       let filled = 0;
-      for (const collection of activeCollections) {
-        const collectionModes = getInlineModeValues(entry, collection.id);
-        for (let i = 0; i < collection.modes.length; i++) {
-          const mode = collection.modes[i];
-          const v = i === 0 ? entry.$value : collectionModes[mode.name];
-          if (v !== undefined && v !== null && v !== "") filled++;
-        }
+      const collectionModes = getInlineModeValues(entry, currentCollection.id);
+      for (let i = 0; i < currentCollection.modes.length; i++) {
+        const mode = currentCollection.modes[i];
+        const value = i === 0 ? entry.$value : collectionModes[mode.name];
+        if (value !== undefined && value !== null && value !== "") filled++;
       }
-      const missing = totalOptionCount - filled;
+      const missing = totalModeCount - filled;
       if (missing > 0) map.set(path, missing);
     }
     return map.size > 0 ? map : undefined;
-  }, [activeCollections, allTokensFlat, totalOptionCount]);
+  }, [currentCollection, currentCollectionFlat]);
 
   const collectionCoverage = useMemo(() => {
-    if (activeCollections.length === 0) return undefined;
-    const multiModeCollectionIds = new Set(
-      activeCollections.filter((c) => c.modes.length >= 2).map((c) => c.id),
-    );
-    const configuredTokenPaths = new Set<string>();
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      const tokenCollectionId = collectionId;
-      if (tokenCollectionId && multiModeCollectionIds.has(tokenCollectionId)) {
-        configuredTokenPaths.add(path);
-        continue;
-      }
-      if (!entry.$extensions?.tokenmanager?.modes) continue;
-      for (const collection of activeCollections) {
-        const collectionModes = getInlineModeValues(entry, collection.id);
-        if (Object.keys(collectionModes).length > 0) {
-          configuredTokenPaths.add(path);
-          break;
-        }
-      }
-    }
-    if (configuredTokenPaths.size === 0 && !tokenModeMissing) return undefined;
+    if (!currentCollection || !tokenModeMissing) return undefined;
+
     const map = new Map<
       string,
-      { configured: number; total: number; totalMissing: number }
+      { total: number; totalMissing: number }
     >();
     function walk(
       nodes: TokenNode[],
-    ): { configured: number; total: number; totalMissing: number } {
-      let configured = 0,
-        total = 0,
-        totalMissing = 0;
+    ): { total: number; totalMissing: number } {
+      let total = 0;
+      let totalMissing = 0;
       for (const node of nodes) {
         if (node.isGroup && node.children) {
           const sub = walk(node.children);
-          configured += sub.configured;
           total += sub.total;
           totalMissing += sub.totalMissing;
           map.set(node.path, sub);
         } else if (!node.isGroup) {
           total++;
-          if (configuredTokenPaths.has(node.path)) configured++;
           totalMissing += tokenModeMissing?.get(node.path) ?? 0;
         }
       }
-      return { configured, total, totalMissing };
+      return { total, totalMissing };
     }
     walk(tokens);
     return map;
-  }, [activeCollections, allTokensFlat, collectionId, tokenModeMissing, tokens]);
+  }, [currentCollection, tokenModeMissing, tokens]);
 
   // JSON editor state
   const {

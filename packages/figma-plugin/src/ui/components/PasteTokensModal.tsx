@@ -8,6 +8,8 @@ import { apiFetch } from '../shared/apiFetch';
 import type { UndoSlot } from '../hooks/useUndo';
 import type { TokenMapEntry } from '../../shared/types';
 import { cloneValue } from '../../shared/clone';
+import { X } from 'lucide-react';
+import { Button, IconButton } from '../primitives';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -333,6 +335,11 @@ export function PasteTokensModal({
       void handleConfirm();
     }
   };
+  const closeIfIdle = () => {
+    if (!busy) {
+      onClose();
+    }
+  };
 
   return (
     <div
@@ -340,7 +347,7 @@ export function PasteTokensModal({
       onKeyDown={handleKeyDown}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !busy) {
-          onClose();
+          closeIfIdle();
         }
       }}
     >
@@ -360,16 +367,15 @@ export function PasteTokensModal({
               into <span className="font-mono text-[color:var(--color-figma-text)]">{currentCollectionId}</span>
             </div>
           </div>
-          <button
-            onClick={onClose}
+          <IconButton
+            onClick={closeIfIdle}
             disabled={busy}
-            className="mt-0.5 text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[color:var(--color-figma-text-secondary)]"
+            size="sm"
+            className="mt-0.5"
             aria-label="Close"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
+            <X size={12} strokeWidth={2} aria-hidden />
+          </IconButton>
         </div>
 
         {/* Format hint — shows detected format */}
@@ -569,17 +575,20 @@ export function PasteTokensModal({
         )}
 
         <div className="flex flex-wrap gap-2 justify-end px-4 py-3 border-t border-[var(--color-figma-border)]">
-          <button
-            onClick={onClose}
-            className="min-w-0 flex-1 basis-[120px] px-3 py-1.5 rounded text-body text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          <Button
+            onClick={closeIfIdle}
+            disabled={busy}
+            variant="ghost"
+            className="min-w-0 flex-1 basis-[120px]"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleConfirm}
             disabled={confirmCount === 0 || busy}
             title={confirmCount > 0 ? `${adaptShortcut('⌘')}↵ to confirm` : undefined}
-            className="min-w-0 flex-1 basis-[180px] px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
+            variant="primary"
+            className="min-w-0 flex-1 basis-[180px]"
           >
             {busy
               ? 'Saving…'
@@ -590,7 +599,7 @@ export function PasteTokensModal({
               : toUpdate.length > 0
               ? `Create ${toCreate.length} · Update ${toUpdate.length}`
               : `Create ${toCreate.length}`}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

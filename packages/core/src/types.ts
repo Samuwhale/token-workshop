@@ -210,7 +210,7 @@ export interface TokenManagerExtensions {
   source?: 'figma-variables' | 'figma-styles' | 'json' | 'css' | 'tailwind' | (string & {});
   /** Dot-path to a base token this token inherits from (composite inheritance). */
   extends?: string;
-  /** Per-collection mode overrides keyed by collection id, then mode name. */
+  /** Per-collection mode values keyed by collection id, then mode name. */
   modes?: TokenModeValues;
   /** Generator provenance for tokens managed by a generator. */
   generator?: {

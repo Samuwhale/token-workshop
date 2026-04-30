@@ -319,10 +319,10 @@ export interface TokenTreeGroupStateContextType {
   dragOverGroup?: string | null;
   dragOverGroupIsInvalid?: boolean;
   dragSource?: { paths: string[]; names: string[] } | null;
-  /** Pre-computed collection mode coverage per group: groupPath → { configured, total, totalMissing } */
+  /** Pre-computed active-collection mode gaps per group. */
   collectionCoverage?: Map<
     string,
-    { configured: number; total: number; totalMissing: number }
+    { total: number; totalMissing: number }
   >;
   /** Roving tabindex: path of the currently keyboard-navigable row (tabIndex=0); all others are -1 */
   rovingFocusPath: string | null;

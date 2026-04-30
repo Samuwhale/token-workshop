@@ -56,7 +56,7 @@ interface GroupStateDeps {
   dragSource?: { paths: string[]; names: string[] } | null;
   collectionCoverage?: Map<
     string,
-    { configured: number; total: number; totalMissing: number }
+    { total: number; totalMissing: number }
   >;
   effectiveRovingPath: string | null;
 }
