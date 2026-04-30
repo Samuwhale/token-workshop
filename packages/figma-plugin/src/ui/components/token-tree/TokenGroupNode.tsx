@@ -437,7 +437,13 @@ export const TokenGroupNode = memo(
                     </span>
                   )}
                 <div
-                  className={`flex items-center gap-0.5 shrink-0 ${selectMode || !structuralActionsEnabled ? "invisible" : isGroupActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto"}`}
+                  className={`flex shrink-0 items-center gap-0.5 transition-opacity ${
+                    selectMode || !structuralActionsEnabled
+                      ? "hidden"
+                      : isGroupActive
+                        ? "opacity-100"
+                        : "opacity-45 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
+                  }`}
                 >
                   <button
                     onClick={(e) => {

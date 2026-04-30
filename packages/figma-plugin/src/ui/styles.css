@@ -1185,6 +1185,11 @@ a[role="menuitem"] {
   gap: 1px;
 }
 
+.tm-collection-toolbar__trigger,
+.tm-collection-toolbar__action {
+  min-inline-size: 0;
+}
+
 .tm-toolbar-action__label {
   display: block;
   min-inline-size: 0;
@@ -1198,6 +1203,32 @@ a[role="menuitem"] {
     white-space: normal;
     text-overflow: clip;
     overflow-wrap: anywhere;
+  }
+}
+
+@container (max-width: 620px) {
+  .tm-collection-toolbar__row {
+    flex-wrap: nowrap;
+  }
+
+  .tm-collection-toolbar__actions {
+    flex-basis: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .tm-collection-toolbar__actions > * {
+    flex: 0 0 auto;
+  }
+
+  .tm-collection-toolbar__action {
+    inline-size: 28px;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .tm-collection-toolbar__optional-label {
+    display: none;
   }
 }
 
@@ -1276,6 +1307,10 @@ a[role="menuitem"] {
   white-space: nowrap;
 }
 
+.tm-token-toolbar__button-label {
+  min-inline-size: 0;
+}
+
 .tm-token-toolbar__split-button {
   display: inline-flex;
   min-inline-size: 0;
@@ -1345,10 +1380,11 @@ a[role="menuitem"] {
 
   .tm-token-toolbar .tm-responsive-toolbar__actions {
     flex-basis: 100%;
+    gap: 6px;
   }
 
   .tm-token-toolbar .tm-responsive-toolbar__actions > * {
-    flex: 1 1 100%;
+    flex: 1 1 calc(50% - 3px);
   }
 
   .tm-token-toolbar__split-button {
@@ -1361,6 +1397,18 @@ a[role="menuitem"] {
     white-space: normal;
     text-overflow: clip;
     overflow-wrap: anywhere;
+  }
+}
+
+@container (max-width: 720px) {
+  .tm-token-toolbar__secondary-label {
+    display: none;
+  }
+}
+
+@container (max-width: 620px) {
+  .tm-token-toolbar .tm-responsive-toolbar__actions > * {
+    flex: 1 1 100%;
   }
 }
 
@@ -2288,11 +2336,7 @@ button.tm-token-details__text-button:disabled:hover {
   padding-inline: 8px;
   border: 1px solid transparent;
   border-radius: 4px;
-  background: color-mix(
-    in srgb,
-    var(--color-figma-bg-secondary) 45%,
-    transparent
-  );
+  background: transparent;
   font-size: var(--font-size-sm);
   color: var(--color-figma-text-secondary);
   transition:
@@ -2607,13 +2651,13 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 @container (max-width: 500px) {
-  .tm-token-mode-row__action-button {
-    inline-size: 28px;
-    padding-inline: 0;
+  .tm-token-mode-row__controls {
+    inline-size: 100%;
   }
 
-  .tm-token-mode-row__action-label {
-    display: none;
+  .tm-token-mode-row__action-button {
+    flex: 1 1 100%;
+    justify-content: flex-start;
   }
 }
 

@@ -784,6 +784,7 @@ export function TokenList({
     refFilter,
     showDuplicates,
     crossCollectionSearch,
+    hasCrossCollectionCriteria,
     setCrossCollectionSearch,
     showQualifierHints,
     setShowQualifierHints,
@@ -2106,6 +2107,8 @@ export function TokenList({
               insertQualifier: insertSearchQualifier,
             }}
             crossCollection={{
+              active: crossCollectionSearch,
+              hasCriteria: hasCrossCollectionCriteria,
               loading: crossCollectionLoading,
               error: crossCollectionError,
               results: crossCollectionResults,

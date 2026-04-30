@@ -2273,7 +2273,7 @@ export function App() {
       )}
 
       {/* Quick Apply Picker */}
-      {showQuickApply && !selectionLoading && selectedNodes.length > 0 && (
+      {showQuickApply && !selectionLoading && (
         <QuickApplyPicker
           selectedNodes={selectedNodes}
           tokenMap={allTokensFlat}

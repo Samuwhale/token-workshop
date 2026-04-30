@@ -21,6 +21,7 @@ interface AliasAutocompleteProps {
 }
 
 const MAX_RESULTS = 24;
+const MAX_AMBIGUOUS_RESULTS = 6;
 
 /** Format a token value as a short preview string. */
 function formatValuePreview(value: unknown): string {
@@ -71,7 +72,7 @@ export function AliasAutocomplete({
     [allTokensFlat, pathToCollectionId, collectionIdsByPath, perCollectionFlat],
   );
 
-  const { entries, totalCount, hasRecent } = useMemo(() => {
+  const { entries, totalCount, hasRecent, ambiguousEntries } = useMemo(() => {
     const q = query.trim();
     if (!q) {
       const recentEntries: ScopedTokenCandidate[] = [];
@@ -98,26 +99,66 @@ export function AliasAutocomplete({
         entries: [...recentEntries, ...remaining],
         totalCount: all.length + recentEntries.length,
         hasRecent: recentEntries.length > 0,
+        ambiguousEntries: [],
       };
     }
     const scored: Array<[ScopedTokenCandidate, number]> = [];
+    const ambiguousScored: Array<[ScopedTokenCandidate, number]> = [];
     for (const candidate of candidates) {
-      if (
-        candidate.isAmbiguousPath ||
-        (filterType && candidate.entry.$type !== filterType)
-      ) {
+      if (filterType && candidate.entry.$type !== filterType) {
         continue;
       }
       const score = fuzzyScore(q, candidate.path);
-      if (score >= 0) scored.push([candidate, score]);
+      if (score < 0) {
+        continue;
+      }
+      if (candidate.isAmbiguousPath) {
+        ambiguousScored.push([candidate, score]);
+      } else {
+        scored.push([candidate, score]);
+      }
     }
     scored.sort((a, b) => b[1] - a[1]);
+    ambiguousScored.sort((a, b) => b[1] - a[1]);
+    const seenAmbiguousPaths = new Set<string>();
+    const ambiguousMatches: ScopedTokenCandidate[] = [];
+    for (const [candidate] of ambiguousScored) {
+      if (seenAmbiguousPaths.has(candidate.path)) {
+        continue;
+      }
+      seenAmbiguousPaths.add(candidate.path);
+      ambiguousMatches.push(candidate);
+      if (ambiguousMatches.length >= MAX_AMBIGUOUS_RESULTS) {
+        break;
+      }
+    }
     return {
       entries: scored.slice(0, MAX_RESULTS).map(([candidate]) => candidate),
       totalCount: scored.length,
       hasRecent: false,
+      ambiguousEntries: ambiguousMatches,
     };
   }, [candidates, query, filterType]);
+
+  const getAmbiguousCollectionLabel = useCallback(
+    (path: string): string => {
+      const collectionIds =
+        collectionIdsByPath[path] ??
+        candidates
+          .filter((candidate) => candidate.path === path)
+          .map((candidate) => candidate.collectionId)
+          .filter(Boolean);
+      const uniqueIds = [...new Set(collectionIds)];
+      if (uniqueIds.length === 0) {
+        return "multiple collections";
+      }
+      if (uniqueIds.length <= 3) {
+        return uniqueIds.join(", ");
+      }
+      return `${uniqueIds.slice(0, 3).join(", ")} and ${uniqueIds.length - 3} more`;
+    },
+    [candidates, collectionIdsByPath],
+  );
 
   useEffect(() => {
     setActiveIdx(0);
@@ -148,7 +189,7 @@ export function AliasAutocomplete({
     el?.scrollIntoView({ block: 'nearest' });
   }, [activeIdx]);
 
-  if (entries.length === 0) {
+  if (entries.length === 0 && ambiguousEntries.length === 0) {
     return (
       <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-2 px-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
         No matching tokens with a unique path
@@ -166,6 +207,11 @@ export function AliasAutocomplete({
           Recent
         </div>
       )}
+      {entries.length === 0 && ambiguousEntries.length > 0 ? (
+        <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
+          Matching paths exist in more than one collection. Rename one path before using it as an alias.
+        </div>
+      ) : null}
       {entries.map((candidate, idx) => {
         const { path, entry, resolvedEntry: resolved } = candidate;
         const isAliasToken = isAlias(entry.$value);
@@ -216,6 +262,31 @@ export function AliasAutocomplete({
         </button>
         );
       })}
+      {ambiguousEntries.length > 0 ? (
+        <div className="border-t border-[var(--color-figma-border)] py-1">
+          <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
+            Ambiguous paths
+          </div>
+          {ambiguousEntries.map((candidate) => (
+            <div
+              key={`ambiguous:${candidate.path}`}
+              className="px-2 py-1.5 text-left opacity-70"
+              aria-disabled="true"
+            >
+              <div className="grid min-w-0 grid-cols-[12px_minmax(0,1fr)] gap-x-2 gap-y-0.5">
+                <div className="h-3 w-3" />
+                <span className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text)]">
+                  {candidate.path}
+                </span>
+                <div />
+                <span className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Exists in {getAmbiguousCollectionLabel(candidate.path)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {totalCount > MAX_RESULTS && (
         <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
           Showing {MAX_RESULTS} of {totalCount} matches — refine your search

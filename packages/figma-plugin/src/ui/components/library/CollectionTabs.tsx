@@ -25,6 +25,9 @@ import {
 } from "../../shared/libraryCollections";
 import { SearchField } from "../../primitives";
 
+const COLLECTION_ACTION_BUTTON_CLASS =
+  "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
+
 interface AllCollectionsScope {
   selected: boolean;
   onSelect: () => void;
@@ -346,7 +349,7 @@ export function CollectionTabs({
                     : "Manage collection"
                 }
                 aria-pressed={activeCollectionSettings?.open === true}
-                className={`tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors ${
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} ${
                   activeCollectionSettings?.open === true
                     ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                     : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
@@ -363,8 +366,9 @@ export function CollectionTabs({
               <button
                 type="button"
                 onClick={onOpenCreateCollection}
+                aria-label="Create collection"
                 title="Create collection"
-                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
               >
                 <Plus size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
@@ -377,8 +381,9 @@ export function CollectionTabs({
               <button
                 type="button"
                 onClick={onOpenImport}
+                aria-label="Import collections"
                 title="Import collections"
-                className="tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
               >
                 <Upload size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">

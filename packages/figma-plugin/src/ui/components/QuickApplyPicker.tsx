@@ -242,6 +242,53 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     ? rootNodes[0].name
     : `${rootNodes.length} layers`;
 
+  if (rootNodes.length === 0 || eligibleProps.length === 0) {
+    return (
+      <div
+        className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-start justify-center z-50 pt-12"
+        onClick={onClose}
+      >
+        <div
+          ref={dialogRef}
+          className="mx-3 flex w-full max-w-[320px] flex-col rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              onClose();
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Apply token"
+        >
+          <div className="border-b border-[var(--color-figma-border)] px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-body font-medium text-[color:var(--color-figma-text)]">
+                Apply token
+              </span>
+              <kbd className="ml-auto shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                ESC
+              </kbd>
+            </div>
+          </div>
+          <div className="px-3 py-5 text-center">
+            <p className="m-0 text-body font-medium text-[color:var(--color-figma-text)]">
+              {rootNodes.length === 0
+                ? "Select a layer to apply tokens"
+                : "No applicable properties"}
+            </p>
+            <p className="m-0 mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {rootNodes.length === 0
+                ? "Quick Apply binds tokens to the current Figma selection."
+                : "Choose a layer with fill, stroke, text, size, or effect properties."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 bg-[var(--color-figma-overlay)] flex items-start justify-center z-50 pt-12"

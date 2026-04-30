@@ -65,6 +65,16 @@ export function UnsavedChangesDialog({
           </p>
         </div>
         <div className="tm-modal-footer pt-0">
+          <Button
+            type="button"
+            onClick={onCancel}
+            disabled={controlsDisabled}
+            variant="secondary"
+            className="w-full bg-[var(--color-figma-bg-secondary)]"
+            autoFocus
+          >
+            Keep editing
+          </Button>
           {canSave && (
             <Button
               type="button"
@@ -88,15 +98,6 @@ export function UnsavedChangesDialog({
               <Spinner size="sm" className="text-[color:var(--color-figma-text-error)]" />
             )}
             {busyAction === "discard" ? "Discarding…" : "Discard changes"}
-          </Button>
-          <Button
-            type="button"
-            onClick={onCancel}
-            disabled={controlsDisabled}
-            variant="secondary"
-            className="w-full bg-[var(--color-figma-bg-secondary)]"
-          >
-            Keep editing
           </Button>
         </div>
       </div>

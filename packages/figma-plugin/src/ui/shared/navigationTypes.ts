@@ -368,6 +368,13 @@ function createWorkspaceRecommendation(
   rationale: string,
 ): WorkspaceImportNextStepRecommendation {
   const workspace = resolveWorkspace(topTab, subTab);
+  const section = resolveWorkspaceSection(workspace, topTab, subTab);
+  const label =
+    section?.id === "tokens"
+      ? "Review imported tokens"
+      : section
+        ? `Open ${section.label}`
+        : workspace.label;
   return {
     target: {
       kind: "workspace",
@@ -375,7 +382,7 @@ function createWorkspaceRecommendation(
       topTab,
       subTab,
     },
-    label: workspace.label,
+    label,
     rationale,
   };
 }

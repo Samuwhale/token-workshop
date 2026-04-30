@@ -42,6 +42,7 @@ import {
 
 type BusyState = "create" | "custom" | null;
 type CreateStartMode = "preset" | "graph";
+type GraphTemplateSelection = "blank" | GeneratorPresetKind;
 
 interface GeneratorCreatePanelProps {
   serverUrl: string;
@@ -110,6 +111,8 @@ export function GeneratorCreatePanel({
   const initialCollectionId = workingCollectionId || collections[0]?.id || "";
   const [startMode, setStartMode] = useState<CreateStartMode>("preset");
   const [kind, setKind] = useState<GeneratorPresetKind>(initialKind);
+  const [graphTemplate, setGraphTemplate] =
+    useState<GraphTemplateSelection>("blank");
   const [targetCollectionId, setTargetCollectionId] =
     useState(initialCollectionId);
   const [outputPrefix, setOutputPrefix] = useState(
@@ -848,9 +851,17 @@ export function GeneratorCreatePanel({
               <div className="grid gap-2 min-[720px]:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => createGraphGenerator()}
+                  onClick={() => {
+                    setGraphTemplate("blank");
+                    setError(null);
+                  }}
                   disabled={busy !== null || !targetCollectionId}
-                  className="flex min-h-[72px] items-start justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-3 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  aria-pressed={graphTemplate === "blank"}
+                  className={`flex min-h-[72px] items-start justify-between gap-3 rounded-md px-3 py-3 text-left transition-colors disabled:opacity-40 ${
+                    graphTemplate === "blank"
+                      ? "bg-[var(--color-figma-bg-selected)]"
+                      : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  }`}
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
@@ -869,9 +880,17 @@ export function GeneratorCreatePanel({
                   <button
                     key={option.id}
                     type="button"
-                    onClick={() => createGraphGenerator(option.id)}
+                    onClick={() => {
+                      setGraphTemplate(option.id);
+                      setError(null);
+                    }}
                     disabled={busy !== null || !targetCollectionId}
-                    className="flex min-h-[72px] items-start justify-between gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-3 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    aria-pressed={graphTemplate === option.id}
+                    className={`flex min-h-[72px] items-start justify-between gap-3 rounded-md px-3 py-3 text-left transition-colors disabled:opacity-40 ${
+                      graphTemplate === option.id
+                        ? "bg-[var(--color-figma-bg-selected)]"
+                        : "bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                    }`}
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
@@ -913,7 +932,20 @@ export function GeneratorCreatePanel({
           >
             {busy ? "Creating..." : "Create preset generator"}
           </Button>
-        ) : null}
+        ) : (
+          <Button
+            onClick={() =>
+              createGraphGenerator(
+                graphTemplate === "blank" ? undefined : graphTemplate,
+              )
+            }
+            disabled={busy !== null || !targetCollectionId}
+            variant="primary"
+            size="sm"
+          >
+            {busy ? "Creating..." : "Create graph generator"}
+          </Button>
+        )}
       </div>
     </div>
   );

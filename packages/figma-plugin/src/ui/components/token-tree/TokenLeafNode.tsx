@@ -284,6 +284,15 @@ export const TokenLeafNode = memo(
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
+    const selectionControlVisibilityClass =
+      selectMode || hovered || isSelected || isRowActive
+        ? "opacity-100"
+        : "opacity-55";
+    const overflowActionVisibilityClass = selectMode
+      ? "hidden"
+      : isRowActive
+        ? "opacity-100"
+        : "opacity-45 group-hover:opacity-100 group-focus-within:opacity-100";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected
@@ -846,9 +855,7 @@ export const TokenLeafNode = memo(
               });
             }}
             className={`shrink-0 inline-flex h-7 w-7 items-center justify-center rounded transition-opacity focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${
-              selectMode || hovered || isSelected
-                ? "opacity-100"
-                : "opacity-0 pointer-events-none"
+              selectionControlVisibilityClass
             } hover:bg-[var(--color-figma-bg-hover)]`}
           >
             <span
@@ -1013,7 +1020,7 @@ export const TokenLeafNode = memo(
                 </span>
               ))}
               <div
-                className={`shrink-0 ${selectMode ? "invisible" : isRowActive ? "opacity-100" : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"}`}
+                className={`shrink-0 transition-opacity ${overflowActionVisibilityClass}`}
               >
                 <button
                   onClick={(e) => {

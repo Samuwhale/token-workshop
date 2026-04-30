@@ -187,26 +187,26 @@ export function ValueCell({
         canCreate ? (
           <button
             type="button"
-            className="text-body text-[color:var(--color-figma-text-tertiary)] cursor-pointer hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-accent)]/10 hover:text-[color:var(--color-figma-text-accent)]"
             onClick={(e) => {
               e.stopPropagation();
               openQuickEdit();
             }}
             aria-label={`Add ${optionName} value`}
           >
-            +
+            Add
           </button>
         ) : onEdit ? (
           <button
             type="button"
-            className="text-body text-[color:var(--color-figma-text-tertiary)] cursor-pointer hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 rounded px-1 py-px transition-colors"
+            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-accent)]/10 hover:text-[color:var(--color-figma-text-accent)]"
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
             }}
             aria-label={`Add ${optionName} value`}
           >
-            +
+            Add
           </button>
         ) : (
           <span className="text-body text-[color:var(--color-figma-text-tertiary)]">

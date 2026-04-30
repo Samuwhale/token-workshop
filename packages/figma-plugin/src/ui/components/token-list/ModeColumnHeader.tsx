@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../../shared/apiFetch";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
+import { getErrorMessage } from "../../shared/utils";
 import { ConfirmModal } from "../ConfirmModal";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
@@ -30,6 +31,8 @@ export function ModeColumnHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(modeName);
+  const [renameError, setRenameError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
@@ -43,7 +46,11 @@ export function ModeColumnHeader({
     align: "start",
   });
 
-  useEffect(() => setRenameValue(modeName), [modeName]);
+  useEffect(() => {
+    setRenameValue(modeName);
+    setRenameError("");
+    setActionError("");
+  }, [modeName]);
   useEffect(() => {
     if (renaming) {
       inputRef.current?.focus();
@@ -64,6 +71,7 @@ export function ModeColumnHeader({
     (e: React.MouseEvent) => {
       if (!connected) return;
       e.preventDefault();
+      setActionError("");
       setMenuOpen(true);
     },
     [connected],
@@ -74,9 +82,23 @@ export function ModeColumnHeader({
     if (!trimmed || trimmed === modeName) {
       setRenaming(false);
       setRenameValue(modeName);
+      setRenameError("");
+      return;
+    }
+    if (
+      allModeNames.some(
+        (name) =>
+          name !== modeName &&
+          name.toLocaleLowerCase() === trimmed.toLocaleLowerCase(),
+      )
+    ) {
+      setRenameError("Mode names must be different.");
+      inputRef.current?.focus();
       return;
     }
     setBusy(true);
+    setRenameError("");
+    setActionError("");
     try {
       await apiFetch(
         `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
@@ -88,16 +110,17 @@ export function ModeColumnHeader({
       );
       setRenaming(false);
       onMutated?.();
-    } catch {
-      setRenaming(false);
-      setRenameValue(modeName);
+    } catch (error) {
+      setRenameError(getErrorMessage(error, "Could not rename this mode."));
+      inputRef.current?.focus();
     } finally {
       setBusy(false);
     }
-  }, [collectionId, modeName, onMutated, renameValue, serverUrl]);
+  }, [allModeNames, collectionId, modeName, onMutated, renameValue, serverUrl]);
 
   const handleDelete = useCallback(async () => {
     setBusy(true);
+    setActionError("");
     try {
       await apiFetch(
         `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes/${encodeURIComponent(modeName)}`,
@@ -105,6 +128,8 @@ export function ModeColumnHeader({
       );
       setConfirmDelete(false);
       onMutated?.();
+    } catch (error) {
+      setActionError(getErrorMessage(error, "Could not delete this mode."));
     } finally {
       setBusy(false);
     }
@@ -118,6 +143,7 @@ export function ModeColumnHeader({
       reordered.splice(modeIndex, 1);
       reordered.splice(newIndex, 0, modeName);
       setBusy(true);
+      setActionError("");
       try {
         await apiFetch(
           `${serverUrl}/api/collections/${encodeURIComponent(collectionId)}/modes-order`,
@@ -128,6 +154,8 @@ export function ModeColumnHeader({
           },
         );
         onMutated?.();
+      } catch (error) {
+        setActionError(getErrorMessage(error, "Could not move this mode."));
       } finally {
         setBusy(false);
       }
@@ -196,24 +224,33 @@ export function ModeColumnHeader({
         tabIndex={0}
         onMouseDown={handleResizeMouseDown}
         onKeyDown={handleResizeKeyDown}
-        className="absolute top-0 right-0 bottom-0 z-10 w-[3px] translate-x-1/2 cursor-col-resize bg-transparent hover:bg-[var(--color-figma-accent)]/60 focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
+        className="absolute top-0 right-0 bottom-0 z-10 w-[8px] translate-x-1/2 cursor-col-resize bg-transparent hover:bg-[var(--color-figma-accent)]/60 focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
       />
       {renaming ? (
         <input
           ref={inputRef}
           type="text"
           value={renameValue}
-          onChange={(e) => setRenameValue(e.target.value)}
+          onChange={(e) => {
+            setRenameValue(e.target.value);
+            setRenameError("");
+          }}
+          aria-invalid={renameError ? true : undefined}
           onKeyDown={(e) => {
             if (e.key === "Enter") void handleRename();
             if (e.key === "Escape") {
               setRenaming(false);
               setRenameValue(modeName);
+              setRenameError("");
             }
           }}
           onBlur={() => void handleRename()}
           disabled={busy}
-          className="block w-full px-1.5 py-1 text-body font-medium bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] border border-[var(--color-figma-accent)] rounded-sm outline-none"
+          className={`block w-full px-1.5 py-1 text-body font-medium bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] border rounded-sm outline-none ${
+            renameError
+              ? "border-[var(--color-figma-error)]"
+              : "border-[var(--color-figma-accent)]"
+          }`}
         />
       ) : (
         <button
@@ -229,6 +266,11 @@ export function ModeColumnHeader({
           {modeName}
         </button>
       )}
+      {(renameError || actionError) && !menuOpen ? (
+        <div className="absolute left-0 right-0 top-full z-40 mt-0.5 rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-error)] shadow-lg">
+          {renameError || actionError}
+        </div>
+      ) : null}
       {menuOpen && (
         <div
           className="z-50 overflow-y-auto rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1 text-body"
@@ -283,16 +325,24 @@ export function ModeColumnHeader({
       )}
       {confirmDelete && (
         <ConfirmModal
-          title="Delete mode"
-          description="Delete this mode from the collection. Tokens keep their other mode values."
+          title={`Delete "${modeName}" mode?`}
+          description="This removes the mode column from every token in this collection. Other mode values stay intact."
           confirmLabel="Delete mode"
           danger
           onConfirm={handleDelete}
-          onCancel={() => setConfirmDelete(false)}
+          onCancel={() => {
+            setConfirmDelete(false);
+            setActionError("");
+          }}
         >
           <p className="font-mono text-body text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]">
             {modeName}
           </p>
+          {actionError ? (
+            <p className="text-secondary text-[color:var(--color-figma-text-error)]">
+              {actionError}
+            </p>
+          ) : null}
         </ConfirmModal>
       )}
     </div>

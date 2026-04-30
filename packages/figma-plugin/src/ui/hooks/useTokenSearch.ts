@@ -592,6 +592,7 @@ export function useTokenSearch({
     refFilter,
     showDuplicates,
     crossCollectionSearch,
+    hasCrossCollectionCriteria,
     setCrossCollectionSearch,
     showQualifierHints,
     setShowQualifierHints,

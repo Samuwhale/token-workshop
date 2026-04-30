@@ -75,6 +75,8 @@ export interface TokenListSearchGroup {
 }
 
 export interface CrossCollectionSearchGroup {
+  active: boolean;
+  hasCriteria: boolean;
   loading: boolean;
   error: string | null;
   results: CrossSetResult[] | null;
@@ -180,6 +182,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     insertQualifier: insertSearchQualifier,
   } = props.search;
   const {
+    active: crossCollectionActive,
+    hasCriteria: hasCrossCollectionCriteria,
     loading: crossCollectionLoading,
     error: crossCollectionError,
     results: crossCollectionResults,
@@ -224,14 +228,25 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   } = props.navigation;
 
   const [newModeName, setNewModeName] = useState("");
+  const [addModeError, setAddModeError] = useState("");
   const [addingModeSaving, setAddingModeSaving] = useState(false);
 
   const addModeTargetId = multiModeDimId ?? collections[0]?.id ?? null;
+  const modeNames = multiModeData?.results.map((r) => r.optionName) ?? [];
 
   const handleAddMode = useCallback(async () => {
     const name = newModeName.trim();
     if (!name || !addModeTargetId) return;
+    if (
+      modeNames.some(
+        (modeName) => modeName.toLocaleLowerCase() === name.toLocaleLowerCase(),
+      )
+    ) {
+      setAddModeError("Mode names must be different.");
+      return;
+    }
     setAddingModeSaving(true);
+    setAddModeError("");
     try {
       await apiFetch(
         `${serverUrl}/api/collections/${encodeURIComponent(addModeTargetId)}/modes`,
@@ -242,16 +257,18 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         },
       );
       setNewModeName("");
+      setAddModeError("");
       setAddModeMenuOpen(false);
       onModeMutated?.();
-    } catch {
-      // keep input open on error
+    } catch (error) {
+      setAddModeError(
+        error instanceof Error ? error.message : "Could not add this mode.",
+      );
     } finally {
       setAddingModeSaving(false);
     }
-  }, [addModeTargetId, newModeName, onModeMutated, serverUrl]);
+  }, [addModeTargetId, modeNames, newModeName, onModeMutated, serverUrl]);
 
-  const modeNames = multiModeData?.results.map((r) => r.optionName) ?? [];
   const widthsCollectionId = multiModeData?.collection.id ?? null;
   const tableContentRef = useRef<HTMLDivElement>(null);
   const [tableViewportWidth, setTableViewportWidth] = useState<number | null>(null);
@@ -309,6 +326,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const closeAddModeMenu = useCallback(() => {
     setAddModeMenuOpen(false);
     setNewModeName("");
+    setAddModeError("");
   }, []);
 
   // Unified table header — always shown for the tree view. For single-mode
@@ -364,6 +382,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               return;
             }
             setAddModeMenuOpen(true);
+            setAddModeError("");
           }}
           disabled={!connected}
           className="w-full flex items-center justify-center text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
@@ -385,7 +404,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               <input
                 type="text"
                 value={newModeName}
-                onChange={(e) => setNewModeName(e.target.value)}
+                onChange={(e) => {
+                  setNewModeName(e.target.value);
+                  setAddModeError("");
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     void handleAddMode();
@@ -398,11 +420,22 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 autoFocus
                 disabled={addingModeSaving}
                 placeholder="Mode name"
-                className="w-full rounded border border-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[color:var(--color-figma-text)] outline-none"
+                aria-invalid={addModeError ? true : undefined}
+                className={`w-full rounded border bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[color:var(--color-figma-text)] outline-none ${
+                  addModeError
+                    ? "border-[var(--color-figma-error)]"
+                    : "border-[var(--color-figma-accent)]"
+                }`}
               />
-              <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Name the context this collection needs, such as Desktop, Marketing, or Dark.
-              </p>
+              {addModeError ? (
+                <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
+                  {addModeError}
+                </p>
+              ) : (
+                <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                  Name the context this collection needs, such as Desktop, Marketing, or Dark.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -411,6 +444,21 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   ) : null;
 
   // Cross-collection search results
+  if (
+    crossCollectionActive &&
+    !hasCrossCollectionCriteria &&
+    crossCollectionResults === null
+  ) {
+    return (
+      <FeedbackPlaceholder
+        variant="empty"
+        size="section"
+        title="Search across all collections"
+        description="Type a name, value, type, or filter to find tokens outside the current collection."
+      />
+    );
+  }
+
   if (crossCollectionLoading && crossCollectionResults === null) {
     return (
       <FeedbackPlaceholder
