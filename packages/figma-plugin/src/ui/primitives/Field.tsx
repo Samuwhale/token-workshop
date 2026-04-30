@@ -12,20 +12,46 @@ interface FieldProps {
 
 export function Field({ label, help, error, children, htmlFor, className = "" }: FieldProps) {
   const generatedId = useId();
+  const helpId = help ? `${generatedId}-help` : undefined;
+  const errorId = error ? `${generatedId}-error` : undefined;
   let controlId = htmlFor ?? generatedId;
   let control: ReactNode = children;
   if (isValidElement(children)) {
-    const childProps = children.props as { id?: string; invalid?: boolean };
+    const childProps = children.props as {
+      id?: string;
+      invalid?: boolean;
+      "aria-describedby"?: string;
+      "aria-invalid"?: boolean;
+    };
     const existingId = childProps.id;
     if (existingId && !htmlFor) {
       controlId = existingId;
     }
-    const overrides: { id?: string; invalid?: boolean } = {};
+    const describedBy = errorId ?? helpId;
+    const overrides: {
+      id?: string;
+      invalid?: boolean;
+      "aria-describedby"?: string;
+      "aria-invalid"?: true;
+    } = {};
     if (!htmlFor && !existingId) overrides.id = controlId;
     if (error && childProps.invalid === undefined) overrides.invalid = true;
+    if (describedBy) {
+      overrides["aria-describedby"] = childProps["aria-describedby"]
+        ? `${childProps["aria-describedby"]} ${describedBy}`
+        : describedBy;
+    }
+    if (error && childProps["aria-invalid"] === undefined) {
+      overrides["aria-invalid"] = true;
+    }
     if (Object.keys(overrides).length > 0) {
       control = cloneElement(
-        children as ReactElement<{ id?: string; invalid?: boolean }>,
+        children as ReactElement<{
+          id?: string;
+          invalid?: boolean;
+          "aria-describedby"?: string;
+          "aria-invalid"?: boolean;
+        }>,
         overrides,
       );
     }
@@ -40,11 +66,17 @@ export function Field({ label, help, error, children, htmlFor, className = "" }:
       </label>
       {control}
       {error ? (
-        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-error)]">
+        <p
+          id={errorId}
+          className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-error)]"
+        >
           {error}
         </p>
       ) : help ? (
-        <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+        <p
+          id={helpId}
+          className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
+        >
           {help}
         </p>
       ) : null}

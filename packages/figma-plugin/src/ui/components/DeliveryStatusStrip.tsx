@@ -11,6 +11,7 @@ interface DeliveryStatusStripProps {
   syncResult: SyncCompleteMessage | null;
   onOpenHealth: () => void;
   onOpenPublishCompare: () => void;
+  onOpenRepair?: () => void;
   onOpenSync: () => void;
 }
 
@@ -49,6 +50,7 @@ function syncChip(
   syncError: string | null,
   syncResult: SyncCompleteMessage | null,
   onOpenSync: () => void,
+  onOpenRepair?: () => void,
 ): Chip | null {
   if (syncing) {
     return { id: "sync", label: "Applying…", tone: "accent", onClick: onOpenSync };
@@ -70,8 +72,8 @@ function syncChip(
       id: "sync",
       label: `${count} missing`,
       tone: "warning",
-      onClick: onOpenSync,
-      title: `${count} missing token path${count === 1 ? "" : "s"}`,
+      onClick: onOpenRepair ?? onOpenSync,
+      title: `${count} missing token path${count === 1 ? "" : "s"} to repair`,
     };
   }
   return null;
@@ -87,6 +89,7 @@ export function DeliveryStatusStrip({
   syncResult,
   onOpenHealth,
   onOpenPublishCompare,
+  onOpenRepair,
   onOpenSync,
 }: DeliveryStatusStripProps) {
   const chips: Chip[] = [];
@@ -116,7 +119,7 @@ export function DeliveryStatusStrip({
     });
   }
 
-  const sync = syncChip(syncing, syncError, syncResult, onOpenSync);
+  const sync = syncChip(syncing, syncError, syncResult, onOpenSync, onOpenRepair);
   if (sync) chips.push(sync);
 
   if (chips.length === 0) return null;

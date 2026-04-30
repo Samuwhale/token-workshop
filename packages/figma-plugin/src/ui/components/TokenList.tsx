@@ -580,6 +580,7 @@ export function TokenList({
     connected,
     serverUrl,
     collectionId,
+    collectionModeNames: activeCollections[0]?.modes.map((mode) => mode.name) ?? [],
     siblingOrderMap,
     onRefresh,
     onPushUndo,
@@ -598,6 +599,7 @@ export function TokenList({
     addRow: addTableRow,
     removeRow: removeTableRow,
     updateRow: updateTableRow,
+    updateModeValue: updateTableModeValue,
     closeTableCreate,
     restoreDraft: restoreTableDraft,
     dismissDraft: dismissTableDraft,
@@ -2211,6 +2213,7 @@ export function TokenList({
       {showTableCreate && (
         <TableCreateForm
           collectionId={collectionId}
+          collectionModeNames={activeCollections[0]?.modes.map((mode) => mode.name) ?? []}
           tableGroup={tableGroup}
           onSetTableGroup={setTableGroup}
           tableRows={tableRows}
@@ -2224,6 +2227,7 @@ export function TokenList({
           onAddRow={addTableRow}
           onRemoveRow={removeTableRow}
           onUpdateRow={updateTableRow}
+          onUpdateModeValue={updateTableModeValue}
           onClose={closeTableCreate}
           onRestoreDraft={restoreTableDraft}
           onDismissDraft={dismissTableDraft}

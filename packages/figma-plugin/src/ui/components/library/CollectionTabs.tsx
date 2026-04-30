@@ -186,7 +186,7 @@ export function CollectionTabs({
               className={`tm-collection-toolbar__trigger flex h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left transition-colors ${
                 switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                  : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                  : "bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
               }`}
             >
               <span className="tm-collection-toolbar__summary min-w-0 flex-1">
@@ -357,7 +357,7 @@ export function CollectionTabs({
               >
                 <Settings2 size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                  Manage
+                  Collection details
                 </span>
               </button>
             ) : null}

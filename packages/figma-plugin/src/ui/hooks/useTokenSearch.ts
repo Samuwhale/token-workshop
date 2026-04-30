@@ -10,8 +10,9 @@ import {
   findGroupByPath, parseStructuredQuery, QUERY_QUALIFIERS,
   getActiveQueryToken, getQualifierDefinitionForToken, getQueryQualifierValues,
   normalizeHasQualifier, setQueryQualifierValues, findUnsupportedStructuredTokens,
+  getTokenSearchableValueStrings,
 } from '../components/tokenListUtils';
-import { isAbortError, stableStringify } from '../shared/utils';
+import { isAbortError } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 
 function buildCrossCollectionHasValues(
@@ -400,13 +401,14 @@ export function useTokenSearch({
 
   // Compute duplicate value info from all tokens in the current collection
   const { duplicateValuePaths, duplicateCounts } = useMemo(() => {
-    const valueMap = new Map<string, string[]>(); // serialized value → paths
+    const valueMap = new Map<string, Set<string>>(); // serialized value → paths
     const collectLeaves = (nodes: TokenNode[]) => {
       for (const n of nodes) {
         if (!n.isGroup) {
-          const key = stableStringify(n.$value);
-          if (!valueMap.has(key)) valueMap.set(key, []);
-          valueMap.get(key)!.push(n.path);
+          for (const key of getTokenSearchableValueStrings(n, collectionId)) {
+            if (!valueMap.has(key)) valueMap.set(key, new Set());
+            valueMap.get(key)!.add(n.path);
+          }
         }
         if (n.children) collectLeaves(n.children);
       }
@@ -415,13 +417,13 @@ export function useTokenSearch({
     const paths = new Set<string>();
     const counts = new Map<string, number>(); // serialized value → count
     for (const [key, ps] of valueMap) {
-      if (ps.length > 1) {
+      if (ps.size > 1) {
         ps.forEach(p => paths.add(p));
-        counts.set(key, ps.length);
+        counts.set(key, ps.size);
       }
     }
     return { duplicateValuePaths: paths, duplicateCounts: counts };
-  }, [debouncedTokens]);
+  }, [collectionId, debouncedTokens]);
 
   // availableTypes MUST be declared before qualifierHints to avoid TDZ crash
   const availableTypes = useMemo(() => {

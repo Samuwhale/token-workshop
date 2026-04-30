@@ -77,6 +77,10 @@ export function InlineValuePopover({
       }
       const target = e.target as HTMLElement | null;
       const inTextarea = target?.tagName === 'TEXTAREA';
+      const inAliasInput = target?.closest('.tm-token-mode-row__alias-input');
+      if (e.key === 'Enter' && inAliasInput) {
+        return;
+      }
       if (e.key === 'Enter' && !inTextarea) {
         e.preventDefault();
         e.stopPropagation();

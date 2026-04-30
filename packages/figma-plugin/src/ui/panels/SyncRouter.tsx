@@ -49,6 +49,11 @@ export function SyncRouter({
       label: "Resolve issues",
       onClick: () => publishPanelHandleRef.current?.focusStage("preflight"),
     };
+  } else if (publishPreflightState.targetDirty) {
+    publishAction = {
+      label: "Save target",
+      onClick: () => publishPanelHandleRef.current?.focusPublishTarget(),
+    };
   } else if (pendingPublishCount > 0) {
     publishAction = {
       label: "Apply changes",

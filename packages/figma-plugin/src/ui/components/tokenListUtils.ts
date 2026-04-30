@@ -51,6 +51,53 @@ export type ScopeCategory = keyof typeof SCOPE_CATEGORIES;
 const QUALIFIER_RE = /\b(type|has|value|desc|path|name|scope):(\S+)/gi;
 const QUERY_TOKEN_RE = /\b([a-z]+):(\S+)/gi;
 
+function getTokenModeValues(
+  node: Pick<TokenNode, "$value" | "$extensions">,
+  collectionId: string,
+): unknown[] {
+  const values: unknown[] = [node.$value];
+  const tokenManager = node.$extensions?.tokenmanager as
+    | { modes?: Record<string, Record<string, unknown>> }
+    | undefined;
+  const collectionModes =
+    tokenManager?.modes?.[collectionId];
+  if (
+    collectionModes &&
+    typeof collectionModes === "object" &&
+    !Array.isArray(collectionModes)
+  ) {
+    values.push(...Object.values(collectionModes));
+  }
+  return values;
+}
+
+export function getTokenSearchableValueStrings(
+  node: Pick<TokenNode, "$value" | "$extensions">,
+  collectionId: string,
+): string[] {
+  return getTokenModeValues(node, collectionId).map((value) =>
+    stableStringify(value as TokenMapEntry["$value"]).toLowerCase(),
+  );
+}
+
+export function tokenHasAliasValue(
+  node: Pick<TokenNode, "$value" | "$extensions">,
+  collectionId: string,
+): boolean {
+  return getTokenModeValues(node, collectionId).some(
+    (value) => typeof value === "string" && isAlias(value),
+  );
+}
+
+export function tokenHasDirectValue(
+  node: Pick<TokenNode, "$value" | "$extensions">,
+  collectionId: string,
+): boolean {
+  return getTokenModeValues(node, collectionId).some(
+    (value) => !(typeof value === "string" && isAlias(value)),
+  );
+}
+
 /** Recognized values for has: qualifier */
 function hasStructuredValuePrefix(
   candidates: Iterable<string>,
@@ -440,11 +487,14 @@ export function filterTokenNodes(
         !q ||
         node.path.toLowerCase().includes(q) ||
         node.name.toLowerCase().includes(q) ||
-        (node.$description || "").toLowerCase().includes(q);
+        (node.$description || "").toLowerCase().includes(q) ||
+        getTokenSearchableValueStrings(node, collectionId).some((value) =>
+          value.includes(q),
+        );
       const matchesType = !typeFilter || node.$type === typeFilter;
       const matchesRef = refFilter === 'all'
-        || (refFilter === 'aliases' && isAlias(node.$value))
-        || (refFilter === 'direct' && !isAlias(node.$value));
+        || (refFilter === 'aliases' && tokenHasAliasValue(node, collectionId))
+        || (refFilter === 'direct' && tokenHasDirectValue(node, collectionId));
       if (matchesSearch && matchesType && matchesRef) result.push(node);
     }
   }
@@ -468,7 +518,15 @@ function filterTokenNodesStructured(
       if (filtered.length > 0) result.push({ ...node, children: filtered });
     } else {
       // Free-text match (on path, name, or description)
-      if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q) && !(node.$description || '').toLowerCase().includes(q)) continue;
+      if (
+        q &&
+        !node.path.toLowerCase().includes(q) &&
+        !node.name.toLowerCase().includes(q) &&
+        !(node.$description || '').toLowerCase().includes(q) &&
+        !getTokenSearchableValueStrings(node, collectionId).some((value) =>
+          value.includes(q),
+        )
+      ) continue;
 
       // type: qualifier (OR within multiple type: values)
       if (parsed.types.length > 0) {
@@ -481,8 +539,8 @@ function filterTokenNodesStructured(
       // has: qualifiers (all must match)
       let hasMatch = true;
       for (const h of parsed.has) {
-        if ((h === 'alias' || h === 'ref') && !isAlias(node.$value)) { hasMatch = false; break; }
-        if (h === 'direct' && isAlias(node.$value)) { hasMatch = false; break; }
+        if ((h === 'alias' || h === 'ref') && !tokenHasAliasValue(node, collectionId)) { hasMatch = false; break; }
+        if (h === 'direct' && !tokenHasDirectValue(node, collectionId)) { hasMatch = false; break; }
         if ((h === 'duplicate' || h === 'dup') && (!duplicateValuePaths || !duplicateValuePaths.has(node.path))) { hasMatch = false; break; }
         if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
         if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
@@ -493,14 +551,14 @@ function filterTokenNodesStructured(
 
       // Dropdown ref filter
       if (refFilter !== 'all') {
-        if (refFilter === 'aliases' && !isAlias(node.$value)) continue;
-        if (refFilter === 'direct' && isAlias(node.$value)) continue;
+        if (refFilter === 'aliases' && !tokenHasAliasValue(node, collectionId)) continue;
+        if (refFilter === 'direct' && !tokenHasDirectValue(node, collectionId)) continue;
       }
 
-      // value: qualifier — match serialized $value
+      // value: qualifier — match serialized values from every visible mode cell
       if (parsed.values.length > 0) {
-        const sv = stableStringify(node.$value).toLowerCase();
-        if (!parsed.values.some(v => sv.includes(v))) continue;
+        const values = getTokenSearchableValueStrings(node, collectionId);
+        if (!parsed.values.some(v => values.some((value) => value.includes(v)))) continue;
       }
 
       // desc: qualifier — match $description

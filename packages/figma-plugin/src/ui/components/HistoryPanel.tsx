@@ -47,9 +47,13 @@ export function HistoryPanel({
       : null;
   const activePanelLabelId = `history-tab-${scope.view}`;
   const scopeLabel =
-    scope.mode === "all"
-      ? "Showing recovery activity across every collection."
-      : `Showing recovery activity for ${activeCollectionFilter ?? "the current collection"}.`;
+    scope.view === "saved"
+      ? activeCollectionFilter || scope.tokenPath
+        ? "Checkpoints save the whole workspace. The current filter applies when comparing a checkpoint."
+        : "Checkpoints save the whole workspace so you can compare or restore later."
+      : scope.mode === "all"
+        ? "Showing recovery activity across every collection."
+        : `Showing recovery activity for ${activeCollectionFilter ?? "the current collection"}.`;
   const tokenScopeLabel = scope.tokenPath
     ? `Focused on ${scope.tokenPath}.`
     : null;
@@ -177,7 +181,7 @@ export function HistoryPanel({
                   size="sm"
                   className="px-1.5 text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-accent)]"
                 >
-                  Save checkpoint
+                  Save workspace checkpoint
                 </Button>
               ) : null}
             </div>

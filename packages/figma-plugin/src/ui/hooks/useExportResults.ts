@@ -104,7 +104,11 @@ export function useExportResults({
   } = diffState;
 
   const handleExport = async (showModal = false) => {
-    if (selected.size === 0 || !connected) return;
+    if (!connected) {
+      setError("Connect to the token server before exporting platform files.");
+      return;
+    }
+    if (selected.size === 0) return;
     if (changesOnly && diffPaths !== null && diffPaths.length === 0) {
       setError(getNoChangedTokensMessage(isGitRepo, lastExportTimestamp));
       return;

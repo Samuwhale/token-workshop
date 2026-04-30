@@ -92,6 +92,12 @@ export function CanvasRouter({
         navigateTo("publish", "publish-figma");
         syncCtrl.publishPanelHandleRef.current?.focusStage("compare");
       }}
+      onOpenRepair={() => {
+        setPendingRepairPrefill(
+          syncResult?.missingTokens.map((path) => ({ from: path })) ?? null,
+        );
+        navigateTo("canvas", "repair");
+      }}
       onOpenSync={() => navigateTo("publish", "publish-figma")}
     />
   );

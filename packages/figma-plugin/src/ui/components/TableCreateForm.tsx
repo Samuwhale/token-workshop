@@ -6,10 +6,11 @@ import { InlineBanner } from "./InlineBanner";
 import { NoticeFieldMessage } from "../shared/noticeSystem";
 import { TypePicker } from "./TypePicker";
 
-type TableRowField = keyof Omit<TableRow, "id">;
+type TableRowField = keyof Omit<TableRow, "id" | "modeValues">;
 
 export interface TableCreateFormProps {
   collectionId: string;
+  collectionModeNames: string[];
   tableGroup: string;
   onSetTableGroup: (v: string) => void;
   tableRows: TableRow[];
@@ -23,6 +24,7 @@ export interface TableCreateFormProps {
   onAddRow: (fields?: NewTableRowFields) => void;
   onRemoveRow: (id: string) => void;
   onUpdateRow: (id: string, field: TableRowField, value: string) => void;
+  onUpdateModeValue: (id: string, modeName: string, value: string) => void;
   onClose: () => void;
   onRestoreDraft: () => void;
   onDismissDraft: () => void;
@@ -31,6 +33,7 @@ export interface TableCreateFormProps {
 
 export function TableCreateForm({
   collectionId,
+  collectionModeNames,
   tableGroup,
   onSetTableGroup,
   tableRows,
@@ -44,6 +47,7 @@ export function TableCreateForm({
   onAddRow,
   onRemoveRow,
   onUpdateRow,
+  onUpdateModeValue,
   onClose,
   onRestoreDraft,
   onDismissDraft,
@@ -56,6 +60,12 @@ export function TableCreateForm({
     [tableRows],
   );
   const hasNamedRows = creatableRowCount > 0;
+  const modeNames =
+    collectionModeNames.length > 0 ? collectionModeNames : ["Default"];
+  const multiMode = modeNames.length > 1;
+  const rowGridTemplateColumns = multiMode
+    ? `minmax(116px,1fr) 76px repeat(${modeNames.length}, minmax(104px,1fr)) 18px`
+    : "minmax(0,1fr) 76px minmax(0,1fr) 18px";
 
   useEffect(() => {
     if (!pendingFocusLastRowRef.current) return;
@@ -169,31 +179,42 @@ export function TableCreateForm({
         )}
         {/* Token rows */}
         <div>
+          {multiMode ? (
+            <p className="mb-1.5 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+              Fill every mode so new tokens match this collection's Figma Variables structure.
+            </p>
+          ) : null}
           {/* Column headers */}
-          <div
-            className="grid gap-1 mb-1 px-0.5"
-            style={{
-              gridTemplateColumns: "minmax(0,1fr) 76px minmax(0,1fr) 18px",
-            }}
-          >
-            <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
-              Name
-            </span>
-            <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
-              Type
-            </span>
-            <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
-              Value
-            </span>
-            <span />
-          </div>
-          {tableRows.map((row, idx) => (
-            <div key={row.id} className="mb-1">
+          <div className="overflow-x-auto">
+            <div
+              className="grid gap-1 mb-1 min-w-full px-0.5"
+              style={{
+                gridTemplateColumns: rowGridTemplateColumns,
+              }}
+            >
+              <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
+                Name
+              </span>
+              <span className="text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
+                Type
+              </span>
+              {modeNames.map((modeName) => (
+                <span
+                  key={modeName}
+                  className="truncate text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]"
+                  title={modeName}
+                >
+                  {multiMode ? modeName : "Value"}
+                </span>
+              ))}
+              <span />
+            </div>
+            {tableRows.map((row, idx) => (
+              <div key={row.id} className="mb-1 min-w-full">
               <div
                 className="grid gap-1 items-center"
                 style={{
-                  gridTemplateColumns:
-                    "minmax(0,1fr) 76px minmax(0,1fr) 18px",
+                  gridTemplateColumns: rowGridTemplateColumns,
                 }}
               >
                 <input
@@ -218,32 +239,49 @@ export function TableCreateForm({
                   ariaLabel={`Token ${idx + 1} type`}
                   className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                 />
-                <input
-                  type="text"
-                  placeholder="value"
-                  value={row.value}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    onUpdateRow(row.id, "value", val);
-                    const inferred = inferTypeFromValue(val);
-                    if (inferred) onUpdateRow(row.id, "type", inferred);
-                  }}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === "Tab" &&
-                      !e.shiftKey &&
-                      idx === tableRows.length - 1
-                    ) {
-                      e.preventDefault();
-                      pendingFocusLastRowRef.current = true;
-                      onAddRow();
-                    }
-                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
-                      onCreateAll();
-                  }}
-                  aria-label={`Token ${idx + 1} value`}
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
-                />
+                {modeNames.map((modeName, modeIndex) => {
+                  const isPrimaryMode = modeIndex === 0;
+                  const modeValue =
+                    row.modeValues[modeName] ??
+                    (isPrimaryMode ? row.value : "");
+                  return (
+                    <input
+                      key={modeName}
+                      type="text"
+                      placeholder={multiMode ? modeName : "value"}
+                      value={modeValue}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        onUpdateModeValue(row.id, modeName, val);
+                        if (isPrimaryMode) {
+                          onUpdateRow(row.id, "value", val);
+                          const inferred = inferTypeFromValue(val);
+                          if (inferred) onUpdateRow(row.id, "type", inferred);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Tab" &&
+                          !e.shiftKey &&
+                          idx === tableRows.length - 1 &&
+                          modeIndex === modeNames.length - 1
+                        ) {
+                          e.preventDefault();
+                          pendingFocusLastRowRef.current = true;
+                          onAddRow();
+                        }
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
+                          onCreateAll();
+                      }}
+                      aria-label={
+                        multiMode
+                          ? `Token ${idx + 1} ${modeName} value`
+                          : `Token ${idx + 1} value`
+                      }
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
+                    />
+                  );
+                })}
                 <button
                   type="button"
                   onClick={() => onRemoveRow(row.id)}
@@ -259,8 +297,9 @@ export function TableCreateForm({
                   {rowErrors[row.id]}
                 </NoticeFieldMessage>
               )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => onAddRow()}

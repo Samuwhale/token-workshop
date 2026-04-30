@@ -57,6 +57,7 @@ export interface PublishPreflightState {
   blockingCount: number;
   advisoryCount: number;
   canProceed: boolean;
+  targetDirty: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -69,6 +70,7 @@ export const DEFAULT_PUBLISH_PREFLIGHT_STATE: PublishPreflightState = {
   blockingCount: 0,
   advisoryCount: 0,
   canProceed: false,
+  targetDirty: false,
 };
 
 export type SyncDirection = 'push' | 'pull' | 'skip';

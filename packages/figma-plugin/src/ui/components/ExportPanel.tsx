@@ -174,6 +174,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         footer={
           <ExportFooter
             mode="platforms"
+            connected={connected}
             changesOnly={diffState.changesOnly}
             diffPaths={diffState.diffPaths}
             diffLoading={diffState.diffLoading}

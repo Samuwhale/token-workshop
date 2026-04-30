@@ -68,6 +68,31 @@ function getTypographyFontSizeValue(value: TypographyEditorValue): unknown {
   return fontSize;
 }
 
+function valueDiffersFromTypeDefault(
+  tokenType: string,
+  tokenValue: unknown,
+): boolean {
+  return (
+    stableStringify(tokenValue) !==
+    stableStringify(DEFAULT_VALUE_FOR_TYPE[tokenType] ?? '')
+  );
+}
+
+function modeValuesDifferFromTypeDefault(
+  tokenType: string,
+  modeValues: TokenEditorModeValues,
+): boolean {
+  for (const collectionModes of Object.values(modeValues)) {
+    if (!collectionModes || typeof collectionModes !== 'object') continue;
+    for (const modeValue of Object.values(collectionModes)) {
+      if (valueDiffersFromTypeDefault(tokenType, modeValue)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 interface UseTokenTypeParsingParams {
   tokenType: string;
   setTokenType: (v: string) => void;
@@ -183,11 +208,15 @@ export function useTokenTypeParsing({
   };
 
   const handleTypeChange = (newType: string) => {
-    if (valueIsAlias) { applyTypeChange(newType); return; }
-    const isDefaultValue =
-      stableStringify(value) ===
-      stableStringify(DEFAULT_VALUE_FOR_TYPE[tokenType] ?? '');
-    if (!isDefaultValue) {
+    const hasCustomModeValues = modeValuesDifferFromTypeDefault(
+      tokenType,
+      modeValues,
+    );
+    const hasCustomPrimaryValue = valueDiffersFromTypeDefault(
+      tokenType,
+      value,
+    );
+    if (valueIsAlias || hasCustomPrimaryValue || hasCustomModeValues) {
       setPendingTypeChange(newType);
     } else {
       applyTypeChange(newType);

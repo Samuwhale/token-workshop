@@ -294,13 +294,14 @@ export function TokenDetailsModeRow({
                   }
                 }}
                 autoFocus={autoFocus}
-                placeholder="Search tokens…"
+                placeholder="Reference a token"
+                aria-label={`${modeName} reference`}
                 aria-invalid={showAliasMissingState}
                 aria-describedby={
                   showAliasMissingState ? aliasStatusId : undefined
                 }
                 className={joinClasses(
-                  "tm-token-mode-row__alias-input w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]",
+                  "tm-token-mode-row__alias-input min-h-8 w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] outline-none transition-colors hover:border-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]",
                   showAliasMissingState && "tm-token-mode-row__alias-input--invalid",
                 )}
               />
@@ -327,6 +328,8 @@ export function TokenDetailsModeRow({
             <button
               type="button"
               onClick={() => onChange?.(getInitialModeValue(tokenType))}
+              aria-label={`Add value for ${modeName}`}
+              title={`Add value for ${modeName}`}
               className="w-full rounded border border-dashed border-[var(--color-figma-border)] px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5"
             >
               Add value
@@ -363,6 +366,7 @@ export function TokenDetailsModeRow({
                       type="button"
                       onClick={() => onNavigateToToken(readOnly.aliasTargetPath!)}
                       className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[color:var(--color-figma-text-accent)] hover:underline"
+                      aria-label={`Open referenced token ${readOnly.aliasTargetPath}`}
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
                       <Link2 size={10} strokeWidth={1.5} aria-hidden />

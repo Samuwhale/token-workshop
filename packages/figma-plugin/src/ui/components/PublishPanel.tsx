@@ -277,6 +277,7 @@ export interface PublishPanelHandle {
   runReadinessChecks: () => void;
   runCompareAll: () => Promise<void>;
   focusStage: (stage: SyncWorkflowStage) => void;
+  focusPublishTarget: () => void;
 }
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
@@ -357,6 +358,7 @@ export function PublishPanel({
   });
 
   const [preflightActionBusyId, setPreflightActionBusyId] = useState<PublishPreflightActionId | null>(null);
+  const targetRef = useRef<HTMLDivElement | null>(null);
   const preflightRef = useRef<HTMLDivElement | null>(null);
   const compareRef = useRef<HTMLDivElement | null>(null);
   const applyRef = useRef<HTMLDivElement | null>(null);
@@ -548,7 +550,7 @@ export function PublishPanel({
         collectionName: standardRoutingDraft.collectionName?.trim() || undefined,
         modeName: standardRoutingDraft.modeName?.trim() || undefined,
       });
-      dispatchToast('Saved Figma sync target', 'success', {
+      dispatchToast('Saved Figma target', 'success', {
         destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
       });
     } catch (error) {
@@ -844,12 +846,14 @@ export function PublishPanel({
     blockingCount: blockingReadinessChecks.length,
     advisoryCount: advisoryReadinessChecks.length,
     canProceed: canProceedToSync,
+    targetDirty: standardRoutingDirty,
   }), [
     advisoryReadinessChecks.length,
     blockingReadinessChecks.length,
     canProceedToSync,
     isReadinessOutdated,
     preflightStage,
+    standardRoutingDirty,
   ]);
   const totalDiffCount = varSync.rows.length + styleSync.rows.length;
   const totalConflictCount =
@@ -894,6 +898,13 @@ export function PublishPanel({
       stage === 'compare' ? compareRef.current :
       applyRef.current;
     target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, []);
+
+  const focusPublishTarget = useCallback(() => {
+    setStandardRoutingExpanded(true);
+    requestAnimationFrame(() => {
+      targetRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
   }, []);
 
   const handlePreflightAction = useCallback(async (
@@ -1019,11 +1030,12 @@ export function PublishPanel({
       runReadinessChecks: () => void handleSync(),
       runCompareAll: compareAll,
       focusStage,
+      focusPublishTarget,
     };
     return () => {
       publishPanelHandle.current = null;
     };
-  }, [compareAll, focusStage, handleSync, publishPanelHandle]);
+  }, [compareAll, focusPublishTarget, focusStage, handleSync, publishPanelHandle]);
 
   // ── Broadcast pending count to Sync tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
@@ -1047,7 +1059,7 @@ export function PublishPanel({
     window.dispatchEvent(new CustomEvent('publish-preflight-state', { detail: publishPreflightState }));
     return () => {
       window.dispatchEvent(new CustomEvent('publish-preflight-state', {
-        detail: { stage: 'idle', isOutdated: false, blockingCount: 0, advisoryCount: 0, canProceed: false },
+        detail: { stage: 'idle', isOutdated: false, blockingCount: 0, advisoryCount: 0, canProceed: false, targetDirty: false },
       }));
     };
   }, [publishPreflightState]);
@@ -1085,7 +1097,7 @@ export function PublishPanel({
         <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
 
           {/* ── Publish target ──────────────────────────────────────── */}
-          <div className="flex flex-col gap-2">
+          <div ref={targetRef} className="flex flex-col gap-2">
             <div className="flex flex-wrap items-start gap-1.5">
               <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Target</span>
               <span className="min-w-0 flex-[1_1_220px] text-secondary font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]">
@@ -1419,7 +1431,7 @@ function StandardPublishRoutingCard({
 
       {dirty ? (
         <NoticeBanner severity="warning">
-          Save this target before comparing or applying variable changes.
+          Save this Figma target before comparing or applying variable changes.
         </NoticeBanner>
       ) : null}
       {error ? <NoticeBanner severity="error">{error}</NoticeBanner> : null}

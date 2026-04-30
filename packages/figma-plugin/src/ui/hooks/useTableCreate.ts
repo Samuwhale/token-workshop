@@ -16,6 +16,7 @@ export interface TableRow {
   name: string;
   type: string;
   value: string;
+  modeValues: Record<string, string>;
 }
 
 export type NewTableRowFields = Partial<Omit<TableRow, 'id'>>;
@@ -28,6 +29,7 @@ function makeRow(fields: NewTableRowFields = {}): TableRow {
     name: fields.name ?? '',
     type: fields.type ?? 'color',
     value: fields.value ?? '',
+    modeValues: fields.modeValues ?? {},
   };
 }
 
@@ -46,8 +48,17 @@ function normalizeDraftRow(row: unknown): TableRow | null {
   const name = typeof source.name === 'string' ? source.name : '';
   const type = typeof source.type === 'string' && source.type.trim() ? source.type : 'color';
   const value = typeof source.value === 'string' ? source.value : '';
+  const rawModeValues = source.modeValues;
+  const modeValues =
+    rawModeValues && typeof rawModeValues === 'object' && !Array.isArray(rawModeValues)
+      ? Object.fromEntries(
+          Object.entries(rawModeValues as Record<string, unknown>).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string',
+          ),
+        )
+      : {};
   if (!name.trim() && !value.trim()) return null;
-  return makeRow({ name, type, value });
+  return makeRow({ name, type, value, modeValues });
 }
 
 function saveDraft(collectionId: string, group: string, rows: TableRow[]): void {
@@ -87,6 +98,7 @@ export interface UseTableCreateParams {
   connected: boolean;
   serverUrl: string;
   collectionId: string;
+  collectionModeNames: string[];
   siblingOrderMap: Map<string, string[]>;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -98,6 +110,7 @@ export function useTableCreate({
   connected,
   serverUrl,
   collectionId,
+  collectionModeNames,
   siblingOrderMap,
   onRefresh,
   onPushUndo,
@@ -137,13 +150,25 @@ export function useTableCreate({
     setRowErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
   }, []);
 
-  const updateRow = useCallback((id: string, field: keyof Omit<TableRow, 'id'>, value: string) => {
+  const updateRow = useCallback((id: string, field: keyof Omit<TableRow, 'id' | 'modeValues'>, value: string) => {
     setTableRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
     if (field === 'name') {
       setRowErrors(prev => { const next = { ...prev }; delete next[id]; return next; });
     }
     setCreateAllError('');
   }, []);
+
+  const updateModeValue = useCallback((id: string, modeName: string, value: string) => {
+    setTableRows(prev => prev.map((row) => {
+      if (row.id !== id) return row;
+      const modeValues = { ...row.modeValues, [modeName]: value };
+      if (modeName === collectionModeNames[0]) {
+        return { ...row, value, modeValues };
+      }
+      return { ...row, modeValues };
+    }));
+    setCreateAllError('');
+  }, [collectionModeNames]);
 
   // Close without clearing the draft — used by Cancel so work can be recovered
   const closeTableCreate = useCallback(() => {
@@ -216,6 +241,9 @@ export function useTableCreate({
 
     const errors: Record<string, string> = {};
     const seenPaths = new Set<string>();
+    const modeNames =
+      collectionModeNames.length > 0 ? collectionModeNames : ['Default'];
+    const multiMode = modeNames.length > 1;
 
     for (const row of rowsToCreate) {
       const g = tableGroup.trim();
@@ -224,6 +252,16 @@ export function useTableCreate({
       const pathError = validateTokenPath(path);
       if (pathError) { errors[row.id] = pathError; continue; }
       if (seenPaths.has(path)) { errors[row.id] = `Duplicate name "${n}"`; continue; }
+      if (
+        multiMode &&
+        modeNames.some((modeName) => {
+          const rawValue = row.modeValues[modeName] ?? (modeName === modeNames[0] ? row.value : '');
+          return !rawValue.trim();
+        })
+      ) {
+        errors[row.id] = 'Add a value for every mode';
+        continue;
+      }
       seenPaths.add(path);
     }
 
@@ -235,7 +273,7 @@ export function useTableCreate({
     setBusy(true);
     setCreateAllError('');
     const effectiveCollectionId = collectionId || 'default';
-    const created: Array<{ path: string; tokenPath: string; type: string; value: unknown }> = [];
+    const created: Array<{ path: string; tokenPath: string; body: ReturnType<typeof createTokenValueBody> }> = [];
 
     let batchAborted = false;
 
@@ -243,19 +281,52 @@ export function useTableCreate({
       const g = tableGroup.trim();
       const n = row.name.trim();
       const path = g ? `${g}.${n}` : n;
-      const parsedValue = row.value.trim()
-        ? parseInlineValue(row.type, row.value.trim())
+      const primaryModeName = modeNames[0];
+      const primaryRawValue =
+        row.modeValues[primaryModeName] ?? row.value;
+      const parsedValue = primaryRawValue.trim()
+        ? parseInlineValue(row.type, primaryRawValue.trim())
         : getDefaultValue(row.type);
 
       if (parsedValue === null) {
-        setRowErrors(prev => ({ ...prev, [row.id]: 'Invalid value for type' }));
+        setRowErrors(prev => ({ ...prev, [row.id]: `Invalid ${primaryModeName} value for type` }));
         batchAborted = true;
         break;
       }
 
+      const secondaryModeValues: Record<string, unknown> = {};
+      for (const modeName of modeNames.slice(1)) {
+        const rawModeValue = row.modeValues[modeName] ?? '';
+        const parsedModeValue = rawModeValue.trim()
+          ? parseInlineValue(row.type, rawModeValue.trim())
+          : getDefaultValue(row.type);
+        if (parsedModeValue === null) {
+          setRowErrors(prev => ({ ...prev, [row.id]: `Invalid ${modeName} value for type` }));
+          batchAborted = true;
+          break;
+        }
+        secondaryModeValues[modeName] = parsedModeValue;
+      }
+      if (batchAborted) break;
+
+      const body = createTokenValueBody({
+        type: row.type,
+        value: parsedValue,
+        extensions:
+          multiMode
+            ? {
+                tokenmanager: {
+                  modes: {
+                    [effectiveCollectionId]: secondaryModeValues,
+                  },
+                },
+              }
+            : undefined,
+      });
+
       try {
-        await createToken(serverUrl, effectiveCollectionId, path, createTokenValueBody({ type: row.type, value: parsedValue }));
-        created.push({ path, tokenPath: path, type: row.type, value: parsedValue });
+        await createToken(serverUrl, effectiveCollectionId, path, body);
+        created.push({ path, tokenPath: path, body });
       } catch (err) {
         if (err instanceof ApiError) {
           setRowErrors(prev => ({ ...prev, [row.id]: err.message || `Failed (${err.status})` }));
@@ -289,7 +360,7 @@ export function useTableCreate({
           },
           redo: async () => {
             for (const c of created) {
-              await createToken(capturedUrl, capturedCollectionId, c.tokenPath, createTokenValueBody({ type: c.type, value: c.value }));
+              await createToken(capturedUrl, capturedCollectionId, c.tokenPath, c.body);
             }
             onRefresh();
           },
@@ -306,7 +377,7 @@ export function useTableCreate({
     }
 
     resetTableCreate();
-  }, [connected, busy, tableRows, tableGroup, collectionId, serverUrl, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, resetTableCreate]);
+  }, [connected, busy, tableRows, tableGroup, collectionId, collectionModeNames, serverUrl, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, resetTableCreate]);
 
   // Smart suggestions for the table create group
   const tableSuggestions = useMemo(() => {
@@ -331,6 +402,7 @@ export function useTableCreate({
     addRow,
     removeRow,
     updateRow,
+    updateModeValue,
     closeTableCreate,
     resetTableCreate,
     restoreDraft,

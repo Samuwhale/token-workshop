@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { ChevronDown } from "lucide-react";
 import {
   deleteCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
@@ -251,10 +252,19 @@ export function ModeColumnHeader({
           disabled={!connected}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          className="tm-mode-column-header__label block w-full rounded-sm px-1.5 py-1 text-body font-medium text-left text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[color:var(--color-figma-text-secondary)]"
-          title={modeName}
+          aria-label={`Edit ${modeName} mode`}
+          className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-body font-medium text-left text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[color:var(--color-figma-text-secondary)]"
+          title={`Edit ${modeName} mode`}
         >
-          {modeName}
+          <span className="tm-mode-column-header__label min-w-0 flex-1">
+            {modeName}
+          </span>
+          <ChevronDown
+            size={10}
+            strokeWidth={1.5}
+            aria-hidden
+            className="shrink-0 text-[color:var(--color-figma-text-tertiary)]"
+          />
         </button>
       )}
       {(renameError || actionError) && !menuOpen ? (

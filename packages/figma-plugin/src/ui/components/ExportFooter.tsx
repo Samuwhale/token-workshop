@@ -3,6 +3,7 @@ import type { ExportResultFile } from '../hooks/useExportResults';
 
 export interface ExportFooterProps {
   mode: 'platforms';
+  connected: boolean;
   changesOnly: boolean;
   diffPaths: string[] | null;
   diffLoading: boolean;
@@ -19,7 +20,7 @@ export interface ExportFooterProps {
 }
 
 export function ExportFooter({
-  changesOnly, diffPaths, diffLoading, isGitRepo, lastExportTimestamp,
+  connected, changesOnly, diffPaths, diffLoading, isGitRepo, lastExportTimestamp,
   results, exporting, selected, selectedCollections, zipProgress,
   handleExport, handleCopyAllPlatformResults, handleDownloadZip,
 }: ExportFooterProps) {
@@ -27,6 +28,7 @@ export function ExportFooter({
   const changesOnlyNeedsBaseline = changesOnly && isGitRepo === false && lastExportTimestamp === null;
   const exportDisabled = selected.size === 0
     || (selectedCollections !== null && selectedCollections.size === 0)
+    || !connected
     || exporting
     || changesOnlyNeedsBaseline
     || hasResolvedZeroChanges;
@@ -66,6 +68,8 @@ export function ExportFooter({
             className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-2 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
             title={hasResolvedZeroChanges
               ? 'No changed tokens to export'
+              : !connected
+              ? 'Connect to the token server to export'
               : 'Re-fetch tokens from the server and regenerate all platform files'}
           >
             {exporting ? (
@@ -73,7 +77,9 @@ export function ExportFooter({
                 <Spinner />
                 Exporting…
               </>
-            ) : hasResolvedZeroChanges
+            ) : !connected
+              ? 'Connect to export'
+              : hasResolvedZeroChanges
               ? 'Re-export 0 Changed Tokens'
               : 'Re-export'}
           </button>
@@ -138,7 +144,9 @@ export function ExportFooter({
                 <Spinner />
                 Exporting…
               </>
-            ) : selected.size === 0
+            ) : !connected
+              ? 'Connect to export'
+              : selected.size === 0
               ? 'Select a platform'
               : selectedCollections !== null && selectedCollections.size === 0
               ? 'Select at least one collection'
@@ -155,6 +163,11 @@ export function ExportFooter({
           {selected.size === 0 && (
             <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-tight">
               Select at least one platform in the list above.
+            </p>
+          )}
+          {!connected && (
+            <p className="text-secondary text-[color:var(--color-figma-text-warning)] leading-tight">
+              Connect to the token server before exporting platform files.
             </p>
           )}
           {selectedCollections !== null && selectedCollections.size === 0 && (
