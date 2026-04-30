@@ -97,8 +97,6 @@ import {
   NumberStepTable,
   ReferenceableField,
   ShadowStepTable,
-  formatGeneratorDimensionInput,
-  parseGeneratorDimensionInput,
   type GeneratorTokenRefs,
   validateGeneratorTokenPath,
 } from "./GeneratorFieldControls";
@@ -503,6 +501,18 @@ export function GeneratorsPanel({
   const compactGenerators =
     panelWidth !== null && panelWidth < COMPACT_GENERATORS_WIDTH;
 
+  const markGeneratorDirty = useCallback((generatorId: string) => {
+    setDirty(true);
+    dirtyRef.current = true;
+    dirtyGeneratorIdRef.current = generatorId;
+  }, []);
+
+  const clearGeneratorDirty = useCallback(() => {
+    setDirty(false);
+    dirtyRef.current = false;
+    dirtyGeneratorIdRef.current = null;
+  }, []);
+
   const closeCreatePanel = useCallback(() => {
     setCreateOutputPrefix(null);
     setCreatePanelOpen(false);
@@ -751,9 +761,7 @@ export function GeneratorsPanel({
     if (!preservingDirtyGenerator) {
       setPreview(null);
       setLastApply(null);
-      setDirty(false);
-      dirtyRef.current = false;
-      dirtyGeneratorIdRef.current = null;
+      clearGeneratorDirty();
       setExternalPreviewInvalidated(false);
     }
     const opensGraph = initialView === "graph" || focus?.nodeId || focus?.edgeId;
@@ -819,6 +827,7 @@ export function GeneratorsPanel({
     initialView,
     onInitialGeneratorHandled,
     serverUrl,
+    clearGeneratorDirty,
     setActiveGeneratorSelection,
   ]);
 
@@ -942,15 +951,13 @@ export function GeneratorsPanel({
             : graph,
         ),
       );
-      setDirty(true);
-      dirtyRef.current = true;
-      dirtyGeneratorIdRef.current = activeGenerator.id;
+      markGeneratorDirty(activeGenerator.id);
       graphRevisionRef.current += 1;
       setPreview(null);
       setLastApply(null);
       setExternalPreviewInvalidated(false);
     },
-    [activeGenerator, edges, nodes],
+    [activeGenerator, edges, markGeneratorDirty, nodes],
   );
 
   const syncFlowToGenerator = useCallback(() => {
@@ -983,16 +990,14 @@ export function GeneratorsPanel({
             : graph,
         ),
       );
-      setDirty(true);
-      dirtyRef.current = true;
-      dirtyGeneratorIdRef.current = activeGenerator.id;
+      markGeneratorDirty(activeGenerator.id);
       if (!options.preservePreview) {
         setPreview(null);
         setLastApply(null);
         setExternalPreviewInvalidated(false);
       }
     },
-    [activeGenerator],
+    [activeGenerator, markGeneratorDirty],
   );
 
   const applyGraphStructureUiState = useCallback(
@@ -1075,11 +1080,9 @@ export function GeneratorsPanel({
             : generator,
         ),
       );
-      setDirty(true);
-      dirtyRef.current = true;
-      dirtyGeneratorIdRef.current = activeGenerator.id;
+      markGeneratorDirty(activeGenerator.id);
     },
-    [activeGenerator],
+    [activeGenerator, markGeneratorDirty],
   );
 
   const saveGenerator = useCallback(async () => {
@@ -1119,9 +1122,7 @@ export function GeneratorsPanel({
           candidate.id === data.generator.id ? data.generator : candidate,
         ),
       );
-      setDirty(false);
-      dirtyRef.current = false;
-      dirtyGeneratorIdRef.current = null;
+      clearGeneratorDirty();
       setExternalPreviewInvalidated(false);
       refreshGeneratorStatuses();
       return data.generator;
@@ -1133,7 +1134,13 @@ export function GeneratorsPanel({
     } finally {
       setBusy(null);
     }
-  }, [graphHasErrors, refreshGeneratorStatuses, serverUrl, syncFlowToGenerator]);
+  }, [
+    clearGeneratorDirty,
+    graphHasErrors,
+    refreshGeneratorStatuses,
+    serverUrl,
+    syncFlowToGenerator,
+  ]);
 
   const discardGeneratorDraft = useCallback(async () => {
     const generatorId = activeGeneratorIdRef.current;
@@ -1159,9 +1166,7 @@ export function GeneratorsPanel({
       setPendingDelete(null);
       setPreview(null);
       setLastApply(null);
-      setDirty(false);
-      dirtyRef.current = false;
-      dirtyGeneratorIdRef.current = null;
+      clearGeneratorDirty();
       setExternalPreviewInvalidated(false);
       latestPreviewSignatureRef.current = "";
     } catch (discardError) {
@@ -1173,7 +1178,7 @@ export function GeneratorsPanel({
     } finally {
       setBusy(null);
     }
-  }, [serverUrl, setEdges, setNodes]);
+  }, [clearGeneratorDirty, serverUrl, setEdges, setNodes]);
 
   useEffect(() => {
     if (!editorSessionHost) return;
@@ -1377,9 +1382,7 @@ export function GeneratorsPanel({
       setLastApply(null);
       setEditorMode("overview");
       setPreview(null);
-      setDirty(false);
-      dirtyRef.current = false;
-      dirtyGeneratorIdRef.current = null;
+      clearGeneratorDirty();
       setGeneratorStatusesById((current) => {
         const next = { ...current };
         delete next[deletedGeneratorId];
@@ -1397,6 +1400,7 @@ export function GeneratorsPanel({
     }
   }, [
     activeGenerator,
+    clearGeneratorDirty,
     generators,
     refreshGeneratorStatuses,
     serverUrl,
@@ -1429,14 +1433,12 @@ export function GeneratorsPanel({
       setError(null);
       setLastApply(null);
       setExternalPreviewInvalidated(false);
-      setDirty(false);
+      clearGeneratorDirty();
       setSelectedEdgeId(null);
       setGraphMenu(null);
-      dirtyRef.current = false;
-      dirtyGeneratorIdRef.current = null;
       setEditorMode("overview");
     },
-    [busy, dirty, setActiveGeneratorSelection],
+    [busy, clearGeneratorDirty, dirty, setActiveGeneratorSelection],
   );
 
   const updateNodeData = useCallback(
@@ -2501,8 +2503,6 @@ export function GeneratorsPanel({
         collections={collections}
         perCollectionFlat={perCollectionFlat}
         preview={preview}
-        dirty={dirty}
-        externalPreviewInvalidated={externalPreviewInvalidated}
         graphIssues={graphIssues}
         onRename={(name) => patchActiveGraph({ name })}
         onChangeNode={updateNodeData}
@@ -4142,8 +4142,6 @@ function GeneratorOverviewPanel({
   collections,
   perCollectionFlat,
   preview,
-  dirty,
-  externalPreviewInvalidated,
   graphIssues,
   onRename,
   onChangeNode,
@@ -4154,8 +4152,6 @@ function GeneratorOverviewPanel({
   collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   preview: TokenGeneratorPreviewResult | null;
-  dirty: boolean;
-  externalPreviewInvalidated: boolean;
   graphIssues: GraphIssue[];
   onRename: (name: string) => void;
   onChangeNode: (nodeId: string, data: Record<string, unknown>) => void;
