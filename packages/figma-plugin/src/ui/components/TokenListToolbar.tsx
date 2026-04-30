@@ -106,6 +106,7 @@ export interface TokenListToolbarProps {
   onToggleInspectMode: () => void;
   openTableCreate: () => void;
   onCreateToken?: () => void;
+  onCreateGenerator?: (initialOutputPrefix?: string) => void;
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
@@ -143,6 +144,7 @@ export function TokenListToolbar({
   onToggleInspectMode,
   openTableCreate,
   onCreateToken,
+  onCreateGenerator,
   handleOpenNewGroupDialog,
   onShowPasteModal,
   onOpenImportPanel,
@@ -278,8 +280,8 @@ export function TokenListToolbar({
     : [];
 
   return (
-    <div className="bg-[var(--color-figma-bg-secondary)]">
-      <div className="tm-responsive-toolbar tm-token-toolbar px-3 py-2">
+    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+      <div className="tm-responsive-toolbar tm-token-toolbar px-2 py-1.5">
         <div className="tm-responsive-toolbar__row tm-token-toolbar__row">
           <div className="tm-responsive-toolbar__leading">
             {onNavigateBack && (navHistoryLength ?? 0) > 0 ? (
@@ -606,6 +608,24 @@ export function TokenListToolbar({
                       >
                         Paste tokens
                       </button>
+                    ) : null}
+                    {onCreateGenerator ? (
+                      <>
+                        <div className="h-1.5" aria-hidden />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() =>
+                            runCreateAction(() =>
+                              onCreateGenerator(zoomRootPath ?? undefined),
+                            )
+                          }
+                          disabled={!connected}
+                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                        >
+                          Create generator
+                        </button>
+                      </>
                     ) : null}
                   </div>
                 ) : null}

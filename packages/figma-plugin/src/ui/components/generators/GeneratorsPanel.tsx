@@ -123,7 +123,9 @@ interface GeneratorsPanelProps {
   initialGeneratorId?: string | null;
   initialView?: GeneratorEditorMode | null;
   initialFocus?: GeneratorPanelFocus | null;
+  initialCreateOutputPrefix?: string | null;
   onInitialGeneratorHandled?: () => void;
+  onInitialCreateHandled?: () => void;
   editorSessionHost?: {
     registerSession: (session: EditorSessionRegistration | null) => void;
   };
@@ -232,7 +234,7 @@ type GraphFlowNode = Node<
 >;
 type GraphFlowEdge = Edge<Record<string, never>>;
 type GeneratorEditorMode = "overview" | "graph";
-const COMPACT_GENERATORS_WIDTH = 860;
+const COMPACT_GENERATORS_WIDTH = 560;
 
 type PreviewChangeCounts = {
   collisions: number;
@@ -418,7 +420,9 @@ export function GeneratorsPanel({
   initialGeneratorId,
   initialView,
   initialFocus,
+  initialCreateOutputPrefix,
   onInitialGeneratorHandled,
+  onInitialCreateHandled,
   editorSessionHost,
 }: GeneratorsPanelProps) {
   const [generators, setGenerators] = useState<TokenGeneratorDocument[]>([]);
@@ -446,6 +450,7 @@ export function GeneratorsPanel({
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
+  const [createOutputPrefix, setCreateOutputPrefix] = useState<string | null>(null);
   const [nodeLibraryOpen, setNodeLibraryOpen] = useState(false);
   const [floatingPreviewOpen, setFloatingPreviewOpen] = useState(true);
   const [floatingPreviewCollapsed, setFloatingPreviewCollapsed] =
@@ -468,6 +473,13 @@ export function GeneratorsPanel({
     GraphFlowNode,
     GraphFlowEdge
   > | null>(null);
+
+  useEffect(() => {
+    if (initialCreateOutputPrefix === undefined) return;
+    setCreateOutputPrefix(initialCreateOutputPrefix?.trim() || null);
+    setCreatePanelOpen(true);
+    onInitialCreateHandled?.();
+  }, [initialCreateOutputPrefix, onInitialCreateHandled]);
   const [nodes, setNodes] = useNodesState<GraphFlowNode>([]);
   const [edges, setEdges] = useEdgesState<GraphFlowEdge>([]);
   const nodesRef = useRef<GraphFlowNode[]>([]);
@@ -3040,8 +3052,12 @@ export function GeneratorsPanel({
             serverUrl={serverUrl}
             collections={collections}
             workingCollectionId={workingCollectionId}
+            initialOutputPrefix={createOutputPrefix}
             perCollectionFlat={perCollectionFlat}
-            onClose={() => setCreatePanelOpen(false)}
+            onClose={() => {
+              setCreateOutputPrefix(null);
+              setCreatePanelOpen(false);
+            }}
             onOpenGenerator={(generatorId, collectionId, initialView) => {
               if (
                 dirtyRef.current &&
@@ -3049,6 +3065,7 @@ export function GeneratorsPanel({
                 dirtyGeneratorIdRef.current !== generatorId
               ) {
                 setError("Save the current generator before opening another one.");
+                setCreateOutputPrefix(null);
                 setCreatePanelOpen(false);
                 return;
               }
@@ -3065,6 +3082,7 @@ export function GeneratorsPanel({
                 );
                 void loadGenerators();
               }
+              setCreateOutputPrefix(null);
               setCreatePanelOpen(false);
             }}
           />

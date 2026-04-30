@@ -76,10 +76,10 @@ function ActionRow({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "w-full flex items-start gap-3 text-left transition-colors disabled:opacity-50",
+        "w-full flex items-start gap-2.5 text-left transition-colors disabled:opacity-50",
         emphasized
-          ? "border-t-0 px-0 pb-2.5 pt-0"
-          : "border-t border-[var(--color-figma-border)] px-0 py-2.5 first:border-t-0 first:pt-0 last:pb-0",
+          ? "border-t-0 px-0 pb-2 pt-0"
+          : "border-t border-[var(--color-figma-border)] px-0 py-2 first:border-t-0 first:pt-0 last:pb-0",
       ].join(" ")}
     >
       <span
@@ -191,10 +191,10 @@ export function WelcomePrompt({
   const branchTitle = branchCopy.title;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)] p-2">
       <div
         ref={dialogRef}
-        className="flex max-h-[85vh] w-full max-w-[320px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
+        className="flex max-h-[calc(100vh-16px)] w-full max-w-[320px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
@@ -208,7 +208,7 @@ export function WelcomePrompt({
           branchCopy.description ? "welcome-dialog-description" : undefined
         }
       >
-        <div className="border-b border-[var(--color-figma-border)] px-3 py-3">
+        <div className="border-b border-[var(--color-figma-border)] px-3 py-2.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               {showBack && (
@@ -240,7 +240,7 @@ export function WelcomePrompt({
           {branchCopy.description ? (
             <p
               id="welcome-dialog-description"
-              className="mt-1.5 max-w-[28ch] text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]"
+              className="mt-1.5 max-w-[28ch] text-secondary leading-[1.45] text-[color:var(--color-figma-text-secondary)]"
             >
               {branchCopy.description}
             </p>

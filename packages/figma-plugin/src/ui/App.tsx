@@ -103,7 +103,7 @@ function formatCount(
 
 const SIDEBAR_HOVER_CLASSES =
   "hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]";
-const RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH = 640;
+const RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH = 560;
 
 const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
   accent: "bg-[var(--color-figma-accent)]",
@@ -732,12 +732,12 @@ export function App() {
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
   const sidebarBoundary = useResizableBoundary({
     storageKey: STORAGE_KEYS.SIDEBAR_WIDTH,
-    defaultSize: 120,
+    defaultSize: 136,
     min: 40,
     max: 240,
     axis: "x",
     mode: "px",
-    snap: { below: 112, to: 40 },
+    snap: { below: 120, to: 40 },
   });
   const [responsiveSidebarCollapsed, setResponsiveSidebarCollapsed] = useState(
     () =>
@@ -764,7 +764,7 @@ export function App() {
     ? 40
     : sidebarBoundary.size;
   const toggleSidebarCollapsed = useCallback(() => {
-    sidebarBoundary.setSize(sidebarBoundary.size <= 40 ? 120 : 40);
+    sidebarBoundary.setSize(sidebarBoundary.size <= 40 ? 136 : 40);
   }, [sidebarBoundary]);
   useEffect(() => {
     if (!responsiveSidebarCollapsed) {

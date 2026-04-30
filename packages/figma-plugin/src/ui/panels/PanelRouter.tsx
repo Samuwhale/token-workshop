@@ -95,7 +95,7 @@ import {
 const DEFAULT_CREATE_TYPE = "color";
 const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
 const CONTEXTUAL_PANEL_MIN_WIDTH = 280;
-const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 520;
+const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 560;
 const LazyGeneratorsPanel = lazy(() =>
   Promise.resolve({ default: GeneratorsPanel }),
 );
@@ -328,6 +328,8 @@ export function PanelRouter({
     useState<GeneratorPanelFocus | null>(null);
   const [pendingGeneratorInitialView, setPendingGeneratorInitialView] =
     useState<"overview" | "graph" | null>(null);
+  const [pendingGeneratorCreateOutputPrefix, setPendingGeneratorCreateOutputPrefix] =
+    useState<string | null | undefined>(undefined);
   const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
     useState<string | null>(null);
   const createLibraryHealthScope = useCallback(
@@ -767,6 +769,11 @@ export function PanelRouter({
       initialValue: string | undefined,
     ) => {
       openCreateLauncher({ initialPath, initialType, initialValue });
+    },
+    onCreateGenerator: (initialOutputPrefix?: string) => {
+      const prefix = initialOutputPrefix?.trim();
+      setPendingGeneratorCreateOutputPrefix(prefix || null);
+      navigateTo("library", "generators");
     },
     onRefresh: controller.refreshAll,
     onPushUndo: controller.pushUndo,
@@ -1686,11 +1693,15 @@ export function PanelRouter({
               initialGeneratorId={pendingGeneratorDocumentId}
               initialView={pendingGeneratorInitialView}
               initialFocus={pendingGeneratorFocus}
+              initialCreateOutputPrefix={pendingGeneratorCreateOutputPrefix}
               editorSessionHost={generatorEditorSessionHost}
               onInitialGeneratorHandled={() => {
                 setPendingGeneratorDocumentId(null);
                 setPendingGeneratorFocus(null);
                 setPendingGeneratorInitialView(null);
+              }}
+              onInitialCreateHandled={() => {
+                setPendingGeneratorCreateOutputPrefix(undefined);
               }}
               onNavigateToToken={(path, collectionId) => {
                 openTokenInContext({
