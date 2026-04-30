@@ -121,6 +121,16 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
     });
   };
 
+  const totalConflictSections = git.mergeConflicts.reduce(
+    (sum, conflict) => sum + conflict.regions.length,
+    0,
+  );
+  const resolvedConflictSections = git.mergeConflicts.reduce((sum, conflict) => {
+    const fileChoices = git.conflictChoices[conflict.file] ?? {};
+    return sum + conflict.regions.filter((region) => fileChoices[region.index] !== undefined).length;
+  }, 0);
+  const unresolvedConflictSections = totalConflictSections - resolvedConflictSections;
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {git.gitError && (
@@ -328,7 +338,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                       <span className="text-secondary text-[color:var(--color-figma-text-secondary)] ml-auto shrink-0">{conflict.regions.length} section{conflict.regions.length !== 1 ? 's' : ''}</span>
                     </div>
                     {conflict.regions.map((region) => {
-                      const choice = git.conflictChoices[conflict.file]?.[region.index] ?? 'theirs';
+                      const choice = git.conflictChoices[conflict.file]?.[region.index];
                       const regionKey = `${conflict.file}:${region.index}`;
                       const isExpanded = expandedRegions.has(regionKey);
                       const diff = regionDiffs.get(regionKey);
@@ -354,7 +364,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                               className={`min-w-0 flex-1 text-left px-2 py-1 border-b border-[var(--color-figma-border)] transition-colors md:border-b-0 md:border-r ${
                                 choice === 'ours'
                                   ? 'bg-[var(--color-figma-success)]/10'
-                                  : 'bg-[var(--color-figma-bg)] opacity-50 hover:opacity-75'
+                                  : 'bg-[var(--color-figma-bg)] opacity-70 hover:opacity-90'
                               }`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
@@ -379,7 +389,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                               className={`min-w-0 flex-1 text-left px-2 py-1 transition-colors ${
                                 choice === 'theirs'
                                   ? 'bg-[var(--color-figma-accent)]/10'
-                                  : 'bg-[var(--color-figma-bg)] opacity-50 hover:opacity-75'
+                                  : 'bg-[var(--color-figma-bg)] opacity-70 hover:opacity-90'
                               }`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
@@ -413,11 +423,16 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
               </div>
               <div className="px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                 <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  {git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0)} section{git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0) !== 1 ? 's' : ''} to resolve
+                  {resolvedConflictSections}/{totalConflictSections} section{totalConflictSections !== 1 ? 's' : ''} chosen
                 </span>
                 <button
                   onClick={git.resolveConflicts}
-                  disabled={git.resolvingConflicts}
+                  disabled={git.resolvingConflicts || unresolvedConflictSections > 0}
+                  title={
+                    unresolvedConflictSections > 0
+                      ? `Choose ${unresolvedConflictSections} remaining section${unresolvedConflictSections === 1 ? '' : 's'} first`
+                      : undefined
+                  }
                   className="text-secondary px-3 py-1 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
                 >
                   {git.resolvingConflicts ? 'Applying\u2026' : 'Apply my choices'}

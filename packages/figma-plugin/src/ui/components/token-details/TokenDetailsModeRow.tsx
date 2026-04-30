@@ -189,7 +189,6 @@ export function TokenDetailsModeRow({
         aria-pressed={aliasMode}
         className={joinClasses(
           "tm-token-mode-row__action-button",
-          "tm-token-mode-row__action-button--icon",
           aliasMode && "tm-token-mode-row__action-button--active",
         )}
         title={aliasMode ? "Use a direct value for this mode" : "Reference another token for this mode"}
@@ -198,32 +197,34 @@ export function TokenDetailsModeRow({
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
-        <span className="sr-only">
-          {aliasMode ? "Use direct value" : "Reference"}
-        </span>
+        <span className="tm-token-mode-row__action-label">Reference</span>
       </button>
       {allowCopyFromPrevious && onCopyFromPrevious ? (
         <button
           type="button"
           onClick={onCopyFromPrevious}
-          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--icon tm-token-mode-row__action-button--secondary"
+          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
           title="Copy from previous mode"
           aria-label="Copy from previous mode"
         >
           <Copy size={12} strokeWidth={1.5} aria-hidden />
-          <span className="sr-only">Copy from previous mode</span>
+          <span className="tm-token-mode-row__action-label">
+            Copy previous
+          </span>
         </button>
       ) : null}
       {allowCopyToAll && onCopyToAll ? (
         <button
           type="button"
           onClick={onCopyToAll}
-          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--icon tm-token-mode-row__action-button--secondary"
+          className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
           title="Copy to all other modes"
           aria-label="Copy to all other modes"
         >
           <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-          <span className="sr-only">Copy to all other modes</span>
+          <span className="tm-token-mode-row__action-label">
+            Copy to all
+          </span>
         </button>
       ) : null}
     </div>

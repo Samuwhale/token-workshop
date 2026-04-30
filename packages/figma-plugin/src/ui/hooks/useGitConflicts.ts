@@ -53,13 +53,9 @@ export function useGitConflicts({
       const data = await apiFetch<{ conflicts: FileConflict[] }>(`${serverUrl}/api/sync/conflicts`, { signal: controller.signal });
       const conflicts: FileConflict[] = data.conflicts || [];
       setMergeConflicts(conflicts);
-      // Initialize choices: default all regions to 'theirs' (accept incoming)
       const choices: Record<string, Record<number, 'ours' | 'theirs'>> = {};
       for (const c of conflicts) {
         choices[c.file] = {};
-        for (const r of c.regions) {
-          choices[c.file][r.index] = 'theirs';
-        }
       }
       setConflictChoices(choices);
     } catch (err) {
@@ -73,6 +69,19 @@ export function useGitConflicts({
   }, [fetchConflicts]);
 
   const resolveConflicts = useCallback(async () => {
+    const unresolvedCount = mergeConflicts.reduce((count, conflict) => {
+      const fileChoices = conflictChoices[conflict.file] ?? {};
+      return count + conflict.regions.filter((region) => fileChoices[region.index] === undefined).length;
+    }, 0);
+    if (unresolvedCount > 0) {
+      setGitError(
+        unresolvedCount === 1
+          ? 'Choose a version for the remaining conflicting section.'
+          : `Choose a version for all ${unresolvedCount} remaining conflicting sections.`,
+      );
+      return;
+    }
+
     setResolvingConflicts(true);
     setGitError(null);
     try {

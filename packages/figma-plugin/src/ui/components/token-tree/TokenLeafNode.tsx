@@ -845,21 +845,26 @@ export const TokenLeafNode = memo(
                 shift: e.shiftKey,
               });
             }}
-            className={`shrink-0 w-3.5 h-3.5 rounded-[3px] flex items-center justify-center transition-opacity ${
+            className={`shrink-0 inline-flex h-7 w-7 items-center justify-center rounded transition-opacity focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${
               selectMode || hovered || isSelected
                 ? "opacity-100"
                 : "opacity-0 pointer-events-none"
-            } ${
-              isSelected
-                ? "bg-[var(--color-figma-accent)] border border-[var(--color-figma-accent)]"
-                : "border border-[var(--color-figma-text-tertiary)] hover:border-[var(--color-figma-accent)]"
-            }`}
+            } hover:bg-[var(--color-figma-bg-hover)]`}
           >
-            {isSelected && (
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                <path d="M2.5 5L4.5 7L7.5 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
+            <span
+              className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border transition-colors ${
+                isSelected
+                  ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]"
+                  : "border-[var(--color-figma-text-tertiary)]"
+              }`}
+              aria-hidden="true"
+            >
+              {isSelected ? (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2.5 5L4.5 7L7.5 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : null}
+            </span>
           </button>
 
           <div
@@ -1019,7 +1024,7 @@ export const TokenLeafNode = memo(
                   aria-label="More token actions"
                   aria-haspopup="menu"
                   aria-expanded={!!contextMenuPos}
-                  className="p-1 rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <circle cx="5" cy="12" r="2" />

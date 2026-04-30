@@ -204,7 +204,7 @@ function ModeRow({
     return (
       <div className="mx-2 rounded bg-[var(--color-figma-error)]/10 px-2.5 py-2">
         <p className="text-secondary text-[color:var(--color-figma-text)]">
-          Delete mode? {tokenCount} token{tokenCount === 1 ? "" : "s"} may lose values.
+          Delete {modeName}? This removes the {modeName} value from {tokenCount} token{tokenCount === 1 ? "" : "s"} in this collection.
         </p>
         <div className="mt-1.5 flex items-center gap-1.5">
           <button

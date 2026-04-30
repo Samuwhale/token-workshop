@@ -200,7 +200,7 @@ export function ImportVariablesSummary() {
         )}
 
         <button
-          onClick={() => handleImportVariables(hasConflicts ? strategy : 'overwrite')}
+          onClick={() => handleImportVariables(hasConflicts ? strategy : 'merge')}
           disabled={!canImport}
           className="w-full rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-opacity hover:opacity-90 disabled:opacity-40 whitespace-normal leading-tight text-center"
         >

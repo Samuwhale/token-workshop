@@ -114,7 +114,7 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
           Create your first token collection
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Collections own their modes, so set up the collection and the mode contexts it needs together.
+          Add modes like Light and Dark now. Every token in this collection will get one value for each mode.
         </p>
       </div>
 

@@ -11,9 +11,9 @@ export interface CollectionAuthoringDraft {
 }
 
 const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
-  { label: "Default", modes: ["Default"] },
-  { label: "Light / Dark", modes: ["Light", "Dark"] },
-  { label: "Mobile / Desktop", modes: ["Mobile", "Desktop"] },
+  { label: "One mode", modes: ["Default"] },
+  { label: "Light and Dark", modes: ["Light", "Dark"] },
+  { label: "Responsive modes", modes: ["Mobile", "Desktop"] },
 ];
 
 interface CollectionAuthoringFieldsProps {
@@ -120,7 +120,7 @@ export function CollectionAuthoringFields({
         </div>
 
         {onModeNamesChange ? (
-          <div className="flex flex-wrap gap-1.5" aria-label="Mode starters">
+          <div className="flex flex-wrap gap-1.5" aria-label="Mode examples">
             {MODE_PRESETS.map((preset) => {
               const presetActive =
                 preset.modes.length === normalizedModes.length &&
@@ -180,7 +180,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Modes are equal value contexts for every token in this collection. Add only the contexts you need right now.
+          Every token gets one value for each mode. Use one mode for a simple collection, or add contexts like Light and Dark.
         </span>
       </div>
 

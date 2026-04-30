@@ -27,7 +27,7 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   },
   "start-new": {
     title: "Create your first collection",
-    description: "Name the collection, then choose the modes every token in it should support.",
+    description: "Name the collection, then add modes like Light and Dark. Every token gets one value for each mode.",
   },
 };
 
@@ -151,7 +151,7 @@ export function WelcomePrompt({
     <div>
       <ActionRow
         title="Create your first collection"
-        description="Start clean with a Figma-style collection and mode setup."
+        description="Create the Figma-style home for related tokens and their modes."
         onClick={() => setBranch("start-new")}
         emphasized
         icon={<Plus size={14} strokeWidth={1.75} aria-hidden />}
@@ -167,7 +167,7 @@ export function WelcomePrompt({
         description={
           selectedNodeCount > 0
             ? "Inspect selected layers and turn design values into tokens."
-            : "Select layers in Figma to extract tokens from the canvas."
+            : "Select at least one layer in Figma to use this path."
         }
         disabled={selectedNodeCount === 0}
         onClick={() => handleAction(onStartFromSelection)}
