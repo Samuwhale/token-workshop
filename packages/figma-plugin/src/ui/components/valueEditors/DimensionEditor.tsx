@@ -17,7 +17,43 @@ export const StepperInput = memo(function StepperInput({
   className?: string;
   autoFocus?: boolean;
 }) {
-  const step = (delta: number) => onChange(Math.round((value + delta) * 1000) / 1000);
+  const [draftValue, setDraftValue] = useState(() => String(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) {
+      setDraftValue(String(value));
+    }
+  }, [focused, value]);
+
+  const parseDraft = (raw: string, allowTrailingDecimal = false): number | null => {
+    if (
+      raw.trim() === '' ||
+      raw === '-' ||
+      raw === '+' ||
+      (!allowTrailingDecimal && raw.endsWith('.'))
+    ) {
+      return null;
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const commitDraft = () => {
+    const parsed = parseDraft(draftValue, true);
+    const committed = parsed ?? value;
+    setDraftValue(String(committed));
+    if (committed !== value) {
+      onChange(committed);
+    }
+  };
+
+  const step = (delta: number) => {
+    const current = parseDraft(draftValue, true) ?? value;
+    const next = Math.round((current + delta) * 1000) / 1000;
+    setDraftValue(String(next));
+    onChange(next);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowUp') { e.preventDefault(); step(e.shiftKey ? 10 : 1); }
@@ -34,8 +70,20 @@ export const StepperInput = memo(function StepperInput({
       <input
         type="number"
         aria-label="Numeric value"
-        value={value}
-        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        value={draftValue}
+        onChange={e => {
+          const nextDraft = e.target.value;
+          setDraftValue(nextDraft);
+          const parsed = parseDraft(nextDraft);
+          if (parsed !== null) {
+            onChange(parsed);
+          }
+        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          commitDraft();
+        }}
         onKeyDown={handleKeyDown}
         onWheel={handleWheel}
         autoFocus={autoFocus}

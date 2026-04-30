@@ -3,7 +3,7 @@
  * Individual editor implementations live in the `valueEditors/` subdirectory.
  */
 
-export { VALUE_FORMAT_HINTS } from './valueEditors/valueEditorShared';
+export { VALUE_FORMAT_HINTS } from '../shared/valueFormatHints';
 export { ColorSwatchButton, ColorEditor } from './valueEditors/ColorEditor';
 export { StepperInput, DimensionEditor } from './valueEditors/DimensionEditor';
 export { TypographyEditor } from './valueEditors/TypographyEditor';

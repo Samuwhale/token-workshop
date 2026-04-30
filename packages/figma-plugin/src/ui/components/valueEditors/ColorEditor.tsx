@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
+import { Check, Pipette } from 'lucide-react';
 import type { TokenMapEntry } from '../../../shared/types';
 import { ColorPicker } from '../ColorPicker';
 import { Spinner } from '../Spinner';
@@ -193,16 +194,11 @@ export const ColorEditor = memo(function ColorEditor({ value, onChange, autoFocu
           aria-label="Sample color from Figma selection"
         >
           {eyedropperState === 'success' ? (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
+            <Check size={12} strokeWidth={2} aria-hidden />
           ) : eyedropperState === 'waiting' ? (
             <Spinner size="sm" />
           ) : (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
+            <Pipette size={12} strokeWidth={2} aria-hidden />
           )}
         </button>
       </div>

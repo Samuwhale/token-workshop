@@ -416,32 +416,3 @@ export function highlightMatch(text: string, terms: string[]): React.ReactNode {
     </>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Per-type format hints shown below the value input for complex types
-// ---------------------------------------------------------------------------
-
-const VALUE_FORMAT_HINTS: Record<string, string> = {
-  color: '#RRGGBB, #RRGGBBAA, rgb(r g b), oklch(L C H), color(display-p3 r g b)',
-  typography: 'JSON object: { "fontFamily": "Inter", "fontSize": "16px", "fontWeight": 400, "lineHeight": "1.5", "letterSpacing": "0.01em" }',
-  shadow: 'JSON object or array: { "offsetX": "0px", "offsetY": "4px", "blur": "8px", "spread": "0px", "color": "#00000040" } — use [ ] for multiple shadows',
-  border: 'JSON object: { "color": "#000000", "width": "1px", "style": "solid" } — style: solid | dashed | dotted',
-  gradient: 'CSS gradient string, e.g. linear-gradient(180deg, #000 0%, #fff 100%)',
-  strokeStyle: 'String ("solid", "dashed", "dotted") or JSON object: { "dashArray": ["2px","4px"], "lineCap": "round" }',
-  dimension: 'Number with unit: 16px, 1rem, 0.5em',
-  duration: 'Number with unit: 200ms, 0.3s',
-  fontFamily: 'Font name or comma-separated list: Inter, Arial, sans-serif',
-  fontWeight: 'Number (100–900) or name: 400, bold, semi-bold',
-  lineHeight: 'Unitless ratio (1.5) or value with unit: 24px, 150%',
-  letterSpacing: 'Number with unit: 0.01em, 1px',
-  cubicBezier: 'Array of 4 numbers [x1, y1, x2, y2] between 0 and 1: [0.25, 0.1, 0.25, 1]',
-  transition: 'JSON object: { "duration": { "value": 200, "unit": "ms" }, "delay": { "value": 0, "unit": "ms" }, "timingFunction": [0.25, 0.1, 0.25, 1] }',
-  composition: 'JSON object of token properties: { "opacity": 1, "borderRadius": "4px" }',
-  number: 'Plain number: 1.5, 4, 100',
-  percentage: 'Plain number (0–100): 50, 100',
-  boolean: 'true or false',
-};
-
-export function valueFormatHint(type: string): string | null {
-  return VALUE_FORMAT_HINTS[type] ?? null;
-}

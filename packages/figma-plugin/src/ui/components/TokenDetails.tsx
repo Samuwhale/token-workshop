@@ -69,7 +69,7 @@ import {
   getInitialCreateValue,
   NAMESPACE_SUGGESTIONS,
 } from "./token-editor/tokenEditorHelpers";
-import { valueFormatHint } from "./tokenListHelpers";
+import { valueFormatHint } from "../shared/valueFormatHints";
 import { ExtendsTokenPicker } from "./token-editor/ExtendsTokenPicker";
 import type { LintViolation } from "../hooks/useLint";
 import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
