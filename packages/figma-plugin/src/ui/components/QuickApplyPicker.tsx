@@ -437,6 +437,9 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               <X size={12} strokeWidth={2} aria-hidden />
             </button>
           </div>
+          <div className="mb-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            Searching <span className="font-mono text-[color:var(--color-figma-text)]">{currentCollectionId}</span>
+          </div>
           {/* Property tab pills */}
           <div className="flex gap-0.5 overflow-x-auto">
             {eligibleProps.map(prop => {

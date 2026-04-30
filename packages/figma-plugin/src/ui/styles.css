@@ -1190,7 +1190,7 @@ button.tm-status-row:not(:disabled):hover {
   display: flex;
   min-inline-size: 0;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   container-type: inline-size;
 }
 
@@ -1198,7 +1198,7 @@ button.tm-status-row:not(:disabled):hover {
   display: flex;
   min-inline-size: 0;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
@@ -1231,7 +1231,7 @@ button.tm-status-row:not(:disabled):hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
+  gap: 4px;
   margin-left: auto;
 }
 
@@ -1245,7 +1245,7 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .tm-sidebar-nav__label,
@@ -1935,6 +1935,27 @@ button.tm-status-row:not(:disabled):hover {
   container-type: inline-size;
 }
 
+.tm-token-tree-row__content {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.tm-token-tree-row__title-line {
+  display: flex;
+  min-inline-size: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.tm-token-tree-row__title-line > * {
+  min-inline-size: 0;
+}
+
 .tm-token-tree-row__name,
 .tm-token-tree-row__context,
 .tm-token-tree-row__meta,
@@ -1944,7 +1965,10 @@ button.tm-status-row:not(:disabled):hover {
 
 @container (max-width: 360px) {
   .tm-token-tree-row__summary {
-    display: none;
+    max-inline-size: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -1959,6 +1983,28 @@ button.tm-status-row:not(:disabled):hover {
     line-height: 1.15;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
+  }
+}
+
+@container (max-width: 420px) {
+  .tm-token-tree-row__content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .tm-token-tree-row__title-line {
+    inline-size: 100%;
+  }
+
+  .tm-token-tree-row__name {
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+
+  .tm-token-tree-row__meta {
+    max-inline-size: 100%;
   }
 }
 
@@ -2328,9 +2374,8 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-token-details__mono {
   min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
@@ -2973,12 +3018,6 @@ button.tm-token-details__text-button:disabled:hover {
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-figma-text-secondary);
-}
-
-.tm-token-mode-row__status-text {
-  font-size: var(--font-size-sm);
-  line-height: var(--leading-tight);
-  color: var(--color-figma-text-accent);
 }
 
 .tm-token-mode-row__controls {

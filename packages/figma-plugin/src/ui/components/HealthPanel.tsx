@@ -573,8 +573,20 @@ export function HealthPanel({
         </div>
 
         {libraryReviewErrors.length > 0 ? (
-          <div className="mb-4 text-secondary text-[color:var(--color-figma-text-error)]">
-            Some review checks failed. {libraryReviewErrors.join(" ")}
+          <div className="mb-4 flex flex-col gap-2 rounded bg-[var(--color-figma-error)]/8 px-2.5 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
+            <div>
+              Some review checks failed. {libraryReviewErrors.join(" ")}
+            </div>
+            <button
+              type="button"
+              onClick={() => void refreshHealthState()}
+              disabled={validationLoading || deprecatedUsageLoading}
+              className="self-start rounded bg-[var(--color-figma-bg)] px-2 py-1 font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+            >
+              {validationLoading || deprecatedUsageLoading
+                ? "Refreshing..."
+                : "Refresh Review"}
+            </button>
           </div>
         ) : null}
 

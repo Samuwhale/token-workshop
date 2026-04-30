@@ -897,23 +897,23 @@ export const TokenLeafNode = memo(
               onEdit(node.path, node.name);
             }}
           >
-            <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-              {renamingToken ? (
-                <InlineRenameRow
-                  inputRef={renameTokenInputRef}
-                  value={renameTokenVal}
-                  ariaLabel="Rename token"
-                  error={renameTokenError}
-                  confirmDisabled={!renameTokenVal.trim()}
-                  onChange={(nextValue) => {
-                    setRenameTokenVal(nextValue);
-                    setRenameTokenError("");
-                  }}
-                  onConfirm={confirmTokenRename}
-                  onCancel={cancelTokenRename}
-                />
-              ) : (
-                <>
+            {renamingToken ? (
+              <InlineRenameRow
+                inputRef={renameTokenInputRef}
+                value={renameTokenVal}
+                ariaLabel="Rename token"
+                error={renameTokenError}
+                confirmDisabled={!renameTokenVal.trim()}
+                onChange={(nextValue) => {
+                  setRenameTokenVal(nextValue);
+                  setRenameTokenError("");
+                }}
+                onConfirm={confirmTokenRename}
+                onCancel={cancelTokenRename}
+              />
+            ) : (
+              <div className="tm-token-tree-row__content">
+                <div className="tm-token-tree-row__title-line">
                   {node.$type && !previewIsValueBearing(node.$type) && (
                     <span className="shrink-0" aria-hidden="true">
                       <ValuePreview type={node.$type} value={displayValue} size={12} />
@@ -939,14 +939,14 @@ export const TokenLeafNode = memo(
                       searchHighlight?.nameTerms ?? [],
                     )}
                   </span>
-                  {leafMetadataSegments.length > 0 && (
-                    <span className="tm-token-tree-row__meta flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
-                      {renderRowMetadataSegments(leafMetadataSegments)}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
+                </div>
+                {leafMetadataSegments.length > 0 && (
+                  <span className="tm-token-tree-row__meta flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
+                    {renderRowMetadataSegments(leafMetadataSegments)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right-edge status cluster: star, status icon, action menu */}

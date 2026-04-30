@@ -185,8 +185,76 @@ export function PlatformExportConfig({
     });
   };
 
+  const applyPlatformIntent = (ids: string[]) => {
+    setSelected(new Set(ids));
+  };
+
+  const useChangedTokensIntent = () => {
+    const nextChangesOnly = !changesOnly;
+    setChangesOnly(nextChangesOnly);
+    if (nextChangesOnly && connected && diffPaths === null) {
+      fetchDiff();
+    }
+  };
+
+  const intentButtonClass =
+    "rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]";
+
   return (
     <>
+      <div>
+        <div className="mb-1">
+          <div className="text-body font-semibold text-[color:var(--color-figma-text)]">
+            Export intent
+          </div>
+          <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+            Start with the handoff you need, then refine the file settings below.
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          <button
+            type="button"
+            onClick={() => applyPlatformIntent(['css', 'typescript', 'tailwind'])}
+            className={intentButtonClass}
+          >
+            Web
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPlatformIntent(['ios-swift'])}
+            className={intentButtonClass}
+          >
+            iOS
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPlatformIntent(['android'])}
+            className={intentButtonClass}
+          >
+            Android
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPlatformIntent(['json'])}
+            className={intentButtonClass}
+          >
+            Token file
+          </button>
+          <button
+            type="button"
+            onClick={useChangedTokensIntent}
+            className={`${intentButtonClass} ${
+              changesOnly
+                ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
+                : ''
+            }`}
+            aria-pressed={changesOnly}
+          >
+            Changed tokens
+          </button>
+        </div>
+      </div>
+
       {/* Target Platforms */}
       <div>
         <div className="flex items-center justify-between mb-2">

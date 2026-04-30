@@ -433,7 +433,7 @@ export const TokenGroupNode = memo(
                       className="tm-token-tree-row__summary shrink-0 text-micro font-normal text-[color:var(--color-figma-text-tertiary)]"
                       title={`${collectionCoverageSummary.totalMissing} mode value${collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled across ${collectionCoverageSummary.total} tokens`}
                     >
-                      {collectionCoverageSummary.totalMissing} mode{collectionCoverageSummary.totalMissing === 1 ? "" : "s"} unfilled
+                      {collectionCoverageSummary.totalMissing} missing
                     </span>
                   )}
                 <div

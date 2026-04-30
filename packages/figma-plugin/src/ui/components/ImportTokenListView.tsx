@@ -80,6 +80,11 @@ export function ImportTokenListView() {
 
   const validation = fileImportValidation?.source === source ? fileImportValidation : null;
   const skippedCount = validation?.skippedCount ?? skippedEntries.length;
+  const duplicatePathWarnings = tokens.filter((token) =>
+    token._warning?.startsWith('Duplicate path'),
+  );
+  const skippedPreview = skippedEntries.slice(0, 4);
+  const hiddenSkippedCount = Math.max(0, skippedEntries.length - skippedPreview.length);
 
   const tokensByPath = new Map(tokens.map(t => [t.path, t]));
 
@@ -109,14 +114,38 @@ export function ImportTokenListView() {
       </button>
 
       {skippedCount > 0 && (
-        <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          <span className="text-[color:var(--color-figma-text-warning)]">{skippedCount} skipped</span> during parse
-        </div>
+        <details className="rounded bg-[var(--color-figma-warning)]/8 px-2.5 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+          <summary className="cursor-pointer font-medium">
+            Review {skippedCount} value{skippedCount === 1 ? '' : 's'} not imported
+          </summary>
+          <div className="mt-1.5 flex flex-col gap-1 text-[color:var(--color-figma-text-secondary)]">
+            <p className="m-0">
+              These entries could not become tokens. Fix the source file, then import again.
+            </p>
+            {skippedPreview.length > 0 ? (
+              <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+                {skippedPreview.map((entry, index) => (
+                  <li key={`${entry.path ?? 'entry'}-${index}`} className="break-words">
+                    <span className="font-mono text-[color:var(--color-figma-text)]">
+                      {entry.path || 'Unnamed entry'}
+                    </span>
+                    {entry.reason ? ` — ${entry.reason}` : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {hiddenSkippedCount > 0 ? (
+              <p className="m-0 text-[color:var(--color-figma-text-tertiary)]">
+                {hiddenSkippedCount} more not shown.
+              </p>
+            ) : null}
+          </div>
+        </details>
       )}
 
-      {tokens.some(t => t._warning?.startsWith('Duplicate path')) && (
+      {duplicatePathWarnings.length > 0 && (
         <div className="px-2 py-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 text-secondary text-[color:var(--color-figma-text-warning)]">
-          Duplicate paths found — only the last per path will be saved.
+          Resolve duplicate paths before importing. {duplicatePathWarnings.length} token{duplicatePathWarnings.length === 1 ? '' : 's'} share a path, and only the last value for each path will be saved.
         </div>
       )}
 

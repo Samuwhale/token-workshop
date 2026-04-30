@@ -322,11 +322,6 @@ export function TokenDetailsModeRow({
                   <span className="tm-token-mode-row__name" title={modeName}>
                     {modeName}
                   </span>
-                  {aliasMode ? (
-                    <span className="tm-token-mode-row__status-text">
-                      Reference
-                    </span>
-                  ) : null}
                 </div>
               ) : null}
             </div>

@@ -43,9 +43,7 @@ import type { GeneratorEditorMode } from "./generators/generatorEditorTypes";
 
 type BusyState = "create" | null;
 type CreateStep = "type" | "details";
-type CreateTemplateSelection =
-  | { mode: "configured"; kind: GeneratorConfiguredTemplateKind }
-  | { mode: "graph"; template: "blank" | GeneratorConfiguredTemplateKind };
+type CreateTemplateSelection = "blank" | GeneratorConfiguredTemplateKind;
 
 interface GeneratorCreatePanelProps {
   serverUrl: string;
@@ -100,6 +98,41 @@ const TEMPLATE_GROUPS: Array<{
   { label: "Effects", ids: ["opacity", "shadow"] },
   { label: "Numbers", ids: ["zIndex", "formula"] },
 ];
+
+const TEMPLATE_TASK_LABELS: Partial<Record<GeneratorConfiguredTemplateKind, string>> = {
+  colorRamp: "Create a color ramp",
+  spacing: "Create a spacing scale",
+  radius: "Create a radius scale",
+  type: "Create a type scale",
+  opacity: "Create opacity steps",
+  shadow: "Create shadow tokens",
+  zIndex: "Create z-index steps",
+  formula: "Create calculated tokens",
+};
+
+const TEMPLATE_TASK_SUMMARIES: Partial<Record<GeneratorConfiguredTemplateKind, string>> = {
+  colorRamp: "Start from one color and generate named steps.",
+  spacing: "Generate spacing values from a source size.",
+  radius: "Generate corner radius values from a source size.",
+  type: "Generate type sizes from a ratio and unit.",
+  opacity: "Generate reusable opacity values.",
+  shadow: "Generate shadow values from one shadow color.",
+  zIndex: "Generate ordered layer values.",
+  formula: "Generate values from a calculation.",
+};
+
+function getTemplateTaskLabel(kind: GeneratorConfiguredTemplateKind): string {
+  return TEMPLATE_TASK_LABELS[kind] ?? "Create generated tokens";
+}
+
+function getTemplateTaskSummary(
+  kind: GeneratorConfiguredTemplateKind,
+  outputPrefix: string,
+): string {
+  const taskSummary =
+    TEMPLATE_TASK_SUMMARIES[kind] ?? "Generate tokens into an output group.";
+  return `${taskSummary} Output: ${outputPrefix}`;
+}
 
 export function GeneratorCreatePanel({
   serverUrl,
@@ -166,12 +199,6 @@ export function GeneratorCreatePanel({
   const selectedOption =
     GENERATOR_TEMPLATE_OPTIONS.find((item) => item.id === kind) ??
     GENERATOR_TEMPLATE_OPTIONS[0];
-  const selectedTemplateOption =
-    templateSelection?.mode === "graph" && templateSelection.template !== "blank"
-      ? GENERATOR_TEMPLATE_OPTIONS.find(
-          (item) => item.id === templateSelection.template,
-        )
-      : null;
   const targetCollection = collections.find(
     (collection) => collection.id === targetCollectionId,
   );
@@ -279,7 +306,7 @@ export function GeneratorCreatePanel({
         GENERATOR_TEMPLATE_OPTIONS.find((item) => item.id === nextKind) ??
         GENERATOR_TEMPLATE_OPTIONS[0];
       setKind(nextKind);
-      setTemplateSelection({ mode: "configured", kind: nextKind });
+      setTemplateSelection(nextKind);
       setOutputPrefix(initialOutputPrefixValue || option.outputPrefix);
       setSourceMode(option.sourceMode);
       setSourceValue(generatorDefaultSourceValue(nextKind));
@@ -292,14 +319,6 @@ export function GeneratorCreatePanel({
       setError(null);
     },
     [initialOutputPrefixValue, targetCollectionId],
-  );
-
-  const updateTemplateSelection = useCallback(
-    (template: "blank" | GeneratorConfiguredTemplateKind) => {
-      setTemplateSelection({ mode: "graph", template });
-      setError(null);
-    },
-    [],
   );
 
   const continueToDetails = useCallback(() => {
@@ -487,10 +506,10 @@ export function GeneratorCreatePanel({
           <div className="space-y-3">
             <div>
               <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                Choose a type
+                Choose what to generate
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Start with a ready-made setup or build from an empty graph.
+                Start from a common design-system pattern, or open Graph to build the flow yourself.
               </p>
             </div>
             <div className="space-y-3">
@@ -520,12 +539,13 @@ export function GeneratorCreatePanel({
                           >
                             <span className="min-w-0">
                               <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                                {option.label}
+                                {getTemplateTaskLabel(option.id)}
                               </span>
                               <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                                {templateSourceLabel(option.id)}
-                                {" -> "}
-                                {initialOutputPrefixValue || option.outputPrefix}
+                                {getTemplateTaskSummary(
+                                  option.id,
+                                  initialOutputPrefixValue || option.outputPrefix,
+                                )}
                               </span>
                             </span>
                             <TemplateIcon kind={option.id} />
@@ -551,10 +571,10 @@ export function GeneratorCreatePanel({
               >
                 <span className="min-w-0">
                   <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                    Blank
+                    Build in Graph
                   </span>
                   <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                    Start with nodes and connections
+                    Start empty and add each step visually.
                   </span>
                 </span>
                 <Workflow
@@ -574,7 +594,7 @@ export function GeneratorCreatePanel({
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {templateSelection === "blank"
-                  ? "Choose where this generator belongs before opening Graph."
+                  ? "Choose the collection before opening Graph."
                   : "Fill in the values this generator needs."}
               </p>
             </div>
@@ -1003,13 +1023,6 @@ function formatCompactValue(value: unknown): string {
     return `${String((value as { value: unknown }).value)}${String((value as { unit: unknown }).unit)}`;
   }
   return JSON.stringify(value);
-}
-
-function templateSourceLabel(kind: GeneratorConfiguredTemplateKind): string {
-  if (SOURCELESS_GENERATOR_TEMPLATES.has(kind)) return "No source token";
-  if (kind === "colorRamp") return "Color source";
-  if (kind === "formula") return "Number source";
-  return "Dimension source";
 }
 
 function generatorAcceptsTokenType(

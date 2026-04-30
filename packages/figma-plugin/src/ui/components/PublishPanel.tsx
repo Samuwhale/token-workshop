@@ -503,8 +503,8 @@ export function PublishPanel({
       );
       dispatchToast(
         modeMappings.length > 0
-          ? `Saved ${modeMappings.length} resolver mode mapping${modeMappings.length === 1 ? '' : 's'}`
-          : 'Cleared resolver mode mappings',
+          ? `Saved ${modeMappings.length} Figma mode target${modeMappings.length === 1 ? '' : 's'}`
+          : 'Cleared Figma mode targets',
         'success',
         {
           destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
@@ -715,13 +715,13 @@ export function PublishPanel({
   const syncResolverPublishModes = useCallback(async () => {
     if (!activeResolver || !resolverPublishFile) return;
     if (resolverPublishDirtyCount > 0) {
-      setResolverPublishError('Save resolver mode mappings before syncing.');
+      setResolverPublishError('Save Figma mode targets before syncing.');
       return;
     }
 
     const modeMappings = resolverPublishFile.$extensions?.tokenmanager?.resolverPublish?.modeMappings ?? [];
     if (modeMappings.length === 0) {
-      setResolverPublishError('Add at least one resolver mode mapping before syncing.');
+      setResolverPublishError('Add at least one Figma mode target before syncing.');
       return;
     }
 
@@ -1265,13 +1265,13 @@ export function PublishPanel({
 
           {activeResolver && (
             <DisclosureSection
-              title="Advanced routing"
+              title="Generated token publishing"
               summary={savedResolverPublishCount > 0
-                ? `${savedResolverPublishCount} resolver mode mapping${savedResolverPublishCount === 1 ? '' : 's'}`
-                : 'Multi-mode resolver publish'}
+                ? `${savedResolverPublishCount} Figma mode target${savedResolverPublishCount === 1 ? '' : 's'}`
+                : 'Map generated outputs to Figma modes'}
               expanded={resolverRoutingExpanded}
               onToggle={() => setResolverRoutingExpanded((current) => !current)}
-              statusLabel={resolverRoutingShouldExpand ? 'Active' : 'Optional'}
+              statusLabel={resolverRoutingShouldExpand ? 'Needs save' : 'Optional'}
               statusSeverity="info"
             >
               <ResolverModePublishCard
@@ -1486,7 +1486,7 @@ function ResolverModePublishCard({
               onClick={onReset}
               disabled={loading || saving || syncing || dirtyCount === 0}
               className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
-              title="Reset resolver mapping changes"
+              title="Reset Figma mode target changes"
             >
               Reset
             </button>
@@ -1502,7 +1502,7 @@ function ResolverModePublishCard({
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
               className="min-w-0 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
             >
-              {syncing ? 'Syncing…' : 'Sync modes'}
+              {syncing ? 'Syncing…' : 'Sync generated modes'}
             </button>
           </div>
         ) : null}
@@ -1510,7 +1510,7 @@ function ResolverModePublishCard({
 
       {!activeResolver ? (
         <div className="mt-3 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-          Select a resolver to configure context-to-mode mapping.
+          Select a generator to choose which Figma mode each generated output updates.
         </div>
       ) : loading ? (
         <div className="mt-3 flex items-center gap-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
@@ -1523,7 +1523,7 @@ function ResolverModePublishCard({
             <div
               className="tm-publish-mapping__header items-center px-1 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
             >
-              <span>Resolver context</span>
+              <span>Generated output</span>
               <span>Collection</span>
               <span>Mode</span>
             </div>

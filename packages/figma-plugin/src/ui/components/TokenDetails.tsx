@@ -892,10 +892,6 @@ export function TokenDetails({
   const canRenameInPlace = !isCreateMode && fieldEditable && canEditInPlace;
   const renameInputDiffers = renameInput !== leafName;
   const renameDisabled = !canRenameInPlace || isDirty || saving || renameSaving;
-  const renamePreviewLeaf = renameInput.trim();
-  const renamePreviewPath = parentPrefix
-    ? `${parentPrefix}.${renamePreviewLeaf}`
-    : renamePreviewLeaf;
 
   const revertRename = useCallback(() => {
     setRenameInput(leafName);
@@ -1083,16 +1079,22 @@ export function TokenDetails({
   const footerNote =
     isGeneratorLocked
       ? "Managed by generator. Detach before editing directly."
-      : isCreateMode && duplicatePath
-      ? "Path already exists."
-      : isCreateMode && crossCollectionDuplicatePath
-      ? "Path already exists in another collection."
-      : isCreateMode && !trimmedEditPath
-        ? "Enter a token path."
-        : saveBlockReason;
+      : saveBlockReason;
   const showFooterMeta = Boolean(
     footerNote || (isCreateMode && onSaveAndCreateAnother),
   );
+  const createPathError = duplicatePath
+    ? `A token with this path already exists in ${ownerCollectionId}.`
+    : conflictingOtherCollectionIds.length > 0
+      ? (
+          <>
+            This path is already used in{" "}
+            {formatCollectionIdList(conflictingOtherCollectionIds)}. Use a
+            unique path so references to{" "}
+            <span className="font-mono">{trimmedEditPath}</span> stay clear.
+          </>
+        )
+      : null;
 
   const handleCopyPath = () => {
     navigator.clipboard.writeText(tokenPath);
@@ -1458,7 +1460,7 @@ export function TokenDetails({
         className="tm-token-details__text-button inline-flex items-center gap-1"
       >
         <Plus size={12} strokeWidth={1.5} aria-hidden />
-        Manage modes
+        Collection modes
       </button>
     ) : null;
   const referenceCount =
@@ -1564,7 +1566,7 @@ export function TokenDetails({
           <div className="tm-token-details__identity-grid">
             {isCreateMode ? (
               <div className="relative tm-token-details__identity-path" ref={pathInputWrapperRef}>
-                <Field label="Token path">
+                <Field label="Token path" error={createPathError}>
                   <input
                     type="text"
                     value={editPath}
@@ -1660,10 +1662,6 @@ export function TokenDetails({
                     ) : null}
                   </div>
                 </Field>
-                <p className={`m-0 mt-1 text-secondary text-[color:var(--color-figma-text-secondary)] ${LONG_TEXT_CLASSES.pathSecondary}`}>
-                  Full path:{" "}
-                  <span className="font-mono">{renamePreviewPath}</span>
-                </p>
               </div>
             )}
 
@@ -1677,20 +1675,6 @@ export function TokenDetails({
               />
             </Field>
           </div>
-
-          {duplicatePath ? (
-            <p className="tm-token-details__error-copy">
-              A token with this path already exists in {ownerCollectionId}.
-            </p>
-          ) : null}
-          {!duplicatePath && conflictingOtherCollectionIds.length > 0 ? (
-            <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-error)]">
-              This path is already used in{" "}
-              {formatCollectionIdList(conflictingOtherCollectionIds)}. Use a
-              unique path so references to{" "}
-              <span className="font-mono">{trimmedEditPath}</span> stay clear.
-            </p>
-          ) : null}
 
           {isCreateMode && !editPath.includes(".") && createSuggestions.length > 0 ? (
             <div className="tm-token-details__suggestions">
