@@ -1,3 +1,4 @@
+import { normalizeCollectionModeName } from "@tokenmanager/core";
 import { apiFetch } from "./apiFetch";
 
 export const DUPLICATE_MODE_NAME_MESSAGE = "Mode names must be different.";
@@ -18,7 +19,7 @@ function collectionModeUrl(
 }
 
 export function normalizeModeName(modeName: string): string {
-  return modeName.trim().toLocaleLowerCase();
+  return normalizeCollectionModeName(modeName);
 }
 
 export function isModeNameTaken(

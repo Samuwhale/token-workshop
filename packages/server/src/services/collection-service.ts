@@ -9,6 +9,7 @@ import type {
 import {
   flattenTokenGroup,
   isDTCGToken,
+  normalizeCollectionModeName,
   readTokenModeValuesForCollection,
   readTokenCollectionModeValues,
   stableStringify,
@@ -233,6 +234,28 @@ export interface CollectionRenameMutationResult {
 interface CollectionDependencyStateSnapshot {
   resolvers: Record<string, ResolverFile>;
   lintConfig: LintConfig;
+}
+
+function modeNameKey(modeName: string): string {
+  return normalizeCollectionModeName(modeName);
+}
+
+function findCollectionModeIndex(
+  collection: Pick<TokenCollection, "modes">,
+  modeName: string,
+): number {
+  const targetKey = modeNameKey(modeName);
+  return collection.modes.findIndex(
+    (mode) => modeNameKey(mode.name) === targetKey,
+  );
+}
+
+function findCollectionMode(
+  collection: Pick<TokenCollection, "modes">,
+  modeName: string,
+): CollectionMode | undefined {
+  const modeIndex = findCollectionModeIndex(collection, modeName);
+  return modeIndex === -1 ? undefined : collection.modes[modeIndex];
 }
 
 function renameCollectionIdsInState(
@@ -2331,13 +2354,11 @@ export class CollectionService {
       }
 
       const collection = nextCollections[collectionIndex];
-      const optionIndex = collection.modes.findIndex(
-        (option) => option.name === modeName,
-      );
+      const optionIndex = findCollectionModeIndex(collection, modeName);
       const sourceMode =
         sourceModeName === undefined
           ? undefined
-          : collection.modes.find((mode) => mode.name === sourceModeName);
+          : findCollectionMode(collection, sourceModeName);
       if (optionIndex === -1 && sourceModeName !== undefined && !sourceMode) {
         throw new BadRequestError(
           `Source mode "${sourceModeName}" not found in collection "${collectionId}"`,
@@ -2384,17 +2405,17 @@ export class CollectionService {
       }
 
       const collection = nextCollections[collectionIndex];
-      const modeIndex = collection.modes.findIndex(
-        (mode) => mode.name === previousModeName,
-      );
+      const modeIndex = findCollectionModeIndex(collection, previousModeName);
       if (modeIndex === -1) {
         throw new NotFoundError(
           `Mode "${previousModeName}" not found in collection "${collectionId}"`,
         );
       }
+      const previousModeKey = modeNameKey(previousModeName);
+      const nextModeKey = modeNameKey(nextModeName);
       if (
-        nextModeName !== previousModeName &&
-        collection.modes.some((mode) => mode.name === nextModeName)
+        nextModeKey !== previousModeKey &&
+        collection.modes.some((mode) => modeNameKey(mode.name) === nextModeKey)
       ) {
         throw new ConflictError(
           `Mode "${nextModeName}" already exists in collection "${collectionId}"`,
@@ -2452,10 +2473,10 @@ export class CollectionService {
 
       const collection = nextCollections[collectionIndex];
       const byName = new Map(
-        collection.modes.map((mode) => [mode.name, mode]),
+        collection.modes.map((mode) => [modeNameKey(mode.name), mode]),
       );
       for (const modeName of modeNames) {
-        if (!byName.has(modeName)) {
+        if (!byName.has(modeNameKey(modeName))) {
           throw new BadRequestError(
             `Mode "${modeName}" not found in collection "${collectionId}"`,
           );
@@ -2463,7 +2484,7 @@ export class CollectionService {
       }
       if (
         modeNames.length !== collection.modes.length ||
-        new Set(modeNames).size !== collection.modes.length
+        new Set(modeNames.map(modeNameKey)).size !== collection.modes.length
       ) {
         throw new BadRequestError(
           "modes must list every mode name exactly once",
@@ -2471,7 +2492,9 @@ export class CollectionService {
       }
 
       const previousCollection = structuredClone(collection);
-      collection.modes = modeNames.map((modeName) => byName.get(modeName)!);
+      collection.modes = modeNames.map(
+        (modeName) => byName.get(modeNameKey(modeName))!,
+      );
       const tokenPatchesByCollection =
         stableStringify(collection.modes) ===
         stableStringify(previousCollection.modes)
@@ -2505,8 +2528,9 @@ export class CollectionService {
       }
 
       const collection = nextCollections[collectionIndex];
+      const deletedModeKey = modeNameKey(modeName);
       const filteredModes = collection.modes.filter(
-        (mode) => mode.name !== modeName,
+        (mode) => modeNameKey(mode.name) !== deletedModeKey,
       );
       if (filteredModes.length === collection.modes.length) {
         throw new NotFoundError(

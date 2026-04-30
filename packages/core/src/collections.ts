@@ -15,6 +15,10 @@ export function isValidCollectionName(name: string): boolean {
   return COLLECTION_NAME_RE.test(name);
 }
 
+export function normalizeCollectionModeName(name: string): string {
+  return name.trim().toLocaleLowerCase();
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

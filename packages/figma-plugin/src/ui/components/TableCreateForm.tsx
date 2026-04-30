@@ -77,12 +77,17 @@ export function TableCreateForm({
     pendingFocusLastRowRef.current = false;
   }, [tableRows]);
 
-  const setNameInputRef = (id: string) => (node: HTMLInputElement | null) => {
+  const setRowNameInputRef = (id: string) => (node: HTMLInputElement | null) => {
     if (node) {
       nameInputRefs.current.set(id, node);
     } else {
       nameInputRefs.current.delete(id);
     }
+  };
+
+  const addRowAndFocus = (fields?: NewTableRowFields) => {
+    pendingFocusLastRowRef.current = true;
+    onAddRow(fields);
   };
 
   const addSuggestedName = (leafName: string) => {
@@ -91,7 +96,7 @@ export function TableCreateForm({
       onUpdateRow(emptyRow.id, "name", leafName);
       return;
     }
-    onAddRow({ name: leafName });
+    addRowAndFocus({ name: leafName });
   };
 
   return (
@@ -218,7 +223,7 @@ export function TableCreateForm({
                 }}
               >
                 <input
-                  ref={setNameInputRef(row.id)}
+                  ref={setRowNameInputRef(row.id)}
                   type="text"
                   placeholder="name"
                   value={row.name}
@@ -283,8 +288,7 @@ export function TableCreateForm({
                           modeIndex === modeNames.length - 1
                         ) {
                           e.preventDefault();
-                          pendingFocusLastRowRef.current = true;
-                          onAddRow();
+                          addRowAndFocus();
                         }
                         if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
                           onCreateAll();
@@ -318,7 +322,7 @@ export function TableCreateForm({
           </div>
           <button
             type="button"
-            onClick={() => onAddRow()}
+            onClick={() => addRowAndFocus()}
             className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors inline-flex items-center justify-center gap-1"
           >
             <Plus size={12} aria-hidden="true" />

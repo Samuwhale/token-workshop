@@ -80,6 +80,7 @@ export { getTokenManagerExt, getTokenLifecycle } from './types.js';
 export {
   COLLECTION_NAME_RE,
   isValidCollectionName,
+  normalizeCollectionModeName,
   findCollectionById,
   readTokenCollectionModeValues,
   tokenChangesAcrossModesInCollection,

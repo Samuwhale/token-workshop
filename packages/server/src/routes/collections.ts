@@ -1,5 +1,28 @@
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { handleRouteError } from "../errors.js";
+
+const CREATE_MODE_BODY_KEYS = new Set(["name", "sourceModeName"]);
+const RENAME_MODE_BODY_KEYS = new Set(["name"]);
+const REORDER_MODES_BODY_KEYS = new Set(["modes"]);
+
+function hasUnsupportedBodyKeys(
+  body: Record<string, unknown> | null | undefined,
+  supportedKeys: ReadonlySet<string>,
+): boolean {
+  return Object.keys(body ?? {}).some((key) => !supportedKeys.has(key));
+}
+
+function readRequiredTrimmedString(
+  value: unknown,
+  error: string,
+  reply: FastifyReply,
+): string | undefined {
+  if (typeof value !== "string" || !value.trim()) {
+    reply.status(400).send({ error });
+    return undefined;
+  }
+  return value.trim();
+}
 
 export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (
   fastify,
@@ -20,14 +43,23 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     async (request, reply) => {
       const { id } = request.params;
       const { name, sourceModeName } = request.body || {};
-      const bodyKeys = Object.keys(request.body ?? {});
-      if (bodyKeys.some((key) => key !== "name" && key !== "sourceModeName")) {
+      if (
+        hasUnsupportedBodyKeys(
+          request.body,
+          CREATE_MODE_BODY_KEYS,
+        )
+      ) {
         return reply.status(400).send({
           error: "Only the mode name and source mode are supported when creating a collection mode",
         });
       }
-      if (!name || typeof name !== "string" || !name.trim()) {
-        return reply.status(400).send({ error: "Mode name is required" });
+      const trimmedName = readRequiredTrimmedString(
+        name,
+        "Mode name is required",
+        reply,
+      );
+      if (!trimmedName) {
+        return;
       }
       if (
         sourceModeName !== undefined &&
@@ -36,7 +68,6 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
         return reply.status(400).send({ error: "Source mode name is invalid" });
       }
 
-      const trimmedName = name.trim();
       const trimmedSourceModeName = sourceModeName?.trim();
       try {
         const mutation = await fastify.collectionService.upsertMode(
@@ -73,11 +104,20 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
   }>("/collections/:id/modes/:optionName", async (request, reply) => {
     const { id, optionName } = request.params;
     const { name } = request.body || {};
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return reply.status(400).send({ error: "New mode name is required" });
+    if (hasUnsupportedBodyKeys(request.body, RENAME_MODE_BODY_KEYS)) {
+      return reply.status(400).send({
+        error: "Only the new mode name is supported when renaming a collection mode",
+      });
     }
 
-    const nextName = name.trim();
+    const nextName = readRequiredTrimmedString(
+      name,
+      "New mode name is required",
+      reply,
+    );
+    if (!nextName) {
+      return;
+    }
     try {
       const mutation = await fastify.collectionService.renameMode(
         id,
@@ -109,17 +149,26 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     async (request, reply) => {
       const { id } = request.params;
       const { modes } = request.body || {};
+      if (hasUnsupportedBodyKeys(request.body, REORDER_MODES_BODY_KEYS)) {
+        return reply.status(400).send({
+          error: "Only the mode order is supported when reordering collection modes",
+        });
+      }
       if (
         !Array.isArray(modes) ||
-        modes.some((mode) => typeof mode !== "string")
+        modes.some((mode) => typeof mode !== "string" || !mode.trim())
       ) {
         return reply
           .status(400)
-          .send({ error: "modes must be an array of mode name strings" });
+          .send({ error: "modes must be non-empty mode name strings" });
       }
+      const trimmedModes = modes.map((mode) => mode.trim());
 
       try {
-        const mutation = await fastify.collectionService.reorderModes(id, modes);
+        const mutation = await fastify.collectionService.reorderModes(
+          id,
+          trimmedModes,
+        );
         await fastify.operationLog.record({
           type: "collection-mode-reorder",
           description: `Reorder modes in collection "${id}"`,

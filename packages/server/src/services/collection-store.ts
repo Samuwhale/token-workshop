@@ -5,6 +5,7 @@ import type {
   TokenCollection,
 } from "@tokenmanager/core";
 import {
+  normalizeCollectionModeName,
   readCollectionsFileState,
   serializeTokenCollections,
   stableStringify,
@@ -73,10 +74,11 @@ function validateCollectionState(state: CollectionState): CollectionState {
           `Collection "${collection.id}" contains a mode with an empty name`,
         );
       }
-      if (modeNames.has(mode.name)) {
+      const normalizedModeName = normalizeCollectionModeName(mode.name);
+      if (modeNames.has(normalizedModeName)) {
         duplicateModeNames.add(mode.name);
       } else {
-        modeNames.add(mode.name);
+        modeNames.add(normalizedModeName);
       }
     }
 
