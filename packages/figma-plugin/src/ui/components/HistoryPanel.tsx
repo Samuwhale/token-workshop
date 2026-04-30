@@ -52,8 +52,8 @@ export function HistoryPanel({
         ? "Checkpoints save the whole workspace. The current filter applies when comparing a checkpoint."
         : "Checkpoints save the whole workspace so you can compare or restore later."
       : scope.mode === "all"
-        ? "Showing recovery activity across every collection."
-        : `Showing recovery activity for ${activeCollectionFilter ?? "the current collection"}.`;
+        ? "Showing recent changes across every collection."
+        : `Showing recent changes for ${activeCollectionFilter ?? "the current collection"}.`;
   const tokenScopeLabel = scope.tokenPath
     ? `Focused on ${scope.tokenPath}.`
     : null;

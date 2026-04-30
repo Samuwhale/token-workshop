@@ -91,7 +91,6 @@ import {
   GeneratorsPanel,
   type GeneratorPanelFocus,
 } from "../components/generators/GeneratorsPanel";
-import { GeneratorCreatePanel } from "../components/GeneratorCreatePanel";
 
 const DEFAULT_CREATE_TYPE = "color";
 const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
@@ -330,8 +329,6 @@ export function PanelRouter({
   const [pendingGeneratorInitialView, setPendingGeneratorInitialView] =
     useState<"overview" | "graph" | null>(null);
   const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
-    useState<string | null>(null);
-  const [generatorCreateOutputPrefix, setGeneratorCreateOutputPrefix] =
     useState<string | null>(null);
   const createLibraryHealthScope = useCallback(
     (overrides?: Partial<HealthScope>): HealthScope => ({
@@ -771,12 +768,6 @@ export function PanelRouter({
     ) => {
       openCreateLauncher({ initialPath, initialType, initialValue });
     },
-    onCreateGenerator: (initialOutputPrefix?: string) => {
-      controller.guardEditorAction(() => {
-        setGeneratorCreateOutputPrefix(initialOutputPrefix?.trim() || null);
-        switchContextualSurface({ surface: "generator-create" });
-      });
-    },
     onRefresh: controller.refreshAll,
     onPushUndo: controller.pushUndo,
     onTokenCreated: (path: string) => setHighlightedToken(path),
@@ -1005,38 +996,6 @@ export function PanelRouter({
             inspectingCollection.collectionId,
           ),
           onDismiss: () => switchContextualSurface({ surface: null }),
-        };
-      }
-
-      if (activeEditorSurface === "generator-create") {
-        return {
-          surface: "generator-create",
-          content: (
-            <GeneratorCreatePanel
-              serverUrl={serverUrl}
-              collections={collections}
-              workingCollectionId={currentCollectionId}
-              initialOutputPrefix={generatorCreateOutputPrefix}
-              perCollectionFlat={perCollectionFlat}
-              onClose={() => {
-                setGeneratorCreateOutputPrefix(null);
-                switchContextualSurface({ surface: null });
-              }}
-              onOpenGenerator={(generatorId, collectionId, initialView) => {
-                setCurrentCollectionId(collectionId);
-                setPendingGeneratorDocumentId(generatorId);
-                setPendingGeneratorFocus(null);
-                setPendingGeneratorInitialView(initialView ?? null);
-                setGeneratorCreateOutputPrefix(null);
-                switchContextualSurface({ surface: null });
-                navigateTo("library", "generators");
-              }}
-            />
-          ),
-          onDismiss: () => {
-            setGeneratorCreateOutputPrefix(null);
-            switchContextualSurface({ surface: null });
-          },
         };
       }
 

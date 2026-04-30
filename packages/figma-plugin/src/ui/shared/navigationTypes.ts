@@ -28,7 +28,6 @@ export type TokensLibraryContextualSurface =
   | "compare"
   | "collection-details"
   | "token-details"
-  | "generator-create"
   | "color-analysis"
   | "import";
 

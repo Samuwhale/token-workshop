@@ -235,11 +235,11 @@ export function SuggestedTokens({
                 lsSet(LS_SHOW_SCOPE_HIDDEN_KEY, 'true');
               }}
               className="w-full text-secondary text-[color:var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              title="These tokens would match, but their applicability excludes the target field."
+              title="These tokens match the search but are not compatible with the target field."
             >
               {scopeHiddenCount === 1
-                ? '1 match restricted by applicability'
-                : `${scopeHiddenCount} matches restricted by applicability`}
+                ? '1 incompatible match hidden'
+                : `${scopeHiddenCount} incompatible matches hidden`}
             </button>
           )}
           {scopeHiddenCount > 0 && showScopeHidden && (
@@ -250,7 +250,7 @@ export function SuggestedTokens({
               }}
               className="w-full text-secondary text-[color:var(--color-figma-text-tertiary)] text-center py-1 border-t border-[var(--color-figma-border)]/50 mt-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              Hide scope-restricted
+              Hide incompatible
             </button>
           )}
         </div>

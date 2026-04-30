@@ -579,24 +579,24 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
           <div className="border-t border-[var(--color-figma-border)] px-3 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {ignoreScope ? (
               <>
-                Showing all{" "}
+                Showing compatible and incompatible tokens{" "}
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(false)}
                   className="text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
-                  Restrict
+                  Hide incompatible
                 </button>
               </>
             ) : (
               <>
-                {hiddenByScope} restricted by applicability{" "}
+                {hiddenByScope} incompatible with this selection{" "}
                 <button
                   type="button"
                   onClick={() => setIgnoreScope(true)}
                   className="text-[color:var(--color-figma-text-accent)] hover:underline"
                 >
-                  Show all
+                  Show anyway
                 </button>
               </>
             )}

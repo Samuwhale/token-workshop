@@ -521,23 +521,13 @@ export function TokenDetails({
       resolvedType,
       initialValue,
     );
-    const collection = collections.find((c) => c.id === ownerCollectionId);
-    const initModeValues: Record<string, Record<string, unknown>> = {};
-    if (collection && collection.modes.length >= 2) {
-      const collectionModes: Record<string, unknown> = {};
-      for (let i = 1; i < collection.modes.length; i++) {
-        collectionModes[collection.modes[i].name] =
-          structuredClone(initialCreateValue);
-      }
-      initModeValues[collection.id] = collectionModes;
-    }
     initialRef.current = {
       value: initialCreateValue,
       description: "",
       scopes: [],
       type: resolvedType,
       derivationOps: [],
-      modeValues: initModeValues,
+      modeValues: {},
       extensionsJsonText: "",
       lifecycle: "published",
       extendsPath: "",
@@ -547,7 +537,7 @@ export function TokenDetails({
     setDescription("");
     setScopes([]);
     setDerivationOps([]);
-    setModeValues(initModeValues);
+    setModeValues({});
     setExtensionsJsonText("");
     setExtensionsJsonError(null);
     setLifecycle("published");

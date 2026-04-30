@@ -503,7 +503,7 @@ export function CollectionTabs({
                             className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                           >
                             <Upload size={12} strokeWidth={1.5} aria-hidden />
-                            Import
+                            Import tokens
                           </button>
                         ) : null}
                       </div>

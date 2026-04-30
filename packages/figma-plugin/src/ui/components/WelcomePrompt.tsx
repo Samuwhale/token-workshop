@@ -147,6 +147,14 @@ export function WelcomePrompt({
     action?.();
   };
 
+  const handleRequiresConnection = (action: () => void) => {
+    if (!connected) {
+      setBranch("start-new");
+      return;
+    }
+    handleAction(action);
+  };
+
   const renderRoot = () => (
     <div>
       <ActionRow
@@ -159,18 +167,20 @@ export function WelcomePrompt({
       <ActionRow
         title="Import existing tokens"
         description="Bring in Figma variables, styles, JSON, CSS, or Tokens Studio files."
-        onClick={() => handleAction(onImportExistingSystem)}
+        onClick={() => handleRequiresConnection(onImportExistingSystem)}
         icon={<Upload size={14} strokeWidth={1.75} aria-hidden />}
       />
       <ActionRow
         title="Start from current selection"
         description={
-          selectedNodeCount > 0
+          !connected
+            ? "Connect to the token library before inspecting selected layers."
+            : selectedNodeCount > 0
             ? "Inspect selected layers and turn design values into tokens."
             : "Select at least one layer in Figma to use this path."
         }
-        disabled={selectedNodeCount === 0}
-        onClick={() => handleAction(onStartFromSelection)}
+        disabled={connected && selectedNodeCount === 0}
+        onClick={() => handleRequiresConnection(onStartFromSelection)}
         icon={<MousePointer2 size={14} strokeWidth={1.75} aria-hidden />}
       />
     </div>

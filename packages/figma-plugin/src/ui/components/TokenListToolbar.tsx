@@ -106,7 +106,6 @@ export interface TokenListToolbarProps {
   onToggleInspectMode: () => void;
   openTableCreate: () => void;
   onCreateToken?: () => void;
-  onCreateGenerator?: (initialOutputPrefix?: string) => void;
   handleOpenNewGroupDialog: () => void;
   onShowPasteModal?: () => void;
   onOpenImportPanel?: () => void;
@@ -144,7 +143,6 @@ export function TokenListToolbar({
   onToggleInspectMode,
   openTableCreate,
   onCreateToken,
-  onCreateGenerator,
   handleOpenNewGroupDialog,
   onShowPasteModal,
   onOpenImportPanel,
@@ -608,24 +606,6 @@ export function TokenListToolbar({
                       >
                         Paste tokens
                       </button>
-                    ) : null}
-                    {onCreateGenerator ? (
-                      <>
-                        <div className="h-1.5" aria-hidden />
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() =>
-                            runCreateAction(() =>
-                              onCreateGenerator(zoomRootPath ?? undefined),
-                            )
-                          }
-                          disabled={!connected}
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40"
-                        >
-                          Create generator
-                        </button>
-                      </>
                     ) : null}
                   </div>
                 ) : null}

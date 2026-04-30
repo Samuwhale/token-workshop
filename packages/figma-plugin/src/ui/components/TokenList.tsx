@@ -135,7 +135,6 @@ export function TokenList({
   actions: {
     onEdit,
     onCreateNew,
-    onCreateGenerator,
     onRefresh,
     onPushUndo,
     onTokenCreated,
@@ -2012,7 +2011,6 @@ export function TokenList({
             onToggleInspectMode={() => setInspectMode((v) => !v)}
             openTableCreate={openTableCreate}
             onCreateToken={() => onCreateNew?.()}
-            onCreateGenerator={onCreateGenerator}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
             onOpenImportPanel={onOpenImportPanel}
