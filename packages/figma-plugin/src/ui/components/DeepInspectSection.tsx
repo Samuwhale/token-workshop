@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Crosshair } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Crosshair, Home, Link2, MoveRight, Pencil, Square, Trash2, X } from "lucide-react";
 import type {
   BindableProperty,
   SelectionNodeInfo,
@@ -49,8 +49,8 @@ function DeepBindPanel({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [ignoreScope, setIgnoreScope] = useState(false);
 
-  const compatibleTypes = getCompatibleTokenTypes(prop);
-  const { candidates, hiddenByScope } = useMemo(() => {
+  const { candidates, compatibleTypes, hiddenByScope } = useMemo(() => {
+    const compatibleTypes = getCompatibleTokenTypes(prop);
     const typeCompatible = Object.entries(tokenMap).filter(([, entry]) =>
       compatibleTypes.includes(entry.$type),
     );
@@ -62,28 +62,27 @@ function DeepBindPanel({
     );
     return {
       candidates: filtered.slice(0, 12),
+      compatibleTypes,
       hiddenByScope: Math.max(0, typeCompatible.length - scopeCompatible.length),
     };
-  }, [compatibleTypes, ignoreScope, prop, query, tokenMap]);
+  }, [ignoreScope, prop, query, tokenMap]);
+
+  useEffect(() => {
+    setSelectedIndex((index) => {
+      if (candidates.length === 0) return -1;
+      return Math.min(index, candidates.length - 1);
+    });
+  }, [candidates.length]);
 
   return (
     <div className="ml-2 mr-1 mb-1 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
       <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-accent)]/5">
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <Link2
+          size={8}
+          strokeWidth={2}
           className="text-[color:var(--color-figma-text-accent)] shrink-0"
-          aria-hidden="true"
-        >
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-        </svg>
+          aria-hidden
+        />
         <span className="text-secondary text-[color:var(--color-figma-text-accent)] font-medium flex-1 truncate">
           {currentBinding ? 'Remap' : 'Bind'} on {childNode.name}
         </span>
@@ -93,17 +92,7 @@ function DeepBindPanel({
           title="Cancel"
           aria-label="Cancel"
         >
-          <svg
-            width="7"
-            height="7"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            aria-hidden="true"
-          >
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <X size={7} strokeWidth={2.5} aria-hidden />
         </button>
       </div>
       <div className="px-2 py-1.5 flex flex-col gap-1">
@@ -234,6 +223,12 @@ function DeepBindPanel({
   );
 }
 
+function getBoundProperties(child: SelectionNodeInfo): BindableProperty[] {
+  return ALL_BINDABLE_PROPERTIES.filter(
+    (property) => child.bindings[property],
+  ) as BindableProperty[];
+}
+
 export function DeepInspectSection({
   deepChildNodes,
   tokenMap,
@@ -245,6 +240,21 @@ export function DeepInspectSection({
 }: DeepInspectSectionProps) {
   // Track which property on which node has an open bind panel: "nodeId:prop"
   const [activeBindKey, setActiveBindKey] = useState<string | null>(null);
+  const availableBindKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const child of deepChildNodes) {
+      for (const property of getBoundProperties(child)) {
+        keys.add(`${child.id}:${property}`);
+      }
+    }
+    return keys;
+  }, [deepChildNodes]);
+
+  useEffect(() => {
+    if (activeBindKey && !availableBindKeys.has(activeBindKey)) {
+      setActiveBindKey(null);
+    }
+  }, [activeBindKey, availableBindKeys]);
 
   if (deepChildNodes.length === 0) {
     return (
@@ -277,27 +287,12 @@ export function DeepInspectSection({
     >
       {showHeader && (
         <div className="flex items-center gap-1 px-2 py-1 text-secondary font-semibold uppercase tracking-wide text-[color:var(--color-figma-text-secondary)]">
-          <svg
-            width="9"
-            height="9"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-            <path d="M9 22V12h6v10" />
-          </svg>
+          <Home size={9} strokeWidth={2} aria-hidden />
           Nested ({deepChildNodes.length})
         </div>
       )}
       {deepChildNodes.map((child) => {
-        const boundProps = ALL_BINDABLE_PROPERTIES.filter(
-          (p) => child.bindings[p],
-        ) as BindableProperty[];
+        const boundProps = getBoundProperties(child);
         if (boundProps.length === 0) return null;
         const indent = Math.min((child.depth ?? 1) - 1, 3);
         return (
@@ -307,20 +302,12 @@ export function DeepInspectSection({
             style={{ paddingLeft: `${8 + indent * 10}px` }}
           >
             <div className="flex items-center gap-1 mb-0.5 group/layer">
-              <svg
-                width="8"
-                height="8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <Square
+                size={8}
+                strokeWidth={2}
                 className="text-[color:var(--color-figma-text-secondary)] shrink-0"
-                aria-hidden="true"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-              </svg>
+                aria-hidden
+              />
               <span
                 className="text-secondary font-medium text-[color:var(--color-figma-text)] truncate flex-1"
                 title={child.name}
@@ -371,21 +358,12 @@ export function DeepInspectSection({
                       <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] w-[60px] shrink-0 truncate">
                         {PROPERTY_LABELS[prop]}
                       </span>
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                      <Link2
+                        size={8}
+                        strokeWidth={2}
                         className="text-[color:var(--color-figma-text-accent)] shrink-0"
-                        aria-hidden="true"
-                      >
-                        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-                      </svg>
+                        aria-hidden
+                      />
                       <span
                         className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-accent)] font-mono truncate flex-1"
                         title={tokenPath}
@@ -401,19 +379,7 @@ export function DeepInspectSection({
                             aria-label="Go to token"
                             className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
-                            <svg
-                              width="8"
-                              height="8"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M5 12h14M12 5l7 7-7 7" />
-                            </svg>
+                            <MoveRight size={8} strokeWidth={2} aria-hidden />
                           </button>
                         )}
                         {onBindToken && (
@@ -425,20 +391,7 @@ export function DeepInspectSection({
                             aria-label="Remap binding"
                             className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                           >
-                            <svg
-                              width="8"
-                              height="8"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
+                            <Pencil size={8} strokeWidth={2} aria-hidden />
                           </button>
                         )}
                         {onRemoveBinding && (
@@ -450,19 +403,7 @@ export function DeepInspectSection({
                             aria-label="Remove binding"
                             className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-error)] transition-colors"
                           >
-                            <svg
-                              width="8"
-                              height="8"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
+                            <Trash2 size={8} strokeWidth={2} aria-hidden />
                           </button>
                         )}
                       </div>

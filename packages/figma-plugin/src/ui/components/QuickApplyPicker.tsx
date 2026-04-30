@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, Zap } from 'lucide-react';
+import { Clock, Search, X, Zap } from 'lucide-react';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
@@ -21,10 +21,7 @@ import {
 import { swatchBgColor } from '../shared/colorUtils';
 import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-
-// ---------------------------------------------------------------------------
-// Fuzzy match (same algorithm as CommandPalette)
-// ---------------------------------------------------------------------------
+import { fuzzyScore } from '../shared/fuzzyMatch';
 
 function isDimensionLike(value: unknown): value is { value: number; unit: string } {
   return (
@@ -35,23 +32,6 @@ function isDimensionLike(value: unknown): value is { value: number; unit: string
     typeof (value as { value?: unknown }).value === "number" &&
     typeof (value as { unit?: unknown }).unit === "string"
   );
-}
-
-function fuzzyScore(query: string, target: string): number {
-  if (!query) return 1;
-  const q = query.toLowerCase();
-  const t = target.toLowerCase();
-  let qi = 0;
-  let score = 0;
-  let lastMatch = -1;
-  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
-    if (t[ti] === q[qi]) {
-      score += lastMatch === ti - 1 ? 2 : 1;
-      lastMatch = ti;
-      qi++;
-    }
-  }
-  return qi === q.length ? score : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +50,15 @@ interface QuickApplyPickerProps {
   ) => void;
   onUnbind: (targetProperty: BindableProperty) => void;
   onClose: () => void;
+}
+
+interface QuickApplyCandidate {
+  path: string;
+  entry: TokenMapEntry;
+  score: number;
+  resolved: unknown;
+  confidence: SuggestionConfidence;
+  reason: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -113,6 +102,95 @@ function inferPrimaryProperty(
 
 const MAX_CANDIDATES = 15;
 
+function getCandidatePresentation(candidate: QuickApplyCandidate): {
+  colorSwatch: string | null;
+  valueDisplay: string | null;
+} {
+  if (
+    candidate.entry.$type === 'color' &&
+    typeof candidate.resolved === 'string' &&
+    candidate.resolved.startsWith('#')
+  ) {
+    return { colorSwatch: candidate.resolved, valueDisplay: null };
+  }
+  if (
+    (candidate.entry.$type === 'dimension' || candidate.entry.$type === 'number') &&
+    candidate.resolved != null
+  ) {
+    const valueDisplay = isDimensionLike(candidate.resolved)
+      ? `${candidate.resolved.value}${candidate.resolved.unit}`
+      : String(candidate.resolved);
+    return { colorSwatch: null, valueDisplay };
+  }
+  return { colorSwatch: null, valueDisplay: null };
+}
+
+function QuickApplyCandidateRow({
+  candidate,
+  isCurrent,
+  isSelected,
+  onHover,
+  onSelect,
+  showReason = false,
+}: {
+  candidate: QuickApplyCandidate;
+  isCurrent: boolean;
+  isSelected: boolean;
+  onHover: () => void;
+  onSelect: () => void;
+  showReason?: boolean;
+}) {
+  const { colorSwatch, valueDisplay } = getCandidatePresentation(candidate);
+
+  return (
+    <button
+      type="button"
+      data-qa-item
+      role="option"
+      aria-selected={isSelected}
+      className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
+        isSelected
+          ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
+          : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+      } ${isCurrent ? 'opacity-50' : ''}`}
+      onMouseEnter={onHover}
+      onClick={onSelect}
+    >
+      {colorSwatch ? (
+        <div
+          className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0"
+          style={{ backgroundColor: swatchBgColor(colorSwatch) }}
+        />
+      ) : (
+        <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+          <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
+        </div>
+      )}
+      <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>
+        {candidate.path}
+      </span>
+      {isCurrent && (
+        <span className={`text-[var(--font-size-xs)] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
+          current
+        </span>
+      )}
+      {!isCurrent && showReason && (
+        <span className={`text-[var(--font-size-xs)] shrink-0 ${isSelected ? 'text-white/50' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
+          {candidate.reason}
+        </span>
+      )}
+      {valueDisplay && !isCurrent && (
+        <span className={`text-secondary shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
+          {valueDisplay}
+        </span>
+      )}
+      <span className={`text-secondary shrink-0 ${isSelected ? 'text-white/60' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
+        {candidate.entry.$type}
+      </span>
+    </button>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -129,6 +207,17 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
   const listRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(dialogRef, { initialFocusRef: inputRef });
+
+  useEffect(() => {
+    if (eligibleProps.includes(activeProp)) {
+      return;
+    }
+    const nextProp = inferPrimaryProperty(eligibleProps, rootNodes);
+    if (nextProp) {
+      setActiveProp(nextProp);
+    }
+  }, [activeProp, eligibleProps, rootNodes]);
+
   useEffect(() => {
     setActiveIdx(0);
     setIgnoreScope(false);
@@ -147,7 +236,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     const scopeCompatible = typeCompatible
       .filter(([, entry]) => isTokenScopeCompatible(entry, activeProp));
 
-    const all = (ignoreScope ? typeCompatible : scopeCompatible)
+    const all: QuickApplyCandidate[] = (ignoreScope ? typeCompatible : scopeCompatible)
       .map(([path, entry]) => {
         const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
         const score = scoreBindCandidate(path, entry, activeProp, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
@@ -159,8 +248,16 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     const filtered = query
       ? all
           .map(c => ({ ...c, fuzzy: fuzzyScore(query, c.path) }))
-          .filter(c => c.fuzzy > 0)
+          .filter(c => c.fuzzy >= 0)
           .sort((a, b) => b.fuzzy - a.fuzzy || b.score - a.score)
+          .map((candidateWithFuzzy) => ({
+            path: candidateWithFuzzy.path,
+            entry: candidateWithFuzzy.entry,
+            score: candidateWithFuzzy.score,
+            resolved: candidateWithFuzzy.resolved,
+            confidence: candidateWithFuzzy.confidence,
+            reason: candidateWithFuzzy.reason,
+          }))
       : all.sort((a, b) => b.score - a.score);
 
     return {
@@ -184,12 +281,23 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
     return { recentCandidates: recent, mainCandidates: main };
   }, [candidates, currentCollectionId, query]);
 
-  // No longer using simple suggested/all divider — confidence groups handle this
+  const visibleCandidates = useMemo(
+    () => [...recentCandidates, ...mainCandidates],
+    [mainCandidates, recentCandidates],
+  );
+
+  useEffect(() => {
+    setActiveIdx((idx) => {
+      if (visibleCandidates.length === 0) return 0;
+      return Math.min(idx, visibleCandidates.length - 1);
+    });
+  }, [visibleCandidates.length]);
 
   // Current binding for this property
   const currentBinding = getBindingForProperty(rootNodes, activeProp);
+  const hasSingleCurrentBinding = currentBinding !== null && currentBinding !== 'mixed';
 
-  const handleSelect = (candidate: typeof candidates[0]) => {
+  const handleSelect = (candidate: QuickApplyCandidate) => {
     addRecentToken(candidate.path, currentCollectionId);
     onApply(candidate.path, candidate.entry.$type, activeProp, candidate.resolved);
   };
@@ -201,7 +309,7 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
     // Backspace/Delete with empty query unbinds the current binding
-    if ((e.key === 'Backspace' || e.key === 'Delete') && query === '' && currentBinding && currentBinding !== 'mixed') {
+    if ((e.key === 'Backspace' || e.key === 'Delete') && query === '' && hasSingleCurrentBinding) {
       e.preventDefault();
       handleUnbind();
       return;
@@ -215,16 +323,15 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
       setActiveProp(next);
       return;
     }
-    const allVisible = [...recentCandidates, ...mainCandidates];
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIdx(i => Math.min(i + 1, allVisible.length - 1));
+      setActiveIdx(i => visibleCandidates.length === 0 ? 0 : Math.min(i + 1, visibleCandidates.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIdx(i => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const target = allVisible[activeIdx];
+      const target = visibleCandidates[activeIdx];
       if (target) handleSelect(target);
     }
   };
@@ -375,12 +482,12 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
             aria-autocomplete="list"
             className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
-          {currentBinding && currentBinding !== 'mixed' && (
+          {hasSingleCurrentBinding && (
             <span className="text-secondary text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
               {currentBinding}
             </span>
           )}
-          {currentBinding && (
+          {hasSingleCurrentBinding && (
             <button
               onClick={handleUnbind}
               title={`Unbind ${PROPERTY_LABELS[activeProp]}`}
@@ -404,51 +511,21 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               {recentCandidates.length > 0 && (
                 <>
                   <div className="text-secondary text-[color:var(--color-figma-text-secondary)] font-medium px-3 pt-1.5 pb-0.5 flex items-center gap-1">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-                    </svg>
+                    <Clock size={8} strokeWidth={1.5} aria-hidden />
                     Recent
                   </div>
                   {recentCandidates.map((c, idx) => {
                     const isSelected = idx === activeIdx;
                     const isCurrent = currentBinding === c.path;
-                    let colorSwatch: string | null = null;
-                    let valueDisplay: string | null = null;
-                    if (c.entry.$type === 'color' && typeof c.resolved === 'string' && c.resolved.startsWith('#')) {
-                      colorSwatch = c.resolved;
-                    } else if ((c.entry.$type === 'dimension' || c.entry.$type === 'number') && c.resolved != null) {
-                      valueDisplay = isDimensionLike(c.resolved) ? `${c.resolved.value}${c.resolved.unit}` : String(c.resolved);
-                    }
                     return (
-                      <button
+                      <QuickApplyCandidateRow
                         key={c.path}
-                        data-qa-item
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
-                          isSelected
-                            ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
-                            : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                        } ${isCurrent ? 'opacity-50' : ''}`}
-                        onMouseEnter={() => setActiveIdx(idx)}
-                        onClick={() => handleSelect(c)}
-                      >
-                        {colorSwatch ? (
-                          <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: swatchBgColor(colorSwatch) }} />
-                        ) : (
-                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
-                          </div>
-                        )}
-                        <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
-                        {isCurrent && (
-                          <span className={`text-[var(--font-size-xs)] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>current</span>
-                        )}
-                        {valueDisplay && !isCurrent && (
-                          <span className={`text-secondary shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`}>{valueDisplay}</span>
-                        )}
-                        <span className={`text-secondary shrink-0 ${isSelected ? 'text-white/60' : 'text-[color:var(--color-figma-text-secondary)]'}`}>{c.entry.$type}</span>
-                      </button>
+                        candidate={c}
+                        isCurrent={isCurrent}
+                        isSelected={isSelected}
+                        onHover={() => setActiveIdx(idx)}
+                        onSelect={() => handleSelect(c)}
+                      />
                     );
                   })}
                   {/* Separator between recent and main — group header will follow */}
@@ -462,14 +539,6 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                   const globalIdx = recentCandidates.length + idx;
                   const isSelected = globalIdx === activeIdx;
                   const isCurrent = currentBinding === c.path;
-
-                  let colorSwatch: string | null = null;
-                  let valueDisplay: string | null = null;
-                  if (c.entry.$type === 'color' && typeof c.resolved === 'string' && c.resolved.startsWith('#')) {
-                    colorSwatch = c.resolved;
-                  } else if ((c.entry.$type === 'dimension' || c.entry.$type === 'number') && c.resolved != null) {
-                    valueDisplay = isDimensionLike(c.resolved) ? `${c.resolved.value}${c.resolved.unit}` : String(c.resolved);
-                  }
 
                   const showGroupHeader = !query && c.confidence !== lastConfidence;
                   const isFirstGroup = lastConfidence === null && recentCandidates.length === 0;
@@ -486,48 +555,14 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
                           {CONFIDENCE_LABELS[c.confidence]}
                         </div>
                       )}
-                      <button
-                        data-qa-item
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
-                          isSelected
-                            ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
-                            : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                        } ${isCurrent ? 'opacity-50' : ''}`}
-                        onMouseEnter={() => setActiveIdx(globalIdx)}
-                        onClick={() => handleSelect(c)}
-                      >
-                        {colorSwatch ? (
-                          <div
-                            className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0"
-                            style={{ backgroundColor: swatchBgColor(colorSwatch) }}
-                          />
-                        ) : (
-                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white/40' : 'bg-[var(--color-figma-text-secondary)]/30'}`} />
-                          </div>
-                        )}
-                        <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>{c.path}</span>
-                        {isCurrent && (
-                          <span className={`text-[var(--font-size-xs)] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
-                            current
-                          </span>
-                        )}
-                        {!isCurrent && !query && c.confidence !== 'weak' && (
-                          <span className={`text-[var(--font-size-xs)] shrink-0 ${isSelected ? 'text-white/50' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
-                            {c.reason}
-                          </span>
-                        )}
-                        {valueDisplay && !isCurrent && (
-                          <span className={`text-secondary shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
-                            {valueDisplay}
-                          </span>
-                        )}
-                        <span className={`text-secondary shrink-0 ${isSelected ? 'text-white/60' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
-                          {c.entry.$type}
-                        </span>
-                      </button>
+                      <QuickApplyCandidateRow
+                        candidate={c}
+                        isCurrent={isCurrent}
+                        isSelected={isSelected}
+                        onHover={() => setActiveIdx(globalIdx)}
+                        onSelect={() => handleSelect(c)}
+                        showReason={!query && c.confidence !== 'weak'}
+                      />
                     </div>
                   );
                 });
