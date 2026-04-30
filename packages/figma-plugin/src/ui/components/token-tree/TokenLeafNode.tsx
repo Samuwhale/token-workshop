@@ -287,12 +287,12 @@ export const TokenLeafNode = memo(
     const selectionControlVisibilityClass =
       selectMode || hovered || isSelected || isRowActive
         ? "opacity-100"
-        : "opacity-55";
+        : "opacity-75";
     const overflowActionVisibilityClass = selectMode
       ? "hidden"
       : isRowActive
         ? "opacity-100"
-        : "opacity-45 group-hover:opacity-100 group-focus-within:opacity-100";
+        : "opacity-60 group-hover:opacity-100 group-focus-within:opacity-100";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected
@@ -984,6 +984,7 @@ export const TokenLeafNode = memo(
                     }
                   }}
                   title={`${tokenStatus.title}\n\nClick to view issues`}
+                  aria-label={`${tokenStatus.title}. Open review issues`}
                   className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded cursor-pointer transition-colors hover:bg-[var(--color-figma-bg-secondary)] ${tokenStatus.toneClass}`}
                 >
                   <svg
@@ -1004,6 +1005,7 @@ export const TokenLeafNode = memo(
                 <span
                   className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass}`}
                   title={tokenStatus.title}
+                  aria-label={tokenStatus.title}
                 >
                   {tokenStatus.kind === "applied" ? (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
@@ -1027,8 +1029,8 @@ export const TokenLeafNode = memo(
                     e.stopPropagation();
                     handleOpenTokenActions(e.currentTarget);
                   }}
-                  title="More token actions"
-                  aria-label="More token actions"
+                  title={`More actions for ${formatDisplayPath(node.path, node.name)}`}
+                  aria-label={`More actions for ${formatDisplayPath(node.path, node.name)}`}
                   aria-haspopup="menu"
                   aria-expanded={!!contextMenuPos}
                   className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"

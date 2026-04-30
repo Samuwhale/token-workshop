@@ -83,6 +83,7 @@ export function ValueCell({
     (QUICK_EDITABLE_TYPES.has(tokenType) || isBrokenAlias) &&
     !!targetCollectionId &&
     !!onRequestQuickEdit;
+  const canActivateValue = canQuickEdit || !!onEdit;
   const canCreate =
     !value && !!tokenType && !!targetCollectionId && !!onRequestQuickEdit;
 
@@ -126,9 +127,16 @@ export function ValueCell({
       <DerivationGlyph size={10} />
     </span>
   ) : null;
-  const interactiveTextClass = canQuickEdit
+  const interactiveTextClass = canActivateValue
     ? "cursor-pointer hover:text-[color:var(--color-figma-text)]"
     : "";
+  const activateValue = () => {
+    if (canQuickEdit) {
+      openQuickEdit();
+      return;
+    }
+    onEdit?.();
+  };
 
   const renderValueText = (
     primary: string,
@@ -141,41 +149,55 @@ export function ValueCell({
       primaryStyle?: CSSProperties;
       secondaryStyle?: CSSProperties;
     },
-  ) => (
-    <div
-      className={`tm-value-cell__text ${interactiveTextClass}`}
-      onClick={
-        canQuickEdit
-          ? (e) => {
-              e.stopPropagation();
-              openQuickEdit();
-            }
-          : undefined
-      }
-    >
-      <div
-        className={`tm-value-cell__line text-[11px] leading-[1.08] ${
-          options?.primaryMonospace ? "font-mono" : ""
-        } ${options?.primaryClassName ?? "text-[color:var(--color-figma-text)]"}`}
-        style={options?.primaryStyle}
-      >
-        {primary}
-      </div>
-      {secondary ? (
+  ) => {
+    const content = (
+      <>
         <div
-          className={`tm-value-cell__line text-[var(--font-size-xs)] leading-[1.08] ${
-            options?.secondaryMonospace ? "font-mono" : ""
-          } ${
-            options?.secondaryClassName ??
-            "text-[color:var(--color-figma-text-tertiary)]"
-          }`}
-          style={options?.secondaryStyle}
+          className={`tm-value-cell__line text-[11px] leading-[1.08] ${
+            options?.primaryMonospace ? "font-mono" : ""
+          } ${options?.primaryClassName ?? "text-[color:var(--color-figma-text)]"}`}
+          style={options?.primaryStyle}
         >
-          {secondary}
+          {primary}
         </div>
-      ) : null}
-    </div>
-  );
+        {secondary ? (
+          <div
+            className={`tm-value-cell__line text-[var(--font-size-xs)] leading-[1.08] ${
+              options?.secondaryMonospace ? "font-mono" : ""
+            } ${
+              options?.secondaryClassName ??
+              "text-[color:var(--color-figma-text-tertiary)]"
+            }`}
+            style={options?.secondaryStyle}
+          >
+            {secondary}
+          </div>
+        ) : null}
+      </>
+    );
+
+    if (!canActivateValue) {
+      return <div className={`tm-value-cell__text ${interactiveTextClass}`}>{content}</div>;
+    }
+
+    return (
+      <button
+        type="button"
+        className={`tm-value-cell__text rounded-sm border-0 bg-transparent p-0 text-left outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${interactiveTextClass}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          activateValue();
+        }}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+        }}
+        aria-label={`Edit ${optionName} value`}
+        title={`${optionName}: ${primary}`}
+      >
+        {content}
+      </button>
+    );
+  };
 
   return (
     <div

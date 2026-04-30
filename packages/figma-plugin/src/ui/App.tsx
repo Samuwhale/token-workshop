@@ -1860,10 +1860,14 @@ export function App() {
                   );
                 }
 
+                const sectionListId = `${item.workspaceId}-workspace-sections`;
                 return (
                   <div key={item.id} className="mb-0.5">
                     <button
                       onClick={() => handleSidebarItemClick(item)}
+                      aria-current={isWorkspaceActive ? "page" : undefined}
+                      aria-expanded={sections.length > 0 ? expandedWorkspaces.has(item.workspaceId) : undefined}
+                      aria-controls={sections.length > 0 ? sectionListId : undefined}
                       title={requiresSetup ? "Set up a collection first" : undefined}
                       className={`relative flex min-h-7 w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
                         isWorkspaceActive
@@ -1923,6 +1927,7 @@ export function App() {
                       const isSectionExpanded = expandedWorkspaces.has(item.workspaceId);
                       return (
                         <div
+                          id={sectionListId}
                           aria-hidden={!isSectionExpanded}
                           className={`ml-6 flex flex-col gap-px overflow-hidden transition-[max-height,opacity] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                             isSectionExpanded ? "max-h-40 opacity-100 mt-0.5 mb-1" : "max-h-0 opacity-0"
@@ -1939,6 +1944,11 @@ export function App() {
                                 key={section.id}
                                 onClick={() => handleSubTabClick(section)}
                                 tabIndex={isSectionExpanded ? 0 : -1}
+                                aria-current={
+                                  activeSubTab === section.subTab && isWorkspaceActive
+                                    ? "page"
+                                    : undefined
+                                }
                                 className={`flex min-h-7 w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
                                   activeSubTab === section.subTab && isWorkspaceActive
                                     ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"

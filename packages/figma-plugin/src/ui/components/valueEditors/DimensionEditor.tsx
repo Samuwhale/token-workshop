@@ -200,7 +200,7 @@ export const DimensionEditor = memo(function DimensionEditor({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex gap-2 items-center">
+      <div className="flex flex-wrap items-start gap-2">
         {formulaMode ? (
           <FormulaInput
             value={formulaStr}
@@ -214,14 +214,15 @@ export const DimensionEditor = memo(function DimensionEditor({
           <StepperInput
             value={numVal}
             onChange={v => onChange({ ...val, value: v })}
-            className="flex-1"
+            className="min-w-0 flex-[1_1_140px]"
             autoFocus={autoFocus}
           />
         )}
         <select
           value={val.unit}
           onChange={e => handleUnitChange(e.target.value)}
-          className={AUTHORING.input + ' w-16'}
+          className={AUTHORING.input + ' min-h-[28px] w-[72px] shrink-0'}
+          aria-label="Dimension unit"
         >
           <option value="px">px</option>
           <option value="rem">rem</option>
@@ -233,7 +234,8 @@ export const DimensionEditor = memo(function DimensionEditor({
             type="button"
             onClick={toggleFormulaMode}
             title={formulaMode ? 'Switch to literal value' : 'Enter expression'}
-            className={`shrink-0 px-1.5 py-1 rounded text-secondary font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)]'}`}
+            aria-label={formulaMode ? 'Switch to literal value' : 'Enter expression'}
+            className={`min-h-[28px] shrink-0 rounded border px-2 py-1 text-secondary font-mono transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)]'}`}
           >
             fx
           </button>

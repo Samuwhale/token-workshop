@@ -28,6 +28,7 @@ export interface TokenDetailsModeRowProps {
   onChange?: (value: unknown) => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
   showModeLabel?: boolean;
   autoFocus?: boolean;
   inheritedValue?: unknown;
@@ -38,6 +39,7 @@ export interface TokenDetailsModeRowProps {
   modified?: boolean;
   onNavigateToToken?: (path: string) => void;
   allowCopyFromPrevious?: boolean;
+  previousModeName?: string;
   onCopyFromPrevious?: () => void;
   allowCopyToAll?: boolean;
   onCopyToAll?: () => void;
@@ -78,6 +80,13 @@ function getInitialModeValue(tokenType: string): unknown {
   return getDefaultValue(tokenType);
 }
 
+function formatCollectionIdList(collectionIds: string[]): string {
+  if (collectionIds.length === 0) return "";
+  if (collectionIds.length === 1) return collectionIds[0];
+  if (collectionIds.length === 2) return `${collectionIds[0]} and ${collectionIds[1]}`;
+  return `${collectionIds.slice(0, -1).join(", ")}, and ${collectionIds.at(-1)}`;
+}
+
 export function TokenDetailsModeRow({
   modeName,
   tokenType,
@@ -86,6 +95,7 @@ export function TokenDetailsModeRow({
   onChange,
   allTokensFlat = {},
   pathToCollectionId = {},
+  collectionIdsByPath = {},
   showModeLabel = true,
   autoFocus,
   inheritedValue,
@@ -96,6 +106,7 @@ export function TokenDetailsModeRow({
   modified = false,
   onNavigateToToken,
   allowCopyFromPrevious = false,
+  previousModeName,
   onCopyFromPrevious,
   allowCopyToAll = false,
   onCopyToAll,
@@ -128,10 +139,17 @@ export function TokenDetailsModeRow({
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}`;
   const aliasQueryTrimmed = aliasQuery.trim();
+  const ambiguousAliasCollectionIds =
+    aliasQueryTrimmed.length > 0
+      ? collectionIdsByPath[aliasQueryTrimmed] ?? []
+      : [];
+  const aliasTargetAmbiguous = ambiguousAliasCollectionIds.length > 1;
   const aliasTargetExists =
     aliasQueryTrimmed.length === 0 || allTokensFlat[aliasQueryTrimmed] !== undefined;
   const showAliasMissingState =
     editable && aliasMode && aliasQueryTrimmed.length > 0 && !aliasTargetExists;
+  const showAliasAmbiguousState =
+    editable && aliasMode && aliasQueryTrimmed.length > 0 && aliasTargetAmbiguous;
   const resolvedColorSwatch =
     tokenType === "color" && typeof value === "string"
       ? isAlias(value)
@@ -188,6 +206,7 @@ export function TokenDetailsModeRow({
   const commitAliasQuery = () => {
     if (!onChange) return;
     const path = aliasQuery.trim();
+    if (collectionIdsByPath[path]?.length > 1) return;
     if (!path || !allTokensFlat[path]) return;
     onChange(`{${path}}`);
     setAliasQuery(path);
@@ -205,9 +224,15 @@ export function TokenDetailsModeRow({
           "tm-token-mode-row__action-button",
           aliasMode && "tm-token-mode-row__action-button--active",
         )}
-        title={aliasMode ? "Use a direct value for this mode" : "Reference another token for this mode"}
+        title={
+          aliasMode
+            ? `Use a direct value for ${modeName}`
+            : `Reference another token for ${modeName}`
+        }
         aria-label={
-          aliasMode ? "Use a direct value for this mode" : "Reference another token for this mode"
+          aliasMode
+            ? `Use a direct value for ${modeName}`
+            : `Reference another token for ${modeName}`
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
@@ -221,12 +246,12 @@ export function TokenDetailsModeRow({
             onClick={actionsMenu.toggle}
             aria-expanded={actionsMenu.open}
             aria-haspopup="menu"
-            aria-label="More mode actions"
-            title="More mode actions"
+            aria-label={`Reuse value for ${modeName}`}
+            title={`Reuse value for ${modeName}`}
             className="tm-token-mode-row__action-button tm-token-mode-row__action-button--secondary"
           >
             <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-            <span className="tm-token-mode-row__action-label">More</span>
+            <span className="tm-token-mode-row__action-label">Reuse value</span>
           </button>
           {actionsMenu.open ? (
             <div
@@ -246,7 +271,9 @@ export function TokenDetailsModeRow({
                   className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  Copy previous
+                  {previousModeName
+                    ? `Use ${previousModeName} value for ${modeName}`
+                    : `Use previous value for ${modeName}`}
                 </button>
               ) : null}
               {allowCopyToAll && onCopyToAll ? (
@@ -260,7 +287,7 @@ export function TokenDetailsModeRow({
                   className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                 >
                   <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-                  Copy to all
+                  Use this value for all modes
                 </button>
               ) : null}
             </div>
@@ -338,11 +365,14 @@ export function TokenDetailsModeRow({
                 aria-label={`${modeName} reference`}
                 aria-invalid={showAliasMissingState}
                 aria-describedby={
-                  showAliasMissingState ? aliasStatusId : undefined
+                  showAliasMissingState || showAliasAmbiguousState
+                    ? aliasStatusId
+                    : undefined
                 }
                 className={joinClasses(
                   "tm-token-mode-row__alias-input min-h-8 w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] outline-none transition-colors hover:border-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]",
                   showAliasMissingState && "tm-token-mode-row__alias-input--invalid",
+                  showAliasAmbiguousState && "tm-token-mode-row__alias-input--invalid",
                 )}
               />
               {autocompleteOpen && (
@@ -361,6 +391,13 @@ export function TokenDetailsModeRow({
                   className="tm-token-mode-row__helper"
                 >
                   No token matches this reference yet.
+                </p>
+              ) : showAliasAmbiguousState ? (
+                <p
+                  id={aliasStatusId}
+                  className="tm-token-mode-row__helper"
+                >
+                  This path exists in {formatCollectionIdList(ambiguousAliasCollectionIds)}. Pick a token path that belongs to one collection.
                 </p>
               ) : null}
             </div>

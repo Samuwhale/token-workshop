@@ -79,6 +79,7 @@ import {
   type GeneratorStructuredDraft,
 } from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
+import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import { apiFetch } from "../../shared/apiFetch";
 import { ActionRow, Button, IconButton, SegmentedControl } from "../../primitives";
@@ -123,6 +124,9 @@ interface GeneratorsPanelProps {
   initialView?: GeneratorEditorMode | null;
   initialFocus?: GeneratorPanelFocus | null;
   onInitialGeneratorHandled?: () => void;
+  editorSessionHost?: {
+    registerSession: (session: EditorSessionRegistration | null) => void;
+  };
 }
 
 export interface GeneratorPanelFocus {
@@ -415,6 +419,7 @@ export function GeneratorsPanel({
   initialView,
   initialFocus,
   onInitialGeneratorHandled,
+  editorSessionHost,
 }: GeneratorsPanelProps) {
   const [generators, setGenerators] = useState<TokenGeneratorDocument[]>([]);
   const [activeGeneratorId, setActiveGeneratorId] = useState<string | null>(
@@ -1142,6 +1147,39 @@ export function GeneratorsPanel({
       setBusy(null);
     }
   }, [serverUrl, setEdges, setNodes]);
+
+  useEffect(() => {
+    if (!editorSessionHost) return;
+
+    if (!activeGenerator) {
+      editorSessionHost.registerSession(null);
+      return;
+    }
+
+    editorSessionHost.registerSession({
+      isDirty: dirty,
+      canSave: dirty && busy === null && !graphHasErrors,
+      save: async () => {
+        if (!dirty || busy !== null || graphHasErrors) return false;
+        const saved = await saveGenerator();
+        return saved !== null;
+      },
+      discard: discardGeneratorDraft,
+      closeWhenClean: () => undefined,
+    });
+
+    return () => {
+      editorSessionHost.registerSession(null);
+    };
+  }, [
+    activeGenerator,
+    busy,
+    dirty,
+    discardGeneratorDraft,
+    editorSessionHost,
+    graphHasErrors,
+    saveGenerator,
+  ]);
 
   useEffect(() => {
     if (!activeGenerator || createPanelOpen || !activeGeneratorSignature) return;

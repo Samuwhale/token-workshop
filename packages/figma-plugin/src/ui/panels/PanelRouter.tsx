@@ -242,6 +242,12 @@ export function PanelRouter({
     refreshValidation,
     setErrorToast,
   } = controller;
+  const generatorEditorSessionHost = useMemo(
+    () => ({
+      registerSession: controller.registerEditorSession,
+    }),
+    [controller.registerEditorSession],
+  );
   // Navigation and editor state from contexts (previously passed as props)
   const {
     activeTopTab,
@@ -1721,6 +1727,7 @@ export function PanelRouter({
               initialGeneratorId={pendingGeneratorDocumentId}
               initialView={pendingGeneratorInitialView}
               initialFocus={pendingGeneratorFocus}
+              editorSessionHost={generatorEditorSessionHost}
               onInitialGeneratorHandled={() => {
                 setPendingGeneratorDocumentId(null);
                 setPendingGeneratorFocus(null);

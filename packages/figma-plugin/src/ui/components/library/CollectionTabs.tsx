@@ -32,6 +32,7 @@ import { Button, SearchField } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
+const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 820;
 
 interface AllCollectionsScope {
   selected: boolean;
@@ -113,6 +114,7 @@ export function CollectionTabs({
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const switcherOptionsRef = useRef<HTMLDivElement>(null);
   const lastHandledFocusRequestKeyRef = useRef(focusRequestKey);
 
   const currentCollection = useMemo(
@@ -150,12 +152,30 @@ export function CollectionTabs({
   const hasSecondaryActions =
     showManageButton || showCreateButton || showImportButton;
   const collapseSecondaryActions =
-    hasSecondaryActions && toolbarWidth !== null && toolbarWidth < 620;
+    hasSecondaryActions &&
+    toolbarWidth !== null &&
+    toolbarWidth < COLLECTION_ACTIONS_COLLAPSE_WIDTH;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
+  const triggerAriaLabel = currentCollection
+    ? `Current collection: ${currentDisplayName}. Choose collection`
+    : allCollectionsScope?.selected
+      ? "All collections selected. Choose collection"
+      : "Choose collection";
 
   const closeSwitcher = useCallback(() => {
     closeSwitcherMenu({ restoreFocus: false });
   }, [closeSwitcherMenu]);
+
+  const focusCollectionOption = useCallback((nextIndex: number) => {
+    const options = switcherOptionsRef.current?.querySelectorAll<HTMLButtonElement>(
+      'button[role="radio"]',
+    );
+    if (!options || options.length === 0) {
+      return;
+    }
+    const clampedIndex = Math.min(Math.max(nextIndex, 0), options.length - 1);
+    options[clampedIndex]?.focus();
+  }, []);
 
   const handleSelectCollection = useCallback(
     (collectionId: string) => {
@@ -206,6 +226,8 @@ export function CollectionTabs({
               aria-haspopup="dialog"
               aria-controls="collection-switcher-dialog"
               aria-expanded={switcherOpen}
+              aria-label={triggerAriaLabel}
+              title={currentCollection ? currentDisplayName : "Choose collection"}
               className={`tm-collection-toolbar__trigger flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
                 switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
@@ -254,6 +276,14 @@ export function CollectionTabs({
                       if (event.key === "Escape" && query.length > 0) {
                         event.stopPropagation();
                         setQuery("");
+                        return;
+                      }
+                      if (event.key === "Escape") {
+                        event.stopPropagation();
+                        setSwitcherOpen(false);
+                        requestAnimationFrame(() => {
+                          switcherTriggerRef.current?.focus();
+                        });
                       }
                     }}
                     placeholder="Search collections"
@@ -264,9 +294,53 @@ export function CollectionTabs({
                 </div>
 
                 <div
+                  ref={switcherOptionsRef}
                   className="min-h-0 overflow-y-auto"
                   role="radiogroup"
                   aria-label="Collections"
+                  onKeyDown={(event) => {
+                    const activeElement = document.activeElement;
+                    if (!(activeElement instanceof HTMLButtonElement)) {
+                      return;
+                    }
+                    const options = Array.from(
+                      switcherOptionsRef.current?.querySelectorAll<HTMLButtonElement>(
+                        'button[role="radio"]',
+                      ) ?? [],
+                    );
+                    const currentIndex = options.indexOf(activeElement);
+                    if (currentIndex < 0) {
+                      return;
+                    }
+
+                    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+                      event.preventDefault();
+                      focusCollectionOption(currentIndex + 1);
+                      return;
+                    }
+                    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+                      event.preventDefault();
+                      focusCollectionOption(currentIndex - 1);
+                      return;
+                    }
+                    if (event.key === "Home") {
+                      event.preventDefault();
+                      focusCollectionOption(0);
+                      return;
+                    }
+                    if (event.key === "End") {
+                      event.preventDefault();
+                      focusCollectionOption(options.length - 1);
+                      return;
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      closeSwitcher();
+                      requestAnimationFrame(() => {
+                        switcherTriggerRef.current?.focus();
+                      });
+                    }
+                  }}
                 >
                   {allCollectionsScope ? (
                     <button
@@ -480,15 +554,15 @@ export function CollectionTabs({
                 {showImportButton ? (
                   <Button
                     onClick={onOpenImport}
-                    aria-label="Import collections"
-                    title="Import collections"
+                    aria-label="Import tokens"
+                    title="Import tokens"
                     variant="ghost"
                     size="sm"
                     className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
                   >
                     <Upload size={12} strokeWidth={1.5} aria-hidden />
                     <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                      Import
+                      Import tokens
                     </span>
                   </Button>
                 ) : null}

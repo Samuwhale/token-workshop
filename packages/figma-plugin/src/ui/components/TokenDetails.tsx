@@ -1751,6 +1751,7 @@ export function TokenDetails({
                       onChange={fieldEditable ? mode.setValue : undefined}
                       allTokensFlat={allTokensFlat}
                       pathToCollectionId={pathToCollectionId}
+                      collectionIdsByPath={collectionIdsByPath}
                       showModeLabel={showModeLabel}
                       autoFocus={modeIdx === 0 && !isCreateMode && fieldEditable}
                       inheritedValue={inheritedValue}
@@ -1763,6 +1764,7 @@ export function TokenDetails({
                       allowCopyFromPrevious={
                         fieldEditable && modeValue.modes.length > 1 && modeIdx > 0
                       }
+                      previousModeName={modeValue.modes[modeIdx - 1]?.name}
                       onCopyFromPrevious={
                         fieldEditable && modeValue.modes.length > 1 && modeIdx > 0
                           ? () => {
