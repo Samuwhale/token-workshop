@@ -2500,7 +2500,7 @@ export function GeneratorsPanel({
               title="Graph node"
               onClose={() => setInspectorOpen(false)}
             >
-              <section className="p-3">
+              <section className="p-2">
                 <NodeInspector
                   node={selectedNode}
                   collections={collections}
@@ -2512,8 +2512,8 @@ export function GeneratorsPanel({
               </section>
             </GeneratorDockedPanel>
           ) : (
-            <aside className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)]">
-              <section className="p-3">
+            <aside className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)]">
+              <section className="p-2">
                 <h2 className="mb-2 text-primary font-semibold">
                   Graph node
                 </h2>
@@ -2576,7 +2576,7 @@ export function GeneratorsPanel({
 
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <section className="min-w-0 flex-1 overflow-y-auto px-3 py-3 max-[560px]:px-2.5 max-[560px]:py-2.5">
+        <section className="min-w-0 flex-1 overflow-y-auto px-2 py-2">
           {renderOverviewPanel()}
         </section>
       </div>
@@ -3142,7 +3142,7 @@ export function GeneratorsPanel({
         ) : (
           <>
             {compactGenerators ? (
-              <div className="flex shrink-0 flex-col gap-1.5 border-b border-[var(--color-figma-border)] px-2 py-1.5">
+              <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-figma-border)] px-2 py-1">
                 <div className="flex min-w-0 items-center gap-2">
                   {renderGeneratorIdentity(true)}
                   <div className="flex shrink-0 items-center justify-end gap-1">
@@ -3157,7 +3157,7 @@ export function GeneratorsPanel({
                 </div>
               </div>
             ) : (
-              <div className="flex min-h-12 shrink-0 flex-col gap-2 border-b border-[var(--color-figma-border)] px-3 py-2">
+              <div className="flex min-h-10 shrink-0 flex-col gap-1.5 border-b border-[var(--color-figma-border)] px-2 py-1.5">
                 <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                   {renderGeneratorIdentity()}
                   {renderStatusIndicator()}
@@ -4028,7 +4028,7 @@ function GeneratorOverlayPanel({
       <aside
         className="flex h-full w-full max-w-[360px] flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.24)] max-[640px]:max-w-none"
       >
-        <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-3">
+        <header className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-2">
           <h2 className="min-w-0 truncate text-primary font-semibold">{title}</h2>
           <IconButton title="Close" aria-label="Close" onClick={onClose}>
             <X size={14} />
@@ -4050,14 +4050,14 @@ function GeneratorDockedPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex justify-end p-2">
+    <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex justify-end p-1.5">
       <aside
-        className="pointer-events-auto flex h-full flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
-        style={{ width: "min(360px, calc(100% - 16px))" }}
+        className="pointer-events-auto flex h-full flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
+        style={{ width: "min(340px, calc(100% - 12px))" }}
         onClick={(event) => event.stopPropagation()}
         onContextMenu={(event) => event.stopPropagation()}
       >
-        <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-3">
+        <header className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-2">
           <h2 className="min-w-0 truncate text-primary font-semibold">{title}</h2>
           <IconButton title="Close" aria-label="Close" onClick={onClose}>
             <X size={14} />

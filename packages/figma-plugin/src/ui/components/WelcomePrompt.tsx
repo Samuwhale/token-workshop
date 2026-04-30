@@ -76,7 +76,7 @@ function ActionRow({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "w-full flex items-start gap-2 text-left transition-colors disabled:opacity-50",
+        "tm-start-action w-full flex items-start gap-2 text-left transition-colors disabled:opacity-50",
         emphasized
           ? "border-t-0 px-0 pb-1.5 pt-0"
           : "border-t border-[var(--color-figma-border)] px-0 py-1.5 first:border-t-0 first:pt-0 last:pb-0",
@@ -103,7 +103,7 @@ function ActionRow({
         >
           {title}
         </span>
-        <span className="mt-0.5 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)] block">
+        <span className="tm-start-action__description mt-0.5 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)] block">
           {description}
         </span>
       </span>
@@ -191,10 +191,10 @@ export function WelcomePrompt({
   const branchTitle = branchCopy.title;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)] p-2">
+    <div className="tm-start-overlay fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--color-figma-overlay)] p-2">
       <div
         ref={dialogRef}
-        className="flex max-h-[calc(100vh-12px)] w-full max-w-[300px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
+        className="tm-start-dialog flex max-h-[calc(100vh-12px)] w-full max-w-[300px] flex-col overflow-hidden rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg"
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
@@ -208,7 +208,7 @@ export function WelcomePrompt({
           branchCopy.description ? "welcome-dialog-description" : undefined
         }
       >
-        <div className="border-b border-[var(--color-figma-border)] px-2.5 py-2">
+        <div className="tm-start-dialog__header border-b border-[var(--color-figma-border)] px-2.5 py-2">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               {showBack && (
@@ -267,7 +267,7 @@ export function WelcomePrompt({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
+        <div className="tm-start-dialog__body min-h-0 flex-1 overflow-y-auto p-2.5">
           {branch === "root" && renderRoot()}
           {branch === "start-new" && (
             <div className="h-full">
