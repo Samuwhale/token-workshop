@@ -43,7 +43,7 @@ import type { GeneratorEditorMode } from "./generators/generatorEditorTypes";
 
 type BusyState = "create" | null;
 type CreateStep = "type" | "details";
-type CreateTypeSelection =
+type CreateTemplateSelection =
   | { mode: "configured"; kind: GeneratorConfiguredTemplateKind }
   | { mode: "graph"; template: "blank" | GeneratorConfiguredTemplateKind };
 
@@ -90,7 +90,7 @@ const SOURCE_MODE_OPTIONS: Array<{ value: GeneratorSourceMode; label: string }> 
   { value: "literal", label: "Value" },
   { value: "token", label: "Token" },
 ];
-const GENERATOR_TYPE_GROUPS: Array<{
+const TEMPLATE_GROUPS: Array<{
   label: string;
   ids: GeneratorConfiguredTemplateKind[];
 }> = [
@@ -115,8 +115,8 @@ export function GeneratorCreatePanel({
   const initialOutputPrefixValue = initialOutputPrefix?.trim() || "";
   const [step, setStep] = useState<CreateStep>("type");
   const [kind, setKind] = useState<GeneratorConfiguredTemplateKind>(initialKind);
-  const [typeSelection, setTypeSelection] =
-    useState<CreateTypeSelection | null>(null);
+  const [templateSelection, setTemplateSelection] =
+    useState<CreateTemplateSelection | null>(null);
   const [targetCollectionId, setTargetCollectionId] =
     useState(initialCollectionId);
   const [outputPrefix, setOutputPrefix] = useState(
@@ -166,10 +166,10 @@ export function GeneratorCreatePanel({
   const selectedOption =
     GENERATOR_TEMPLATE_OPTIONS.find((item) => item.id === kind) ??
     GENERATOR_TEMPLATE_OPTIONS[0];
-  const selectedGraphOption =
-    typeSelection?.mode === "graph" && typeSelection.template !== "blank"
+  const selectedTemplateOption =
+    templateSelection?.mode === "graph" && templateSelection.template !== "blank"
       ? GENERATOR_TEMPLATE_OPTIONS.find(
-          (item) => item.id === typeSelection.template,
+          (item) => item.id === templateSelection.template,
         )
       : null;
   const targetCollection = collections.find(
@@ -279,7 +279,7 @@ export function GeneratorCreatePanel({
         GENERATOR_TEMPLATE_OPTIONS.find((item) => item.id === nextKind) ??
         GENERATOR_TEMPLATE_OPTIONS[0];
       setKind(nextKind);
-      setTypeSelection({ mode: "configured", kind: nextKind });
+      setTemplateSelection({ mode: "configured", kind: nextKind });
       setOutputPrefix(initialOutputPrefixValue || option.outputPrefix);
       setSourceMode(option.sourceMode);
       setSourceValue(generatorDefaultSourceValue(nextKind));
@@ -294,9 +294,9 @@ export function GeneratorCreatePanel({
     [initialOutputPrefixValue, targetCollectionId],
   );
 
-  const updateGraphTemplate = useCallback(
+  const updateTemplateSelection = useCallback(
     (template: "blank" | GeneratorConfiguredTemplateKind) => {
-      setTypeSelection({ mode: "graph", template });
+      setTemplateSelection({ mode: "graph", template });
       setError(null);
     },
     [],
@@ -495,15 +495,7 @@ export function GeneratorCreatePanel({
             </div>
             <div className="space-y-3">
               <div className="space-y-3">
-                <div>
-                  <h5 className="px-1 text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                    Configure values
-                  </h5>
-                  <p className="mt-0.5 px-1 text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                    Choose a generator and set its values next.
-                  </p>
-                </div>
-                {GENERATOR_TYPE_GROUPS.map((group) => (
+                {TEMPLATE_GROUPS.map((group) => (
                   <div key={group.label}>
                     <div className="mb-1 px-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
                       {group.label}
@@ -519,13 +511,9 @@ export function GeneratorCreatePanel({
                             key={option.id}
                             type="button"
                             onClick={() => updateKind(option.id)}
-                            aria-pressed={
-                              typeSelection?.mode === "configured" &&
-                              typeSelection.kind === option.id
-                            }
+                            aria-pressed={templateSelection === option.id}
                             className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
-                              typeSelection?.mode === "configured" &&
-                              typeSelection.kind === option.id
+                              templateSelection === option.id
                                 ? "bg-[var(--color-figma-bg-selected)]"
                                 : "bg-transparent hover:bg-[var(--color-figma-bg-hover)]"
                             }`}
@@ -548,20 +536,44 @@ export function GeneratorCreatePanel({
                   </div>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplateSelection("blank");
+                  setError(null);
+                }}
+                aria-pressed={templateSelection === "blank"}
+                className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
+                  templateSelection === "blank"
+                    ? "bg-[var(--color-figma-bg-selected)]"
+                    : "bg-transparent hover:bg-[var(--color-figma-bg-hover)]"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                    Blank
+                  </span>
+                  <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                    Start with nodes and connections
+                  </span>
+                </span>
+                <Workflow
+                  size={13}
+                  className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
+                />
+              </button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             <div>
               <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                {typeSelection?.mode === "graph"
-                  ? selectedGraphOption
-                    ? `${selectedGraphOption.label} graph`
-                    : "Blank graph"
+                {templateSelection === "blank"
+                  ? "Blank generator"
                   : `${selectedOption.label} generator`}
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {typeSelection?.mode === "graph"
+                {templateSelection === "blank"
                   ? "Choose where this generator belongs before opening Graph."
                   : "Fill in the values this generator needs."}
               </p>
@@ -591,11 +603,10 @@ export function GeneratorCreatePanel({
               </select>
             </label>
 
-            {typeSelection?.mode === "graph" ? (
+            {templateSelection === "blank" ? (
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {typeSelection.template === "blank"
-                  ? "The generator will open with no nodes. Add the source, transform, and output nodes there."
-                  : "The generator will open as editable nodes so you can adjust the graph directly."}
+                The generator will open with no nodes. Add the source, transform,
+                and output nodes there.
               </p>
             ) : (
               <div className="space-y-3">
@@ -895,7 +906,7 @@ export function GeneratorCreatePanel({
           onClick={step === "type" ? continueToDetails : createGenerator}
           disabled={
             busy !== null ||
-            (step === "type" ? !typeSelection : !targetCollectionId)
+            (step === "type" ? !templateSelection : !targetCollectionId)
           }
           variant="primary"
           size="sm"
