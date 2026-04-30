@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Link2, MoreHorizontal, Rows3 } from "lucide-react";
-import { resolveRefValue } from "@tokenmanager/core";
+import {
+  resolveCollectionIdForPath,
+  resolveRefValue,
+} from "@tokenmanager/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath, isAlias } from "../../../shared/resolveAlias";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
@@ -30,6 +33,7 @@ export interface TokenDetailsModeRowProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
+  preferredCollectionId?: string;
   showModeLabel?: boolean;
   autoFocus?: boolean;
   inheritedValue?: unknown;
@@ -97,6 +101,7 @@ export function TokenDetailsModeRow({
   allTokensFlat = {},
   pathToCollectionId = {},
   collectionIdsByPath = {},
+  preferredCollectionId,
   showModeLabel = true,
   autoFocus,
   inheritedValue,
@@ -140,13 +145,22 @@ export function TokenDetailsModeRow({
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}`;
   const aliasQueryTrimmed = aliasQuery.trim();
-  const ambiguousAliasCollectionIds =
+  const aliasResolution =
     aliasQueryTrimmed.length > 0
+      ? resolveCollectionIdForPath({
+          path: aliasQueryTrimmed,
+          pathToCollectionId,
+          collectionIdsByPath,
+          preferredCollectionId,
+        })
+      : null;
+  const ambiguousAliasCollectionIds =
+    aliasResolution?.reason === "ambiguous"
       ? collectionIdsByPath[aliasQueryTrimmed] ?? []
       : [];
-  const aliasTargetAmbiguous = ambiguousAliasCollectionIds.length > 1;
+  const aliasTargetAmbiguous = aliasResolution?.reason === "ambiguous";
   const aliasTargetExists =
-    aliasQueryTrimmed.length === 0 || allTokensFlat[aliasQueryTrimmed] !== undefined;
+    aliasQueryTrimmed.length === 0 || aliasResolution?.reason !== "missing";
   const showAliasMissingState =
     editable && aliasMode && aliasQueryTrimmed.length > 0 && !aliasTargetExists;
   const showAliasAmbiguousState =
@@ -207,8 +221,15 @@ export function TokenDetailsModeRow({
   const commitAliasQuery = () => {
     if (!onChange) return;
     const path = aliasQuery.trim();
-    if (collectionIdsByPath[path]?.length > 1) return;
-    if (!path || !allTokensFlat[path]) return;
+    const resolution = resolveCollectionIdForPath({
+      path,
+      pathToCollectionId,
+      collectionIdsByPath,
+      preferredCollectionId,
+    });
+    if (!path || !resolution.collectionId || resolution.reason === "ambiguous") {
+      return;
+    }
     onChange(`{${path}}`);
     setAliasQuery(path);
     setAutocompleteOpen(false);
@@ -358,7 +379,7 @@ export function TokenDetailsModeRow({
                 autoFocus={autoFocus}
                 placeholder="Reference a token"
                 aria-label={`${modeName} reference`}
-                aria-invalid={showAliasMissingState}
+                aria-invalid={showAliasMissingState || showAliasAmbiguousState}
                 aria-describedby={
                   showAliasMissingState || showAliasAmbiguousState
                     ? aliasStatusId
@@ -375,6 +396,7 @@ export function TokenDetailsModeRow({
                   query={aliasQuery}
                   allTokensFlat={allTokensFlat}
                   pathToCollectionId={pathToCollectionId}
+                  preferredCollectionId={preferredCollectionId}
                   filterType={tokenType}
                   onSelect={handleAliasSelect}
                   onClose={() => setAutocompleteOpen(false)}

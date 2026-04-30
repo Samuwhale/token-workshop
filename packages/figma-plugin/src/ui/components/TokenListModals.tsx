@@ -14,6 +14,23 @@ function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
 }
 
+function normalizeGroupPathPreview(parent: string, value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return parent;
+  return (parent ? `${parent}.${trimmed}` : trimmed)
+    .split('.')
+    .map((segment) => segment.trim())
+    .join('.');
+}
+
+function getGroupPathInputError(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return trimmed.split('.').some((segment) => segment.trim().length === 0)
+    ? 'Remove empty path segments'
+    : '';
+}
+
 function ModalFrame({
   dialogRef,
   title,
@@ -677,6 +694,11 @@ export function TokenListModals() {
     onSetShowBatchCopyToCollection,
     handleBatchCopyToCollection,
   } = useTokenListModals();
+  const newGroupParent = newGroupDialogParent ?? '';
+  const newGroupPathPreview = normalizeGroupPathPreview(
+    newGroupParent,
+    newGroupName,
+  );
 
   return (
     <>
@@ -737,7 +759,7 @@ export function TokenListModals() {
               </button>
               <button
                 type="button"
-                onClick={() => handleCreateGroup(newGroupDialogParent ?? '', newGroupName)}
+                onClick={() => handleCreateGroup(newGroupParent, newGroupName)}
                 disabled={!newGroupName.trim() || !!newGroupError}
                 className="w-full rounded bg-[var(--color-figma-action-bg)] px-3 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
               >
@@ -748,22 +770,29 @@ export function TokenListModals() {
         >
             <input
               type="text"
-              placeholder={newGroupDialogParent ? 'subgroup-name' : 'group-name'}
+              placeholder={newGroupDialogParent ? 'subgroup or nested.path' : 'group or nested.path'}
               value={newGroupName}
               onChange={e => {
                 const v = e.target.value;
                 onSetNewGroupName(v);
-                if (v.includes('.')) onSetNewGroupError('Group name cannot contain dots — dots separate path segments');
-                else onSetNewGroupError('');
+                onSetNewGroupError(getGroupPathInputError(v));
               }}
               onKeyDown={e => {
-                if (e.key === 'Enter') handleCreateGroup(newGroupDialogParent ?? '', newGroupName);
+                if (e.key === 'Enter') handleCreateGroup(newGroupParent, newGroupName);
                 if (e.key === 'Escape') { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); }
               }}
               className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[color:var(--color-figma-text)] text-body ${fieldBorderClass(!!newGroupError)}`}
               aria-label="New group name"
               autoFocus
             />
+            {newGroupName.trim() && !newGroupError ? (
+              <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                Creates{' '}
+                <span className={LONG_TEXT_CLASSES.monoPrimary}>
+                  {newGroupPathPreview}
+                </span>
+              </p>
+            ) : null}
             <FieldMessage error={newGroupError} />
         </ModalFrame>
       )}

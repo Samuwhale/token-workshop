@@ -4,6 +4,24 @@ import { apiFetch, ApiError } from '../shared/apiFetch';
 import { nodeParentPath } from '../components/tokenListUtils';
 import type { RenameGroupConfirmState } from '../shared/tokenListModalTypes';
 
+function normalizeGroupPath(parent: string, name: string): string {
+  return (parent ? `${parent}.${name.trim()}` : name.trim())
+    .split('.')
+    .map((segment) => segment.trim())
+    .join('.');
+}
+
+function getGroupPathValidationError(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return 'Enter a group path';
+  }
+  if (trimmed.split('.').some((segment) => segment.trim().length === 0)) {
+    return 'Remove empty path segments';
+  }
+  return null;
+}
+
 export interface UseGroupOperationsParams {
   connected: boolean;
   serverUrl: string;
@@ -213,7 +231,12 @@ export function useGroupOperations({
 
   const handleCreateGroup = useCallback(async (parent: string, name: string) => {
     if (!connected || !name.trim()) return;
-    const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
+    const validationError = getGroupPathValidationError(name);
+    if (validationError) {
+      setNewGroupError(validationError);
+      return;
+    }
+    const groupPath = normalizeGroupPath(parent, name);
     onSetOperationLoading('Creating group…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/groups/create`, {

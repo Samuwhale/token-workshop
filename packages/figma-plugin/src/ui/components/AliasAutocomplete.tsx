@@ -15,6 +15,7 @@ interface AliasAutocompleteProps {
   query: string; // text typed after '{'
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  preferredCollectionId?: string;
   filterType?: string;
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
   onClose: () => void;
@@ -46,6 +47,7 @@ export function AliasAutocomplete({
   query,
   allTokensFlat,
   pathToCollectionId = {},
+  preferredCollectionId,
   filterType,
   onSelect,
   onClose,
@@ -76,9 +78,12 @@ export function AliasAutocomplete({
     const q = query.trim();
     if (!q) {
       const recentEntries: ScopedTokenCandidate[] = [];
-      for (const candidate of getRecentScopedTokenCandidates(candidates)) {
+      for (const candidate of getRecentScopedTokenCandidates(candidates, {
+        collectionId: preferredCollectionId,
+      })) {
         if (
-          candidate.isAmbiguousPath ||
+          (candidate.isAmbiguousPath &&
+            candidate.collectionId !== preferredCollectionId) ||
           (filterType && candidate.entry.$type !== filterType)
         ) {
           continue;
@@ -90,10 +95,16 @@ export function AliasAutocomplete({
       const all = candidates
         .filter(
           (candidate) =>
-            !candidate.isAmbiguousPath &&
+            (!candidate.isAmbiguousPath ||
+              candidate.collectionId === preferredCollectionId) &&
             (!filterType || candidate.entry.$type === filterType) &&
             !recentSet.has(candidate.key),
-        );
+        )
+        .sort((a, b) => {
+          const aPreferred = a.collectionId === preferredCollectionId ? 1 : 0;
+          const bPreferred = b.collectionId === preferredCollectionId ? 1 : 0;
+          return bPreferred - aPreferred;
+        });
       const remaining = all.slice(0, MAX_RESULTS - recentEntries.length);
       return {
         entries: [...recentEntries, ...remaining],
@@ -112,18 +123,29 @@ export function AliasAutocomplete({
       if (score < 0) {
         continue;
       }
-      if (candidate.isAmbiguousPath) {
+      if (
+        candidate.isAmbiguousPath &&
+        candidate.collectionId !== preferredCollectionId
+      ) {
         ambiguousScored.push([candidate, score]);
       } else {
-        scored.push([candidate, score]);
+        const preferredBoost =
+          candidate.collectionId === preferredCollectionId ? 1000 : 0;
+        scored.push([candidate, score + preferredBoost]);
       }
     }
     scored.sort((a, b) => b[1] - a[1]);
     ambiguousScored.sort((a, b) => b[1] - a[1]);
+    const selectablePaths = new Set(
+      scored.map(([candidate]) => candidate.path),
+    );
     const seenAmbiguousPaths = new Set<string>();
     const ambiguousMatches: ScopedTokenCandidate[] = [];
     for (const [candidate] of ambiguousScored) {
-      if (seenAmbiguousPaths.has(candidate.path)) {
+      if (
+        seenAmbiguousPaths.has(candidate.path) ||
+        selectablePaths.has(candidate.path)
+      ) {
         continue;
       }
       seenAmbiguousPaths.add(candidate.path);
@@ -138,7 +160,7 @@ export function AliasAutocomplete({
       hasRecent: false,
       ambiguousEntries: ambiguousMatches,
     };
-  }, [candidates, query, filterType]);
+  }, [candidates, query, filterType, preferredCollectionId]);
 
   const getAmbiguousCollectionLabel = useCallback(
     (path: string): string => {
@@ -257,6 +279,11 @@ export function AliasAutocomplete({
               {entry.$lifecycle === 'deprecated' && (
                 <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-secondary)]">deprecated</span>
               )}
+              {candidate.isAmbiguousPath ? (
+                <span className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]">
+                  in {candidate.collectionId}
+                </span>
+              ) : null}
             </div>
           </div>
         </button>

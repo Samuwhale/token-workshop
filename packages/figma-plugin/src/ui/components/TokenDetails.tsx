@@ -446,13 +446,27 @@ export function TokenDetails({
       return [];
     }
 
+    const resolution = resolveCollectionIdForPath({
+      path,
+      pathToCollectionId,
+      collectionIdsByPath,
+      preferredCollectionId: ownerCollectionId,
+    });
+    if (resolution.reason !== "ambiguous") {
+      return [];
+    }
     const collectionIds = getCollectionIdsForPath({
       path,
       pathToCollectionId,
       collectionIdsByPath,
     });
     return collectionIds.length > 1 ? collectionIds : [];
-  }, [collectionIdsByPath, extendsPath, pathToCollectionId]);
+  }, [
+    collectionIdsByPath,
+    extendsPath,
+    ownerCollectionId,
+    pathToCollectionId,
+  ]);
   const ambiguousAliasReferences = useMemo(
     () =>
       modeValue.modes.flatMap((mode) => {
@@ -465,6 +479,15 @@ export function TokenDetails({
           return [];
         }
 
+        const resolution = resolveCollectionIdForPath({
+          path,
+          pathToCollectionId,
+          collectionIdsByPath,
+          preferredCollectionId: ownerCollectionId,
+        });
+        if (resolution.reason !== "ambiguous") {
+          return [];
+        }
         const collectionIds = getCollectionIdsForPath({
           path,
           pathToCollectionId,
@@ -476,7 +499,7 @@ export function TokenDetails({
 
         return [{ modeName: mode.name, path, collectionIds }];
       }),
-    [collectionIdsByPath, modeValue.modes, pathToCollectionId],
+    [collectionIdsByPath, modeValue.modes, ownerCollectionId, pathToCollectionId],
   );
   const firstAmbiguousAliasReference = ambiguousAliasReferences[0] ?? null;
   const ambiguousReferenceMessage = firstAmbiguousAliasReference
@@ -1787,6 +1810,7 @@ export function TokenDetails({
                       allTokensFlat={allTokensFlat}
                       pathToCollectionId={pathToCollectionId}
                       collectionIdsByPath={collectionIdsByPath}
+                      preferredCollectionId={ownerCollectionId}
                       showModeLabel={showModeLabel}
                       autoFocus={modeIdx === 0 && !isCreateMode && fieldEditable}
                       inheritedValue={inheritedValue}
