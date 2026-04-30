@@ -1706,7 +1706,7 @@ function PublishAllPreviewModal({
               className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Publishing\u2026' : 'Publish to Figma'}
+              {busy ? 'Applying\u2026' : 'Apply to Figma'}
             </button>
           ) : (
             <button

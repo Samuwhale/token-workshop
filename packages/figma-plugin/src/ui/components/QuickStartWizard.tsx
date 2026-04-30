@@ -21,7 +21,7 @@ interface QuickStartWizardProps {
   onComplete: () => void;
   onCollectionCreated?: (name: string) => void;
   onRetryConnection?: () => void;
-  onAuthorFirstToken?: () => void;
+  onAuthorFirstToken?: (collectionId: string) => void;
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   embedded?: boolean;
   onBack?: () => void;
@@ -111,7 +111,7 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
     <div className="flex flex-col gap-3">
       <div>
         <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Create your first token collection
+          Create your first collection
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           Add modes like Light and Dark now. Every token in this collection will get one value for each mode.
@@ -280,21 +280,25 @@ export function QuickStartWizard({
         <div className="px-4 pb-3 pt-4">
           <p className="text-body font-medium text-[color:var(--color-figma-text)]">
             {effectiveCollectionId
-              ? `"${effectiveCollectionId}" is ready. Create your first token next.`
+              ? `"${effectiveCollectionId}" is ready. Create your first group or token next.`
               : "Create your first token next."}
           </p>
           <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Start by authoring one real token in the collection. You can add generators later.
+            Start with one real token in this collection. Add generators after the authored structure is clear.
           </p>
         </div>
         <div className="px-4 pb-2">
           <button
             type="button"
-            onClick={() => onAuthorFirstToken?.()}
-            disabled={!connected}
+            onClick={() => {
+              if (effectiveCollectionId) {
+                onAuthorFirstToken?.(effectiveCollectionId);
+              }
+            }}
+            disabled={!connected || !effectiveCollectionId}
             className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
           >
-            Create first token
+            Create token
           </button>
         </div>
         <div className="flex items-center justify-between gap-2 px-4 py-3">

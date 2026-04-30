@@ -380,7 +380,7 @@ export function useReadinessChecks({
           severity: 'blocking',
           affectedCount: blockingValidationIssues.length || undefined,
           detail: blockingValidationIssues.length > 0
-            ? `${summarizeValidationIssues(blockingValidationIssues)} would publish invalid Figma variable references. Fix these review findings before compare/apply unlocks.`
+            ? `${summarizeValidationIssues(blockingValidationIssues)} would apply invalid Figma variable references. Fix these review findings before compare/apply unlocks.`
             : undefined,
           recommendedActionLabel: blockingValidationIssues.length > 0 ? 'Open Review' : undefined,
           recommendedActionId: blockingValidationIssues.length > 0 ? 'review-health-findings' : undefined,
@@ -406,7 +406,7 @@ export function useReadinessChecks({
           detail: generatorStatusError
             ? `Generator status could not be checked: ${generatorStatusError}`
             : generatorIssues.length > 0
-            ? `${formatCount(generatorIssues.length, 'generator')} need preview, apply, or diagnostic review before publishing this collection to Figma.`
+            ? `${formatCount(generatorIssues.length, 'generator')} need preview, apply, or diagnostic review before applying this collection to Figma.`
             : undefined,
 	          recommendedActionLabel: generatorStatusError || generatorIssues.length > 0 ? 'Open Generators' : undefined,
 	          recommendedActionId: generatorStatusError || generatorIssues.length > 0 ? 'review-generator-issues' : undefined,
@@ -421,7 +421,7 @@ export function useReadinessChecks({
           severity: 'advisory',
           affectedCount: draftTokens.length || undefined,
           detail: draftTokens.length > 0
-            ? `${formatCount(draftTokens.length, 'draft token')} in this collection still carries lifecycle="draft". Review them in Tokens before publishing to Figma.`
+            ? `${formatCount(draftTokens.length, 'draft token')} in this collection still carries lifecycle="draft". Review them in Tokens before applying to Figma.`
             : undefined,
           recommendedActionLabel: draftTokens.length > 0 ? 'Review draft tokens in Tokens' : undefined,
           recommendedActionId: draftTokens.length > 0 ? 'review-draft-tokens' : undefined,

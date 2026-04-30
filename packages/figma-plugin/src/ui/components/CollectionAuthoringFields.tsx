@@ -11,9 +11,9 @@ export interface CollectionAuthoringDraft {
 }
 
 const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
-  { label: "Default mode", modes: ["Default"] },
-  { label: "Light and Dark", modes: ["Light", "Dark"] },
-  { label: "Mobile and Desktop", modes: ["Mobile", "Desktop"] },
+  { label: "Single mode", modes: ["Default"] },
+  { label: "Light / Dark", modes: ["Light", "Dark"] },
+  { label: "Mobile / Desktop", modes: ["Mobile", "Desktop"] },
 ];
 
 interface CollectionAuthoringFieldsProps {
@@ -99,7 +99,7 @@ export function CollectionAuthoringFields({
           className={COLLECTION_INPUT_CLASS}
         />
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          This is the collection name designers will see in Figma Variables. Use `/` only if your library already groups collection names that way.
+          This is the collection designers will see in Figma Variables. Use `/` only if your library already groups collection names that way.
         </span>
       </label>
 
@@ -180,7 +180,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token gets one value for each mode. Use one mode for a simple collection, or add contexts like Light and Dark.
+          Every token gets one value for each mode in this collection. Use one mode for a simple collection, or add contexts designers switch between in Figma.
         </span>
       </div>
 

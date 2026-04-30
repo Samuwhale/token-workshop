@@ -240,19 +240,19 @@ export function useFigmaSync(
 
       if (allFailures.length > 0) {
         const failedPaths = allFailures.map(f => f.path).join(', ');
-        setPublishError(`Published ${varCount} variable${varCount !== 1 ? 's' : ''}${styleResult ? ` and ${styleCount} style${styleCount !== 1 ? 's' : ''}` : ''}. Failed: ${failedPaths}`);
+        setPublishError(`Applied ${varCount} variable${varCount !== 1 ? 's' : ''}${styleResult ? ` and ${styleCount} style${styleCount !== 1 ? 's' : ''}` : ''}. Failed: ${failedPaths}`);
       } else {
         const parts: string[] = [];
         parts.push(`${varCount} variable${varCount !== 1 ? 's' : ''}`);
         if (styleResult) parts.push(`${styleCount} style${styleCount !== 1 ? 's' : ''}`);
-        dispatchToast(`Published ${parts.join(' · ')} to Figma`, 'success', {
+        dispatchToast(`Applied ${parts.join(' · ')} to Figma`, 'success', {
           destination: { kind: 'workspace', topTab: 'publish', subTab: 'publish-figma' },
         });
       }
     } catch (err) {
       if (abortRef.current.signal.aborted) return;
-      console.error(`Failed to publish ${pending.scope} to Figma:`, err);
-      setPublishError(getErrorMessage(err, `Failed to publish ${pending.scope} to Figma`));
+      console.error(`Failed to apply ${pending.scope} to Figma:`, err);
+      setPublishError(getErrorMessage(err, `Failed to apply ${pending.scope} to Figma`));
     } finally {
       if (!abortRef.current.signal.aborted) {
         setPublishApplying(false);

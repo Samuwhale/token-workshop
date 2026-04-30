@@ -86,6 +86,7 @@ import {
 } from "./shared/aliasMutations";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
+import { getCollectionDisplayName } from "./shared/libraryCollections";
 import { STORAGE_KEYS, lsGetJson } from "./shared/storage";
 import {
   Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
@@ -909,7 +910,10 @@ export function App() {
         signal: createFetchSignal(getDisconnectSignal(), 5000),
       });
       syncCollectionSummariesToState(result.collections);
-      setSuccessToast(`Created collection "${result.id}"`);
+      const modeCount = modes.length;
+      setSuccessToast(
+        `Created "${result.id}" with ${modeCount} mode${modeCount === 1 ? "" : "s"}. Add a group or token next.`,
+      );
       return result.id;
     },
     [serverUrl, getDisconnectSignal, setSuccessToast, syncCollectionSummariesToState],
@@ -2231,15 +2235,15 @@ export function App() {
         <ConfirmModal
           title={
             publishPending.scope === 'group'
-              ? `Publish "${publishPending.groupPath}" to Figma?`
-              : `Publish "${publishPending.collectionId}" to Figma?`
+              ? `Apply "${publishPending.groupPath}" to Figma?`
+              : `Apply "${getCollectionDisplayName(publishPending.collectionId, collectionDescriptions)}" to Figma?`
           }
           description={
             publishPending.scope === 'group'
               ? `This will create or update ${publishPending.tokenCount} variable${publishPending.tokenCount !== 1 ? 's' : ''} in your Figma file from the "${publishPending.groupPath}" group.`
               : `This will create or update ${publishPending.tokenCount} variable${publishPending.tokenCount !== 1 ? 's' : ''} in your Figma file.`
           }
-          confirmLabel="Publish to Figma"
+          confirmLabel="Apply to Figma"
           onConfirm={handlePublish}
           onCancel={() => setPublishPending(null)}
         />
@@ -2247,7 +2251,7 @@ export function App() {
 
       {publishApplying && (
         <ProgressOverlay
-          message="Publishing to Figma…"
+          message="Applying to Figma…"
           current={publishProgress?.current}
           total={publishProgress?.total}
         />
@@ -2337,12 +2341,13 @@ export function App() {
               setTriggerExtractToken((n) => n + 1);
             });
           }}
-          onAuthorFirstToken={() => {
+          onAuthorFirstToken={(collectionId) => {
             runStartHereAction(() => {
               navigateTo("library", "tokens");
+              setCurrentCollectionId(collectionId);
               setTokenDetails({
                 path: "",
-                collectionId: currentCollectionId,
+                collectionId,
                 mode: "edit",
                 isCreate: true,
               });

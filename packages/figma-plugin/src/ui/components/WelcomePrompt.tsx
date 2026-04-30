@@ -47,7 +47,7 @@ interface WelcomePromptProps {
   onClose: () => void;
   onImportExistingSystem: () => void;
   onStartFromSelection: () => void;
-  onAuthorFirstToken?: () => void;
+  onAuthorFirstToken?: (collectionId: string) => void;
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   onGuidedSetupComplete: () => void;
   onCollectionCreated?: (name: string) => void;

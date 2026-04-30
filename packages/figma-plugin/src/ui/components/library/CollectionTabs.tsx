@@ -23,7 +23,7 @@ import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
-import { SearchField } from "../../primitives";
+import { Button, SearchField } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
@@ -182,8 +182,9 @@ export function CollectionTabs({
               type="button"
               onClick={toggleSwitcher}
               aria-haspopup="dialog"
+              aria-controls="collection-switcher-dialog"
               aria-expanded={switcherOpen}
-              className={`tm-collection-toolbar__trigger flex h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 text-left transition-colors ${
+              className={`tm-collection-toolbar__trigger flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
                 switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                   : "bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
@@ -202,13 +203,16 @@ export function CollectionTabs({
               <ChevronDown
                 size={12}
                 strokeWidth={1.5}
-                className="shrink-0 text-[color:var(--color-figma-text-tertiary)]"
+                className={`shrink-0 text-[color:var(--color-figma-text-tertiary)] transition-transform ${
+                  switcherOpen ? "rotate-180" : ""
+                }`}
                 aria-hidden
               />
             </button>
 
             {switcherOpen ? (
               <div
+                id="collection-switcher-dialog"
                 ref={switcherMenuRef}
                 style={switcherStyle ?? { visibility: "hidden" }}
                 className={`${FLOATING_MENU_WIDE_CLASS} flex flex-col p-1`}
@@ -335,8 +339,7 @@ export function CollectionTabs({
 
           <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
             {showManageButton ? (
-              <button
-                type="button"
+              <Button
                 onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
                 aria-label={
                   activeCollectionSettings?.open === true
@@ -349,7 +352,9 @@ export function CollectionTabs({
                     : "Manage collection"
                 }
                 aria-pressed={activeCollectionSettings?.open === true}
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} ${
+                variant="ghost"
+                size="sm"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start ${
                   activeCollectionSettings?.open === true
                     ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                     : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
@@ -359,37 +364,39 @@ export function CollectionTabs({
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
                   Collection details
                 </span>
-              </button>
+              </Button>
             ) : null}
 
             {showCreateButton ? (
-              <button
-                type="button"
+              <Button
                 onClick={onOpenCreateCollection}
                 aria-label="Create collection"
                 title="Create collection"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                variant="ghost"
+                size="sm"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
               >
                 <Plus size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
                   New collection
                 </span>
-              </button>
+              </Button>
             ) : null}
 
             {showImportButton ? (
-              <button
-                type="button"
+              <Button
                 onClick={onOpenImport}
                 aria-label="Import collections"
                 title="Import collections"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                variant="ghost"
+                size="sm"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
               >
                 <Upload size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
                   Import
                 </span>
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>

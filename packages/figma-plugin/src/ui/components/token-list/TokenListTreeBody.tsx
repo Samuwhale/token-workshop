@@ -19,7 +19,7 @@ import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
 import { getGridMinWidth, getGridTemplate } from "../tokenListTypes";
 import { useModeColumnWidths } from "../../hooks/useModeColumnWidths";
-import { TextInput } from "../../primitives";
+import { Button, IconButton, TextInput } from "../../primitives";
 import {
   addCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
@@ -377,8 +377,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         ref={addModeMenuContainerRef}
         className="sticky right-0 z-20 bg-[var(--color-figma-bg-secondary)] flex items-stretch"
       >
-        <button
-          type="button"
+        <IconButton
           onClick={() => {
             if (addModeMenuOpen) {
               closeAddModeMenu();
@@ -388,14 +387,15 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             setAddModeError("");
           }}
           disabled={!connected}
-          className="w-full flex items-center justify-center text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)] transition-colors disabled:opacity-30"
+          size="sm"
+          className="h-full w-full rounded-none text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-secondary)]"
           title="Add mode"
           aria-label="Add mode"
           aria-haspopup="menu"
           aria-expanded={addModeMenuOpen}
         >
           <Plus size={12} strokeWidth={2} aria-hidden />
-        </button>
+        </IconButton>
         {addModeMenuOpen && (
           <div
             className="absolute right-0 top-full z-30 mt-0.5 w-44 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg py-1"
@@ -501,16 +501,18 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               if (matchingType && typeFilter !== matchingType) {
                 return (
                   <div className="mt-2 text-center">
-                    <button
+                    <Button
                       onClick={() => {
                         setSearchQuery("");
                         setTypeFilter(matchingType);
                       }}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
+                      variant="secondary"
+                      size="sm"
+                      className="max-w-full"
                     >
                       Filter by type: {matchingType}{" "}
                       <span aria-hidden="true">&rarr;</span>
-                    </button>
+                    </Button>
                   </div>
                 );
               }

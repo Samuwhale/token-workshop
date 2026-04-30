@@ -20,6 +20,7 @@ import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
 import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import {
+  Button,
   Chip,
   IconButton,
   MenuRadioGroup,
@@ -465,15 +466,16 @@ export function TokenListToolbar({
             viewMode === "tree" &&
             viewRadioGroups.length > 0 ? (
               <div className="relative shrink-0">
-                <button
+                <Button
                   ref={sortMenu.triggerRef}
-                  type="button"
                   onClick={sortMenu.toggle}
                   aria-expanded={sortMenu.open}
                   aria-haspopup="menu"
                   aria-label="Sort and group"
                   title="Sort and group"
-                  className={`${TOOLBAR_BUTTON_CLASS} ${
+                  variant="ghost"
+                  size="sm"
+                  className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
                     sortMenu.open || sortActive
                       ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
                       : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
@@ -483,7 +485,7 @@ export function TokenListToolbar({
                   <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
                     {sortStateLabel ?? "Sort"}
                   </span>
-                </button>
+                </Button>
 
                 {sortMenu.open ? (
                   <div
@@ -583,7 +585,7 @@ export function TokenListToolbar({
                       disabled={!connected}
                       className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
-                      Token table
+                      Add multiple tokens
                     </button>
                     {onOpenImportPanel ? (
                       <button
@@ -604,7 +606,7 @@ export function TokenListToolbar({
                         disabled={!connected}
                         className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                       >
-                        Paste token data
+                        Paste tokens
                       </button>
                     ) : null}
                     {onCreateGenerator ? (
@@ -621,7 +623,7 @@ export function TokenListToolbar({
                           disabled={!connected}
                           className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40"
                         >
-                          Generator…
+                          Create generator
                         </button>
                       </>
                     ) : null}
