@@ -108,6 +108,7 @@ interface UseTokenTypeParsingParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   currentTokenPath: string;
   detectAliasCycle: (ref: string, currentPath: string, allTokensFlat: Record<string, TokenMapEntry>) => string[] | null;
+  getModeValuesForDefaultValue?: (value: TokenEditorValue) => TokenEditorModeValues;
 }
 
 export function useTokenTypeParsing({
@@ -125,6 +126,7 @@ export function useTokenTypeParsing({
   allTokensFlat,
   currentTokenPath,
   detectAliasCycle,
+  getModeValuesForDefaultValue,
 }: UseTokenTypeParsingParams) {
   const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
   const [showPendingDependents, setShowPendingDependents] = useState(false);
@@ -195,9 +197,10 @@ export function useTokenTypeParsing({
     const validScopes = new Set(
       (FIGMA_SCOPE_OPTIONS[newType] ?? []).map((option) => option.value),
     );
+    const nextValue = DEFAULT_VALUE_FOR_TYPE[newType] ?? '';
     setTokenType(newType);
-    setValue(DEFAULT_VALUE_FOR_TYPE[newType] ?? '');
-    setModeValues({});
+    setValue(nextValue);
+    setModeValues(getModeValuesForDefaultValue?.(nextValue) ?? {});
     setScopes(
       validScopes.size === 0
         ? []

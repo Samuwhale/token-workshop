@@ -1267,6 +1267,7 @@ export function PanelRouter({
             <NotificationsPanel
               history={controller.notificationHistory}
               onClear={controller.clearNotificationHistory}
+              onClose={closeNotifications}
               onOpenToken={(path, collectionId) =>
                 openTokenInContext({
                   path,

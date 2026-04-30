@@ -102,9 +102,6 @@ export interface TokenListVirtualScrollGroup {
 
 export interface TokenListMultiModeGroup {
   data: MultiModeData | null;
-  dimId: string | null;
-  collections: { id: string; modes: { name: string }[] }[];
-  setDimId: (v: string) => void;
   getValues: (tokenPath: string) => MultiModeValue[];
   serverUrl: string;
   onMutated?: () => void;
@@ -208,9 +205,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   } = props.virtualScroll;
   const {
     data: multiModeData,
-    dimId: multiModeDimId,
-    collections,
-    setDimId: setMultiModeDimId,
     getValues: getMultiModeValues,
     serverUrl,
     onMutated: onModeMutated,
@@ -243,7 +237,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const tableHeaderRef = useRef<HTMLDivElement>(null);
   const [tableHeaderHeight, setTableHeaderHeight] = useState(0);
 
-  const addModeTargetId = multiModeDimId ?? collections[0]?.id ?? null;
+  const addModeTargetId = multiModeData?.collection.id ?? null;
   const modeNames = useMemo(
     () => multiModeData?.results.map((result) => result.optionName) ?? [],
     [multiModeData?.results],
@@ -373,25 +367,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       style={{ display: "grid", gridTemplateColumns: gridTemplate }}
     >
       <div className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
-        {collections.length > 1 ? (
-          <select
-            value={multiModeDimId ?? ""}
-            onChange={(e) => setMultiModeDimId(e.target.value)}
-            aria-label="Choose which collection's modes appear in the token table"
-            title="Choose collection"
-            className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-          >
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.id}>
-                {collection.id}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-            Token
-          </span>
-        )}
+        <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+          Token
+        </span>
       </div>
       {multiModeData.results.map((r, idx) => (
         <ModeColumnHeader

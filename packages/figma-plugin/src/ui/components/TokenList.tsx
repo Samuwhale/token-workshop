@@ -214,7 +214,6 @@ export function TokenList({
   );
   const viewState = useTokenListViewState({
     collectionId,
-    collections: activeCollections,
   });
   const {
     showRecentlyTouched,
@@ -232,8 +231,6 @@ export function TokenList({
     showResolvedValues,
     setShowResolvedValues,
     rowHeight,
-    multiModeDimId,
-    setMultiModeDimId,
   } = viewState;
 
   useEffect(() => {
@@ -379,19 +376,18 @@ export function TokenList({
     return paths.size > 0 ? paths : undefined;
   }, [collectionId, perCollectionFlat, tokenUsageCounts, tokenUsageReady]);
 
-  // Compute per-mode resolved token maps for the selected dimension. Always
+  // Compute per-mode resolved token maps for the active collection. Always
   // produces at least one column — single-mode collections get one result,
   // multi-mode collections get N. Returns null only when no collection is
   // selected yet (e.g. during initial load).
   const multiModeData = useMemo(() => {
     if (
-      !multiModeDimId ||
       Object.keys(currentCollectionFlat).length === 0 ||
       activeCollections.length === 0
     )
       return null;
     const collection = activeCollections.find(
-      (candidate) => candidate.id === multiModeDimId,
+      (candidate) => candidate.id === collectionId,
     );
     if (!collection || collection.modes.length === 0) return null;
 
@@ -416,7 +412,7 @@ export function TokenList({
     }
     return { collection, results };
   }, [
-    multiModeDimId,
+    collectionId,
     currentCollectionFlat,
     activeCollections,
   ]);
@@ -2129,9 +2125,6 @@ export function TokenList({
             }}
             multiMode={{
               data: multiModeData,
-              dimId: multiModeDimId,
-              collections: activeCollections,
-              setDimId: setMultiModeDimId,
               getValues: getMultiModeValues,
               serverUrl,
               onMutated: onRefresh,

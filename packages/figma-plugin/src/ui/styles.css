@@ -2950,7 +2950,6 @@ button.tm-token-details__text-button:disabled:hover {
 
 .tm-token-mode-row {
   display: flex;
-  container-type: inline-size;
   flex-direction: column;
   gap: 5px;
   padding: 7px 0;
@@ -3331,7 +3330,8 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__controls {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 3px;
   }
 
   .tm-token-mode-row__body {
@@ -3340,7 +3340,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 }
 
-@container (max-width: 560px) {
+@container authoring-surface (max-width: 480px) {
   .tm-token-mode-row__header {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -3357,18 +3357,16 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__controls {
-    inline-size: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    margin-left: 0;
-    gap: 6px;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    margin-left: auto;
+    gap: 2px;
   }
 
   .tm-token-mode-row__action-button {
-    min-block-size: 28px;
-    flex: 1 1 auto;
-    justify-content: flex-start;
-    padding-inline: 8px;
+    inline-size: 28px;
+    min-inline-size: 28px;
+    padding-inline: 0;
   }
 
   .tm-token-mode-row__overflow-button {
@@ -3377,50 +3375,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__action-label {
-    white-space: normal;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-  }
-}
-
-@container (max-width: 360px) {
-  .tm-token-mode-row__controls {
-    inline-size: 100%;
-    flex-wrap: wrap;
-  }
-
-  .tm-token-mode-row__action-button {
-    flex-basis: 100%;
-  }
-
-  .tm-token-mode-row__overflow-button {
-    flex-basis: auto;
-  }
-}
-
-@container (max-width: 480px) {
-  .tm-collection-toolbar__row {
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-
-  .tm-collection-toolbar__leading,
-  .tm-collection-toolbar__actions {
-    flex-basis: 100%;
-  }
-
-  .tm-collection-toolbar__actions {
-    justify-content: flex-start;
-    gap: 4px;
-  }
-
-  .tm-collection-toolbar__actions > * {
-    flex: 0 0 auto;
-  }
-
-  .tm-collection-toolbar__action .tm-toolbar-action__label,
-  .tm-collection-toolbar__action--primary .tm-toolbar-action__label {
-    display: block;
+    display: none;
   }
 }
 
@@ -3485,10 +3440,9 @@ button.tm-token-details__text-button:disabled:hover {
     justify-content: flex-start;
   }
 
-  .tm-token-toolbar__button-label,
   .tm-token-toolbar__secondary-label,
   .tm-token-toolbar__primary-label {
-    display: inline;
+    display: none;
   }
 }
 

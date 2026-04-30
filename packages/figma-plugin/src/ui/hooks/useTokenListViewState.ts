@@ -3,7 +3,6 @@ import { STORAGE_KEY_BUILDERS, lsGet, lsSet } from "../shared/storage";
 import { VIRTUAL_ITEM_HEIGHT } from "../components/tokenListTypes";
 import type { SortOrder } from "../components/tokenListUtils";
 import type { TokenGroupBy } from "../components/tokenListTypes";
-import type { TokenCollection } from "@tokenmanager/core";
 
 const VALID_SORT_ORDERS: SortOrder[] = ["default", "alpha-asc", "by-type"];
 const VALID_GROUP_BY: TokenGroupBy[] = ["path", "type"];
@@ -16,12 +15,10 @@ function dispatchTokenListViewChanged(collectionId: string): void {
 
 export interface UseTokenListViewStateParams {
   collectionId: string;
-  collections: TokenCollection[];
 }
 
 export function useTokenListViewState({
   collectionId,
-  collections,
 }: UseTokenListViewStateParams) {
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
@@ -103,19 +100,6 @@ export function useTokenListViewState({
 
   const rowHeight = VIRTUAL_ITEM_HEIGHT;
 
-  // Mode columns are always shown — one column per mode. For single-mode
-  // collections this is one column; multi-mode collections get N.
-  const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const activeCollection = collections.find((c) => c.id === collectionId);
-    if (activeCollection) {
-      setMultiModeDimId(collectionId);
-      return;
-    }
-    setMultiModeDimId(collections[0]?.id ?? null);
-  }, [collectionId, collections]);
-
   return {
     showRecentlyTouched,
     setShowRecentlyTouched,
@@ -132,7 +116,5 @@ export function useTokenListViewState({
     showResolvedValues,
     setShowResolvedValues,
     rowHeight,
-    multiModeDimId,
-    setMultiModeDimId,
   };
 }

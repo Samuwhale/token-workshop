@@ -325,7 +325,9 @@ export function PasteTokensModal({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Escape' && !busy) {
+      onClose();
+    }
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
       void handleConfirm();
@@ -333,13 +335,22 @@ export function PasteTokensModal({
   };
 
   return (
-    <div className="tm-modal-shell" onKeyDown={handleKeyDown} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="tm-modal-shell"
+      onKeyDown={handleKeyDown}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !busy) {
+          onClose();
+        }
+      }}
+    >
       <div
         ref={dialogRef}
         className="tm-modal-panel tm-modal-panel--paste"
         role="dialog"
         aria-modal="true"
         aria-label="Paste tokens"
+        aria-busy={busy}
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-[var(--color-figma-border)] flex items-start justify-between gap-2">
@@ -351,7 +362,8 @@ export function PasteTokensModal({
           </div>
           <button
             onClick={onClose}
-            className="mt-0.5 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
+            disabled={busy}
+            className="mt-0.5 text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[color:var(--color-figma-text-secondary)]"
             aria-label="Close"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

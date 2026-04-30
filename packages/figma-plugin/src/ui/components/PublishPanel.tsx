@@ -699,7 +699,7 @@ export function PublishPanel({
     (preflightStage === 'advisory' || preflightStage === 'ready');
   const canProceedToSync = canProceedToCompare && !standardRoutingDirty;
   const compareLockedMessage = !readinessChecks.length
-    ? 'Click Sync with Figma to run readiness checks first.'
+    ? 'Check Figma changes to run readiness checks first.'
     : standardRoutingDirty
       ? 'Save the sync target before comparing or applying changes.'
     : isReadinessOutdated
@@ -1168,9 +1168,39 @@ export function PublishPanel({
           )}
 
           {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
-            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-              Compare tokens with Figma before applying changes.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-body font-medium text-[color:var(--color-figma-text)]">
+                  Check Figma changes
+                </span>
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Compare this collection before TokenManager writes variables or styles.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (standardRoutingDirty) {
+                    focusPublishTarget();
+                    return;
+                  }
+                  if (canProceedToSync) {
+                    void compareAll();
+                    return;
+                  }
+                  void handleSync();
+                }}
+                disabled={readinessLoading || compareAllLoading}
+                title={standardRoutingDirty || readinessChecks.length > 0 ? compareLockedMessage : undefined}
+                className="shrink-0 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+              >
+                {standardRoutingDirty
+                  ? 'Save target'
+                  : canProceedToSync
+                    ? 'Review changes'
+                    : 'Check Figma changes'}
+              </button>
+            </div>
           )}
 
           {/*── Issues section (from preflight) ───────────────────────── */}

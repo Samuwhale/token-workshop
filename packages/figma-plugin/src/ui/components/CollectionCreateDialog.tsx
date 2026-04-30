@@ -53,6 +53,9 @@ function CollectionCreateDialogContent({
   useFocusTrap(dialogRef, { initialFocusRef: nameInputRef });
 
   const handleSubmit = async () => {
+    if (pending) {
+      return;
+    }
     const validationError = validateCollectionAuthoringDraft(draft);
     if (validationError) {
       setError(validationError);
@@ -93,7 +96,7 @@ function CollectionCreateDialogContent({
         ref={dialogRef}
         className="tm-modal-panel tm-modal-panel--dialog"
         onKeyDown={(event) => {
-          if (event.key === "Escape") {
+          if (event.key === "Escape" && !pending) {
             event.preventDefault();
             onClose();
             return;
@@ -107,6 +110,7 @@ function CollectionCreateDialogContent({
         aria-modal="true"
         aria-labelledby="new-collection-dialog-title"
         aria-describedby="new-collection-dialog-description"
+        aria-busy={pending}
       >
         <div className="tm-modal-header border-b border-[var(--color-figma-border)]">
           <h2
@@ -167,6 +171,7 @@ function CollectionCreateDialogContent({
           <Button
             type="button"
             onClick={onClose}
+            disabled={pending}
             variant="secondary"
             className="w-full bg-[var(--color-figma-bg-secondary)]"
           >

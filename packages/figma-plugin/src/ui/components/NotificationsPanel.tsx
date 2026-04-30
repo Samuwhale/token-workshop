@@ -4,6 +4,7 @@ import type { NotificationDestination } from "../shared/toastBus";
 import { dispatchToast } from "../shared/toastBus";
 import { useNavigationContext } from "../contexts/NavigationContext";
 import { useEditorContext } from "../contexts/EditorContext";
+import { Button } from "../primitives/Button";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 
@@ -13,6 +14,7 @@ type InboxSeverity = "blocker" | "attention" | "success";
 interface NotificationsPanelProps {
   history: NotificationEntry[];
   onClear: () => void;
+  onClose: () => void;
   onOpenToken: (path: string, collectionId: string) => void;
 }
 
@@ -138,6 +140,7 @@ function filterMatches(filter: InboxFilter, item: InboxItem): boolean {
 export function NotificationsPanel({
   history,
   onClear,
+  onClose,
   onOpenToken,
 }: NotificationsPanelProps) {
   const [filter, setFilter] = useState<InboxFilter>("all");
@@ -230,17 +233,19 @@ export function NotificationsPanel({
           <h2 className="text-body font-medium text-[color:var(--color-figma-text)]">
             Notifications
           </h2>
-          {history.length > 0 && (
-            <button
-              onClick={onClear}
-              className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Clear inbox
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {history.length > 0 && (
+              <Button onClick={onClear} variant="secondary" size="sm">
+                Clear inbox
+              </Button>
+            )}
+            <Button onClick={onClose} variant="ghost" size="sm">
+              Close
+            </Button>
+          </div>
         </div>
         {inbox.length > 0 && (
-        <div className="mt-2 overflow-x-auto pb-1">
+          <div className="mt-2 overflow-x-auto pb-1">
             <SegmentedControl
               options={INBOX_FILTER_OPTIONS}
               value={filter}

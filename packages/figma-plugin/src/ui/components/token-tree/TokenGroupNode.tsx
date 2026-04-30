@@ -166,17 +166,22 @@ export const TokenGroupNode = memo(
         leafCount === 0
           ? "This group has no tokens yet"
           : `${leafCount} token${leafCount === 1 ? "" : "s"} in this group`,
+      priority: "identity",
     });
     if (node.$type) {
       groupMetadataSegments.push({
         label: `Type: ${node.$type}`,
         title: `Inherited type: ${node.$type}`,
+        priority: "detail",
+        hoverOnly: true,
       });
     }
     if (groupScopeSummary) {
       groupMetadataSegments.push({
         label: groupScopeSummary,
         title: `Can apply to: ${groupPresentation.scopes.join(", ")}`,
+        priority: "detail",
+        hoverOnly: true,
       });
     }
     const groupLifecycle = getLifecycleLabel(groupPresentation.lifecycle);
@@ -184,6 +189,7 @@ export const TokenGroupNode = memo(
       groupMetadataSegments.push({
         label: groupLifecycle,
         tone: groupPresentation.lifecycle === "draft" ? "warning" : "default",
+        priority: "status",
       });
     }
 
@@ -713,11 +719,11 @@ export const TokenGroupNode = memo(
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-              Group metadata
+              Group defaults
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-secondary text-[color:var(--color-figma-text-secondary)] w-16 shrink-0">
-                $type
+              <label className="text-secondary text-[color:var(--color-figma-text-secondary)] w-20 shrink-0">
+                Type
               </label>
               <select
                 value={groupMetaType}
@@ -742,8 +748,8 @@ export const TokenGroupNode = memo(
               </select>
             </div>
             <div className="flex items-center gap-1.5">
-              <label className="text-secondary text-[color:var(--color-figma-text-secondary)] w-16 shrink-0">
-                $description
+              <label className="text-secondary text-[color:var(--color-figma-text-secondary)] w-20 shrink-0">
+                Description
               </label>
               <input
                 type="text"
