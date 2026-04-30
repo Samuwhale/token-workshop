@@ -11,9 +11,9 @@ export interface CollectionAuthoringDraft {
 }
 
 const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
-  { label: "One mode", modes: ["Default"] },
+  { label: "Default mode", modes: ["Default"] },
   { label: "Light and Dark", modes: ["Light", "Dark"] },
-  { label: "Responsive modes", modes: ["Mobile", "Desktop"] },
+  { label: "Mobile and Desktop", modes: ["Mobile", "Desktop"] },
 ];
 
 interface CollectionAuthoringFieldsProps {
@@ -99,7 +99,7 @@ export function CollectionAuthoringFields({
           className={COLLECTION_INPUT_CLASS}
         />
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Use the name designers expect to see in Figma Variables. Use `/` only when your library already groups collections that way.
+          This is the collection name designers will see in Figma Variables. Use `/` only if your library already groups collection names that way.
         </span>
       </label>
 

@@ -99,22 +99,23 @@ export function applyModeSelectionsToTokens(
 
   for (const [path, entry] of Object.entries(allTokensFlat)) {
     const tokenModes = readTokenModes(entry);
-    if (!tokenModes) {
-      collectionResolvedEntries[path] = entry;
-      continue;
-    }
-
-    let nextValue = entry.$value;
     const collectionId = pathToCollectionId?.[path];
     if (!collectionId || !collectionsById.has(collectionId)) {
       collectionResolvedEntries[path] = entry;
       continue;
     }
 
+    let nextValue = entry.$value;
     const optionName = selections[collectionId];
     if (optionName) {
-      const overrideValue = tokenModes[collectionId]?.[optionName];
-      if (overrideValue !== undefined) {
+      const collection = collectionsById.get(collectionId);
+      const optionIndex =
+        collection?.modes.findIndex((mode) => mode.name === optionName) ?? -1;
+      if (optionIndex > 0) {
+        const overrideValue = tokenModes?.[collectionId]?.[optionName];
+        if (overrideValue === undefined) {
+          continue;
+        }
         nextValue = overrideValue as TokenMapEntry["$value"];
       }
     }

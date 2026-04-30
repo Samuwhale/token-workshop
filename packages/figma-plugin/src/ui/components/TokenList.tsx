@@ -2013,6 +2013,7 @@ export function TokenList({
             onCreateGenerator={onCreateGenerator}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
             onShowPasteModal={onShowPasteModal}
+            onOpenImportPanel={onOpenImportPanel}
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}

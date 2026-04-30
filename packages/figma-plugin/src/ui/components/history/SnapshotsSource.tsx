@@ -92,7 +92,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
       setSnapshots(data.snapshots ?? []);
     } catch (err) {
       console.warn('[SnapshotsSource] failed to load snapshots:', err);
-      setListError('Could not load snapshots');
+      setListError('Could not load checkpoints');
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   };
 
   const handleSave = async () => {
-    const label = labelInput.trim() || `Snapshot ${new Date().toLocaleString()}`;
+    const label = labelInput.trim() || `Checkpoint ${new Date().toLocaleString()}`;
     setSaving(true);
     setListError(null);
     try {
@@ -121,11 +121,11 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
       });
       setLabelInput('');
       setShowLabelInput(false);
-      showSuccess('State saved');
+      showSuccess('Checkpoint saved');
       await loadSnapshots();
     } catch (err) {
       console.warn('[SnapshotsSource] failed to save snapshot:', err);
-      setListError('Failed to save snapshot');
+      setListError('Failed to save checkpoint');
     } finally {
       setSaving(false);
     }
@@ -223,7 +223,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
       if (onPushUndo && result.operationId) {
         const opId = result.operationId;
         onPushUndo({
-          description: `Revert to snapshot`,
+          description: `Revert to checkpoint`,
           restore: async () => {
             await apiFetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
             onRefreshTokens?.();
@@ -237,7 +237,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
       setChanges(null);
       setWorkspaceDiffs([]);
     } catch (err) {
-      console.warn('[SnapshotsSource] failed to revert snapshot:', err);
+      console.warn('[SnapshotsSource] failed to revert checkpoint:', err);
       setSingleCompareError('Failed to revert');
     } finally {
       setReverting(false);
@@ -255,8 +255,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
       }
       await loadSnapshots();
     } catch (err) {
-      console.warn('[SnapshotsSource] failed to delete snapshot:', err);
-      setListError('Failed to delete snapshot');
+      console.warn('[SnapshotsSource] failed to delete checkpoint:', err);
+      setListError('Failed to delete checkpoint');
     }
   };
 
@@ -312,7 +312,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
           <div className="flex items-center gap-3 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
             {noChanges ? (
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {filterTokenPath ? 'This token was unchanged between these snapshots.' : 'No differences between these snapshots.'}
+                {filterTokenPath ? 'This token was unchanged between these checkpoints.' : 'No differences between these checkpoints.'}
               </span>
             ) : (
               <>
@@ -338,14 +338,14 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                 <path d="M20 6L9 17l-5-5" />
               </svg>
               <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-                {filterTokenPath ? 'This token was unchanged between these snapshots.' : 'No differences between these snapshots.'}
+                {filterTokenPath ? 'This token was unchanged between these checkpoints.' : 'No differences between these checkpoints.'}
               </p>
             </div>
           )}
           {!pairDiffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
             <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
               <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-                No token differences. {workspaceSummary} are included in this snapshot comparison.
+                No token differences. {workspaceSummary} are included in this checkpoint comparison.
               </p>
             </div>
           )}
@@ -403,7 +403,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
           <div className="flex items-center gap-3 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
             {noChanges ? (
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
+                {filterTokenPath ? 'This token was unchanged at this checkpoint.' : 'No changes since this checkpoint.'}
               </span>
             ) : (
               <>
@@ -429,14 +429,14 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                 <path d="M20 6L9 17l-5-5" />
               </svg>
               <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-                {filterTokenPath ? 'This token was unchanged at this snapshot.' : 'No changes since this snapshot.'}
+                {filterTokenPath ? 'This token was unchanged at this checkpoint.' : 'No changes since this checkpoint.'}
               </p>
             </div>
           )}
           {!diffLoading && !noChanges && displayChanges?.length === 0 && workspaceSummary && (
             <div className="flex flex-col items-center justify-center h-32 gap-2 px-3 text-center">
               <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-                No token differences. {workspaceSummary} are included in this snapshot.
+                No token differences. {workspaceSummary} are included in this checkpoint.
               </p>
             </div>
           )}
@@ -475,7 +475,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {/* Restore confirmation — shown after reviewing the diff */}
         {showRestoreConfirm && (() => {
           const snap = snapshots.find(s => s.id === comparing);
-          const label = snap?.label ?? initialComparingLabel ?? 'this snapshot';
+          const label = snap?.label ?? initialComparingLabel ?? 'this checkpoint';
           const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
           const total = summary.added + summary.modified + summary.removed;
           const summaryText = total > 0
@@ -539,7 +539,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                     ? 'border-[var(--color-figma-accent)] bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)]'
                     : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                 }`}
-                title={pairCompareMode ? 'Exit compare mode' : 'Compare two snapshots'}
+                title={pairCompareMode ? 'Exit compare mode' : 'Compare two checkpoints'}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M18 20V10M12 20V4M6 20v-6" />
@@ -552,7 +552,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
           <div className="flex flex-col gap-2">
             <input
               className="w-full px-2 py-1.5 text-body rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-              placeholder="Snapshot label"
+              placeholder="Checkpoint label"
               value={labelInput}
               onChange={e => setLabelInput(e.target.value)}
               onFocus={e => e.target.select()}
@@ -593,7 +593,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
           </svg>
           {!pairA ? (
             <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              Click <span className="font-semibold text-[color:var(--color-figma-text-accent)]">Set A</span> on a snapshot to start comparing
+              Click <span className="font-semibold text-[color:var(--color-figma-text-accent)]">Set A</span> on a checkpoint to start comparing
             </span>
           ) : !pairB ? (
             <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
@@ -617,7 +617,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         </div>
       )}
 
-      {/* Snapshots list */}
+      {/* Checkpoints list */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {loading && (
           <div className="flex items-center justify-center h-24">
@@ -674,7 +674,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                             setPairA(isA ? null : s);
                             if (pairB?.id === s.id) setPairB(null);
                           }}
-                          title={isA ? 'Deselect as A' : 'Set as snapshot A (before)'}
+                          title={isA ? 'Deselect as A' : 'Set as checkpoint A (before)'}
                           disabled={isB}
                         >
                           A
@@ -692,7 +692,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                             setPairB(isB ? null : s);
                             if (pairA?.id === s.id) setPairA(null);
                           }}
-                          title={isB ? 'Deselect as B' : 'Set as snapshot B (after)'}
+                          title={isB ? 'Deselect as B' : 'Set as checkpoint B (after)'}
                           disabled={isA}
                         >
                           B
@@ -710,8 +710,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                         <button
                           className="px-1.5 py-1 rounded text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                           onClick={() => setDeleteConfirm(s.id)}
-                          title="Delete snapshot"
-                          aria-label="Delete snapshot"
+                          title="Delete checkpoint"
+                          aria-label="Delete checkpoint"
                         >
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M18 6L6 18M6 6l12 12" />
@@ -731,8 +731,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         const snapshot = snapshots.find(s => s.id === deleteConfirm);
         return (
           <ConfirmModal
-            title="Delete snapshot?"
-            description={snapshot ? `"${snapshot.label}" will be permanently deleted and cannot be recovered.` : 'This snapshot will be permanently deleted and cannot be recovered.'}
+            title="Delete checkpoint?"
+            description={snapshot ? `"${snapshot.label}" will be permanently deleted and cannot be recovered.` : 'This checkpoint will be permanently deleted and cannot be recovered.'}
             confirmLabel="Delete"
             danger
             onConfirm={async () => {

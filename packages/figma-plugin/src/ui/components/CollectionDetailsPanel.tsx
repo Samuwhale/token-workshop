@@ -19,6 +19,7 @@ import {
   CollectionSplitDialog,
   useCollectionStructuralPreflight,
 } from "./CollectionStructureDialogs";
+import { Collapsible } from "./Collapsible";
 
 interface CollectionDetailsPanelProps {
   collection: TokenCollection | null;
@@ -386,7 +387,7 @@ function ModesSection({
       <SectionHeader>Modes</SectionHeader>
       <div className="px-3">
         <p className="px-1 pb-2 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token in this collection uses these modes. Rename, reorder, or add modes here.
+          Every token in this collection uses these modes. New modes start with empty values on existing tokens so designers can review each context deliberately.
         </p>
         {collection.modes.map((mode, index) => (
           <ModeRow
@@ -433,6 +434,11 @@ function ModesSection({
               />
               {addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{addError}</p>
+              ) : null}
+              {!addError ? (
+                <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                  Existing tokens will show empty cells for this mode until values are added.
+                </p>
               ) : null}
             </div>
           ) : (
@@ -512,13 +518,31 @@ export function CollectionDetailsPanel({
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState("");
   const [metadataSaving, setMetadataSaving] = useState(false);
+  const [advancedStructureOpen, setAdvancedStructureOpen] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setRenaming(false);
     setRenameError("");
     setMetadataSaving(false);
+    setAdvancedStructureOpen(false);
   }, [collection?.id]);
+
+  useEffect(() => {
+    if (!collection) return;
+    if (
+      deletingCollectionId === collection.id ||
+      mergingCollectionId === collection.id ||
+      splittingCollectionId === collection.id
+    ) {
+      setAdvancedStructureOpen(true);
+    }
+  }, [
+    collection,
+    deletingCollectionId,
+    mergingCollectionId,
+    splittingCollectionId,
+  ]);
 
   useLayoutEffect(() => {
     if (renaming) {
@@ -805,26 +829,30 @@ export function CollectionDetailsPanel({
               tokenCount={collectionTokenCounts[collection.id] ?? 0}
             />
 
-            <SectionHeader>Collection actions</SectionHeader>
-            <div className="px-3 pb-2">
-              <ActionRow onClick={() => onDuplicate?.(collection.id)}>
-                Duplicate collection
-              </ActionRow>
-              <ActionRow
-                onClick={() => onMerge?.(collection.id)}
-                disabled={!canMerge}
+            <div className="px-4 pb-4 pt-4">
+              <Collapsible
+                open={advancedStructureOpen}
+                onToggle={() => setAdvancedStructureOpen((open) => !open)}
+                label="Advanced structure"
               >
-                Merge into another collection…
-              </ActionRow>
-              <ActionRow onClick={() => onSplit?.(collection.id)}>
-                Split by top-level groups…
-              </ActionRow>
-            </div>
-
-            <div className="px-3 pb-4 pt-1">
-              <ActionRow onClick={() => onDelete?.(collection.id)} tone="danger">
-                Delete collection
-              </ActionRow>
+                <div className="mt-2">
+                  <ActionRow onClick={() => onDuplicate?.(collection.id)}>
+                    Duplicate collection
+                  </ActionRow>
+                  <ActionRow
+                    onClick={() => onMerge?.(collection.id)}
+                    disabled={!canMerge}
+                  >
+                    Merge into another collection
+                  </ActionRow>
+                  <ActionRow onClick={() => onSplit?.(collection.id)}>
+                    Split by top-level groups
+                  </ActionRow>
+                  <ActionRow onClick={() => onDelete?.(collection.id)} tone="danger">
+                    Delete collection
+                  </ActionRow>
+                </div>
+              </Collapsible>
             </div>
           </div>
         </div>

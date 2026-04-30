@@ -19,6 +19,7 @@ import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
 import { ModeColumnHeader } from "./ModeColumnHeader";
 import { getGridMinWidth, getGridTemplate } from "../tokenListTypes";
 import { useModeColumnWidths } from "../../hooks/useModeColumnWidths";
+import { TextInput } from "../../primitives";
 import {
   addCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
@@ -342,6 +343,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           <select
             value={multiModeDimId ?? ""}
             onChange={(e) => setMultiModeDimId(e.target.value)}
+            aria-label="Choose which collection's modes appear in the token table"
+            title="Choose collection"
             className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
           >
             {collections.map((collection) => (
@@ -399,8 +402,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="px-2 py-1">
-              <input
-                type="text"
+              <TextInput
+                size="sm"
                 value={newModeName}
                 onChange={(e) => {
                   setNewModeName(e.target.value);
@@ -418,12 +421,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 autoFocus
                 disabled={addingModeSaving}
                 placeholder="Mode name"
-                aria-invalid={addModeError ? true : undefined}
-                className={`w-full rounded border bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-body text-[color:var(--color-figma-text)] outline-none ${
-                  addModeError
-                    ? "border-[var(--color-figma-error)]"
-                    : "border-[var(--color-figma-accent)]"
-                }`}
+                aria-label="New mode name"
+                invalid={Boolean(addModeError)}
+                className={addModeError ? "" : "focus-visible:border-[var(--color-figma-accent)]"}
               />
               {addModeError ? (
                 <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
@@ -431,7 +431,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 </p>
               ) : (
                 <p className="mt-1 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  Name the context this collection needs, such as Desktop, Marketing, or Dark.
+                  Existing tokens will show empty cells for this mode until values are added.
                 </p>
               )}
             </div>

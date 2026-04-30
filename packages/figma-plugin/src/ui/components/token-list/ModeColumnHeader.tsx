@@ -10,6 +10,7 @@ import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import { getErrorMessage } from "../../shared/utils";
 import { ConfirmModal } from "../ConfirmModal";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
+import { TextInput } from "../../primitives";
 
 interface ModeColumnHeaderProps {
   modeName: string;
@@ -219,14 +220,15 @@ export function ModeColumnHeader({
         className="absolute top-0 right-0 bottom-0 z-10 w-[8px] translate-x-1/2 cursor-col-resize bg-transparent hover:bg-[var(--color-figma-accent)]/60 focus-visible:bg-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)] transition-colors"
       />
       {renaming ? (
-        <input
+        <TextInput
           ref={inputRef}
-          type="text"
+          size="sm"
           value={renameValue}
           onChange={(e) => {
             setRenameValue(e.target.value);
             setRenameError("");
           }}
+          aria-label={`Rename mode ${modeName}`}
           aria-invalid={renameError ? true : undefined}
           onKeyDown={(e) => {
             if (e.key === "Enter") void handleRename();
@@ -238,11 +240,8 @@ export function ModeColumnHeader({
           }}
           onBlur={() => void handleRename()}
           disabled={busy}
-          className={`block w-full px-1.5 py-1 text-body font-medium bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] border rounded-sm outline-none ${
-            renameError
-              ? "border-[var(--color-figma-error)]"
-              : "border-[var(--color-figma-accent)]"
-          }`}
+          invalid={Boolean(renameError)}
+          className={renameError ? "rounded-sm font-medium" : "rounded-sm border-[var(--color-figma-accent)] px-1.5 py-1 font-medium"}
         />
       ) : (
         <button

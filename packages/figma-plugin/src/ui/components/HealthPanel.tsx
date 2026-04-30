@@ -198,9 +198,7 @@ export function HealthPanel({
       s.rule !== "no-duplicate-values" &&
       s.rule !== "alias-opportunity",
   );
-  const generatorIssues: ValidationIssue[] = generatorStatuses
-    .filter((item) => item.generator.targetCollectionId === scopedCollectionKey)
-    .flatMap((item) => {
+  const allGeneratorIssues: ValidationIssue[] = generatorStatuses.flatMap((item) => {
       const diagnostics = item.preview.diagnostics.map<ValidationIssue>((diagnostic) => ({
         rule: "generator-diagnostic",
         path: item.generator.name,
@@ -238,6 +236,12 @@ export function HealthPanel({
       }
       return diagnostics;
     });
+  const generatorIssues: ValidationIssue[] =
+    scope.mode === "current"
+      ? allGeneratorIssues.filter(
+          (issue) => issue.collectionId === scopedCollectionKey,
+        )
+      : allGeneratorIssues;
 
   const deprecatedUsageEntriesForCurrent = deprecatedUsageEntries.filter(
     (e) => e.collectionId === scopedCollectionKey,
@@ -418,15 +422,47 @@ export function HealthPanel({
           .map((collectionId) => {
             const summary = collectionReviewSummaries.get(collectionId);
 
+            const generatorIssueSummary = allGeneratorIssues.reduce(
+              (acc, issue) => {
+                if (issue.collectionId !== collectionId) {
+                  return acc;
+                }
+                if (issue.severity === "error") {
+                  acc.errors += 1;
+                  acc.actionable += 1;
+                } else if (issue.severity === "warning") {
+                  acc.warnings += 1;
+                  acc.actionable += 1;
+                } else {
+                  acc.info += 1;
+                }
+                acc.reviewItems += 1;
+                return acc;
+              },
+              { errors: 0, warnings: 0, info: 0, actionable: 0, reviewItems: 0 },
+            );
+            const errors = (summary?.errors ?? 0) + generatorIssueSummary.errors;
+            const warnings =
+              (summary?.warnings ?? 0) + generatorIssueSummary.warnings;
+            const info = (summary?.info ?? 0) + generatorIssueSummary.info;
+            const actionable =
+              (summary?.actionable ?? 0) + generatorIssueSummary.actionable;
+            const reviewItems =
+              (summary?.reviewItems ?? 0) + generatorIssueSummary.reviewItems;
+
             return [
               collectionId,
               {
-                errors: summary?.errors ?? 0,
-                warnings: summary?.warnings ?? 0,
-                info: summary?.info ?? 0,
-                actionable: summary?.actionable ?? 0,
-                reviewItems: summary?.reviewItems ?? 0,
-                severity: summary?.severity ?? "healthy",
+                errors,
+                warnings,
+                info,
+                actionable,
+                reviewItems,
+                severity: statusFromIssueSeverities([
+                  ...Array.from({ length: errors }, () => "error" as const),
+                  ...Array.from({ length: warnings }, () => "warning" as const),
+                  ...Array.from({ length: info }, () => "info" as const),
+                ]),
               },
             ] as const;
           })

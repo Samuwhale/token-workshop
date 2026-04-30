@@ -205,6 +205,7 @@ export function App() {
     startHereState,
     dismissEphemeralOverlays,
     openStartHere,
+    closeStartHere,
     finishStartHere,
   } = useOverlayManager();
   const [collectionPickerFocusRequestKey, setCollectionPickerFocusRequestKey] = useState(0);
@@ -2276,7 +2277,7 @@ export function App() {
       {showQuickApply && !selectionLoading && (
         <QuickApplyPicker
           selectedNodes={selectedNodes}
-          tokenMap={allTokensFlat}
+          tokenMap={perCollectionFlat[currentCollectionId] ?? {}}
           currentCollectionId={currentCollectionId}
           onApply={(tokenPath, tokenType, targetProperty, resolvedValue) => {
             parent.postMessage(
@@ -2321,7 +2322,7 @@ export function App() {
           collectionIds={collectionIds}
           selectedNodeCount={selectedNodes.length}
           initialBranch={startHereState.initialBranch}
-          onClose={finishStartHere}
+          onClose={closeStartHere}
           onRetryConnection={retryConnection}
           onImportExistingSystem={() => {
             runStartHereAction(() => {

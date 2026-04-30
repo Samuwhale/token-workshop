@@ -388,6 +388,10 @@ export function TokenDetails({
       allTokensFlat[tokenPath],
     [allTokensFlat, ownerCollectionId, perCollectionFlat, tokenPath],
   );
+  const ownerCollectionTokens = useMemo(
+    () => perCollectionFlat[ownerCollectionId] ?? {},
+    [ownerCollectionId, perCollectionFlat],
+  );
   const generatorProvenance = useMemo(
     () => readGeneratorProvenance(currentTokenEntry),
     [currentTokenEntry],
@@ -1581,7 +1585,7 @@ export function TokenDetails({
                 {showPathAutocomplete && trimmedEditPath ? (
                   <PathAutocomplete
                     query={editPath}
-                    allTokensFlat={allTokensFlat}
+                    allTokensFlat={ownerCollectionTokens}
                     onSelect={(path) => {
                       setEditPath(path);
                       setDisplayError(null);

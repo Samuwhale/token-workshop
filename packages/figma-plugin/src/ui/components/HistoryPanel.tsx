@@ -83,7 +83,7 @@ export function HistoryPanel({
   );
 
   const handleSaveSnapshot = useCallback(async () => {
-    const label = saveLabel.trim() || `Snapshot ${new Date().toLocaleString()}`;
+    const label = saveLabel.trim() || `Checkpoint ${new Date().toLocaleString()}`;
     const destination = {
       kind: "workspace" as const,
       topTab: "library" as const,

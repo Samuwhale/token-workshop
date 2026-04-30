@@ -56,7 +56,7 @@ export interface FileImportValidation {
 const FILE_IMPORT_PARSER_LIMITS: Record<FileImportSource, string[]> = {
   json: [
     'The root must be a JSON object with nested token groups or a top-level "tokens" object.',
-    'Only DTCG token objects with $value fields are imported.',
+    'Only token objects with importable values are imported.',
     'Tokens Studio exports are auto-detected and routed to the migration parser when possible.',
   ],
   css: [
@@ -86,7 +86,7 @@ function getSupportedFormatsForSource(source: FileImportSource | null): string[]
 function getParserLimitsForSource(source: FileImportSource | null): string[] {
   if (!source) {
     return [
-      'JSON imports expect DTCG or Tokens Studio exports.',
+      'JSON imports expect design-token exports from Figma, Tokens Studio, or a compatible tool.',
       'CSS and Tailwind imports accept static values only.',
     ];
   }
@@ -426,8 +426,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
             source: 'json',
             status: 'error',
             summary: `Could not import ${file.name}`,
-            detail: `${detail} DTCG token files must contain nested groups or tokens with $type and $value fields.`,
-            nextAction: 'Export a DTCG token object or a Tokens Studio JSON file, then retry.',
+            detail: `${detail} Token files must contain nested groups or token values.`,
+            nextAction: 'Export design tokens from Figma, Tokens Studio, or a compatible tool, then try again.',
             tokenCount: 0,
             skippedCount: 0,
             issues: [{ message: detail, severity: 'error' }],
@@ -459,7 +459,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
             status: 'error',
             summary: `Could not import ${file.name}`,
             detail: validationError,
-            nextAction: 'Use a DTCG JSON token export or switch to the Tokens Studio importer for migration files.',
+            nextAction: 'Use a compatible design-token JSON export or switch to the Tokens Studio importer for migration files.',
             tokenCount: 0,
             skippedCount: 0,
             issues: [{ message: validationError, severity: 'error' }],
@@ -476,7 +476,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           importTokens.push({ path, $type: token.$type ?? 'unknown', $value: token.$value });
         }
         if (importTokens.length === 0) {
-          const detail = 'No tokens found in file. The file is valid JSON but does not contain any DTCG token objects with $value fields.';
+          const detail = 'No tokens found in file. The file is valid JSON, but it does not contain token values TokenManager can import.';
           setError(null);
           updateFileImportValidation({
             fileName: file.name,
@@ -484,7 +484,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
             status: 'error',
             summary: `Could not import ${file.name}`,
             detail,
-            nextAction: 'Check that the export contains token objects with $type and $value fields, then retry.',
+            nextAction: 'Export design tokens from Figma, Tokens Studio, or a compatible tool, then try again.',
             tokenCount: 0,
             skippedCount: 0,
             issues: [{ message: detail, severity: 'error' }],
@@ -512,7 +512,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           source: 'json',
           status: 'ready',
           summary: `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name}`,
-          detail: 'The file matched the DTCG JSON parser and is ready to import.',
+          detail: 'The file contains design tokens TokenManager can import.',
           nextAction: 'Choose the destination collection, then continue to preview or import.',
           tokenCount: importTokens.length,
           skippedCount: 0,

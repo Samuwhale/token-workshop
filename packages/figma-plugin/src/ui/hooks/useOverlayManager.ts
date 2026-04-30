@@ -41,10 +41,14 @@ export function useOverlayManager() {
     [dismissEphemeralOverlays],
   );
 
-  const finishStartHere = useCallback(() => {
-    lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
+  const closeStartHere = useCallback(() => {
     setStartHereState({ open: false, initialBranch: "root" });
   }, []);
+
+  const finishStartHere = useCallback(() => {
+    lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
+    closeStartHere();
+  }, [closeStartHere]);
 
   const openCollectionCreateDialog = useCallback(() => {
     dismissEphemeralOverlays();
@@ -74,6 +78,7 @@ export function useOverlayManager() {
     initialFirstRun,
     dismissEphemeralOverlays,
     openStartHere,
+    closeStartHere,
     finishStartHere,
   };
 }

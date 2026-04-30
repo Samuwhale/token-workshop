@@ -710,11 +710,17 @@ export function TokenListModals() {
             onSetNewGroupError('');
           }}
           meta={
-            newGroupDialogParent ? (
-              <span>
-                Inside <span className={LONG_TEXT_CLASSES.monoPrimary}>{newGroupDialogParent}</span>
-              </span>
-            ) : undefined
+            <span>
+              In <span className={LONG_TEXT_CLASSES.monoPrimary}>{collectionId}</span>
+              {newGroupDialogParent ? (
+                <>
+                  {" / "}
+                  <span className={LONG_TEXT_CLASSES.monoPrimary}>
+                    {newGroupDialogParent}
+                  </span>
+                </>
+              ) : null}
+            </span>
           }
           footer={
             <>
