@@ -1686,6 +1686,38 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
+@container (max-width: 560px) {
+  .tm-token-toolbar__row {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .tm-token-toolbar .tm-responsive-toolbar__leading {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tm-token-toolbar__scope {
+    flex: 1 1 160px;
+    order: 1;
+  }
+
+  .tm-token-toolbar .tm-responsive-toolbar__search {
+    order: 2;
+    min-inline-size: 0;
+    flex: 1 1 200px;
+  }
+
+  .tm-token-toolbar .tm-responsive-toolbar__actions {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+}
+
 @container (max-width: 360px) {
   .tm-token-toolbar .tm-responsive-toolbar__actions {
     align-items: stretch;
@@ -1869,6 +1901,43 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
   flex: 1 1 auto;
   overflow: hidden;
+}
+
+.tm-value-cell__text--button {
+  display: block;
+  margin-inline: -4px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-value-cell__text--button:hover {
+  background: color-mix(in srgb, var(--workspace-library) 9%, transparent);
+}
+
+.tm-value-cell__text--button:focus-visible {
+  background: var(--surface-accent);
+}
+
+.tm-value-cell__create-button {
+  min-block-size: 22px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: 0 6px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-figma-text-secondary);
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-value-cell__create-button:hover {
+  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
+  color: var(--color-figma-text-accent);
 }
 
 .tm-value-cell__line {
@@ -2321,6 +2390,10 @@ button.tm-status-row:not(:disabled):hover {
   padding-top: 4px;
 }
 
+.tm-token-details__dependent-list {
+  overflow: visible;
+}
+
 .tm-token-details__setup {
   display: flex;
   flex-direction: column;
@@ -2428,12 +2501,13 @@ button.tm-status-row:not(:disabled):hover {
 .tm-token-details__collapsible {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   padding-block: 2px;
 }
 
 .tm-token-details__collapsible-body {
-  padding-block: 2px 4px;
+  padding-inline: 2px;
+  padding-block: 0 4px;
 }
 
 .tm-token-details__empty-copy {
@@ -2466,10 +2540,9 @@ button.tm-status-row:not(:disabled):hover {
 .tm-token-details__reference-list {
   display: flex;
   min-inline-size: 0;
-  max-block-size: 144px;
   flex-direction: column;
   gap: 2px;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .tm-token-details__reference-chain {
@@ -2840,16 +2913,24 @@ select.tm-generator-field {
 }
 
 .tm-token-details__text-button {
-  padding: 0;
+  display: inline-flex;
+  min-block-size: 28px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
   border: 0;
+  border-radius: var(--radius-md);
   background: transparent;
   font-size: var(--font-size-base);
   color: var(--color-figma-text-accent);
   text-align: left;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 
 .tm-token-details__text-button:hover {
-  text-decoration: underline;
+  background: color-mix(in srgb, var(--workspace-library) 9%, transparent);
 }
 
 button.tm-token-details__text-button:disabled,
@@ -2867,6 +2948,7 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-details__text-button--muted:hover {
+  background: var(--surface-hover);
   color: var(--color-figma-text);
 }
 
@@ -2923,7 +3005,7 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row--empty {
-  background: var(--surface-warning);
+  background: transparent;
 }
 
 .tm-token-mode-row + .tm-token-mode-row {
@@ -3002,13 +3084,14 @@ button.tm-token-details__text-button:disabled:hover {
   min-inline-size: 0;
   max-inline-size: 100%;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   min-block-size: 28px;
   padding-inline: 8px;
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
+  outline: none;
   font-size: var(--font-size-sm);
   color: var(--color-figma-text-secondary);
   transition:
@@ -3035,6 +3118,16 @@ button.tm-token-details__text-button:disabled:hover {
   color: var(--color-figma-text);
 }
 
+.tm-token-mode-row__action-button:focus-visible {
+  border-color: color-mix(
+    in srgb,
+    var(--workspace-library) 52%,
+    transparent
+  );
+  background: var(--surface-accent);
+  color: var(--color-figma-text);
+}
+
 .tm-token-mode-row__action-button--active {
   border-color: color-mix(
     in srgb,
@@ -3055,7 +3148,7 @@ button.tm-token-details__text-button:disabled:hover {
 
 .tm-token-mode-row__body {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   min-inline-size: 0;
 }
@@ -3072,7 +3165,7 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-token-mode-row__inline-controls {
   display: flex;
   flex: 0 0 auto;
-  align-self: center;
+  align-self: flex-start;
   min-inline-size: 0;
   flex-wrap: wrap;
   align-items: center;
@@ -3093,7 +3186,7 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row__helper {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: var(--font-size-sm);
   line-height: var(--leading-body);
   color: var(--color-figma-text-error);

@@ -390,6 +390,7 @@ function ModesSection({
     () => collection.modes.map((mode) => mode.name),
     [collection.modes],
   );
+  const sourceModeName = allModeNames[0];
 
   useEffect(() => {
     if (adding) {
@@ -416,6 +417,7 @@ function ModesSection({
         serverUrl,
         collectionId: collection.id,
         name: trimmed,
+        sourceModeName,
       });
       setAdding(false);
       setAddValue("");
@@ -425,14 +427,24 @@ function ModesSection({
     } finally {
       setAddSaving(false);
     }
-  }, [addValue, allModeNames, collection.id, onModeMutated, serverUrl]);
+  }, [
+    addValue,
+    allModeNames,
+    collection.id,
+    onModeMutated,
+    serverUrl,
+    sourceModeName,
+  ]);
 
   return (
     <div>
       <SectionHeader>Modes</SectionHeader>
       <div className="px-3">
         <p className="px-1 pb-2 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token in this collection uses these modes. New modes start with empty values on existing tokens so designers can review each context deliberately.
+          Every token in this collection uses these modes. New modes{" "}
+          {sourceModeName
+            ? `start with values from ${sourceModeName} so designers can adjust only what differs.`
+            : "become value columns for every token in the collection."}
         </p>
         {collection.modes.map((mode, index) => (
           <ModeRow
@@ -482,7 +494,9 @@ function ModesSection({
               ) : null}
               {!addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  Existing tokens will show empty cells for this mode until values are added.
+                  {sourceModeName
+                    ? `Existing tokens will start with their ${sourceModeName} values in this mode.`
+                    : "This mode becomes a value column for every token in this collection."}
                 </p>
               ) : null}
             </div>

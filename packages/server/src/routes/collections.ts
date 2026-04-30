@@ -12,34 +12,45 @@ export const collectionRoutes: FastifyPluginAsync<{ tokenDir: string }> = async 
     }
   });
 
-  fastify.post<{ Params: { id: string }; Body: { name: string } }>(
+  fastify.post<{
+    Params: { id: string };
+    Body: { name: string; sourceModeName?: string };
+  }>(
     "/collections/:id/modes",
     async (request, reply) => {
       const { id } = request.params;
-      const { name } = request.body || {};
+      const { name, sourceModeName } = request.body || {};
       const bodyKeys = Object.keys(request.body ?? {});
-      if (bodyKeys.some((key) => key !== "name")) {
+      if (bodyKeys.some((key) => key !== "name" && key !== "sourceModeName")) {
         return reply.status(400).send({
-          error: "Only the mode name is supported when creating a collection mode",
+          error: "Only the mode name and source mode are supported when creating a collection mode",
         });
       }
       if (!name || typeof name !== "string" || !name.trim()) {
         return reply.status(400).send({ error: "Mode name is required" });
       }
+      if (
+        sourceModeName !== undefined &&
+        (typeof sourceModeName !== "string" || !sourceModeName.trim())
+      ) {
+        return reply.status(400).send({ error: "Source mode name is invalid" });
+      }
 
       const trimmedName = name.trim();
+      const trimmedSourceModeName = sourceModeName?.trim();
       try {
         const mutation = await fastify.collectionService.upsertMode(
           id,
           trimmedName,
+          trimmedSourceModeName,
         );
         await fastify.operationLog.record({
           type: "collection-mode-upsert",
           description: `${mutation.result.status === 200 ? "Update" : "Add"} mode "${trimmedName}" in collection "${id}"`,
           resourceId: "$collections",
-          affectedPaths: [],
-          beforeSnapshot: {},
-          afterSnapshot: {},
+          affectedPaths: mutation.affectedPaths,
+          beforeSnapshot: mutation.beforeSnapshot,
+          afterSnapshot: mutation.afterSnapshot,
           rollbackSteps: [
             {
               action: "restore-collection-state",

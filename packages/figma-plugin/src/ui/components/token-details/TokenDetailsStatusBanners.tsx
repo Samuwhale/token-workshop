@@ -110,7 +110,7 @@ export function TokenDetailsStatusBanners({
                   {dependents.length !== 1 ? "s" : ""} may break
                 </button>
                 {showPendingDependents ? (
-                  <div className="max-h-36 overflow-y-auto">
+                  <div className="tm-token-details__dependent-list">
                     <Stack gap={1} className="p-1.5">
                       {dependents.slice(0, 20).map((dep) => {
                         const tag =

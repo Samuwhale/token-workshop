@@ -242,6 +242,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     () => multiModeData?.results.map((result) => result.optionName) ?? [],
     [multiModeData?.results],
   );
+  const sourceModeName = modeNames[0];
 
   const handleAddMode = useCallback(async () => {
     const name = newModeName.trim();
@@ -257,6 +258,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         serverUrl,
         collectionId: addModeTargetId,
         name,
+        sourceModeName,
       });
       setNewModeName("");
       setAddModeError("");
@@ -267,7 +269,14 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     } finally {
       setAddingModeSaving(false);
     }
-  }, [addModeTargetId, modeNames, newModeName, onModeMutated, serverUrl]);
+  }, [
+    addModeTargetId,
+    modeNames,
+    newModeName,
+    onModeMutated,
+    serverUrl,
+    sourceModeName,
+  ]);
 
   const widthsCollectionId = multiModeData?.collection.id ?? null;
   const tableContentRef = useRef<HTMLDivElement>(null);
@@ -452,7 +461,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 </p>
               ) : (
                 <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  Existing tokens get an empty cell in this mode until values are added.
+                  {sourceModeName
+                    ? `Existing tokens will start with their ${sourceModeName} values in this mode.`
+                    : "This mode becomes a value column for every token in this collection."}
                 </p>
               )}
               <div className="flex items-center justify-end gap-2">
@@ -881,7 +892,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             )}
           </div>
         ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
-          <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] text-secondary text-[color:var(--color-figma-text-secondary)] group/breadcrumb">
+          <div
+            className="sticky z-10 flex items-center gap-0.5 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] group/breadcrumb"
+            style={{ top: tableHeaderHeight }}
+          >
             <svg
               width="10"
               height="10"

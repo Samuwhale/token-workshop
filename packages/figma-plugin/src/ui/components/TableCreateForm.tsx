@@ -181,7 +181,7 @@ export function TableCreateForm({
         <div>
           {multiMode ? (
             <p className="mb-1.5 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              Fill every mode so new tokens match this collection's Figma Variables structure.
+              Enter the first mode once. Other modes use that value until you type a different one.
             </p>
           ) : null}
           {/* Column headers */}
@@ -241,15 +241,31 @@ export function TableCreateForm({
                 />
                 {modeNames.map((modeName, modeIndex) => {
                   const isPrimaryMode = modeIndex === 0;
+                  const hasModeValue = Object.prototype.hasOwnProperty.call(
+                    row.modeValues,
+                    modeName,
+                  );
                   const modeValue =
-                    row.modeValues[modeName] ??
+                    (hasModeValue ? row.modeValues[modeName] : undefined) ??
                     (isPrimaryMode ? row.value : "");
+                  const seededModeValue =
+                    !isPrimaryMode &&
+                    !hasModeValue &&
+                    row.value.trim()
+                      ? row.value
+                      : modeValue;
                   return (
                     <input
                       key={modeName}
                       type="text"
-                      placeholder={multiMode ? modeName : "value"}
-                      value={modeValue}
+                      placeholder={
+                        multiMode && !isPrimaryMode
+                          ? `Same as ${modeNames[0]}`
+                          : multiMode
+                            ? modeName
+                            : "value"
+                      }
+                      value={seededModeValue}
                       onChange={(e) => {
                         const val = e.target.value;
                         onUpdateModeValue(row.id, modeName, val);

@@ -24,38 +24,28 @@ export function TokenEditorLintBanner({
         : "text-[color:var(--color-figma-text-secondary)]";
 
   const Icon = lintTone === "info" ? Info : AlertTriangle;
+  const issueLabel =
+    lintViolations.length === 1 ? "1 issue" : `${lintViolations.length} issues`;
+  const summary =
+    lintTone === "error"
+      ? "Review issues below before saving."
+      : lintTone === "warning"
+        ? "This token needs attention."
+        : "Review suggestions are available.";
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div
+      className="tm-token-details__banner"
+      role="status"
+      aria-label={issueLabel}
+    >
       <div className={`flex items-center gap-1.5 ${toneClass}`}>
         <Icon size={11} strokeWidth={2} aria-hidden />
-        <span className="text-secondary font-medium">
-          {lintViolations.length === 1
-            ? "1 issue"
-            : `${lintViolations.length} issues`}
-        </span>
+        <span className="text-secondary font-medium">{issueLabel}</span>
       </div>
-      {lintViolations.map((violation, index) => (
-        <div
-          key={`${violation.path}-${violation.message}-${index}`}
-          className={`rounded px-2 py-1.5 ring-1 ${
-            violation.severity === "error"
-              ? "ring-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5"
-              : violation.severity === "warning"
-                ? "ring-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5"
-                : "ring-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/40"
-          }`}
-        >
-          <div className="text-secondary text-[color:var(--color-figma-text)]">
-            {violation.message}
-          </div>
-          {violation.suggestion && (
-            <div className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {violation.suggestion}
-            </div>
-          )}
-        </div>
-      ))}
+      <div className="tm-token-details__banner-description">
+        {summary}
+      </div>
     </div>
   );
 }

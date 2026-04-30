@@ -252,15 +252,22 @@ export function useTableCreate({
       const pathError = validateTokenPath(path);
       if (pathError) { errors[row.id] = pathError; continue; }
       if (seenPaths.has(path)) { errors[row.id] = `Duplicate name "${n}"`; continue; }
-      if (
-        multiMode &&
-        modeNames.some((modeName) => {
-          const rawValue = row.modeValues[modeName] ?? (modeName === modeNames[0] ? row.value : '');
+      if (multiMode) {
+        const primaryValue = row.modeValues[modeNames[0]] ?? row.value;
+        const missingModeName = modeNames.find((modeName) => {
+          const hasModeValue = Object.prototype.hasOwnProperty.call(
+            row.modeValues,
+            modeName,
+          );
+          const rawValue =
+            (hasModeValue ? row.modeValues[modeName] : undefined) ??
+            (modeName === modeNames[0] ? row.value : primaryValue);
           return !rawValue.trim();
-        })
-      ) {
-        errors[row.id] = 'Add a value for every mode';
-        continue;
+        });
+        if (missingModeName) {
+          errors[row.id] = `Add a value for ${missingModeName}`;
+          continue;
+        }
       }
       seenPaths.add(path);
     }
@@ -296,7 +303,13 @@ export function useTableCreate({
 
       const secondaryModeValues: Record<string, unknown> = {};
       for (const modeName of modeNames.slice(1)) {
-        const rawModeValue = row.modeValues[modeName] ?? '';
+        const hasModeValue = Object.prototype.hasOwnProperty.call(
+          row.modeValues,
+          modeName,
+        );
+        const rawModeValue =
+          (hasModeValue ? row.modeValues[modeName] : undefined) ??
+          primaryRawValue;
         const parsedModeValue = rawModeValue.trim()
           ? parseInlineValue(row.type, rawModeValue.trim())
           : getDefaultValue(row.type);

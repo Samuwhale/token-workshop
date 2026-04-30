@@ -29,15 +29,17 @@ export function Collapsible({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] flex items-center gap-1 transition-colors"
+        className="flex min-h-8 w-full items-center justify-between gap-3 rounded-[var(--radius-md)] px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] aria-expanded:bg-[var(--surface-accent)] aria-expanded:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
       >
-        <ChevronRight
-          size={10}
-          strokeWidth={2}
-          className={`shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
-          aria-hidden
-        />
-        {label}
+        <span className="flex min-w-0 items-center gap-1.5">
+          <ChevronRight
+            size={10}
+            strokeWidth={2}
+            className={`shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
+            aria-hidden
+          />
+          <span className="min-w-0">{label}</span>
+        </span>
       </button>
       {open && children}
     </div>

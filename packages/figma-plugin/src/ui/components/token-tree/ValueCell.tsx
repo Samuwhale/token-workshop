@@ -183,7 +183,7 @@ export function ValueCell({
     return (
       <button
         type="button"
-        className={`tm-value-cell__text rounded-sm border-0 bg-transparent p-0 text-left outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${interactiveTextClass}`}
+        className={`tm-value-cell__text tm-value-cell__text--button border-0 bg-transparent p-0 text-left outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${interactiveTextClass}`}
         onClick={(event) => {
           event.stopPropagation();
           activateValue();
@@ -209,7 +209,7 @@ export function ValueCell({
         canCreate ? (
           <button
             type="button"
-            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-accent)]/10 hover:text-[color:var(--color-figma-text-accent)]"
+            className="tm-value-cell__create-button"
             onClick={(e) => {
               e.stopPropagation();
               openQuickEdit();
@@ -221,7 +221,7 @@ export function ValueCell({
         ) : onEdit ? (
           <button
             type="button"
-            className="rounded px-1.5 py-0.5 text-[11px] font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-accent)]/10 hover:text-[color:var(--color-figma-text-accent)]"
+            className="tm-value-cell__create-button"
             onClick={(e) => {
               e.stopPropagation();
               onEdit();

@@ -2178,25 +2178,56 @@ export class CollectionService {
     return new Map([[collectionBefore.id, patches]]);
   }
 
-  private async mutateCollectionState<T>(
-    mutate: (
-      state: CollectionState,
-    ) => Promise<{ result: T; state: CollectionState }>,
-  ): Promise<CollectionStateMutationResult<T>> {
-    let previousState: CollectionState | null = null;
-    const result = await this.collectionStore.withStateLock(async (state) => {
-      previousState = structuredClone(state);
-      const next = await mutate(structuredClone(state));
-      return {
-        state: structuredClone(next.state),
-        result: next.result,
-      };
-    });
+  private async collectNewModeSeedPatches(
+    collection: TokenCollection,
+    modeName: string,
+    sourceModeName: string,
+  ): Promise<TokenPatchesByCollection | undefined> {
+    const flatTokens = await this.tokenStore.getFlatTokensForCollection(
+      collection.id,
+    );
+    const patches: TokenPatch[] = [];
+    const primaryModeName = collection.modes[0]?.name;
 
-    return {
-      previousState: previousState ?? { collections: [] },
-      result,
-    };
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      const modesByCollection = readTokenCollectionModeValues(token);
+      const collectionModes = modesByCollection[collection.id] ?? {};
+      if (Object.prototype.hasOwnProperty.call(collectionModes, modeName)) {
+        continue;
+      }
+
+      const sourceValue =
+        sourceModeName === primaryModeName
+          ? token.$value
+          : collectionModes[sourceModeName] ?? token.$value;
+      const nextModes = {
+        ...modesByCollection,
+        [collection.id]: {
+          ...collectionModes,
+          [modeName]: structuredClone(sourceValue),
+        },
+      };
+      const nextToken = structuredClone(token);
+      writeTokenCollectionModeValues(nextToken, nextModes);
+
+      if (
+        stableStringify(nextToken.$extensions ?? null) ===
+        stableStringify(token.$extensions ?? null)
+      ) {
+        continue;
+      }
+
+      patches.push({
+        path: tokenPath,
+        patch: { $extensions: nextToken.$extensions },
+      });
+    }
+
+    if (patches.length === 0) {
+      return undefined;
+    }
+
+    return new Map([[collection.id, patches]]);
   }
 
   private async mutateCollectionStateAndTokens<T>(
@@ -2283,10 +2314,14 @@ export class CollectionService {
   async upsertMode(
     collectionId: string,
     modeName: string,
+    sourceModeName?: string,
   ): Promise<
-    CollectionStateMutationResult<{ option: CollectionMode; status: 200 | 201 }>
+    CollectionStateAndTokenMutationResult<{
+      option: CollectionMode;
+      status: 200 | 201;
+    }>
   > {
-    return this.mutateCollectionState(async (state) => {
+    return this.mutateCollectionStateAndTokens(async (state) => {
       const nextCollections = structuredClone(state.collections);
       const collectionIndex = nextCollections.findIndex(
         (collection) => collection.id === collectionId,
@@ -2299,8 +2334,25 @@ export class CollectionService {
       const optionIndex = collection.modes.findIndex(
         (option) => option.name === modeName,
       );
+      const sourceMode =
+        sourceModeName === undefined
+          ? undefined
+          : collection.modes.find((mode) => mode.name === sourceModeName);
+      if (optionIndex === -1 && sourceModeName !== undefined && !sourceMode) {
+        throw new BadRequestError(
+          `Source mode "${sourceModeName}" not found in collection "${collectionId}"`,
+        );
+      }
       const option = { name: modeName };
       const status: 200 | 201 = optionIndex >= 0 ? 200 : 201;
+      const tokenPatchesByCollection =
+        optionIndex === -1 && sourceMode
+          ? await this.collectNewModeSeedPatches(
+              collection,
+              modeName,
+              sourceMode.name,
+            )
+          : undefined;
       if (optionIndex >= 0) {
         collection.modes[optionIndex] = option;
       } else {
@@ -2312,6 +2364,7 @@ export class CollectionService {
         state: {
           collections: nextCollections,
         },
+        tokenPatchesByCollection,
       };
     });
   }

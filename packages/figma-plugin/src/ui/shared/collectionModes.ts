@@ -43,12 +43,17 @@ export function isModeNameTaken(
 }
 
 export async function addCollectionMode(
-  request: CollectionModeRequest & { name: string },
+  request: CollectionModeRequest & { name: string; sourceModeName?: string },
 ): Promise<void> {
   await apiFetch(collectionModesUrl(request), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: request.name }),
+    body: JSON.stringify({
+      name: request.name,
+      ...(request.sourceModeName
+        ? { sourceModeName: request.sourceModeName }
+        : {}),
+    }),
   });
 }
 
