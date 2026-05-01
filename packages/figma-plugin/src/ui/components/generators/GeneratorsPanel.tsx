@@ -2177,6 +2177,23 @@ export function GeneratorsPanel({
             : activeGenerator
               ? "Preparing preview"
               : "No generator";
+  const activeGeneratorCollectionLabel = activeGenerator
+    ? (collectionLabelById.get(activeGenerator.targetCollectionId) ??
+        "Unknown collection")
+    : "No collection";
+  const activeGeneratorDestinationLabel = activeGenerator
+    ? readGeneratorOutputLabel(activeGenerator)
+    : "No output";
+  const activeGeneratorSummary = activeGenerator
+    ? `${activeGeneratorDestinationLabel} · ${activeGeneratorCollectionLabel}`
+    : "Choose a generator";
+  const workbenchStateSummary = preview
+    ? `${
+        preview.outputs.length === 1
+          ? "1 output"
+          : `${preview.outputs.length} outputs`
+      } · ${formatOutputChangeSummary(countPreviewChanges(preview.outputs))}`
+    : statusLabel;
 
   const openNodeLibraryPanel = useCallback(() => {
     if (selectedNode) {
@@ -2637,11 +2654,11 @@ export function GeneratorsPanel({
     setError(null);
   };
 
-  const renderGeneratorIdentity = (compact = false) => (
+  const renderGeneratorIdentity = () => (
     <div className="tm-generator-header__identity">
       <button
         type="button"
-        className="tm-generator-manager-button"
+        className="tm-generator-switcher-button"
         onClick={() => {
           setGeneratorListOpen((open) => !open);
           setActionsMenuOpen(false);
@@ -2649,18 +2666,33 @@ export function GeneratorsPanel({
         }}
         aria-expanded={generatorListOpen}
         aria-haspopup="dialog"
-        title="Open generators"
+        title="Choose generator"
       >
-        <List size={14} aria-hidden />
-        <span className={compact ? "sr-only" : ""}>Generators</span>
-        <ChevronDown size={13} className="shrink-0" aria-hidden />
+        <span className="tm-generator-switcher-button__icon" aria-hidden>
+          <List size={14} />
+        </span>
+        <span className="tm-generator-switcher-button__label">
+          <span
+            className="tm-generator-active-title"
+            title={activeGenerator?.name || "No generator selected"}
+          >
+            {activeGenerator?.name || "No generator selected"}
+          </span>
+          <span
+            className="tm-generator-active-meta"
+            title={activeGeneratorSummary}
+          >
+            {activeGeneratorSummary}
+          </span>
+        </span>
+        <ChevronDown
+          size={13}
+          className={`tm-generator-switcher-button__chevron ${
+            generatorListOpen ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        />
       </button>
-      <span
-        className="tm-generator-active-title"
-        title={activeGenerator?.name || "No generator selected"}
-      >
-        {activeGenerator?.name || "No generator selected"}
-      </span>
       {renderGeneratorList()}
     </div>
   );
@@ -2814,8 +2846,8 @@ export function GeneratorsPanel({
           id={includeId ? "generator-status-label" : undefined}
           className={
             compact
-              ? "tm-generator-status tm-generator-status--compact"
-              : "tm-generator-status"
+              ? "tm-generator-status tm-generator-status--compact tm-generator-status--updating"
+              : "tm-generator-status tm-generator-status--updating"
           }
           title={busyLabel}
         >
@@ -2846,8 +2878,8 @@ export function GeneratorsPanel({
         id={includeId ? "generator-status-label" : undefined}
         className={
           compact
-            ? "tm-generator-status tm-generator-status--compact"
-            : "tm-generator-status"
+            ? `tm-generator-status tm-generator-status--compact ${readGeneratorStatusClass()}`
+            : `tm-generator-status ${readGeneratorStatusClass()}`
         }
         title={statusLabel}
       >
@@ -2865,6 +2897,17 @@ export function GeneratorsPanel({
     }
     setGraphPanelState("none");
     setGraphMenu(null);
+  };
+
+  const readGeneratorStatusClass = () => {
+    if (dirty) return "tm-generator-status--dirty";
+    if (externalPreviewInvalidated || !preview) {
+      return "tm-generator-status--updating";
+    }
+    if (preview.blocking || previewHasCollisions || previewHasNoOutputs) {
+      return "tm-generator-status--warning";
+    }
+    return "tm-generator-status--ready";
   };
 
   const renderActionsMenu = () =>
@@ -2942,8 +2985,8 @@ export function GeneratorsPanel({
     <div
       className={
         compact
-          ? "ml-auto flex min-w-0 items-center justify-end gap-1"
-          : "ml-auto flex min-w-0 items-center gap-1"
+          ? "tm-generator-action-cluster tm-generator-action-cluster--compact"
+          : "tm-generator-action-cluster"
       }
     >
       {compact ? (
@@ -3104,8 +3147,8 @@ export function GeneratorsPanel({
 
   const renderEmptyWorkbench = () => (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="tm-generator-header">
-        {renderGeneratorIdentity(compactGenerators)}
+      <div className="tm-generator-workbench-header tm-generator-workbench-header--empty">
+        {renderGeneratorIdentity()}
         <div className="tm-generator-header__empty-summary">
           Automate token groups from values, tokens, or graphs.
         </div>
@@ -3144,12 +3187,21 @@ export function GeneratorsPanel({
           renderEmptyWorkbench()
         ) : (
           <>
-            <div className="tm-generator-header">
-              {renderGeneratorIdentity(compactGenerators)}
-              {renderGeneratorTabs()}
-              <div className="tm-generator-header__actions">
-                {renderStatusIndicator(compactGenerators)}
-                {renderGeneratorActions(compactGenerators)}
+            <div className="tm-generator-workbench-header">
+              <div className="tm-generator-workbench-header__primary">
+                {renderGeneratorIdentity()}
+                <div className="tm-generator-header__actions">
+                  {renderStatusIndicator(compactGenerators)}
+                  {renderGeneratorActions(compactGenerators)}
+                </div>
+              </div>
+              <div className="tm-generator-workbench-header__secondary">
+                {renderGeneratorTabs()}
+                <div className="tm-generator-header__state">
+                  <span title={workbenchStateSummary}>
+                    {workbenchStateSummary}
+                  </span>
+                </div>
               </div>
             </div>
 
