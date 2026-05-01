@@ -1,26 +1,14 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
 import type { ValidationIssue } from "./useValidationCache";
-import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
-import { hexToLuminance } from "../shared/colorUtils";
 import {
   buildReferencedTokenPathSetFromEntries,
   isTokenEntryUnused,
 } from "../shared/tokenUsage";
-import { normalizeHex } from "@tokenmanager/core";
-import type { TokenValue } from "@tokenmanager/core";
 import {
   ensureUniqueSharedAliasPath,
   suggestSharedAliasPath,
 } from "./useExtractToAlias";
-
-export interface UnifiedTokenEntry {
-  $value: unknown;
-  $type: string;
-  $extensions?: TokenMapEntry["$extensions"];
-  $scopes?: string[];
-  $lifecycle?: TokenMapEntry["$lifecycle"];
-}
 
 export interface AliasOpportunityToken {
   path: string;
@@ -42,11 +30,6 @@ export interface UnusedToken {
   collectionId: string;
   $type: string;
   $lifecycle?: "draft" | "published" | "deprecated";
-}
-
-export interface ColorScale {
-  parent: string;
-  steps: { path: string; label: string; hex: string }[];
 }
 
 interface DuplicateTokenCandidate {
@@ -81,8 +64,6 @@ function formatDuplicateValue(value: unknown): string {
   }
 }
 
-const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-
 export interface UseHealthDataParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
@@ -93,11 +74,6 @@ export interface UseHealthDataParams {
 }
 
 export interface HealthDataResult {
-  allTokensUnified: Record<string, UnifiedTokenEntry>;
-  resolveColorHex: (path: string, visited?: Set<string>) => string | null;
-  colorTokens: { path: string; hex: string }[];
-  allColorTokens: { path: string; collectionId: string; hex: string }[];
-  colorScales: ColorScale[];
   lintDuplicateGroups: DuplicateGroup[];
   aliasOpportunityGroups: AliasOpportunityGroup[];
   duplicateAliasCountsByCollection: Record<string, number>;
@@ -126,93 +102,6 @@ export function useHealthData({
     },
     [allTokensFlat, perCollectionFlat],
   );
-
-  const allTokensUnified = useMemo(() => {
-    const result: Record<string, UnifiedTokenEntry> = {};
-    for (const [path, entry] of Object.entries(allTokensFlat)) {
-      result[path] = {
-        $value: entry.$value,
-        $type: entry.$type,
-        $extensions: entry.$extensions,
-        $scopes: entry.$scopes,
-        $lifecycle: entry.$lifecycle,
-      };
-    }
-    return result;
-  }, [allTokensFlat]);
-
-  const resolveColorHex = useMemo(() => {
-    return (path: string, visited = new Set<string>()): string | null => {
-      if (visited.has(path)) return null;
-      visited.add(path);
-      const entry = allTokensUnified[path];
-      if (!entry || entry.$type !== "color") return null;
-      const v = entry.$value as TokenValue;
-      if (isAlias(v)) {
-        const aliasPath = extractAliasPath(v);
-        return aliasPath ? resolveColorHex(aliasPath, visited) : null;
-      }
-      return typeof v === "string" && HEX_RE.test(v) ? v : null;
-    };
-  }, [allTokensUnified]);
-
-  const colorTokens = useMemo((): { path: string; hex: string }[] => {
-    const colors: { path: string; hex: string }[] = [];
-    for (const [path, entry] of Object.entries(allTokensUnified)) {
-      if (entry.$type !== "color") continue;
-      if (isAlias(entry.$value as TokenValue)) continue;
-      const v = entry.$value;
-      if (typeof v !== "string" || !HEX_RE.test(v)) continue;
-      colors.push({ path, hex: normalizeHex(v) });
-    }
-    return colors.sort(
-      (a, b) => (hexToLuminance(a.hex) ?? 0) - (hexToLuminance(b.hex) ?? 0),
-    );
-  }, [allTokensUnified]);
-
-  const allColorTokens = useMemo((): {
-    path: string;
-    collectionId: string;
-    hex: string;
-  }[] => {
-    const resolveScopedColorHex = (
-      path: string,
-      collectionId: string,
-      visited = new Set<string>(),
-    ): string | null => {
-      const scopedKey = `${collectionId}::${path}`;
-      if (visited.has(scopedKey)) return null;
-      visited.add(scopedKey);
-      const entry = perCollectionFlat[collectionId]?.[path];
-      if (!entry || entry.$type !== "color") return null;
-      const value = entry.$value as TokenValue;
-      if (isAlias(value)) {
-        const aliasPath = extractAliasPath(value);
-        return aliasPath
-          ? resolveScopedColorHex(aliasPath, collectionId, visited)
-          : null;
-      }
-      return typeof value === "string" && HEX_RE.test(value) ? value : null;
-    };
-
-    const colors: { path: string; collectionId: string; hex: string }[] = [];
-    for (const [collectionId, collectionFlat] of Object.entries(
-      perCollectionFlat,
-    )) {
-      for (const [path, entry] of Object.entries(collectionFlat)) {
-        if (entry.$type !== "color") continue;
-        const hex = resolveScopedColorHex(path, collectionId);
-        if (hex) {
-          colors.push({
-            path,
-            collectionId,
-            hex: normalizeHex(hex),
-          });
-        }
-      }
-    }
-    return colors;
-  }, [perCollectionFlat]);
 
   const duplicateGroupData = useMemo(() => {
     if (!validationIssues) {
@@ -425,28 +314,6 @@ export function useHealthData({
     );
   }, [aliasOpportunityData, currentCollectionId]);
 
-  const colorScales = useMemo((): ColorScale[] => {
-    const parentGroups = new Map<
-      string,
-      { path: string; label: string; hex: string }[]
-    >();
-    for (const t of allColorTokens) {
-      const parts = t.path.split(".");
-      const last = parts[parts.length - 1];
-      if (!/^\d+$/.test(last)) continue;
-      const parent = parts.slice(0, -1).join(".");
-      const list = parentGroups.get(parent) ?? [];
-      list.push({ path: t.path, label: last, hex: t.hex });
-      parentGroups.set(parent, list);
-    }
-    return [...parentGroups.entries()]
-      .filter(([, steps]) => steps.length >= 3)
-      .map(([parent, steps]) => ({
-        parent,
-        steps: steps.sort((a, b) => Number(a.label) - Number(b.label)),
-      }));
-  }, [allColorTokens]);
-
   const referencedPaths = useMemo(() => {
     if (!tokenUsageReady) {
       return new Set<string>();
@@ -516,11 +383,6 @@ export function useHealthData({
   ]);
 
   return {
-    allTokensUnified,
-    resolveColorHex,
-    colorTokens,
-    allColorTokens,
-    colorScales,
     lintDuplicateGroups,
     aliasOpportunityGroups,
     duplicateAliasCountsByCollection:

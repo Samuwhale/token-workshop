@@ -1025,10 +1025,8 @@ export function PanelRouter({
           surface: "color-analysis",
           content: (
             <ColorAnalysisPanel
-              allTokensFlat={allTokensFlat}
               perCollectionFlat={perCollectionFlat}
               collections={collections}
-              currentCollectionId={currentCollectionId}
               onNavigateToToken={(path, collectionId) => {
                 openTokenInContext({
                   path,

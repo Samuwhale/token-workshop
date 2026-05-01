@@ -1,18 +1,6 @@
 import { useState } from "react";
 import { hexToLstar } from "../shared/colorUtils";
-
-export interface ColorScaleStep {
-  path: string;
-  collectionId: string;
-  label: string;
-  hex: string;
-}
-
-export interface ColorScale {
-  parent: string;
-  collectionId: string;
-  steps: ColorScaleStep[];
-}
+import type { ColorScale } from "../shared/colorAnalysis";
 
 export interface LightnessInspectorPanelProps {
   colorScales: ColorScale[];

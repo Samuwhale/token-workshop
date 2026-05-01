@@ -4,6 +4,7 @@ import type { TokenCollection } from "@tokenmanager/core";
 import { hexToLuminance, wcagContrast } from "../shared/colorUtils";
 import { normalizeHex, hexToLab } from "@tokenmanager/core";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
+import { isHexColorLiteral } from "../shared/colorAnalysis";
 
 export interface ContrastMatrixPanelProps {
   /** Non-alias color tokens sorted by luminance */
@@ -93,7 +94,6 @@ export function ContrastMatrixPanel({
         },
       ]),
     );
-    const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
     for (const token of colorTokens) {
       const collection = collectionsById.get(token.collectionId);
@@ -113,7 +113,7 @@ export function ContrastMatrixPanel({
         if (!entry || entry.$type !== "color") continue;
 
         const value = entry.$value;
-        if (typeof value !== "string" || !HEX_RE.test(value)) continue;
+        if (!isHexColorLiteral(value)) continue;
 
         scopedToken.hexByMode.set(modeKey, normalizeHex(value));
       }
