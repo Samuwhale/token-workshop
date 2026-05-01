@@ -34,6 +34,7 @@ import {
   ChevronDown,
   ChevronRight,
   Check,
+  List,
   MoreHorizontal,
   PanelRight,
   Plus,
@@ -206,6 +207,7 @@ type GraphStructureCommitUiState = {
   editorMode?: GeneratorEditorMode;
 };
 type GraphPanelState = "none" | "inspector" | "nodeLibrary";
+type GeneratorListScope = "collection" | "all";
 
 type GraphFlowNode = Node<
   {
@@ -227,9 +229,22 @@ const GENERATOR_EDITOR_TABS: Array<{ value: GeneratorEditorMode; label: string }
   { value: "graph", label: "Graph" },
 ];
 
+const GENERATOR_LIST_SCOPE_OPTIONS: Array<{
+  value: GeneratorListScope;
+  label: string;
+}> = [
+  { value: "collection", label: "This collection" },
+  { value: "all", label: "All" },
+];
+
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
     .filter((element) => element.tabIndex >= 0 && !element.hidden);
+}
+
+function readCollectionLabel(collection: TokenCollection | undefined): string {
+  if (!collection) return "Unknown collection";
+  return collection.publishRouting?.collectionName?.trim() || collection.id;
 }
 
 type PreviewChangeCounts = {
@@ -444,8 +459,10 @@ export function GeneratorsPanel({
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
   const [createOutputPrefix, setCreateOutputPrefix] = useState<string | null>(null);
-  const [generatorSwitcherOpen, setGeneratorSwitcherOpen] = useState(false);
-  const [generatorSwitcherQuery, setGeneratorSwitcherQuery] = useState("");
+  const [generatorListOpen, setGeneratorListOpen] = useState(false);
+  const [generatorListQuery, setGeneratorListQuery] = useState("");
+  const [generatorListScope, setGeneratorListScope] =
+    useState<GeneratorListScope>("collection");
   const [outputDockOpen, setOutputDockOpen] = useState(false);
   const [reviewedPreviewHash, setReviewedPreviewHash] = useState<string | null>(
     null,
@@ -487,7 +504,7 @@ export function GeneratorsPanel({
   const latestPreviewSignatureRef = useRef("");
   const tokenChangeInitializedRef = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const generatorSwitcherSearchRef = useRef<HTMLInputElement | null>(null);
+  const generatorListSearchRef = useRef<HTMLInputElement | null>(null);
   const createSheetPanelRef = useRef<HTMLElement | null>(null);
   const createSheetPreviousFocusRef = useRef<HTMLElement | null>(null);
   const panelWidth = useElementWidth(panelRef);
@@ -519,9 +536,9 @@ export function GeneratorsPanel({
   }, []);
 
   useEffect(() => {
-    if (!generatorSwitcherOpen) return;
-    generatorSwitcherSearchRef.current?.focus();
-  }, [generatorSwitcherOpen]);
+    if (!generatorListOpen) return;
+    generatorListSearchRef.current?.focus();
+  }, [generatorListOpen]);
 
   useEffect(() => {
     if (!createPanelOpen) return;
@@ -564,19 +581,27 @@ export function GeneratorsPanel({
       ),
     [generators, workingCollectionId],
   );
-  const filteredScopedGenerators = useMemo(() => {
-    const query = generatorSwitcherQuery.trim().toLowerCase();
-    if (!query) return scopedGenerators;
-    return scopedGenerators.filter((generator) => {
+  const visibleGenerators = useMemo(
+    () => (generatorListScope === "all" ? generators : scopedGenerators),
+    [generatorListScope, generators, scopedGenerators],
+  );
+  const filteredVisibleGenerators = useMemo(() => {
+    const query = generatorListQuery.trim().toLowerCase();
+    if (!query) return visibleGenerators;
+    return visibleGenerators.filter((generator) => {
       const outputLabel = readGeneratorDestinationSearchLabel(generator).toLowerCase();
       const status = readGeneratorStatusLabel(generator).toLowerCase();
+      const collectionLabel = readCollectionLabel(
+        collections.find((collection) => collection.id === generator.targetCollectionId),
+      ).toLowerCase();
       return (
         generator.name.toLowerCase().includes(query) ||
         outputLabel.includes(query) ||
-        status.includes(query)
+        status.includes(query) ||
+        collectionLabel.includes(query)
       );
     });
-  }, [generatorSwitcherQuery, scopedGenerators]);
+  }, [collections, generatorListQuery, visibleGenerators]);
   const targetCollection = useMemo(
     () =>
       collections.find(
@@ -697,7 +722,7 @@ export function GeneratorsPanel({
       const currentGenerator = data.generators.find(
         (generator) => generator.id === current,
       );
-      if (currentGenerator?.targetCollectionId === workingCollectionId) {
+      if (currentGenerator) {
         activeGeneratorIdRef.current = current;
         return current;
       }
@@ -839,11 +864,7 @@ export function GeneratorsPanel({
 
   useEffect(() => {
     if (initialGeneratorId) return;
-    if (
-      activeGenerator &&
-      activeGenerator.targetCollectionId === workingCollectionId
-    )
-      return;
+    if (activeGenerator) return;
     if (dirty) {
       setError("Save the current generator before switching collections.");
       return;
@@ -2428,6 +2449,34 @@ export function GeneratorsPanel({
               showInteractive={false}
             />
           </ReactFlow>
+          <div className="tm-graph-toolbar" aria-label="Graph actions">
+            <Button
+              type="button"
+              title={
+                graphPanelState === "nodeLibrary"
+                  ? "Hide node library"
+                  : "Add node"
+              }
+              aria-label={
+                graphPanelState === "nodeLibrary"
+                  ? "Hide node library"
+                  : "Add node"
+              }
+              onClick={() => {
+                if (graphPanelState === "nodeLibrary") {
+                  setGraphPanelState("none");
+                  setActionsMenuOpen(false);
+                } else {
+                  openNodeLibraryPanel();
+                }
+              }}
+              size="sm"
+              variant="secondary"
+            >
+              <Plus size={14} />
+              Add node
+            </Button>
+          </div>
           {graphMenu ? (
             <GraphContextMenu
               menu={graphMenu}
@@ -2558,83 +2607,114 @@ export function GeneratorsPanel({
     );
   };
 
+  const openCreateGenerator = () => {
+    if (busy) {
+      setError("Wait for the current generator action to finish.");
+      return;
+    }
+    if (dirty) {
+      setError("Save the current generator before creating another one.");
+      return;
+    }
+    setGeneratorListOpen(false);
+    setCreatePanelOpen(true);
+    setEditorMode("overview");
+    setError(null);
+  };
+
   const renderGeneratorIdentity = (compact = false) => (
-    <div className="relative min-w-0 flex-1">
+    <div className="tm-generator-header__identity">
       <button
         type="button"
-        className={`tm-generator-title-switcher ${
-          compact ? "tm-generator-title-switcher--compact" : ""
-        }`}
+        className="tm-generator-manager-button"
         onClick={() => {
-          setGeneratorSwitcherOpen((open) => !open);
+          setGeneratorListOpen((open) => !open);
           setActionsMenuOpen(false);
           setGraphPanelState("none");
         }}
-        aria-expanded={generatorSwitcherOpen}
+        aria-expanded={generatorListOpen}
         aria-haspopup="dialog"
-        title="Switch generator"
+        title="Open generators"
       >
-        <span className="truncate">
-          {activeGenerator?.name || "Choose generator"}
-        </span>
-        <ChevronDown size={14} className="shrink-0" aria-hidden />
+        <List size={14} aria-hidden />
+        <span className={compact ? "sr-only" : ""}>Generators</span>
+        <ChevronDown size={13} className="shrink-0" aria-hidden />
       </button>
-      {renderGeneratorSwitcher()}
+      <span
+        className="tm-generator-active-title"
+        title={activeGenerator?.name || "No generator selected"}
+      >
+        {activeGenerator?.name || "No generator selected"}
+      </span>
+      {renderGeneratorList()}
     </div>
   );
 
-  const switchEditorMode = (mode: GeneratorEditorMode) => {
-    setEditorMode(mode);
-    setActionsMenuOpen(false);
-    setGeneratorSwitcherOpen(false);
-    if (mode === "graph") {
-      return;
-    }
-    setGraphPanelState("none");
-    setGraphMenu(null);
-  };
-
   const renderGeneratorTabs = () => (
-    <SegmentedControl
-      value={editorMode}
-      options={GENERATOR_EDITOR_TABS}
-      onChange={switchEditorMode}
-      ariaLabel="Generator surfaces"
-    />
+    <div className="tm-generator-header__tabs">
+      <SegmentedControl
+        value={editorMode}
+        options={GENERATOR_EDITOR_TABS}
+        onChange={switchEditorMode}
+        ariaLabel="Generator surfaces"
+      />
+    </div>
   );
 
-  const renderGeneratorSwitcher = () =>
-    generatorSwitcherOpen ? (
+  const renderGeneratorList = () =>
+    generatorListOpen ? (
       <>
         <button
           type="button"
           className="fixed inset-0 z-20 cursor-default"
-          aria-label="Close generator switcher"
-          onClick={() => setGeneratorSwitcherOpen(false)}
+          aria-label="Close generator list"
+          onClick={() => setGeneratorListOpen(false)}
         />
         <div
-          className="tm-generator-switcher"
+          className="tm-generator-list"
           role="dialog"
-          aria-label="Switch generator"
+          aria-label="Generators"
           onKeyDown={(event) => {
             if (event.key === "Escape") {
-              setGeneratorSwitcherOpen(false);
+              setGeneratorListOpen(false);
             }
           }}
         >
-          <div className="tm-generator-switcher__search">
-            <Search size={14} aria-hidden />
-            <input
-              ref={generatorSwitcherSearchRef}
-              value={generatorSwitcherQuery}
-              onChange={(event) => setGeneratorSwitcherQuery(event.target.value)}
-              placeholder="Find generator"
-              aria-label="Find generator"
+          <div className="tm-generator-list__header">
+            <h2 className="m-0 text-body font-semibold text-[color:var(--color-figma-text)]">
+              Generators
+            </h2>
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              onClick={openCreateGenerator}
+            >
+              <Plus size={14} />
+              New generator
+            </Button>
+          </div>
+          <div className="tm-generator-list__controls">
+            <div className="tm-generator-list__search">
+              <Search size={14} aria-hidden />
+              <input
+                ref={generatorListSearchRef}
+                value={generatorListQuery}
+                onChange={(event) => setGeneratorListQuery(event.target.value)}
+                placeholder="Find generator"
+                aria-label="Find generator"
+              />
+            </div>
+            <SegmentedControl
+              value={generatorListScope}
+              options={GENERATOR_LIST_SCOPE_OPTIONS}
+              onChange={setGeneratorListScope}
+              ariaLabel="Generator list scope"
             />
           </div>
-          <div className="tm-generator-switcher__list">
-            {filteredScopedGenerators.length > 0 ? (
-              filteredScopedGenerators.map((generator) => {
+          <div className="tm-generator-list__body">
+            {filteredVisibleGenerators.length > 0 ? (
+              filteredVisibleGenerators.map((generator) => {
                 const selected = generator.id === activeGeneratorId;
                 const status = generatorStatusesById[generator.id];
                 const currentPreview =
@@ -2643,21 +2723,26 @@ export function GeneratorsPanel({
                   currentPreview?.outputs.length ?? status?.preview.outputs.length;
                 const destinationLabel = readGeneratorOutputLabel(generator);
                 const destinationTitle = readGeneratorDestinationSearchLabel(generator);
-                const metadataLabel = formatGeneratorSwitcherMetadata(
+                const metadataLabel = formatGeneratorListMetadata(
                   generator,
                   producedTokenCount,
+                );
+                const collectionLabel = readCollectionLabel(
+                  collections.find(
+                    (collection) => collection.id === generator.targetCollectionId,
+                  ),
                 );
                 return (
                   <button
                     key={generator.id}
                     type="button"
-                    className={`tm-generator-switcher__item ${
-                      selected ? "tm-generator-switcher__item--selected" : ""
+                    className={`tm-generator-list__item ${
+                      selected ? "tm-generator-list__item--selected" : ""
                     }`}
                     onClick={() => {
                       if (selected) {
-                        setGeneratorSwitcherOpen(false);
-                        setGeneratorSwitcherQuery("");
+                        setGeneratorListOpen(false);
+                        setGeneratorListQuery("");
                         return;
                       }
                       if (busy) {
@@ -2668,64 +2753,41 @@ export function GeneratorsPanel({
                         setError("Save the current generator before switching to another one.");
                         return;
                       }
-                      setGeneratorSwitcherOpen(false);
-                      setGeneratorSwitcherQuery("");
                       selectGenerator(generator.id);
+                      setGeneratorListOpen(false);
+                      setGeneratorListQuery("");
                     }}
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">
+                    <span className="tm-generator-list__item-main">
+                      <span className="tm-generator-list__item-title">
                         {generator.name}
                       </span>
                       <span
-                        className="block truncate text-[color:var(--color-figma-text-secondary)]"
+                        className="tm-generator-list__item-detail"
                         title={destinationTitle}
                       >
                         {destinationLabel}
                       </span>
                     </span>
-                    <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                      <span className="text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                        {readGeneratorStatusLabel(generator)}
+                    <span className="tm-generator-list__item-meta">
+                      <span className="tm-generator-list__item-collection">
+                        {collectionLabel}
                       </span>
-                      <span className="whitespace-nowrap text-tertiary text-[color:var(--color-figma-text-tertiary)]">
-                        {metadataLabel}
-                      </span>
+                      <span>{readGeneratorStatusLabel(generator)}</span>
+                      <span>{metadataLabel}</span>
                     </span>
                   </button>
                 );
               })
             ) : (
-              <div className="px-2 py-5 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {scopedGenerators.length === 0
-                  ? "No generators in this collection."
+              <div className="tm-generator-list__empty">
+                {visibleGenerators.length === 0
+                  ? generatorListScope === "collection"
+                    ? "No generators in this collection."
+                    : "No generators yet."
                   : "No matching generators."}
               </div>
             )}
-          </div>
-          <div className="tm-generator-switcher__footer">
-            <Button
-              type="button"
-              size="sm"
-              variant="primary"
-              onClick={() => {
-                if (busy) {
-                  setError("Wait for the current generator action to finish.");
-                  return;
-                }
-                if (dirty) {
-                  setError("Save the current generator before creating another one.");
-                  return;
-                }
-                setGeneratorSwitcherOpen(false);
-                setCreatePanelOpen(true);
-                setEditorMode("overview");
-                setError(null);
-              }}
-            >
-              <Plus size={14} />
-              Create generator
-            </Button>
           </div>
         </div>
       </>
@@ -2739,8 +2801,8 @@ export function GeneratorsPanel({
           id={includeId ? "generator-status-label" : undefined}
           className={
             compact
-              ? "max-w-[116px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
-              : "text-secondary text-[color:var(--color-figma-text-secondary)]"
+              ? "tm-generator-status tm-generator-status--compact"
+              : "tm-generator-status"
           }
           title={busyLabel}
         >
@@ -2756,8 +2818,8 @@ export function GeneratorsPanel({
           onClick={focusFirstGraphIssue}
           className={
             compact
-              ? "inline-flex h-7 max-w-[128px] items-center gap-1.5 rounded-md px-2 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
-              : "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-error)] hover:bg-[color-mix(in_srgb,var(--color-figma-error)_10%,var(--color-figma-bg))]"
+              ? "tm-generator-status tm-generator-status--compact tm-generator-status--error"
+              : "tm-generator-status tm-generator-status--error"
           }
           title={statusLabel}
         >
@@ -2771,14 +2833,25 @@ export function GeneratorsPanel({
         id={includeId ? "generator-status-label" : undefined}
         className={
           compact
-            ? "max-w-[128px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
-            : "text-secondary text-[color:var(--color-figma-text-secondary)]"
+            ? "tm-generator-status tm-generator-status--compact"
+            : "tm-generator-status"
         }
         title={statusLabel}
       >
         {statusLabel}
       </span>
     );
+  };
+
+  const switchEditorMode = (mode: GeneratorEditorMode) => {
+    setEditorMode(mode);
+    setActionsMenuOpen(false);
+    setGeneratorListOpen(false);
+    if (mode === "graph") {
+      return;
+    }
+    setGraphPanelState("none");
+    setGraphMenu(null);
   };
 
   const renderActionsMenu = () =>
@@ -2794,28 +2867,6 @@ export function GeneratorsPanel({
           <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {statusLabel}
           </div>
-          {editorMode === "graph" ? (
-            <>
-              <ActionRow
-                onClick={() => {
-                  openNodeLibraryPanel();
-                }}
-              >
-                Add node
-              </ActionRow>
-              {selectedNode ? (
-                <ActionRow
-                  onClick={() => {
-                    setActionsMenuOpen(false);
-                    setInspectorMinimized(false);
-                    setGraphPanelState("inspector");
-                  }}
-                >
-                  Node settings
-                </ActionRow>
-              ) : null}
-            </>
-          ) : null}
           <ActionRow
             onClick={() => {
               setActionsMenuOpen(false);
@@ -2882,50 +2933,6 @@ export function GeneratorsPanel({
           : "ml-auto flex min-w-0 items-center gap-1"
       }
     >
-      {editorMode === "graph" ? (
-        <>
-          <Button
-            type="button"
-            title={graphPanelState === "nodeLibrary" ? "Hide node library" : "Add node"}
-            aria-label={graphPanelState === "nodeLibrary" ? "Hide node library" : "Add node"}
-            onClick={() => {
-              if (graphPanelState === "nodeLibrary") {
-                setGraphPanelState("none");
-                setActionsMenuOpen(false);
-              } else {
-                openNodeLibraryPanel();
-              }
-            }}
-            size="sm"
-            variant="secondary"
-          >
-            <Plus size={14} />
-            <span className={compact ? "sr-only" : ""}>Add</span>
-          </Button>
-          {selectedNode && !compact ? (
-            <Button
-              type="button"
-              title={inspectorMinimized ? "Expand node settings" : "Minimize node settings"}
-              aria-label={inspectorMinimized ? "Expand node settings" : "Minimize node settings"}
-              onClick={() => {
-                if (inspectorMinimized) {
-                  setInspectorMinimized(false);
-                  setGraphPanelState("inspector");
-                } else {
-                  setInspectorMinimized(true);
-                  setGraphPanelState("none");
-                }
-                setActionsMenuOpen(false);
-              }}
-              size="sm"
-              variant="ghost"
-            >
-              <PanelRight size={14} />
-              {inspectorMinimized ? "Expand" : "Minimize"}
-            </Button>
-          ) : null}
-        </>
-      ) : null}
       {compact ? (
         <Button
           title="Save generator"
@@ -2978,43 +2985,17 @@ export function GeneratorsPanel({
           {generatorPrimaryActionLabel}
         </span>
       </Button>
-      {editorMode === "graph" && !compact && dirty ? (
-        <Button
-          title="Discard changes"
-          aria-label="Discard changes"
-          onClick={discardGeneratorDraft}
-          disabled={busy !== null}
-          variant="ghost"
-          size="sm"
-        >
-          <X size={14} />
-          <span className="max-[760px]:sr-only">Discard</span>
-        </Button>
-      ) : null}
-      {compact ? (
-        <div className="relative">
-          <IconButton
-            title="More generator actions"
-            aria-label="More generator actions"
-            onClick={() => setActionsMenuOpen((open) => !open)}
-            size="md"
-          >
-            <MoreHorizontal size={14} />
-          </IconButton>
-          {renderActionsMenu()}
-        </div>
-      ) : (
+      <div className="relative">
         <IconButton
-          title="Delete generator"
-          aria-label="Delete generator"
-          onClick={requestDeleteGenerator}
-          disabled={busy !== null}
-          size="lg"
-          tone="danger"
+          title="More generator actions"
+          aria-label="More generator actions"
+          onClick={() => setActionsMenuOpen((open) => !open)}
+          size={compact ? "md" : "lg"}
         >
-          <Trash2 size={14} />
+          <MoreHorizontal size={14} />
         </IconButton>
-      )}
+        {renderActionsMenu()}
+      </div>
     </div>
   );
 
@@ -3110,13 +3091,15 @@ export function GeneratorsPanel({
 
   const renderEmptyWorkbench = () => (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-[var(--color-figma-border)] px-3 py-2">
-        <div className="min-w-0">
-          <h2 className="truncate text-primary font-semibold">Generators</h2>
-          <p className="m-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Automate token groups from values, tokens, or graphs.
-          </p>
+      <div className="tm-generator-header">
+        {renderGeneratorIdentity(compactGenerators)}
+        <div className="tm-generator-header__empty-summary">
+          Automate token groups from values, tokens, or graphs.
         </div>
+        <Button type="button" size="sm" variant="primary" onClick={openCreateGenerator}>
+          <Plus size={14} />
+          New generator
+        </Button>
       </div>
       <FeedbackPlaceholder
         variant="empty"
@@ -3148,33 +3131,14 @@ export function GeneratorsPanel({
           renderEmptyWorkbench()
         ) : (
           <>
-            {compactGenerators ? (
-              <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1">
-                <div className="flex min-w-0 items-center gap-2">
-                  {renderGeneratorIdentity(true)}
-                  <div className="flex shrink-0 items-center justify-end gap-1">
-                    {renderGeneratorActions(true)}
-                  </div>
-                </div>
-                <div className="flex min-w-0 items-center gap-2">
-                  <div className="min-w-0 flex-1 overflow-x-auto">
-                    {renderGeneratorTabs()}
-                  </div>
-                  <div className="min-w-0 shrink">{renderStatusIndicator(true)}</div>
-                </div>
+            <div className="tm-generator-header">
+              {renderGeneratorIdentity(compactGenerators)}
+              {renderGeneratorTabs()}
+              <div className="tm-generator-header__actions">
+                {renderStatusIndicator(compactGenerators)}
+                {renderGeneratorActions(compactGenerators)}
               </div>
-            ) : (
-              <div className="flex min-h-10 shrink-0 flex-col gap-1.5 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1.5">
-                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-                  {renderGeneratorIdentity()}
-                  {renderStatusIndicator()}
-                  {renderGeneratorActions()}
-                </div>
-                <div className="min-w-0 overflow-x-auto">
-                  {renderGeneratorTabs()}
-                </div>
-              </div>
-            )}
+            </div>
 
             {error ? (
               <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
@@ -3234,22 +3198,18 @@ export function GeneratorsPanel({
                     return;
                   }
                   const nextEditorMode = initialView ?? "overview";
-                  if (collectionId === workingCollectionId) {
+                  if (collectionId !== workingCollectionId) {
+                    setGeneratorListScope("all");
+                  }
+                  setActiveGeneratorSelection(generatorId);
+                  setEditorMode(nextEditorMode);
+                  void loadGenerators().then(() => {
                     setActiveGeneratorSelection(generatorId);
                     setEditorMode(nextEditorMode);
-                    void loadGenerators().then(() => {
-                      setActiveGeneratorSelection(generatorId);
-                      setEditorMode(nextEditorMode);
-                      refreshGeneratorStatuses();
-                    });
-                  } else {
-                    setError(
-                      `Created in ${collectionId}. Switch collections to edit it.`,
-                    );
-                    void loadGenerators().then(refreshGeneratorStatuses);
-                  }
+                    refreshGeneratorStatuses();
+                  });
                   closeCreatePanel();
-                  setGeneratorSwitcherOpen(false);
+                  setGeneratorListOpen(false);
                   setOutputDockOpen(false);
                 }}
               />
@@ -4134,7 +4094,7 @@ function readGeneratorDestinationLabels(
     .filter(Boolean);
 }
 
-function formatGeneratorSwitcherMetadata(
+function formatGeneratorListMetadata(
   generator: TokenGeneratorDocument,
   producedTokenCount: number | undefined,
 ): string {
