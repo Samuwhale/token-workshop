@@ -509,10 +509,36 @@ export function GeneratorCreatePanel({
                 Choose what to generate
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Start from a common design-system pattern, or open Graph to build the flow yourself.
+                Start from a common design-system pattern or an empty graph.
               </p>
             </div>
             <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplateSelection("blank");
+                  setError(null);
+                }}
+                aria-pressed={templateSelection === "blank"}
+                className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
+                  templateSelection === "blank"
+                    ? "bg-[var(--color-figma-bg-selected)]"
+                    : "bg-transparent hover:bg-[var(--color-figma-bg-hover)]"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
+                    Blank
+                  </span>
+                  <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                    Start with nodes and connections.
+                  </span>
+                </span>
+                <Workflow
+                  size={13}
+                  className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
+                />
+              </button>
               <div className="space-y-3">
                 {TEMPLATE_GROUPS.map((group) => (
                   <div key={group.label}>
@@ -556,32 +582,6 @@ export function GeneratorCreatePanel({
                   </div>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setTemplateSelection("blank");
-                  setError(null);
-                }}
-                aria-pressed={templateSelection === "blank"}
-                className={`flex w-full items-start justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors ${
-                  templateSelection === "blank"
-                    ? "bg-[var(--color-figma-bg-selected)]"
-                    : "bg-transparent hover:bg-[var(--color-figma-bg-hover)]"
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                    Build in Graph
-                  </span>
-                  <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                    Start empty and add each step visually.
-                  </span>
-                </span>
-                <Workflow
-                  size={13}
-                  className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
-                />
-              </button>
             </div>
           </div>
         ) : (
