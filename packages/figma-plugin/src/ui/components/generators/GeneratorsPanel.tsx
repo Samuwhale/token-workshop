@@ -581,6 +581,16 @@ export function GeneratorsPanel({
       ),
     [generators, workingCollectionId],
   );
+  const collectionLabelById = useMemo(
+    () =>
+      new Map(
+        collections.map((collection) => [
+          collection.id,
+          readCollectionLabel(collection),
+        ]),
+      ),
+    [collections],
+  );
   const visibleGenerators = useMemo(
     () => (generatorListScope === "all" ? generators : scopedGenerators),
     [generatorListScope, generators, scopedGenerators],
@@ -591,8 +601,9 @@ export function GeneratorsPanel({
     return visibleGenerators.filter((generator) => {
       const outputLabel = readGeneratorDestinationSearchLabel(generator).toLowerCase();
       const status = readGeneratorStatusLabel(generator).toLowerCase();
-      const collectionLabel = readCollectionLabel(
-        collections.find((collection) => collection.id === generator.targetCollectionId),
+      const collectionLabel = (
+        collectionLabelById.get(generator.targetCollectionId) ??
+        "Unknown collection"
       ).toLowerCase();
       return (
         generator.name.toLowerCase().includes(query) ||
@@ -601,7 +612,7 @@ export function GeneratorsPanel({
         collectionLabel.includes(query)
       );
     });
-  }, [collections, generatorListQuery, visibleGenerators]);
+  }, [collectionLabelById, generatorListQuery, visibleGenerators]);
   const targetCollection = useMemo(
     () =>
       collections.find(
@@ -1470,6 +1481,9 @@ export function GeneratorsPanel({
       clearGeneratorDirty();
       setSelectedEdgeId(null);
       setGraphMenu(null);
+      setActionsMenuOpen(false);
+      setGeneratorListOpen(false);
+      setGeneratorListQuery("");
       setEditorMode("overview");
     },
     [busy, clearGeneratorDirty, dirty, setActiveGeneratorSelection],
@@ -2617,6 +2631,7 @@ export function GeneratorsPanel({
       return;
     }
     setGeneratorListOpen(false);
+    setActionsMenuOpen(false);
     setCreatePanelOpen(true);
     setEditorMode("overview");
     setError(null);
@@ -2727,11 +2742,9 @@ export function GeneratorsPanel({
                   generator,
                   producedTokenCount,
                 );
-                const collectionLabel = readCollectionLabel(
-                  collections.find(
-                    (collection) => collection.id === generator.targetCollectionId,
-                  ),
-                );
+                const collectionLabel =
+                  collectionLabelById.get(generator.targetCollectionId) ??
+                  "Unknown collection";
                 return (
                   <button
                     key={generator.id}
@@ -2990,7 +3003,7 @@ export function GeneratorsPanel({
           title="More generator actions"
           aria-label="More generator actions"
           onClick={() => setActionsMenuOpen((open) => !open)}
-          size={compact ? "md" : "lg"}
+          size="md"
         >
           <MoreHorizontal size={14} />
         </IconButton>

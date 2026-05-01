@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { STORAGE_KEYS, lsGet, lsGetJson, lsRemove } from '../shared/storage';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { ConfirmModal } from './ConfirmModal';
@@ -23,7 +23,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const {
     collections,
   } = useCollectionStateContext();
-  const collectionIds = collections.map((collection) => collection.id);
+  const collectionIds = useMemo(
+    () => collections.map((collection) => collection.id),
+    [collections],
+  );
   const [error, setError] = useState<string | null>(null);
 
   const platformConfig = usePlatformConfig();
@@ -106,11 +109,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   };
 
   const handleConfirmDeletePreset = () => {
-    if (presetsState.pendingDeletePresetId) {
-      presetsState.setPresets(prev => prev.filter(p => p.id !== presetsState.pendingDeletePresetId));
-      presetsState.setPendingDeletePresetId(null);
-    }
+    const presetId = presetsState.pendingDeletePresetId;
+    if (!presetId) return;
+    presetsState.setPresets(prev => prev.filter(p => p.id !== presetId));
+    presetsState.setPendingDeletePresetId(null);
   };
+
+  const pendingDeletePreset = presetsState.pendingDeletePresetId
+    ? presetsState.presets.find(
+        (preset) => preset.id === presetsState.pendingDeletePresetId,
+      ) ?? null
+    : null;
 
   // Apply a preset dispatched from the command palette (⌘⇧E → palette → preset command)
   const handleLoadPresetRef = useRef(handleLoadPreset);
@@ -219,10 +228,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         />
       </SecondaryPanel>
 
-      {/* Delete preset confirmation */}
-      {presetsState.pendingDeletePresetId && presetsState.presets.find(p => p.id === presetsState.pendingDeletePresetId) && (
+      {pendingDeletePreset && (
         <ConfirmModal
-          title={`Delete preset "${presetsState.presets.find(p => p.id === presetsState.pendingDeletePresetId)!.name}"?`}
+          title={`Delete preset "${pendingDeletePreset.name}"?`}
           description="This preset will be permanently removed."
           confirmLabel="Delete"
           danger
@@ -230,8 +238,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           onCancel={() => presetsState.setPendingDeletePresetId(null)}
         />
       )}
-
-
 
       {exportResults.showExportPreviewModal && exportResults.results.length > 0 && (
         <ExportPreviewModal
