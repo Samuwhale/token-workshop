@@ -384,6 +384,16 @@ export function TokenDetails({
     pathToCollectionId,
     collectionIdsByPath,
   });
+  const pathExistsForCreate = useCallback(
+    (path: string) =>
+      pathExistsInCollection({
+        path,
+        collectionId: ownerCollectionId,
+        pathToCollectionId,
+        collectionIdsByPath,
+      }),
+    [collectionIdsByPath, ownerCollectionId, pathToCollectionId],
+  );
   const typeParsing = useTokenTypeParsing({
     tokenType,
     setTokenType,
@@ -395,10 +405,11 @@ export function TokenDetails({
     setScopes,
     extensionsJsonError,
     isCreateMode,
-    editPath: tokenPath,
+    editPath,
     allTokensFlat,
     currentTokenPath: tokenPath,
     detectAliasCycle,
+    pathExistsForCreate,
     getModeValuesForDefaultValue: isCreateMode
       ? buildDefaultModeValues
       : undefined,
@@ -723,25 +734,6 @@ export function TokenDetails({
     pathToCollectionId,
   ]);
   const trimmedEditPath = editPath.trim();
-  const conflictingOtherCollectionIds = useMemo(
-    () =>
-      isCreateMode && trimmedEditPath
-        ? getCollectionIdsForPath({
-            path: trimmedEditPath,
-            pathToCollectionId,
-            collectionIdsByPath,
-          }).filter((collectionId) => collectionId !== ownerCollectionId)
-        : [],
-    [
-      collectionIdsByPath,
-      isCreateMode,
-      ownerCollectionId,
-      pathToCollectionId,
-      trimmedEditPath,
-    ],
-  );
-  const crossCollectionDuplicatePath =
-    conflictingOtherCollectionIds.length > 0;
 
   useEffect(() => {
     editorSessionHost.registerSession({
@@ -751,7 +743,6 @@ export function TokenDetails({
         canSave &&
         !saving &&
         !duplicatePath &&
-        !crossCollectionDuplicatePath &&
         (!isCreateMode || editPath.trim().length > 0),
       save: async () => {
         if (fieldEditable) {
@@ -773,7 +764,6 @@ export function TokenDetails({
     };
   }, [
     canSave,
-    crossCollectionDuplicatePath,
     duplicatePath,
     editPath,
     editorSessionHost,
@@ -1068,17 +1058,6 @@ export function TokenDetails({
       setRenameError(`A token named "${trimmed}" already exists here`);
       return;
     }
-    const otherCollectionConflicts = getCollectionIdsForPath({
-      path: newPath,
-      pathToCollectionId,
-      collectionIdsByPath,
-    }).filter((conflictCollectionId) => conflictCollectionId !== ownerCollectionId);
-    if (otherCollectionConflicts.length > 0) {
-      setRenameError(
-        `A token named "${trimmed}" already exists in ${formatCollectionIdList(otherCollectionConflicts)}. Choose a unique name before renaming.`,
-      );
-      return;
-    }
     setRenameSaving(true);
     setRenameError(null);
     try {
@@ -1145,16 +1124,7 @@ export function TokenDetails({
   );
   const createPathError = duplicatePath
     ? `A token with this path already exists in ${ownerCollectionId}.`
-    : conflictingOtherCollectionIds.length > 0
-      ? (
-          <>
-            This path is already used in{" "}
-            {formatCollectionIdList(conflictingOtherCollectionIds)}. Use a
-            unique path so references to{" "}
-            <span className="font-mono">{trimmedEditPath}</span> stay clear.
-          </>
-        )
-      : null;
+    : null;
 
   const handleCopyPath = () => {
     navigator.clipboard.writeText(tokenPath);
@@ -1323,7 +1293,7 @@ export function TokenDetails({
           {footerNote ? (
             <span
               className={
-                duplicatePath || crossCollectionDuplicatePath || saveBlockReason
+                duplicatePath || saveBlockReason
                   ? "text-[color:var(--color-figma-text-error)]"
                   : undefined
               }
@@ -1339,8 +1309,7 @@ export function TokenDetails({
                 saving ||
                 !canSave ||
                 !trimmedEditPath ||
-                duplicatePath ||
-                crossCollectionDuplicatePath
+                duplicatePath
               }
               title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
               className="self-start text-secondary font-medium text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
@@ -1390,7 +1359,6 @@ export function TokenDetails({
               !fieldEditable ||
               !canSave ||
               duplicatePath ||
-              crossCollectionDuplicatePath ||
               (!isCreateMode && !isDirty) ||
               (isCreateMode && !trimmedEditPath)
             }

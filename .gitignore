@@ -11,4 +11,5 @@ tokens/
 .claude/settings.local.json
 .claude/worktrees/
 .playwright-mcp/
+.codex-screenshots/
 package-lock.json

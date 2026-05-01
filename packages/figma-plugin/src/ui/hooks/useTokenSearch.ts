@@ -3,7 +3,7 @@ import { CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET } from '@tokenmanager/core';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEY_BUILDERS, lsGet, lsSet, ssGet, ssSet } from '../shared/storage';
-import { ALL_TOKEN_TYPES } from '../shared/tokenTypeCategories';
+import { ALL_TOKEN_TYPES, getTokenTypeLabel } from '../shared/tokenTypeCategories';
 import {
   flattenLeafNodes, filterTokenNodes, filterByDuplicatePaths,
   collectAllGroupPaths, flattenLeafNodesWithAncestors,
@@ -49,6 +49,27 @@ function buildCrossCollectionTypes(
       normalizedTypeFilter.includes(typeValue),
   );
   return matchesTypeFilter ? [normalizedTypeFilter] : null;
+}
+
+function getHasFilterLabel(value: string): string {
+  switch (value) {
+    case 'alias':
+      return 'Alias references';
+    case 'direct':
+      return 'Literal values';
+    case 'duplicate':
+      return 'Shared values';
+    case 'description':
+      return 'Has description';
+    case 'extension':
+      return 'Has extensions';
+    case 'managed':
+      return 'Generated tokens';
+    case 'unused':
+      return 'Unused tokens';
+    default:
+      return value;
+  }
 }
 
 export interface UseTokenSearchParams {
@@ -539,12 +560,30 @@ export function useTokenSearch({
 
   const structuredFilterChips = useMemo(() => {
     const chips: Array<{ token: string; label: string }> = [];
-    for (const value of parsedSearchQuery.types) chips.push({ token: `type:${value}`, label: `type:${value}` });
-    for (const value of selectedHasQualifiers) chips.push({ token: `has:${value}`, label: `has:${value}` });
-    for (const value of parsedSearchQuery.values) chips.push({ token: `value:${value}`, label: `value:${value}` });
-    for (const value of parsedSearchQuery.descs) chips.push({ token: `desc:${value}`, label: `desc:${value}` });
-    for (const value of parsedSearchQuery.paths) chips.push({ token: `path:${value}`, label: `path:${value}` });
-    for (const value of parsedSearchQuery.names) chips.push({ token: `name:${value}`, label: `name:${value}` });
+    for (const value of parsedSearchQuery.types) {
+      chips.push({
+        token: `type:${value}`,
+        label: getTokenTypeLabel(value),
+      });
+    }
+    for (const value of selectedHasQualifiers) {
+      chips.push({
+        token: `has:${value}`,
+        label: getHasFilterLabel(value),
+      });
+    }
+    for (const value of parsedSearchQuery.values) {
+      chips.push({ token: `value:${value}`, label: `Value: ${value}` });
+    }
+    for (const value of parsedSearchQuery.descs) {
+      chips.push({ token: `desc:${value}`, label: `Description: ${value}` });
+    }
+    for (const value of parsedSearchQuery.paths) {
+      chips.push({ token: `path:${value}`, label: `Path: ${value}` });
+    }
+    for (const value of parsedSearchQuery.names) {
+      chips.push({ token: `name:${value}`, label: `Name: ${value}` });
+    }
     for (const value of parsedSearchQuery.scopes) {
       chips.push({
         token: `scope:${value}`,
@@ -554,7 +593,7 @@ export function useTokenSearch({
     return chips;
   }, [parsedSearchQuery, selectedHasQualifiers]);
 
-  const searchTooltip = 'Search names, paths, and descriptions. Use Filters for structured search, or type qualifier prefixes like type: and has: for autocomplete.';
+  const searchTooltip = 'Search names, paths, descriptions, and visible mode values. Use Filters to narrow results.';
 
   // displayedTokens: derived from search/filter state and component-level state
   const displayedTokens = useMemo(() => {

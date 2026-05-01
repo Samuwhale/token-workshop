@@ -108,6 +108,7 @@ interface UseTokenTypeParsingParams {
   allTokensFlat: Record<string, TokenMapEntry>;
   currentTokenPath: string;
   detectAliasCycle: (ref: string, currentPath: string, allTokensFlat: Record<string, TokenMapEntry>) => string[] | null;
+  pathExistsForCreate?: (path: string) => boolean;
   getModeValuesForDefaultValue?: (value: TokenEditorValue) => TokenEditorModeValues;
 }
 
@@ -126,6 +127,7 @@ export function useTokenTypeParsing({
   allTokensFlat,
   currentTokenPath,
   detectAliasCycle,
+  pathExistsForCreate,
   getModeValuesForDefaultValue,
 }: UseTokenTypeParsingParams) {
   const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
@@ -158,8 +160,8 @@ export function useTokenTypeParsing({
     if (!isCreateMode) return false;
     const trimmed = editPath.trim();
     if (!trimmed) return false;
-    return trimmed in allTokensFlat;
-  }, [isCreateMode, editPath, allTokensFlat]);
+    return pathExistsForCreate?.(trimmed) ?? trimmed in allTokensFlat;
+  }, [isCreateMode, editPath, pathExistsForCreate, allTokensFlat]);
 
   const canSave = useMemo(() => {
     if (aliasCycleError) return false;

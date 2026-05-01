@@ -1331,34 +1331,53 @@ export function PanelRouter({
   function renderCollectionTabs(
     section: "tokens" | "generators" | "health" | "history",
   ): ReactNode {
-    const allCollectionsScope =
+    type CollectionScopeValue = "current" | "all";
+    const allCollectionsScope: {
+      value: CollectionScopeValue;
+      onChange: (value: CollectionScopeValue) => void;
+    } | undefined =
       section === "tokens" || section === "generators"
         ? undefined
         : {
-            selected:
+            value:
               section === "health"
                 ? healthScope.mode === "all"
-                : historyScope.mode === "all",
-            onSelect: () => {
-              if (section === "health") {
-                setHealthScope({
-                  ...healthScope,
+                  ? "all"
+                  : "current"
+                : historyScope.mode === "all"
+                  ? "all"
+                  : "current",
+            onChange: (value: "current" | "all") => {
+              if (value === "all") {
+                if (section === "health") {
+                  setHealthScope({
+                    ...healthScope,
+                    mode: "all",
+                    collectionId: null,
+                    tokenPath: null,
+                    issueKey: null,
+                    view: "dashboard",
+                    nonce: Date.now(),
+                  });
+                  return;
+                }
+
+                setHistoryScope({
+                  ...historyScope,
                   mode: "all",
                   collectionId: null,
                   tokenPath: null,
-                  issueKey: null,
-                  view: "dashboard",
-                  nonce: Date.now(),
                 });
                 return;
               }
 
-              setHistoryScope({
-                ...historyScope,
-                mode: "all",
-                collectionId: null,
-                tokenPath: null,
-              });
+              const collectionId =
+                section === "health"
+                  ? (healthScope.collectionId ?? currentCollectionId)
+                  : (historyScope.collectionId ?? currentCollectionId);
+              if (collectionId) {
+                handleLibraryCollectionSelect(collectionId);
+              }
             },
           };
 
@@ -1368,12 +1387,8 @@ export function PanelRouter({
         : section === "generators"
           ? currentCollectionId
           : section === "health"
-            ? healthScope.mode === "current"
-              ? (healthScope.collectionId ?? currentCollectionId)
-              : null
-            : historyScope.mode === "current"
-              ? (historyScope.collectionId ?? currentCollectionId)
-              : null;
+            ? (healthScope.collectionId ?? currentCollectionId)
+            : (historyScope.collectionId ?? currentCollectionId);
 
     return (
       <CollectionTabs
@@ -1691,6 +1706,7 @@ export function PanelRouter({
               collections={collections}
               workingCollectionId={currentCollectionId}
               perCollectionFlat={perCollectionFlat}
+              onWorkingCollectionChange={handleLibraryCollectionSelect}
               tokenChangeKey={controller.tokenChangeKey}
               initialGeneratorId={pendingGeneratorDocumentId}
               initialView={pendingGeneratorInitialView}
@@ -1721,7 +1737,6 @@ export function PanelRouter({
     );
     return renderLibraryScaffold({
       body,
-      tabs: renderCollectionTabs("generators"),
       contextualPanel: renderTokensContextualPanel(),
     });
   }

@@ -108,6 +108,7 @@ interface GeneratorsPanelProps {
   workingCollectionId: string;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onNavigateToToken: (path: string, collectionId: string) => void;
+  onWorkingCollectionChange?: (collectionId: string) => void;
   tokenChangeKey?: number;
   initialGeneratorId?: string | null;
   initialView?: GeneratorEditorMode | null;
@@ -419,6 +420,7 @@ export function GeneratorsPanel({
   workingCollectionId,
   perCollectionFlat,
   onNavigateToToken,
+  onWorkingCollectionChange,
   tokenChangeKey,
   initialGeneratorId,
   initialView,
@@ -530,6 +532,9 @@ export function GeneratorsPanel({
 
   const openOutputReview = useCallback(() => {
     setOutputDockOpen(true);
+  }, []);
+
+  const markCurrentPreviewReviewed = useCallback(() => {
     if (previewRef.current) {
       setReviewedPreviewHash(previewRef.current.hash);
     }
@@ -613,6 +618,14 @@ export function GeneratorsPanel({
       );
     });
   }, [collectionLabelById, generatorListQuery, visibleGenerators]);
+  const collectionOptions = useMemo(
+    () =>
+      collections.map((collection) => ({
+        id: collection.id,
+        label: readCollectionLabel(collection),
+      })),
+    [collections],
+  );
   const targetCollection = useMemo(
     () =>
       collections.find(
@@ -1341,19 +1354,22 @@ export function GeneratorsPanel({
       setEditorMode("graph");
       return;
     }
+    if (!preview) {
+      setError("Wait for the latest output preview before applying.");
+      return;
+    }
     if (
-      !preview ||
       preview.blocking ||
       preview.outputs.length === 0 ||
       preview.outputs.some((output) => output.collision)
     ) {
-      setError("Wait for the latest output preview before applying.");
+      setOutputDockOpen(true);
+      setError("Review the output issues before applying.");
       return;
     }
     if (reviewedPreviewHash !== preview.hash) {
       setOutputDockOpen(true);
-      setReviewedPreviewHash(preview.hash);
-      setError("Review the latest outputs before applying.");
+      setError("Review the current outputs and mark them reviewed before applying.");
       return;
     }
     if (!saved) return;
@@ -1461,6 +1477,53 @@ export function GeneratorsPanel({
     });
   }, [activeGenerator]);
 
+  const clearGeneratorSelectionState = useCallback(() => {
+    autoPreviewRunRef.current += 1;
+    setPreview(null);
+    setReviewedPreviewHash(null);
+    setActiveInitialFocus(null);
+    setError(null);
+    setLastApply(null);
+    setExternalPreviewInvalidated(false);
+    clearGeneratorDirty();
+    setSelectedEdgeId(null);
+    setGraphPanelState("none");
+    setGraphMenu(null);
+    setActionsMenuOpen(false);
+    setOutputDockOpen(false);
+  }, [clearGeneratorDirty]);
+
+  const changeWorkingCollection = useCallback(
+    (collectionId: string) => {
+      if (busy) {
+        setError("Wait for the current generator action to finish.");
+        return;
+      }
+      if (dirty) {
+        setError("Save the current generator before switching collections.");
+        return;
+      }
+      if (collectionId === workingCollectionId) return;
+      onWorkingCollectionChange?.(collectionId);
+      const nextGeneratorId =
+        generators.find((generator) => generator.targetCollectionId === collectionId)
+          ?.id ?? null;
+      setActiveGeneratorSelection(nextGeneratorId);
+      clearGeneratorSelectionState();
+      setGeneratorListScope("collection");
+      setGeneratorListQuery("");
+    },
+    [
+      busy,
+      clearGeneratorSelectionState,
+      dirty,
+      generators,
+      onWorkingCollectionChange,
+      setActiveGeneratorSelection,
+      workingCollectionId,
+    ],
+  );
+
   const selectGenerator = useCallback(
     (generatorId: string) => {
       if (busy) {
@@ -1471,22 +1534,27 @@ export function GeneratorsPanel({
         setError("Save the current generator before switching to another one.");
         return;
       }
-      autoPreviewRunRef.current += 1;
+      const nextGenerator = generators.find((generator) => generator.id === generatorId);
+      if (
+        nextGenerator &&
+        nextGenerator.targetCollectionId !== workingCollectionId
+      ) {
+        onWorkingCollectionChange?.(nextGenerator.targetCollectionId);
+      }
+      clearGeneratorSelectionState();
       setActiveGeneratorSelection(generatorId);
-      setPreview(null);
-      setActiveInitialFocus(null);
-      setError(null);
-      setLastApply(null);
-      setExternalPreviewInvalidated(false);
-      clearGeneratorDirty();
-      setSelectedEdgeId(null);
-      setGraphMenu(null);
-      setActionsMenuOpen(false);
       setGeneratorListOpen(false);
       setGeneratorListQuery("");
-      setEditorMode("overview");
     },
-    [busy, clearGeneratorDirty, dirty, setActiveGeneratorSelection],
+    [
+      busy,
+      clearGeneratorSelectionState,
+      dirty,
+      generators,
+      onWorkingCollectionChange,
+      setActiveGeneratorSelection,
+      workingCollectionId,
+    ],
   );
 
   const updateNodeData = useCallback(
@@ -2173,7 +2241,9 @@ export function GeneratorsPanel({
         : preview?.blocking || previewHasCollisions || previewHasNoOutputs
           ? "Preview has issues"
           : preview
-            ? "Ready to apply"
+            ? reviewedPreviewHash === preview.hash
+              ? "Ready to apply"
+              : "Outputs ready"
             : activeGenerator
               ? "Preparing preview"
               : "No generator";
@@ -2255,6 +2325,15 @@ export function GeneratorsPanel({
 
   const renderGraphWorkspace = () => {
     if (!activeGenerator) return null;
+    const visibleGraphPosition = (offsetX = 0, offsetY = 0) => {
+      if (typeof window !== "undefined" && flowInstance) {
+        return flowInstance.screenToFlowPosition({
+          x: window.innerWidth / 2 + offsetX,
+          y: window.innerHeight / 2 + offsetY,
+        });
+      }
+      return { x: 160 + offsetX, y: 120 + offsetY };
+    };
     return (
       <div className="relative h-full min-h-0 overflow-hidden">
         <section className="relative h-full min-h-0 w-full min-w-0">
@@ -2267,6 +2346,51 @@ export function GeneratorsPanel({
               onRepair={repairGraphConnections}
               onDiscard={discardGeneratorDraft}
             />
+          ) : null}
+          {activeGenerator.nodes.length === 0 ? (
+            <div className="tm-graph-empty-state">
+              <div className="tm-graph-empty-state__content">
+                <h2>Add your first nodes</h2>
+                <p>Start with a source, transform it, then send the result to tokens.</p>
+                <div className="tm-graph-empty-state__actions">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    onClick={openNodeLibraryPanel}
+                  >
+                    <Plus size={14} />
+                    Add node
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const colorItem = PALETTE.find(
+                        (item) => item.kind === "literal" && item.label === "Color",
+                      );
+                      if (colorItem) addPaletteNode(colorItem, visibleGraphPosition(-90));
+                    }}
+                  >
+                    Add color source
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const outputItem = PALETTE.find(
+                        (item) => item.kind === "groupOutput",
+                      );
+                      if (outputItem) addPaletteNode(outputItem, visibleGraphPosition(90));
+                    }}
+                  >
+                    Add output
+                  </Button>
+                </div>
+              </div>
+            </div>
           ) : null}
           <ReactFlow
             key={activeGenerator.id}
@@ -2650,7 +2774,6 @@ export function GeneratorsPanel({
     setGeneratorListOpen(false);
     setActionsMenuOpen(false);
     setCreatePanelOpen(true);
-    setEditorMode("overview");
     setError(null);
   };
 
@@ -2752,6 +2875,20 @@ export function GeneratorsPanel({
                 aria-label="Find generator"
               />
             </div>
+            <label className="tm-generator-list__collection">
+              <span>Collection</span>
+              <select
+                value={workingCollectionId}
+                onChange={(event) => changeWorkingCollection(event.target.value)}
+                disabled={busy !== null || dirty}
+              >
+                {collectionOptions.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <SegmentedControl
               value={generatorListScope}
               options={GENERATOR_LIST_SCOPE_OPTIONS}
@@ -2873,6 +3010,24 @@ export function GeneratorsPanel({
         </button>
       );
     }
+    if (preview && (preview.blocking || previewHasCollisions || previewHasNoOutputs)) {
+      return (
+        <button
+          id={includeId ? "generator-status-label" : undefined}
+          type="button"
+          onClick={openOutputReview}
+          className={
+            compact
+              ? "tm-generator-status tm-generator-status--compact tm-generator-status--warning"
+              : "tm-generator-status tm-generator-status--warning"
+          }
+          title={statusLabel}
+        >
+          <AlertTriangle size={13} />
+          <span className={compact ? "truncate" : ""}>{statusLabel}</span>
+        </button>
+      );
+    }
     return (
       <span
         id={includeId ? "generator-status-label" : undefined}
@@ -2920,35 +3075,15 @@ export function GeneratorsPanel({
           onClick={() => setActionsMenuOpen(false)}
         />
         <div className="absolute right-0 top-9 z-30 min-w-[176px] rounded-md border border-[var(--border-muted)] bg-[var(--surface-panel-header)] p-1 shadow-[var(--shadow-popover)]">
-          <div className="px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {statusLabel}
-          </div>
-          <ActionRow
-            onClick={() => {
-              setActionsMenuOpen(false);
-              void saveGenerator();
-            }}
-            disabled={!dirty || busy !== null || graphHasErrors}
-          >
-            Save generator
-          </ActionRow>
-          <ActionRow
-            onClick={() => {
-              setActionsMenuOpen(false);
-              void discardGeneratorDraft();
-            }}
-            disabled={!dirty || busy !== null}
-          >
-            Discard changes
-          </ActionRow>
-          {graphHasErrors ? (
+          {dirty ? (
             <ActionRow
               onClick={() => {
                 setActionsMenuOpen(false);
-                focusFirstGraphIssue();
+                void discardGeneratorDraft();
               }}
+              disabled={busy !== null}
             >
-              Fix settings
+              Discard changes
             </ActionRow>
           ) : null}
           <ActionRow
@@ -2965,21 +3100,27 @@ export function GeneratorsPanel({
       </>
     ) : null;
 
-  const canUseGeneratorOutputAction =
+  const previewHasOutputIssues =
+    Boolean(preview) &&
+    (Boolean(preview?.blocking) || previewHasCollisions || previewHasNoOutputs);
+  const canOpenGeneratorOutputReview =
     busy === null &&
     !graphHasErrors &&
-    Boolean(preview) &&
-    !preview?.blocking &&
-    !previewHasCollisions &&
-    !previewHasNoOutputs;
+    Boolean(preview);
   const previewReviewed =
     Boolean(preview) && reviewedPreviewHash === preview?.hash;
-  const generatorPrimaryActionLabel = previewReviewed
-    ? "Apply"
-    : "Review outputs";
-  const generatorPrimaryActionTitle = previewReviewed
-    ? "Apply reviewed generator outputs"
-    : "Review generator outputs before applying";
+  const canApplyReviewedGenerator =
+    canOpenGeneratorOutputReview && previewReviewed && !previewHasOutputIssues;
+  const generatorPrimaryActionLabel = previewHasOutputIssues
+    ? "Review issues"
+    : canApplyReviewedGenerator
+      ? "Apply"
+      : "Review outputs";
+  const generatorPrimaryActionTitle = previewHasOutputIssues
+    ? "Review generator output issues"
+    : canApplyReviewedGenerator
+      ? "Apply reviewed generator outputs"
+      : "Review generator outputs before applying";
 
   const renderGeneratorActions = (compact = false) => (
     <div
@@ -2989,33 +3130,37 @@ export function GeneratorsPanel({
           : "tm-generator-action-cluster"
       }
     >
-      {compact ? (
+      {dirty && compact ? (
         <Button
           title="Save generator"
           aria-label="Save generator"
           onClick={saveGenerator}
           disabled={!dirty || busy !== null || graphHasErrors}
-          variant={dirty ? "secondary" : "ghost"}
+          variant="secondary"
           size="sm"
         >
           <Save size={14} />
           <span className="sr-only">Save</span>
         </Button>
       ) : null}
-      {!compact ? (
+      {dirty && !compact ? (
         <Button
           title="Save generator"
           aria-label="Save generator"
           onClick={saveGenerator}
           disabled={!dirty || busy !== null || graphHasErrors}
-          variant={dirty ? "secondary" : "ghost"}
+          variant="secondary"
           size="sm"
         >
           <Save size={14} />
           <span className="max-[760px]:sr-only">Save</span>
         </Button>
       ) : null}
-      {preview && preview.outputs.length > 0 && !outputDockOpen && previewReviewed ? (
+      {preview &&
+      preview.outputs.length > 0 &&
+      !outputDockOpen &&
+      previewReviewed &&
+      !compact ? (
         <Button
           title="Review generator outputs"
           aria-label="Review generator outputs"
@@ -3024,22 +3169,20 @@ export function GeneratorsPanel({
           size="sm"
         >
           <PanelRight size={14} />
-          <span className={compact ? "sr-only" : ""}>Review</span>
+          <span>Review</span>
         </Button>
       ) : null}
       <Button
         title={generatorPrimaryActionTitle}
         aria-label={generatorPrimaryActionTitle}
         aria-describedby="generator-status-label"
-        onClick={previewReviewed ? applyGenerator : openOutputReview}
-        disabled={!canUseGeneratorOutputAction}
+        onClick={canApplyReviewedGenerator ? applyGenerator : openOutputReview}
+        disabled={!canOpenGeneratorOutputReview}
         variant="primary"
         size="sm"
       >
-        {previewReviewed ? <Sparkles size={14} /> : <PanelRight size={14} />}
-        <span className={compact ? "sr-only" : ""}>
-          {generatorPrimaryActionLabel}
-        </span>
+        {canApplyReviewedGenerator ? <Sparkles size={14} /> : <PanelRight size={14} />}
+        <span>{generatorPrimaryActionLabel}</span>
       </Button>
       <div className="relative">
         <IconButton
@@ -3058,6 +3201,11 @@ export function GeneratorsPanel({
   const renderOutputDock = () => {
     if (!activeGenerator) return null;
     const counts = preview ? countPreviewChanges(preview.outputs) : null;
+    const previewDiagnosticCount = preview?.diagnostics.length ?? 0;
+    const previewIssueCount =
+      previewDiagnosticCount +
+      (counts?.collisions ?? 0) +
+      (previewHasNoOutputs ? 1 : 0);
     const outputLabel = !preview
       ? "Preparing outputs"
       : preview.outputs.length === 1
@@ -3074,15 +3222,7 @@ export function GeneratorsPanel({
           <button
             type="button"
             className="tm-generator-output-dock__summary"
-            onClick={() => {
-              setOutputDockOpen((open) => {
-                const nextOpen = !open;
-                if (nextOpen && preview) {
-                  setReviewedPreviewHash(preview.hash);
-                }
-                return nextOpen;
-              });
-            }}
+            onClick={() => setOutputDockOpen((open) => !open)}
             aria-expanded={outputDockOpen}
           >
             <ChevronDown
@@ -3102,14 +3242,35 @@ export function GeneratorsPanel({
               </span>
             ) : null}
           </button>
-          {graphIssues.length > 0 ? (
+          <div className="tm-generator-output-dock__actions">
+            {outputDockOpen &&
+            preview &&
+            !previewHasOutputIssues &&
+            reviewedPreviewHash !== preview.hash ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={markCurrentPreviewReviewed}
+              >
+                Mark reviewed
+              </Button>
+            ) : null}
+            {outputDockOpen &&
+            preview &&
+            !previewHasOutputIssues &&
+            reviewedPreviewHash === preview.hash ? (
+              <span className="tm-generator-output-dock__reviewed">Reviewed</span>
+            ) : null}
+          </div>
+          {graphIssues.length > 0 || previewIssueCount > 0 ? (
             <button
               type="button"
               className="tm-generator-output-dock__issue"
-              onClick={focusFirstGraphIssue}
+              onClick={graphIssues.length > 0 ? focusFirstGraphIssue : openOutputReview}
             >
               <AlertTriangle size={13} />
-              {graphIssues.length}
+              {graphIssues.length + previewIssueCount}
             </button>
           ) : null}
         </header>
@@ -3150,7 +3311,9 @@ export function GeneratorsPanel({
       <div className="tm-generator-workbench-header tm-generator-workbench-header--empty">
         {renderGeneratorIdentity()}
         <div className="tm-generator-header__empty-summary">
-          Automate token groups from values, tokens, or graphs.
+          {generators.length > 0
+            ? "No generator selected in this collection."
+            : "Automate token groups from values, tokens, or graphs."}
         </div>
         <Button type="button" size="sm" variant="primary" onClick={openCreateGenerator}>
           <Plus size={14} />
@@ -3161,18 +3324,51 @@ export function GeneratorsPanel({
         variant="empty"
         size="full"
         icon={null}
-        title="No generators yet"
-        description="Create a generator for repeated scales, ramps, and token groups in this collection."
-        primaryAction={{
-          label: "Create generator",
-          onClick: () => {
-            if (busy) {
-              setError("Wait for the current generator action to finish.");
-              return;
-            }
-            setCreatePanelOpen(true);
-          },
-        }}
+        title={
+          generators.length > 0
+            ? "No generators in this collection"
+            : "No generators yet"
+        }
+        description={
+          generators.length > 0
+            ? "This collection does not have its own generators. View all generators or create one for this collection."
+            : "Create a generator for repeated scales, ramps, and token groups in this collection."
+        }
+        actions={
+          generators.length > 0
+            ? [
+                {
+                  label: "View all generators",
+                  onClick: () => {
+                    setGeneratorListScope("all");
+                    setGeneratorListOpen(true);
+                  },
+                },
+                {
+                  label: "Create generator",
+                  onClick: () => {
+                    if (busy) {
+                      setError("Wait for the current generator action to finish.");
+                      return;
+                    }
+                    setCreatePanelOpen(true);
+                  },
+                  tone: "secondary",
+                },
+              ]
+            : [
+                {
+                  label: "Create generator",
+                  onClick: () => {
+                    if (busy) {
+                      setError("Wait for the current generator action to finish.");
+                      return;
+                    }
+                    setCreatePanelOpen(true);
+                  },
+                },
+              ]
+        }
       />
     </div>
   );
@@ -3190,17 +3386,17 @@ export function GeneratorsPanel({
             <div className="tm-generator-workbench-header">
               <div className="tm-generator-workbench-header__primary">
                 {renderGeneratorIdentity()}
-                <div className="tm-generator-header__actions">
-                  {renderStatusIndicator(compactGenerators)}
-                  {renderGeneratorActions(compactGenerators)}
-                </div>
-              </div>
-              <div className="tm-generator-workbench-header__secondary">
-                {renderGeneratorTabs()}
                 <div className="tm-generator-header__state">
                   <span title={workbenchStateSummary}>
                     {workbenchStateSummary}
                   </span>
+                </div>
+              </div>
+              <div className="tm-generator-workbench-header__secondary">
+                {renderGeneratorTabs()}
+                <div className="tm-generator-header__actions">
+                  {renderStatusIndicator(compactGenerators)}
+                  {renderGeneratorActions(compactGenerators)}
                 </div>
               </div>
             </div>
@@ -3685,7 +3881,20 @@ function GraphContextMenu({
             ))}
             {addCandidates.length === 0 ? (
               <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                No compatible nodes.
+                <div>
+                  {normalizedQuery
+                    ? "No nodes match this search."
+                    : "No compatible nodes."}
+                </div>
+                {normalizedQuery ? (
+                  <button
+                    type="button"
+                    className="mt-1 text-[color:var(--color-figma-text-accent)] hover:underline"
+                    onClick={() => setQuery("")}
+                  >
+                    Clear search
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </GraphMenuGroup>
@@ -4334,6 +4543,22 @@ function OverviewNodeGroup({
   edges: TokenGeneratorEdge[];
   onChangeNode: (nodeId: string, data: Record<string, unknown>) => void;
 }) {
+  const [openNodeIds, setOpenNodeIds] = useState<Set<string>>(
+    () => new Set(nodes[0] ? [nodes[0].id] : []),
+  );
+  useEffect(() => {
+    setOpenNodeIds((current) => {
+      const validIds = new Set(nodes.map((node) => node.id));
+      const next = new Set(
+        Array.from(current).filter((nodeId) => validIds.has(nodeId)),
+      );
+      if (next.size === 0 && nodes[0]) {
+        next.add(nodes[0].id);
+      }
+      return next;
+    });
+  }, [nodes]);
+
   if (nodes.length === 0) return null;
   return (
     <section className="space-y-2">
@@ -4344,28 +4569,49 @@ function OverviewNodeGroup({
         {nodes.map((node) => {
           const description = overviewNodeDescription(node);
           return (
-            <div key={node.id} className="space-y-2">
-              <div>
-                <h4 className="m-0 text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                  {node.label}
-                </h4>
-                <p className="m-0 text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                  {formatNodeKind(node.kind)}
-                  {description ? ` · ${description}` : ""}
-                </p>
+            <details
+              key={node.id}
+              className="tm-generator-overview-node"
+              open={openNodeIds.has(node.id)}
+              onToggle={(event) => {
+                const isOpen = event.currentTarget.open;
+                setOpenNodeIds((current) => {
+                  const next = new Set(current);
+                  if (isOpen) {
+                    next.add(node.id);
+                  } else {
+                    next.delete(node.id);
+                  }
+                  return next;
+                });
+              }}
+            >
+              <summary className="tm-generator-overview-node__summary">
+                <span className="min-w-0">
+                  <span className="tm-generator-overview-node__title">
+                    {node.label}
+                  </span>
+                  <span className="tm-generator-overview-node__meta">
+                    {formatNodeKind(node.kind)}
+                    {description ? ` · ${description}` : ""}
+                  </span>
+                </span>
+                <span className="tm-generator-overview-node__edit">Edit</span>
+              </summary>
+              <div className="tm-generator-overview-node__body">
+                <NodeInspector
+                  node={node}
+                  collections={collections}
+                  perCollectionFlat={perCollectionFlat}
+                  defaultCollectionId={defaultCollectionId}
+                  onChange={(data) => onChangeNode(node.id, data)}
+                  showDelete={false}
+                  showIdentity={false}
+                  showHelp={false}
+                  outputPathPrefix={readConnectedGroupOutputPrefix(node, allNodes, edges)}
+                />
               </div>
-              <NodeInspector
-                node={node}
-                collections={collections}
-                perCollectionFlat={perCollectionFlat}
-                defaultCollectionId={defaultCollectionId}
-                onChange={(data) => onChangeNode(node.id, data)}
-                showDelete={false}
-                showIdentity={false}
-                showHelp={false}
-                outputPathPrefix={readConnectedGroupOutputPrefix(node, allNodes, edges)}
-              />
-            </div>
+            </details>
           );
         })}
       </div>

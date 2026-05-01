@@ -209,7 +209,7 @@ export function ValueCell({
         canCreate ? (
           <button
             type="button"
-            className="tm-value-cell__create-button"
+            className="tm-value-cell__create-button tm-value-cell__interactive-control"
             onClick={(e) => {
               e.stopPropagation();
               openQuickEdit();
@@ -221,7 +221,7 @@ export function ValueCell({
         ) : onEdit ? (
           <button
             type="button"
-            className="tm-value-cell__create-button"
+            className="tm-value-cell__create-button tm-value-cell__interactive-control"
             onClick={(e) => {
               e.stopPropagation();
               onEdit();
@@ -262,7 +262,7 @@ export function ValueCell({
                   e.stopPropagation();
                   onNavigateToAlias(resolvedAliasPath, sourceTokenPath);
                 }}
-                className="tm-value-cell__nav text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)] cursor-pointer rounded"
+                className="tm-value-cell__nav tm-value-cell__interactive-control cursor-pointer rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)]"
                 aria-label={`Go to alias target ${resolvedAliasPath}`}
                 title={`Go to ${resolvedAliasPath}`}
               >

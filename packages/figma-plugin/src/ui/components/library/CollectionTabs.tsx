@@ -29,15 +29,19 @@ import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
-import { Button, SearchField } from "../../primitives";
+import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
 const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 640;
+const COLLECTION_SCOPE_OPTIONS = [
+  { value: "current", label: "Current" },
+  { value: "all", label: "All" },
+] as const;
 
 interface AllCollectionsScope {
-  selected: boolean;
-  onSelect: () => void;
+  value: "current" | "all";
+  onChange: (value: "current" | "all") => void;
 }
 
 interface ActiveCollectionSettings {
@@ -125,19 +129,16 @@ export function CollectionTabs({
         : null,
     [collections, currentCollectionId],
   );
+  const scopeValue = allCollectionsScope?.value ?? "current";
   const currentDisplayName = currentCollection
     ? getCollectionDisplayName(currentCollection.id, collectionDisplayNames)
-    : allCollectionsScope?.selected
-      ? "All collections"
-      : "Choose collection";
+    : "Choose collection";
   const currentMeta = currentCollection
     ? formatCollectionMeta(
         collectionTokenCounts[currentCollection.id] ?? 0,
         currentCollection.modes.length,
       )
-    : allCollectionsScope?.selected
-      ? `${collections.length} ${collections.length === 1 ? "collection" : "collections"}`
-      : "";
+    : "";
 
   const filteredCollections = useMemo(
     () => filterCollections(collections, deferredQuery, collectionDisplayNames),
@@ -147,7 +148,7 @@ export function CollectionTabs({
   const showManageButton =
     Boolean(activeCollectionSettings) &&
     currentCollectionId !== null &&
-    allCollectionsScope?.selected !== true;
+    scopeValue !== "all";
   const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
   const hasSecondaryActions =
@@ -159,10 +160,10 @@ export function CollectionTabs({
   const hasCollapsedOverflowActions = showImportButton;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
-    ? `Current collection: ${currentDisplayName}. Choose collection`
-    : allCollectionsScope?.selected
-      ? "All collections selected. Choose collection"
-      : "Choose collection";
+    ? scopeValue === "all"
+      ? `All collections view. Current collection: ${currentDisplayName}. Choose collection`
+      : `Current collection: ${currentDisplayName}. Choose collection`
+    : "Choose collection";
 
   const closeSwitcher = useCallback(() => {
     closeSwitcherMenu({ restoreFocus: false });
@@ -187,12 +188,6 @@ export function CollectionTabs({
     },
     [closeSwitcher, onSelectCollection],
   );
-
-  const handleSelectAll = useCallback(() => {
-    allCollectionsScope?.onSelect();
-    setQuery("");
-    closeSwitcher();
-  }, [allCollectionsScope, closeSwitcher]);
 
   useEffect(() => {
     if (focusRequestKey <= lastHandledFocusRequestKeyRef.current) {
@@ -222,6 +217,16 @@ export function CollectionTabs({
       <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
         <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
           <div className="tm-responsive-toolbar__leading tm-collection-toolbar__leading">
+            {allCollectionsScope ? (
+              <div className="tm-collection-toolbar__scope">
+                <SegmentedControl
+                  value={scopeValue}
+                  options={[...COLLECTION_SCOPE_OPTIONS]}
+                  onChange={allCollectionsScope.onChange}
+                  ariaLabel="Collection scope"
+                />
+              </div>
+            ) : null}
             <button
               ref={switcherTriggerRef}
               type="button"
@@ -346,35 +351,6 @@ export function CollectionTabs({
                     }
                   }}
                 >
-                  {allCollectionsScope ? (
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={allCollectionsScope.selected}
-                      onClick={handleSelectAll}
-                      className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
-                        allCollectionsScope.selected
-                          ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                          : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                      }`}
-                    >
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-text-accent)]">
-                        {allCollectionsScope.selected ? (
-                          <Check size={12} strokeWidth={1.7} aria-hidden />
-                        ) : null}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className={`block text-body font-medium ${LONG_TEXT_CLASSES.textPrimary}`}>
-                          All collections
-                        </span>
-                        <span className={`block text-secondary ${LONG_TEXT_CLASSES.textTertiary}`}>
-                          {collections.length}{" "}
-                          {collections.length === 1 ? "collection" : "collections"}
-                        </span>
-                      </span>
-                    </button>
-                  ) : null}
-
                   {hasNoMatches ? (
                     <div className="px-2 py-3 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                       No collections match "{query.trim()}".
@@ -382,9 +358,7 @@ export function CollectionTabs({
                   ) : (
                     filteredCollections.map((collection) => {
                       const collectionId = collection.id;
-                      const isCurrent =
-                        allCollectionsScope?.selected !== true &&
-                        collectionId === currentCollectionId;
+                      const isCurrent = collectionId === currentCollectionId;
                       const displayName = getCollectionDisplayName(
                         collectionId,
                         collectionDisplayNames,

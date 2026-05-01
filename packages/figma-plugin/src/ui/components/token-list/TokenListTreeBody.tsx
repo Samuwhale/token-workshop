@@ -417,7 +417,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           aria-expanded={addModeMenuOpen}
         >
           <Plus size={12} strokeWidth={2} aria-hidden />
-          <span className="tm-token-table__add-mode-label">Add mode</span>
         </Button>
         {addModeMenuOpen && (
           <div

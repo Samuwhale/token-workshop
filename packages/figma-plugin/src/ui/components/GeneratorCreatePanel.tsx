@@ -88,6 +88,10 @@ const SOURCE_MODE_OPTIONS: Array<{ value: GeneratorSourceMode; label: string }> 
   { value: "literal", label: "Value" },
   { value: "token", label: "Token" },
 ];
+const INITIAL_VIEW_OPTIONS: Array<{ value: GeneratorEditorMode; label: string }> = [
+  { value: "overview", label: "Overview" },
+  { value: "graph", label: "Graph" },
+];
 const TEMPLATE_GROUPS: Array<{
   label: string;
   ids: GeneratorConfiguredTemplateKind[];
@@ -181,6 +185,8 @@ export function GeneratorCreatePanel({
   const [formulaOutputType, setFormulaOutputType] = useState<
     "number" | "dimension"
   >(FORMULA_DEFAULT.outputType);
+  const [initialView, setInitialView] =
+    useState<GeneratorEditorMode>("overview");
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
@@ -307,6 +313,7 @@ export function GeneratorCreatePanel({
         GENERATOR_TEMPLATE_OPTIONS[0];
       setKind(nextKind);
       setTemplateSelection(nextKind);
+      setInitialView("overview");
       setOutputPrefix(initialOutputPrefixValue || option.outputPrefix);
       setSourceMode(option.sourceMode);
       setSourceValue(generatorDefaultSourceValue(nextKind));
@@ -366,7 +373,7 @@ export function GeneratorCreatePanel({
         onOpenGenerator(
           created.generator.id,
           created.generator.targetCollectionId,
-          "graph",
+          initialView,
         );
       } catch (createError) {
         if (!isActiveCreateRequest(requestId)) return;
@@ -449,7 +456,7 @@ export function GeneratorCreatePanel({
       onOpenGenerator(
         created.generator.id,
         created.generator.targetCollectionId,
-        "overview",
+        initialView,
       );
     } catch (createError) {
       if (!isActiveCreateRequest(requestId)) return;
@@ -463,6 +470,7 @@ export function GeneratorCreatePanel({
     }
   }, [
     generationConfig,
+    initialView,
     isActiveCreateRequest,
     kind,
     missingSourceModes,
@@ -517,6 +525,7 @@ export function GeneratorCreatePanel({
                 type="button"
                 onClick={() => {
                   setTemplateSelection("blank");
+                  setInitialView("graph");
                   setError(null);
                 }}
                 aria-pressed={templateSelection === "blank"}
@@ -622,6 +631,18 @@ export function GeneratorCreatePanel({
                 ))}
               </select>
             </label>
+
+            <div className="space-y-1">
+              <span className="block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+                Open after create
+              </span>
+              <SegmentedControl
+                value={initialView}
+                options={INITIAL_VIEW_OPTIONS}
+                ariaLabel="Open generator after create"
+                onChange={setInitialView}
+              />
+            </div>
 
             {templateSelection === "blank" ? (
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">

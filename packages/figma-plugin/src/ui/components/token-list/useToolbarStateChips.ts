@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getTokenTypeLabel } from "../../shared/tokenTypeCategories";
 
 export interface ToolbarStateChip {
   key: string;
@@ -92,7 +93,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
     if (typeFilter !== "") {
       chips.push({
         key: `type:${typeFilter}`,
-        label: `Type: ${typeFilter}`,
+        label: getTokenTypeLabel(typeFilter),
         onRemove: () => setTypeFilter(""),
       });
     }

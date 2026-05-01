@@ -37,6 +37,9 @@ export function NodeLibraryPanel({
     presentation === "overlay"
       ? "flex h-full min-h-0 w-full flex-col overflow-y-auto p-2"
       : "flex w-[244px] shrink-0 flex-col overflow-y-auto border-l border-[var(--color-figma-border)] p-2 max-[760px]:max-h-[220px] max-[760px]:w-full max-[760px]:border-l-0 max-[760px]:border-t";
+  const groupedItems = Object.entries(
+    groupBy(paletteItems, (item) => item.category),
+  );
 
   return (
     <aside className={className}>
@@ -66,46 +69,58 @@ export function NodeLibraryPanel({
         containerClassName="mb-1.5"
       />
       <div className="space-y-2">
-        {Object.entries(groupBy(paletteItems, (item) => item.category)).map(
-          ([category, items]) => (
-            <div key={category}>
-              <div className="mb-1 px-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                {category}
-              </div>
-              <div className="space-y-0.5">
-                {items.map((item) => (
-                  <button
-                    key={`${item.kind}-${item.label}`}
-                    type="button"
-                    draggable
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData(
-                        "application/tokenmanager-node",
-                        item.label,
-                      );
-                      event.dataTransfer.effectAllowed = "copy";
-                    }}
-                    onClick={() => onAddNode(item)}
-                    className="flex w-full items-start gap-2 rounded px-1.5 py-1 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
-                  >
-                    <Plus
-                      size={12}
-                      className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate">{item.label}</span>
-                      {item.description ? (
-                        <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                          {item.description}
-                        </span>
-                      ) : null}
-                    </span>
-                  </button>
-                ))}
-              </div>
+        {groupedItems.length === 0 ? (
+          <div className="rounded bg-[var(--color-figma-bg-secondary)] px-2 py-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            <div className="font-medium text-[color:var(--color-figma-text)]">
+              No matching nodes
             </div>
-          ),
-        )}
+            <button
+              type="button"
+              className="mt-1 text-left text-[color:var(--color-figma-text-accent)] hover:underline"
+              onClick={() => onPaletteQueryChange("")}
+            >
+              Clear search
+            </button>
+          </div>
+        ) : null}
+        {groupedItems.map(([category, items]) => (
+          <div key={category}>
+            <div className="mb-1 px-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
+              {category}
+            </div>
+            <div className="space-y-0.5">
+              {items.map((item) => (
+                <button
+                  key={`${item.kind}-${item.label}`}
+                  type="button"
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(
+                      "application/tokenmanager-node",
+                      item.label,
+                    );
+                    event.dataTransfer.effectAllowed = "copy";
+                  }}
+                  onClick={() => onAddNode(item)}
+                  className="flex w-full items-start gap-2 rounded px-1.5 py-1 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <Plus
+                    size={12}
+                    className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate">{item.label}</span>
+                    {item.description ? (
+                      <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                        {item.description}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </aside>
   );
