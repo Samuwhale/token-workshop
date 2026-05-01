@@ -1496,6 +1496,20 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 420px) {
+  .tm-collection-toolbar__trigger {
+    align-items: flex-start;
+  }
+
+  .tm-collection-toolbar__summary-title {
+    display: -webkit-box;
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
   .tm-collection-toolbar__summary-meta {
     display: none;
   }

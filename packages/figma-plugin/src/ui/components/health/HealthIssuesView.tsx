@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { ValidationIssue } from "../../hooks/useValidationCache";
 import { severityStyles } from "../../shared/noticeSystem";
 import type { NoticeSeverity } from "../../shared/noticeSystem";
@@ -9,6 +10,7 @@ import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
 import { Spinner } from "../Spinner";
 import { getRuleLabel, hasFix, fixLabel, suppressKey } from "../../shared/ruleLabels";
 import { HealthSubViewHeader } from "./HealthSubViewHeader";
+import { MenuRadioGroup } from "../../primitives";
 
 const ISSUES_PER_PAGE = 20;
 
@@ -49,6 +51,7 @@ export function HealthIssuesView({
   const [tokenPathFilter, setTokenPathFilter] = useState<string | null>(initialTokenPath);
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
   const [issueGroupVisibleCounts, setIssueGroupVisibleCounts] = useState<Record<string, number>>({});
+  const severityMenu = useDropdownMenu();
   const exportMenu = useDropdownMenu();
 
   useEffect(() => {
@@ -76,6 +79,28 @@ export function HealthIssuesView({
         })
       : scopedIssues.filter((i) => i.severity === severityFilter);
   const exportIssues = filteredIssues;
+  const severityCounts = useMemo(
+    () => ({
+      all: scopedIssues.length,
+      error: scopedIssues.filter((issue) => issue.severity === "error").length,
+      warning: scopedIssues.filter((issue) => issue.severity === "warning").length,
+      info: scopedIssues.filter((issue) => issue.severity === "info").length,
+    }),
+    [scopedIssues],
+  );
+  const severityLabel =
+    severityFilter === "all"
+      ? "All severities"
+      : severityFilter === "error"
+        ? "Errors"
+        : severityFilter === "warning"
+          ? "Warnings"
+          : "Info";
+  const filterSummary = tokenPathFilter
+    ? `Showing issues for ${tokenPathFilter}.`
+    : severityFilter === "all"
+      ? "Showing all visible review issues."
+      : `Showing ${severityLabel.toLowerCase()} only.`;
 
   const issueGroups = (() => {
     if (filteredIssues.length === 0) return [];
@@ -159,70 +184,100 @@ export function HealthIssuesView({
         title="Issues"
         onBack={onBack}
         count={tokenPathFilter ? null : lastRefreshedLabel(validationLastRefreshed)}
-        trailing={
-          <>
-            {tokenPathFilter && (
-              <button
-                onClick={() => setTokenPathFilter(null)}
-                className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
-              >
-                Clear filter
-              </button>
-            )}
-            {(["all", "error", "warning", "info"] as const).map((f) => {
-              const filterSeverity: NoticeSeverity = f === "all" ? "info" : f;
-              const isActive = severityFilter === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setSeverityFilter(f)}
-                  className={`text-secondary px-1.5 py-0.5 rounded transition-colors ${
-                    isActive
-                      ? `${severityStyles(filterSeverity).pill} font-medium`
-                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                  }`}
-                >
-                  {f}
-                </button>
-              );
-            })}
-            <div className="relative">
-              <button
-                ref={exportMenu.triggerRef}
-                onClick={exportMenu.toggle}
-                className="text-secondary px-1.5 py-0.5 rounded text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] transition-colors"
-                aria-haspopup="true"
-                aria-expanded={exportMenu.open}
-                aria-label="Export"
-              >
-                &hellip;
-              </button>
-              {exportMenu.open && (
-                <div
-                  ref={exportMenu.menuRef}
-                  className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-0.5"
-                  role="menu"
-                >
-                  <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                    Copy as Markdown
-                  </button>
-                  <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                    Export JSON
-                  </button>
-                  <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                    Export CSV
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
-        }
       />
-      {tokenPathFilter && (
-        <div className="shrink-0 break-all px-3 pb-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          {tokenPathFilter}
+      <div className="shrink-0 border-b border-[var(--border-muted)] px-3 py-2">
+        <div className="tm-responsive-toolbar">
+          <div className="tm-responsive-toolbar__row">
+            <div className="tm-responsive-toolbar__leading">
+              <p className="min-w-0 break-words [overflow-wrap:anywhere] text-secondary text-[color:var(--color-figma-text-secondary)]">
+                {filterSummary}
+              </p>
+            </div>
+            <div className="tm-responsive-toolbar__actions">
+              {tokenPathFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setTokenPathFilter(null)}
+                  className="rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  Clear token filter
+                </button>
+              ) : null}
+              <div className="relative">
+                <button
+                  type="button"
+                  ref={severityMenu.triggerRef}
+                  onClick={severityMenu.toggle}
+                  className={`inline-flex min-h-7 items-center gap-1 rounded px-2 text-secondary transition-colors ${
+                    severityFilter === "all"
+                      ? "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                      : `${severityStyles((severityFilter as NoticeSeverity)).pill} font-medium`
+                  }`}
+                  aria-haspopup="menu"
+                  aria-expanded={severityMenu.open}
+                >
+                  <span className="truncate">Severity: {severityLabel}</span>
+                  <ChevronDown size={12} strokeWidth={1.5} aria-hidden />
+                </button>
+                {severityMenu.open ? (
+                  <div
+                    ref={severityMenu.menuRef}
+                    className={FLOATING_MENU_CLASS}
+                    role="menu"
+                  >
+                    <MenuRadioGroup
+                      label="Severity"
+                      value={severityFilter}
+                      onChange={(value) =>
+                        setSeverityFilter(
+                          value as "all" | "error" | "warning" | "info",
+                        )
+                      }
+                      onSelect={() => severityMenu.close({ restoreFocus: false })}
+                      options={[
+                        { value: "all", label: `All (${severityCounts.all})` },
+                        { value: "error", label: `Errors (${severityCounts.error})` },
+                        { value: "warning", label: `Warnings (${severityCounts.warning})` },
+                        { value: "info", label: `Info (${severityCounts.info})` },
+                      ]}
+                    />
+                  </div>
+                ) : null}
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  ref={exportMenu.triggerRef}
+                  onClick={exportMenu.toggle}
+                  className="inline-flex min-h-7 items-center gap-1 rounded px-2 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                  aria-haspopup="menu"
+                  aria-expanded={exportMenu.open}
+                >
+                  <span>Export</span>
+                  <ChevronDown size={12} strokeWidth={1.5} aria-hidden />
+                </button>
+                {exportMenu.open ? (
+                  <div
+                    ref={exportMenu.menuRef}
+                    className={FLOATING_MENU_CLASS}
+                    role="menu"
+                  >
+                    <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                      Copy as Markdown
+                    </button>
+                    <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                      Export JSON
+                    </button>
+                    <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+                      Export CSV
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
 
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         {filteredIssues.length === 0 ? (
