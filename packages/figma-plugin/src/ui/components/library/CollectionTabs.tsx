@@ -33,7 +33,7 @@ import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 720;
+const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 860;
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "Current" },
   { value: "all", label: "All" },
@@ -75,6 +75,15 @@ function formatCollectionMeta(tokenCount: number, modeCount: number): string {
   const tokenLabel = tokenCount === 1 ? "token" : "tokens";
   const modeLabel = modeCount === 1 ? "mode" : "modes";
   return `${tokenCount} ${tokenLabel} · ${modeCount} ${modeLabel}`;
+}
+
+function formatAllCollectionsMeta(
+  collectionCount: number,
+  tokenCount: number,
+): string {
+  const collectionLabel = collectionCount === 1 ? "collection" : "collections";
+  const tokenLabel = tokenCount === 1 ? "token" : "tokens";
+  return `${collectionCount} ${collectionLabel} · ${tokenCount} ${tokenLabel}`;
 }
 
 export function CollectionTabs({
@@ -133,12 +142,21 @@ export function CollectionTabs({
   const currentDisplayName = currentCollection
     ? getCollectionDisplayName(currentCollection.id, collectionDisplayNames)
     : "Choose collection";
-  const currentMeta = currentCollection
-    ? formatCollectionMeta(
-        collectionTokenCounts[currentCollection.id] ?? 0,
-        currentCollection.modes.length,
-      )
-    : "";
+  const allCollectionsTokenCount = collections.reduce(
+    (sum, collection) => sum + (collectionTokenCounts[collection.id] ?? 0),
+    0,
+  );
+  const visibleTitle =
+    scopeValue === "all" ? "All collections" : currentDisplayName;
+  const visibleMeta =
+    scopeValue === "all"
+      ? formatAllCollectionsMeta(collections.length, allCollectionsTokenCount)
+      : currentCollection
+        ? formatCollectionMeta(
+            collectionTokenCounts[currentCollection.id] ?? 0,
+            currentCollection.modes.length,
+          )
+        : "";
 
   const filteredCollections = useMemo(
     () => filterCollections(collections, deferredQuery, collectionDisplayNames),
@@ -244,11 +262,11 @@ export function CollectionTabs({
             >
               <span className="tm-collection-toolbar__summary min-w-0 flex-1">
                 <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
-                  {currentDisplayName}
+                  {visibleTitle}
                 </span>
-                {currentMeta ? (
+                {visibleMeta ? (
                   <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                    {currentMeta}
+                    {visibleMeta}
                   </span>
                 ) : null}
               </span>

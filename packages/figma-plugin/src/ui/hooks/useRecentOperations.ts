@@ -108,7 +108,7 @@ export function useRecentOperations({
       fetchRecentOps();
       setSuccessToast('Operation rolled back');
     } catch (err) {
-      setErrorToast(`Rollback failed: ${getErrorMessage(err)}`);
+      setErrorToast(`Restore failed: ${getErrorMessage(err)}`);
     }
   }, [serverUrl, recentOperations, refreshAll, fetchRecentOps, setSuccessToast, setErrorToast]);
 

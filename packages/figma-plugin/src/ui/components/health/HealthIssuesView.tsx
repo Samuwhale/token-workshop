@@ -10,6 +10,10 @@ import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
 import { Spinner } from "../Spinner";
 import { getRuleLabel, hasFix, fixLabel, suppressKey } from "../../shared/ruleLabels";
 import { HealthSubViewHeader } from "./HealthSubViewHeader";
+import {
+  FeedbackPlaceholder,
+  type FeedbackPlaceholderAction,
+} from "../FeedbackPlaceholder";
 import { MenuRadioGroup } from "../../primitives";
 
 const ISSUES_PER_PAGE = 20;
@@ -178,6 +182,22 @@ export function HealthIssuesView({
     exportMenu.close();
   };
 
+  const emptyStateActions: FeedbackPlaceholderAction[] = [
+    ...(tokenPathFilter
+      ? [{
+          label: "Clear token filter",
+          onClick: () => setTokenPathFilter(null),
+        } satisfies FeedbackPlaceholderAction]
+      : []),
+    ...(severityFilter !== "all"
+      ? [{
+          label: "Show all severities",
+          onClick: () => setSeverityFilter("all"),
+          tone: tokenPathFilter ? "secondary" : "primary",
+        } satisfies FeedbackPlaceholderAction]
+      : []),
+  ];
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <HealthSubViewHeader
@@ -281,15 +301,29 @@ export function HealthIssuesView({
 
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
         {filteredIssues.length === 0 ? (
-          <div className="px-3 py-12 text-center">
-            <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-              {activeIssues.length === 0
+          <FeedbackPlaceholder
+            variant={activeIssues.length === 0 ? "empty" : "no-results"}
+            size="section"
+            title={
+              activeIssues.length === 0
                 ? "No issues found"
                 : tokenPathFilter
                   ? "No issues found for this token"
-                  : "No issues match this filter"}
-            </p>
-          </div>
+                  : "No issues match this filter"
+            }
+            description={
+              activeIssues.length === 0
+                ? "This scope is clear right now."
+                : tokenPathFilter && severityFilter !== "all"
+                  ? "Clear the token filter or show all severities."
+                  : tokenPathFilter
+                    ? "Clear the token filter to keep reviewing the rest of the collection."
+                    : "Show a different severity or reopen the full issue list."
+            }
+            actions={emptyStateActions}
+            align="start"
+            className="px-3 py-10"
+          />
         ) : (
           issueGroups.map((group) => {
             const isCollapsed = collapsedRules.has(group.rule);

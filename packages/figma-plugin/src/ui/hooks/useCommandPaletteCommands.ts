@@ -641,7 +641,7 @@ export function useCommandPaletteCommands(): {
           label:
             index === 0
               ? `Undo: ${operation.description}`
-              : `Rollback: ${operation.description}`,
+              : `Restore: ${operation.description}`,
           description: `${operation.affectedPaths.length} path(s) · ${operation.resourceId} · ${timeAgo(operation.timestamp)}`,
           category: "History" as const,
           handler: () => sync.handleRollback(operation.id),

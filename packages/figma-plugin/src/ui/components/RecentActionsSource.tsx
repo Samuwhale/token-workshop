@@ -68,7 +68,7 @@ export function OpIcon({ type }: { type: string }) {
 }
 
 export function RecentActionsSource({ recentOperations, onRollback, undoDescriptions, onSwitchTab, total, hasMore, onLoadMore, redoableOpIds, onServerRedo }: RecentActionsSourceProps) {
-  const [rollingBack, setRollingBack] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
   const [redoing, setRedoing] = useState<string | null>(null);
   const [confirmOp, setConfirmOp] = useState<OperationEntry | null>(null);
   const [localOpen, setLocalOpen] = useState(true);
@@ -77,12 +77,12 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
   const [searchPath, setSearchPath] = useState('');
 
   const handleRollback = useCallback(async (opId: string) => {
-    setRollingBack(opId);
+    setRestoring(opId);
     setConfirmOp(null);
     try {
       await onRollback(opId);
     } finally {
-      setRollingBack(null);
+      setRestoring(null);
     }
   }, [onRollback]);
 
@@ -120,9 +120,9 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
     <>
     {confirmOp && (
       <ConfirmModal
-        title="Roll back operation?"
-        description={`"${confirmOp.description}" affected ${confirmOp.affectedPaths.length} path${confirmOp.affectedPaths.length !== 1 ? 's' : ''}. This will restore tokens to their state before this operation.`}
-        confirmLabel="Roll Back"
+        title="Restore this edit?"
+        description={`"${confirmOp.description}" affected ${confirmOp.affectedPaths.length} path${confirmOp.affectedPaths.length !== 1 ? 's' : ''}. TokenManager will return those tokens to their earlier values.`}
+        confirmLabel="Restore"
         danger
         onConfirm={() => handleRollback(confirmOp.id)}
         onCancel={() => setConfirmOp(null)}
@@ -291,12 +291,12 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                     {op.rolledBack ? (
                       <>
                         <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-tertiary)]">
-                          Rolled back
+                          Restored
                         </span>
                         {redoableOpIds?.has(op.id) && onServerRedo && (
                           <button
                             onClick={() => handleRedo(op.id)}
-                            disabled={redoing !== null || rollingBack !== null}
+                            disabled={redoing !== null || restoring !== null}
                             title="Redo this operation (⌘Y)"
                             className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                           >
@@ -312,15 +312,15 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                     ) : (
                       <button
                         onClick={() => setConfirmOp(op)}
-                        disabled={rollingBack !== null}
+                        disabled={restoring !== null}
                         className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
                       >
-                        {rollingBack === op.id ? (
+                        {restoring === op.id ? (
                           <span className="flex items-center gap-1">
                             <Spinner size="xs" />
-                            Rolling back…
+                            Restoring…
                           </span>
-                        ) : 'Rollback'}
+                        ) : 'Restore'}
                       </button>
                     )}
                   </div>
@@ -337,7 +337,7 @@ export function RecentActionsSource({ recentOperations, onRollback, undoDescript
                 </div>
               )}
               <p className="px-3 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)] italic">
-                Recent changes stay here across sessions. Roll back any time.
+                Recent changes stay here across sessions. Restore an earlier edit any time.
               </p>
             </div>
           )}

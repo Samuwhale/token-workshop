@@ -266,6 +266,9 @@ export function TokenDetailsModeRow({
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
+        <span className="tm-token-mode-row__action-button-label">
+          Reference
+        </span>
       </button>
       {hasSecondaryActions ? (
         <div className="relative">
@@ -426,7 +429,7 @@ export function TokenDetailsModeRow({
               ) : null}
             </div>
           ) : editable && isEmpty ? (
-            <div className="grid min-w-0 gap-1.5 [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="tm-token-mode-row__empty-actions">
               <button
                 type="button"
                 onClick={() => onChange?.(getInitialModeValue(tokenType))}

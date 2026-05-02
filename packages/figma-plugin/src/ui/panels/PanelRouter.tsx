@@ -1475,16 +1475,22 @@ export function PanelRouter({
 
         {contextualPanel ? (
           contextualPanelLayout.renderAsOverlay ? (
-            <div
-              className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)] ${
-                contextualPanelLayout.isFullWidthOverlay
-                  ? "inset-x-0 border-l-0"
-                  : "border-l border-[var(--color-figma-border)]"
-              }`}
-              style={{ width: contextualPanelLayout.overlayWidth }}
-            >
-              {contextualPanel}
-            </div>
+            <>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
+              />
+              <div
+                className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)] ${
+                  contextualPanelLayout.isFullWidthOverlay
+                    ? "inset-x-0 border-l-0"
+                    : "border-l border-[var(--color-figma-border)]"
+                }`}
+                style={{ width: contextualPanelLayout.overlayWidth }}
+              >
+                {contextualPanel}
+              </div>
+            </>
           ) : (
             <>
               <ResizeDivider

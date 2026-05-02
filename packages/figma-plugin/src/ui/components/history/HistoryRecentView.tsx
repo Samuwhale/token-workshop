@@ -71,18 +71,18 @@ export function HistoryRecentView({
   executeUndo,
 }: HistoryRecentViewProps) {
   const [confirmOp, setConfirmOp] = useState<OperationEntry | null>(null);
-  const [rollingBack, setRollingBack] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
   const [redoing, setRedoing] = useState<string | null>(null);
   const [undoingToEntry, setUndoingToEntry] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleRollback = async (opId: string) => {
-    setRollingBack(opId);
+    setRestoring(opId);
     setConfirmOp(null);
     try {
       await onRollback?.(opId);
     } finally {
-      setRollingBack(null);
+      setRestoring(null);
     }
   };
 
@@ -147,8 +147,8 @@ export function HistoryRecentView({
         />
       )}
 
-      <div className="shrink-0 flex items-center gap-2 px-3 py-1.5">
-        <div className="tm-panel-search flex-1">
+      <div className="shrink-0 flex flex-wrap items-center gap-2 px-3 py-1.5">
+        <div className="tm-panel-search min-w-0 flex-1">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
@@ -166,22 +166,21 @@ export function HistoryRecentView({
             </button>
           )}
         </div>
+        {filterTokenPath && onClearFilter ? (
+          <div className="flex min-w-0 max-w-full items-center gap-1.5 rounded bg-[var(--surface-group-quiet)] px-2 py-1">
+            <span className={`min-w-0 ${LONG_TEXT_CLASSES.pathSecondary}`}>
+              {filterTokenPath}
+            </span>
+            <button
+              type="button"
+              onClick={onClearFilter}
+              className="shrink-0 text-[color:var(--color-figma-text-accent)] hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+        ) : null}
       </div>
-
-      {filterTokenPath && onClearFilter ? (
-        <div className="shrink-0 flex items-center gap-2 px-3 pb-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          <span className={`min-w-0 flex-1 ${LONG_TEXT_CLASSES.pathSecondary}`}>
-            {filterTokenPath}
-          </span>
-          <button
-            type="button"
-            onClick={onClearFilter}
-            className="shrink-0 text-[color:var(--color-figma-text-accent)] hover:underline"
-          >
-            Clear
-          </button>
-        </div>
-      ) : null}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
@@ -260,16 +259,16 @@ export function HistoryRecentView({
                       <span className="text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning)_12%,transparent)] text-[color:var(--color-figma-text-warning)]">Failed</span>
                     ) : op.rolledBack ? (
                       <>
-                        <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-tertiary)]">Rolled back</span>
+                        <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-tertiary)]">Restored</span>
                         {redoableOpIds?.has(op.id) && onServerRedo && (
-                          <button onClick={() => handleRedo(op.id)} disabled={redoing !== null || rollingBack !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
+                          <button onClick={() => handleRedo(op.id)} disabled={redoing !== null || restoring !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
                             {redoing === op.id ? <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span> : 'Redo'}
                           </button>
                         )}
                       </>
                     ) : (
-                      <button onClick={() => setConfirmOp(op)} disabled={rollingBack !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
-                        {rollingBack === op.id ? <span className="flex items-center gap-1"><Spinner size="xs" />Rolling back…</span> : 'Rollback'}
+                      <button onClick={() => setConfirmOp(op)} disabled={restoring !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
+                        {restoring === op.id ? <span className="flex items-center gap-1"><Spinner size="xs" />Restoring…</span> : 'Restore'}
                       </button>
                     )}
                   </div>

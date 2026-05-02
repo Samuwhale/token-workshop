@@ -5,6 +5,7 @@ import {
   useImportReviewContext,
   useImportSourceContext,
 } from './ImportPanelContext';
+import { renderConflictValue } from './importPanelHelpers';
 import { defaultCollectionName, modeKey } from './importPanelTypes';
 import { Spinner } from './Spinner';
 
@@ -30,6 +31,9 @@ export function ImportVariablesSummary() {
     importProgress,
     handleImportVariables,
     reviewActionCopy,
+    varConflictDetails,
+    varConflictDetailsExpanded,
+    setVarConflictDetailsExpanded,
   } = useImportReviewContext();
 
   const [strategy, setStrategy] = useState<Strategy>('merge');
@@ -37,6 +41,7 @@ export function ImportVariablesSummary() {
 
   const hasConflicts = varConflictPreview !== null && varConflictPreview.overwriteCount > 0;
   const hasBlockingCollisions = hasAmbiguousCollectionImport;
+  const visibleConflictDetails = varConflictDetails ?? [];
 
   const canImport =
     totalEnabledCollections > 0 &&
@@ -193,21 +198,81 @@ export function ImportVariablesSummary() {
         )}
 
         {hasConflicts && !importing && !hasBlockingCollisions && (
-          <div className="flex flex-wrap gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1">
-            {(['merge', 'overwrite', 'skip'] as const).map(s => (
-              <button
-                key={s}
-                onClick={() => setStrategy(s)}
-                className={`flex-1 basis-[96px] rounded px-2 py-1 text-secondary font-medium transition-colors ${
-                  strategy === s
-                    ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
-                    : 'bg-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-              >
-                {reviewActionCopy[s].label}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="flex flex-wrap gap-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1">
+              {(['merge', 'overwrite', 'skip'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStrategy(s)}
+                  className={`flex-1 basis-[96px] rounded px-2 py-1 text-secondary font-medium transition-colors ${
+                    strategy === s
+                      ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
+                      : 'bg-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  {reviewActionCopy[s].label}
+                </button>
+              ))}
+            </div>
+            <div className="text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
+              {reviewActionCopy[strategy].consequence}
+            </div>
+
+            {visibleConflictDetails.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setVarConflictDetailsExpanded((expanded) => !expanded)}
+                  className="self-start text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:underline"
+                  aria-expanded={varConflictDetailsExpanded}
+                >
+                  {varConflictDetailsExpanded ? 'Hide' : 'Review'} {visibleConflictDetails.length} matching token{visibleConflictDetails.length === 1 ? '' : 's'}
+                </button>
+                {varConflictDetailsExpanded ? (
+                  <div className="max-h-[220px] overflow-y-auto rounded border border-[var(--color-figma-border)]" style={{ scrollbarWidth: 'thin' }}>
+                    {visibleConflictDetails.map((detail, index) => (
+                      <div
+                        key={`${detail.collectionId}-${detail.path}-${index}`}
+                        className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-2 last:border-b-0"
+                      >
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                          <span className="min-w-0 break-all font-mono text-secondary font-medium text-[color:var(--color-figma-text)]">
+                            {detail.path}
+                          </span>
+                          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                            {detail.collectionId}
+                          </span>
+                        </div>
+                        {detail.note ? (
+                          <div className="mt-0.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+                            {detail.note}
+                          </div>
+                        ) : null}
+                        <div className="mt-1 grid gap-1.5 sm:grid-cols-2">
+                          <div className="min-w-0 rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+                            <div className="text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)]">
+                              {detail.existingLabel ?? 'Current token'}
+                            </div>
+                            <div className="mt-0.5 flex min-w-0 items-center gap-1 truncate font-mono text-secondary text-[color:var(--color-figma-text-secondary)]">
+                              {renderConflictValue(detail.existing.$type, detail.existing.$value)}
+                            </div>
+                          </div>
+                          <div className="min-w-0 rounded bg-[var(--color-figma-accent)]/8 px-2 py-1.5">
+                            <div className="text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-tertiary)]">
+                              {detail.incomingLabel ?? 'Incoming import'}
+                            </div>
+                            <div className="mt-0.5 flex min-w-0 items-center gap-1 truncate font-mono text-secondary text-[color:var(--color-figma-text)]">
+                              {renderConflictValue(detail.incoming.$type, detail.incoming.$value)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </>
         )}
 
         <button
