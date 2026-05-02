@@ -3,69 +3,115 @@ import type { FastifyInstance } from "fastify";
 const SECTIONS: ReadonlyArray<{
   id: string;
   title: string;
-  body: string;
+  summary: string;
+  items: readonly string[];
 }> = [
   {
     id: "overview",
     title: "Overview",
-    body:
-      "This is placeholder documentation for TokenManager. It will become the main reference for how the plugin works, but the detailed guidance is still being written.",
+    summary:
+      "TokenManager is a local Figma plugin workspace for authoring, reviewing, syncing, and exporting DTCG design tokens.",
+    items: [
+      "Collections are the primary authoring container. Modes belong to collections, and every token value is a mode value.",
+      "The plugin keeps designer workflows first while giving developers clear places for exports, audit checks, version history, and git sync.",
+      "Use the library views to author tokens, the canvas tools to inspect Figma usage, and the publish tools to push selected changes back into Figma.",
+    ],
   },
   {
     id: "setup",
     title: "Setup",
-    body:
-      "This section will explain how to connect the plugin to the local TokenManager server, verify the workspace, and recover from common startup problems.",
+    summary:
+      "Run the local server against a token directory, then point the Figma plugin at that server URL.",
+    items: [
+      "Start the server with the token directory you want to manage. The default development server uses port 9400.",
+      "Open the plugin settings and confirm the server URL. A connected workspace should show collections, health status, and sync actions.",
+      "If the plugin goes offline, check that the server is still running and that the configured token directory is readable.",
+    ],
   },
   {
     id: "library",
     title: "Library",
-    body:
-      "This section will cover collection management, token authoring, multi-mode values, editing workflows, and how the library views map to Figma mental models.",
+    summary:
+      "The library is where designers create and maintain collections, modes, groups, and token values.",
+    items: [
+      "Create collections for token families or governance boundaries, then add modes that match the Figma variable modes designers expect.",
+      "When a collection has multiple modes, edit all mode values side by side. Use literal values or alias references in each mode field.",
+      "Use rename, move, duplicate, batch edit, and review actions from the token list to keep large libraries consistent.",
+    ],
   },
   {
     id: "canvas",
     title: "Canvas",
-    body:
-      "This section will describe selection inspection, coverage analysis, repair flows, and how to use TokenManager while working directly on Figma frames and layers.",
+    summary:
+      "Canvas tools connect authored tokens to the selected Figma layers designers are actively working on.",
+    items: [
+      "Inspect a selection to see bound variables, current values, eligible token matches, and missing coverage.",
+      "Apply tokens directly to supported Figma properties, or use quick apply when selecting a token is faster than editing a layer manually.",
+      "Use coverage and repair flows to find raw values, broken bindings, and places where design decisions should become reusable tokens.",
+    ],
   },
   {
     id: "sync",
     title: "Sync",
-    body:
-      "This section will explain publishing and syncing tokens with Figma variables and styles, including what each sync stage does and when to use it.",
+    summary:
+      "Publishing turns authored tokens into Figma variables and styles while preserving reviewable changes.",
+    items: [
+      "Review what will be created, updated, or removed before publishing a collection to Figma.",
+      "Map TokenManager collections and modes to the matching Figma variable collections and modes.",
+      "Use readiness checks before publishing when you need to catch invalid values, missing modes, or risky changes.",
+    ],
   },
   {
     id: "export",
     title: "Export",
-    body:
-      "This section will document export formats, platform presets, output structure, and how to generate token files for downstream codebases.",
+    summary:
+      "Export tools package tokens for codebases and platform-specific design system pipelines.",
+    items: [
+      "Choose an export format such as CSS, SCSS, JSON, TypeScript, Tailwind, Android, iOS Swift, Dart, or CSS-in-JS.",
+      "Use presets to keep platform options repeatable, including path filters, output naming, and selector settings.",
+      "Validate exported output before handoff so developers receive the same collection and mode structure designers authored.",
+    ],
   },
   {
     id: "versions",
     title: "Versions",
-    body:
-      "This section will cover history, change review, and the version-oriented parts of the workflow that designers and developers use together.",
+    summary:
+      "History tools make token changes inspectable and recoverable during active design system work.",
+    items: [
+      "Use recent activity to review operations, affected token paths, and rollback options.",
+      "Create manual checkpoints before broad edits or publish operations.",
+      "Use git sync when the token directory is shared with a repository and changes need developer review.",
+    ],
   },
   {
     id: "settings",
     title: "Settings",
-    body:
-      "This section will describe workspace preferences, server connection options, import and export of plugin settings, and maintenance or recovery actions.",
+    summary:
+      "Settings collect workspace preferences and maintenance actions that should stay out of the primary authoring flow.",
+    items: [
+      "Update the server URL, display preferences, lint rule configuration, export defaults, and publish behavior from settings.",
+      "Import or export plugin preferences when moving between Figma files or local workspaces.",
+      "Use maintenance actions carefully; they can affect storage, bindings, and generated output.",
+    ],
   },
   {
     id: "troubleshooting",
     title: "Troubleshooting",
-    body:
-      "This section will list the most common issues, including offline server states, sync failures, import problems, and what to check before escalating.",
+    summary:
+      "Most problems start with connection state, invalid token data, or a mismatch between authored collections and Figma variables.",
+    items: [
+      "Offline state: verify the local server is running, the plugin server URL is correct, and the browser can reach the health endpoint.",
+      "Sync failure: review readiness checks, mode mappings, and the publish preview before retrying.",
+      "Import or export failure: confirm the selected file format, collection target, and token path filters.",
+    ],
   },
 ];
 
 const CSS = `
   :root {
-    --bg: #f5f6f8;
+    --bg: #f7f8fa;
     --surface: #ffffff;
-    --surface-muted: #f9fafb;
+    --surface-muted: #f1f3f5;
     --border: #e5e7eb;
     --text: #111827;
     --text-muted: #6b7280;
@@ -85,7 +131,7 @@ const CSS = `
   body {
     margin: 0;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 220px);
+    background: var(--bg);
     color: var(--text);
     line-height: 1.55;
   }
@@ -102,7 +148,7 @@ const CSS = `
   .page {
     max-width: 1080px;
     margin: 0 auto;
-    padding: 40px 24px 64px;
+    padding: 36px 24px 64px;
   }
 
   .hero {
@@ -113,37 +159,17 @@ const CSS = `
     margin-bottom: 32px;
   }
 
-  .hero-card,
   .nav-card,
-  .section-card {
+  .section {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
-  }
-
-  .hero-card {
-    padding: 28px;
-  }
-
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 16px;
+    border-radius: 8px;
   }
 
   h1 {
     margin: 0 0 12px;
-    font-size: clamp(32px, 5vw, 46px);
+    font-size: 38px;
     line-height: 1.05;
-    letter-spacing: -0.03em;
   }
 
   .lead {
@@ -167,9 +193,10 @@ const CSS = `
   }
 
   .nav-card {
-    padding: 22px;
+    padding: 18px;
     position: sticky;
     top: 24px;
+    box-shadow: var(--shadow);
   }
 
   .nav-card h2 {
@@ -188,7 +215,7 @@ const CSS = `
   .nav-list a {
     display: block;
     padding: 10px 12px;
-    border-radius: 10px;
+    border-radius: 6px;
     background: var(--surface-muted);
     color: var(--text);
     font-weight: 500;
@@ -201,23 +228,32 @@ const CSS = `
 
   .section-grid {
     display: grid;
-    gap: 16px;
+    gap: 14px;
   }
 
-  .section-card {
-    padding: 24px;
+  .section {
+    padding: 22px;
     scroll-margin-top: 24px;
   }
 
-  .section-card h2 {
-    margin: 0 0 10px;
+  .section h2 {
+    margin: 0 0 8px;
     font-size: 22px;
-    letter-spacing: -0.02em;
   }
 
-  .section-card p {
-    margin: 0;
+  .section p {
+    margin: 0 0 12px;
     color: var(--text-muted);
+  }
+
+  .section ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text);
+  }
+
+  .section li + li {
+    margin-top: 8px;
   }
 
   .footer-note {
@@ -237,19 +273,30 @@ const CSS = `
   }
 `;
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function renderHelpPage(): string {
   const navigation = SECTIONS.map(
     (section) => `
       <li>
-        <a href="#${section.id}">${section.title}</a>
+        <a href="#${escapeHtml(section.id)}">${escapeHtml(section.title)}</a>
       </li>`,
   ).join("");
 
   const sections = SECTIONS.map(
     (section) => `
-      <section id="${section.id}" class="section-card">
-        <h2>${section.title}</h2>
-        <p>${section.body}</p>
+      <section id="${escapeHtml(section.id)}" class="section">
+        <h2>${escapeHtml(section.title)}</h2>
+        <p>${escapeHtml(section.summary)}</p>
+        <ul>
+          ${section.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+        </ul>
       </section>`,
   ).join("");
 
@@ -264,14 +311,12 @@ function renderHelpPage(): string {
 <body>
   <main class="page">
     <section class="hero">
-      <div class="hero-card">
-        <div class="pill">Placeholder documentation</div>
+      <div>
         <h1>TokenManager Help</h1>
         <p class="lead">
-          This page is the initial documentation entry point for the plugin. The final reference content is still in progress, so the sections below are intentionally lightweight placeholders.
+          Practical guidance for using TokenManager as a Figma-native design token workspace, from authoring collections to publishing variables and exporting code-ready tokens.
         </p>
         <div class="meta">
-          <span><strong>Status:</strong> Draft structure only</span>
           <span><strong>Audience:</strong> Figma designers and design system teams</span>
           <span><strong>Also useful:</strong> <a href="/docs">Token documentation</a></span>
         </div>
