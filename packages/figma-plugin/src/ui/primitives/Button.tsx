@@ -9,13 +9,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT_CLASS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "border border-transparent bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] aria-expanded:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50",
+    "border border-transparent bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] aria-expanded:bg-[var(--color-figma-action-bg-hover)]",
   secondary:
-    "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] hover:bg-[var(--surface-hover)] hover:border-[color:var(--color-figma-text-tertiary)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:border-[color:var(--color-figma-accent)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:border-[color:var(--color-figma-text-tertiary)] disabled:opacity-50",
+    "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] hover:bg-[var(--surface-hover)] hover:border-[color:var(--color-figma-text-tertiary)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:border-[color:var(--color-figma-accent)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:border-[color:var(--color-figma-text-tertiary)]",
   ghost:
-    "border border-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:text-[color:var(--color-figma-text)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:text-[color:var(--color-figma-text)] disabled:opacity-50",
+    "border border-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:text-[color:var(--color-figma-text)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:text-[color:var(--color-figma-text)] disabled:border-transparent disabled:bg-transparent",
   danger:
-    "border border-transparent bg-[var(--workspace-danger)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 aria-expanded:opacity-90 disabled:opacity-50",
+    "border border-transparent bg-[var(--workspace-danger)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 aria-expanded:opacity-90",
 };
 
 const SIZE_CLASS: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -33,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={rest.type ?? "button"}
         {...rest}
-        className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded text-center leading-tight font-medium outline-none transition-colors disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[1px] ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
+        className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded text-center leading-tight font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:border-[var(--border-muted)] disabled:bg-[var(--surface-group-quiet)] disabled:text-[color:var(--color-figma-text-tertiary)] disabled:hover:border-[var(--border-muted)] disabled:hover:bg-[var(--surface-group-quiet)] disabled:hover:text-[color:var(--color-figma-text-tertiary)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[1px] ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
       >
         {children}
       </button>

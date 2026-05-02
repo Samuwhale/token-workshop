@@ -211,6 +211,14 @@ export function TokenDetailsModeRow({
     setAutocompleteOpen(true);
   };
 
+  const handleStartReference = () => {
+    if (!editable || !onChange) return;
+    previousLiteralValueRef.current = value;
+    setAliasMode(true);
+    setAliasQuery("");
+    setAutocompleteOpen(true);
+  };
+
   const handleAliasSelect = (path: string) => {
     if (!onChange) return;
     onChange(`{${path}}`);
@@ -418,15 +426,27 @@ export function TokenDetailsModeRow({
               ) : null}
             </div>
           ) : editable && isEmpty ? (
-            <button
-              type="button"
-              onClick={() => onChange?.(getInitialModeValue(tokenType))}
-              aria-label={`Add value for ${modeName}`}
-              title={`Add value for ${modeName}`}
-              className="w-full rounded border border-dashed border-[var(--color-figma-border)] px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5"
-            >
-              Add value
-            </button>
+            <div className="grid min-w-0 gap-1.5 [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)]">
+              <button
+                type="button"
+                onClick={() => onChange?.(getInitialModeValue(tokenType))}
+                aria-label={`Add direct value for ${modeName}`}
+                title={`Add direct value for ${modeName}`}
+                className="min-h-8 rounded border border-dashed border-[var(--color-figma-border)] px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5"
+              >
+                Add value
+              </button>
+              <button
+                type="button"
+                onClick={handleStartReference}
+                aria-label={`Reference another token for ${modeName}`}
+                title={`Reference another token for ${modeName}`}
+                className="inline-flex min-h-8 min-w-0 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 hover:text-[color:var(--color-figma-text-accent)]"
+              >
+                <Link2 size={12} strokeWidth={1.5} aria-hidden />
+                <span className="min-w-0 truncate">Reference token</span>
+              </button>
+            </div>
           ) : editable ? (
             <ModeValueEditor
               tokenType={tokenType}

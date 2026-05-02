@@ -33,7 +33,7 @@ import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 640;
+const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 720;
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "Current" },
   { value: "all", label: "All" },
@@ -157,7 +157,7 @@ export function CollectionTabs({
     hasSecondaryActions &&
     toolbarWidth !== null &&
     toolbarWidth < COLLECTION_ACTIONS_COLLAPSE_WIDTH;
-  const hasCollapsedOverflowActions = showImportButton;
+  const hasCollapsedOverflowActions = showCreateButton || showImportButton;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
@@ -440,19 +440,6 @@ export function CollectionTabs({
                     <span className="tm-toolbar-action__label">Details</span>
                   </Button>
                 ) : null}
-                {showCreateButton ? (
-                  <Button
-                    onClick={onOpenCreateCollection}
-                    aria-label="Create collection"
-                    title="Create collection"
-                    variant="ghost"
-                    size="sm"
-                    className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-                  >
-                    <Plus size={12} strokeWidth={1.5} aria-hidden />
-                    <span className="tm-toolbar-action__label">New collection</span>
-                  </Button>
-                ) : null}
                 {hasCollapsedOverflowActions ? (
                   <div className="relative">
                     <Button
@@ -476,6 +463,20 @@ export function CollectionTabs({
                         className={FLOATING_MENU_CLASS}
                         role="menu"
                       >
+                        {showCreateButton ? (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              onOpenCreateCollection?.();
+                              actionsMenu.close({ restoreFocus: false });
+                            }}
+                            className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                          >
+                            <Plus size={12} strokeWidth={1.5} aria-hidden />
+                            Create collection
+                          </button>
+                        ) : null}
                         {showImportButton ? (
                           <button
                             type="button"

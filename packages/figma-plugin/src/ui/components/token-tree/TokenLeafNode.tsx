@@ -284,15 +284,12 @@ export const TokenLeafNode = memo(
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
-    const selectionControlVisibilityClass =
-      selectMode || hovered || isSelected || isRowActive
-        ? "opacity-100"
-        : "opacity-85";
+    const selectionControlVisibilityClass = "opacity-100";
     const overflowActionVisibilityClass = selectMode
       ? "hidden"
       : isRowActive
         ? "opacity-100"
-        : "opacity-75 group-hover:opacity-100 group-focus-within:opacity-100";
+        : "opacity-90";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected

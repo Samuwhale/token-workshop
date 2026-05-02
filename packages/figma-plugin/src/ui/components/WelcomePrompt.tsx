@@ -135,6 +135,8 @@ export function WelcomePrompt({
   onCollectionCreated,
 }: WelcomePromptProps) {
   const [branch, setBranch] = useState<StartHereBranch>(initialBranch);
+  const [continueWithSelectionAfterCreate, setContinueWithSelectionAfterCreate] =
+    useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
 
@@ -153,6 +155,19 @@ export function WelcomePrompt({
       return;
     }
     handleAction(action);
+  };
+
+  const handleStartFromSelection = () => {
+    if (!connected) {
+      setBranch("start-new");
+      return;
+    }
+    if (collectionIds.length === 0) {
+      setContinueWithSelectionAfterCreate(true);
+      setBranch("start-new");
+      return;
+    }
+    handleAction(onStartFromSelection);
   };
 
   const renderRoot = () => (
@@ -175,12 +190,14 @@ export function WelcomePrompt({
         description={
           !connected
             ? "Connect to the token library before inspecting selected layers."
+            : collectionIds.length === 0
+            ? "Create a collection first, then extract values from selected layers."
             : selectedNodeCount > 0
             ? "Inspect selected layers and turn design values into tokens."
             : "Select at least one layer in Figma to use this path."
         }
-        disabled={connected && selectedNodeCount === 0}
-        onClick={() => handleRequiresConnection(onStartFromSelection)}
+        disabled={connected && collectionIds.length > 0 && selectedNodeCount === 0}
+        onClick={handleStartFromSelection}
         icon={<MousePointer2 size={14} strokeWidth={1.75} aria-hidden />}
       />
     </div>
@@ -281,7 +298,13 @@ export function WelcomePrompt({
                 onBack={() => setBranch("root")}
                 onClose={onClose}
                 onComplete={onGuidedSetupComplete}
-                onCollectionCreated={onCollectionCreated}
+                onCollectionCreated={(collectionId) => {
+                  onCollectionCreated?.(collectionId);
+                  if (continueWithSelectionAfterCreate) {
+                    setContinueWithSelectionAfterCreate(false);
+                    handleAction(onStartFromSelection);
+                  }
+                }}
                 onRetryConnection={onRetryConnection}
                 onAuthorFirstToken={onAuthorFirstToken}
                 onCreateCollection={onCreateCollection}

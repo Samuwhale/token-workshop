@@ -444,6 +444,20 @@ export const TokenGroupNode = memo(
                       {collectionCoverageSummary.totalMissing} missing
                     </span>
                   )}
+                {selectMode && onSelectGroupChildren ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectGroupChildren(node);
+                    }}
+                    className="inline-flex min-h-7 shrink-0 items-center rounded px-2 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                    title={`Select tokens in ${node.name}`}
+                    aria-label={`Select tokens in ${node.name}`}
+                  >
+                    Select
+                  </button>
+                ) : null}
                 <div
                   className={`tm-token-tree-row__group-actions ${
                     selectMode || !structuralActionsEnabled

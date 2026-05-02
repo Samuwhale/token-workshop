@@ -12,6 +12,8 @@ import {
   lsSet,
 } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
+import { apiFetch } from "../shared/apiFetch";
+import { defaultSnapshotLabel } from "../components/history/types";
 import {
   useCollectionStateContext,
   useTokenFlatMapContext,
@@ -68,7 +70,7 @@ export function useCommandPaletteCommands(): {
     setTokensComparePaths,
     switchContextualSurface,
   } = useEditorContext();
-  const { serverUrl } = useConnectionContext();
+  const { serverUrl, connected } = useConnectionContext();
   const shell = useShellWorkspaceController();
   const tokens = useTokensWorkspaceController();
   const sync = useSyncWorkspaceController();
@@ -246,6 +248,75 @@ export function useCommandPaletteCommands(): {
         },
       },
       {
+        id: "open-history",
+        label: "Open history",
+        description: "Review recent changes and saved checkpoints",
+        category: "History",
+        handler: () => {
+          navigateTo("library", "history");
+        },
+      },
+      {
+        id: "save-workspace-checkpoint",
+        label: "Save workspace checkpoint",
+        description: "Capture the whole token workspace before a larger change",
+        category: "History",
+        handler: async () => {
+          if (!connected) {
+            dispatchToast("Connect to the token server before saving a checkpoint", "error");
+            return;
+          }
+          const label = defaultSnapshotLabel(sync.recentOperations[0]?.description);
+          try {
+            await apiFetch(`${serverUrl}/api/snapshots`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ label }),
+            });
+            navigateTo("library", "history");
+            dispatchToast(`Checkpoint "${label}" saved`, "success", {
+              destination: {
+                kind: "workspace",
+                topTab: "library",
+                subTab: "history",
+              },
+            });
+          } catch (error) {
+            dispatchToast(
+              error instanceof Error ? error.message : "Failed to save checkpoint",
+              "error",
+            );
+          }
+        },
+      },
+      {
+        id: "publish-to-figma",
+        label: "Publish to Figma",
+        description: "Compare and apply token values to Figma variables or styles",
+        category: "Publish",
+        handler: () => {
+          navigateTo("publish", "publish-figma");
+        },
+      },
+      {
+        id: "open-export-files",
+        label: "Export files",
+        description: "Generate platform files for developer handoff",
+        category: "Export",
+        handler: () => {
+          navigateTo("publish", "publish-code");
+        },
+      },
+      {
+        id: "open-repository-sync",
+        label: "Open repository sync",
+        description: "Review repository status, commits, and sync actions",
+        category: "Publish",
+        handler: () => {
+          navigateTo("publish", "publish-repository");
+        },
+      },
+      {
         id: "color-analysis",
         label: "Color analysis",
         description: "Contrast matrix and lightness scale inspector",
@@ -369,6 +440,7 @@ export function useCommandPaletteCommands(): {
     setTokenDetails,
     setPendingRepairPrefill,
     shell,
+    connected,
     serverUrl,
     switchContextualSurface,
     tokens,

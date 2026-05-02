@@ -42,6 +42,8 @@ interface QuickApplyPickerProps {
   selectedNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
   currentCollectionId: string;
+  collectionCount?: number;
+  onSwitchCollection?: () => void;
   onApply: (
     tokenPath: string,
     tokenType: string,
@@ -194,7 +196,15 @@ function QuickApplyCandidateRow({
 // Component
 // ---------------------------------------------------------------------------
 
-export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId, onApply, onClose }: QuickApplyPickerProps) {
+export function QuickApplyPicker({
+  selectedNodes,
+  tokenMap,
+  currentCollectionId,
+  collectionCount = 1,
+  onSwitchCollection,
+  onApply,
+  onClose,
+}: QuickApplyPickerProps) {
   const rootNodes = useMemo(() => selectedNodes.filter(n => n.depth === 0), [selectedNodes]);
   const eligibleProps = useMemo(() => getEligibleProperties(rootNodes), [rootNodes]);
   const [activeProp, setActiveProp] = useState<BindableProperty>(() => inferPrimaryProperty(eligibleProps, rootNodes) ?? 'fill');
@@ -423,8 +433,22 @@ export function QuickApplyPicker({ selectedNodes, tokenMap, currentCollectionId,
               <X size={12} strokeWidth={2} aria-hidden />
             </button>
           </div>
-          <div className="mb-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Searching <span className="font-mono text-[color:var(--color-figma-text)]">{currentCollectionId}</span>
+          <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            <span className="min-w-0">
+              Searching current collection:{" "}
+              <span className="font-mono text-[color:var(--color-figma-text)]">
+                {currentCollectionId}
+              </span>
+            </span>
+            {collectionCount > 1 && onSwitchCollection ? (
+              <button
+                type="button"
+                onClick={onSwitchCollection}
+                className="shrink-0 font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:underline"
+              >
+                Switch
+              </button>
+            ) : null}
           </div>
           {/* Property tab pills */}
           <div className="flex gap-0.5 overflow-x-auto">

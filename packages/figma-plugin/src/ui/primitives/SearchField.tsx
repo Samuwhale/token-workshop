@@ -61,7 +61,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
           disabled={disabled}
           {...rest}
           className={cx(
-            "w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body text-[color:var(--color-figma-text)] outline-none transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)] focus-visible:border-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-bg)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40",
+            "w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-body text-[color:var(--color-figma-text)] outline-none transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)] focus-visible:border-[var(--color-figma-accent)] focus-visible:bg-[var(--color-figma-bg)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:border-[var(--border-muted)] disabled:bg-[var(--surface-group-quiet)] disabled:text-[color:var(--color-figma-text-tertiary)] disabled:hover:border-[var(--border-muted)] disabled:hover:bg-[var(--surface-group-quiet)]",
             SIZE_CLASS[size],
             className,
           )}
@@ -72,7 +72,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
             aria-label="Clear search"
             onClick={onClear}
             disabled={disabled}
-            className="absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] disabled:cursor-not-allowed disabled:text-[color:var(--color-figma-text-tertiary)] disabled:hover:bg-transparent disabled:hover:text-[color:var(--color-figma-text-tertiary)]"
           >
             <X size={12} strokeWidth={1.5} aria-hidden="true" />
           </button>

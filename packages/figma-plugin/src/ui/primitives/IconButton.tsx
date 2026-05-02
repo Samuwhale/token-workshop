@@ -26,7 +26,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       ref={ref}
       type={rest.type ?? "button"}
       {...rest}
-      className={`inline-flex shrink-0 items-center justify-center rounded border border-transparent bg-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${SIZE_CLASS[size]} ${toneClass} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded border border-transparent bg-transparent transition-colors disabled:cursor-not-allowed disabled:border-transparent disabled:bg-transparent disabled:text-[color:var(--color-figma-text-tertiary)] disabled:hover:bg-transparent disabled:hover:text-[color:var(--color-figma-text-tertiary)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${SIZE_CLASS[size]} ${toneClass} ${className}`}
     >
       {children}
     </button>

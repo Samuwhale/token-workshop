@@ -517,8 +517,23 @@ export function TokenDetails({
     : ambiguousExtendsCollectionIds.length > 0
       ? `Inherited token "${extendsPath}" exists in ${formatCollectionIdList(ambiguousExtendsCollectionIds)}. Inheritance requires a token path that belongs to one collection.`
       : null;
-  const canSave = editorCanSave && ambiguousReferenceMessage === null;
-  const saveBlockReason = ambiguousReferenceMessage ?? editorSaveBlockReason;
+  const missingModeNames = useMemo(
+    () =>
+      modeValue.modes
+        .filter((mode) => mode.value === undefined || mode.value === null || mode.value === "")
+        .map((mode) => mode.name),
+    [modeValue.modes],
+  );
+  const missingModeValuesMessage =
+    missingModeNames.length > 0
+      ? `Add a value or token reference for ${formatCollectionIdList(missingModeNames)} before saving.`
+      : null;
+  const canSave =
+    editorCanSave &&
+    ambiguousReferenceMessage === null &&
+    missingModeValuesMessage === null;
+  const saveBlockReason =
+    ambiguousReferenceMessage ?? missingModeValuesMessage ?? editorSaveBlockReason;
 
   const requestClose = editorSessionHost.requestClose;
   const beforeSaveGeneratedToken = useCallback(async () => {
@@ -532,8 +547,17 @@ export function TokenDetails({
       setError(ambiguousReferenceMessage);
       return false;
     }
+    if (missingModeValuesMessage) {
+      setError(missingModeValuesMessage);
+      return false;
+    }
     return true;
-  }, [activeGeneratorProvenance, ambiguousReferenceMessage, isCreateMode]);
+  }, [
+    activeGeneratorProvenance,
+    ambiguousReferenceMessage,
+    isCreateMode,
+    missingModeValuesMessage,
+  ]);
 
   const saveHook = useTokenEditorSave({
     serverUrl,

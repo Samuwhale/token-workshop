@@ -12,7 +12,11 @@ import { FontFamilyPicker } from '../FontFamilyPicker';
 import { AUTHORING } from '../../shared/editorClasses';
 
 const REFERENCE_BUTTON_CLASS =
-  'flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors';
+  'flex h-7 w-7 shrink-0 items-center justify-center rounded border border-transparent transition-colors focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]';
+const REFERENCE_FIELD_ROW_CLASS =
+  'relative grid min-w-0 items-center gap-1 [grid-template-columns:minmax(0,1fr)_auto]';
+const REFERENCE_FIELD_WITH_UNIT_ROW_CLASS =
+  'grid min-w-0 items-center gap-1 [grid-template-columns:minmax(0,1fr)_auto_auto]';
 
 export type TokenValueRecord = Record<string, unknown>;
 export type ValueChangeHandler<T = unknown> = (value: T) => void;
@@ -188,7 +192,7 @@ export const SubPropInput = memo(function SubPropInput({
   };
 
   return (
-    <div className="relative flex min-w-0 flex-wrap items-center gap-1">
+    <div className={REFERENCE_FIELD_ROW_CLASS}>
       <input
         ref={effectiveRef}
         type="text"
@@ -283,7 +287,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
   }
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1">
+    <div className={REFERENCE_FIELD_WITH_UNIT_ROW_CLASS}>
       <input
         ref={inputRef}
         type="number"
@@ -342,7 +346,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
   if (isAliasVal || showAC) {
     // Show alias autocomplete input
     return (
-      <div className="relative flex min-w-0 flex-wrap items-center gap-1">
+      <div className={REFERENCE_FIELD_ROW_CLASS}>
         <input
           ref={inputRef}
           type="text"
@@ -390,8 +394,8 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
 
   // Literal mode — use font picker with a way to switch to alias
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1">
-      <div className="min-w-[96px] flex-1">
+    <div className={REFERENCE_FIELD_ROW_CLASS}>
+      <div className="min-w-0">
         <FontFamilyPicker
           value={typeof value === 'string' ? value : ''}
           onChange={v => {

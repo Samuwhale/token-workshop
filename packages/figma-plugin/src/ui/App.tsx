@@ -2296,6 +2296,15 @@ export function App() {
           selectedNodes={selectedNodes}
           tokenMap={perCollectionFlat[currentCollectionId] ?? {}}
           currentCollectionId={currentCollectionId}
+          collectionCount={collectionIds.length}
+          onSwitchCollection={
+            collectionIds.length > 1
+              ? () => {
+                  setShowQuickApply(false);
+                  openCollectionPicker();
+                }
+              : undefined
+          }
           onApply={(tokenPath, tokenType, targetProperty, resolvedValue) => {
             parent.postMessage(
               {
