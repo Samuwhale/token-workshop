@@ -170,6 +170,29 @@ export function useTableCreate({
     setCreateAllError('');
   }, [collectionModeNames]);
 
+  const copyFirstModeToEmptyModes = useCallback(() => {
+    const primaryModeName = collectionModeNames[0] ?? 'Default';
+    const secondaryModeNames = collectionModeNames.slice(1);
+    if (secondaryModeNames.length === 0) return;
+
+    setTableRows(prev => prev.map((row) => {
+      const primaryValue = row.modeValues[primaryModeName] ?? row.value;
+      if (!primaryValue.trim()) return row;
+
+      let changed = false;
+      const modeValues = { ...row.modeValues };
+      for (const modeName of secondaryModeNames) {
+        if ((modeValues[modeName] ?? '').trim()) {
+          continue;
+        }
+        modeValues[modeName] = primaryValue;
+        changed = true;
+      }
+      return changed ? { ...row, modeValues } : row;
+    }));
+    setCreateAllError('');
+  }, [collectionModeNames]);
+
   // Close without clearing the draft — used by Cancel so work can be recovered
   const closeTableCreate = useCallback(() => {
     setShowTableCreate(false);
@@ -253,7 +276,6 @@ export function useTableCreate({
       if (pathError) { errors[row.id] = pathError; continue; }
       if (seenPaths.has(path)) { errors[row.id] = `Duplicate name "${n}"`; continue; }
       if (multiMode) {
-        const primaryValue = row.modeValues[modeNames[0]] ?? row.value;
         const missingModeName = modeNames.find((modeName) => {
           const hasModeValue = Object.prototype.hasOwnProperty.call(
             row.modeValues,
@@ -261,7 +283,7 @@ export function useTableCreate({
           );
           const rawValue =
             (hasModeValue ? row.modeValues[modeName] : undefined) ??
-            (modeName === modeNames[0] ? row.value : primaryValue);
+            (modeName === modeNames[0] ? row.value : "");
           return !rawValue.trim();
         });
         if (missingModeName) {
@@ -309,7 +331,7 @@ export function useTableCreate({
         );
         const rawModeValue =
           (hasModeValue ? row.modeValues[modeName] : undefined) ??
-          primaryRawValue;
+          "";
         const parsedModeValue = rawModeValue.trim()
           ? parseInlineValue(row.type, rawModeValue.trim())
           : getDefaultValue(row.type);
@@ -416,6 +438,7 @@ export function useTableCreate({
     removeRow,
     updateRow,
     updateModeValue,
+    copyFirstModeToEmptyModes,
     closeTableCreate,
     resetTableCreate,
     restoreDraft,

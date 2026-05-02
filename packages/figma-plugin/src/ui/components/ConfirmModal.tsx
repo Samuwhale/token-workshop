@@ -120,7 +120,7 @@ export function ConfirmModal({
             onClick={onCancel}
             disabled={!canCancel}
             variant="secondary"
-            className="w-full bg-[var(--color-figma-bg-secondary)]"
+            className="bg-[var(--color-figma-bg-secondary)]"
           >
             {cancelLabel}
           </Button>
@@ -128,7 +128,7 @@ export function ConfirmModal({
             onClick={handleConfirm}
             disabled={busy || confirmDisabled}
             variant={danger ? 'danger' : 'primary'}
-            className="w-full"
+            data-modal-primary="true"
           >
             {busy && (
               <Spinner size="sm" className="text-white" />

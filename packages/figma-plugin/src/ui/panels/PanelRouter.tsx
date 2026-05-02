@@ -1593,7 +1593,7 @@ export function PanelRouter({
         actions={[
           {
             label: "Create collection",
-            onClick: () => controller.onOpenCollectionCreateDialog(),
+            onClick: () => controller.onOpenStartHere("start-new"),
             tone: "primary",
           },
           {

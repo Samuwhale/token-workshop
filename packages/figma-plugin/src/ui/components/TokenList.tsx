@@ -569,6 +569,7 @@ export function TokenList({
     removeRow: removeTableRow,
     updateRow: updateTableRow,
     updateModeValue: updateTableModeValue,
+    copyFirstModeToEmptyModes,
     closeTableCreate,
     restoreDraft: restoreTableDraft,
     dismissDraft: dismissTableDraft,
@@ -2195,6 +2196,7 @@ export function TokenList({
           onRemoveRow={removeTableRow}
           onUpdateRow={updateTableRow}
           onUpdateModeValue={updateTableModeValue}
+          onCopyFirstModeToEmptyModes={copyFirstModeToEmptyModes}
           onClose={closeTableCreate}
           onRestoreDraft={restoreTableDraft}
           onDismissDraft={dismissTableDraft}

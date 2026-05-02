@@ -8,7 +8,6 @@ import {
   Check,
   Clock,
   Files,
-  Trash2,
   Link2,
   X,
   Plus,
@@ -1217,18 +1216,6 @@ export function TokenDetails({
           <Files size={12} strokeWidth={1.5} aria-hidden />
         </IconButton>
       )}
-      {!isCreateMode && !activeGeneratorProvenance && (
-        <IconButton
-          onClick={() => setShowDeleteConfirm(true)}
-          title="Delete token"
-          aria-label="Delete token"
-          size="sm"
-          tone="danger"
-          className="tm-token-details__header-icon tm-token-details__header-icon--danger"
-        >
-          <Trash2 size={12} strokeWidth={1.5} aria-hidden />
-        </IconButton>
-      )}
       {valueIsAlias &&
         tokenType === "color" &&
         (() => {
@@ -1326,6 +1313,15 @@ export function TokenDetails({
         <div
           className={`flex flex-wrap items-center gap-2 ${AUTHORING_SURFACE_CLASSES.footerSecondary}`}
         >
+          {!isCreateMode && !activeGeneratorProvenance && (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className={`${AUTHORING.footerBtnSecondary} text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]`}
+            >
+              Delete
+            </button>
+          )}
           <button
             type="button"
             onClick={requestClose}
@@ -2128,12 +2124,28 @@ export function TokenDetails({
       {showDeleteConfirm && (
         <ConfirmModal
           title={`Delete "${tokenPath.split(".").pop()}"?`}
-          description={`Token path: ${tokenPath}`}
+          description="This removes the token from its collection and breaks any references that still point to it."
           confirmLabel="Delete"
+          wide
           danger
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
+        >
+          <div className="flex flex-col gap-2">
+            <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              Collection
+            </p>
+            <p className="m-0 break-words font-medium text-[color:var(--color-figma-text)]">
+              {ownerCollectionId}
+            </p>
+            <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              Token path
+            </p>
+            <p className="m-0 break-words font-mono text-body text-[color:var(--color-figma-text)]">
+              {tokenPath}
+            </p>
+          </div>
+        </ConfirmModal>
       )}
 
       {/* Conflict confirmation */}
@@ -2163,6 +2175,7 @@ export function TokenDetails({
           } will be updated to point to ${renameConfirm.newPath}.`}
           confirmLabel="Rename and update references"
           cancelLabel="Cancel"
+          wide
           onConfirm={() => performRename(renameConfirm.newPath, true)}
           onCancel={() => setRenameConfirm(null)}
         />

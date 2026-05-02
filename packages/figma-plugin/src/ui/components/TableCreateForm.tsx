@@ -25,6 +25,7 @@ export interface TableCreateFormProps {
   onRemoveRow: (id: string) => void;
   onUpdateRow: (id: string, field: TableRowField, value: string) => void;
   onUpdateModeValue: (id: string, modeName: string, value: string) => void;
+  onCopyFirstModeToEmptyModes: () => void;
   onClose: () => void;
   onRestoreDraft: () => void;
   onDismissDraft: () => void;
@@ -48,6 +49,7 @@ export function TableCreateForm({
   onRemoveRow,
   onUpdateRow,
   onUpdateModeValue,
+  onCopyFirstModeToEmptyModes,
   onClose,
   onRestoreDraft,
   onDismissDraft,
@@ -185,9 +187,19 @@ export function TableCreateForm({
         {/* Token rows */}
         <div>
           {multiMode ? (
-            <p className="mb-1.5 px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              Enter the first mode once. Other modes use that value until you type a different one.
-            </p>
+            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 px-0.5">
+              <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                Fill each mode value. Use copy when the starting values should match.
+              </p>
+              <button
+                type="button"
+                onClick={onCopyFirstModeToEmptyModes}
+                disabled={busy}
+                className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+              >
+                Copy {modeNames[0]} to empty modes
+              </button>
+            </div>
           ) : null}
           {/* Column headers */}
           <div className="overflow-x-auto">
@@ -253,24 +265,18 @@ export function TableCreateForm({
                   const modeValue =
                     (hasModeValue ? row.modeValues[modeName] : undefined) ??
                     (isPrimaryMode ? row.value : "");
-                  const seededModeValue =
-                    !isPrimaryMode &&
-                    !hasModeValue &&
-                    row.value.trim()
-                      ? row.value
-                      : modeValue;
                   return (
                     <input
                       key={modeName}
                       type="text"
                       placeholder={
                         multiMode && !isPrimaryMode
-                          ? `Same as ${modeNames[0]}`
+                          ? modeName
                           : multiMode
                             ? modeName
                             : "value"
                       }
-                      value={seededModeValue}
+                      value={modeValue}
                       onChange={(e) => {
                         const val = e.target.value;
                         onUpdateModeValue(row.id, modeName, val);

@@ -378,6 +378,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
     const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
     const workspaceSummary = formatWorkspaceDiffSummary(workspaceDiffs);
     const noChanges = displayChanges?.length === 0 && workspaceDiffs.length === 0;
+    const comparisonIsFiltered = Boolean(collectionFilter || filterTokenPath);
 
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -450,20 +451,27 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         </div>
 
         {/* Actions */}
-        <div className="shrink-0 border-t border-[var(--color-figma-border)] p-3 flex gap-2">
-          <button
-            className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-body font-medium text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            onClick={handleKeepChanges}
-          >
-            Keep changes
-          </button>
-          <button
-            className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
-            onClick={() => setShowRestoreConfirm(true)}
-            disabled={reverting || diffLoading}
-          >
-            {reverting ? 'Reverting…' : 'Revert to saved'}
-          </button>
+        <div className="shrink-0 border-t border-[var(--color-figma-border)] p-3">
+          {comparisonIsFiltered ? (
+            <p className="mb-2 rounded bg-[var(--color-figma-warning)]/8 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+              This comparison is filtered. Restoring still replaces the whole workspace, including collections, modes, generators, and resolver settings.
+            </p>
+          ) : null}
+          <div className="flex gap-2">
+            <button
+              className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-body font-medium text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onClick={handleKeepChanges}
+            >
+              Keep changes
+            </button>
+            <button
+              className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
+              onClick={() => setShowRestoreConfirm(true)}
+              disabled={reverting || diffLoading}
+            >
+              {reverting ? 'Restoring…' : 'Restore workspace'}
+            </button>
+          </div>
         </div>
 
         {singleCompareError && (
@@ -486,13 +494,16 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               ].filter(Boolean).join(', ')})`
             : 'No token differences from current state';
           const workspaceText = workspaceSummary ? ` Plus ${workspaceSummary}.` : '';
+          const filterText = comparisonIsFiltered
+            ? ' The view you reviewed is filtered, but restore is not filtered.'
+            : '';
           const undoText = onPushUndo
             ? ' You can use Undo after restoring when the server records the restore operation.'
             : ' To go back, restore another checkpoint.';
           return (
             <ConfirmModal
               title={`Restore to "${label}"?`}
-              description={`${summaryText}.${workspaceText} This replaces your current workspace state.${undoText}`}
+              description={`${summaryText}.${workspaceText}${filterText} This replaces your current workspace state.${undoText}`}
               confirmLabel="Restore"
               danger
               onConfirm={async () => {
