@@ -1,31 +1,26 @@
 import type { TokenMapEntry } from '../../../shared/types';
-import {
-  ColorEditor,
-  DimensionEditor,
-  NumberEditor,
-  BooleanEditor,
-  DurationEditor,
-  StringEditor,
-  TypographyEditor,
-  ShadowEditor,
-  BorderEditor,
-  GradientEditor,
-  FontFamilyEditor,
-  FontWeightEditor,
-  StrokeStyleEditor,
-  CompositionEditor,
-  CubicBezierEditor,
-  TransitionEditor,
-  FontStyleEditor,
-  LineHeightEditor,
-  LetterSpacingEditor,
-  PercentageEditor,
-  LinkEditor,
-  TextDecorationEditor,
-  TextTransformEditor,
-  CustomEditor,
-  AssetEditor,
-} from '../ValueEditors';
+import { AssetEditor } from '../valueEditors/AssetEditor';
+import { BooleanEditor } from '../valueEditors/BooleanEditor';
+import { BorderEditor } from '../valueEditors/BorderEditor';
+import { ColorEditor } from '../valueEditors/ColorEditor';
+import { CompositionEditor } from '../valueEditors/CompositionEditor';
+import { CubicBezierEditor } from '../valueEditors/CubicBezierEditor';
+import { CustomEditor } from '../valueEditors/CustomEditor';
+import { DimensionEditor } from '../valueEditors/DimensionEditor';
+import { DurationEditor } from '../valueEditors/DurationEditor';
+import { FontFamilyEditor, FontWeightEditor } from '../valueEditors/FontEditors';
+import { GradientEditor } from '../valueEditors/GradientEditor';
+import { LetterSpacingEditor } from '../valueEditors/LetterSpacingEditor';
+import { LineHeightEditor } from '../valueEditors/LineHeightEditor';
+import { LinkEditor } from '../valueEditors/LinkEditor';
+import { NumberEditor } from '../valueEditors/NumberEditor';
+import { PercentageEditor } from '../valueEditors/PercentageEditor';
+import { ShadowEditor } from '../valueEditors/ShadowEditor';
+import { StringEditor } from '../valueEditors/StringEditor';
+import { StrokeStyleEditor } from '../valueEditors/StrokeStyleEditor';
+import { TextDecorationEditor, TextTransformEditor, FontStyleEditor } from '../valueEditors/TextStyleEditors';
+import { TransitionEditor } from '../valueEditors/TransitionEditor';
+import { TypographyEditor } from '../valueEditors/TypographyEditor';
 import { DEFAULT_DURATION_TOKEN_VALUE } from '../../shared/tokenValueParsing';
 
 interface ModeValueEditorProps {

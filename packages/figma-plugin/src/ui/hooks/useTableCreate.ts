@@ -15,7 +15,6 @@ export interface TableRow {
   id: string;
   name: string;
   type: string;
-  value: string;
   modeValues: Record<string, string>;
 }
 
@@ -28,7 +27,6 @@ function makeRow(fields: NewTableRowFields = {}): TableRow {
     id: newRowId(),
     name: fields.name ?? '',
     type: fields.type ?? 'color',
-    value: fields.value ?? '',
     modeValues: fields.modeValues ?? {},
   };
 }
@@ -47,7 +45,6 @@ function normalizeDraftRow(row: unknown): TableRow | null {
   const source = row as Partial<Record<keyof TableRow, unknown>>;
   const name = typeof source.name === 'string' ? source.name : '';
   const type = typeof source.type === 'string' && source.type.trim() ? source.type : 'color';
-  const value = typeof source.value === 'string' ? source.value : '';
   const rawModeValues = source.modeValues;
   const modeValues =
     rawModeValues && typeof rawModeValues === 'object' && !Array.isArray(rawModeValues)
@@ -57,13 +54,17 @@ function normalizeDraftRow(row: unknown): TableRow | null {
           ),
         )
       : {};
-  if (!name.trim() && !value.trim()) return null;
-  return makeRow({ name, type, value, modeValues });
+  const hasModeValue = Object.values(modeValues).some((value) => value.trim());
+  if (!name.trim() && !hasModeValue) return null;
+  return makeRow({ name, type, modeValues });
 }
 
 function saveDraft(collectionId: string, group: string, rows: TableRow[]): void {
   // Only save if there's meaningful data (at least one row with content)
-  const hasContent = rows.some(r => r.name.trim() || r.value.trim());
+  const hasContent = rows.some((row) => (
+    row.name.trim() ||
+    Object.values(row.modeValues).some((value) => value.trim())
+  ));
   if (!hasContent) {
     ssRemove(getDraftStorageKey(collectionId));
     return;
@@ -162,13 +163,10 @@ export function useTableCreate({
     setTableRows(prev => prev.map((row) => {
       if (row.id !== id) return row;
       const modeValues = { ...row.modeValues, [modeName]: value };
-      if (modeName === collectionModeNames[0]) {
-        return { ...row, value, modeValues };
-      }
       return { ...row, modeValues };
     }));
     setCreateAllError('');
-  }, [collectionModeNames]);
+  }, []);
 
   const copyFirstModeToEmptyModes = useCallback(() => {
     const primaryModeName = collectionModeNames[0] ?? 'Default';
@@ -176,7 +174,7 @@ export function useTableCreate({
     if (secondaryModeNames.length === 0) return;
 
     setTableRows(prev => prev.map((row) => {
-      const primaryValue = row.modeValues[primaryModeName] ?? row.value;
+      const primaryValue = row.modeValues[primaryModeName] ?? '';
       if (!primaryValue.trim()) return row;
 
       let changed = false;
@@ -283,7 +281,7 @@ export function useTableCreate({
           );
           const rawValue =
             (hasModeValue ? row.modeValues[modeName] : undefined) ??
-            (modeName === modeNames[0] ? row.value : "");
+            "";
           return !rawValue.trim();
         });
         if (missingModeName) {
@@ -312,7 +310,7 @@ export function useTableCreate({
       const path = g ? `${g}.${n}` : n;
       const primaryModeName = modeNames[0];
       const primaryRawValue =
-        row.modeValues[primaryModeName] ?? row.value;
+        row.modeValues[primaryModeName] ?? "";
       const parsedValue = primaryRawValue.trim()
         ? parseInlineValue(row.type, primaryRawValue.trim())
         : getDefaultValue(row.type);

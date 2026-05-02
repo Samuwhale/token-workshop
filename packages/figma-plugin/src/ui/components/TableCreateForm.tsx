@@ -258,13 +258,7 @@ export function TableCreateForm({
                 />
                 {modeNames.map((modeName, modeIndex) => {
                   const isPrimaryMode = modeIndex === 0;
-                  const hasModeValue = Object.prototype.hasOwnProperty.call(
-                    row.modeValues,
-                    modeName,
-                  );
-                  const modeValue =
-                    (hasModeValue ? row.modeValues[modeName] : undefined) ??
-                    (isPrimaryMode ? row.value : "");
+                  const modeValue = row.modeValues[modeName] ?? "";
                   return (
                     <input
                       key={modeName}
@@ -281,7 +275,6 @@ export function TableCreateForm({
                         const val = e.target.value;
                         onUpdateModeValue(row.id, modeName, val);
                         if (isPrimaryMode) {
-                          onUpdateRow(row.id, "value", val);
                           const inferred = inferTypeFromValue(val);
                           if (inferred) onUpdateRow(row.id, "type", inferred);
                         }
