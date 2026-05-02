@@ -49,6 +49,7 @@ import {
 import {
   validateTokenPath,
   normalizeScopedVariableToken,
+  updateTokenAliasRefs,
 } from '../services/token-tree-utils.js';
 import { isValidCollectionName } from '../services/collection-helpers.js';
 
@@ -480,8 +481,20 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   function listActiveDependents(
     tokenPath: string,
+    targetCollectionId: string,
+    pathIndex = buildTokenPathIndex(),
   ): Array<{ path: string; collectionId: string }> {
     return fastify.tokenStore.getDependents(tokenPath).filter((dependent) => {
+      const resolution = resolveCollectionIdForPath({
+        path: tokenPath,
+        preferredCollectionId: dependent.collectionId,
+        pathToCollectionId: pathIndex.pathToCollectionId,
+        collectionIdsByPath: pathIndex.collectionIdsByPath,
+      });
+      if (resolution.collectionId !== targetCollectionId) {
+        return false;
+      }
+
       const dependentToken = getTokenDefinitionInCollection(
         dependent.path,
         dependent.collectionId,
@@ -1613,6 +1626,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       await fastify.collectionService.loadState();
       const deprecatedEntries = new Map<string, { deprecatedPath: string; collectionId: string; type: string }>();
+      const pathIndex = buildTokenPathIndex();
       for (const { path: tokenPath, token, collectionId } of fastify.tokenStore.getAllFlatTokens()) {
         if (getTokenLifecycle(token) !== 'deprecated') {
           continue;
@@ -1635,7 +1649,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const entries = [...deprecatedEntries.values()]
         .map((entry) => ({
           ...entry,
-          dependents: listActiveDependents(entry.deprecatedPath)
+          dependents: listActiveDependents(entry.deprecatedPath, entry.collectionId, pathIndex)
             .slice()
             .sort(
               (a, b) =>
@@ -1661,7 +1675,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // POST /api/tokens/deprecated-usage/replace — replace all direct alias references to a deprecated token
+  // POST /api/tokens/deprecated-usage/replace — replace authored references to a deprecated token
   fastify.post<{
     Body: {
       collectionId?: string;
@@ -1733,12 +1747,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
-        const dependents = listActiveDependents(deprecatedPath);
+        const pathIndex = buildTokenPathIndex();
+        const dependents = listActiveDependents(deprecatedPath, collectionId, pathIndex);
         if (dependents.length === 0) {
           return { ok: true, updated: 0 };
         }
 
-        const pathIndex = buildTokenPathIndex();
         const unresolvedDependents = dependents.filter((dependent) => {
           const resolution = resolveCollectionIdForPath({
             path: replacementPath,
@@ -1762,31 +1776,58 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           );
         }
 
+        const replacementPathMap = new Map([[deprecatedPath, replacementPath]]);
         const patchesByCollection = new Map<string, Array<{ path: string; patch: Partial<Token> }>>();
+        const updatedDependentPaths: string[] = [];
+        let updatedReferences = 0;
         for (const dependent of dependents) {
-          const existing = await fastify.tokenStore.getToken(dependent.collectionId, dependent.path);
-          if (!existing) {
+          const existingDefinition = getTokenDefinitionInCollection(
+            dependent.path,
+            dependent.collectionId,
+          );
+          if (!existingDefinition) {
             return reply.status(404).send({
               error: `Dependent token "${dependent.path}" in collection "${dependent.collectionId}" no longer exists`,
             });
           }
+          const existing = existingDefinition.token;
+          const existingWithInheritedType =
+            await fastify.tokenStore.getToken(dependent.collectionId, dependent.path) ?? existing;
           if (readGeneratorProvenance(existing)) {
             throw new ConflictError(
               `Cannot retarget generator-managed token "${dependent.path}" in "${dependent.collectionId}". Detach from the generator first.`,
             );
           }
-          if (existing.$type && replacementType && existing.$type !== replacementType) {
+          if (
+            existingWithInheritedType.$type &&
+            replacementType &&
+            existingWithInheritedType.$type !== replacementType
+          ) {
             return reply.status(400).send({
-              error: `Cannot retarget "${dependent.path}" in collection "${dependent.collectionId}" from type "${existing.$type}" to replacement type "${replacementType}"`,
+              error:
+                `Cannot retarget "${dependent.path}" in collection "${dependent.collectionId}" ` +
+                `from type "${existingWithInheritedType.$type}" to replacement type "${replacementType}"`,
             });
           }
+
+          const nextToken = structuredClone(existing);
+          const replacedReferences = updateTokenAliasRefs(nextToken, replacementPathMap);
+          if (replacedReferences === 0) {
+            continue;
+          }
+          updatedReferences += replacedReferences;
+          updatedDependentPaths.push(dependent.path);
 
           const patches = patchesByCollection.get(dependent.collectionId) ?? [];
           patches.push({
             path: dependent.path,
-            patch: { $value: `{${replacementPath}}` },
+            patch: nextToken,
           });
           patchesByCollection.set(dependent.collectionId, patches);
+        }
+
+        if (updatedReferences === 0) {
+          return { ok: true, updated: 0 };
         }
 
         for (const [targetCollectionId, patches] of patchesByCollection.entries()) {
@@ -1814,16 +1855,16 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
         const operationId = await fastify.operationLog.record({
           type: 'replace-deprecated-references',
-          description: `Replace ${dependents.length} reference${dependents.length === 1 ? '' : 's'} from "${deprecatedPath}" to "${replacementPath}"`,
+          description: `Replace ${updatedReferences} reference${updatedReferences === 1 ? '' : 's'} from "${deprecatedPath}" to "${replacementPath}"`,
           resourceId: deprecatedDefinition.collectionId,
-          affectedPaths: dependents.map(dependent => dependent.path),
+          affectedPaths: updatedDependentPaths,
           beforeSnapshot,
           afterSnapshot,
         });
 
         return {
           ok: true,
-          updated: dependents.length,
+          updated: updatedReferences,
           operationId,
         };
       } catch (err) {

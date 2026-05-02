@@ -436,7 +436,24 @@ export function deleteTokenAtPath(group: TokenGroup, tokenPath: string): boolean
 
 // ----- Alias ref updaters -----
 
-/** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
+const TOKEN_REFERENCE_REGEX = /\{([^}]+)\}/g;
+
+function replaceTokenReferences(
+  value: string,
+  replacePath: (refPath: string) => string | null,
+): string | null {
+  if (!value.includes('{')) return null;
+  let matched = false;
+  const nextValue = value.replace(TOKEN_REFERENCE_REGEX, (match, refPath: string) => {
+    const nextPath = replacePath(refPath);
+    if (nextPath === null) return match;
+    matched = true;
+    return `{${nextPath}}`;
+  });
+  return matched ? nextValue : null;
+}
+
+/** Update authored token references from oldGroupPath to newGroupPath across a token tree. */
 export function updateAliasRefs(group: TokenGroup, oldGroupPath: string, newGroupPath: string): number {
   const escapedOld = oldGroupPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const refRegex = new RegExp(`\\{(${escapedOld})(\\.[^}]*)?\\}`, 'g');
@@ -451,28 +468,85 @@ export function updateAliasRefs(group: TokenGroup, oldGroupPath: string, newGrou
   });
 }
 
-/** Update alias $value references using a full path map (oldPath -> newPath) */
+/** Update authored token references using a full path map (oldPath -> newPath). */
 export function updateBulkAliasRefs(group: TokenGroup, pathMap: Map<string, string>): number {
-  const refRegex = /\{([^}]+)\}/g;
   return walkAliasValues(group, (s) => {
-    if (!s.includes('{')) return null;
-    let matched = false;
-    const result = s.replace(refRegex, (_match, refPath) => {
-      if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
-      return _match;
-    });
-    return matched ? result : null;
+    return replaceTokenReferences(s, (refPath) => pathMap.get(refPath) ?? null);
   });
+}
+
+/** Update authored token references in one token using a full path map. */
+export function updateTokenAliasRefs(token: Token, pathMap: Map<string, string>): number {
+  let count = 0;
+  const updateString = (value: string): string | null => (
+    replaceTokenReferences(value, (refPath) => pathMap.get(refPath) ?? null)
+  );
+
+  visitMutableTokenAuthoredValues(token, ({ value, set }) => {
+    const nextValue = updateAuthoredAliasValue(value, updateString);
+    if (nextValue.changed) {
+      count += nextValue.changed;
+      set(nextValue.value);
+    }
+  });
+  visitMutableDerivationRefParams(token, ({ value, set }) => {
+    const nextValue = updateString(value);
+    if (nextValue !== null) {
+      count += 1;
+      set(nextValue);
+    }
+  });
+
+  return count;
+}
+
+function updateAuthoredAliasValue(
+  value: unknown,
+  updateString: (value: string) => string | null,
+): { value: unknown; changed: number } {
+  if (typeof value === 'string') {
+    const nextValue = updateString(value);
+    return nextValue === null
+      ? { value, changed: 0 }
+      : { value: nextValue, changed: 1 };
+  }
+
+  if (Array.isArray(value)) {
+    let changed = 0;
+    const nextArray = value.map((item) => {
+      const nextItem = updateAuthoredAliasValue(item, updateString);
+      changed += nextItem.changed;
+      return nextItem.value;
+    });
+    return changed === 0
+      ? { value, changed: 0 }
+      : { value: nextArray, changed };
+  }
+
+  if (isPlainRecord(value)) {
+    let changed = 0;
+    const nextRecord: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      const nextNestedValue = updateAuthoredAliasValue(nestedValue, updateString);
+      changed += nextNestedValue.changed;
+      nextRecord[key] = nextNestedValue.value;
+    }
+    return changed === 0
+      ? { value, changed: 0 }
+      : { value: nextRecord, changed };
+  }
+
+  return { value, changed: 0 };
 }
 
 // ----- Alias ref preview (read-only) -----
 
 export interface AliasChange {
-  /** Dotted path of the token whose $value would be rewritten */
+  /** Dotted path of the token whose authored value would be rewritten. */
   tokenPath: string;
-  /** Current $value (or sub-field value) containing the alias */
+  /** Current authored value, sub-field value, or derivation param containing the alias. */
   oldValue: string;
-  /** New $value after alias rewrite */
+  /** New value after alias rewrite. */
   newValue: string;
 }
 
@@ -485,20 +559,12 @@ export function previewBulkAliasChanges(
   group: TokenGroup,
   pathMap: Map<string, string>,
 ): AliasChange[] {
-  const refRegex = /\{([^}]+)\}/g;
   const changes: AliasChange[] = [];
 
   const scanValue = (value: unknown, tokenPath: string): void => {
     if (typeof value === 'string' && value.includes('{')) {
-      let matched = false;
-      const result = value.replace(refRegex, (_match, refPath) => {
-        if (pathMap.has(refPath)) {
-          matched = true;
-          return `{${pathMap.get(refPath)}}`;
-        }
-        return _match;
-      });
-      if (matched) {
+      const result = replaceTokenReferences(value, (refPath) => pathMap.get(refPath) ?? null);
+      if (result !== null) {
         changes.push({ tokenPath, oldValue: value, newValue: result });
       }
       return;
