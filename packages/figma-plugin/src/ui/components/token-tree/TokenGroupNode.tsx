@@ -407,31 +407,33 @@ export const TokenGroupNode = memo(
                 onCancel={cancelGroupRename}
               />
             ) : (
-              isCategoryHeader ? (
-                <span
-                  className="flex-1 text-body font-medium text-[color:var(--color-figma-text-secondary)]"
-                  title={node.path}
-                >
-                  {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
-                </span>
-              ) : (
-                <div className="flex min-w-0 flex-1 flex-col">
+              <div className="tm-token-tree-row__group-main">
+                {isCategoryHeader ? (
                   <span
-                    className="tm-token-tree-row__name truncate text-body font-medium text-[color:var(--color-figma-text)]"
+                    className="flex-1 text-body font-medium text-[color:var(--color-figma-text-secondary)]"
                     title={node.path}
                   >
                     {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
                   </span>
-                  {groupMetadataSegments.length > 0 && (
-                    <div className="tm-token-tree-row__meta mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
-                      {renderRowMetadataSegments(groupMetadataSegments)}
-                    </div>
-                  )}
-                </div>
-              )
+                ) : (
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span
+                      className="tm-token-tree-row__name truncate text-body font-medium text-[color:var(--color-figma-text)]"
+                      title={node.path}
+                    >
+                      {highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}
+                    </span>
+                    {groupMetadataSegments.length > 0 && (
+                      <div className="tm-token-tree-row__meta mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
+                        {renderRowMetadataSegments(groupMetadataSegments)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
             {!renamingGroup && (
-              <div className="flex items-center gap-1 shrink-0 ml-auto">
+              <div className="tm-token-tree-row__group-trailing">
                 {collectionCoverageSummary &&
                   collectionCoverageSummary.total > 0 &&
                   collectionCoverageSummary.totalMissing > 0 && (
@@ -443,28 +445,34 @@ export const TokenGroupNode = memo(
                     </span>
                   )}
                 <div
-                  className={`flex shrink-0 items-center gap-0.5 transition-opacity ${
+                  className={`tm-token-tree-row__group-actions ${
                     selectMode || !structuralActionsEnabled
                       ? "hidden"
-                      : isGroupActive
-                        ? "opacity-100"
-                        : "opacity-70 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
+                      : ""
                   }`}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 420));
-                    }}
-                    title="Group actions"
-                    aria-label="Group actions"
-                    aria-haspopup="menu"
-                    aria-expanded={!!groupMenuPos}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                  <div
+                    className={`flex shrink-0 items-center gap-0.5 transition-opacity ${
+                      isGroupActive
+                        ? "opacity-100"
+                        : "opacity-70 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
+                    }`}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
-                  </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 420));
+                      }}
+                      title="Group actions"
+                      aria-label="Group actions"
+                      aria-haspopup="menu"
+                      aria-expanded={!!groupMenuPos}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

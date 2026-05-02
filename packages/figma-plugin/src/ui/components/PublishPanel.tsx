@@ -762,7 +762,7 @@ export function PublishPanel({
       }
 
       if (tokens.length === 0) {
-        setResolverPublishError('Resolver produced no tokens to publish.');
+        setResolverPublishError('No generated tokens were available to publish.');
         return;
       }
 
@@ -773,7 +773,7 @@ export function PublishPanel({
       const skippedCount = result.skipped.length;
       const failureCount = result.failures.length;
       dispatchToast(
-        `Resolver modes synced — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
+        `Published generated outputs — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
         + (skippedCount > 0 ? ` · ${skippedCount} skipped` : '')
         + (failureCount > 0 ? ` · ${failureCount} failed` : ''),
         failureCount > 0 ? 'error' : 'success',
@@ -1301,7 +1301,7 @@ export function PublishPanel({
 
           {activeResolver && (
             <DisclosureSection
-              title="Generated token publishing"
+              title="Generated outputs to Figma modes"
               summary={savedResolverPublishCount > 0
                 ? `${savedResolverPublishCount} Figma mode target${savedResolverPublishCount === 1 ? '' : 's'}`
                 : 'Map generated outputs to Figma modes'}
@@ -1538,7 +1538,7 @@ function ResolverModePublishCard({
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
               className="min-w-0 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
             >
-              {syncing ? 'Syncing…' : 'Sync generated modes'}
+              {syncing ? 'Publishing…' : 'Publish generated outputs'}
             </button>
           </div>
         ) : null}
@@ -1546,7 +1546,7 @@ function ResolverModePublishCard({
 
       {!activeResolver ? (
         <div className="mt-3 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-          Select a generator to choose which Figma mode each generated output updates.
+          Select generated outputs to choose which Figma mode each one updates.
         </div>
       ) : loading ? (
         <div className="mt-3 flex items-center gap-2 text-secondary text-[color:var(--color-figma-text-secondary)]">

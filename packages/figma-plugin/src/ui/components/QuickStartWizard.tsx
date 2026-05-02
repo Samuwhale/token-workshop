@@ -93,11 +93,11 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
 
 function CreateCollectionStep({ onCreateCollection, onCreated }: {
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
-  onCreated: (name: string) => void;
+  onCreated: (collectionId: string, modeCount: number) => void;
 }) {
   const [draft, setDraft] = useState<CollectionAuthoringDraft>({
     name: "colors",
-    modeNames: ["Default"],
+    modeNames: ["Light", "Dark"],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -109,14 +109,15 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
       return;
     }
     const collectionName = draft.name.trim();
+    const modes = buildCollectionModeNames(draft);
     setSaving(true);
     setError("");
     try {
       const createdCollectionId = await onCreateCollection({
         name: collectionName,
-        modes: buildCollectionModeNames(draft),
+        modes,
       });
-      onCreated(createdCollectionId);
+      onCreated(createdCollectionId, modes.length);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to create collection");
     } finally {
@@ -246,6 +247,7 @@ export function QuickStartWizard({
   onBack,
 }: QuickStartWizardProps) {
   const [wizardCreatedCollection, setWizardCreatedCollection] = useState<string | null>(null);
+  const [wizardCreatedModeCount, setWizardCreatedModeCount] = useState<number | null>(null);
   const hasCollections =
     collectionIds.length > 0 || wizardCreatedCollection !== null;
   const [prereqPhase, setPrereqPhase] = useState<PrereqPhase>(() => {
@@ -254,6 +256,7 @@ export function QuickStartWizard({
     return null;
   });
   const effectiveCollectionId = wizardCreatedCollection || currentCollectionId;
+  const createdModeCount = wizardCreatedModeCount ?? 1;
 
   useEffect(() => {
     if (!connected) {
@@ -263,8 +266,9 @@ export function QuickStartWizard({
     setPrereqPhase(hasCollections ? null : "create-collection");
   }, [connected, hasCollections]);
 
-  const handleCollectionCreated = useCallback((collectionId: string) => {
+  const handleCollectionCreated = useCallback((collectionId: string, modeCount: number) => {
     setWizardCreatedCollection(collectionId);
+    setWizardCreatedModeCount(modeCount);
     onCollectionCreated?.(collectionId);
     setPrereqPhase(null);
   }, [onCollectionCreated]);
@@ -296,9 +300,11 @@ export function QuickStartWizard({
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 pb-3 pt-4">
           <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-            {effectiveCollectionId
-              ? `"${effectiveCollectionId}" is ready. Create your first group or token next.`
-              : "Create your first token next."}
+            {wizardCreatedCollection
+              ? `"${wizardCreatedCollection}" is ready with ${createdModeCount} mode${createdModeCount === 1 ? "" : "s"}.`
+              : effectiveCollectionId
+                ? "Create your first group or token next."
+                : "Create your first token next."}
           </p>
           <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             Start with one real token in this collection. Add generators after the authored structure is clear.

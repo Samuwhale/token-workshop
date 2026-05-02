@@ -367,9 +367,10 @@ export function App() {
     (result: ImportCompletionResult) => {
       const failureNote = result.hadFailures ? " Some items still need follow-up." : "";
       const message = `Imported ${formatCount(result.totalImportedCount, "token")} into ${formatCount(result.destinationCollectionIds.length, "collection")}.${failureNote}`;
+      finishStartHere();
       dispatchToast(message, result.hadFailures ? "warning" : "success");
     },
-    [],
+    [finishStartHere],
   );
   const {
     toasts: toastStack,
@@ -1713,11 +1714,15 @@ export function App() {
     openStartHere,
   ]);
   const runStartHereAction = useCallback(
-    (action: () => void) => {
-      finishStartHere();
+    (action: () => void, options?: { completeFirstRun?: boolean }) => {
+      if (options?.completeFirstRun) {
+        finishStartHere();
+      } else {
+        closeStartHere();
+      }
       action();
     },
-    [finishStartHere],
+    [closeStartHere, finishStartHere],
   );
 
   const workspaceIcon = (id: string) => {
@@ -2337,21 +2342,27 @@ export function App() {
             });
           }}
           onAuthorFirstToken={(collectionId) => {
-            runStartHereAction(() => {
-              navigateTo("library", "tokens");
-              setCurrentCollectionId(collectionId);
-              setTokenDetails({
-                path: "",
-                collectionId,
-                mode: "edit",
-                isCreate: true,
-              });
-            });
+            runStartHereAction(
+              () => {
+                navigateTo("library", "tokens");
+                setCurrentCollectionId(collectionId);
+                setTokenDetails({
+                  path: "",
+                  collectionId,
+                  mode: "edit",
+                  isCreate: true,
+                });
+              },
+              { completeFirstRun: true },
+            );
           }}
           onGuidedSetupComplete={() => {
-            runStartHereAction(() => {
-              refreshAll();
-            });
+            runStartHereAction(
+              () => {
+                refreshAll();
+              },
+              { completeFirstRun: true },
+            );
           }}
           onCreateCollection={createCollectionByName}
           onCollectionCreated={(collectionId) => {

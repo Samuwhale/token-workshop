@@ -44,6 +44,7 @@ export function ModeColumnHeader({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuStyle = useAnchoredFloatingStyle({
@@ -73,6 +74,14 @@ export function ModeColumnHeader({
     };
     window.addEventListener("mousedown", close);
     return () => window.removeEventListener("mousedown", close);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const firstItem = menuRef.current?.querySelector<HTMLElement>(
+      '[role="menuitem"]:not([disabled])',
+    );
+    firstItem?.focus();
   }, [menuOpen]);
 
   const openMenu = useCallback(
@@ -206,6 +215,56 @@ export function ModeColumnHeader({
     ((width - MIN_MODE_COL_PX) / (MAX_MODE_COL_PX - MIN_MODE_COL_PX)) * 100,
   );
 
+  const handleMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const items = Array.from(
+        menuRef.current?.querySelectorAll<HTMLElement>(
+          '[role="menuitem"]:not([disabled])',
+        ) ?? [],
+      );
+      if (items.length === 0) {
+        return;
+      }
+
+      const currentIndex = items.findIndex((item) => item === document.activeElement);
+
+      const focusItem = (index: number) => {
+        items[(index + items.length) % items.length]?.focus();
+      };
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMenuOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        focusItem(currentIndex >= 0 ? currentIndex + 1 : 0);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        focusItem(currentIndex >= 0 ? currentIndex - 1 : items.length - 1);
+        return;
+      }
+
+      if (event.key === "Home") {
+        event.preventDefault();
+        focusItem(0);
+        return;
+      }
+
+      if (event.key === "End") {
+        event.preventDefault();
+        focusItem(items.length - 1);
+      }
+    },
+    [],
+  );
+
   return (
     <div ref={cellRef} className="tm-mode-column-header group/mode-column relative min-w-0">
       <div
@@ -218,7 +277,7 @@ export function ModeColumnHeader({
         tabIndex={0}
         onMouseDown={handleResizeMouseDown}
         onKeyDown={handleResizeKeyDown}
-        className="absolute top-0 right-0 bottom-0 z-10 w-[12px] translate-x-1/2 cursor-col-resize rounded bg-transparent transition-colors hover:bg-[var(--color-figma-accent)]/10 focus-visible:bg-[var(--color-figma-accent)]/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)]"
+        className="absolute top-0 right-0 bottom-0 z-10 w-[14px] translate-x-1/2 cursor-col-resize rounded bg-transparent transition-colors hover:bg-[var(--color-figma-accent)]/10 focus-visible:bg-[var(--color-figma-accent)]/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-figma-accent)]"
       >
         <span
           aria-hidden="true"
@@ -279,12 +338,17 @@ export function ModeColumnHeader({
       ) : null}
       {menuOpen && (
         <div
+          ref={menuRef}
+          role="menu"
+          aria-label={`${modeName} mode actions`}
           className="z-50 overflow-y-auto rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-1 text-body"
           style={menuStyle ?? { visibility: "hidden" }}
           onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={handleMenuKeyDown}
         >
           <button
             type="button"
+            role="menuitem"
             onClick={() => {
               setMenuOpen(false);
               setRenaming(true);
@@ -295,6 +359,7 @@ export function ModeColumnHeader({
           </button>
           <button
             type="button"
+            role="menuitem"
             disabled={!canMoveUp || busy}
             onClick={() => {
               setMenuOpen(false);
@@ -306,6 +371,7 @@ export function ModeColumnHeader({
           </button>
           <button
             type="button"
+            role="menuitem"
             disabled={!canMoveDown || busy}
             onClick={() => {
               setMenuOpen(false);
@@ -318,6 +384,7 @@ export function ModeColumnHeader({
           <div className="my-1 h-px bg-[var(--color-figma-border)]" />
           <button
             type="button"
+            role="menuitem"
             disabled={!canDelete || busy}
             onClick={() => {
               setMenuOpen(false);

@@ -2,7 +2,6 @@ import { useCallback, type MutableRefObject } from "react";
 import {
   ArrowLeft,
   ArrowUpDown,
-  Check,
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
@@ -25,6 +24,7 @@ import {
   IconButton,
   MenuRadioGroup,
   SearchField,
+  SegmentedControl,
   type SegmentedOption,
 } from "../primitives";
 
@@ -52,7 +52,7 @@ interface RadioMenuGroup<T extends string> {
   options: SegmentedOption<T>[];
 }
 
-const TREE_VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
+const VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
   { value: "tree", label: "Tokens" },
   { value: "json", label: "JSON" },
 ];
@@ -217,7 +217,7 @@ export function TokenListToolbar({
     showTreeActions &&
     (Boolean(onSelectTokens) || Boolean(onBulkEdit) || Boolean(onFindReplace));
   const hasGroupOps = showTreeActions && overflowMenuProps?.hasGroups === true;
-  const hasOverflowActions = hasEditActions || hasGroupOps || hasTokens;
+  const hasOverflowActions = hasEditActions || hasGroupOps;
   const showOverflow = hasOverflowActions;
   const showCreate = viewMode === "tree";
   const showPrimaryCreateAction = onCreateToken !== undefined;
@@ -464,6 +464,17 @@ export function TokenListToolbar({
               </div>
             ) : null}
 
+            {hasTokens ? (
+              <div className="tm-token-toolbar__view shrink-0">
+                <SegmentedControl
+                  value={viewMode}
+                  options={VIEW_OPTIONS}
+                  onChange={setViewMode}
+                  ariaLabel="Token list view"
+                />
+              </div>
+            ) : null}
+
             {overflowMenuProps &&
             viewMode === "tree" &&
             viewRadioGroups.length > 0 ? (
@@ -660,43 +671,8 @@ export function TokenListToolbar({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    {hasTokens ? (
-                      <div className="tm-token-toolbar__overflow-view-section">
-                        <MenuSectionLabel>View</MenuSectionLabel>
-                        {TREE_VIEW_OPTIONS.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            role="menuitemradio"
-                            aria-checked={viewMode === option.value}
-                            onClick={() =>
-                              runMenuAction(() => setViewMode(option.value))
-                            }
-                            className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                          >
-                            <span className="w-3 shrink-0 text-center">
-                              {viewMode === option.value ? (
-                                <Check
-                                  size={10}
-                                  strokeWidth={1.5}
-                                  aria-hidden
-                                />
-                              ) : null}
-                            </span>
-                            <span>{option.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-
                     {hasGroupOps ? (
                       <>
-                        {hasTokens ? (
-                          <div
-                            className="tm-token-toolbar__overflow-after-view-separator h-1.5"
-                            aria-hidden
-                          />
-                        ) : null}
                         <MenuSectionLabel>Groups</MenuSectionLabel>
                         <button
                           type="button"
@@ -721,11 +697,6 @@ export function TokenListToolbar({
                       <>
                         {hasGroupOps ? (
                           <div className="h-1.5" aria-hidden />
-                        ) : hasTokens ? (
-                          <div
-                            className="tm-token-toolbar__overflow-after-view-separator h-1.5"
-                            aria-hidden
-                          />
                         ) : null}
                         <MenuSectionLabel>Edit</MenuSectionLabel>
                         {onSelectTokens ? (

@@ -681,6 +681,7 @@ export function SelectionInspector({
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showSelectionActions, setShowSelectionActions] = useState(false);
+  const [showSuggestionsPane, setShowSuggestionsPane] = useState(false);
   const [extractOpen, setExtractOpen] = useState<BindableProperty[] | null>(
     null,
   );
@@ -738,7 +739,14 @@ export function SelectionInspector({
     setExtractOpen(unboundProperties);
   }, [rootNodes]);
 
-  const hasSecondaryInspectorPane = extractOpen !== null || suggestions.length > 0;
+  useEffect(() => {
+    if (suggestions.length === 0) {
+      setShowSuggestionsPane(false);
+    }
+  }, [suggestions.length]);
+
+  const hasSecondaryInspectorPane =
+    extractOpen !== null || (showSuggestionsPane && suggestions.length > 0);
   const stackSecondaryInspectorPane =
     hasSecondaryInspectorPane &&
     inspectorSplitWidth !== null &&
@@ -1138,16 +1146,29 @@ export function SelectionInspector({
               </div>
             )}
 
-            {connected && currentCollectionId && unboundWithValueCount > 0 && !extractOpen && (
-              <div className="flex items-center justify-end border-t border-[var(--color-figma-border)] px-3 py-1.5">
-                <button
-                  onClick={openExtract}
-                  className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-                >
-                  Extract {unboundWithValueCount} unbound
-                </button>
+            {connected &&
+            currentCollectionId &&
+            !extractOpen &&
+            (unboundWithValueCount > 0 || suggestions.length > 0) ? (
+              <div className="flex flex-wrap items-center justify-end gap-1 border-t border-[var(--color-figma-border)] px-3 py-1.5">
+                {suggestions.length > 0 && !showSuggestionsPane ? (
+                  <button
+                    onClick={() => setShowSuggestionsPane(true)}
+                    className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
+                  >
+                    Suggested matches
+                  </button>
+                ) : null}
+                {unboundWithValueCount > 0 ? (
+                  <button
+                    onClick={openExtract}
+                    className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                  >
+                    Extract {unboundWithValueCount} unbound
+                  </button>
+                ) : null}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -1199,7 +1220,7 @@ export function SelectionInspector({
               />
             </div>
           </div>
-        ) : suggestions.length > 0 ? (
+        ) : showSuggestionsPane && suggestions.length > 0 ? (
           <div
             className={`flex flex-col overflow-hidden ${
               stackSecondaryInspectorPane
@@ -1214,6 +1235,24 @@ export function SelectionInspector({
           >
             <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)] shrink-0 flex items-center gap-1.5">
               <span className="text-secondary font-semibold text-[color:var(--color-figma-text-secondary)] flex-1">Matches</span>
+              <button
+                onClick={() => setShowSuggestionsPane(false)}
+                className="rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                title="Close"
+                aria-label="Close suggested matches"
+              >
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto">
               <SuggestedTokens
