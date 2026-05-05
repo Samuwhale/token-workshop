@@ -3315,10 +3315,6 @@ export function GeneratorsPanel({
             ? "No generator selected in this collection."
             : "Automate token groups from values, tokens, or graphs."}
         </div>
-        <Button type="button" size="sm" variant="primary" onClick={openCreateGenerator}>
-          <Plus size={14} />
-          New generator
-        </Button>
       </div>
       <FeedbackPlaceholder
         variant="empty"

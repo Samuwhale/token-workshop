@@ -2,7 +2,7 @@
 
 ## Target user
 
-The primary users are Figma UI designers, UX designers, and design system creators/maintainers. They use the plugin to create, edit, and manage design tokens, as well as to use those tokens in Figma to design and prototype interfaces. Developers are a secondary but important audience — designers and developers use this tool together for design-token handoff, collaboration, and shared governance. Design the UI primarily for designers (Figma-native mental models, minimal jargon), but don't cut or hide developer-facing features. Instead, give developer features a clear home that doesn't clutter the designer's primary workflow.
+The primary users are Figma UI designers, UX designers, and design system creators/maintainers. They use the plugin to create, edit, and manage design tokens, as well as to use those tokens in Figma to design and prototype interfaces. Developers are a secondary but important audience — designers and developers use this tool together for design-token handoff, collaboration, and shared governance. Design the UI primarily for designers (Figma-native mental models, minimal jargon), but don't cut or hide developer-facing features like audit reports, git history, or export formats. Instead, give developer features a clear home that doesn't clutter the designer's primary workflow.
 
 ## Development Status
 
@@ -20,6 +20,10 @@ This project is in **rapid, active development** and has not shipped to any user
 ## Canonical Domain Model
 
 Keep one canonical authoring model aligned to the Figma mental model: collections are the primary container, modes belong to collections, and tokens belong to collections and vary only by their own collection's modes. Do not reintroduce overlapping `set`, `theme`, or mixed view-state concepts into the domain model; selected modes and hover preview are view state only, and generators are advanced automation layered on top of authored tokens.
+
+## Generator IA
+
+The generator overview and graph views are equal, permanent points of entry into the generator workflow. Neither view should take precedence over the other, be treated as secondary, or be removed. Design and implementation changes must preserve both views as first-class surfaces with clear affordances, strong hierarchy, and efficient use at narrow Figma plugin widths.
 
 ## Modes
 

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Spinner } from '../Spinner';
-import { OpIcon } from '../RecentActionsSource';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { RollbackPreviewModal } from './RollbackPreviewModal';
+import { OperationIcon } from './OperationIcon';
 import type { OperationEntry } from './types';
 
 function getFieldChanges(op: OperationEntry) {
@@ -134,6 +134,8 @@ export function HistoryRecentView({
   });
 
   const isEmpty = filteredLocal.length === 0 && filteredOps.length === 0;
+  const quietActionClass =
+    'rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:text-[color:var(--color-figma-text)] disabled:opacity-30';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -212,7 +214,7 @@ export function HistoryRecentView({
                         onClick={() => handleUndoToEntry(stepsToUndo)}
                         disabled={isBusy}
                         title={isTop ? 'Undo this action' : `Undo this and ${stepsToUndo - 1} newer action${stepsToUndo > 2 ? 's' : ''}`}
-                        className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30"
+                        className={quietActionClass}
                       >
                         {isUndoingThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Undoing…</span> : isTop ? 'Undo' : `Undo ${stepsToUndo}`}
                       </button>
@@ -226,20 +228,22 @@ export function HistoryRecentView({
               const isError = op.type.includes('error');
               const metadataChanges = getFieldChanges(op);
               const isSetMetadata = metadataChanges.length > 0;
-	              const subtitle = operationSubtitle(op);
-	              const impactLabel = isSetMetadata
+              const subtitle = operationSubtitle(op);
+              const impactLabel = isSetMetadata
                 ? `${metadataChanges.length} metadata field${metadataChanges.length !== 1 ? 's' : ''}`
                 : `${op.affectedPaths.length} path${op.affectedPaths.length !== 1 ? 's' : ''}`;
+              const isRestoringThis = restoring === op.id;
+              const isRedoingThis = redoing === op.id;
               return (
                 <div key={`action-${op.id}`} className="flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group">
-                  <div className="mt-0.5 shrink-0"><OpIcon type={op.type} /></div>
+                  <div className="mt-0.5 shrink-0"><OperationIcon type={op.type} /></div>
                   <div className="flex-1 min-w-0">
                     <div className={`text-secondary min-w-0 break-words ${op.rolledBack ? 'text-[color:var(--color-figma-text-tertiary)] line-through' : isError ? 'text-[color:var(--color-figma-text-warning)]' : 'text-[color:var(--color-figma-text)]'}`}>
                       {op.description}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-	                        <span className={`min-w-0 max-w-full ${LONG_TEXT_CLASSES.textTertiary}`} title={subtitle}>
-	                        {subtitle}
+                      <span className={`min-w-0 max-w-full ${LONG_TEXT_CLASSES.textTertiary}`} title={subtitle}>
+                        {subtitle}
                       </span>
                       <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">· {impactLabel}</span>
                       <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(op.timestamp))}</span>
@@ -256,19 +260,19 @@ export function HistoryRecentView({
                   </div>
                   <div className="shrink-0 mt-0.5 flex flex-wrap items-center justify-end gap-1">
                     {isError ? (
-                      <span className="text-secondary px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--color-figma-warning)_12%,transparent)] text-[color:var(--color-figma-text-warning)]">Failed</span>
+                      <span className="text-secondary font-medium text-[color:var(--color-figma-text-warning)]">Failed</span>
                     ) : op.rolledBack ? (
                       <>
-                        <span className="text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-tertiary)]">Restored</span>
+                        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Restored</span>
                         {redoableOpIds?.has(op.id) && onServerRedo && (
-                          <button onClick={() => handleRedo(op.id)} disabled={redoing !== null || restoring !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
-                            {redoing === op.id ? <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span> : 'Redo'}
+                          <button onClick={() => handleRedo(op.id)} disabled={redoing !== null || restoring !== null} className={quietActionClass}>
+                            {isRedoingThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span> : 'Redo'}
                           </button>
                         )}
                       </>
                     ) : (
-                      <button onClick={() => setConfirmOp(op)} disabled={restoring !== null} className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] disabled:opacity-30">
-                        {restoring === op.id ? <span className="flex items-center gap-1"><Spinner size="xs" />Restoring…</span> : 'Restore'}
+                      <button onClick={() => setConfirmOp(op)} disabled={restoring !== null} className={quietActionClass}>
+                        {isRestoringThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Restoring…</span> : 'Restore'}
                       </button>
                     )}
                   </div>

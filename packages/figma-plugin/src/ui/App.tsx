@@ -1962,7 +1962,7 @@ export function App() {
                                 {showReviewBadge ? (
                                   <span
                                     aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
-                                    className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-text-warning)]"
+                                    className="shrink-0 tabular-nums text-secondary text-[color:var(--color-figma-text-warning)]"
                                   >
                                     {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
                                   </span>
@@ -2189,7 +2189,7 @@ export function App() {
                     {showReviewBadge ? (
                       <span
                         aria-label={`${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`}
-                        className="shrink-0 tabular-nums text-secondary font-medium text-[color:var(--color-figma-text-warning)]"
+                        className="shrink-0 tabular-nums text-secondary text-[color:var(--color-figma-text-warning)]"
                       >
                         {reviewBadgeCount > 99 ? "99+" : reviewBadgeCount}
                       </span>
@@ -2206,7 +2206,7 @@ export function App() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <WorkspaceControllerProvider value={workspaceControllers}>
           <ErrorBoundary>
-            <div className="min-h-0 flex-1 overflow-hidden">
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
               <PanelRouter
                 collectionMap={collectionMap}
                 modeMap={modeMap}

@@ -9,7 +9,7 @@ import { HistorySavedView } from "./history/HistorySavedView";
 import { Button, TextInput } from "../primitives";
 
 const HISTORY_VIEWS: Array<{ id: HistoryView; label: string }> = [
-  { id: "recent", label: "Recent activity" },
+  { id: "recent", label: "Recent" },
   { id: "saved", label: "Checkpoints" },
 ];
 
@@ -49,13 +49,13 @@ export function HistoryPanel({
   const scopeLabel =
     scope.view === "saved"
       ? activeCollectionFilter || scope.tokenPath
-        ? "Checkpoints save the whole workspace. The current filter applies when comparing a checkpoint."
-        : "Checkpoints save the whole workspace so you can compare or restore later."
+        ? "Checkpoints are workspace-wide; filter applies to compare"
+        : "Workspace-wide checkpoints"
       : scope.mode === "all"
-        ? "Showing recent changes across every collection."
-        : `Showing recent changes for ${activeCollectionFilter ?? "the current collection"}.`;
+        ? "All collections"
+        : activeCollectionFilter ?? "Current collection";
   const tokenScopeLabel = scope.tokenPath
-    ? `Focused on ${scope.tokenPath}.`
+    ? scope.tokenPath
     : null;
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export function HistoryPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0 px-3 pb-1 pt-2">
+      <div className="shrink-0 px-3 py-1.5">
         <div className="tm-responsive-toolbar">
           <div className="tm-responsive-toolbar__row">
             <div
@@ -179,7 +179,8 @@ export function HistoryPanel({
                   }}
                   variant="ghost"
                   size="sm"
-                  className="px-1.5 text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-accent)]"
+                  className="px-1.5 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+                  title="Save a workspace-wide checkpoint"
                 >
                   Save workspace checkpoint
                 </Button>
@@ -231,10 +232,10 @@ export function HistoryPanel({
         </div>
       ) : null}
 
-      <div className="shrink-0 px-3 pb-2">
-        <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+      <div className="shrink-0 px-3 pb-1.5">
+        <p className="truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
           {scopeLabel}
-          {tokenScopeLabel ? ` ${tokenScopeLabel}` : ""}
+          {tokenScopeLabel ? ` · ${tokenScopeLabel}` : ""}
         </p>
       </div>
 

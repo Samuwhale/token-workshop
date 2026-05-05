@@ -24,7 +24,6 @@ import {
   IconButton,
   MenuRadioGroup,
   SearchField,
-  SegmentedControl,
   type SegmentedOption,
 } from "../primitives";
 
@@ -51,11 +50,6 @@ interface RadioMenuGroup<T extends string> {
   onChange: (value: T) => void;
   options: SegmentedOption<T>[];
 }
-
-const VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
-  { value: "tree", label: "Tokens" },
-  { value: "json", label: "JSON" },
-];
 
 const GROUP_OPTIONS: SegmentedOption<TokenGroupBy>[] = [
   { value: "path", label: "Hierarchy" },
@@ -222,6 +216,9 @@ export function TokenListToolbar({
   const showCreate = viewMode === "tree";
   const showPrimaryCreateAction = onCreateToken !== undefined;
   const sortOrder: SortOrder = overflowMenuProps?.sortOrder ?? "default";
+  const viewSwitchLabel = viewMode === "tree" ? "JSON" : "Tokens";
+  const viewSwitchTitle =
+    viewMode === "tree" ? "Switch to JSON view" : "Switch to token list";
 
   const sortActive =
     overflowMenuProps !== null &&
@@ -464,17 +461,6 @@ export function TokenListToolbar({
               </div>
             ) : null}
 
-            {hasTokens ? (
-              <div className="tm-token-toolbar__view shrink-0">
-                <SegmentedControl
-                  value={viewMode}
-                  options={VIEW_OPTIONS}
-                  onChange={setViewMode}
-                  ariaLabel="Token list view"
-                />
-              </div>
-            ) : null}
-
             {overflowMenuProps &&
             viewMode === "tree" &&
             viewRadioGroups.length > 0 ? (
@@ -522,6 +508,22 @@ export function TokenListToolbar({
                   </div>
                 ) : null}
               </div>
+            ) : null}
+
+            {hasTokens ? (
+              <Button
+                type="button"
+                onClick={() => setViewMode(viewMode === "tree" ? "json" : "tree")}
+                variant="ghost"
+                size="sm"
+                aria-label={viewSwitchTitle}
+                title={viewSwitchTitle}
+                className={`${TOOLBAR_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+              >
+                <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
+                  {viewSwitchLabel}
+                </span>
+              </Button>
             ) : null}
 
             {showCreate ? (

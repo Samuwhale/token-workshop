@@ -70,15 +70,15 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-t border-[var(--color-figma-border)] pt-1">
+    <div className="border-t border-[var(--border-muted)]">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between rounded px-1 py-1.5 text-left outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+        className="flex w-full items-center justify-between gap-3 py-1.5 text-left outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[-1px]"
       >
-        <div className="flex items-center gap-2">
-          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-body font-medium text-[color:var(--color-figma-text)]">
             {title}
           </span>
           {suffix}
@@ -94,7 +94,7 @@ function Section({
           <path d="M2 1l4 3-4 3V1z" />
         </svg>
       </button>
-      {open && <div className="flex flex-col gap-2.5 px-1 pb-2 pt-1">{children}</div>}
+      {open && <div className="flex flex-col gap-2 pb-2">{children}</div>}
     </div>
   );
 }
@@ -600,10 +600,10 @@ export function SettingsPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-3 px-3 py-2.5">
+        <div className="flex flex-col gap-2.5 px-3 py-2">
 
           {/* ── Everyday preferences (always visible) ── */}
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             <Toggle
               checked={hideDeprecated}
               onChange={handleHideDeprecatedChange}
@@ -840,7 +840,7 @@ export function SettingsPanel({
           </Section>
 
           {/* ── Utilities ── */}
-          <div className="flex flex-wrap gap-1.5 border-t border-[var(--color-figma-border)] pt-2">
+          <div className="flex flex-wrap gap-1 border-t border-[var(--border-muted)] pt-1.5">
             <button
               onClick={onRestartGuidedSetup}
               className="rounded px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
@@ -997,14 +997,14 @@ export function SettingsPanel({
           )}
 
           {/* ── Danger zone ── */}
-          <div className="border-t border-[var(--color-figma-border)] pt-4">
+          <div className="border-t border-[var(--border-muted)] pt-2">
             {!showClearConfirm ? (
               <button
                 onClick={() => {
                   setShowClearConfirm(true);
                   setClearConfirmText("");
                 }}
-                className="w-full rounded border border-[var(--color-figma-error)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-error)] hover:text-white"
+                className="rounded px-0 py-1 text-secondary font-medium text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Delete workspace data
               </button>

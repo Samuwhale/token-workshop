@@ -1661,11 +1661,6 @@ button.tm-status-row:not(:disabled):hover {
   flex: 1 1 220px;
 }
 
-.tm-token-toolbar__view {
-  min-inline-size: 0;
-  flex: 0 0 auto;
-}
-
 .tm-token-toolbar .tm-responsive-toolbar__actions {
   flex: 0 1 auto;
   flex-wrap: nowrap;
@@ -1773,7 +1768,6 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-token-toolbar__create,
-  .tm-token-toolbar__view,
   .tm-token-toolbar__filter {
     flex-basis: 100%;
   }
@@ -1785,10 +1779,6 @@ button.tm-status-row:not(:disabled):hover {
   .tm-token-toolbar__create,
   .tm-token-toolbar__sort {
     flex-basis: 100%;
-  }
-
-  .tm-token-toolbar__view > * {
-    inline-size: 100%;
   }
 
   .tm-token-toolbar__filter > *,
@@ -4044,14 +4034,6 @@ button.tm-token-details__text-button:disabled:hover {
     flex-wrap: wrap;
     justify-content: flex-start;
     gap: 4px;
-  }
-
-  .tm-token-toolbar__view {
-    flex: 1 1 100%;
-  }
-
-  .tm-token-toolbar__view > * {
-    inline-size: 100%;
   }
 
   .tm-token-toolbar__filter,
