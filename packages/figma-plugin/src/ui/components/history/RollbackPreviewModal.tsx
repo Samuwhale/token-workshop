@@ -5,8 +5,8 @@ import { ChangesByCollectionList } from './ChangesByCollectionList';
 import { Spinner } from '../Spinner';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { isAbortError } from '../../shared/utils';
-import type { SnapshotDiff, TokenChange } from './types';
-import { snapshotDiffToChange } from './types';
+import type { MetadataDiff, SnapshotDiff, TokenChange } from './types';
+import { formatMetadataValue, snapshotDiffToChange } from './types';
 
 interface RollbackPreviewModalProps {
   serverUrl: string;
@@ -14,17 +14,6 @@ interface RollbackPreviewModalProps {
   opDescription: string;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
-}
-
-interface MetadataDiff {
-  field: string;
-  label: string;
-  before?: string;
-  after?: string;
-}
-
-function formatMetadataValue(value?: string) {
-  return value && value.length > 0 ? value : 'cleared';
 }
 
 /**
@@ -58,7 +47,7 @@ export function RollbackPreviewModal({
   useEffect(() => {
     const controller = new AbortController();
     apiFetch<{ diffs: SnapshotDiff[]; metadataChanges?: MetadataDiff[] }>(
-      `${serverUrl}/api/operations/${opId}/diff`,
+      `${serverUrl}/api/operations/${encodeURIComponent(opId)}/diff`,
       { signal: controller.signal },
     )
       .then(data => {
@@ -107,7 +96,7 @@ export function RollbackPreviewModal({
     return () => document.removeEventListener('keydown', handler);
   }, [dismissDisabled, onCancel]);
 
-  const summary = changes ? summarizeChanges(changes) : null;
+  const summary = changes && changes.length > 0 ? summarizeChanges(changes) : null;
   const noChanges = changes?.length === 0 && metadataChanges.length === 0;
 
   return (
@@ -134,7 +123,7 @@ export function RollbackPreviewModal({
           </p>
         </div>
 
-        {!diffLoading && summary && !noChanges && (
+        {!diffLoading && summary && (
           <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-4 py-2">
             <ChangeSummaryBadges {...summary} />
             <span className="min-w-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">

@@ -52,6 +52,7 @@ import {
   updateTokenAliasRefs,
 } from '../services/token-tree-utils.js';
 import { isValidCollectionName } from '../services/collection-helpers.js';
+import { hasNextPage, readPagination } from './pagination.js';
 
 interface TokenMutationRouteBody {
   $type?: string;
@@ -687,13 +688,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
-        const parsedLimit = parseInt(limit ?? '200', 10);
-        const resolvedLimit = Math.min(
-          Math.max(isNaN(parsedLimit) ? 200 : parsedLimit, 1),
-          1000,
+        const { limit: resolvedLimit, offset: resolvedOffset } = readPagination(
+          { limit, offset },
+          {
+            defaultLimit: 200,
+            maxLimit: 1000,
+          },
         );
-        const parsedOffset = parseInt(offset ?? '0', 10);
-        const resolvedOffset = Math.max(isNaN(parsedOffset) ? 0 : parsedOffset, 0);
 
         const { results, total } = fastify.tokenStore.searchTokens({
           q: q || undefined,
@@ -707,7 +708,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           limit: resolvedLimit,
           offset: resolvedOffset,
         });
-        return { data: results, total, hasMore: resolvedOffset + results.length < total, limit: resolvedLimit, offset: resolvedOffset };
+        return {
+          data: results,
+          total,
+          hasMore: hasNextPage(resolvedOffset, results.length, total),
+          limit: resolvedLimit,
+          offset: resolvedOffset,
+        };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to search tokens');
       }

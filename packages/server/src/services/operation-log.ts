@@ -228,7 +228,6 @@ export type RollbackStep =
   | { action: "write-resolver"; name: string; file: ResolverFile }
   | { action: "delete-resolver"; name: string };
 
-/**
 /** Context required for rollback — provides access to all services that may need restoration. */
 export interface RollbackContext {
   tokenStore: TokenStore;

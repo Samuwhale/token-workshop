@@ -1,30 +1,20 @@
 import type { FastifyPluginAsync } from "fastify";
-import { stableStringify } from "@tokenmanager/core";
 import { handleRouteError } from "../errors.js";
-import { getSnapshotTokenPath } from "../services/operation-log.js";
+import { buildRollbackPreview } from "../services/rollback-preview.js";
+import { hasNextPage, readPagination } from "./pagination.js";
 
 export const operationRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
-
-  const MODIFIED_TOKEN_FIELDS = [
-    '$value',
-    '$type',
-    '$description',
-    '$extensions',
-  ] as const;
 
   // GET /api/operations — list recent operations
   fastify.get<{ Querystring: { limit?: string; offset?: string } }>(
     "/operations",
     async (request, reply) => {
       try {
-        const parsedLimit = parseInt(request.query.limit ?? "10", 10);
-        const limit = Math.min(
-          Math.max(1, isNaN(parsedLimit) ? 10 : parsedLimit),
-          50,
-        );
-        const parsedOffset = parseInt(request.query.offset ?? "0", 10);
-        const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
+        const { limit, offset } = readPagination(request.query, {
+          defaultLimit: 10,
+          maxLimit: 50,
+        });
         const { entries, total } = await fastify.operationLog.getRecent(
           limit,
           offset,
@@ -32,7 +22,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
         return {
           data: entries,
           total,
-          hasMore: offset + entries.length < total,
+          hasMore: hasNextPage(offset, entries.length, total),
           limit,
           offset,
         };
@@ -64,13 +54,10 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
         reply.code(400);
         return { error: "Missing required query param: path" };
       }
-      const parsedLimit = parseInt(request.query.limit ?? "20", 10);
-      const limit = Math.min(
-        Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit),
-        100,
-      );
-      const parsedOffset = parseInt(request.query.offset ?? "0", 10);
-      const offset = Math.max(0, isNaN(parsedOffset) ? 0 : parsedOffset);
+      const { limit, offset } = readPagination(request.query, {
+        defaultLimit: 20,
+        maxLimit: 100,
+      });
       const { entries, total } = await fastify.operationLog.getTokenHistory(
         tokenPath,
         limit,
@@ -79,7 +66,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
       return {
         data: entries,
         total,
-        hasMore: offset + entries.length < total,
+        hasMore: hasNextPage(offset, entries.length, total),
         limit,
         offset,
       };
@@ -98,105 +85,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
         if (!entry) {
           return reply.status(404).send({ error: "Operation not found" });
         }
-        // Rollback goes from afterSnapshot → beforeSnapshot.
-        // Diff shows what the tokens will look like after rollback:
-        //   before = current state (afterSnapshot), after = state after rollback (beforeSnapshot)
-        const allPaths = new Set([
-          ...Object.keys(entry.afterSnapshot),
-          ...Object.keys(entry.beforeSnapshot),
-        ]);
-        const diffs: Array<{
-          path: string;
-          collectionId: string;
-          status: "added" | "modified" | "removed";
-          changedFields?: string[];
-          before?: {
-            $value: unknown;
-            $type?: string;
-            $description?: string;
-          };
-          after?: {
-            $value: unknown;
-            $type?: string;
-            $description?: string;
-          };
-        }> = [];
-	        const metadataChanges = Array.isArray(entry.metadata?.changes)
-	          ? entry.metadata.changes.map((change) => ({
-	              ...change,
-	              before: change.after,
-	              after: change.before,
-	            }))
-	          : [];
-	        const generatorRestoreStep = entry.rollbackSteps?.find(
-	          (step) => step.action === "restore-generators",
-	        );
-	        if (generatorRestoreStep) {
-	          const metadata = entry.metadata as Record<string, unknown> | undefined;
-	          const generatorName =
-	            typeof metadata?.generatorName === "string" ? metadata.generatorName : "Generator";
-	          metadataChanges.push({
-	            field: "generators",
-	            label: "Generator documents",
-	            before: `${generatorName} current state`,
-	            after: `${generatorRestoreStep.generators.length} stored generator${generatorRestoreStep.generators.length === 1 ? "" : "s"}`,
-	          });
-	        }
-        for (const p of allPaths) {
-          const currentEntry = entry.afterSnapshot[p];
-          const restoredEntry = entry.beforeSnapshot[p];
-          const currentToken = currentEntry?.token;
-          const restoredToken = restoredEntry?.token;
-          const collectionId =
-            currentEntry?.collectionId ?? restoredEntry?.collectionId ?? "";
-          const userFacingPath = getSnapshotTokenPath(p, collectionId);
-          if (currentToken && !restoredToken) {
-            // Rollback will remove this token
-            diffs.push({
-              path: userFacingPath,
-              collectionId,
-              status: "removed",
-              before: {
-                $value: currentToken.$value,
-                $type: currentToken.$type,
-              },
-            });
-          } else if (!currentToken && restoredToken) {
-            // Rollback will add this token back
-            diffs.push({
-              path: userFacingPath,
-              collectionId,
-              status: "added",
-              after: {
-                $value: restoredToken.$value,
-                $type: restoredToken.$type,
-              },
-            });
-          } else if (currentToken && restoredToken) {
-            const changedFields = MODIFIED_TOKEN_FIELDS.filter((field) => {
-              return stableStringify(currentToken[field]) !== stableStringify(restoredToken[field]);
-            });
-            if (changedFields.length > 0) {
-              diffs.push({
-                path: userFacingPath,
-                collectionId,
-                status: "modified",
-                changedFields,
-                before: {
-                  $value: currentToken.$value,
-                  $type: currentToken.$type,
-                  $description: currentToken.$description,
-                },
-                after: {
-                  $value: restoredToken.$value,
-                  $type: restoredToken.$type,
-                  $description: restoredToken.$description,
-                },
-              });
-            }
-          }
-        }
-        return { diffs, metadataChanges };
+        return buildRollbackPreview(entry);
       } catch (err) {
         return handleRouteError(reply, err, "Failed to compute rollback diff");
       }

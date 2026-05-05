@@ -1,26 +1,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { apiFetch, createFetchSignal, type PaginatedResponse } from '../shared/apiFetch';
 import { getErrorMessage, isAbortError } from '../shared/utils';
+import type { OperationEntry } from '../components/history/types';
 
-export interface OperationEntry {
-  id: string;
-  timestamp: string;
-  type: string;
-  description: string;
-  resourceId: string;
-  affectedPaths: string[];
-  rolledBack: boolean;
-  metadata?: {
-    kind?: string;
-    name?: string;
-    changes?: Array<{
-      field: string;
-      label: string;
-      before?: string;
-      after?: string;
-    }>;
-  };
-}
+export type { OperationEntry } from '../components/history/types';
 
 interface UseRecentOperationsParams {
   serverUrl: string;
@@ -91,7 +74,7 @@ export function useRecentOperations({
   const handleRollback = useCallback(async (opId: string) => {
     try {
       const data = await apiFetch<{ ok: boolean; restoredPaths: string[]; rollbackEntryId: string }>(
-        `${serverUrl}/api/operations/${opId}/rollback`,
+        `${serverUrl}/api/operations/${encodeURIComponent(opId)}/rollback`,
         { method: 'POST' },
       );
       // Push to redo stack so user can re-apply this rollback
@@ -127,7 +110,7 @@ export function useRecentOperations({
 
     try {
       await apiFetch(
-        `${serverUrl}/api/operations/${entry.rollbackId}/rollback`,
+        `${serverUrl}/api/operations/${encodeURIComponent(entry.rollbackId)}/rollback`,
         { method: 'POST' },
       );
       refreshAll();

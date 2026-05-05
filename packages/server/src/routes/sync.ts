@@ -10,6 +10,7 @@ import type {
 import { qualifySnapshotEntries, snapshotPaths } from "../services/operation-log.js";
 import { ConflictError, handleRouteError } from "../errors.js";
 import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
+import { readPagination } from "./pagination.js";
 
 function readGitLogField(entry: unknown, field: string): string {
   const value =
@@ -344,10 +345,10 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
     Querystring: { limit?: string; offset?: string; search?: string };
   }>("/sync/log", async (request, reply) => {
     try {
-      const raw = parseInt(request.query.limit ?? "", 10);
-      const limit = isNaN(raw) || raw < 1 ? 20 : Math.min(raw, 100);
-      const rawOffset = parseInt(request.query.offset ?? "0", 10);
-      const offset = isNaN(rawOffset) || rawOffset < 0 ? 0 : rawOffset;
+      const { limit, offset } = readPagination(request.query, {
+        defaultLimit: 20,
+        maxLimit: 100,
+      });
       const search = request.query.search?.trim() || undefined;
       // Fetch one extra to determine if there are more results
       const log = await fastify.gitSync.log(limit + 1, offset, search);

@@ -52,6 +52,13 @@ export interface UndoSlot {
   restore: () => Promise<void>;
 }
 
+export interface MetadataDiff {
+  field: string;
+  label: string;
+  before?: string;
+  after?: string;
+}
+
 export interface OperationEntry {
   id: string;
   timestamp: string;
@@ -60,19 +67,18 @@ export interface OperationEntry {
   resourceId: string;
   affectedPaths: string[];
   rolledBack: boolean;
-	  metadata?: {
-	    kind?: string;
-	    name?: string;
-	    generatorName?: string;
-	    targetCollectionId?: string;
-	    collectionId?: string;
-	    changes?: Array<{
-      field: string;
-      label: string;
-      before?: string;
-      after?: string;
-    }>;
+  metadata?: {
+    kind?: string;
+    name?: string;
+    generatorName?: string;
+    targetCollectionId?: string;
+    collectionId?: string;
+    changes?: MetadataDiff[];
   };
+}
+
+export function formatMetadataValue(value?: string): string {
+  return value && value.length > 0 ? value : 'cleared';
 }
 
 export type HistoryView = 'recent' | 'saved';

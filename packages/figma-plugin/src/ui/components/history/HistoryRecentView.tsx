@@ -5,15 +5,11 @@ import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { RollbackPreviewModal } from './RollbackPreviewModal';
 import { OperationIcon } from './OperationIcon';
-import type { OperationEntry } from './types';
+import { formatMetadataValue, type OperationEntry } from './types';
 
 function getFieldChanges(op: OperationEntry) {
   if (!Array.isArray(op.metadata?.changes)) return [];
   return op.metadata.changes;
-}
-
-function formatMetadataValue(value?: string) {
-  return value && value.length > 0 ? value : 'cleared';
 }
 
 function operationTouchesCollection(
