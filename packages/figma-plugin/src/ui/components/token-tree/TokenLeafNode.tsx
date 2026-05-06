@@ -317,7 +317,7 @@ export const TokenLeafNode = memo(
       ? (duplicateCounts.get(stableStringify(node.$value)) ?? 0)
       : 0;
 
-    // Enriched resolution chain with per-hop set/mode metadata (for debugger view)
+    // Enriched resolution chain with per-hop collection/mode metadata.
     const resolutionSteps: ResolutionStep[] | null = useMemo(() => {
       if (!isAlias(node.$value)) return null;
       return buildResolutionChain(

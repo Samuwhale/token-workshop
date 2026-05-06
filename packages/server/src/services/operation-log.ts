@@ -6,7 +6,7 @@ import type {
   TokenCollection,
   Token,
   TokenGeneratorDocument,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type {
   CollectionMetadataState,
   CollectionPublishRoutingState,
@@ -17,7 +17,7 @@ import type {
   TokenStore,
 } from "./token-store.js";
 import type { TokenGeneratorService } from "./token-generator-service.js";
-import { stableStringify } from "@tokenmanager/core";
+import { stableStringify } from "@token-workshop/core";
 import { NotFoundError, ConflictError } from "../errors.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { expectJsonArray, parseJsonFile } from "../utils/json-file.js";
@@ -294,8 +294,8 @@ export interface TokenHistoryEntry {
   description: string;
   resourceId: string;
   rolledBack: boolean;
-  before: import("@tokenmanager/core").Token | null;
-  after: import("@tokenmanager/core").Token | null;
+  before: import("@token-workshop/core").Token | null;
+  after: import("@token-workshop/core").Token | null;
 }
 
 interface PathRenameEntry {
@@ -313,7 +313,7 @@ export class OperationLog {
   private lock = new PromiseChainLock();
 
   constructor(tokenDir: string) {
-    const tmDir = path.join(path.resolve(tokenDir), ".tokenmanager");
+    const tmDir = path.join(path.resolve(tokenDir), ".token-workshop");
     this.filePath = path.join(tmDir, "operations.json");
     this.pathRenameFilePath = path.join(tmDir, "path-renames.json");
   }

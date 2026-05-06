@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privacy - Token Workshop</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header>
+      <div class="brand"><a href="/">Token Workshop</a></div>
+      <nav>
+        <a href="/setup.html">Setup</a>
+        <a href="/support.html">Support</a>
+        <a href="/security.html">Security</a>
+      </nav>
+    </header>
+    <main>
+      <h1>Privacy</h1>
+      <p class="lead">Token Workshop is local-first and does not include product telemetry.</p>
+      <h2>Data handled by the app</h2>
+      <p>The Figma plugin can read and write local Figma variables, styles, selected layers, and token bindings when you use those features. The local server reads and writes token files in the directory you choose with <code>--dir</code>.</p>
+      <h2>Network access</h2>
+      <p>The plugin connects to <code>http://localhost:9400</code> so it can communicate with the local Token Workshop server. Git operations only contact remotes you configure yourself.</p>
+      <h2>Storage</h2>
+      <p>The plugin stores preferences, layout settings, recent actions, and drafts in browser local storage or session storage. Token files remain in your chosen local directory unless you explicitly export, copy, or push them elsewhere.</p>
+      <h2>Telemetry</h2>
+      <p>Token Workshop does not send product analytics, telemetry, or usage events. This documentation site does not include analytics scripts.</p>
+    </main>
+    <footer>
+      Privacy questions can be reported through <a href="https://github.com/Samuwhale/token-workshop/security/advisories/new">GitHub security advisories</a>.
+    </footer>
+  </body>
+</html>

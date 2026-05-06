@@ -256,7 +256,7 @@ function ExtensionsEditor({
         <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           <div className="flex items-center justify-between">
             <p className="text-body leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
-              Additional token fields. TokenManager and Figma scope fields are managed above.
+              Additional token fields. Token Workshop and Figma scope fields are managed above.
             </p>
             <button
               type="button"

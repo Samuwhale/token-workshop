@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { ShadowValue } from '@tokenmanager/core';
+import type { ShadowValue } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AUTHORING } from '../../shared/editorClasses';
 import { Field, Stack } from '../../primitives';

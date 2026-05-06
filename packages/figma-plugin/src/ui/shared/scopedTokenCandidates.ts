@@ -1,5 +1,5 @@
 import type { TokenMapEntry } from '../../shared/types';
-import { getCollectionIdsForPath } from '@tokenmanager/core';
+import { getCollectionIdsForPath } from '@token-workshop/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import {
   createRecentTokenKey,

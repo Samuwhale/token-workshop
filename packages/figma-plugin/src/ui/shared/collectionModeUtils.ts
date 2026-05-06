@@ -1,9 +1,9 @@
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import type { TokenEditorModeValues } from "./tokenEditorTypes";
 import {
   readTokenCollectionModeValues,
   sanitizeModeValuesForCollection,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { resolveAllAliases } from "../../shared/resolveAlias";
 

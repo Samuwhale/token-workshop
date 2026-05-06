@@ -1,7 +1,7 @@
 import {
   readTokenModeValuesForCollection,
   type TokenCollection,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import { resolveAllAliases } from "../../shared/resolveAlias";
 import type { TokenMapEntry } from "../../shared/types";
 

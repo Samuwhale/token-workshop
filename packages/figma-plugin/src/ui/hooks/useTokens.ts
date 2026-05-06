@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getTokenLifecycle, isDTCGToken, readTokenScopes } from '@tokenmanager/core';
+import { getTokenLifecycle, isDTCGToken, readTokenScopes } from '@token-workshop/core';
 import type {
   DTCGGroup,
   TokenValue,
   TokenReference,
   SerializedTokenCollection,
   TokenCollection,
-} from '@tokenmanager/core';
-import { deserializeTokenCollections } from '@tokenmanager/core';
+} from '@token-workshop/core';
+import { deserializeTokenCollections } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsRemove, lsSet } from '../shared/storage';
 import { apiFetch, isNetworkError, createFetchSignal, combineAbortSignals } from '../shared/apiFetch';
@@ -429,13 +429,13 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
     if (key.startsWith('$')) continue;
     const path = prefix ? `${prefix}.${key}` : key;
     if (value && typeof value === 'object' && '$value' in value) {
-      const token = value as import('@tokenmanager/core').DTCGToken;
+      const token = value as import('@token-workshop/core').DTCGToken;
       const tokenScopes = readTokenScopes(token);
       nodes.push({
         path,
         name: key,
         $type: token.$type,
-        $value: token.$value as import('@tokenmanager/core').TokenValue | undefined,
+        $value: token.$value as import('@token-workshop/core').TokenValue | undefined,
         $description: token.$description,
         $extensions: token.$extensions as Record<string, unknown> | undefined,
         $scopes: tokenScopes.length > 0 ? tokenScopes : undefined,
@@ -443,7 +443,7 @@ function buildTree(group: DTCGGroup, prefix = ''): TokenNode[] {
         isGroup: false,
       });
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const tokenGroup = value as import('@tokenmanager/core').DTCGGroup;
+      const tokenGroup = value as import('@token-workshop/core').DTCGGroup;
       const groupScopes = readTokenScopes(tokenGroup);
       nodes.push({
         path,

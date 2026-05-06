@@ -1,8 +1,8 @@
 /**
- * Simple sliding-window rate limiter for mutation (POST/PUT/PATCH/DELETE) requests.
+ * Sliding-window rate limiter for mutation (POST/PUT/PATCH/DELETE) requests.
  *
  * Protects token files from runaway UI loops or external scripting. Each unique
- * client IP gets its own counter that resets every `windowMs` milliseconds.
+ * client IP keeps recent mutation timestamps for the configured rolling window.
  * Read-only methods (GET, HEAD, OPTIONS) are always exempt.
  *
  * Stale entries are pruned on each request, so memory stays bounded even if
@@ -18,15 +18,15 @@ export interface RateLimitOptions {
   windowMs: number;
 }
 
-interface Entry {
-  count: number;
-  windowStart: number;
-}
+export const DEFAULT_RATE_LIMIT_OPTIONS: RateLimitOptions = {
+  max: 200,
+  windowMs: 60_000,
+};
 
 export class RateLimiter {
   private readonly max: number;
   private readonly windowMs: number;
-  private readonly store = new Map<string, Entry>();
+  private readonly store = new Map<string, number[]>();
 
   constructor(options: Partial<RateLimitOptions> = {}) {
     this.max =
@@ -34,13 +34,13 @@ export class RateLimiter {
       Number.isFinite(options.max) &&
       options.max > 0
         ? Math.floor(options.max)
-        : 200;
+        : DEFAULT_RATE_LIMIT_OPTIONS.max;
     this.windowMs =
       typeof options.windowMs === "number" &&
       Number.isFinite(options.windowMs) &&
       options.windowMs > 0
         ? Math.floor(options.windowMs)
-        : 60_000;
+        : DEFAULT_RATE_LIMIT_OPTIONS.windowMs;
   }
 
   /**
@@ -58,29 +58,34 @@ export class RateLimiter {
     const now = Date.now();
     this.prune(now);
 
-    const key = ip || "unknown";
-    const entry = this.store.get(key);
+    const key = ip.trim() || "unknown";
+    const cutoff = now - this.windowMs;
+    const timestamps = (this.store.get(key) ?? []).filter(
+      (timestamp) => timestamp > cutoff,
+    );
 
-    if (!entry || now - entry.windowStart >= this.windowMs) {
-      // First request in a new window
-      this.store.set(key, { count: 1, windowStart: now });
-      return null;
-    }
-
-    if (entry.count >= this.max) {
-      const retryAfterMs = this.windowMs - (now - entry.windowStart);
+    if (timestamps.length >= this.max) {
+      this.store.set(key, timestamps);
+      const retryAfterMs = timestamps[0] + this.windowMs - now;
       return { retryAfterSec: Math.ceil(retryAfterMs / 1000) };
     }
 
-    entry.count += 1;
+    timestamps.push(now);
+    this.store.set(key, timestamps);
     return null;
   }
 
   /** Remove entries whose window has fully expired to keep memory bounded. */
   private prune(now: number): void {
-    for (const [key, entry] of this.store) {
-      if (now - entry.windowStart >= this.windowMs) {
+    const cutoff = now - this.windowMs;
+    for (const [key, timestamps] of this.store) {
+      const activeTimestamps = timestamps.filter(
+        (timestamp) => timestamp > cutoff,
+      );
+      if (activeTimestamps.length === 0) {
         this.store.delete(key);
+      } else if (activeTimestamps.length !== timestamps.length) {
+        this.store.set(key, activeTimestamps);
       }
     }
   }

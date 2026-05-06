@@ -3,13 +3,13 @@ import path from "node:path";
 import type {
   CollectionPublishRouting,
   TokenCollection,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import {
   normalizeCollectionModeName,
   readCollectionsFileState,
   serializeTokenCollections,
   stableStringify,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import { ConflictError, NotFoundError } from "../errors.js";
 import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";

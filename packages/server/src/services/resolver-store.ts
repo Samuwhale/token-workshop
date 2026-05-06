@@ -15,12 +15,12 @@ import type {
   ResolverSet,
   ResolverSource,
   ResolverResult,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import {
   stableStringify,
   validateResolverFile,
   resolveResolverTokens,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenStore } from "./token-store.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";

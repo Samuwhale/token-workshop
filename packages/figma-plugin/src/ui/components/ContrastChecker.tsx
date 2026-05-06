@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { X } from 'lucide-react';
-import { resolveRefValue } from '@tokenmanager/core';
+import { resolveRefValue } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { Collapsible } from './Collapsible';

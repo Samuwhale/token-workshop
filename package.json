@@ -1,21 +1,23 @@
 {
-  "name": "tokenmanager",
+  "name": "token-workshop-workspace",
   "version": "0.1.0",
   "private": true,
-  "description": "Free local Token Studio clone — Figma plugin + local server for W3C DTCG design tokens",
+  "description": "Open-source Figma token authoring tool with a local design-token server",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
     "lint": "eslint packages/*/src/",
-    "server": "pnpm --filter @tokenmanager/server exec tsx watch bin/cli.ts --dir ../../demo/tokens --port 9400",
-    "plugin:build": "pnpm --filter @tokenmanager/figma-plugin build",
+    "server": "pnpm --filter token-workshop exec tsx watch bin/cli.ts --dir ../../demo/tokens --port 9400",
+    "plugin:build": "pnpm --filter @token-workshop/figma-plugin build",
+    "plugin:release": "pnpm --filter @token-workshop/figma-plugin release",
+    "docs:preview": "node docs/serve.mjs",
     "preview": "node scripts/agent-preview.mjs",
-    "preview:build": "pnpm --filter @tokenmanager/figma-plugin build",
+    "preview:build": "pnpm --filter @token-workshop/figma-plugin build",
     "preview:capture": "node scripts/capture-preview-snapshot.mjs",
-    "preview:server": "pnpm --filter @tokenmanager/server exec tsx watch bin/cli.ts --dir ../../demo/tokens --port 9400",
-    "preview:harness": "pnpm --filter @tokenmanager/figma-plugin standalone -- --port 3200",
-    "preview:validate": "pnpm --filter @tokenmanager/figma-plugin build && pnpm --filter @tokenmanager/figma-plugin validate"
+    "preview:server": "pnpm --filter token-workshop exec tsx watch bin/cli.ts --dir ../../demo/tokens --port 9400",
+    "preview:harness": "pnpm --filter @token-workshop/figma-plugin standalone -- --port 3200",
+    "preview:validate": "pnpm --filter @token-workshop/figma-plugin build && pnpm --filter @token-workshop/figma-plugin validate"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

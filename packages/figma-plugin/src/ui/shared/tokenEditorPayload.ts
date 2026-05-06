@@ -1,4 +1,4 @@
-import { type DerivationOp, type TokenCollection } from "@tokenmanager/core";
+import { type DerivationOp, type TokenCollection } from "@token-workshop/core";
 import {
   createTokenValueBody,
   type TokenMutationBody,
@@ -10,7 +10,7 @@ import {
   omitTokenEditorReservedExtensions,
   type TokenEditorLifecycle,
   type TokenEditorModeValues,
-  type TokenEditorTokenManagerExtension,
+  type TokenEditorTokenWorkshopExtension,
   type TokenEditorValue,
 } from "./tokenEditorTypes";
 
@@ -22,7 +22,7 @@ interface BuildTokenEditorValueBodyParams {
   derivationOps: DerivationOp[];
   modeValues: TokenEditorModeValues;
   collection: TokenCollection | null | undefined;
-  passthroughTokenManager: Record<string, unknown> | null | undefined;
+  passthroughTokenWorkshop: Record<string, unknown> | null | undefined;
   lifecycle: TokenEditorLifecycle;
   extendsPath: string;
   extensionsJsonText: string;
@@ -36,7 +36,7 @@ function buildTokenEditorExtensions({
   value,
   modeValues,
   collection,
-  passthroughTokenManager,
+  passthroughTokenWorkshop,
   lifecycle,
   extendsPath,
   extensionsJsonText,
@@ -46,39 +46,39 @@ function buildTokenEditorExtensions({
   "tokenType" | "description" | "clearEmptyDescription" | "clearEmptyExtensions"
 >): Record<string, unknown> {
   let extensions: Record<string, unknown> | undefined;
-  const tokenManagerExtensions: TokenEditorTokenManagerExtension =
-    passthroughTokenManager ? { ...passthroughTokenManager } : {};
+  const tokenWorkshopExtensions: TokenEditorTokenWorkshopExtension =
+    passthroughTokenWorkshop ? { ...passthroughTokenWorkshop } : {};
   // Per the design brief: a derivation requires `$value` to be an alias `{path}`.
   // Strip the derivation field on save when the value is no longer an alias so
   // changing `$value` from `{x}` to `#hex` cleanly drops orphaned ops.
   const valueIsAlias =
     typeof value === 'string' && value.startsWith('{') && value.endsWith('}');
   if (derivationOps.length > 0 && valueIsAlias) {
-    tokenManagerExtensions.derivation = { ops: derivationOps };
+    tokenWorkshopExtensions.derivation = { ops: derivationOps };
   } else {
-    delete tokenManagerExtensions.derivation;
+    delete tokenWorkshopExtensions.derivation;
   }
 
   const cleanModes = sanitizeEditorCollectionModeValues(modeValues, collection);
   if (Object.keys(cleanModes).length > 0) {
-    tokenManagerExtensions.modes = cleanModes;
+    tokenWorkshopExtensions.modes = cleanModes;
   } else {
-    delete tokenManagerExtensions.modes;
+    delete tokenWorkshopExtensions.modes;
   }
   if (lifecycle !== "published") {
-    tokenManagerExtensions.lifecycle = lifecycle;
+    tokenWorkshopExtensions.lifecycle = lifecycle;
   } else {
-    delete tokenManagerExtensions.lifecycle;
+    delete tokenWorkshopExtensions.lifecycle;
   }
   if (extendsPath) {
-    tokenManagerExtensions.extends = extendsPath;
+    tokenWorkshopExtensions.extends = extendsPath;
   } else {
-    delete tokenManagerExtensions.extends;
+    delete tokenWorkshopExtensions.extends;
   }
-  if (Object.keys(tokenManagerExtensions).length > 0) {
+  if (Object.keys(tokenWorkshopExtensions).length > 0) {
     extensions = {
       ...(extensions ?? {}),
-      tokenmanager: tokenManagerExtensions,
+      tokenworkshop: tokenWorkshopExtensions,
     };
   }
 

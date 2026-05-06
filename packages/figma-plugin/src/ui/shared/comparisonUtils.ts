@@ -1,4 +1,4 @@
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { applyModeSelectionsToTokens } from "./collectionModeUtils";
 import { downloadBlob } from "./utils";

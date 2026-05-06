@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { handleRouteError } from '../errors.js';
 import { snapshotCollections } from '../services/operation-log.js';
-import type { ResolverFile } from '@tokenmanager/core';
+import type { ResolverFile } from '@token-workshop/core';
 
 type SnapshotRouteContext = {
   resolverLock: {

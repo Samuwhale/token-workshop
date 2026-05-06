@@ -1,6 +1,6 @@
 import { useEffect, useState, memo } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { isFormula } from '@tokenmanager/core';
+import { isFormula } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
 import { AUTHORING } from '../../shared/editorClasses';

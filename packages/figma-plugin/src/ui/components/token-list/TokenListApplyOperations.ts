@@ -4,7 +4,7 @@ import {
   parseReference,
   type TokenReference,
   type TokenValue,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenNode } from "../../hooks/useTokens";
 import type {
   ApplyVariablesErrorMessage,
@@ -40,12 +40,12 @@ type RawVariablePreviewToken = Omit<VariablePreviewToken, "$value"> & {
 };
 
 function hasDerivation(entry: Pick<RawVariablePreviewToken, "$extensions">): boolean {
-  const tokenManager = entry.$extensions?.tokenmanager;
+  const tokenWorkshopExtension = entry.$extensions?.tokenworkshop;
   return Boolean(
-    tokenManager &&
-    typeof tokenManager === "object" &&
-    !Array.isArray(tokenManager) &&
-    "derivation" in tokenManager,
+    tokenWorkshopExtension &&
+    typeof tokenWorkshopExtension === "object" &&
+    !Array.isArray(tokenWorkshopExtension) &&
+    "derivation" in tokenWorkshopExtension,
   );
 }
 

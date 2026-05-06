@@ -1,4 +1,4 @@
-import { stableStringify } from "@tokenmanager/core";
+import { stableStringify } from "@token-workshop/core";
 import type {
   FieldChange,
   OperationEntry,

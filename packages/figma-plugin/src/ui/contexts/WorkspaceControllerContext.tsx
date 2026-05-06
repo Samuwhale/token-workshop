@@ -22,7 +22,7 @@ import type { NotificationEntry } from "../hooks/useToastStack";
 import type { ImportCompletionResult } from "../components/ImportPanelContext";
 import type { PublishPreflightState } from "../shared/syncWorkflow";
 import type { PublishPending } from "../hooks/useFigmaSync";
-import type { DerivationOp } from "@tokenmanager/core";
+import type { DerivationOp } from "@token-workshop/core";
 
 export interface ShellWorkspaceController {
   openPasteModal: () => void;

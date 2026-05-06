@@ -30,7 +30,7 @@ function createHelpHtml(snapshot) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TokenManager Preview Snapshot</title>
+  <title>Token Workshop Preview Snapshot</title>
   <style>
     :root {
       --bg: #f3efe7;
@@ -121,7 +121,7 @@ function createHelpHtml(snapshot) {
     <section class="panel">
       <div class="eyebrow">Standalone Preview Snapshot</div>
       <h1>Browser demo replaying captured server data.</h1>
-      <p>This preview is seeded from a checked-in snapshot captured from <code>${snapshot.sourceServerUrl}</code> on <code>${snapshot.capturedAt}</code>. The Figma bridge is still mocked, but the token library state comes from the live TokenManager API.</p>
+      <p>This preview is seeded from a checked-in snapshot captured from <code>${snapshot.sourceServerUrl}</code> on <code>${snapshot.capturedAt}</code>. The Figma bridge is still mocked, but the token library state comes from the live Token Workshop API.</p>
       <div class="grid">
         <div class="metric">
           <strong>${collections.length}</strong>

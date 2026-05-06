@@ -115,7 +115,7 @@ export function findCollectionById(
 export function readTokenCollectionModeValues(
   token: ExtensionsReadableToken | undefined,
 ): TokenModeValues {
-  const rawModes = (token?.$extensions as TokenExtensions | undefined)?.tokenmanager?.modes;
+  const rawModes = (token?.$extensions as TokenExtensions | undefined)?.tokenworkshop?.modes;
   if (!isModeValuesRecord(rawModes)) {
     return {};
   }
@@ -179,25 +179,25 @@ export function buildTokenExtensionsWithCollectionModes(
   const nextExtensions = token.$extensions
     ? { ...token.$extensions }
     : {};
-  const existingTokenManager =
-    nextExtensions.tokenmanager &&
-    typeof nextExtensions.tokenmanager === "object" &&
-    !Array.isArray(nextExtensions.tokenmanager)
-      ? { ...(nextExtensions.tokenmanager as Record<string, unknown>) }
+  const existingTokenWorkshop =
+    nextExtensions.tokenworkshop &&
+    typeof nextExtensions.tokenworkshop === "object" &&
+    !Array.isArray(nextExtensions.tokenworkshop)
+      ? { ...(nextExtensions.tokenworkshop as Record<string, unknown>) }
       : {};
 
   if (Object.keys(nextModes).length > 0) {
-    existingTokenManager.modes = nextModes;
-    nextExtensions.tokenmanager = existingTokenManager;
-  } else if (Object.keys(existingTokenManager).length > 0) {
-    delete existingTokenManager.modes;
-    if (Object.keys(existingTokenManager).length > 0) {
-      nextExtensions.tokenmanager = existingTokenManager;
+    existingTokenWorkshop.modes = nextModes;
+    nextExtensions.tokenworkshop = existingTokenWorkshop;
+  } else if (Object.keys(existingTokenWorkshop).length > 0) {
+    delete existingTokenWorkshop.modes;
+    if (Object.keys(existingTokenWorkshop).length > 0) {
+      nextExtensions.tokenworkshop = existingTokenWorkshop;
     } else {
-      delete nextExtensions.tokenmanager;
+      delete nextExtensions.tokenworkshop;
     }
   } else {
-    delete nextExtensions.tokenmanager;
+    delete nextExtensions.tokenworkshop;
   }
 
   return Object.keys(nextExtensions).length > 0 ? nextExtensions : undefined;

@@ -1,10 +1,10 @@
-import type { Token, TokenCollection } from "@tokenmanager/core";
+import type { Token, TokenCollection } from "@token-workshop/core";
 import {
   type DerivationOp,
   readTokenModeValuesForCollection,
   resolveCollectionIdForPath,
   writeTokenModeValuesForCollection,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import {
   createToken,
   fetchToken,
@@ -187,8 +187,8 @@ export async function createDerivationToken(params: {
   writeTokenModeValuesForCollection(draft, collection, modeValues);
   draft.$extensions = {
     ...(draft.$extensions ?? {}),
-    tokenmanager: {
-      ...(draft.$extensions?.tokenmanager ?? {}),
+    tokenworkshop: {
+      ...(draft.$extensions?.tokenworkshop ?? {}),
       derivation: { ops: derivationOps },
     },
   };

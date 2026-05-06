@@ -1,13 +1,14 @@
 {
-  "name": "TokenManager",
-  "id": "tokenmanager-local",
+  "name": "Token Workshop",
+  "id": "token-workshop-local",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
+  "documentAccess": "dynamic-page",
   "editorType": ["figma"],
   "networkAccess": {
-    "allowedDomains": ["http://localhost", "http://localhost:9400"],
-    "reasoning": "Connects to local TokenManager server for token management"
+    "allowedDomains": ["http://localhost:9400"],
+    "reasoning": "Connects to the local Token Workshop server that reads and writes design-token files on the user's machine."
   },
   "capabilities": [],
   "permissions": ["currentuser"]

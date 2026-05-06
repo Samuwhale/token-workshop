@@ -34,6 +34,6 @@ try {
   await startServer(readCliConfig());
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  console.error(`Failed to start TokenManager server: ${message}`);
+  console.error(`Failed to start Token Workshop server: ${message}`);
   process.exitCode = 1;
 }

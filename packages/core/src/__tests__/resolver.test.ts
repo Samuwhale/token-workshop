@@ -380,7 +380,7 @@ describe('TokenResolver', () => {
       expect(resolver.resolve('result').$value).toBe(5);
     });
 
-    it('stores the formula in $extensions.tokenmanager.formula', () => {
+    it('stores the formula in $extensions.tokenworkshop.formula', () => {
       const tokens: Record<string, Token> = {
         'base': makeToken(10, 'number'),
         'derived': makeToken('{base} * 3', 'number'),
@@ -388,7 +388,7 @@ describe('TokenResolver', () => {
 
       const resolver = new TokenResolver(tokens);
       const result = resolver.resolve('derived');
-      expect(result.$extensions?.tokenmanager?.formula).toBe('{base} * 3');
+      expect(result.$extensions?.tokenworkshop?.formula).toBe('{base} * 3');
     });
 
     it('includes formula refs in the dependency graph', () => {
@@ -491,7 +491,7 @@ describe('TokenResolver', () => {
       return {
         $value: value,
         $type: type,
-        $extensions: { tokenmanager: { extends: extendsPath } },
+        $extensions: { tokenworkshop: { extends: extendsPath } },
       };
     }
 

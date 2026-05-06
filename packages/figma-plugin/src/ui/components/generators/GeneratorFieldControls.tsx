@@ -1,6 +1,6 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Copy, Plus, Trash2, X } from "lucide-react";
-import { DIMENSION_UNITS, type TokenCollection } from "@tokenmanager/core";
+import { DIMENSION_UNITS, type TokenCollection } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { Button, SegmentedControl } from "../../primitives";
 import { AUTHORING } from "../../shared/editorClasses";
@@ -881,7 +881,7 @@ function readTokenModeValues(
   modes: string[],
 ): Array<[string, unknown]> {
   if (modes.length === 0) return [["Value", token.$value]];
-  const collectionModes = token.$extensions?.tokenmanager?.modes?.[collectionId];
+  const collectionModes = token.$extensions?.tokenworkshop?.modes?.[collectionId];
   return modes.map((modeName, index) => [
     modeName,
     index === 0 ? token.$value : collectionModes?.[modeName],

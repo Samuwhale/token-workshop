@@ -78,7 +78,7 @@ export function UnusedTokensPanel({
       await apiFetch(endpoint, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $extensions: { tokenmanager: { lifecycle: 'deprecated' } } }),
+        body: JSON.stringify({ $extensions: { tokenworkshop: { lifecycle: 'deprecated' } } }),
       });
     }
   };

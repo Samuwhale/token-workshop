@@ -1,4 +1,4 @@
-import type { Derivation, DerivationOp, TokenLifecycle, TokenValue } from '@tokenmanager/core';
+import type { Derivation, DerivationOp, TokenLifecycle, TokenValue } from '@token-workshop/core';
 
 export type TokenEditorValue = unknown;
 
@@ -8,10 +8,10 @@ export type TokenEditorModeValues = Record<string, Record<string, unknown>>;
 
 export const TOKEN_EDITOR_RESERVED_EXTENSION_KEYS = new Set([
   'com.figma.scopes',
-  'tokenmanager',
+  'tokenworkshop',
 ]);
 
-export interface TokenEditorTokenManagerExtension {
+export interface TokenEditorTokenWorkshopExtension {
   derivation?: Derivation;
   modes?: TokenEditorModeValues;
   lifecycle?: TokenEditorLifecycle;
@@ -33,10 +33,10 @@ export function omitTokenEditorReservedExtensions(
   );
 }
 
-export function splitTokenManagerExtension(
+export function splitTokenWorkshopExtension(
   value: unknown,
 ): {
-  managed: TokenEditorTokenManagerExtension;
+  managed: TokenEditorTokenWorkshopExtension;
   passthrough: Record<string, unknown>;
 } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -58,7 +58,7 @@ export function splitTokenManagerExtension(
   }
 
   return {
-    managed: source as TokenEditorTokenManagerExtension,
+    managed: source as TokenEditorTokenWorkshopExtension,
     passthrough,
   };
 }
@@ -90,7 +90,7 @@ export interface TokenEditorDraftData {
 
 export interface TokenEditorServerExtensions {
   'com.figma.scopes'?: string[];
-  tokenmanager?: TokenEditorTokenManagerExtension;
+  tokenworkshop?: TokenEditorTokenWorkshopExtension;
   [key: string]: unknown;
 }
 

@@ -10,7 +10,7 @@ import { App } from './App';
 const container = document.getElementById('root');
 
 if (!container) {
-  throw new Error('TokenManager UI mount failed: missing #root container');
+  throw new Error('Token Workshop UI mount failed: missing #root container');
 }
 
 const root = createRoot(container);

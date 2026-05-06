@@ -221,16 +221,16 @@ export class TokenResolver {
   }
 
   /**
-   * Extract the `$extends` path from a token's `$extensions.tokenmanager.extends`.
+   * Extract the `$extends` path from a token's `$extensions.tokenworkshop.extends`.
    */
   static getExtendsPath(token: Token): string | null {
-    const ext = token.$extensions?.tokenmanager?.extends;
+    const ext = token.$extensions?.tokenworkshop?.extends;
     return typeof ext === 'string' && ext.length > 0 ? ext : null;
   }
 
   private static readDerivationOps(token: Token, path: string): DerivationOp[] {
-    const tokenManager = token.$extensions?.tokenmanager as { derivation?: unknown } | undefined;
-    const derivation = tokenManager?.derivation;
+    const tokenWorkshopExtension = token.$extensions?.tokenworkshop as { derivation?: unknown } | undefined;
+    const derivation = tokenWorkshopExtension?.derivation;
     if (derivation === undefined) {
       return [];
     }
@@ -414,8 +414,8 @@ export class TokenResolver {
       const extensions = isFormulaToken
         ? {
             ...token.$extensions,
-            tokenmanager: {
-              ...(token.$extensions?.tokenmanager ?? {}),
+            tokenworkshop: {
+              ...(token.$extensions?.tokenworkshop ?? {}),
               formula: token.$value as string,
             },
           }
@@ -516,12 +516,12 @@ export class TokenResolver {
     ops: readonly DerivationOp[],
     extensions: TokenExtensions | undefined,
   ): TokenExtensions | undefined {
-    const rawModes = extensions?.tokenmanager?.modes;
+    const rawModes = extensions?.tokenworkshop?.modes;
     if (!rawModes || Object.keys(rawModes).length === 0) {
       return extensions;
     }
 
-    const nextModes: NonNullable<NonNullable<TokenExtensions['tokenmanager']>['modes']> = {};
+    const nextModes: NonNullable<NonNullable<TokenExtensions['tokenworkshop']>['modes']> = {};
     for (const [collectionId, collectionModes] of Object.entries(rawModes)) {
       if (!collectionModes || typeof collectionModes !== 'object' || Array.isArray(collectionModes)) {
         continue;
@@ -559,8 +559,8 @@ export class TokenResolver {
 
     return {
       ...extensions,
-      tokenmanager: {
-        ...(extensions?.tokenmanager ?? {}),
+      tokenworkshop: {
+        ...(extensions?.tokenworkshop ?? {}),
         modes: nextModes,
       },
     };
@@ -592,7 +592,7 @@ export class TokenResolver {
 
       const resolved = this.resolved.get(refPath);
       if (resolved) {
-        const resolvedMode = resolved.$extensions?.tokenmanager?.modes?.[collectionId]?.[modeName];
+        const resolvedMode = resolved.$extensions?.tokenworkshop?.modes?.[collectionId]?.[modeName];
         return resolvedMode !== undefined ? resolvedMode : resolved.$value;
       }
 
@@ -614,7 +614,7 @@ export class TokenResolver {
           `Derivations must be stored as alias-plus-transform tokens.`,
         );
       }
-      const modeValue = refToken.$extensions?.tokenmanager?.modes?.[collectionId]?.[modeName];
+      const modeValue = refToken.$extensions?.tokenworkshop?.modes?.[collectionId]?.[modeName];
       const refRawValue = modeValue !== undefined ? modeValue : refToken.$value;
       let refValue = this.resolveValueForMode(
         refRawValue,

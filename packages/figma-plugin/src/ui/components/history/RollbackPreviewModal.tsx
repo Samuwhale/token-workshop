@@ -152,7 +152,7 @@ export function RollbackPreviewModal({
           {!diffLoading && diffError && (
             <div className="flex flex-col items-center justify-center h-20 gap-1 px-3 text-center">
               <p className="text-body text-[color:var(--color-figma-text-error)]">{diffError}</p>
-              <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">You can still restore this edit — TokenManager will return affected tokens to their prior state.</p>
+              <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">You can still restore this edit — Token Workshop will return affected tokens to their prior state.</p>
             </div>
           )}
 

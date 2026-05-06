@@ -5,7 +5,7 @@ import {
   writeTokenModeValuesForCollection,
   type Token,
   type TokenCollection,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { ApiError } from '../shared/apiFetch';

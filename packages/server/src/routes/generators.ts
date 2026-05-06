@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import {
   GENERATOR_TEMPLATE_OPTIONS,
   type GeneratorTemplateKind,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import { BadRequestError, handleRouteError } from "../errors.js";
 import type {
   GeneratorCreateInput,

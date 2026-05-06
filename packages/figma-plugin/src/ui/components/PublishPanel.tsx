@@ -4,8 +4,8 @@ import type {
   ResolverFigmaModeMapping,
   ResolverInput,
   TokenCollection,
-} from '@tokenmanager/core';
-import { isReference, parseReference } from '@tokenmanager/core';
+} from '@token-workshop/core';
+import { isReference, parseReference } from '@token-workshop/core';
 import { dispatchToast } from '../shared/toastBus';
 import { describeError } from '../shared/utils';
 import { Spinner } from './Spinner';
@@ -87,8 +87,8 @@ const STYLE_MESSAGES: SyncMessages<
   revertSendType: 'revert-styles', revertResponseType: 'styles-reverted', revertTimeout: 30000,
 };
 
-const DEFAULT_RESOLVER_COLLECTION_NAME = 'TokenManager';
-const DEFAULT_VARIABLE_COLLECTION_NAME = 'TokenManager';
+const DEFAULT_RESOLVER_COLLECTION_NAME = 'Token Workshop';
+const DEFAULT_VARIABLE_COLLECTION_NAME = 'Token Workshop';
 type CompareTarget = 'variables' | 'styles';
 
 interface ResolverPublishMappingDraft {
@@ -151,7 +151,7 @@ function buildResolverPublishSourceDrafts(
   combinations: ResolverInput[],
   modifierNames: string[],
 ): Record<string, ResolverPublishMappingDraft> {
-  const mappings = file?.$extensions?.tokenmanager?.resolverPublish?.modeMappings ?? [];
+  const mappings = file?.$extensions?.tokenworkshop?.resolverPublish?.modeMappings ?? [];
   const mappingByKey = new Map<string, ResolverFigmaModeMapping>(
     mappings.map((mapping) => [buildResolverContextKey(mapping.contexts ?? {}, modifierNames), mapping]),
   );
@@ -184,18 +184,18 @@ function writeResolverPublishMappings(
 ): ResolverFile {
   const nextFile = structuredClone(file) as ResolverFile;
   const nextExtensions = { ...(nextFile.$extensions ?? {}) };
-  const nextTokenManager = { ...(nextExtensions.tokenmanager ?? {}) };
+  const nextTokenWorkshop = { ...(nextExtensions.tokenworkshop ?? {}) };
 
   if (modeMappings.length > 0) {
-    nextTokenManager.resolverPublish = { modeMappings };
+    nextTokenWorkshop.resolverPublish = { modeMappings };
   } else {
-    delete nextTokenManager.resolverPublish;
+    delete nextTokenWorkshop.resolverPublish;
   }
 
-  if (Object.keys(nextTokenManager).length > 0) {
-    nextExtensions.tokenmanager = nextTokenManager;
+  if (Object.keys(nextTokenWorkshop).length > 0) {
+    nextExtensions.tokenworkshop = nextTokenWorkshop;
   } else {
-    delete nextExtensions.tokenmanager;
+    delete nextExtensions.tokenworkshop;
   }
 
   nextFile.$extensions =
@@ -720,7 +720,7 @@ export function PublishPanel({
       return;
     }
 
-    const modeMappings = resolverPublishFile.$extensions?.tokenmanager?.resolverPublish?.modeMappings ?? [];
+    const modeMappings = resolverPublishFile.$extensions?.tokenworkshop?.resolverPublish?.modeMappings ?? [];
     if (modeMappings.length === 0) {
       setResolverPublishError('Add at least one Figma mode target before syncing.');
       return;
@@ -1180,7 +1180,7 @@ export function PublishPanel({
                   Check Figma changes
                 </span>
                 <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Compare this collection before TokenManager writes variables or styles.
+                  Compare this collection before Token Workshop writes variables or styles.
                 </span>
               </div>
               <button

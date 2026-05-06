@@ -1,4 +1,4 @@
-import { readGeneratorProvenance } from "@tokenmanager/core";
+import { readGeneratorProvenance } from "@token-workshop/core";
 import { ConflictError } from "../errors.js";
 import type {
   OperationLog,

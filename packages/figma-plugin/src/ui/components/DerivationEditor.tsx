@@ -5,14 +5,14 @@ import {
   DIMENSION_UNITS,
   isParamReference,
   paramReferencePath,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type {
   DerivationOp,
   DimensionUnit,
   DimensionValue,
   DurationValue,
   TokenType,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import { Collapsible } from './Collapsible';
 import type { TokenMapEntry } from '../../shared/types';
 import { extractAliasPath, isAlias, resolveAliasEntry } from '../../shared/resolveAlias';

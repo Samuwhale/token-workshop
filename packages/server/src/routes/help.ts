@@ -10,7 +10,7 @@ const SECTIONS: ReadonlyArray<{
     id: "overview",
     title: "Overview",
     summary:
-      "TokenManager is a local Figma plugin workspace for authoring, reviewing, syncing, and exporting DTCG design tokens.",
+      "Token Workshop is a local Figma plugin workspace for authoring, reviewing, syncing, and exporting DTCG design tokens.",
     items: [
       "Collections are the primary authoring container. Modes belong to collections, and every token value is a mode value.",
       "The plugin keeps designer workflows first while giving developers clear places for exports, audit checks, version history, and git sync.",
@@ -57,7 +57,7 @@ const SECTIONS: ReadonlyArray<{
       "Publishing turns authored tokens into Figma variables and styles while preserving reviewable changes.",
     items: [
       "Review what will be created, updated, or removed before publishing a collection to Figma.",
-      "Map TokenManager collections and modes to the matching Figma variable collections and modes.",
+      "Map Token Workshop collections and modes to the matching Figma variable collections and modes.",
       "Use readiness checks before publishing when you need to catch invalid values, missing modes, or risky changes.",
     ],
   },
@@ -305,16 +305,16 @@ function renderHelpPage(): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TokenManager Help</title>
+  <title>Token Workshop Help</title>
   <style>${CSS}</style>
 </head>
 <body>
   <main class="page">
     <section class="hero">
       <div>
-        <h1>TokenManager Help</h1>
+        <h1>Token Workshop Help</h1>
         <p class="lead">
-          Practical guidance for using TokenManager as a Figma-native design token workspace, from authoring collections to publishing variables and exporting code-ready tokens.
+          Practical guidance for using Token Workshop as a Figma-native design token workspace, from authoring collections to publishing variables and exporting code-ready tokens.
         </p>
         <div class="meta">
           <span><strong>Audience:</strong> Figma designers and design system teams</span>

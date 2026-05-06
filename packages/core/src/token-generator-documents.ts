@@ -603,16 +603,16 @@ export function tokenFromGeneratorOutput(
   };
   token.$value = output.modeValues[collection.modes[0]?.name ?? ''] ?? '';
   token.$type = output.type;
-  const tokenmanager =
-    token.$extensions?.tokenmanager &&
-    typeof token.$extensions.tokenmanager === 'object' &&
-    !Array.isArray(token.$extensions.tokenmanager)
-      ? { ...(token.$extensions.tokenmanager as Record<string, unknown>) }
+  const tokenworkshop =
+    token.$extensions?.tokenworkshop &&
+    typeof token.$extensions.tokenworkshop === 'object' &&
+    !Array.isArray(token.$extensions.tokenworkshop)
+      ? { ...(token.$extensions.tokenworkshop as Record<string, unknown>) }
       : {};
   token.$extensions = {
     ...(token.$extensions ?? {}),
-    tokenmanager: {
-      ...tokenmanager,
+    tokenworkshop: {
+      ...tokenworkshop,
       generator: provenance,
     },
   };
@@ -645,7 +645,7 @@ function cloneToken(token: Token): Token {
 export function readGeneratorProvenance(
   token: Pick<Token, '$extensions'> | undefined,
 ): GeneratorOutputProvenance | null {
-  const raw = token?.$extensions?.tokenmanager?.generator;
+  const raw = token?.$extensions?.tokenworkshop?.generator;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return null;
   }

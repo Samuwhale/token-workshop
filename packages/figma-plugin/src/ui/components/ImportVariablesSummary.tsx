@@ -12,7 +12,7 @@ import { Spinner } from './Spinner';
 type Strategy = 'merge' | 'overwrite' | 'skip';
 
 export function ImportVariablesSummary() {
-  const { collectionData, handleBack } = useImportSourceContext();
+  const { collectionData, handleBack, source } = useImportSourceContext();
   const {
     collectionIds,
     modeEnabled,
@@ -52,8 +52,8 @@ export function ImportVariablesSummary() {
   const importTokenCount = strategy === 'skip' && varConflictPreview
     ? varConflictPreview.newCount
     : totalEnabledTokens;
+  const isTokensStudioImport = source === 'tokens-studio';
 
-  // Build summary per Figma collection
   const collectionSummaries = collectionData.map(col => {
     const enabledModes = col.modes.filter(mode => {
       const key = modeKey(col.name, mode.modeId);
@@ -94,10 +94,12 @@ export function ImportVariablesSummary() {
 
       <div>
         <div className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Review Figma variable collections
+          {isTokensStudioImport ? 'Review Tokens Studio collections' : 'Review Figma variable collections'}
         </div>
         <div className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Each Figma collection stays a TokenManager collection. Its modes import as mode values on the same tokens.
+          {isTokensStudioImport
+            ? 'Each Tokens Studio group imports as a Token Workshop collection.'
+            : 'Each Figma collection stays a Token Workshop collection. Its modes import as mode values on the same tokens.'}
         </div>
       </div>
 

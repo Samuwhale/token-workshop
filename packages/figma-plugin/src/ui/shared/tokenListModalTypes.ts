@@ -1,4 +1,4 @@
-import type { TokenReference, TokenValue } from "@tokenmanager/core";
+import type { TokenReference, TokenValue } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import type {
   DeleteConfirm,

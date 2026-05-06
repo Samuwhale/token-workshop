@@ -1,5 +1,5 @@
 import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import type { TokenEditorModeValues, TokenEditorValue } from "../shared/tokenEditorTypes";
 
 export interface ModeValueEntry {

@@ -1,6 +1,6 @@
 /**
  * W3C Design Token Community Group (DTCG) token type constants
- * and shared default values for the TokenManager engine.
+ * and shared default values for the Token Workshop engine.
  *
  * Spec: https://tr.designtokens.org/format/
  */

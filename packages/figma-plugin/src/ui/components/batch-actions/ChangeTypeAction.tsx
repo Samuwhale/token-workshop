@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { TokenValidator } from '@tokenmanager/core';
-import type { Token } from '@tokenmanager/core';
+import { TokenValidator } from '@token-workshop/core';
+import type { Token } from '@token-workshop/core';
 import { apiFetch } from '../../shared/apiFetch';
 import { AUTHORING } from '../../shared/editorClasses';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';

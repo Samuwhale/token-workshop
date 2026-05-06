@@ -1,5 +1,5 @@
 import { useEffect, type MouseEvent, type RefObject } from "react";
-import { collectTokenReferencePaths } from "@tokenmanager/core";
+import { collectTokenReferencePaths } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { getMenuItems, handleMenuArrowKeys } from "../../hooks/useMenuKeyboard";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
@@ -377,7 +377,7 @@ export function getBrowseMetaForReference(
  * Browse-meta factory for tokens that carry a `derivation` extension.
  * Per the design brief: a derivation row reads as a derivation, NOT as an alias —
  * callers should prefer this over `getBrowseMetaForReference` whenever the token
- * has a `$extensions.tokenmanager.derivation` field, even though the underlying
+ * has a `$extensions.tokenworkshop.derivation` field, even though the underlying
  * `$value` is also an alias.
  */
 export function getBrowseMetaForDerivation(

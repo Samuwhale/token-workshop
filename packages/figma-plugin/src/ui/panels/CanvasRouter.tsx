@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { resolveCollectionIdForPath } from "@tokenmanager/core";
+import { resolveCollectionIdForPath } from "@token-workshop/core";
 import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
 import { SelectionInspector } from "../components/SelectionInspector";
 import { CanvasRepairPanel } from "../components/CanvasRepairPanel";

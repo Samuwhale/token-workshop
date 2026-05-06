@@ -5,7 +5,7 @@ import {
   type PublishPreflightState,
 } from "../shared/syncWorkflow";
 import type { PublishPanelHandle } from "../components/PublishPanel";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 
 interface UseSyncStateParams {

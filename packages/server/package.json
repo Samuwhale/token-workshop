@@ -1,22 +1,38 @@
 {
-  "name": "@tokenmanager/server",
+  "name": "token-workshop",
   "version": "0.1.0",
-  "private": true,
+  "description": "Local server and CLI for the Token Workshop Figma token authoring tool",
+  "license": "MIT",
   "type": "module",
-  "main": "./dist/src/index.js",
+  "main": "./dist/bin/cli.js",
   "bin": {
-    "tokenmanager": "./dist/bin/cli.js"
+    "token-workshop": "./dist/bin/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samuwhale/token-workshop.git",
+    "directory": "packages/server"
+  },
+  "bugs": {
+    "url": "https://github.com/Samuwhale/token-workshop/issues"
+  },
+  "homepage": "https://tokenworkshop.spithorst.net",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmit && node build.mjs",
     "dev": "tsx watch bin/cli.ts",
     "start": "node dist/bin/cli.js",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "@fastify/cors": "^10.0.0",
-    "@tokenmanager/core": "workspace:*",
     "chokidar": "^4.0.0",
     "fastify": "^5.2.0",
     "simple-git": "^3.27.0",
@@ -24,6 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
     "tsx": "^4.19.0",
     "vitest": "^3.0.0"
   }

@@ -22,7 +22,7 @@ import {
   type TokenGeneratorPreviewResult,
   type TokenGeneratorViewport,
   type GeneratorTemplateKind,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
 import type { CollectionService } from "./collection-service.js";
 import {
@@ -562,17 +562,17 @@ export class TokenGeneratorService {
       ]);
       const nextToken = structuredClone(token);
       const extensions = { ...(nextToken.$extensions ?? {}) };
-      const tokenmanager =
-        extensions.tokenmanager &&
-        typeof extensions.tokenmanager === "object" &&
-        !Array.isArray(extensions.tokenmanager)
-          ? { ...(extensions.tokenmanager as Record<string, unknown>) }
+      const tokenworkshop =
+        extensions.tokenworkshop &&
+        typeof extensions.tokenworkshop === "object" &&
+        !Array.isArray(extensions.tokenworkshop)
+          ? { ...(extensions.tokenworkshop as Record<string, unknown>) }
           : {};
-      delete tokenmanager.generator;
-      if (Object.keys(tokenmanager).length > 0) {
-        extensions.tokenmanager = tokenmanager;
+      delete tokenworkshop.generator;
+      if (Object.keys(tokenworkshop).length > 0) {
+        extensions.tokenworkshop = tokenworkshop;
       } else {
-        delete extensions.tokenmanager;
+        delete extensions.tokenworkshop;
       }
       if (Object.keys(extensions).length > 0) {
         nextToken.$extensions = extensions;
@@ -821,15 +821,15 @@ function tokenHasManualGeneratorOutputMetadata(token: Token): boolean {
     return false;
   }
   for (const [key, value] of Object.entries(extensions)) {
-    if (key !== "tokenmanager") {
+    if (key !== "tokenworkshop") {
       return true;
     }
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return true;
     }
-    const tokenmanager = value as Record<string, unknown>;
-    for (const tokenmanagerKey of Object.keys(tokenmanager)) {
-      if (tokenmanagerKey !== "generator" && tokenmanagerKey !== "modes") {
+    const tokenworkshop = value as Record<string, unknown>;
+    for (const tokenworkshopKey of Object.keys(tokenworkshop)) {
+      if (tokenworkshopKey !== "generator" && tokenworkshopKey !== "modes") {
         return true;
       }
     }

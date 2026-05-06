@@ -1,7 +1,7 @@
 import {
   COLLECTION_NAME_RE as CORE_COLLECTION_NAME_RE,
   stableStringify,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 
 /** Validates collection ids: letters, numbers, - and _ with / for folder hierarchy. */
 export const COLLECTION_NAME_RE = CORE_COLLECTION_NAME_RE;

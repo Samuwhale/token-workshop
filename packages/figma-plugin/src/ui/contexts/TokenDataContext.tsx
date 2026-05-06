@@ -13,7 +13,7 @@
 
 import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import type { TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@token-workshop/core';
 import { useConnectionContext } from './ConnectionContext';
 import { useCollectionState } from '../hooks/useTokens';
 import type { TokenNode } from '../hooks/useTokens';

@@ -1,4 +1,4 @@
-import { normalizeCollectionModeName } from "@tokenmanager/core";
+import { normalizeCollectionModeName } from "@token-workshop/core";
 import { apiFetch } from "./apiFetch";
 
 export const DUPLICATE_MODE_NAME_MESSAGE = "Mode names must be different.";

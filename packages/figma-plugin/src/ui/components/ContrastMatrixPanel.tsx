@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import { hexToLuminance, wcagContrast } from "../shared/colorUtils";
-import { normalizeHex, hexToLab } from "@tokenmanager/core";
+import { normalizeHex, hexToLab } from "@token-workshop/core";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { isHexColorLiteral } from "../shared/colorAnalysis";
 

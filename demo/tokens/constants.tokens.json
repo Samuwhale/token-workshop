@@ -8,7 +8,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "modes": {
             "constants": {
               "Tablet": 1440,
@@ -31,7 +31,7 @@
           "FONT_FAMILY"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "Prompt",
@@ -51,7 +51,7 @@
           "FONT_FAMILY"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "Inter",
@@ -71,7 +71,7 @@
           "FONT_FAMILY"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "Inter",
@@ -91,7 +91,7 @@
           "FONT_FAMILY"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "Inter",
@@ -111,7 +111,7 @@
           "FONT_FAMILY"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "Avenir Next",
@@ -131,7 +131,7 @@
           "FONT_FAMILY"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "Fira mono",
@@ -151,7 +151,7 @@
           "FONT_FAMILY"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "Avenir Next Condensed",
@@ -172,7 +172,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "900",
@@ -191,7 +191,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "800",
@@ -210,7 +210,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "700",
@@ -229,7 +229,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "bold italic",
@@ -248,7 +248,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "600",
@@ -267,7 +267,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "semibold italic",
@@ -286,7 +286,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "500",
@@ -305,7 +305,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "500",
@@ -324,7 +324,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "400",
@@ -343,7 +343,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "regular italic",
@@ -362,7 +362,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "300",
@@ -381,7 +381,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "light italic",
@@ -400,7 +400,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "200",
@@ -419,7 +419,7 @@
           "FONT_STYLE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": "100",
@@ -443,7 +443,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 80,
@@ -465,7 +465,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 64,
@@ -487,7 +487,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 48,
@@ -509,7 +509,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 42,
@@ -531,7 +531,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 36,
@@ -553,7 +553,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 32,
@@ -575,7 +575,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 24,
@@ -597,7 +597,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 20,
@@ -619,7 +619,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 16,
@@ -641,7 +641,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 14,
@@ -663,7 +663,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 12,
@@ -685,7 +685,7 @@
           "FONT_SIZE"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 12,
@@ -706,7 +706,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 96,
@@ -725,7 +725,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 72,
@@ -744,7 +744,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 56,
@@ -763,7 +763,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 56,
@@ -782,7 +782,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 48,
@@ -801,7 +801,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 40,
@@ -820,7 +820,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 32,
@@ -839,7 +839,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 28,
@@ -858,7 +858,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 24,
@@ -877,7 +877,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 20,
@@ -896,7 +896,7 @@
           "LINE_HEIGHT"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 16,
@@ -919,7 +919,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 0,
@@ -938,7 +938,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 1,
@@ -957,7 +957,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 2,
@@ -976,7 +976,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 4,
@@ -995,7 +995,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 8,
@@ -1014,7 +1014,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 12,
@@ -1033,7 +1033,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 20,
@@ -1052,7 +1052,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 30,
@@ -1071,7 +1071,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 45,
@@ -1090,7 +1090,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 75,
@@ -1111,7 +1111,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 0,
@@ -1130,7 +1130,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 4,
@@ -1149,7 +1149,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 8,
@@ -1168,7 +1168,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 16,
@@ -1187,7 +1187,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 32,
@@ -1206,7 +1206,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 888,
@@ -1227,7 +1227,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 14,
@@ -1246,7 +1246,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 20,
@@ -1265,7 +1265,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 28,
@@ -1284,7 +1284,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 36,
@@ -1303,7 +1303,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 44,
@@ -1322,7 +1322,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 56,
@@ -1343,7 +1343,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 12,
@@ -1362,7 +1362,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 48,
@@ -1381,7 +1381,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 24,
@@ -1402,7 +1402,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 16,
@@ -1421,7 +1421,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 24,
@@ -1440,7 +1440,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 32,
@@ -1461,7 +1461,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 1.3300000429153442,
@@ -1480,7 +1480,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 2,
@@ -1499,7 +1499,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 2.6600000858306885,
@@ -1518,7 +1518,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 4,
@@ -1539,7 +1539,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 0.6000000238418579,
@@ -1558,7 +1558,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 1,
@@ -1577,7 +1577,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 2,
@@ -1596,7 +1596,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 3,
@@ -1615,7 +1615,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 6,
@@ -1636,7 +1636,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 0,
@@ -1655,7 +1655,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 4,
@@ -1674,7 +1674,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 8,
@@ -1693,7 +1693,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 12,
@@ -1712,7 +1712,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 16,
@@ -1731,7 +1731,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 24,
@@ -1750,7 +1750,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 32,
@@ -1769,7 +1769,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 40,
@@ -1788,7 +1788,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "constants": {
                 "Tablet": 64,

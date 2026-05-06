@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { CubicBezierValue } from '@tokenmanager/core';
+import type { CubicBezierValue } from '@token-workshop/core';
 import { AUTHORING } from '../../shared/editorClasses';
 import { Field, Stack } from '../../primitives';
 import { normalizeCubicBezierValue, type ValueChangeHandler } from './valueEditorShared';

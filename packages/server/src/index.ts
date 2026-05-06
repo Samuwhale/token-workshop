@@ -5,25 +5,6 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { isAllowedCorsOrigin } from "./cors.js";
-
-const _require = createRequire(import.meta.url);
-
-function readServerVersion(): string {
-  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-  for (const relativePath of ["../package.json", "../../package.json"]) {
-    try {
-      const pkg = _require(path.join(moduleDir, relativePath)) as { version?: unknown };
-      if (typeof pkg.version === "string" && pkg.version.length > 0) {
-        return pkg.version;
-      }
-    } catch {
-      // Source runs from src/, compiled output runs from dist/src/.
-    }
-  }
-  return "0.0.0";
-}
-
-const SERVER_VERSION = readServerVersion();
 import { getHttpStatusCode, getErrorMessage } from "./errors.js";
 import { tokenRoutes } from "./routes/tokens.js";
 import { collectionStructureRoutes } from "./routes/collection-structure.js";
@@ -46,7 +27,10 @@ import { ResolverStore } from "./services/resolver-store.js";
 import { ManualSnapshotStore } from "./services/manual-snapshot.js";
 import { snapshotRoutes } from "./routes/snapshots.js";
 import { PromiseChainLock } from "./utils/promise-chain-lock.js";
-import { RateLimiter } from "./services/rate-limiter.js";
+import {
+  DEFAULT_RATE_LIMIT_OPTIONS,
+  RateLimiter,
+} from "./services/rate-limiter.js";
 import {
   createCollectionStore,
   type CollectionStore,
@@ -54,6 +38,25 @@ import {
 import { CollectionService } from "./services/collection-service.js";
 import { LintConfigStore } from "./services/lint.js";
 import { EventBus } from "./services/event-bus.js";
+
+const _require = createRequire(import.meta.url);
+
+function readServerVersion(): string {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  for (const relativePath of ["../package.json", "../../package.json"]) {
+    try {
+      const pkg = _require(path.join(moduleDir, relativePath)) as { version?: unknown };
+      if (typeof pkg.version === "string" && pkg.version.length > 0) {
+        return pkg.version;
+      }
+    } catch {
+      // Source runs from src/, compiled output runs from dist/src/.
+    }
+  }
+  return "0.0.0";
+}
+
+const SERVER_VERSION = readServerVersion();
 
 export interface ServerConfig {
   tokenDir: string;
@@ -73,7 +76,7 @@ export async function startServer(config: ServerConfig) {
     origin(origin, callback) {
       callback(null, isAllowedCorsOrigin(origin));
     },
-    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+    methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"],
   });
 
   // Global error handler — catches unhandled rejections from any route handler
@@ -92,7 +95,7 @@ export async function startServer(config: ServerConfig) {
   // loops or external scripts from overwhelming the file system with rapid writes.
   // GET/HEAD/OPTIONS requests are exempt — reads are cheap and SSE streams must
   // stay open indefinitely. Uses a sliding-window counter per client IP.
-  const rateLimiter = new RateLimiter({ max: 200, windowMs: 60_000 });
+  const rateLimiter = new RateLimiter();
   fastify.addHook("onRequest", async (request, reply) => {
     const result = rateLimiter.check(request.method, request.ip);
     if (result) {
@@ -102,7 +105,7 @@ export async function startServer(config: ServerConfig) {
         .send({
           statusCode: 429,
           error: "Too Many Requests",
-          message: `Rate limit exceeded: max 200 write requests per minute. Retry after ${result.retryAfterSec}s.`,
+          message: `Rate limit exceeded: max ${DEFAULT_RATE_LIMIT_OPTIONS.max} write requests per minute. Retry after ${result.retryAfterSec}s.`,
         });
     }
   });
@@ -314,7 +317,7 @@ export async function startServer(config: ServerConfig) {
 
   await fastify.listen({ port: config.port, host: config.host });
   console.log(
-    `TokenManager server running at http://${config.host}:${config.port}`,
+    `Token Workshop server running at http://${config.host}:${config.port}`,
   );
   console.log(`Token directory: ${config.tokenDir}`);
 

@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import type {
   TokenGeneratorDocumentNode,
   TokenGeneratorNodeKind,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import { Button, SearchField } from "../../primitives";
 
 export interface GeneratorPaletteItem {
@@ -96,7 +96,7 @@ export function NodeLibraryPanel({
                   draggable
                   onDragStart={(event) => {
                     event.dataTransfer.setData(
-                      "application/tokenmanager-node",
+                      "application/tokenworkshop-node",
                       item.label,
                     );
                     event.dataTransfer.effectAllowed = "copy";

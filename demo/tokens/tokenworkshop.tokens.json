@@ -8,7 +8,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -21,7 +21,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -34,7 +34,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -47,7 +47,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -60,7 +60,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -73,7 +73,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -86,7 +86,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -99,7 +99,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -112,7 +112,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -125,7 +125,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }
@@ -138,7 +138,7 @@
         "ALL_SCOPES"
       ],
       "$extensions": {
-        "tokenmanager": {
+        "tokenworkshop": {
           "source": "figma-variables"
         }
       }

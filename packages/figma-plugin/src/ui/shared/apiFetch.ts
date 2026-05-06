@@ -1,9 +1,9 @@
 /**
  * Shared API fetch utility.
  *
- * Wraps `fetch` with standard error handling: checks `res.ok`, extracts
- * `{ error }` from the response body on failure, and throws an `ApiError`
- * with the server's message (or a fallback).  Callers only need to handle
+ * Wraps `fetch` with standard error handling: checks `res.ok`, extracts a
+ * server-provided error message from the response body, and throws an `ApiError`.
+ * Callers only need to handle
  * the `ApiError` in a single `catch` block — no per-call `res.ok` checks.
  */
 
@@ -17,26 +17,22 @@ export class ApiError extends Error {
 }
 
 /**
- * Fetch `url` with `options`, parse JSON response, and return it as `T`.
- * Throws `ApiError` (with the server's `error` field if available) on non-2xx.
- */
-/**
  * Detect network errors from `fetch()` cross-browser.
  * Chrome: 'Failed to fetch', Firefox: 'NetworkError…', Safari: 'Load failed'.
  * Intentionally narrow — only matches TypeErrors from the fetch infrastructure,
  * NOT all TypeErrors (property access on null etc. must not be misclassified).
  */
 export function isNetworkError(err: unknown): boolean {
-  if (err instanceof Error) {
-    const msg = err.message;
-    return (
-      msg.includes('Failed to fetch') ||
-      msg.includes('NetworkError') ||
-      msg.includes('Load failed') ||
-      msg.includes('fetch failed')
-    );
+  if (!(err instanceof TypeError)) {
+    return false;
   }
-  return false;
+  const msg = err.message;
+  return (
+    msg.includes('Failed to fetch') ||
+    msg.includes('NetworkError') ||
+    msg.includes('Load failed') ||
+    msg.includes('fetch failed')
+  );
 }
 
 function getAbortReason(signal: AbortSignal): unknown {
@@ -88,6 +84,9 @@ export function combineAbortSignals(
   );
   if (activeSignals.length === 0) {
     return undefined;
+  }
+  if (activeSignals.length === 1) {
+    return activeSignals[0];
   }
 
   const alreadyAborted = activeSignals.find((signal) => signal.aborted);
@@ -211,13 +210,14 @@ async function readResponseBody(res: Response): Promise<unknown> {
 }
 
 function getErrorMessageFromBody(body: unknown, status: number): string {
-  if (
-    body !== null &&
-    typeof body === 'object' &&
-    'error' in body &&
-    typeof (body as { error?: unknown }).error === 'string'
-  ) {
-    return (body as { error: string }).error;
+  if (body !== null && typeof body === 'object') {
+    const fields = body as { error?: unknown; message?: unknown };
+    if (typeof fields.message === 'string' && fields.message.trim() !== '') {
+      return fields.message;
+    }
+    if (typeof fields.error === 'string' && fields.error.trim() !== '') {
+      return fields.error;
+    }
   }
   if (typeof body === 'string' && body.trim() !== '') {
     return body;
@@ -225,6 +225,10 @@ function getErrorMessageFromBody(body: unknown, status: number): string {
   return `Request failed (${status})`;
 }
 
+/**
+ * Fetch `url` with `options`, parse JSON response, and return it as `T`.
+ * Throws `ApiError` with the server's message on non-2xx responses.
+ */
 export async function apiFetch<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
   const body = await readResponseBody(res);

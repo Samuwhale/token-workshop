@@ -1,14 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { flattenTokenGroup, stableStringify } from "@tokenmanager/core";
+import { flattenTokenGroup, stableStringify } from "@token-workshop/core";
 import type {
   ResolverFile,
   TokenCollection,
   Token,
   TokenGeneratorDocument,
   TokenGroup,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenStore } from "./token-store.js";
 import type { ResolverStore } from "./resolver-store.js";
 import type { CollectionService } from "./collection-service.js";
@@ -503,7 +503,7 @@ export class ManualSnapshotStore {
   private lock = new PromiseChainLock();
 
   constructor(tokenDir: string) {
-    const tmDir = path.join(path.resolve(tokenDir), ".tokenmanager");
+    const tmDir = path.join(path.resolve(tokenDir), ".token-workshop");
     this.filePath = path.join(tmDir, "snapshots.json");
     this.journalPath = path.join(tmDir, "restore-journal.json");
   }

@@ -92,7 +92,7 @@ function getInlineModeValues(
   entry: TokenMapEntry | undefined,
   collectionId: string,
 ): Record<string, unknown> {
-  const modes = entry?.$extensions?.tokenmanager?.modes;
+  const modes = entry?.$extensions?.tokenworkshop?.modes;
   if (!modes || typeof modes !== "object" || Array.isArray(modes)) return {};
   const collectionModes = modes[collectionId];
   if (

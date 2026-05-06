@@ -18,7 +18,7 @@ import {
   stableStringify,
   TokenResolver,
   buildTokenExtensionsWithCollectionModes,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import { NotFoundError, ConflictError, BadRequestError } from "../errors.js";
 import type { TokenPathRename } from "./operation-log.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
@@ -2404,7 +2404,7 @@ export class TokenStore {
   // ----- Formula metadata -----
 
   /**
-   * If a token's $value is a formula string, ensure $extensions.tokenmanager.formula
+   * If a token's $value is a formula string, ensure $extensions.tokenworkshop.formula
    * is set so Style Dictionary can output calc() expressions at export time.
    */
   private enrichFormulaExtension(
@@ -2420,19 +2420,19 @@ export class TokenStore {
       !Array.isArray(token.$extensions)
         ? { ...token.$extensions }
         : undefined;
-    const existingTokenManager =
-      existingExtensions?.tokenmanager &&
-      typeof existingExtensions.tokenmanager === "object" &&
-      !Array.isArray(existingExtensions.tokenmanager)
+    const existingTokenWorkshop =
+      existingExtensions?.tokenworkshop &&
+      typeof existingExtensions.tokenworkshop === "object" &&
+      !Array.isArray(existingExtensions.tokenworkshop)
         ? {
-            ...(existingExtensions.tokenmanager as Record<string, unknown>),
+            ...(existingExtensions.tokenworkshop as Record<string, unknown>),
           }
         : undefined;
-    const nextTokenManager = existingTokenManager
-      ? { ...existingTokenManager }
+    const nextTokenWorkshop = existingTokenWorkshop
+      ? { ...existingTokenWorkshop }
       : undefined;
-    if (formulaValue === null && nextTokenManager) {
-      delete nextTokenManager.formula;
+    if (formulaValue === null && nextTokenWorkshop) {
+      delete nextTokenWorkshop.formula;
     }
 
     let nextExtensions = existingExtensions
@@ -2441,16 +2441,16 @@ export class TokenStore {
     if (formulaValue !== null) {
       nextExtensions = {
         ...nextExtensions,
-        tokenmanager: {
-          ...(nextTokenManager ?? {}),
+        tokenworkshop: {
+          ...(nextTokenWorkshop ?? {}),
           formula: formulaValue,
         },
       };
-    } else if (nextExtensions && "tokenmanager" in nextExtensions) {
-      if (nextTokenManager && Object.keys(nextTokenManager).length > 0) {
-        nextExtensions.tokenmanager = nextTokenManager;
+    } else if (nextExtensions && "tokenworkshop" in nextExtensions) {
+      if (nextTokenWorkshop && Object.keys(nextTokenWorkshop).length > 0) {
+        nextExtensions.tokenworkshop = nextTokenWorkshop;
       } else {
-        delete nextExtensions.tokenmanager;
+        delete nextExtensions.tokenworkshop;
       }
     }
 

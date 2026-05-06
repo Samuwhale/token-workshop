@@ -8,7 +8,7 @@ import type {
 import type { UndoSlot } from "../hooks/useUndo";
 import type { LintViolation } from "../hooks/useLint";
 import type { RecentlyTouchedState } from "../hooks/useRecentlyTouched";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 
 /** Per-option resolved value for a single token in multi-mode view */
 export interface MultiModeValue {

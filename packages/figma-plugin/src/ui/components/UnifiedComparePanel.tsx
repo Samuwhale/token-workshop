@@ -5,7 +5,7 @@
 
 import { CompareView } from './CompareView';
 export type { CompareMode } from './CompareView';
-import type { TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { CompareMode } from './CompareView';
 

@@ -1,8 +1,8 @@
 /**
- * Core TypeScript types for the TokenManager token system.
+ * Core TypeScript types for the Token Workshop token system.
  *
  * These types model the W3C DTCG token format as used throughout
- * TokenManager — from file I/O to the in-memory resolved graph.
+ * Token Workshop — from file I/O to the in-memory resolved graph.
  */
 
 import { TOKEN_TYPES, DimensionUnit } from './constants.js';
@@ -171,7 +171,7 @@ export interface CollectionsFile {
 
 /**
  * A single derivation operation, stored under
- * `$extensions.tokenmanager.derivation.ops` and applied in order during
+ * `$extensions.tokenworkshop.derivation.ops` and applied in order during
  * resolution. See `derivation-ops.ts` for the math and registry.
  */
 export type DerivationOp =
@@ -188,13 +188,13 @@ export interface Derivation {
 }
 
 // ---------------------------------------------------------------------------
-// TokenManager Extensions
+// Token Workshop Extensions
 // ---------------------------------------------------------------------------
 
-/** Fields stored under `$extensions.tokenmanager` by the TokenManager engine. */
+/** Fields stored under `$extensions.tokenworkshop` by the Token Workshop engine. */
 export type TokenModeValues = Record<string, Record<string, unknown>>;
 
-export interface TokenManagerExtensions {
+export interface TokenWorkshopExtensions {
   /** Formula expression string, e.g. "{spacing.base} * 2". Set by resolver/store for formula tokens. */
   formula?: string;
   /**
@@ -235,17 +235,17 @@ export interface ResolverFigmaPublishConfig {
 
 /** Typed `$extensions` object for tokens and groups. */
 export interface TokenExtensions {
-  tokenmanager?: TokenManagerExtensions;
+  tokenworkshop?: TokenWorkshopExtensions;
   'com.figma.scopes'?: string[];
   [key: string]: unknown;
 }
 
 /**
- * Get the `tokenmanager` extension from a token, typed.
+ * Get the `tokenworkshop` extension from a token, typed.
  * Returns `undefined` if the extension is absent.
  */
-export function getTokenManagerExt(token: { $extensions?: TokenExtensions | Record<string, unknown> }): TokenManagerExtensions | undefined {
-  return (token.$extensions as TokenExtensions | undefined)?.tokenmanager;
+export function getTokenWorkshopExt(token: { $extensions?: TokenExtensions | Record<string, unknown> }): TokenWorkshopExtensions | undefined {
+  return (token.$extensions as TokenExtensions | undefined)?.tokenworkshop;
 }
 
 /**
@@ -255,7 +255,7 @@ export function getTokenManagerExt(token: { $extensions?: TokenExtensions | Reco
 export function getTokenLifecycle(
   token: { $extensions?: TokenExtensions | Record<string, unknown> },
 ): TokenLifecycle {
-  const lifecycle = getTokenManagerExt(token)?.lifecycle;
+  const lifecycle = getTokenWorkshopExt(token)?.lifecycle;
   return lifecycle === 'draft' || lifecycle === 'deprecated' || lifecycle === 'published'
     ? lifecycle
     : 'published';
@@ -291,7 +291,7 @@ export interface ResolverRef {
 /** A source: either a file/pointer reference or inline tokens. */
 export type ResolverSource = ResolverRef | DTCGGroup;
 
-/** External DTCG resolver vocabulary: a named set of token sources. Not part of TokenManager token authoring. */
+/** External DTCG resolver vocabulary: a named set of token sources. Not part of Token Workshop token authoring. */
 export interface ResolverSet {
   description?: string;
   sources: ResolverSource[];

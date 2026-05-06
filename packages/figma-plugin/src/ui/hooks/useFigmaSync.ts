@@ -13,7 +13,7 @@ import { useFigmaMessage } from './useFigmaMessage';
 import { extractSyncApplyResult } from './useTokenSyncBase';
 import { usePersistedJsonState } from './usePersistedState';
 import { STORAGE_KEYS } from '../shared/storage';
-import { isReference, parseReference, type TokenCollection } from '@tokenmanager/core';
+import { isReference, parseReference, type TokenCollection } from '@token-workshop/core';
 import { buildStylePublishTokens } from '../shared/stylePublish';
 
 // Publish-time target. Variables carry every token type; Styles carry only the
@@ -54,12 +54,12 @@ function preserveTypographyReferences(
 }
 
 function hasDerivation(entry: TokenMapEntry): boolean {
-  const tokenManager = entry.$extensions?.tokenmanager;
+  const tokenWorkshopExtension = entry.$extensions?.tokenworkshop;
   return Boolean(
-    tokenManager &&
-    typeof tokenManager === 'object' &&
-    !Array.isArray(tokenManager) &&
-    'derivation' in tokenManager,
+    tokenWorkshopExtension &&
+    typeof tokenWorkshopExtension === 'object' &&
+    !Array.isArray(tokenWorkshopExtension) &&
+    'derivation' in tokenWorkshopExtension,
   );
 }
 

@@ -8,7 +8,7 @@ import {
   type Token,
   type TokenGroup,
   type TokenModeValues,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import {
   getSnapshotTokenPath,
   type SnapshotEntry,
@@ -16,7 +16,7 @@ import {
 import { setTokenAtPath } from "./token-tree-utils.js";
 
 const FOLDER_ITEM_SUFFIX = "/";
-const TOKENMANAGER_EXTENSION_KEY = "tokenmanager";
+const TOKENWORKSHOP_EXTENSION_KEY = "tokenworkshop";
 const GENERATOR_EXTENSION_KEY = "generator";
 
 export interface FolderCollectionRename {
@@ -203,23 +203,23 @@ export function stripGeneratorOwnershipFromTokenGroup(
       if (
         extensions &&
         typeof extensions === "object" &&
-        TOKENMANAGER_EXTENSION_KEY in extensions
+        TOKENWORKSHOP_EXTENSION_KEY in extensions
       ) {
         const nextExtensions = { ...extensions };
-        const tokenmanager =
-          nextExtensions[TOKENMANAGER_EXTENSION_KEY];
+        const tokenworkshop =
+          nextExtensions[TOKENWORKSHOP_EXTENSION_KEY];
         if (
-          tokenmanager &&
-          typeof tokenmanager === "object" &&
-          !Array.isArray(tokenmanager) &&
-          GENERATOR_EXTENSION_KEY in tokenmanager
+          tokenworkshop &&
+          typeof tokenworkshop === "object" &&
+          !Array.isArray(tokenworkshop) &&
+          GENERATOR_EXTENSION_KEY in tokenworkshop
         ) {
-          const nextTokenmanager = { ...(tokenmanager as Record<string, unknown>) };
-          delete nextTokenmanager[GENERATOR_EXTENSION_KEY];
-          if (Object.keys(nextTokenmanager).length > 0) {
-            nextExtensions[TOKENMANAGER_EXTENSION_KEY] = nextTokenmanager;
+          const nextTokenWorkshop = { ...(tokenworkshop as Record<string, unknown>) };
+          delete nextTokenWorkshop[GENERATOR_EXTENSION_KEY];
+          if (Object.keys(nextTokenWorkshop).length > 0) {
+            nextExtensions[TOKENWORKSHOP_EXTENSION_KEY] = nextTokenWorkshop;
           } else {
-            delete nextExtensions[TOKENMANAGER_EXTENSION_KEY];
+            delete nextExtensions[TOKENWORKSHOP_EXTENSION_KEY];
           }
         }
         if (Object.keys(nextExtensions).length > 0) {

@@ -19,7 +19,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { Layers, AlertCircle } from "lucide-react";
-import { resolveCollectionIdForPath } from "@tokenmanager/core";
+import { resolveCollectionIdForPath } from "@token-workshop/core";
 import { CanvasRouter } from "./CanvasRouter";
 import { ExportRouter } from "./ExportRouter";
 import { GitRouter } from "./GitRouter";

@@ -1,4 +1,4 @@
-import type { TokenType } from "@tokenmanager/core";
+import type { TokenType } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 
 interface TokenResolveEntry {

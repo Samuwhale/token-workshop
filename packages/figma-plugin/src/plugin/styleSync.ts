@@ -5,7 +5,7 @@ import type {
   TypographyValue,
   ShadowValue,
   DimensionValue,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
 import { fontStyleToWeight, resolveFontStyle } from './fontLoading.js';
 import { getErrorMessage } from '../shared/utils.js';
@@ -218,7 +218,7 @@ function getOrCreateVariableMode(collection: VariableCollection, modeName: strin
 }
 
 function getStyleTargetCollectionName(token: BaseStyleToken): string {
-  return token.figmaCollection?.trim() || 'TokenManager';
+  return token.figmaCollection?.trim() || 'Token Workshop';
 }
 
 function getPrimaryTargetModeName(token: BaseStyleToken): string {
@@ -1429,7 +1429,7 @@ function toReadStyleTokenFromManagedSource(source: ManagedStyleSource): ReadStyl
   const extensions =
     source.collectionId && secondaryModes && Object.keys(secondaryModes).length > 0
       ? {
-          tokenmanager: {
+          tokenworkshop: {
             modes: {
               [source.collectionId]: secondaryModes,
             },

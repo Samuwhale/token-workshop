@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import type { FastifyPluginAsync } from "fastify";
-import type { CollectionPublishRouting, Token } from "@tokenmanager/core";
-import { flattenTokenGroup, readGeneratorProvenance } from "@tokenmanager/core";
+import type { CollectionPublishRouting, Token } from "@token-workshop/core";
+import { flattenTokenGroup, readGeneratorProvenance } from "@token-workshop/core";
 import type {
   FieldChange,
   FieldChangeOperationMetadata,

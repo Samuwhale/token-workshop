@@ -1,18 +1,19 @@
 {
-  "name": "@tokenmanager/figma-plugin",
+  "name": "@token-workshop/figma-plugin",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && node build.mjs",
     "dev": "node build.mjs --watch",
+    "release": "pnpm run build && node release.mjs",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "standalone": "node standalone/serve.mjs",
     "validate": "node standalone/validate.mjs"
   },
   "dependencies": {
-    "@tokenmanager/core": "workspace:*",
+    "@token-workshop/core": "workspace:*",
     "@xyflow/react": "^12",
     "lucide-react": "^1.8.0",
     "react": "^18.3.0",

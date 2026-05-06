@@ -2,7 +2,7 @@ import {
   normalizeTokenScopeValues,
   readTokenScopes,
   stripTokenScopesFromExtensions,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type { ApiError } from './apiFetch';
 import { apiFetch } from './apiFetch';
 import { dispatchToast } from './toastBus';

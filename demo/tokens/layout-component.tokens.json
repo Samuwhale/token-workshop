@@ -11,7 +11,7 @@
             "FONT_FAMILY"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -25,7 +25,7 @@
             "FONT_FAMILY"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -39,7 +39,7 @@
             "FONT_FAMILY"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -53,7 +53,7 @@
             "FONT_FAMILY"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -67,7 +67,7 @@
             "FONT_FAMILY"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -81,7 +81,7 @@
             "FONT_FAMILY"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -95,7 +95,7 @@
             "FONT_FAMILY"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -110,7 +110,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -123,7 +123,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -136,7 +136,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -149,7 +149,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -162,7 +162,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -175,7 +175,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -188,7 +188,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -201,7 +201,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -214,7 +214,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -227,7 +227,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -240,7 +240,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -253,7 +253,7 @@
             "FONT_SIZE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -268,7 +268,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -281,7 +281,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -294,7 +294,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -307,7 +307,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -320,7 +320,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -333,7 +333,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -346,7 +346,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -359,7 +359,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -372,7 +372,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -385,7 +385,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -398,7 +398,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -411,7 +411,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -424,7 +424,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -437,7 +437,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -450,7 +450,7 @@
             "FONT_STYLE"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -465,7 +465,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -478,7 +478,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -491,7 +491,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -504,7 +504,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -517,7 +517,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -530,7 +530,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -543,7 +543,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -556,7 +556,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -569,7 +569,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -582,7 +582,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -595,7 +595,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -608,7 +608,7 @@
             "LINE_HEIGHT"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -626,7 +626,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -639,7 +639,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -652,7 +652,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -665,7 +665,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -678,7 +678,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -691,7 +691,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -706,7 +706,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -719,7 +719,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -732,7 +732,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -745,7 +745,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -758,7 +758,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -771,7 +771,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -784,7 +784,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -797,7 +797,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -810,7 +810,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -823,7 +823,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -838,7 +838,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -851,7 +851,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -864,7 +864,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -877,7 +877,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -890,7 +890,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -905,7 +905,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -920,7 +920,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -933,7 +933,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -946,7 +946,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -959,7 +959,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -972,7 +972,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -985,7 +985,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -998,7 +998,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1011,7 +1011,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1024,7 +1024,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1037,7 +1037,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1053,7 +1053,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -1066,7 +1066,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -1083,7 +1083,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1096,7 +1096,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1109,7 +1109,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1122,7 +1122,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1135,7 +1135,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1150,7 +1150,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1163,7 +1163,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1176,7 +1176,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1189,7 +1189,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1202,7 +1202,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1217,7 +1217,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1230,7 +1230,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1243,7 +1243,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1256,7 +1256,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1269,7 +1269,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1284,7 +1284,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1297,7 +1297,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1310,7 +1310,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1323,7 +1323,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1336,7 +1336,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1352,7 +1352,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1365,7 +1365,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1378,7 +1378,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1391,7 +1391,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1404,7 +1404,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1419,7 +1419,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1432,7 +1432,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1445,7 +1445,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1461,7 +1461,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -1474,7 +1474,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -1487,7 +1487,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -1502,7 +1502,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -1517,7 +1517,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1530,7 +1530,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1543,7 +1543,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1556,7 +1556,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1569,7 +1569,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1584,7 +1584,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1597,7 +1597,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1610,7 +1610,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1623,7 +1623,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1636,7 +1636,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1651,7 +1651,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1664,7 +1664,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1677,7 +1677,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1690,7 +1690,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1703,7 +1703,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1718,7 +1718,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1731,7 +1731,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1744,7 +1744,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1757,7 +1757,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1770,7 +1770,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1786,7 +1786,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1799,7 +1799,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1814,7 +1814,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1827,7 +1827,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1840,7 +1840,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -1858,7 +1858,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1871,7 +1871,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1884,7 +1884,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1897,7 +1897,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1910,7 +1910,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1925,7 +1925,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1938,7 +1938,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1951,7 +1951,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1964,7 +1964,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1977,7 +1977,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -1992,7 +1992,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2005,7 +2005,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2018,7 +2018,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2031,7 +2031,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2044,7 +2044,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2059,7 +2059,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2072,7 +2072,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2085,7 +2085,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2098,7 +2098,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2111,7 +2111,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2127,7 +2127,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2140,7 +2140,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2153,7 +2153,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2166,7 +2166,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2179,7 +2179,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2194,7 +2194,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2207,7 +2207,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2220,7 +2220,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2236,7 +2236,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2249,7 +2249,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2262,7 +2262,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2275,7 +2275,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2288,7 +2288,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2301,7 +2301,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2314,7 +2314,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2327,7 +2327,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2340,7 +2340,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2353,7 +2353,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2368,7 +2368,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2381,7 +2381,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2394,7 +2394,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2407,7 +2407,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2420,7 +2420,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2435,7 +2435,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2448,7 +2448,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2461,7 +2461,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2478,7 +2478,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2496,7 +2496,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2509,7 +2509,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2522,7 +2522,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2537,7 +2537,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2550,7 +2550,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2563,7 +2563,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2576,7 +2576,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2591,7 +2591,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2604,7 +2604,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2617,7 +2617,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2633,7 +2633,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2647,7 +2647,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2660,7 +2660,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2673,7 +2673,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2686,7 +2686,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -2702,7 +2702,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2715,7 +2715,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2728,7 +2728,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2743,7 +2743,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2758,7 +2758,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2771,7 +2771,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2786,7 +2786,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2799,7 +2799,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2812,7 +2812,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2825,7 +2825,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2840,7 +2840,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2853,7 +2853,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2866,7 +2866,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2879,7 +2879,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -2894,7 +2894,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2907,7 +2907,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2920,7 +2920,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2935,7 +2935,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2948,7 +2948,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2961,7 +2961,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2974,7 +2974,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -2987,7 +2987,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3002,7 +3002,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3015,7 +3015,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3031,7 +3031,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3044,7 +3044,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3057,7 +3057,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3070,7 +3070,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3085,7 +3085,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3098,7 +3098,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3111,7 +3111,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3127,7 +3127,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -3140,7 +3140,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -3153,7 +3153,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -3167,7 +3167,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -3182,7 +3182,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3195,7 +3195,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3208,7 +3208,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3221,7 +3221,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3236,7 +3236,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3249,7 +3249,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3262,7 +3262,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3275,7 +3275,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3289,7 +3289,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3302,7 +3302,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3315,7 +3315,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3329,7 +3329,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3342,7 +3342,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3355,7 +3355,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3368,7 +3368,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3385,7 +3385,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3398,7 +3398,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3411,7 +3411,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3424,7 +3424,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3439,7 +3439,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3452,7 +3452,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3465,7 +3465,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3478,7 +3478,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3493,7 +3493,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3506,7 +3506,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3519,7 +3519,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3532,7 +3532,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3546,7 +3546,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3559,7 +3559,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3572,7 +3572,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3588,7 +3588,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3601,7 +3601,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3614,7 +3614,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3627,7 +3627,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3642,7 +3642,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3655,7 +3655,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3668,7 +3668,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3681,7 +3681,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3696,7 +3696,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3709,7 +3709,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3722,7 +3722,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3735,7 +3735,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3749,7 +3749,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3762,7 +3762,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3775,7 +3775,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3791,7 +3791,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3804,7 +3804,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3817,7 +3817,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3830,7 +3830,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3845,7 +3845,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3858,7 +3858,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3871,7 +3871,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3884,7 +3884,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3899,7 +3899,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3912,7 +3912,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3925,7 +3925,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3938,7 +3938,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -3952,7 +3952,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3965,7 +3965,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3978,7 +3978,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "source": "figma-variables"
               }
             }
@@ -3996,7 +3996,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4013,7 +4013,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4030,7 +4030,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4047,7 +4047,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4064,7 +4064,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4081,7 +4081,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4098,7 +4098,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4115,7 +4115,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4132,7 +4132,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4149,7 +4149,7 @@
                 "ALL_SCOPES"
               ],
               "$extensions": {
-                "tokenmanager": {
+                "tokenworkshop": {
                   "source": "figma-variables"
                 }
               }
@@ -4166,7 +4166,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4179,7 +4179,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4192,7 +4192,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4205,7 +4205,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4218,7 +4218,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4233,7 +4233,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4246,7 +4246,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4259,7 +4259,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4272,7 +4272,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4288,7 +4288,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4304,7 +4304,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4317,7 +4317,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "source": "figma-variables"
             }
           }
@@ -4335,7 +4335,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4348,7 +4348,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4361,7 +4361,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4374,7 +4374,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4389,7 +4389,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4402,7 +4402,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4415,7 +4415,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4428,7 +4428,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4443,7 +4443,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4456,7 +4456,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4469,7 +4469,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4482,7 +4482,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4497,7 +4497,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4510,7 +4510,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4523,7 +4523,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4536,7 +4536,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "source": "figma-variables"
           }
         }
@@ -4551,7 +4551,7 @@
       "ALL_SCOPES"
     ],
     "$extensions": {
-      "tokenmanager": {
+      "tokenworkshop": {
         "source": "figma-variables"
       }
     }

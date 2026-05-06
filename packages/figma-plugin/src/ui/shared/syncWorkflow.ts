@@ -3,7 +3,7 @@ import {
   type DTCGGroup,
   type DTCGToken,
   type ResolverInput,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type {
   ReadVariableCollection,
   ReadVariableToken,
@@ -216,7 +216,7 @@ interface ResolverResolveResponse {
 }
 
 const STYLE_TYPES = new Set(['color', 'gradient', 'typography', 'shadow']);
-const DEFAULT_VARIABLE_COLLECTION_NAME = 'TokenManager';
+const DEFAULT_VARIABLE_COLLECTION_NAME = 'Token Workshop';
 
 export function getDiffRowId(row: DiffRowBase): string {
   return row.id ?? row.path;

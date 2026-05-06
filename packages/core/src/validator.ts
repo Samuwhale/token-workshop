@@ -106,7 +106,7 @@ export class TokenValidator {
   validate(token: Token, path: string): ValidationResult {
     const errors: string[] = [];
     const value = token.$value;
-    const derivation = token.$extensions?.tokenmanager?.derivation;
+    const derivation = token.$extensions?.tokenworkshop?.derivation;
     const derivationOps = parseDerivationOps(derivation?.ops);
     for (const error of derivationOps.errors) {
       errors.push(`${path}: ${error}`);

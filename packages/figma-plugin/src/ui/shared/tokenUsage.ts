@@ -1,7 +1,7 @@
 import {
   collectTokenReferencePaths,
   type TokenLifecycle,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 
 interface TokenUsageEntry {
   $value: unknown;

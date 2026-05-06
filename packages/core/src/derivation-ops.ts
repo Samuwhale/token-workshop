@@ -3,7 +3,7 @@
  *
  * Pure 1→1 transformations applied during resolution to a token's resolved
  * `$value`. Ops are dispatched by `(op.kind, $type)` and run in the order
- * stored on `$extensions.tokenmanager.derivation.ops`.
+ * stored on `$extensions.tokenworkshop.derivation.ops`.
  *
  * Color ops work in CIELAB space; numeric ops (scaleBy/add) preserve the
  * source's `{value, unit}` shape for dimension/duration tokens and operate

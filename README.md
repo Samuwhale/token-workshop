@@ -1,54 +1,79 @@
-# TokenManager
+# Token Workshop
 
-Local design-token tooling split across a Figma plugin UI and a local API server.
+Token Workshop is an open-source Figma token authoring tool. It pairs a Figma plugin with a local server so designers can create, edit, apply, audit, export, and version design tokens while keeping token files on their own machine.
 
-## Agent-Friendly Workflow
+- Docs: https://tokenworkshop.spithorst.net
+- Source: https://github.com/Samuwhale/token-workshop
+- Support: https://github.com/Samuwhale/token-workshop/issues
+- Donations: https://github.com/sponsors/Samuwhale
 
-The repo now has one preview command that launches everything an agent needs:
+## Public Setup
+
+Install Node.js 20 or newer, then start the local server from the directory that should contain your token files:
+
+```bash
+npx token-workshop --dir ./tokens
+```
+
+The server listens at `http://localhost:9400`. Empty token directories stay empty until you create or import tokens.
+
+Open the Token Workshop plugin in Figma after the server is running. The plugin connects to the local server automatically.
+
+## Development
+
+This repo is a pnpm/Turbo monorepo with three packages:
+
+- `@token-workshop/core`: shared token engine and DTCG utilities
+- `@token-workshop/figma-plugin`: Figma plugin UI and sandbox code
+- `token-workshop`: local server and public npm CLI
+
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Run the full local preview stack:
 
 ```bash
 pnpm preview
 ```
 
-That command does four things:
+That command:
 
 1. Builds the plugin once so the standalone harness has a fresh `ui.html`.
 2. Starts the plugin watch build.
-3. Starts the local API server against [`demo/tokens`](/Users/samuel/Documents/Projects/TokenManager/demo/tokens).
+3. Starts the local API server against `demo/tokens`.
 4. Starts the standalone browser harness with a mocked Figma bridge.
 
-When it is ready, use these URLs:
+Preview URLs:
 
-- Harness UI: [http://localhost:3200](http://localhost:3200)
-- Direct plugin UI: [http://localhost:3200/dist/ui.html](http://localhost:3200/dist/ui.html)
-- Demo token docs: [http://localhost:9400/docs](http://localhost:9400/docs)
-- Health check: [http://localhost:9400/api/health](http://localhost:9400/api/health)
-
-The printed harness and direct-plugin URLs include a `serverUrl` query param so the browser preview stays connected to the matching local API server, including non-default ports.
-
-The harness includes a `Mock Selection` button so the UI can exercise selection-dependent flows without a live Figma canvas.
+- Harness UI: http://localhost:3200
+- Direct plugin UI: http://localhost:3200/dist/ui.html
+- Demo token docs: http://localhost:9400/docs
+- Health check: http://localhost:9400/api/health
 
 ## Useful Commands
 
 ```bash
+pnpm build
+pnpm lint
 pnpm preview
 pnpm preview:capture
 pnpm preview -- --dir ./tokens
 pnpm preview -- --server-port 9410 --ui-port 3205
 pnpm preview:validate
-pnpm preview:build
-pnpm preview:server
-pnpm preview:harness
+pnpm plugin:release
+pnpm docs:preview
 ```
 
 - `pnpm preview` uses the checked-in captured snapshot data.
 - `pnpm preview:capture` refreshes the standalone snapshot and demo token files from the live local server at `http://localhost:9400`.
 - `pnpm preview -- --dir ./tokens` points the local server at a real token workspace.
-- `pnpm preview -- --server-port 9410 --ui-port 3205` is useful when your normal dev ports are already occupied.
 - `pnpm preview:validate` runs a connected headless preview check against the demo token workspace.
+- `pnpm plugin:release` builds and zips the Figma plugin release artifact.
+- `pnpm docs:preview` serves the static docs site locally.
 
-## Notes
+## License
 
-- The standalone harness is for local browser validation only. The real plugin still runs inside Figma.
-- `pnpm preview:validate` now fails on real browser-to-server connectivity problems instead of treating the preview as an intentionally offline shell.
-- The watch build now keeps `packages/figma-plugin/dist/ui.html` in sync, so the harness reflects current changes instead of a stale one-off build.
+Token Workshop is released under the MIT License.

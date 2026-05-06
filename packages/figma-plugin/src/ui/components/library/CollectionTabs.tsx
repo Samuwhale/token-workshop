@@ -14,7 +14,7 @@ import {
   Settings2,
   Upload,
 } from "lucide-react";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import { useFocusTrap } from "../../hooks/useFocusTrap";

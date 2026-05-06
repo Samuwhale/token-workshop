@@ -9,7 +9,7 @@ import {
   readTokenCollectionModeValues,
   resolveCollectionIdForPath,
   type Token,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import { expectJsonObject, parseJsonFile } from '../utils/json-file.js';
 import { isSafeRegex } from './token-tree-utils.js';
 import { TokenStore } from './token-store.js';

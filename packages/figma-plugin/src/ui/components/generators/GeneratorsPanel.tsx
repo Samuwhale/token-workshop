@@ -53,7 +53,7 @@ import type {
   TokenGeneratorPortDescriptor,
   TokenGeneratorPreviewOutput,
   TokenGeneratorPreviewResult,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import {
   checkTokenGeneratorConnection,
   DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
@@ -67,7 +67,7 @@ import {
   getTokenGeneratorInputPorts,
   getTokenGeneratorOutputPorts,
   readStructuredGeneratorDraft,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
 import { useElementWidth } from "../../hooks/useElementWidth";
@@ -2578,7 +2578,7 @@ export function GeneratorsPanel({
             onDrop={(event) => {
               event.preventDefault();
               const label = event.dataTransfer.getData(
-                "application/tokenmanager-node",
+                "application/tokenworkshop-node",
               );
               const item = PALETTE.find(
                 (candidate) => candidate.label === label,

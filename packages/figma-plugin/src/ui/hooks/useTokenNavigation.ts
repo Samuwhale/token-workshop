@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   resolveCollectionIdForPath,
   type CollectionPathResolutionReason,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type { TokenNode } from './useTokens';
 
 interface NavHistoryEntry {

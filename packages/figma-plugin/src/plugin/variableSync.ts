@@ -1,7 +1,7 @@
 import { VARIABLE_COLLECTION_NAME } from './constants.js';
 import { mapTokenTypeToVariableType, inferVariableTokenType, convertToFigmaValue, convertFromFigmaValueForTokenType, findVariableInList } from './variableUtils.js';
 import { getErrorMessage } from '../shared/utils.js';
-import { isReference, parseReference } from '@tokenmanager/core';
+import { isReference, parseReference } from '@token-workshop/core';
 import type {
   OrphanVariableDeleteTarget,
   VariableSyncToken,
@@ -11,7 +11,7 @@ import type {
   VarSnapshot,
 } from '../shared/types.js';
 
-function isTokenManagerManagedVariable(variable: Variable): boolean {
+function isTokenWorkshopManagedVariable(variable: Variable): boolean {
   return variable.getPluginData('tokenPath').trim().length > 0;
 }
 
@@ -24,12 +24,12 @@ function toFigmaVariableName(path: string): string {
 }
 
 function tokenHasDerivation(token: VariableSyncToken): boolean {
-  const tokenManager = token.$extensions?.tokenmanager;
+  const tokenWorkshopExtension = token.$extensions?.tokenworkshop;
   return Boolean(
-    tokenManager &&
-    typeof tokenManager === 'object' &&
-    !Array.isArray(tokenManager) &&
-    'derivation' in tokenManager,
+    tokenWorkshopExtension &&
+    typeof tokenWorkshopExtension === 'object' &&
+    !Array.isArray(tokenWorkshopExtension) &&
+    'derivation' in tokenWorkshopExtension,
   );
 }
 
@@ -158,7 +158,7 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
         const newFigmaName = newPath.replace(/\./g, '/');
         if (oldFigmaName === newFigmaName) continue;
 
-        // Only rename TokenManager-managed variables (identified by tokenPath plugin data)
+        // Only rename Token Workshop-managed variables (identified by tokenPath plugin data)
         const oldVar = localVariables.find(
           v => v.name === oldFigmaName && v.getPluginData('tokenPath') === oldPath
         );
@@ -681,7 +681,7 @@ async function deleteResolverOrphanVariables(
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
-        if (!isTokenManagerManagedVariable(variable)) continue;
+        if (!isTokenWorkshopManagedVariable(variable)) continue;
         if (getVariablePath(variable) !== target.path) continue;
         toDelete.set(variable.id, variable);
       }
@@ -715,7 +715,7 @@ export async function deleteOrphanVariables(
     }
 
     const knownSet = new Set(knownPaths);
-    // All collection names managed by TokenManager: the default plus any custom-mapped names
+    // All collection names managed by Token Workshop: the default plus any custom-mapped names
     const managedNames = new Set([VARIABLE_COLLECTION_NAME, ...Object.values(collectionMap)]);
     const [allCollections, allVariables] = await Promise.all([
       figma.variables.getLocalVariableCollectionsAsync(),
@@ -736,7 +736,7 @@ export async function deleteOrphanVariables(
       for (const varId of collection.variableIds) {
         const variable = variableById.get(varId);
         if (!variable) continue;
-        if (!isTokenManagerManagedVariable(variable)) continue;
+        if (!isTokenWorkshopManagedVariable(variable)) continue;
         // Style-generated backing variables are owned by style sync, not by the
         // standalone variable token set. Variable orphan cleanup must never
         // remove them here, or live bound styles will break.

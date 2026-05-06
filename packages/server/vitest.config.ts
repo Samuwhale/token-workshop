@@ -10,7 +10,7 @@ export default defineConfig({
   cacheDir: path.join(__dirname, 'dist', '.vite'),
   resolve: {
     alias: {
-      '@tokenmanager/core': path.join(__dirname, '..', 'core', 'src', 'index.ts'),
+      '@token-workshop/core': path.join(__dirname, '..', 'core', 'src', 'index.ts'),
     },
     preserveSymlinks: true,
   },

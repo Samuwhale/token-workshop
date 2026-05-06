@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import { flattenTokenGroup } from '@token-workshop/core';
 import { getErrorMessage } from '../shared/utils';
 import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import {
@@ -7,11 +7,11 @@ import {
   parseTailwindConfigFile,
   isTokensStudioFormat,
   parseTokensStudioFile,
+  type ParsedToken,
   type SkippedEntry,
 } from '../shared/tokenParsers';
 import {
   type ImportToken,
-  type ModeData,
   type CollectionData,
   type ImportSource,
   type SourceFamily,
@@ -29,6 +29,8 @@ export interface UseImportSourceParams {
   onClearConflictState: () => void;
   onResetExistingPathsCache: () => void;
 }
+
+const DEFAULT_IMPORT_MODE_NAME = 'Default';
 
 export type FileImportSource = Exclude<ImportSource, 'variables' | 'styles'>;
 export type FileImportValidationStatus = 'ready' | 'partial' | 'error' | 'unsupported';
@@ -75,6 +77,14 @@ const FILE_IMPORT_PARSER_LIMITS: Record<FileImportSource, string[]> = {
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function toImportTokens(parsedTokens: readonly ParsedToken[]): ImportToken[] {
+  return parsedTokens.map(token => ({
+    path: token.path,
+    $type: token.$type,
+    $value: token.$value,
+  }));
 }
 
 function getSupportedFormatsForSource(source: FileImportSource | null): string[] {
@@ -161,6 +171,72 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setFileImportValidation(validation);
   }, []);
 
+  const clearParsedImportData = useCallback(() => {
+    setSource(null);
+    setCollectionData([]);
+    setTokens([]);
+    clearModeImportState();
+    setSelectedTokens(new Set());
+    setTypeFilter(null);
+    setSkippedEntries([]);
+    setSkippedExpanded(false);
+    setWorkflowStage('home');
+    onResetExistingPathsCache();
+  }, [clearModeImportState, onResetExistingPathsCache]);
+
+  const loadFlatFileImport = useCallback(({
+    source: nextSource,
+    sourceFamily: nextSourceFamily,
+    importTokens,
+    skippedEntries: nextSkippedEntries = [],
+  }: {
+    source: FileImportSource;
+    sourceFamily: SourceFamily;
+    importTokens: ImportToken[];
+    skippedEntries?: SkippedEntry[];
+  }) => {
+    setSource(nextSource);
+    setTokens(markDuplicatePaths(importTokens));
+    setCollectionData([]);
+    clearModeImportState();
+    setSelectedTokens(new Set(importTokens.map(token => token.path)));
+    setTypeFilter(null);
+    setSkippedEntries(nextSkippedEntries);
+    setSkippedExpanded(false);
+    setError(null);
+    setSourceFamily(nextSourceFamily);
+    setWorkflowStage('preview');
+    onResetExistingPathsCache();
+  }, [clearModeImportState, onResetExistingPathsCache]);
+
+  const loadCollectionFileImport = useCallback(({
+    source: nextSource,
+    sourceFamily: nextSourceFamily,
+    collections,
+    modeCollectionNames: nextModeCollectionNames,
+    modeEnabled: nextModeEnabled,
+  }: {
+    source: FileImportSource;
+    sourceFamily: SourceFamily;
+    collections: CollectionData[];
+    modeCollectionNames: Record<string, string>;
+    modeEnabled: Record<string, boolean>;
+  }) => {
+    setSource(nextSource);
+    setTokens([]);
+    setSelectedTokens(new Set());
+    setTypeFilter(null);
+    setCollectionData(collections);
+    setModeCollectionNames(nextModeCollectionNames);
+    setModeEnabled(nextModeEnabled);
+    setSkippedEntries([]);
+    setSkippedExpanded(false);
+    setError(null);
+    setSourceFamily(nextSourceFamily);
+    setWorkflowStage('preview');
+    onResetExistingPathsCache();
+  }, [onResetExistingPathsCache]);
+
   const selectSourceFamily = useCallback((family: SourceFamily) => {
     onClearConflictState();
     if (sourceFamily !== family || source !== null || tokens.length > 0 || collectionData.length > 0) {
@@ -215,6 +291,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         pendingSourceRef.current = null;
         correlationIdRef.current = null;
         const cols: CollectionData[] = msg.collections || [];
+        setError(null);
         setCollectionData(cols);
         const names: Record<string, string> = {};
         const enabled: Record<string, boolean> = {};
@@ -230,6 +307,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         setSourceFamily('figma');
         setWorkflowStage('preview');
         setLoading(false);
+        onResetExistingPathsCache();
       }
       if (msg.type === 'styles-read-error' && pendingSourceRef.current === 'styles' && msg.correlationId === correlationIdRef.current) {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
@@ -243,6 +321,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         correlationIdRef.current = null;
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
         const markedTokens = markDuplicatePaths(msg.tokens || []);
+        setError(null);
         setTokens(markedTokens);
         setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
         setTypeFilter(null);
@@ -271,6 +350,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setTokens([]);
     clearModeImportState();
     setError(null);
+    onResetExistingPathsCache();
     const sent = postPluginMessage({ type: 'read-variables', correlationId: cid });
     if (!sent) {
       pendingSourceRef.current = null;
@@ -280,7 +360,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     }
     setLoading(true);
     startReadTimeout('variables');
-  }, [clearFileImportValidation, clearModeImportState, startReadTimeout]);
+  }, [clearFileImportValidation, clearModeImportState, onResetExistingPathsCache, startReadTimeout]);
 
   const handleReadStyles = useCallback(() => {
     clearFileImportValidation();
@@ -292,6 +372,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setTokens([]);
     clearModeImportState();
     setError(null);
+    onResetExistingPathsCache();
     const sent = postPluginMessage({ type: 'read-styles', correlationId: cid });
     if (!sent) {
       pendingSourceRef.current = null;
@@ -301,20 +382,19 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     }
     setLoading(true);
     startReadTimeout('styles');
-  }, [clearFileImportValidation, clearModeImportState, startReadTimeout]);
+  }, [clearFileImportValidation, clearModeImportState, onResetExistingPathsCache, startReadTimeout]);
 
   const processTokensStudioContent = useCallback((
     raw: string,
     {
-      collectionName = 'Imported tokens',
       fileName = 'Tokens Studio JSON',
     }: {
-      collectionName?: string;
       fileName?: string;
     } = {},
   ) => {
-    const { sets: parsedTokenGroups, errors } = parseTokensStudioFile(raw);
-    if (parsedTokenGroups.size === 0) {
+    const { collections: parsedCollections, errors } = parseTokensStudioFile(raw);
+    if (parsedCollections.size === 0) {
+      clearParsedImportData();
       setError(null);
       updateFileImportValidation({
         fileName,
@@ -332,52 +412,58 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
       return;
     }
-    setError(null);
-    onResetExistingPathsCache();
-    setCollectionData([]);
-    setSourceFamily('migration');
-    setWorkflowStage('preview');
-    setSkippedEntries([]);
-    setSkippedExpanded(false);
 
-    if (parsedTokenGroups.size === 1) {
-      const [, tokenGroupList] = [...parsedTokenGroups.entries()][0];
-      const importTokens: ImportToken[] = tokenGroupList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
-      const markedTokens = markDuplicatePaths(importTokens);
-      setSource('tokens-studio');
-      setTokens(markedTokens);
-      clearModeImportState();
-      setSelectedTokens(new Set(importTokens.map(t => t.path)));
-      setTypeFilter(null);
+    if (parsedCollections.size === 1) {
+      const [, collectionTokens] = [...parsedCollections.entries()][0];
+      loadFlatFileImport({
+        source: 'tokens-studio',
+        sourceFamily: 'migration',
+        importTokens: toImportTokens(collectionTokens),
+      });
     } else {
-      const modes: ModeData[] = [];
+      const importedCollections: CollectionData[] = [];
       const names: Record<string, string> = {};
       const enabled: Record<string, boolean> = {};
-      for (const [collectionId, tokenGroupList] of parsedTokenGroups) {
-        const importTokens: ImportToken[] = tokenGroupList.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
-        modes.push({ modeId: collectionId, modeName: collectionId, tokens: importTokens });
-        const key = modeKey(collectionName, collectionId);
-        names[key] = collectionId;
+      for (const [collectionId, collectionTokens] of parsedCollections) {
+        const importTokens = toImportTokens(collectionTokens);
+        importedCollections.push({
+          name: collectionId,
+          modes: [
+            {
+              modeId: DEFAULT_IMPORT_MODE_NAME,
+              modeName: DEFAULT_IMPORT_MODE_NAME,
+              tokens: importTokens,
+            },
+          ],
+        });
+        const key = modeKey(collectionId, DEFAULT_IMPORT_MODE_NAME);
+        names[key] = defaultCollectionName(collectionId);
         enabled[key] = true;
       }
-      setSource('tokens-studio');
-      setCollectionData([{ name: collectionName, modes }]);
-      setModeCollectionNames(names);
-      setModeEnabled(enabled);
+      loadCollectionFileImport({
+        source: 'tokens-studio',
+        sourceFamily: 'migration',
+        collections: importedCollections,
+        modeCollectionNames: names,
+        modeEnabled: enabled,
+      });
     }
-    const tokenCount = [...parsedTokenGroups.values()].reduce((count, tokenGroupList) => count + tokenGroupList.length, 0);
-    const groupCount = parsedTokenGroups.size;
+    const tokenCount = [...parsedCollections.values()].reduce(
+      (count, collectionTokens) => count + collectionTokens.length,
+      0,
+    );
+    const groupCount = parsedCollections.size;
     updateFileImportValidation({
       fileName,
       source: 'tokens-studio',
       status: 'ready',
       summary: `Parsed ${pluralize(tokenCount, 'token')} from ${fileName}`,
       detail:
-	        groupCount === 1
-	          ? 'Detected a single Tokens Studio collection and prepared it for import.'
-	          : `Detected ${pluralize(groupCount, 'collection')} and preserved each collection mapping for import.`,
+        groupCount === 1
+          ? 'Detected a single Tokens Studio group and prepared it for import.'
+          : `Detected ${pluralize(groupCount, 'Tokens Studio group')} and prepared each as a collection.`,
       nextAction:
-	        groupCount === 1
+        groupCount === 1
           ? 'Choose the destination collection, then continue to preview or import.'
           : 'Review the destination collection names, then import the parsed collections.',
       tokenCount,
@@ -387,7 +473,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       supportedFormats: getSupportedFormatsForSource('tokens-studio'),
       parserLimits: getParserLimitsForSource('tokens-studio'),
     });
-  }, [clearModeImportState, onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearParsedImportData, loadCollectionFileImport, loadFlatFileImport, updateFileImportValidation]);
 
   const processJsonFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -399,6 +485,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           json = JSON.parse(raw);
         } catch (syntaxErr) {
           const detail = syntaxErr instanceof SyntaxError ? syntaxErr.message : String(syntaxErr);
+          clearParsedImportData();
           setError(null);
           updateFileImportValidation({
             fileName: file.name,
@@ -420,6 +507,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         if (json === null || typeof json !== 'object' || Array.isArray(json)) {
           const actual = json === null ? 'null' : Array.isArray(json) ? 'an array' : `a ${typeof json}`;
           const detail = `Expected a JSON object but got ${actual}.`;
+          clearParsedImportData();
           setError(null);
           updateFileImportValidation({
             fileName: file.name,
@@ -441,10 +529,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         const root = json as Record<string, unknown>;
 
         if (isTokensStudioFormat(root)) {
-          processTokensStudioContent(raw, {
-            collectionName: file.name.replace(/\.json$/i, '') || 'Imported tokens',
-            fileName: file.name,
-          });
+          processTokensStudioContent(raw, { fileName: file.name });
           return;
         }
 
@@ -452,6 +537,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
 
         const validationError = validateDTCGStructure(group);
         if (validationError) {
+          clearParsedImportData();
           setError(null);
           updateFileImportValidation({
             fileName: file.name,
@@ -470,13 +556,14 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           return;
         }
 
-        const flat = flattenTokenGroup(group as import('@tokenmanager/core').DTCGGroup);
+        const flat = flattenTokenGroup(group as import('@token-workshop/core').DTCGGroup);
         const importTokens: ImportToken[] = [];
         for (const [path, token] of flat) {
           importTokens.push({ path, $type: token.$type ?? 'unknown', $value: token.$value });
         }
         if (importTokens.length === 0) {
-          const detail = 'No tokens found in file. The file is valid JSON, but it does not contain token values TokenManager can import.';
+          const detail = 'No tokens found in file. The file is valid JSON, but it does not contain token values Token Workshop can import.';
+          clearParsedImportData();
           setError(null);
           updateFileImportValidation({
             fileName: file.name,
@@ -494,25 +581,17 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           });
           return;
         }
-        const markedImportTokens = markDuplicatePaths(importTokens);
-        setSource('json');
-        setTokens(markedImportTokens);
-        clearModeImportState();
-        setSelectedTokens(new Set(importTokens.map(t => t.path)));
-        setTypeFilter(null);
-        setError(null);
-        setCollectionData([]);
-        setSourceFamily('token-files');
-        setWorkflowStage('preview');
-        setSkippedEntries([]);
-        setSkippedExpanded(false);
-        onResetExistingPathsCache();
+        loadFlatFileImport({
+          source: 'json',
+          sourceFamily: 'token-files',
+          importTokens,
+        });
         updateFileImportValidation({
           fileName: file.name,
           source: 'json',
           status: 'ready',
           summary: `Parsed ${pluralize(importTokens.length, 'token')} from ${file.name}`,
-          detail: 'The file contains design tokens TokenManager can import.',
+          detail: 'The file contains design tokens Token Workshop can import.',
           nextAction: 'Choose the destination collection, then continue to preview or import.',
           tokenCount: importTokens.length,
           skippedCount: 0,
@@ -523,6 +602,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         });
       } catch (err) {
         const detail = getErrorMessage(err);
+        clearParsedImportData();
         setError(null);
         updateFileImportValidation({
           fileName: file.name,
@@ -542,6 +622,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     };
     reader.onerror = () => {
       const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      clearParsedImportData();
       setError(null);
       updateFileImportValidation({
         fileName: file.name,
@@ -559,7 +640,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
     };
     reader.readAsText(file);
-  }, [clearModeImportState, processTokensStudioContent, onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearParsedImportData, loadFlatFileImport, processTokensStudioContent, updateFileImportValidation]);
 
   const processCSSFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -569,6 +650,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         const { tokens: parsed, errors, skipped } = parseCSSCustomProperties(raw);
         if (parsed.length === 0 && skipped.length === 0) {
           const detail = errors.length > 0 ? errors.join('; ') : 'No CSS custom properties found in file.';
+          clearParsedImportData();
           setError(null);
           updateFileImportValidation({
             fileName: file.name,
@@ -588,6 +670,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         }
         if (parsed.length === 0) {
           const detail = `All ${pluralize(skipped.length, 'CSS custom property', 'CSS custom properties')} contained dynamic expressions and were skipped.`;
+          clearParsedImportData();
           setSkippedEntries(skipped);
           setSkippedExpanded(true);
           setError(null);
@@ -607,21 +690,14 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           });
           return;
         }
-        const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
-        const markedImportTokens = markDuplicatePaths(importTokens);
+        const importTokens = toImportTokens(parsed);
         const isPartial = skipped.length > 0 || errors.length > 0;
-        setSource('css');
-        setTokens(markedImportTokens);
-        clearModeImportState();
-        setSelectedTokens(new Set(importTokens.map(t => t.path)));
-        setTypeFilter(null);
-        setSkippedEntries(skipped);
-        setSkippedExpanded(false);
-        setError(null);
-        setCollectionData([]);
-        setSourceFamily('code');
-        setWorkflowStage('preview');
-        onResetExistingPathsCache();
+        loadFlatFileImport({
+          source: 'css',
+          sourceFamily: 'code',
+          importTokens,
+          skippedEntries: skipped,
+        });
         updateFileImportValidation({
           fileName: file.name,
           source: 'css',
@@ -647,6 +723,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         });
       } catch (err) {
         const detail = getErrorMessage(err);
+        clearParsedImportData();
         setError(null);
         updateFileImportValidation({
           fileName: file.name,
@@ -666,6 +743,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     };
     reader.onerror = () => {
       const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      clearParsedImportData();
       setError(null);
       updateFileImportValidation({
         fileName: file.name,
@@ -683,7 +761,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
     };
     reader.readAsText(file);
-  }, [clearModeImportState, onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearParsedImportData, loadFlatFileImport, updateFileImportValidation]);
 
   const processTailwindFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -695,6 +773,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           const detail = errors.length > 0
             ? errors.join('; ')
             : 'No theme values found in file. Expected a Tailwind config with a theme object containing static values.';
+          clearParsedImportData();
           if (skipped.length > 0) {
             setSkippedEntries(skipped);
             setSkippedExpanded(true);
@@ -718,21 +797,14 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
           });
           return;
         }
-        const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
-        const markedImportTokens = markDuplicatePaths(importTokens);
+        const importTokens = toImportTokens(parsed);
         const isPartial = skipped.length > 0 || errors.length > 0;
-        setSource('tailwind');
-        setTokens(markedImportTokens);
-        clearModeImportState();
-        setSelectedTokens(new Set(importTokens.map(t => t.path)));
-        setTypeFilter(null);
-        setSkippedEntries(skipped);
-        setSkippedExpanded(false);
-        setError(null);
-        setCollectionData([]);
-        setSourceFamily('code');
-        setWorkflowStage('preview');
-        onResetExistingPathsCache();
+        loadFlatFileImport({
+          source: 'tailwind',
+          sourceFamily: 'code',
+          importTokens,
+          skippedEntries: skipped,
+        });
         updateFileImportValidation({
           fileName: file.name,
           source: 'tailwind',
@@ -758,6 +830,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
         });
       } catch (err) {
         const detail = getErrorMessage(err);
+        clearParsedImportData();
         setError(null);
         updateFileImportValidation({
           fileName: file.name,
@@ -777,6 +850,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     };
     reader.onerror = () => {
       const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      clearParsedImportData();
       setError(null);
       updateFileImportValidation({
         fileName: file.name,
@@ -794,18 +868,16 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
     };
     reader.readAsText(file);
-  }, [clearModeImportState, onResetExistingPathsCache, updateFileImportValidation]);
+  }, [clearParsedImportData, loadFlatFileImport, updateFileImportValidation]);
 
   const processTokensStudioFile = useCallback((file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        processTokensStudioContent(reader.result as string, {
-          collectionName: file.name.replace(/\.json$/i, '') || 'Imported tokens',
-          fileName: file.name,
-        });
+        processTokensStudioContent(reader.result as string, { fileName: file.name });
       } catch (err) {
         const detail = getErrorMessage(err);
+        clearParsedImportData();
         setError(null);
         updateFileImportValidation({
           fileName: file.name,
@@ -825,6 +897,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     };
     reader.onerror = () => {
       const detail = 'Failed to read file. The file may be corrupt or inaccessible.';
+      clearParsedImportData();
       setError(null);
       updateFileImportValidation({
         fileName: file.name,
@@ -842,7 +915,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       });
     };
     reader.readAsText(file);
-  }, [processTokensStudioContent, updateFileImportValidation]);
+  }, [clearParsedImportData, processTokensStudioContent, updateFileImportValidation]);
 
   const handleReadJson = useCallback(() => { fileInputRef.current?.click(); }, []);
   const handleReadCSS = useCallback(() => { cssFileInputRef.current?.click(); }, []);
@@ -910,13 +983,14 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     dragCounterRef.current = 0;
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    const jsonFile = files.find(f => f.name.endsWith('.json') || f.type === 'application/json');
+    const jsonFile = files.find(f => f.name.toLowerCase().endsWith('.json') || f.type === 'application/json');
     if (jsonFile) { processJsonFile(jsonFile); return; }
-    const cssFile = files.find(f => f.name.endsWith('.css') || f.type === 'text/css');
+    const cssFile = files.find(f => f.name.toLowerCase().endsWith('.css') || f.type === 'text/css');
     if (cssFile) { processCSSFile(cssFile); return; }
-    const twFile = files.find(f => /\.(js|ts|mjs|cjs)$/.test(f.name));
+    const twFile = files.find(f => /\.(js|ts|mjs|cjs)$/i.test(f.name));
     if (twFile) { processTailwindFile(twFile); return; }
     const firstFileName = files[0]?.name ?? 'Dropped file';
+    clearParsedImportData();
     setError(null);
     updateFileImportValidation({
       fileName: firstFileName,
@@ -934,7 +1008,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
       supportedFormats: getSupportedFormatsForSource(null),
       parserLimits: getParserLimitsForSource(null),
     });
-  }, [processJsonFile, processCSSFile, processTailwindFile, updateFileImportValidation]);
+  }, [clearParsedImportData, processJsonFile, processCSSFile, processTailwindFile, updateFileImportValidation]);
 
   const handleBack = useCallback(() => {
     if (workflowStage === 'preview') {

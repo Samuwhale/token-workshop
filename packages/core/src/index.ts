@@ -1,5 +1,5 @@
 /**
- * @tokenmanager/core — shared token engine
+ * @token-workshop/core — shared token engine
  *
  * Re-exports all public types, constants, utilities, and classes.
  */
@@ -35,7 +35,7 @@ export type {
 
 // Types
 export type {
-  TokenManagerExtensions,
+  TokenWorkshopExtensions,
   TokenExtensions,
   Derivation,
   DerivationOp,
@@ -76,7 +76,7 @@ export type {
   ResolverFigmaModeMapping,
   ResolverFigmaPublishConfig,
 } from './types.js';
-export { getTokenManagerExt, getTokenLifecycle } from './types.js';
+export { getTokenWorkshopExt, getTokenLifecycle } from './types.js';
 export {
   COLLECTION_NAME_RE,
   isValidCollectionName,

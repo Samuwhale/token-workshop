@@ -1,14 +1,14 @@
 /**
- * Shared color utilities — UI-specific helpers that build on @tokenmanager/core.
+ * Shared color utilities — UI-specific helpers that build on @token-workshop/core.
  *
  * Color math primitives (hexToRgb, rgbToHex, rgbToLab, colorDeltaE, normalizeHex,
- * srgbToLinear, srgbFromLinear) live in @tokenmanager/core. Import them directly
+ * srgbToLinear, srgbFromLinear) live in @token-workshop/core. Import them directly
  * from core — do NOT re-export through this file (bundler scope-hoisting TDZ risk).
  */
 
 let _coreWarnLogged = false;
 function logCoreUnavailable() {
-  if (!_coreWarnLogged) { console.debug('[colorUtils] @tokenmanager/core not available at runtime'); _coreWarnLogged = true; }
+  if (!_coreWarnLogged) { console.debug('[colorUtils] @token-workshop/core not available at runtime'); _coreWarnLogged = true; }
 }
 
 import {
@@ -30,10 +30,10 @@ import {
   parsedColorLuminance,
   isWideGamut,
   srgbFallbackHex,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 
 // ---------------------------------------------------------------------------
-// HSL conversions (implementations live in @tokenmanager/core: hslToSrgb, srgbToHsl)
+// HSL conversions (implementations live in @token-workshop/core: hslToSrgb, srgbToHsl)
 // ---------------------------------------------------------------------------
 
 export function hexToHsl(hex: string): { h: number; s: number; l: number } | null {

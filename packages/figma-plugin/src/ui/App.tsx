@@ -68,7 +68,7 @@ import { useRecentOperations } from "./hooks/useRecentOperations";
 import { useRecentlyTouched } from "./hooks/useRecentlyTouched";
 import { useStarredTokens } from "./hooks/useStarredTokens";
 import { useValidationCache } from "./hooks/useValidationCache";
-import type { DerivationOp } from "@tokenmanager/core";
+import type { DerivationOp } from "@token-workshop/core";
 import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
 import {
@@ -1742,7 +1742,7 @@ export function App() {
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
-      <h1 className="sr-only">TokenManager</h1>
+      <h1 className="sr-only">Token Workshop</h1>
       {/* Sidebar */}
       <nav
         className={`flex shrink-0 flex-col bg-[var(--surface-app)] ${sidebarBoundary.isDragging ? '' : 'transition-[width] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)]'}`}

@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { TokenGroup } from '@tokenmanager/core';
+import type { TokenGroup } from '@token-workshop/core';
 import type { CssExportOptions, ExportPlatform } from '../services/exporters/index.js';
 import { handleRouteError } from '../errors.js';
 import { exportTokens } from '../services/style-dict.js';

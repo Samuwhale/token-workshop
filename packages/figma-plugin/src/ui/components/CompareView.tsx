@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenCollection, TokenValue } from '@tokenmanager/core';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import type { TokenCollection, TokenValue } from '@token-workshop/core';
+import { flattenTokenGroup } from '@token-workshop/core';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';

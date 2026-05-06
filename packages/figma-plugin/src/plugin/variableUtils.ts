@@ -1,4 +1,4 @@
-import type { TokenReference, TokenValue } from '@tokenmanager/core';
+import type { TokenReference, TokenValue } from '@token-workshop/core';
 import { parseColor } from './colorUtils.js';
 import { rgbToHex } from './colorUtils.js';
 import { coerceBooleanValue } from '../shared/utils.js';

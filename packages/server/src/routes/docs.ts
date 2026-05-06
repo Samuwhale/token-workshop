@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { DTCGToken, ResolvedToken } from '@tokenmanager/core';
-import { wcagLuminance } from '@tokenmanager/core';
+import type { DTCGToken, ResolvedToken } from '@token-workshop/core';
+import { wcagLuminance } from '@token-workshop/core';
 import { handleRouteError } from '../errors.js';
 
 function contrastRatio(hex1: string, hex2: string): number | null {

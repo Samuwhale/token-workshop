@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Setup - Token Workshop</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header>
+      <div class="brand"><a href="/">Token Workshop</a></div>
+      <nav>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/support.html">Support</a>
+        <a href="/security.html">Security</a>
+      </nav>
+    </header>
+    <main>
+      <h1>Setup</h1>
+      <p class="lead">Run the local server, then open the Token Workshop plugin in Figma.</p>
+      <h2>Requirements</h2>
+      <p>Install Node.js 20 or newer. Token Workshop uses a local server so your token files can stay on your machine.</p>
+      <h2>Start the server</h2>
+      <pre><code>npx token-workshop --dir ./tokens</code></pre>
+      <p>The server listens at <code>http://localhost:9400</code>. The directory can be empty; Token Workshop will show an empty workspace until you create or import tokens.</p>
+      <h2>Open the plugin</h2>
+      <p>Install Token Workshop from Figma Community, then run it from a Figma design file. The plugin connects to the local server automatically.</p>
+      <h2>Common fixes</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Server offline</h3>
+          <p>Check that the terminal command is still running and that no other process is using port 9400.</p>
+        </article>
+        <article class="card">
+          <h3>Wrong folder</h3>
+          <p>Stop the server and restart it with the token directory you want to edit.</p>
+        </article>
+        <article class="card">
+          <h3>Local network blocked</h3>
+          <p>Allow Figma to connect to localhost when your operating system or browser prompts for local network access.</p>
+        </article>
+      </div>
+    </main>
+    <footer>
+      Need help? Open an issue at <a href="https://github.com/Samuwhale/token-workshop/issues">GitHub Issues</a>.
+    </footer>
+  </body>
+</html>

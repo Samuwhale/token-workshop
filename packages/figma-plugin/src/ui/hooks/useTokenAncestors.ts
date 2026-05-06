@@ -5,14 +5,14 @@ import {
   type AncestorChainRow,
   type AncestorTerminalKind,
   type TokenCollection,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { projectTokenEntriesToResolutionTokens } from "../shared/tokenProjection";
 
 // Mode-aware upstream alias walker. Dependents are fetched from the server
 // (see useTokenDependents); ancestors are derived locally because the server
-// resolver in @tokenmanager/core is not mode-aware and we need per-mode chains
-// to match the authoring surface. The walker itself lives in @tokenmanager/core
+// resolver in @token-workshop/core is not mode-aware and we need per-mode chains
+// to match the authoring surface. The walker itself lives in @token-workshop/core
 // (resolveTokenAncestors) so DetachConfirm and future server-side rules share
 // the same logic.
 

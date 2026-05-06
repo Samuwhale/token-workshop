@@ -1,7 +1,7 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import path from "node:path";
 import fs from "node:fs/promises";
-import { flattenTokenGroup, stableStringify, type Token } from "@tokenmanager/core";
+import { flattenTokenGroup, stableStringify, type Token } from "@token-workshop/core";
 import { BadRequestError, GitTimeoutError } from "../errors.js";
 import type { CollectionStore } from "./collection-store.js";
 import type { TokenStore } from "./token-store.js";
@@ -303,12 +303,12 @@ export class GitSync {
     if (!content) return false;
     try {
       for (const [, token] of flattenTokenGroup(JSON.parse(content))) {
-        const tokenmanager = token.$extensions?.tokenmanager;
+        const tokenworkshop = token.$extensions?.tokenworkshop;
         if (
-          tokenmanager &&
-          typeof tokenmanager === "object" &&
-          !Array.isArray(tokenmanager) &&
-          "generator" in tokenmanager
+          tokenworkshop &&
+          typeof tokenworkshop === "object" &&
+          !Array.isArray(tokenworkshop) &&
+          "generator" in tokenworkshop
         ) {
           return true;
         }

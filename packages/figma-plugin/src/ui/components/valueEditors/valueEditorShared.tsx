@@ -3,8 +3,8 @@
  */
 import { useState, useRef, memo, type Ref } from 'react';
 import { Link2 } from 'lucide-react';
-import { evalExpr } from '@tokenmanager/core';
-import type { CubicBezierValue, DimensionValue, TokenValue } from '@tokenmanager/core';
+import { evalExpr } from '@token-workshop/core';
+import type { CubicBezierValue, DimensionValue, TokenValue } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { AliasAutocomplete } from '../AliasAutocomplete';
 import { isAlias, extractAliasPath } from '../../../shared/resolveAlias';

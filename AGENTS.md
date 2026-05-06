@@ -1,4 +1,4 @@
-# TokenManager
+# Token Workshop
 
 ## Target user
 
@@ -29,7 +29,7 @@ The generator overview and graph views are equal, permanent points of entry into
 
 Modes follow Figma's mental model: every token value IS a mode value. There is no "base value plus optional overrides."
 
-- When a collection has 2+ modes, the UI shows all modes equally (stacked list in editor, columns in token list). The first mode's value maps to `$value` (DTCG requirement); other modes store in `$extensions.tokenmanager.modes`. This is a storage detail — never expose it in UI.
+- When a collection has 2+ modes, the UI shows all modes equally (stacked list in editor, columns in token list). The first mode's value maps to `$value` (DTCG requirement); other modes store in `$extensions.tokenworkshop.modes`. This is a storage detail — never expose it in UI.
 - Do not reintroduce a "base value" concept, a global alias toggle for multi-mode tokens, or a mode-selection dropdown that picks which single mode to view. All modes are visible simultaneously.
 - Each mode field independently accepts literal values or alias references (`{token.path}`).
 

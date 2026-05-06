@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { TokenValidator, type DerivationOp, type Token } from '@tokenmanager/core';
+import { TokenValidator, type DerivationOp, type Token } from '@token-workshop/core';
 import { ApiError } from '../shared/apiFetch';
 import { getErrorMessage, stableStringify } from '../shared/utils';
 import {
@@ -14,7 +14,7 @@ import {
 import { clearEditorDraft } from './useTokenEditorUtils';
 import type { UndoSlot } from './useUndo';
 import { matchesShortcut } from '../shared/shortcutRegistry';
-import type { TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@token-workshop/core';
 import { buildTokenEditorValueBody } from '../shared/tokenEditorPayload';
 import type {
   TokenEditorLifecycle,
@@ -72,7 +72,7 @@ interface UseTokenEditorSaveParams {
   lifecycle: TokenEditorLifecycle;
   extendsPath: string;
   initialServerSnapshotRef: React.MutableRefObject<string | null>;
-  passthroughTokenManagerRef: React.MutableRefObject<Record<string, unknown> | null>;
+  passthroughTokenWorkshopRef: React.MutableRefObject<Record<string, unknown> | null>;
   onBack: () => void;
   requestClose: () => void;
   onSaved?: (savedPath: string) => void;
@@ -102,7 +102,7 @@ export function useTokenEditorSave({
   extendsPath,
   collections,
   initialServerSnapshotRef,
-  passthroughTokenManagerRef,
+  passthroughTokenWorkshopRef,
   onBack,
   requestClose,
   onSaved,
@@ -184,7 +184,7 @@ export function useTokenEditorSave({
           derivationOps,
           modeValues,
           collection,
-          passthroughTokenManager: passthroughTokenManagerRef.current,
+          passthroughTokenWorkshop: passthroughTokenWorkshopRef.current,
           lifecycle,
           extendsPath,
           extensionsJsonText,

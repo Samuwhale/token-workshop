@@ -9,7 +9,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type {
   ResolverFile,
   ResolverInput,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import { handleRouteError } from '../errors.js';
 
 /** Validates a resolver name: non-empty, no null bytes, no path traversal, no leading/trailing whitespace. */

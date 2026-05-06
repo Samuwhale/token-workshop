@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { dispatchToast } from '../shared/toastBus';
-import type { DTCGToken } from '@tokenmanager/core';
+import type { DTCGToken } from '@token-workshop/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError, createFetchSignal } from '../shared/apiFetch';
 import { getPluginMessageFromEvent } from '../../shared/utils';

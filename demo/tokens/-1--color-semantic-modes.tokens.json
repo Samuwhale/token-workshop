@@ -10,7 +10,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.rainbow.blue.L40}"
@@ -30,7 +30,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.rainbow.yellow.L40}"
@@ -48,7 +48,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.D60}"
@@ -68,7 +68,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D20}"
@@ -86,7 +86,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.grijs.0-100b}"
@@ -106,7 +106,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral dark.0}"
@@ -124,7 +124,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral dark.L10}"
@@ -142,7 +142,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral dark.L20}"
@@ -160,7 +160,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral dark.L30}"
@@ -178,7 +178,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral dark.L40}"
@@ -196,7 +196,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral dark.L60}"
@@ -214,7 +214,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral dark.L80}"
@@ -234,7 +234,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -252,7 +252,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -270,7 +270,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -288,7 +288,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -306,7 +306,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -324,7 +324,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -342,7 +342,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -362,7 +362,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L40-60b}"
@@ -380,7 +380,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.D60}"
@@ -398,7 +398,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.D40}"
@@ -416,7 +416,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.D20}"
@@ -434,7 +434,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -452,7 +452,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L20-80b}"
@@ -470,7 +470,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L60}"
@@ -488,7 +488,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L80}"
@@ -506,7 +506,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L90}"
@@ -524,7 +524,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L95}"
@@ -544,7 +544,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L60}"
@@ -562,7 +562,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -580,7 +580,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -598,7 +598,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -616,7 +616,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -634,7 +634,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -652,7 +652,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -670,7 +670,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -688,7 +688,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -706,7 +706,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -724,7 +724,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -744,7 +744,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L70-30b}"
@@ -762,7 +762,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.D60}"
@@ -780,7 +780,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.D40}"
@@ -798,7 +798,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.D20}"
@@ -816,7 +816,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -834,7 +834,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L20-80b}"
@@ -852,7 +852,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L40-60b}"
@@ -870,7 +870,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L60}"
@@ -888,7 +888,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L80}"
@@ -906,7 +906,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L90}"
@@ -924,7 +924,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.L95}"
@@ -944,7 +944,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.petrol.0-100b}"
@@ -962,7 +962,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -980,7 +980,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -998,7 +998,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -1016,7 +1016,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -1034,7 +1034,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -1052,7 +1052,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -1070,7 +1070,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-1-.text.text-light}"
@@ -1088,7 +1088,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-1-.text.text-light}"
@@ -1106,7 +1106,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-1-.text.text-light}"
@@ -1124,7 +1124,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-1-.text.text-light}"
@@ -1142,7 +1142,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-1-.text.text-light}"
@@ -1162,7 +1162,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.L20-80b}"
@@ -1180,7 +1180,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D60}"
@@ -1198,7 +1198,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D40}"
@@ -1216,7 +1216,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D20}"
@@ -1234,7 +1234,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.0-100b}"
@@ -1252,7 +1252,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.L40-60b}"
@@ -1270,7 +1270,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.L60}"
@@ -1290,7 +1290,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D20}"
@@ -1308,7 +1308,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -1326,7 +1326,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -1344,7 +1344,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.additional.neutral.D100}"
@@ -1362,7 +1362,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D60}"
@@ -1380,7 +1380,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D60}"
@@ -1398,7 +1398,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D60}"
@@ -1416,7 +1416,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.oranje.D60}"
@@ -1437,7 +1437,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L40}"
@@ -1455,7 +1455,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.D40}"
@@ -1473,7 +1473,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.0}"
@@ -1491,7 +1491,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L80}"
@@ -1511,7 +1511,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -1529,7 +1529,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L80}"
@@ -1547,7 +1547,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -1565,7 +1565,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -1583,7 +1583,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.D40}"
@@ -1603,7 +1603,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L40}"
@@ -1621,7 +1621,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.D40}"
@@ -1639,7 +1639,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.0}"
@@ -1657,7 +1657,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L80}"
@@ -1677,7 +1677,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.D40}"
@@ -1695,7 +1695,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L80}"
@@ -1713,7 +1713,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -1731,7 +1731,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -1749,7 +1749,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.D40}"
@@ -1769,7 +1769,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.L40}"
@@ -1787,7 +1787,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.D40}"
@@ -1805,7 +1805,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.0}"
@@ -1823,7 +1823,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.L80}"
@@ -1843,7 +1843,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.D40}"
@@ -1861,7 +1861,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.L40}"
@@ -1879,7 +1879,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -1897,7 +1897,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.D40}"
@@ -1915,7 +1915,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.D40}"
@@ -1935,7 +1935,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L40}"
@@ -1953,7 +1953,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.D40}"
@@ -1971,7 +1971,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.0}"
@@ -1989,7 +1989,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L80}"
@@ -2009,7 +2009,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.D40}"
@@ -2027,7 +2027,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L40}"
@@ -2045,7 +2045,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L80}"
@@ -2063,7 +2063,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L80}"
@@ -2081,7 +2081,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.D40}"
@@ -2101,7 +2101,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L40}"
@@ -2119,7 +2119,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.D40}"
@@ -2137,7 +2137,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.0}"
@@ -2155,7 +2155,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L80}"
@@ -2175,7 +2175,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.D40}"
@@ -2193,7 +2193,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L40}"
@@ -2211,7 +2211,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L80}"
@@ -2229,7 +2229,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L80}"
@@ -2247,7 +2247,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.D40}"
@@ -2267,7 +2267,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "-1--color-semantic-modes": {
                 "IDS Dark": "{_IDS.-0-.generic._pure-transparent}"
@@ -2285,7 +2285,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "-1--color-semantic-modes": {
                 "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -2303,7 +2303,7 @@
           "ALL_SCOPES"
         ],
         "$extensions": {
-          "tokenmanager": {
+          "tokenworkshop": {
             "modes": {
               "-1--color-semantic-modes": {
                 "IDS Dark": "{_IDS.-0-.generic._pure-black}"
@@ -2322,7 +2322,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.D60}"
@@ -2340,7 +2340,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.D20}"
@@ -2358,7 +2358,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L90}"
@@ -2376,7 +2376,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L70-30b}"
@@ -2394,7 +2394,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L40-60b}"
@@ -2412,7 +2412,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L70-30b}"
@@ -2432,7 +2432,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.0-100b}"
@@ -2450,7 +2450,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.D40}"
@@ -2468,7 +2468,7 @@
             "ALL_SCOPES"
           ],
           "$extensions": {
-            "tokenmanager": {
+            "tokenworkshop": {
               "modes": {
                 "-1--color-semantic-modes": {
                   "IDS Dark": "{_IDS.-0-.brand.secundair-licht-petrol.L40-60b}"
@@ -2489,7 +2489,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.primary.0}"
@@ -2507,7 +2507,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.primary.L40}"
@@ -2525,7 +2525,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.primary.L20}"
@@ -2543,7 +2543,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.primary.D40}"
@@ -2563,7 +2563,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.on-primary.on-0}"
@@ -2581,7 +2581,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.on-primary.on-L40}"
@@ -2599,7 +2599,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.on-primary.on-L40}"
@@ -2617,7 +2617,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.on-primary.on-L20}"
@@ -2635,7 +2635,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-1-.on-primary.on-D40}"
@@ -2655,7 +2655,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.brand.petrol.L70-30b}"
@@ -2673,7 +2673,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.brand.petrol.D40}"
@@ -2691,7 +2691,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.brand.petrol.L20-80b}"
@@ -2709,7 +2709,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.brand.petrol.L90}"
@@ -2729,7 +2729,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.brand.petrol.D60}"
@@ -2747,7 +2747,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -2765,7 +2765,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -2783,7 +2783,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.additional.neutral.0}"
@@ -2801,7 +2801,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.brand.petrol.D60}"
@@ -2821,7 +2821,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L40}"
@@ -2839,7 +2839,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.D40}"
@@ -2857,7 +2857,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.0}"
@@ -2875,7 +2875,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L80}"
@@ -2895,7 +2895,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.D40}"
@@ -2913,7 +2913,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L40}"
@@ -2931,7 +2931,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L80}"
@@ -2949,7 +2949,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.L80}"
@@ -2967,7 +2967,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.red.D40}"
@@ -2987,7 +2987,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L40}"
@@ -3005,7 +3005,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.D40}"
@@ -3023,7 +3023,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.0}"
@@ -3041,7 +3041,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L80}"
@@ -3061,7 +3061,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.D40}"
@@ -3079,7 +3079,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L40}"
@@ -3097,7 +3097,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L80}"
@@ -3115,7 +3115,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.L80}"
@@ -3133,7 +3133,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.orange.D40}"
@@ -3153,7 +3153,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.L40}"
@@ -3171,7 +3171,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.D40}"
@@ -3189,7 +3189,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.0}"
@@ -3207,7 +3207,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.L80}"
@@ -3227,7 +3227,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.D40}"
@@ -3245,7 +3245,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.0}"
@@ -3263,7 +3263,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.L80}"
@@ -3281,7 +3281,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.L80}"
@@ -3299,7 +3299,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.yellow.D40}"
@@ -3319,7 +3319,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L40}"
@@ -3337,7 +3337,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.D40}"
@@ -3355,7 +3355,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.0}"
@@ -3373,7 +3373,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L80}"
@@ -3393,7 +3393,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.D40}"
@@ -3411,7 +3411,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.0}"
@@ -3429,7 +3429,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L80}"
@@ -3447,7 +3447,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.L80}"
@@ -3465,7 +3465,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.green.D40}"
@@ -3485,7 +3485,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.L40}"
@@ -3503,7 +3503,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.D40}"
@@ -3521,7 +3521,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.0}"
@@ -3539,7 +3539,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.L80}"
@@ -3559,7 +3559,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.D40}"
@@ -3577,7 +3577,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.0}"
@@ -3595,7 +3595,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.L80}"
@@ -3613,7 +3613,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.L80}"
@@ -3631,7 +3631,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.teal.D40}"
@@ -3651,7 +3651,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L40}"
@@ -3669,7 +3669,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.D40}"
@@ -3687,7 +3687,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.0}"
@@ -3705,7 +3705,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L80}"
@@ -3725,7 +3725,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.D40}"
@@ -3743,7 +3743,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.0}"
@@ -3761,7 +3761,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L80}"
@@ -3779,7 +3779,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.L80}"
@@ -3797,7 +3797,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.blue.D40}"
@@ -3817,7 +3817,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.L40}"
@@ -3835,7 +3835,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.D40}"
@@ -3853,7 +3853,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.0}"
@@ -3871,7 +3871,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.L80}"
@@ -3891,7 +3891,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.D40}"
@@ -3909,7 +3909,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.0}"
@@ -3927,7 +3927,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.L80}"
@@ -3945,7 +3945,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.L80}"
@@ -3963,7 +3963,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.purple.D40}"
@@ -3983,7 +3983,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.L40}"
@@ -4001,7 +4001,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.D40}"
@@ -4019,7 +4019,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.0}"
@@ -4037,7 +4037,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.L80}"
@@ -4057,7 +4057,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.D40}"
@@ -4075,7 +4075,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.0}"
@@ -4093,7 +4093,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.L80}"
@@ -4111,7 +4111,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.L80}"
@@ -4129,7 +4129,7 @@
               "ALL_SCOPES"
             ],
             "$extensions": {
-              "tokenmanager": {
+              "tokenworkshop": {
                 "modes": {
                   "-1--color-semantic-modes": {
                     "IDS Dark": "{_IDS.-0-.rainbow.pink.D40}"

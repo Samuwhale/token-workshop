@@ -5,7 +5,7 @@ import {
   type TokenGroup,
   type TokenType,
   isDTCGToken,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import { BadRequestError } from '../errors.js';
 
 const MAX_REGEX_LENGTH = 200;
@@ -36,11 +36,11 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 function getStoredTokenModeValues(
   token: Pick<Token, "$extensions">,
 ): Record<string, Record<string, unknown>> | null {
-  const tokenManager = isPlainRecord(token.$extensions?.tokenmanager)
-    ? (token.$extensions.tokenmanager as Record<string, unknown>)
+  const tokenWorkshopExtension = isPlainRecord(token.$extensions?.tokenworkshop)
+    ? (token.$extensions.tokenworkshop as Record<string, unknown>)
     : null;
-  return isPlainRecord(tokenManager?.modes)
-    ? (tokenManager.modes as Record<string, Record<string, unknown>>)
+  return isPlainRecord(tokenWorkshopExtension?.modes)
+    ? (tokenWorkshopExtension.modes as Record<string, Record<string, unknown>>)
     : null;
 }
 
@@ -93,11 +93,11 @@ function visitMutableDerivationRefParams(
   token: Token,
   visitor: (params: { value: string; set: (nextValue: string) => void }) => void,
 ): void {
-  const tokenManager = isPlainRecord(token.$extensions?.tokenmanager)
-    ? (token.$extensions.tokenmanager as Record<string, unknown>)
+  const tokenWorkshopExtension = isPlainRecord(token.$extensions?.tokenworkshop)
+    ? (token.$extensions.tokenworkshop as Record<string, unknown>)
     : null;
-  const derivation = isPlainRecord(tokenManager?.derivation)
-    ? tokenManager.derivation
+  const derivation = isPlainRecord(tokenWorkshopExtension?.derivation)
+    ? tokenWorkshopExtension.derivation
     : null;
   const ops = Array.isArray(derivation?.ops) ? derivation.ops : null;
   if (!ops) {
@@ -212,7 +212,7 @@ export function normalizeScopedVariableTokenGroup(tokens: TokenGroup): boolean {
 /**
  * Walk every authored token value in a token tree and apply `updateString` to
  * string values, including nested strings inside composite/object values and
- * per-mode values stored in `$extensions.tokenmanager.modes`.
+ * per-mode values stored in `$extensions.tokenworkshop.modes`.
  * Returns the number of string values that were modified.
  */
 function walkAliasValues(

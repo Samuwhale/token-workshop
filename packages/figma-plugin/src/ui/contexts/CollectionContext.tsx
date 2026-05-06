@@ -15,7 +15,7 @@ import type {
   ResolverSelectionOrigin,
 } from '../hooks/useResolvers';
 import type { TokenMapEntry } from '../../shared/types';
-import type { ResolverFile } from '@tokenmanager/core';
+import type { ResolverFile } from '@token-workshop/core';
 import type { UndoSlot } from '../hooks/useUndo';
 
 export interface ResolverState {

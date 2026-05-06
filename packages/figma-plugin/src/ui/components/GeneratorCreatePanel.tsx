@@ -13,7 +13,7 @@ import {
   Workflow,
   X,
 } from "lucide-react";
-import type { TokenCollection, TokenGeneratorDocument } from "@tokenmanager/core";
+import type { TokenCollection, TokenGeneratorDocument } from "@token-workshop/core";
 import {
   GENERATOR_TEMPLATE_OPTIONS,
   SOURCELESS_GENERATOR_TEMPLATES,
@@ -22,7 +22,7 @@ import {
   generatorDefaultSourceValue,
   type GeneratorConfiguredTemplateKind,
   type GeneratorSourceMode,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { apiFetch } from "../shared/apiFetch";
 import { Button, IconButton, SegmentedControl } from "../primitives";
@@ -1002,7 +1002,7 @@ function readTokenModeValues(
   modes: string[],
 ): Array<[string, unknown]> {
   if (modes.length === 0) return [["Value", token.$value]];
-  const collectionModes = token.$extensions?.tokenmanager?.modes?.[collectionId];
+  const collectionModes = token.$extensions?.tokenworkshop?.modes?.[collectionId];
   return modes.map((modeName, index) => [
     modeName,
     index === 0 ? token.$value : collectionModes?.[modeName],

@@ -3,7 +3,7 @@ import { Copy, Link2, MoreHorizontal, Rows3 } from "lucide-react";
 import {
   resolveCollectionIdForPath,
   resolveRefValue,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath, isAlias } from "../../../shared/resolveAlias";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";

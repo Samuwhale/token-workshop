@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import type { TokenGroup } from "@tokenmanager/core";
+import type { TokenGroup } from "@token-workshop/core";
 import type {
   FieldChange,
   FieldChangeOperationMetadata,

@@ -5,7 +5,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const coreEntry = path.join(__dirname, '..', 'core', 'src', 'index.ts');
 
 export const testAliases = {
-  '@tokenmanager/core': coreEntry,
+  '@token-workshop/core': coreEntry,
 };
 
 export const pluginAliases = {

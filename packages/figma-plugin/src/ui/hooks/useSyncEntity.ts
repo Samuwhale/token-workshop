@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import { useFigmaMessage } from './useFigmaMessage';
 import { useTokenSyncBase, extractSyncApplyResult, type SyncProgress, type DiffRowBase } from './useTokenSyncBase';
-import type { DTCGToken } from '@tokenmanager/core';
+import type { DTCGToken } from '@token-workshop/core';
 import type {
   SyncApplyResult,
   SyncApplyResultBase,

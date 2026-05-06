@@ -1,7 +1,7 @@
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
-import type { TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@token-workshop/core';
 import { useTokenRelocate } from './useTokenRelocate';
 import { useTokenRename } from './useTokenRename';
 import { useTokenDelete } from './useTokenDelete';

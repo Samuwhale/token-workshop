@@ -2,7 +2,7 @@
 /**
  * Headless validation for the standalone preview path.
  *
- * Starts the real TokenManager server against the demo workspace, starts the
+ * Starts the real Token Workshop server against the demo workspace, starts the
  * standalone harness, loads the harness in a headless browser, and fails if
  * the browser preview cannot reach the server or still renders as offline.
  *
@@ -179,7 +179,7 @@ function startPreviewServer(port) {
     pnpmBin,
     [
       '--filter',
-      '@tokenmanager/server',
+      'token-workshop',
       'exec',
       'tsx',
       'bin/cli.ts',

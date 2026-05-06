@@ -1,4 +1,4 @@
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 
 export function getCollectionDisplayName(
   collectionId: string,

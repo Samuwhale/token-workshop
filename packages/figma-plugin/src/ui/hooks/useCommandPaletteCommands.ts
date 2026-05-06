@@ -329,7 +329,7 @@ export function useCommandPaletteCommands(): {
       {
         id: "open-documentation",
         label: "Open documentation",
-        description: "Open TokenManager documentation in the browser",
+        description: "Open Token Workshop documentation in the browser",
         category: "Help",
         handler: () => {
           window.open(

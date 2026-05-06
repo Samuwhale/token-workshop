@@ -1,4 +1,4 @@
-import { normalizeHex, type TokenValue } from "@tokenmanager/core";
+import { normalizeHex, type TokenValue } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { hexToLuminance } from "./colorUtils";

@@ -27,7 +27,7 @@ import { formatTokenValuePreview } from '../shared/tokenValuePreview';
 export interface TokenPickerProps {
   /** All tokens available for selection. */
   allTokensFlat: Record<string, TokenMapEntry>;
-  /** Maps token path → set name (shown as secondary info). */
+  /** Maps token path to its owning collection id for scoped selection. */
   pathToCollectionId?: Record<string, string>;
   /** Filter to only tokens of this type (e.g. 'color', 'dimension'). */
   filterType?: string;
@@ -157,6 +157,10 @@ export function TokenPickerDropdown({
   }, [candidates, query, filterType, includeDeprecated, excludeSet]);
 
   useEffect(() => { setActiveIdx(0); }, [query]);
+
+  useEffect(() => {
+    setActiveIdx((idx) => clampListIndex(idx, entries.length));
+  }, [entries.length]);
 
   // Keyboard navigation
   useEffect(() => {

@@ -63,7 +63,7 @@ export function parseHexRaw(hex: string): { rgb: RGB; a: number } | null {
 }
 
 // Intentional duplicate of core's hslToSrgb — the plugin sandbox runs in a separate
-// Figma runtime and cannot import from @tokenmanager/core.
+// Figma runtime and cannot import from @token-workshop/core.
 function hslToRgbValues(h: number, s: number, l: number): { r: number; g: number; b: number } {
   const S = s / 100, L = l / 100;
   if (S === 0) return { r: L, g: L, b: L };

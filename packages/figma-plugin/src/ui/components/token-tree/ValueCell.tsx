@@ -42,15 +42,15 @@ interface ValueCellProps {
 }
 
 function hasDerivationExtension(entry: TokenMapEntry | undefined): boolean {
-  const tokenManager = entry?.$extensions?.tokenmanager;
+  const tokenWorkshopExtension = entry?.$extensions?.tokenworkshop;
   if (
-    !tokenManager ||
-    typeof tokenManager !== "object" ||
-    Array.isArray(tokenManager)
+    !tokenWorkshopExtension ||
+    typeof tokenWorkshopExtension !== "object" ||
+    Array.isArray(tokenWorkshopExtension)
   ) {
     return false;
   }
-  return (tokenManager as { derivation?: unknown }).derivation !== undefined;
+  return (tokenWorkshopExtension as { derivation?: unknown }).derivation !== undefined;
 }
 
 export function ValueCell({

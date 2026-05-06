@@ -2,7 +2,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import {
   readTokenCollectionModeValues,
   type TokenCollection,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type { ModeImpact } from '../components/tokenListTypes';
 
 /**

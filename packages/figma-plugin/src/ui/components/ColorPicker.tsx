@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { Spinner } from './Spinner';
-import { hexToRgb, rgbToHex, hslToSrgb } from '@tokenmanager/core';
+import { hexToRgb, rgbToHex, hslToSrgb } from '@token-workshop/core';
 import {
   hexToHsl,
   hslToHex,
@@ -17,7 +17,7 @@ import {
   toHex as coreToHex,
   oklchToOklab,
   oklabToLinearSrgb,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useSettingsListener } from './SettingsPanel';
 import type { TokenMapEntry } from '../../shared/types';

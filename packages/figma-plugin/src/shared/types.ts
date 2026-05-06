@@ -1,6 +1,6 @@
 // Shared types used by both controller (plugin sandbox) and UI
-import type { TokenLifecycle, TokenReference, TokenValue } from '@tokenmanager/core';
-import type { TokenExtensions } from '@tokenmanager/core';
+import type { TokenLifecycle, TokenReference, TokenValue } from '@token-workshop/core';
+import type { TokenExtensions } from '@token-workshop/core';
 
 /** Shape returned by API endpoints on error (e.g. 4xx/5xx). */
 export interface ApiErrorBody {
@@ -251,7 +251,7 @@ export interface TokenMapEntry {
   $extensions?: TokenExtensions;
   /** Figma variable scopes from $extensions['com.figma.scopes']. Empty/undefined = unrestricted. */
   $scopes?: string[];
-  /** Lifecycle stage from $extensions.tokenmanager.lifecycle. Undefined means 'published'. */
+  /** Lifecycle stage from $extensions.tokenworkshop.lifecycle. Undefined means 'published'. */
   $lifecycle?: TokenLifecycle;
 }
 

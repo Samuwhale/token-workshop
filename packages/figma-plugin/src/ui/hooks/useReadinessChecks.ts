@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getTokenLifecycle } from '@tokenmanager/core';
+import { getTokenLifecycle } from '@token-workshop/core';
 import type { OrphanVariableDeleteTarget, VariableSyncToken } from '../../shared/types';
 import { postPluginMessage } from '../../shared/utils';
 import { describeError } from '../shared/utils';
@@ -23,7 +23,7 @@ import { apiFetch } from '../shared/apiFetch';
 
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
-const DEFAULT_VARIABLE_COLLECTION_NAME = 'TokenManager';
+const DEFAULT_VARIABLE_COLLECTION_NAME = 'Token Workshop';
 
 function formatCount(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;

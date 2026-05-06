@@ -23,7 +23,7 @@ import {
   type TokenCollection,
   type TokenGroup,
   writeTokenModeValuesForCollection,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import { BadRequestError, ConflictError, handleRouteError } from '../errors.js';
 import type { SnapshotEntry } from '../services/operation-log.js';
 import {
@@ -108,12 +108,12 @@ function assertNoGeneratorManagedTokenMutation(
 }
 
 function tokenBodyContainsGeneratorProvenance(token: Pick<Token, '$extensions'>): boolean {
-  const tokenmanager = token.$extensions?.tokenmanager;
+  const tokenworkshop = token.$extensions?.tokenworkshop;
   return Boolean(
-    tokenmanager &&
-      typeof tokenmanager === 'object' &&
-      !Array.isArray(tokenmanager) &&
-      'generator' in tokenmanager
+    tokenworkshop &&
+      typeof tokenworkshop === 'object' &&
+      !Array.isArray(tokenworkshop) &&
+      'generator' in tokenworkshop
   );
 }
 

@@ -11,7 +11,7 @@ import { getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, STORAGE_KEYS } from '../shared/storage';
 import type { TokenMapEntry } from '../../shared/types';
-import type { TokenValue, TokenReference } from '@tokenmanager/core';
+import type { TokenValue, TokenReference } from '@token-workshop/core';
 import type { UndoSlot } from './useUndo';
 
 // ---------------------------------------------------------------------------
@@ -248,20 +248,20 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // -----------------------------------------------------------------------
   // Fetch full resolver file (for editing)
   // -----------------------------------------------------------------------
-  const getResolverFile = useCallback(async (name: string): Promise<import('@tokenmanager/core').ResolverFile> => {
-    const data = await apiFetch<{ name: string } & import('@tokenmanager/core').ResolverFile>(
+  const getResolverFile = useCallback(async (name: string): Promise<import('@token-workshop/core').ResolverFile> => {
+    const data = await apiFetch<{ name: string } & import('@token-workshop/core').ResolverFile>(
       `${serverUrl}/api/resolvers/${encodeURIComponent(name)}`,
     );
     // Strip the outer `name` field (resolver identifier from params) before returning file body
     const { name: _n, ...file } = data;
     void _n;
-    return file as import('@tokenmanager/core').ResolverFile;
+    return file as import('@token-workshop/core').ResolverFile;
   }, [serverUrl]);
 
   // -----------------------------------------------------------------------
   // Update resolver (PUT full file)
   // -----------------------------------------------------------------------
-  const updateResolver = useCallback(async (name: string, file: import('@tokenmanager/core').ResolverFile) => {
+  const updateResolver = useCallback(async (name: string, file: import('@token-workshop/core').ResolverFile) => {
     await apiFetch(`${serverUrl}/api/resolvers/${encodeURIComponent(name)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

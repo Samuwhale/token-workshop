@@ -5,7 +5,7 @@ import type {
   ResolverFile,
   TokenCollection,
   TokenGroup,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import {
   flattenTokenGroup,
   isDTCGToken,
@@ -17,7 +17,7 @@ import {
   writeTokenModeValuesForCollection,
   type Token,
   type TokenModeValues,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type {
   CollectionMetadataState,
   CollectionPublishRoutingState,

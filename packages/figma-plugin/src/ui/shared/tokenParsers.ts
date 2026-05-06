@@ -1,4 +1,4 @@
-import { flattenTokenGroup, isReference, type DTCGGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, isReference, type DTCGGroup } from '@token-workshop/core';
 import {
   parseDimensionTokenValue,
   parseDurationTokenValue,
@@ -624,62 +624,71 @@ export function isTokensStudioFormat(obj: Record<string, unknown>): boolean {
   return false;
 }
 
+const TOKENS_STUDIO_METADATA_KEYS = new Set([
+  '$themes',
+  '$collections',
+  '$metadata',
+  '$sets',
+]);
+
 export interface TokensStudioParseResult {
-  /** Map of set name → flat token list, in tokenSetOrder if available. */
-  sets: Map<string, ParsedToken[]>;
+  /** Top-level Tokens Studio groups, ordered by $metadata.tokenSetOrder when present. */
+  collections: Map<string, ParsedToken[]>;
   errors: string[];
 }
 
 /**
  * Parse a Tokens Studio JSON export.
- * Returns a map of set name → tokens. Special top-level keys ($themes, $metadata,
- * $sets) are skipped. tokenSetOrder from $metadata is respected for ordering.
+ * Returns top-level Tokens Studio groups as importable collection data. Special
+ * metadata keys ($themes, $metadata, $sets) are skipped.
  */
 export function parseTokensStudioFile(raw: string): TokensStudioParseResult {
   const errors: string[] = [];
-  const sets = new Map<string, ParsedToken[]>();
+  const collections = new Map<string, ParsedToken[]>();
 
   let obj: Record<string, unknown>;
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { sets, errors: ['Expected a JSON object'] };
+      return { collections, errors: ['Expected a JSON object'] };
     }
     obj = parsed as Record<string, unknown>;
   } catch (e) {
-    return { sets, errors: [`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`] };
+    return { collections, errors: [`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`] };
   }
 
-  // Extract tokenSetOrder from $metadata for deterministic ordering
-  let setOrder: string[] | null = null;
+  // Tokens Studio's tokenSetOrder controls top-level group ordering.
+  let groupOrder: string[] | null = null;
   const meta = obj['$metadata'];
   if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
     const order = (meta as Record<string, unknown>)['tokenSetOrder'];
     if (Array.isArray(order)) {
-      setOrder = order.filter((s): s is string => typeof s === 'string');
+      groupOrder = order.filter((s): s is string => typeof s === 'string');
     }
   }
 
-  const SKIP_KEYS = new Set(['$themes', '$collections', '$metadata', '$sets']);
-  const topKeys = Object.keys(obj).filter(k => !SKIP_KEYS.has(k));
+  const topKeys = Object.keys(obj).filter(k => !TOKENS_STUDIO_METADATA_KEYS.has(k));
+  const topKeySet = new Set(topKeys);
 
-  // Honour setOrder but also include any keys not listed in it
-  const orderedKeys = setOrder
-    ? [...setOrder.filter(k => topKeys.includes(k)), ...topKeys.filter(k => !(setOrder as string[]).includes(k))]
+  const orderedKeys = groupOrder
+    ? [
+      ...groupOrder.filter(k => topKeySet.has(k)),
+      ...topKeys.filter(k => !groupOrder.includes(k)),
+    ]
     : topKeys;
 
   for (const key of orderedKeys) {
     const val = obj[key];
     if (val === null || typeof val !== 'object' || Array.isArray(val)) continue;
     const tokens = flattenTsGroup(val as Record<string, unknown>);
-    if (tokens.length > 0) sets.set(key, tokens);
+    if (tokens.length > 0) collections.set(key, tokens);
   }
 
-  if (sets.size === 0 && topKeys.length > 0) {
+  if (collections.size === 0 && topKeys.length > 0) {
     errors.push('No tokens found in file. Expected Tokens Studio JSON with nested groups containing "value" or "$value" fields.');
   }
 
-  return { sets, errors };
+  return { collections, errors };
 }
 
 // ---------------------------------------------------------------------------

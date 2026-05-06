@@ -7,7 +7,7 @@ import {
   SEARCH_SCOPE_CATEGORIES as SCOPE_CATEGORIES,
   SEARCH_SCOPE_CATEGORY_KEYS as SCOPE_CATEGORY_KEYS,
   type SearchHasQualifierValue,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { DEFAULT_DURATION_TOKEN_VALUE } from '../shared/tokenValueParsing';
 import type { SortOrder } from './tokenListTypes';
@@ -56,11 +56,11 @@ function getTokenModeValues(
   collectionId: string,
 ): unknown[] {
   const values: unknown[] = [node.$value];
-  const tokenManager = node.$extensions?.tokenmanager as
+  const tokenWorkshopExtension = node.$extensions?.tokenworkshop as
     | { modes?: Record<string, Record<string, unknown>> }
     | undefined;
   const collectionModes =
-    tokenManager?.modes?.[collectionId];
+    tokenWorkshopExtension?.modes?.[collectionId];
   if (
     collectionModes &&
     typeof collectionModes === "object" &&

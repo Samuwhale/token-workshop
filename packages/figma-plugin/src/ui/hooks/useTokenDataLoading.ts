@@ -5,7 +5,7 @@ import { isNetworkError } from '../shared/apiFetch';
 import { stableStringify, isAbortError } from '../shared/utils';
 import type { TokenMapEntry } from '../../shared/types';
 import { getPluginMessageFromEvent } from '../../shared/utils';
-import type { TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@token-workshop/core';
 
 interface UseTokenDataLoadingParams {
   serverUrl: string;

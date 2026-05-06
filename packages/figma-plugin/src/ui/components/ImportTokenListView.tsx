@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { useImportSourceContext } from './ImportPanelContext';
 import { type ImportToken } from './importPanelTypes';
 import { tokenTypeBadgeClass } from '../../shared/types';
@@ -107,9 +108,7 @@ export function ImportTokenListView() {
         onClick={handleBack}
         className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors self-start"
       >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 2L3 5l3 3" />
-        </svg>
+        <ChevronLeft size={12} strokeWidth={1.75} aria-hidden />
         Back
       </button>
 
@@ -149,7 +148,6 @@ export function ImportTokenListView() {
         </div>
       )}
 
-      {/* Toolbar: count + type filter + search */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {selectedTokens.size} token{selectedTokens.size !== 1 ? 's' : ''}

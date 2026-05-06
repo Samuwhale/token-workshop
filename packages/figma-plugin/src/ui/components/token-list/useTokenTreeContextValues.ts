@@ -5,7 +5,7 @@ import type {
   TokenMapEntry,
   SelectionNodeInfo,
 } from "../../../shared/types";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import type {
   TokenTreeGroupActionsContextType,
   TokenTreeGroupStateContextType,

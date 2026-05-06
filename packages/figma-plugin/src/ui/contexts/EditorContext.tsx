@@ -14,7 +14,7 @@ import type { CompareMode } from '../components/UnifiedComparePanel';
 import { useCollectionStateContext, useTokenFlatMapContext } from './TokenDataContext';
 import { useCompareState } from '../hooks/useCompareState';
 import { useTokenNavigation } from '../hooks/useTokenNavigation';
-import type { CollectionPathResolutionReason } from '@tokenmanager/core';
+import type { CollectionPathResolutionReason } from '@token-workshop/core';
 import type { TokenContextNavigationHistoryEntry } from '../shared/navigationTypes';
 
 // ---------------------------------------------------------------------------

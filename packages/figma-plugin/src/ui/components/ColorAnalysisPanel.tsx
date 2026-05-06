@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { TokenMapEntry } from "../../shared/types";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import { ContrastMatrixPanel } from "./ContrastMatrixPanel";
 import { LightnessInspectorPanel } from "./LightnessInspectorPanel";
 import {

@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react';
-import { isFormula } from '@tokenmanager/core';
+import { isFormula } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../../shared/types';
 import { FormulaInput } from '../FormulaInput';
 import { resolveFormulaPreview, type BasicValueEditorProps } from './valueEditorShared';

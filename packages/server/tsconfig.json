@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "rootDir": ".",
     "paths": {
-      "@tokenmanager/core": ["../core/src"]
+      "@token-workshop/core": ["../core/src"]
     }
   },
   "include": ["src/**/*", "bin/**/*"],

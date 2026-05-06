@@ -1,10 +1,10 @@
-import type { TokenType, TokenValue, TokenReference } from '@tokenmanager/core';
+import type { TokenType, TokenValue, TokenReference } from '@token-workshop/core';
 import {
   applyDerivation,
   isReference,
   parseReference,
   validateDerivationOps,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type { TokenMapEntry } from './types';
 
 export function isAlias(value: TokenValue | TokenReference | undefined): value is TokenReference {
@@ -203,7 +203,7 @@ function resolveCompositeAliases(
 }
 
 function readDerivationOps(entry: TokenMapEntry): ReturnType<typeof validateDerivationOps> {
-  const derivation = entry.$extensions?.tokenmanager?.derivation;
+  const derivation = entry.$extensions?.tokenworkshop?.derivation;
   if (derivation === undefined) return [];
   return validateDerivationOps(derivation.ops);
 }

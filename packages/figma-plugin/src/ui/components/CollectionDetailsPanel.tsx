@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowUp, ArrowDown, X, Plus, Pencil, MoreHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
-import type { TokenCollection } from "@tokenmanager/core";
+import type { TokenCollection } from "@token-workshop/core";
 import {
   addCollectionMode,
   deleteCollectionMode,

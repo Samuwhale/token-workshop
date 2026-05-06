@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET } from '@tokenmanager/core';
+import { CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET } from '@token-workshop/core';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEY_BUILDERS, lsGet, lsSet, ssGet, ssSet } from '../shared/storage';

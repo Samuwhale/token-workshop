@@ -3,7 +3,7 @@ import {
   normalizeTokenScopeValues,
   readTokenScopes,
   type TokenLifecycle,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 
 export const FIGMA_SCOPE_OPTIONS: Record<
@@ -129,15 +129,15 @@ type TokenPresentationEntry = {
   $lifecycle?: TokenLifecycle;
 };
 
-type TokenManagerMetadata = {
+type TokenWorkshopMetadata = {
   source?: string;
   extends?: string;
 };
 
-function readTokenManagerMetadata(
+function readTokenWorkshopMetadata(
   extensions: TokenExtensions,
-): TokenManagerMetadata {
-  const raw = extensions?.tokenmanager;
+): TokenWorkshopMetadata {
+  const raw = extensions?.tokenworkshop;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return {};
   }
@@ -159,7 +159,7 @@ export function readTokenPresentationMetadata(
 } {
   const metadataEntry = entry as TokenPresentationEntry | undefined;
   const extensions = metadataEntry?.$extensions;
-  const metadata = readTokenManagerMetadata(extensions);
+  const metadata = readTokenWorkshopMetadata(extensions);
   const scopes = Array.isArray(metadataEntry?.$scopes)
     ? normalizeTokenScopeValues(metadataEntry.$scopes) ?? []
       : extensions

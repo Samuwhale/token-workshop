@@ -83,7 +83,7 @@ async function runBuild() {
   await new Promise((resolve, reject) => {
     const child = spawn(
       pnpmBin,
-      ['--filter', '@tokenmanager/figma-plugin', 'build'],
+      ['--filter', '@token-workshop/figma-plugin', 'build'],
       { cwd: repoRoot, stdio: 'inherit', env: process.env },
     );
 
@@ -178,15 +178,15 @@ try {
   console.log('Building the plugin once so the harness has a fresh UI bundle...');
   await runBuild();
 
-  run(pnpmBin, ['--filter', '@tokenmanager/figma-plugin', 'dev'], 'plugin');
+  run(pnpmBin, ['--filter', '@token-workshop/figma-plugin', 'dev'], 'plugin');
   run(
     pnpmBin,
-    ['--filter', '@tokenmanager/server', 'exec', 'tsx', 'watch', 'bin/cli.ts', '--dir', tokenDir, '--port', String(serverPort)],
+    ['--filter', 'token-workshop', 'exec', 'tsx', 'watch', 'bin/cli.ts', '--dir', tokenDir, '--port', String(serverPort)],
     'server',
   );
   run(
     pnpmBin,
-    ['--filter', '@tokenmanager/figma-plugin', 'standalone', '--', '--port', String(uiPort)],
+    ['--filter', '@token-workshop/figma-plugin', 'standalone', '--', '--port', String(uiPort)],
     'harness',
   );
 

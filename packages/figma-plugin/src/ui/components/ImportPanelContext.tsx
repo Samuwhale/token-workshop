@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { flattenTokenGroup, isReference, parseReference, type DTCGGroup } from "@tokenmanager/core";
+import { flattenTokenGroup, isReference, parseReference, type DTCGGroup } from "@token-workshop/core";
 import {
   type CollectionData,
   defaultCollectionName,
@@ -381,13 +381,13 @@ function buildImportPayload(
   }
   const sourceTag = getImportSourceTag(source);
   const existingExtensions = token.$extensions ?? {};
-  const existingTokenManager =
-    (existingExtensions.tokenmanager as Record<string, unknown>) ?? {};
-  if (sourceTag || Object.keys(existingTokenManager).length > 0) {
+  const existingTokenWorkshop =
+    (existingExtensions.tokenworkshop as Record<string, unknown>) ?? {};
+  if (sourceTag || Object.keys(existingTokenWorkshop).length > 0) {
     payload.$extensions = {
       ...existingExtensions,
-      tokenmanager: {
-        ...existingTokenManager,
+      tokenworkshop: {
+        ...existingTokenWorkshop,
         ...(sourceTag ? { source: sourceTag } : {}),
       },
     };
@@ -544,14 +544,14 @@ function buildCollectionImportPlans(
           modeValues[s.originalModeName] = s.token.$value;
         }
 
-        const existingTokenManager =
-          (primary.token.$extensions?.tokenmanager as Record<string, unknown>) ?? {};
+        const existingTokenWorkshop =
+          (primary.token.$extensions?.tokenworkshop as Record<string, unknown>) ?? {};
         const mergedToken: ImportToken = {
           ...primary.token,
           $extensions: {
             ...(primary.token.$extensions ?? {}),
-            tokenmanager: {
-              ...existingTokenManager,
+            tokenworkshop: {
+              ...existingTokenWorkshop,
               modes: {
                 [plan.collectionId]: modeValues,
               },
@@ -751,7 +751,7 @@ export function ImportPanelProvider({
     () =>
       src.collectionData.filter((collection) =>
         collection.modes.some(
-          (mode) => src.modeEnabled[modeKey(collection.name, mode.modeId)],
+          (mode) => src.modeEnabled[modeKey(collection.name, mode.modeId)] ?? true,
         ),
       ).length,
     [src.collectionData, src.modeEnabled],
@@ -1152,7 +1152,7 @@ export function ImportPanelProvider({
       clearFailedState();
       setFailedImportStrategy(strategy);
 
-      let importedSets = 0;
+      let importedCollections = 0;
       let importedTokens = 0;
       const failedPaths: string[] = [];
       const failedBatches: ImportBatch[] = [];
@@ -1226,9 +1226,9 @@ export function ImportPanelProvider({
             });
           }
 
-          importedSets += 1;
+          importedCollections += 1;
           setImportProgress({
-            done: importedSets,
+            done: importedCollections,
             total: collectionImportPlans.length,
           });
         }
@@ -1236,12 +1236,12 @@ export function ImportPanelProvider({
         const failedCount = failedPaths.length;
         const toastMessage =
           failedCount > 0
-            ? `Imported ${importedTokens} tokens across ${importedSets} collection${importedSets !== 1 ? "s" : ""} (${failedCount} failed)`
-            : `Imported ${importedTokens} tokens across ${importedSets} collection${importedSets !== 1 ? "s" : ""}`;
+            ? `Imported ${importedTokens} tokens across ${importedCollections} collection${importedCollections !== 1 ? "s" : ""} (${failedCount} failed)`
+            : `Imported ${importedTokens} tokens across ${importedCollections} collection${importedCollections !== 1 ? "s" : ""}`;
         const successSummary =
           failedCount > 0
-            ? `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} collection${importedSets !== 1 ? "s" : ""} — ${failedCount} failed`
-            : `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedSets} collection${importedSets !== 1 ? "s" : ""}`;
+            ? `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedCollections} collection${importedCollections !== 1 ? "s" : ""} — ${failedCount} failed`
+            : `${importedTokens} token${importedTokens !== 1 ? "s" : ""} imported to ${importedCollections} collection${importedCollections !== 1 ? "s" : ""}`;
 
         dispatchToast(toastMessage, failedCount > 0 ? "error" : "success", {
           destination: { kind: "contextual-surface", surface: "import" },

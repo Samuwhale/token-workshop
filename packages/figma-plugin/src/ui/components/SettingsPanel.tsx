@@ -387,7 +387,7 @@ export function SettingsPanel({
     );
     downloadBlob(
       new Blob([payload], { type: "application/json" }),
-      "tokenmanager-settings.json",
+      "tokenworkshop-settings.json",
     );
     dispatchToast("Settings backup exported", "success", {
       destination: { kind: "surface", surface: "settings" },
@@ -757,7 +757,7 @@ export function SettingsPanel({
                   <li>
                     Run <span className="font-mono">pnpm server</span> or{" "}
                     <span className="font-mono">pnpm preview</span> in the
-                    TokenManager directory
+                    Token Workshop directory
                   </li>
                   <li>Check the URL and port</li>
                   <li>Make sure localhost traffic is not blocked</li>

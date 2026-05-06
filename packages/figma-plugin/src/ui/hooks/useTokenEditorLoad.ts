@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import type { DerivationOp, TokenCollection } from '@tokenmanager/core';
-import { readTokenScopes, validateDerivationOps } from '@tokenmanager/core';
+import type { DerivationOp, TokenCollection } from '@token-workshop/core';
+import { readTokenScopes, validateDerivationOps } from '@token-workshop/core';
 import { apiFetch } from '../shared/apiFetch';
 import { readEditorCollectionModeValues } from '../shared/collectionModeUtils';
 import { getErrorMessage, tokenPathToUrlSegment, isAbortError, stableStringify } from '../shared/utils';
@@ -14,13 +14,13 @@ import type {
   TokenEditorLifecycle,
   TokenEditorModeValues,
   TokenEditorServerExtensions,
-  TokenEditorTokenManagerExtension,
+  TokenEditorTokenWorkshopExtension,
   TokenEditorTokenResponse,
   TokenEditorValue,
 } from '../shared/tokenEditorTypes';
 import {
   omitTokenEditorReservedExtensions,
-  splitTokenManagerExtension,
+  splitTokenWorkshopExtension,
 } from '../shared/tokenEditorTypes';
 import { normalizeTokenLifecycle } from '../shared/tokenMetadata';
 
@@ -42,7 +42,7 @@ interface UseTokenEditorLoadParams {
   setLifecycle: (v: TokenEditorLifecycle) => void;
   setExtendsPath: (v: string) => void;
   setError: (v: string | null) => void;
-  passthroughTokenManagerRef: React.MutableRefObject<Record<string, unknown> | null>;
+  passthroughTokenWorkshopRef: React.MutableRefObject<Record<string, unknown> | null>;
   valueEditorContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -64,7 +64,7 @@ export function useTokenEditorLoad({
   setLifecycle,
   setExtendsPath,
   setError,
-  passthroughTokenManagerRef,
+  passthroughTokenWorkshopRef,
   valueEditorContainerRef,
 }: UseTokenEditorLoadParams) {
   const [loading, setLoading] = useState(!isCreateMode);
@@ -78,7 +78,7 @@ export function useTokenEditorLoad({
   useEffect(() => {
     didAutoFocusRef.current = false;
     initialServerSnapshotRef.current = null;
-    passthroughTokenManagerRef.current = null;
+    passthroughTokenWorkshopRef.current = null;
     setPendingDraft(null);
     setError(null);
     setExtensionsJsonError(null);
@@ -86,7 +86,7 @@ export function useTokenEditorLoad({
   }, [
     collectionId,
     isCreateMode,
-    passthroughTokenManagerRef,
+    passthroughTokenWorkshopRef,
     setError,
     setExtensionsJsonError,
     tokenPath,
@@ -100,29 +100,29 @@ export function useTokenEditorLoad({
         const data = await apiFetch<TokenEditorTokenResponse>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/${encodedTokenPath}`, { signal: controller.signal });
         const token = data.token;
         const extensions: TokenEditorServerExtensions = token?.$extensions ?? {};
-        const { managed: tokenManager, passthrough: passthroughTokenManager } = splitTokenManagerExtension(
-          extensions.tokenmanager as TokenEditorTokenManagerExtension | undefined,
+        const { managed: tokenWorkshopExtension, passthrough: passthroughTokenWorkshop } = splitTokenWorkshopExtension(
+          extensions.tokenworkshop as TokenEditorTokenWorkshopExtension | undefined,
         );
-        passthroughTokenManagerRef.current =
-          Object.keys(passthroughTokenManager).length > 0
-            ? passthroughTokenManager
+        passthroughTokenWorkshopRef.current =
+          Object.keys(passthroughTokenWorkshop).length > 0
+            ? passthroughTokenWorkshop
             : null;
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
         setDescription(token?.$description || '');
         const savedScopes = readTokenScopes({ $extensions: extensions });
         setScopes(savedScopes);
-        const savedDerivation = tokenManager.derivation;
+        const savedDerivation = tokenWorkshopExtension.derivation;
         const loadedDerivationOps: DerivationOp[] = savedDerivation && Array.isArray(savedDerivation.ops)
           ? validateDerivationOps(savedDerivation.ops)
           : [];
         setDerivationOps(loadedDerivationOps);
-        const savedModes = tokenManager.modes;
+        const savedModes = tokenWorkshopExtension.modes;
         const loadedModes = readEditorCollectionModeValues(savedModes, collection);
         setModeValues(loadedModes);
-        const loadedLifecycle: TokenEditorLifecycle = normalizeTokenLifecycle(tokenManager.lifecycle);
+        const loadedLifecycle: TokenEditorLifecycle = normalizeTokenLifecycle(tokenWorkshopExtension.lifecycle);
         setLifecycle(loadedLifecycle);
-        const savedExtends = tokenManager.extends;
+        const savedExtends = tokenWorkshopExtension.extends;
         const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';
         setExtendsPath(loadedExtends);
         const otherExt = omitTokenEditorReservedExtensions(extensions);
@@ -183,7 +183,7 @@ export function useTokenEditorLoad({
     setExtendsPath,
     setLifecycle,
     setModeValues,
-    passthroughTokenManagerRef,
+    passthroughTokenWorkshopRef,
     collectionId,
     collection,
     setScopes,

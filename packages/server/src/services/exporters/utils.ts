@@ -6,7 +6,7 @@ import {
   makeReferenceGlobalRegex,
   resolveRefValue,
   stableStringify,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 import type { ExporterContext, FlatToken } from './types.js';
 
 type JsonPrimitive = string | number | boolean | null;
@@ -334,7 +334,7 @@ export async function buildWithStyleDictionary(
  * Walk a merged DTCG token tree and replace formula tokens' $value with
  * a CSS calc() expression. Used for CSS-family platforms (css, scss, less).
  *
- * Example: a token with $value=16 and $extensions.tokenmanager.formula="{spacing.base} * 2"
+ * Example: a token with $value=16 and $extensions.tokenworkshop.formula="{spacing.base} * 2"
  * becomes $value="calc(var(--spacing-base) * 2)".
  */
 export function injectFormulaCalc(obj: JsonObject): JsonObject {
@@ -342,10 +342,10 @@ export function injectFormulaCalc(obj: JsonObject): JsonObject {
   for (const [key, val] of Object.entries(obj)) {
     if (isTokenLeaf(val)) {
       const extensions = isPlainObject(val.$extensions) ? val.$extensions : undefined;
-      const tokenManagerExtensions = extensions && isPlainObject(extensions.tokenmanager)
-        ? extensions.tokenmanager
+      const tokenWorkshopExtensions = extensions && isPlainObject(extensions.tokenworkshop)
+        ? extensions.tokenworkshop
         : undefined;
-      const formula = tokenManagerExtensions?.formula;
+      const formula = tokenWorkshopExtensions?.formula;
       if (typeof formula === 'string') {
         const cssFormula = formula.replace(makeReferenceGlobalRegex(), (_: string, refPath: string) => {
           return `var(--${refPath.replace(/\./g, '-')})`;

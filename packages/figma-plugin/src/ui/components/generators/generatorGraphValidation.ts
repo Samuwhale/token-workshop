@@ -2,13 +2,13 @@ import type {
   TokenGeneratorDocument,
   TokenGeneratorDocumentNode,
   TokenGeneratorPreviewResult,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import {
   checkTokenGeneratorConnection,
   getTokenGeneratorInputPorts,
   validateStepName as validateGeneratorStepName,
   getTokenGeneratorOutputPorts,
-} from "@tokenmanager/core";
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { validateGeneratorTokenPath } from "./generatorValidation";
 

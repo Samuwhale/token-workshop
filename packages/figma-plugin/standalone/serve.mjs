@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Standalone dev server for the TokenManager plugin UI.
+ * Standalone dev server for the TokenWorkshop plugin UI.
  *
  * Serves the built plugin UI outside of Figma so agents (and humans) can:
  *   - See the rendered UI in a browser
@@ -13,7 +13,7 @@
  * The harness intercepts Figma postMessage calls and returns canned responses
  * so the UI can boot without a real Figma context. When no `serverUrl` query
  * param is provided it serves a checked-in API snapshot captured from a live
- * local TokenManager server, so the browser preview is populated out of the box.
+ * local Token Workshop server, so the browser preview is populated out of the box.
  */
 
 import { startHarnessServer } from './harness-server.mjs';
@@ -38,7 +38,7 @@ try {
   console.log(`  Plugin UI (direct):   ${origin}/dist/ui.html`);
   console.log(`\n  The harness mocks Figma postMessage so the UI can boot.`);
   console.log(`  Captured snapshot data is served automatically.`);
-  console.log(`  Add ?serverUrl=http://localhost:9400 to point the UI at a live TokenManager server.\n`);
+  console.log(`  Add ?serverUrl=http://localhost:9400 to point the UI at a live Token Workshop server.\n`);
 } catch (error) {
   console.error(`\n  Failed to start standalone UI harness — ${error instanceof Error ? error.message : 'unknown error'}\n`);
   process.exit(1);

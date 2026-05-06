@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
-import type { TokenCollection } from '@tokenmanager/core';
+import type { TokenCollection } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { computeModeImpacts } from '../shared/tokenImpact';

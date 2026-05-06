@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
-import type { TokenGroup } from '@tokenmanager/core';
+import type { TokenGroup } from '@token-workshop/core';
 import type { CssExportOptions, ExportPlatform, ExportResult, ExportTokensResult } from './exporters/index.js';
 import { EXPORTERS } from './exporters/index.js';
 import { deepMergeInto, resolveGradientStopAliases, injectFormulaCalc, buildFlatValueMap, buildFlatTokenList } from './exporters/utils.js';
@@ -14,7 +14,7 @@ export async function exportTokens(
   cssOptions?: CssExportOptions,
 ): Promise<ExportTokensResult> {
   const isTemp = !outputDir;
-  const tmpDir = outputDir || path.join(os.tmpdir(), `tokenmanager-export-${Date.now()}`);
+  const tmpDir = outputDir || path.join(os.tmpdir(), `token-workshop-export-${Date.now()}`);
   await fs.mkdir(tmpDir, { recursive: true });
 
   try {

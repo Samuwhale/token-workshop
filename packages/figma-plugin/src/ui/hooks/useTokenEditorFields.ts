@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react';
-import type { DerivationOp } from '@tokenmanager/core';
+import type { DerivationOp } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { getInitialCreateValue } from '../components/token-editor/tokenEditorHelpers';
 import { normalizeTokenType } from '../shared/tokenTypeCategories';

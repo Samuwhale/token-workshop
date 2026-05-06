@@ -25,13 +25,13 @@ import {
   readGeneratorProvenance,
   resolveCollectionIdForPath,
   resolveRefValue,
-} from "@tokenmanager/core";
-import type { TokenCollection, TokenType } from "@tokenmanager/core";
+} from "@token-workshop/core";
+import type { TokenCollection, TokenType } from "@token-workshop/core";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
 import { TypePicker } from "./TypePicker";
-import { COMPOSITE_TOKEN_TYPES } from "@tokenmanager/core";
+import { COMPOSITE_TOKEN_TYPES } from "@token-workshop/core";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
 import { DerivationEditor } from "./DerivationEditor";
@@ -155,7 +155,7 @@ function getStoredModeValue(
   }
 
   const collectionModes =
-    entry.$extensions?.tokenmanager?.modes?.[collectionId];
+    entry.$extensions?.tokenworkshop?.modes?.[collectionId];
   if (
     !collectionModes ||
     typeof collectionModes !== "object" ||
@@ -323,7 +323,7 @@ export function TokenDetails({
   const valueEditorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
-  const passthroughTokenManagerRef = useRef<Record<string, unknown> | null>(
+  const passthroughTokenWorkshopRef = useRef<Record<string, unknown> | null>(
     null,
   );
 
@@ -363,7 +363,7 @@ export function TokenDetails({
     setLifecycle,
     setExtendsPath,
     setError,
-    passthroughTokenManagerRef,
+    passthroughTokenWorkshopRef,
     valueEditorContainerRef,
   });
   const { loading, pendingDraft, setPendingDraft, initialServerSnapshotRef } =
@@ -576,7 +576,7 @@ export function TokenDetails({
     extendsPath,
     collections,
     initialServerSnapshotRef,
-    passthroughTokenManagerRef,
+    passthroughTokenWorkshopRef,
     onBack,
     requestClose,
     onSaved,
@@ -710,8 +710,8 @@ export function TokenDetails({
         },
 	      );
 	      setDetachedFromGenerator(true);
-	      if (passthroughTokenManagerRef.current) {
-	        delete passthroughTokenManagerRef.current.generator;
+	      if (passthroughTokenWorkshopRef.current) {
+	        delete passthroughTokenWorkshopRef.current.generator;
 	      }
 	      onRefresh?.();
       setShowDetachGeneratorConfirm(false);
@@ -920,7 +920,7 @@ export function TokenDetails({
         derivationOps,
         modeValues,
         collection: editorCollection,
-        passthroughTokenManager: passthroughTokenManagerRef.current,
+        passthroughTokenWorkshop: passthroughTokenWorkshopRef.current,
         lifecycle,
         extendsPath,
         extensionsJsonText,
@@ -944,7 +944,7 @@ export function TokenDetails({
     collections,
     isCreateMode,
     ownerCollectionId,
-    passthroughTokenManagerRef,
+    passthroughTokenWorkshopRef,
   ]);
 
   const syncComparableValue = useMemo(

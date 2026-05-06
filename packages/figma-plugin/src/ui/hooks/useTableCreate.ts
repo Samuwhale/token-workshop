@@ -348,7 +348,7 @@ export function useTableCreate({
         extensions:
           multiMode
             ? {
-                tokenmanager: {
+                tokenworkshop: {
                   modes: {
                     [effectiveCollectionId]: secondaryModeValues,
                   },

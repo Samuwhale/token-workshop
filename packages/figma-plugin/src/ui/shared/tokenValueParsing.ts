@@ -3,7 +3,7 @@ import {
   type DimensionUnit,
   type DimensionValue,
   type DurationValue,
-} from '@tokenmanager/core';
+} from '@token-workshop/core';
 
 export type DurationUnit = DurationValue['unit'];
 export type UnitTokenValue<TUnit extends string> = { value: number; unit: TUnit };

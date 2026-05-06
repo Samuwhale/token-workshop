@@ -3,7 +3,7 @@ import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
 import type { PromoteRow } from '../components/tokenListTypes';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { colorDeltaE } from '@tokenmanager/core';
+import { colorDeltaE } from '@token-workshop/core';
 import { valuesEqual } from '../components/tokenListHelpers';
 import { ApiError } from '../shared/apiFetch';
 import { createTokenBody, updateToken } from '../shared/tokenMutations';
@@ -47,7 +47,7 @@ export function useTokenPromotion({
     walk(tokens);
 
     const sourcePaths = pathsOverride ?? selectedPaths;
-    const selectedFlat = flat.filter(t => sourcePaths.has(t.path) && !isAlias(t.$value as import('@tokenmanager/core').TokenValue | undefined));
+    const selectedFlat = flat.filter(t => sourcePaths.has(t.path) && !isAlias(t.$value as import('@token-workshop/core').TokenValue | undefined));
     const rows: PromoteRow[] = selectedFlat.map(t => {
       const candidates = Object.entries(allTokensFlat).filter(
         ([candidatePath, entry]) => candidatePath !== t.path && entry.$type === t.$type && !isAlias(entry.$value),

@@ -1,7 +1,7 @@
 import { readTokenCollectionModeValues } from './collections.js';
 import { extractDerivationRefPaths, validateDerivationOps } from './derivation-ops.js';
 import { collectReferencePaths } from './dtcg-types.js';
-import { getTokenManagerExt, type Token } from './types.js';
+import { getTokenWorkshopExt, type Token } from './types.js';
 
 export interface CollectTokenReferencePathsOptions {
   collectionId?: string;
@@ -44,18 +44,18 @@ export function collectTokenReferencePaths(
     }
   }
 
-  const tokenManager = getTokenManagerExt(token);
+  const tokenWorkshopExtension = getTokenWorkshopExt(token);
 
   if (includeExtends) {
-    const extendsPath = tokenManager?.extends?.trim();
+    const extendsPath = tokenWorkshopExtension?.extends?.trim();
     if (extendsPath) {
       refs.add(extendsPath);
     }
   }
 
-  if (includeDerivationRefs && tokenManager?.derivation) {
+  if (includeDerivationRefs && tokenWorkshopExtension?.derivation) {
     try {
-      const ops = validateDerivationOps(tokenManager.derivation.ops);
+      const ops = validateDerivationOps(tokenWorkshopExtension.derivation.ops);
       for (const refPath of extractDerivationRefPaths(ops)) {
         refs.add(refPath);
       }
