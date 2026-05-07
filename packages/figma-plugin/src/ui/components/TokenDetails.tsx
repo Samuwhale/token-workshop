@@ -102,6 +102,7 @@ interface TokenDetailsProps {
   onSaved?: (savedPath: string) => void;
   onRenamed?: (newPath: string) => void;
   collections?: TokenCollection[];
+  collectionDisplayNames?: Record<string, string>;
   onRefresh?: () => void;
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
   availableFonts?: string[];
@@ -216,6 +217,7 @@ export function TokenDetails({
   onRenamed,
   onSaveAndCreateAnother,
   collections = [],
+  collectionDisplayNames,
   onRefresh,
   availableFonts = [],
   fontWeightsByFamily = {},
@@ -1738,6 +1740,18 @@ export function TokenDetails({
         <Section
           title={valueSectionTitle}
           emphasis="primary"
+          actions={
+            fieldEditable && onManageCollectionModes ? (
+              <button
+                type="button"
+                onClick={() => onManageCollectionModes(ownerCollectionId)}
+                className="tm-token-details__text-button"
+              >
+                <Plus size={12} strokeWidth={1.5} aria-hidden />
+                Manage modes
+              </button>
+            ) : undefined
+          }
         >
           <Stack
             gap={3}
@@ -1787,6 +1801,7 @@ export function TokenDetails({
                       pathToCollectionId={pathToCollectionId}
                       collectionIdsByPath={collectionIdsByPath}
                       preferredCollectionId={ownerCollectionId}
+                      collectionDisplayNames={collectionDisplayNames}
                       showModeLabel={showModeLabel}
                       autoFocus={modeIdx === 0 && !isCreateMode && fieldEditable}
                       inheritedValue={inheritedValue}
@@ -1795,7 +1810,9 @@ export function TokenDetails({
                       fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
                       fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
                       modified={isModeModified && !isCreateMode}
-                      onNavigateToToken={(path) => onNavigateToToken?.(path)}
+                      onNavigateToToken={(path, collectionId) =>
+                        onNavigateToToken?.(path, collectionId)
+                      }
                       allowCopyFromPrevious={
                         fieldEditable && modeValue.modes.length > 1 && modeIdx > 0
                       }
@@ -1836,19 +1853,6 @@ export function TokenDetails({
                 })}
               </Stack>
             </div>
-
-            {fieldEditable && onManageCollectionModes ? (
-              <div className="tm-token-details__mode-list-actions">
-                <button
-                  type="button"
-                  onClick={() => onManageCollectionModes(ownerCollectionId)}
-                  className="tm-token-details__text-button"
-                >
-                  <Plus size={12} strokeWidth={1.5} aria-hidden />
-                  Manage collection modes
-                </button>
-              </div>
-            ) : null}
 
             {fieldEditable && valueIsAlias ? (
               <DerivationEditor

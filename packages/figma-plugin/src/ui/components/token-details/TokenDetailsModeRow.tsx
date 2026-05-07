@@ -15,6 +15,7 @@ import {
   buildTypographyPreviewStyle,
   getTypographyPreviewValue,
 } from "../token-editor/tokenEditorHelpers";
+import { getCollectionDisplayName } from "../../shared/libraryCollections";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -30,6 +31,7 @@ export interface TokenDetailsModeRowProps {
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
   preferredCollectionId?: string;
+  collectionDisplayNames?: Record<string, string>;
   showModeLabel?: boolean;
   autoFocus?: boolean;
   inheritedValue?: unknown;
@@ -38,7 +40,7 @@ export interface TokenDetailsModeRowProps {
   fontFamilyRef?: React.RefObject<HTMLInputElement>;
   fontSizeRef?: React.RefObject<HTMLInputElement>;
   modified?: boolean;
-  onNavigateToToken?: (path: string) => void;
+  onNavigateToToken?: (path: string, collectionId?: string) => void;
   allowCopyFromPrevious?: boolean;
   previousModeName?: string;
   onCopyFromPrevious?: () => void;
@@ -50,11 +52,22 @@ function resolveReadOnlyPresentation(
   rawValue: unknown,
   tokenType: string,
   allTokensFlat: Record<string, TokenMapEntry>,
+  pathToCollectionId: Record<string, string>,
+  collectionIdsByPath: Record<string, string[]>,
+  preferredCollectionId?: string,
 ) {
   const aliasTargetPath =
     typeof rawValue === "string" && isAlias(rawValue)
       ? extractAliasPath(rawValue)
       : null;
+  const aliasResolution = aliasTargetPath
+    ? resolveCollectionIdForPath({
+        path: aliasTargetPath,
+        pathToCollectionId,
+        collectionIdsByPath,
+        preferredCollectionId,
+      })
+    : null;
   const resolvedEntry = aliasTargetPath ? allTokensFlat[aliasTargetPath] : null;
   const resolvedType = resolvedEntry?.$type ?? tokenType;
   const resolvedValue = resolvedEntry?.$value ?? rawValue;
@@ -68,6 +81,7 @@ function resolveReadOnlyPresentation(
 
   return {
     aliasTargetPath,
+    aliasTargetCollectionId: aliasResolution?.collectionId,
     resolvedType,
     resolvedValue,
     isUnresolvedAlias,
@@ -88,6 +102,17 @@ function formatCollectionIdList(collectionIds: string[]): string {
   return `${collectionIds.slice(0, -1).join(", ")}, and ${collectionIds.at(-1)}`;
 }
 
+function formatCollectionDisplayNameList(
+  collectionIds: string[],
+  collectionDisplayNames?: Record<string, string>,
+): string {
+  return formatCollectionIdList(
+    collectionIds.map((collectionId) =>
+      getCollectionDisplayName(collectionId, collectionDisplayNames),
+    ),
+  );
+}
+
 export function TokenDetailsModeRow({
   modeName,
   tokenType,
@@ -98,6 +123,7 @@ export function TokenDetailsModeRow({
   pathToCollectionId = {},
   collectionIdsByPath = {},
   preferredCollectionId,
+  collectionDisplayNames,
   showModeLabel = true,
   autoFocus,
   inheritedValue,
@@ -173,8 +199,23 @@ export function TokenDetailsModeRow({
     (allowCopyToAll && onCopyToAll);
 
   const readOnly = useMemo(
-    () => resolveReadOnlyPresentation(value, tokenType, allTokensFlat),
-    [allTokensFlat, tokenType, value],
+    () =>
+      resolveReadOnlyPresentation(
+        value,
+        tokenType,
+        allTokensFlat,
+        pathToCollectionId,
+        collectionIdsByPath,
+        preferredCollectionId,
+      ),
+    [
+      allTokensFlat,
+      collectionIdsByPath,
+      pathToCollectionId,
+      preferredCollectionId,
+      tokenType,
+      value,
+    ],
   );
 
   const handleAliasToggle = () => {
@@ -332,6 +373,7 @@ export function TokenDetailsModeRow({
                   allTokensFlat={allTokensFlat}
                   pathToCollectionId={pathToCollectionId}
                   preferredCollectionId={preferredCollectionId}
+                  collectionDisplayNames={collectionDisplayNames}
                   filterType={tokenType}
                   onSelect={handleAliasSelect}
                   onClose={() => setAutocompleteOpen(false)}
@@ -349,7 +391,7 @@ export function TokenDetailsModeRow({
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  This path exists in {formatCollectionIdList(ambiguousAliasCollectionIds)}. Pick a token path that belongs to one collection.
+                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Use the token in this collection, or choose a path that belongs to one collection.
                 </p>
               ) : null}
             </div>
@@ -395,7 +437,12 @@ export function TokenDetailsModeRow({
                   {onNavigateToToken ? (
                     <button
                       type="button"
-                      onClick={() => onNavigateToToken(readOnly.aliasTargetPath!)}
+                      onClick={() =>
+                        onNavigateToToken(
+                          readOnly.aliasTargetPath!,
+                          readOnly.aliasTargetCollectionId,
+                        )
+                      }
                       className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[color:var(--color-figma-text-accent)] hover:underline"
                       aria-label={`Open referenced token ${readOnly.aliasTargetPath}`}
                       title={`Open ${readOnly.aliasTargetPath}`}

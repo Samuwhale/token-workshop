@@ -2,6 +2,7 @@ import { AlertCircle, AlertTriangle, Check, SlidersHorizontal } from "lucide-rea
 import { StatusRow } from "../../primitives";
 import type { HealthView } from "./types";
 import type { HealthStatus } from "../../hooks/useHealthSignals";
+import type { ValidationIssue } from "../../hooks/useValidationCache";
 import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 
 interface ReviewRow {
@@ -33,8 +34,10 @@ export interface HealthDashboardProps {
   aliasOpportunitiesCount: number;
   duplicateCount: number;
   hiddenCount: number;
+  highestPriorityGeneratorIssue?: ValidationIssue | null;
   onNavigateToView: (view: HealthView) => void;
   onNavigateToGenerators?: () => void;
+  onViewGeneratorIssue?: (issue: ValidationIssue) => void;
 }
 
 function StatusIcon({ status }: { status: HealthStatus }) {
@@ -120,8 +123,10 @@ export function HealthDashboard({
   aliasOpportunitiesCount,
   duplicateCount,
   hiddenCount,
+  highestPriorityGeneratorIssue,
   onNavigateToView,
   onNavigateToGenerators,
+  onViewGeneratorIssue,
 }: HealthDashboardProps) {
   if (!connected) {
     return (
@@ -155,11 +160,19 @@ export function HealthDashboard({
     {
       id: "generators",
       label: "Generator updates",
-      description: "Save, preview, or apply generated outputs.",
+      description:
+        highestPriorityGeneratorIssue?.message ??
+        "Save, preview, or apply generated outputs.",
       count: generatorIssueCount,
       severity: generatorStatus,
-      disabled: !onNavigateToGenerators,
-      onOpen: () => onNavigateToGenerators?.(),
+      disabled: !onNavigateToGenerators && !onViewGeneratorIssue,
+      onOpen: () => {
+        if (highestPriorityGeneratorIssue && onViewGeneratorIssue) {
+          onViewGeneratorIssue(highestPriorityGeneratorIssue);
+          return;
+        }
+        onNavigateToGenerators?.();
+      },
     },
     {
       id: "deprecated",

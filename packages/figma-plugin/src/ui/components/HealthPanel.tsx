@@ -267,6 +267,10 @@ export function HealthPanel({
   const generatorStatus = statusFromIssueSeverities(
     generatorIssues.map((issue) => issue.severity),
   );
+  const highestPriorityGeneratorIssue = [...generatorIssues].sort((a, b) => {
+    const severityRank = { error: 0, warning: 1, info: 2 } as const;
+    return severityRank[a.severity] - severityRank[b.severity];
+  })[0] ?? null;
   const unusedCount = unusedTokens.length;
   const deprecatedCount = deprecatedUsageEntriesForCurrent.length;
   const aliasOpportunitiesCount = aliasOpportunityGroups.length;
@@ -762,6 +766,7 @@ export function HealthPanel({
             aliasOpportunitiesCount={aliasOpportunitiesCount}
             duplicateCount={duplicateCount}
             hiddenCount={suppressedKeysForCurrent.size}
+            highestPriorityGeneratorIssue={highestPriorityGeneratorIssue}
             onNavigateToView={(view) =>
               onScopeChange({
                 ...scope,
@@ -772,6 +777,7 @@ export function HealthPanel({
               })
             }
             onNavigateToGenerators={onNavigateToGenerators}
+            onViewGeneratorIssue={onViewIssueInGenerator}
           />
         );
         break;

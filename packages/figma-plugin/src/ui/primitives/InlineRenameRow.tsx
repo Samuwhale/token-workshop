@@ -1,4 +1,6 @@
+import { Check, X } from "lucide-react";
 import type { KeyboardEvent, MutableRefObject } from "react";
+import { IconButton } from "./IconButton";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -60,21 +62,24 @@ export function InlineRenameRow({
           )}
         />
         <div className="tm-inline-rename-row__actions">
-          <button
-            type="button"
+          <IconButton
+            size="sm"
             onClick={onConfirm}
             disabled={confirmDisabled}
-            className="rounded bg-[var(--color-figma-action-bg)] px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+            title={confirmLabel}
+            aria-label={confirmLabel}
+            className="bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] hover:text-[color:var(--color-figma-text-onbrand)] aria-expanded:bg-[var(--color-figma-action-bg-hover)] aria-expanded:text-[color:var(--color-figma-text-onbrand)]"
           >
-            {confirmLabel}
-          </button>
-          <button
-            type="button"
+            <Check size={12} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+          <IconButton
+            size="sm"
             onClick={onCancel}
-            className="rounded px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            title={cancelLabel}
+            aria-label={cancelLabel}
           >
-            {cancelLabel}
-          </button>
+            <X size={12} strokeWidth={1.8} aria-hidden />
+          </IconButton>
         </div>
       </div>
       {error ? (

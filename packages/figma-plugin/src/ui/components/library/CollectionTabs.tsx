@@ -33,7 +33,7 @@ import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_INLINE_DETAILS_MIN_WIDTH = 860;
+const COLLECTION_INLINE_DETAILS_MIN_WIDTH = 680;
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "Current" },
   { value: "all", label: "All" },

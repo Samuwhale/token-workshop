@@ -187,34 +187,6 @@ export function FilterMenu(
           role="menu"
         >
           <div className="max-h-[420px] overflow-y-auto">
-            {props.hasMultipleCollections ? (
-              <>
-                <MenuLabel>Search in</MenuLabel>
-                <MenuItem
-                  label="This collection"
-                  checked={!props.crossCollectionSearch}
-                  onClick={() =>
-                    runAndClose(() => {
-                      if (props.crossCollectionSearch) {
-                        props.onToggleCrossCollectionSearch();
-                      }
-                    })
-                  }
-                />
-                <MenuItem
-                  label="All collections"
-                  checked={props.crossCollectionSearch}
-                  onClick={() =>
-                    runAndClose(() => {
-                      if (!props.crossCollectionSearch) {
-                        props.onToggleCrossCollectionSearch();
-                      }
-                    })
-                  }
-                />
-                <div className={MENU_SECTION_BORDER} />
-              </>
-            ) : null}
             <MenuLabel>Show</MenuLabel>
             {!props.crossCollectionSearch && props.lintCount > 0 && (
               <MenuItem

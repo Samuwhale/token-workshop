@@ -68,6 +68,11 @@ const RESULT_OPTIONS: SegmentedOption<"grouped" | "flat">[] = [
   { value: "flat", label: "Flat" },
 ];
 
+const SEARCH_SCOPE_OPTIONS: SegmentedOption<"collection" | "all">[] = [
+  { value: "collection", label: "This collection" },
+  { value: "all", label: "All collections" },
+];
+
 const TOOLBAR_BUTTON_CLASS =
   "inline-flex min-h-7 items-center gap-1 rounded px-2 text-secondary font-medium transition-colors";
 
@@ -200,13 +205,18 @@ export function TokenListToolbar({
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
 
   const showSelectionChip = selectedNodeCount > 0 && boundTokenCount > 0;
+  const showSearchScopeToggle =
+    viewMode === "tree" &&
+    hasTokens &&
+    overflowMenuProps?.hasMultipleCollections === true;
   const showResultPresentationToggle =
     viewMode === "tree" &&
     overflowMenuProps?.canToggleSearchResultPresentation === true;
   const hasChipRow =
     viewMode === "tree" &&
     hasTokens &&
-    (showResultPresentationToggle ||
+    (showSearchScopeToggle ||
+      showResultPresentationToggle ||
       showSelectionChip ||
       toolbarStateChips.length > 0);
 
@@ -741,6 +751,30 @@ export function TokenListToolbar({
 
         {hasChipRow ? (
           <div className="tm-responsive-toolbar__chips">
+            {showSearchScopeToggle && overflowMenuProps ? (
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Search
+                </span>
+                <SegmentedControl
+                  value={
+                    overflowMenuProps.crossCollectionSearch
+                      ? "all"
+                      : "collection"
+                  }
+                  options={SEARCH_SCOPE_OPTIONS}
+                  onChange={(value) => {
+                    if (
+                      (value === "all") !==
+                      overflowMenuProps.crossCollectionSearch
+                    ) {
+                      overflowMenuProps.onToggleCrossCollectionSearch();
+                    }
+                  }}
+                  ariaLabel="Search scope"
+                />
+              </div>
+            ) : null}
             {showResultPresentationToggle && overflowMenuProps ? (
               <div className="flex min-w-0 items-center gap-1.5">
                 <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">

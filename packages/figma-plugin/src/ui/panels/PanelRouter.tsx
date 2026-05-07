@@ -130,16 +130,16 @@ function resolveContextualPanelLayout({
   const renderAsOverlay =
     hasContextualPanel &&
     shellWidth !== null &&
-    shellWidth - requestedWidth < LIBRARY_MAIN_PANE_MIN_WIDTH;
+    shellWidth - splitWidth < LIBRARY_MAIN_PANE_MIN_WIDTH;
   const isFullWidthOverlay =
     renderAsOverlay && shellWidth < CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT;
   const overlayWidth =
     shellWidth === null
-      ? requestedWidth
+      ? splitWidth
       : isFullWidthOverlay
         ? shellWidth
         : Math.min(
-            requestedWidth,
+            splitWidth,
             Math.max(CONTEXTUAL_PANEL_MIN_WIDTH, shellWidth - 64),
           );
 
@@ -889,6 +889,7 @@ export function PanelRouter({
         },
         onSaveAndCreateAnother: handleTokenDetailsSaveAndCreateAnother,
         collections,
+        collectionDisplayNames: collectionMap,
         onRefresh: controller.refreshAll,
         pushUndo: controller.pushUndo,
         availableFonts: controller.availableFonts,
@@ -1478,7 +1479,7 @@ export function PanelRouter({
             <>
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
+                className="absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
               />
               <div
                 className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)] ${

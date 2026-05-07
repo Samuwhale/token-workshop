@@ -1514,7 +1514,13 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-collection-toolbar__summary-title {
-    white-space: nowrap;
+    display: -webkit-box;
+    white-space: normal;
+    text-overflow: clip;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .tm-collection-toolbar__summary-meta {
@@ -1536,6 +1542,10 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 420px) {
+  .tm-collection-toolbar__summary-meta {
+    display: none;
+  }
+
   .tm-collection-toolbar__row {
     flex-wrap: wrap;
     align-items: stretch;
@@ -1852,7 +1862,7 @@ button.tm-status-row:not(:disabled):hover {
 .tm-inline-rename-row__actions {
   display: flex;
   flex: 0 0 auto;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
@@ -2253,13 +2263,6 @@ button.tm-status-row:not(:disabled):hover {
   overflow: visible;
   border-radius: 0;
   background: transparent;
-}
-
-.tm-token-details__mode-list-actions {
-  display: flex;
-  min-inline-size: 0;
-  justify-content: flex-start;
-  padding-top: 2px;
 }
 
 .tm-token-details__section {
@@ -3973,6 +3976,14 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-token-mode-row__controls {
     justify-content: flex-end;
     gap: 4px;
+  }
+
+  .tm-token-mode-row__action-button {
+    padding-inline: 5px;
+  }
+
+  .tm-token-mode-row__action-button-label {
+    display: none;
   }
 
   .tm-token-mode-row__body {

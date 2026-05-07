@@ -12,12 +12,14 @@ import {
 } from '../shared/scopedTokenCandidates';
 import { clampListIndex } from '../shared/listNavigation';
 import { formatTokenValuePreview } from '../shared/tokenValuePreview';
+import { getCollectionDisplayName } from '../shared/libraryCollections';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   preferredCollectionId?: string;
+  collectionDisplayNames?: Record<string, string>;
   filterType?: string;
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
   onClose: () => void;
@@ -31,6 +33,7 @@ export function AliasAutocomplete({
   allTokensFlat,
   pathToCollectionId = {},
   preferredCollectionId,
+  collectionDisplayNames,
   filterType,
   onSelect,
   onClose,
@@ -157,12 +160,21 @@ export function AliasAutocomplete({
       if (uniqueIds.length === 0) {
         return "multiple collections";
       }
+      const labels = uniqueIds.map((collectionId) =>
+        getCollectionDisplayName(collectionId, collectionDisplayNames),
+      );
       if (uniqueIds.length <= 3) {
-        return uniqueIds.join(", ");
+        return labels.join(", ");
       }
-      return `${uniqueIds.slice(0, 3).join(", ")} and ${uniqueIds.length - 3} more`;
+      return `${labels.slice(0, 3).join(", ")} and ${uniqueIds.length - 3} more`;
     },
-    [candidates, collectionIdsByPath],
+    [candidates, collectionDisplayNames, collectionIdsByPath],
+  );
+
+  const getCollectionLabel = useCallback(
+    (collectionId: string): string =>
+      getCollectionDisplayName(collectionId, collectionDisplayNames),
+    [collectionDisplayNames],
   );
 
   useEffect(() => {
@@ -214,7 +226,7 @@ export function AliasAutocomplete({
       )}
       {entries.length === 0 && ambiguousEntries.length > 0 ? (
         <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Matching paths exist in more than one collection. Rename one path before using it as an alias.
+          Matching paths exist in more than one collection. Use the matching token in this collection, or rename one path before referencing it across collections.
         </div>
       ) : null}
       {entries.map((candidate, idx) => {
@@ -264,7 +276,7 @@ export function AliasAutocomplete({
               )}
               {candidate.isAmbiguousPath ? (
                 <span className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]">
-                  in {candidate.collectionId}
+                  in {getCollectionLabel(candidate.collectionId)}
                 </span>
               ) : null}
             </div>
