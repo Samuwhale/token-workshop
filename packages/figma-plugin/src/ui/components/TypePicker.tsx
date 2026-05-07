@@ -1,9 +1,6 @@
 import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
-import {
-  TOKEN_TYPE_CATEGORIES,
-  isSupportedTokenType,
-} from '../shared/tokenTypeCategories';
+import { TOKEN_TYPE_CATEGORIES } from '../shared/tokenTypeCategories';
 
 interface TypePickerProps {
   value: string;
@@ -31,8 +28,6 @@ export function TypePicker({
   withChevron = false,
   chevronClassName,
 }: TypePickerProps) {
-  const showLegacyOption = value && !isSupportedTokenType(value);
-
   const select = (
     <select
       value={value}
@@ -44,7 +39,6 @@ export function TypePicker({
       style={style}
     >
       {placeholder ? <option value="">{placeholder}</option> : null}
-      {showLegacyOption && <option value={value}>{value}</option>}
       {TOKEN_TYPE_CATEGORIES.map((category) => (
         <optgroup key={category.group} label={category.group}>
           {category.options.map((option) => (

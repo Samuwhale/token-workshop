@@ -15,6 +15,7 @@ import {
   collectSiblingBindings,
   collectBoundPrefixes,
   classifyBindScore,
+  groupSuggestionsByConfidence,
   CONFIDENCE_LABELS,
   type SuggestionConfidence,
 } from './selectionInspectorUtils';
@@ -103,6 +104,8 @@ function inferPrimaryProperty(
 }
 
 const MAX_CANDIDATES = 15;
+const RECENT_CANDIDATE_LIMIT = 5;
+const EMPTY_TOKEN_MAP: Record<string, TokenMapEntry> = {};
 
 function getCandidatePresentation(candidate: QuickApplyCandidate): {
   colorSwatch: string | null;
@@ -125,6 +128,96 @@ function getCandidatePresentation(candidate: QuickApplyCandidate): {
     return { colorSwatch: null, valueDisplay };
   }
   return { colorSwatch: null, valueDisplay: null };
+}
+
+function buildQuickApplyCandidates({
+  activeProp,
+  currentBinding,
+  query,
+  rootNodes,
+  tokenMap,
+}: {
+  activeProp: BindableProperty;
+  currentBinding: string | null | "mixed";
+  query: string;
+  rootNodes: SelectionNodeInfo[];
+  tokenMap: Record<string, TokenMapEntry>;
+}): { candidates: QuickApplyCandidate[]; totalCount: number } {
+  const compatibleTypes = getCompatibleTokenTypes(activeProp);
+  const currentPropValue = getCurrentValue(rootNodes, activeProp);
+  const siblingBindings = collectSiblingBindings(rootNodes, activeProp);
+  const nodeBoundPrefixes = collectBoundPrefixes(rootNodes);
+
+  const allCandidates = Object.entries(tokenMap)
+    .filter(([, entry]) => compatibleTypes.includes(entry.$type))
+    .filter(([, entry]) => isTokenScopeCompatible(entry, activeProp))
+    .map(([path, entry]) => {
+      const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+      const score = scoreBindCandidate(
+        path,
+        entry,
+        activeProp,
+        currentPropValue,
+        resolved.value,
+        siblingBindings,
+        nodeBoundPrefixes,
+      );
+      const { confidence, reason } = classifyBindScore(
+        score,
+        path,
+        siblingBindings,
+        currentBinding,
+      );
+
+      return {
+        path,
+        entry,
+        score,
+        resolved: resolved.value,
+        confidence,
+        reason,
+      };
+    });
+
+  const filtered = query
+    ? allCandidates
+        .map((candidate) => ({
+          candidate,
+          fuzzy: fuzzyScore(query, candidate.path),
+        }))
+        .filter(({ fuzzy }) => fuzzy >= 0)
+        .sort((a, b) => b.fuzzy - a.fuzzy || b.candidate.score - a.candidate.score)
+        .map(({ candidate }) => candidate)
+    : allCandidates.sort((a, b) => b.score - a.score);
+
+  return {
+    candidates: filtered.slice(0, MAX_CANDIDATES),
+    totalCount: filtered.length,
+  };
+}
+
+function splitRecentCandidates({
+  activeCollectionId,
+  candidates,
+  query,
+}: {
+  activeCollectionId: string;
+  candidates: QuickApplyCandidate[];
+  query: string;
+}): { recentCandidates: QuickApplyCandidate[]; mainCandidates: QuickApplyCandidate[] } {
+  if (query) {
+    return { recentCandidates: [], mainCandidates: candidates };
+  }
+
+  const candidateByPath = new Map(candidates.map((candidate) => [candidate.path, candidate]));
+  const recentCandidates = getRecentTokenPaths({ collectionId: activeCollectionId })
+    .map((path) => candidateByPath.get(path))
+    .filter((candidate): candidate is QuickApplyCandidate => candidate !== undefined)
+    .slice(0, RECENT_CANDIDATE_LIMIT);
+  const recentPaths = new Set(recentCandidates.map((candidate) => candidate.path));
+  const mainCandidates = candidates.filter((candidate) => !recentPaths.has(candidate.path));
+
+  return { recentCandidates, mainCandidates };
 }
 
 function QuickApplyCandidateRow({
@@ -233,7 +326,10 @@ export function QuickApplyPicker({
     }
     return activeCollectionId ? [activeCollectionId, ...ids] : ids;
   }, [activeCollectionId, collectionIds, tokenMapsByCollection]);
-  const tokenMap = tokenMapsByCollection[activeCollectionId] ?? {};
+  const tokenMap = useMemo(
+    () => tokenMapsByCollection[activeCollectionId] ?? EMPTY_TOKEN_MAP,
+    [activeCollectionId, tokenMapsByCollection],
+  );
   const activeCollectionLabel =
     collectionLabels?.[activeCollectionId] || activeCollectionId;
   const collectionHasTokens = Object.keys(tokenMap).length > 0;
@@ -254,60 +350,27 @@ export function QuickApplyPicker({
 
   // Build scored candidates for the active property
   const currentBindingForProp = getBindingForProperty(rootNodes, activeProp);
-  const { candidates, totalCount } = useMemo(() => {
-    const compatTypes = getCompatibleTokenTypes(activeProp);
-    const currentPropValue = getCurrentValue(rootNodes, activeProp);
-    const siblingBindings = collectSiblingBindings(rootNodes, activeProp);
-    const nodeBoundPrefixes = collectBoundPrefixes(rootNodes);
-
-    const typeCompatible = Object.entries(tokenMap)
-      .filter(([, entry]) => compatTypes.includes(entry.$type));
-    const scopeCompatible = typeCompatible
-      .filter(([, entry]) => isTokenScopeCompatible(entry, activeProp));
-
-    const all: QuickApplyCandidate[] = scopeCompatible
-      .map(([path, entry]) => {
-        const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
-        const score = scoreBindCandidate(path, entry, activeProp, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
-        const { confidence, reason } = classifyBindScore(score, path, siblingBindings, currentBindingForProp);
-        return { path, entry, score, resolved: r.value, confidence, reason };
-      });
-
-    // Apply fuzzy filter if query present
-    const filtered = query
-      ? all
-          .map(c => ({ ...c, fuzzy: fuzzyScore(query, c.path) }))
-          .filter(c => c.fuzzy >= 0)
-          .sort((a, b) => b.fuzzy - a.fuzzy || b.score - a.score)
-          .map((candidateWithFuzzy) => ({
-            path: candidateWithFuzzy.path,
-            entry: candidateWithFuzzy.entry,
-            score: candidateWithFuzzy.score,
-            resolved: candidateWithFuzzy.resolved,
-            confidence: candidateWithFuzzy.confidence,
-            reason: candidateWithFuzzy.reason,
-          }))
-      : all.sort((a, b) => b.score - a.score);
-
-    return {
-      candidates: filtered.slice(0, MAX_CANDIDATES),
-      totalCount: filtered.length,
-    };
-  }, [tokenMap, activeProp, rootNodes, query, currentBindingForProp]);
+  const { candidates, totalCount } = useMemo(
+    () =>
+      buildQuickApplyCandidates({
+        activeProp,
+        currentBinding: currentBindingForProp,
+        query,
+        rootNodes,
+        tokenMap,
+      }),
+    [activeProp, currentBindingForProp, query, rootNodes, tokenMap],
+  );
 
   // Recently-used tokens: filter global recents to those present in the current candidate list
-  const { recentCandidates, mainCandidates } = useMemo(() => {
-    if (query) return { recentCandidates: [], mainCandidates: candidates };
-    const recentPaths = getRecentTokenPaths({ collectionId: activeCollectionId });
-    const candidateByPath = new Map(candidates.map(c => [c.path, c]));
-    const recent = recentPaths
-      .map(p => candidateByPath.get(p))
-      .filter((c): c is typeof candidates[0] => c !== undefined)
-      .slice(0, 5);
-    const recentSet = new Set(recent.map(c => c.path));
-    const main = candidates.filter(c => !recentSet.has(c.path));
-    return { recentCandidates: recent, mainCandidates: main };
-  }, [activeCollectionId, candidates, query]);
+  const { recentCandidates, mainCandidates } = useMemo(
+    () => splitRecentCandidates({ activeCollectionId, candidates, query }),
+    [activeCollectionId, candidates, query],
+  );
+  const confidenceGroups = useMemo(
+    () => groupSuggestionsByConfidence(mainCandidates),
+    [mainCandidates],
+  );
 
   const visibleCandidates = useMemo(
     () => [...recentCandidates, ...mainCandidates],
@@ -585,40 +648,53 @@ export function QuickApplyPicker({
               )}
 
               {/* Main candidates — grouped by confidence */}
-              {(() => {
-                let lastConfidence: SuggestionConfidence | null = null;
-                return mainCandidates.map((c, idx) => {
-                  const globalIdx = recentCandidates.length + idx;
-                  const isSelected = globalIdx === activeIdx;
-                  const isCurrent = currentBinding === c.path;
+              {query
+                ? mainCandidates.map((candidate, index) => {
+                    const globalIdx = recentCandidates.length + index;
+                    return (
+                      <QuickApplyCandidateRow
+                        key={candidate.path}
+                        candidate={candidate}
+                        isCurrent={currentBinding === candidate.path}
+                        isSelected={globalIdx === activeIdx}
+                        onHover={() => setActiveIdx(globalIdx)}
+                        onSelect={() => handleSelect(candidate)}
+                      />
+                    );
+                  })
+                : confidenceGroups.map((group, groupIndex) => {
+                    const itemsBeforeGroup = confidenceGroups
+                      .slice(0, groupIndex)
+                      .reduce((count, previousGroup) => count + previousGroup.items.length, 0);
+                    const isFirstGroup = groupIndex === 0 && recentCandidates.length === 0;
 
-                  const showGroupHeader = !query && c.confidence !== lastConfidence;
-                  const isFirstGroup = lastConfidence === null && recentCandidates.length === 0;
-                  if (c.confidence !== lastConfidence) lastConfidence = c.confidence;
-
-                  return (
-                    <div key={c.path}>
-                      {showGroupHeader && (
+                    return (
+                      <div key={group.confidence}>
                         <div className={`text-secondary font-medium px-3 pt-1.5 pb-0.5 ${
                           !isFirstGroup ? 'border-t border-[var(--color-figma-border)]/50 mt-0.5' : ''
                         } ${
-                          c.confidence === 'strong' ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'
+                          group.confidence === 'strong' ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'
                         }`}>
-                          {CONFIDENCE_LABELS[c.confidence]}
+                          {CONFIDENCE_LABELS[group.confidence]}
                         </div>
-                      )}
-                      <QuickApplyCandidateRow
-                        candidate={c}
-                        isCurrent={isCurrent}
-                        isSelected={isSelected}
-                        onHover={() => setActiveIdx(globalIdx)}
-                        onSelect={() => handleSelect(c)}
-                        showReason={!query && c.confidence !== 'weak'}
-                      />
-                    </div>
-                  );
-                });
-              })()}
+                        {group.items.map((candidate, index) => {
+                          const globalIdx =
+                            recentCandidates.length + itemsBeforeGroup + index;
+                          return (
+                            <QuickApplyCandidateRow
+                              key={candidate.path}
+                              candidate={candidate}
+                              isCurrent={currentBinding === candidate.path}
+                              isSelected={globalIdx === activeIdx}
+                              onHover={() => setActiveIdx(globalIdx)}
+                              onSelect={() => handleSelect(candidate)}
+                              showReason={group.confidence !== 'weak'}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
               {totalCount > MAX_CANDIDATES && (
                 <div className="text-secondary text-[color:var(--color-figma-text-secondary)] text-center py-1.5 border-t border-[var(--color-figma-border)]">
                   {totalCount - MAX_CANDIDATES} more — type to refine
