@@ -56,6 +56,41 @@ function getModeValueValidationError(
   return firstError ?? `Invalid value for mode "${modeName}"`;
 }
 
+function getCollectionModeValuesValidationError(params: {
+  collection: TokenCollection | null;
+  collectionId: string;
+  tokenType: string;
+  value: TokenEditorValue;
+  modeValues: TokenEditorModeValues;
+}): string | null {
+  const {
+    collection,
+    collectionId,
+    tokenType,
+    value,
+    modeValues,
+  } = params;
+  if (!collection || collection.modes.length < 2) {
+    return null;
+  }
+
+  const collectionModes = modeValues[collectionId] ?? {};
+  for (let index = 0; index < collection.modes.length; index++) {
+    const modeName = collection.modes[index].name;
+    const modeValue = index === 0 ? value : collectionModes[modeName];
+    const modeValueError = getModeValueValidationError(
+      tokenType,
+      modeName,
+      modeValue,
+    );
+    if (modeValueError) {
+      return modeValueError;
+    }
+  }
+
+  return null;
+}
+
 interface UseTokenEditorSaveParams {
   serverUrl: string;
   collectionId: string;
@@ -117,6 +152,7 @@ export function useTokenEditorSave({
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
   const [saveRetryArgs, setSaveRetryArgs] = useState<[boolean, boolean] | null>(null);
   const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => Promise<boolean>>(async () => false);
+  const saveInFlightRef = useRef(false);
 
   const handleDelete = async () => {
     try {
@@ -128,49 +164,64 @@ export function useTokenEditorSave({
   };
 
   const handleSave = async (forceOverwrite = false, createAnother = false) => {
-    if (beforeSave) {
-      const shouldContinue = await beforeSave(forceOverwrite, createAnother);
-      if (!shouldContinue) {
-        return false;
-      }
-    }
-    if (isCreateMode && !editPath.trim()) {
-      setSaveRetryArgs(null);
-      setError('Token path cannot be empty');
+    if (saveInFlightRef.current) {
       return false;
     }
-    if (collection && collection.modes.length >= 2) {
-      const collectionModes = modeValues[collectionId] ?? {};
-      for (let i = 0; i < collection.modes.length; i++) {
-        const modeName = collection.modes[i].name;
-        const modeValue = i === 0 ? value : collectionModes[modeName];
-        const modeValueError = getModeValueValidationError(
-          tokenType,
-          modeName,
-          modeValue,
-        );
-        if (modeValueError) {
-          setSaveRetryArgs(null);
-          setError(modeValueError);
+    saveInFlightRef.current = true;
+
+    try {
+      if (beforeSave) {
+        try {
+          const shouldContinue = await beforeSave(forceOverwrite, createAnother);
+          if (!shouldContinue) {
+            return false;
+          }
+        } catch (err) {
+          setSaveRetryArgs([forceOverwrite, createAnother]);
+          setError(getErrorMessage(err, 'Save preflight failed'));
           return false;
         }
       }
-    }
-    setSaving(true);
-    setSaveRetryArgs(null);
-    setError(null);
-    try {
+      const targetPath = isCreateMode ? editPath.trim() : tokenPath;
+      if (isCreateMode && !targetPath) {
+        setSaveRetryArgs(null);
+        setError('Token path cannot be empty');
+        return false;
+      }
+      const modeValueError = getCollectionModeValuesValidationError({
+        collection,
+        collectionId,
+        tokenType,
+        value,
+        modeValues,
+      });
+      if (modeValueError) {
+        setSaveRetryArgs(null);
+        setError(modeValueError);
+        return false;
+      }
+
+      setSaving(true);
+      setSaveRetryArgs(null);
+      setError(null);
+
       if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
         try {
           const checkData = await fetchToken<TokenEditorTokenResponse>(serverUrl, collectionId, tokenPath);
           const currentSnapshot = stableStringify(checkData.token ?? null);
           if (currentSnapshot !== initialServerSnapshotRef.current) {
             setShowConflictConfirm(true);
-            setSaving(false);
             return false;
           }
         } catch (err) {
-          console.warn('[TokenEditor] conflict check failed, proceeding with save:', err);
+          setSaveRetryArgs([forceOverwrite, createAnother]);
+          setError(
+            getErrorMessage(
+              err,
+              'Could not verify whether this token changed on the server. Retry before saving.',
+            ),
+          );
+          return false;
         }
       }
 
@@ -195,11 +246,9 @@ export function useTokenEditorSave({
         console.debug('[TokenEditor] invalid extensions JSON:', err);
         setSaveRetryArgs(null);
         setError('Invalid JSON in Extensions — fix before saving');
-        setSaving(false);
         return false;
       }
 
-      const targetPath = isCreateMode ? editPath.trim() : tokenPath;
       if (isCreateMode) {
         await createToken(serverUrl, collectionId, targetPath, body);
       } else {
@@ -256,6 +305,7 @@ export function useTokenEditorSave({
       setSaveRetryArgs([forceOverwrite, createAnother]);
       return false;
     } finally {
+      saveInFlightRef.current = false;
       setSaving(false);
     }
   };
