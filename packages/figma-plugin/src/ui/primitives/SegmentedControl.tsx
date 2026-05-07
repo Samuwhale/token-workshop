@@ -29,7 +29,7 @@ export function SegmentedControl<T extends string>({
         (currentIndex + delta + options.length) % options.length;
       onChange(options[nextIndex].value);
       const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
-        '[role="tab"]',
+        '[role="radio"]',
       );
       buttons[nextIndex]?.focus();
     };
@@ -48,7 +48,7 @@ export function SegmentedControl<T extends string>({
       event.preventDefault();
       onChange(options[0].value);
       const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
-        '[role="tab"]',
+        '[role="radio"]',
       );
       buttons[0]?.focus();
     }
@@ -57,7 +57,7 @@ export function SegmentedControl<T extends string>({
       event.preventDefault();
       onChange(options[options.length - 1].value);
       const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
-        '[role="tab"]',
+        '[role="radio"]',
       );
       buttons[options.length - 1]?.focus();
     }
@@ -66,7 +66,7 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       className="inline-flex max-w-full flex-nowrap items-stretch gap-[2px] overflow-x-auto rounded bg-[var(--color-figma-bg)] p-[2px]"
-      role="tablist"
+      role="radiogroup"
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
     >
@@ -76,8 +76,8 @@ export function SegmentedControl<T extends string>({
           <button
             key={option.value}
             type="button"
-            role="tab"
-            aria-selected={selected}
+            role="radio"
+            aria-checked={selected}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             title={option.label}

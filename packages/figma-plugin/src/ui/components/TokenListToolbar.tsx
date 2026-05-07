@@ -449,7 +449,7 @@ export function TokenListToolbar({
                     role="menu"
                   >
                     <MenuRadioGroup
-                      label="Mode"
+                      label="View as"
                       value={viewMode}
                       options={VIEW_OPTIONS}
                       onChange={(value) => setViewMode(value)}
@@ -576,7 +576,7 @@ export function TokenListToolbar({
                       disabled={!connected}
                       className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
-                      Create several tokens
+                      Create multiple tokens
                     </button>
                     {onCreateGenerator ? (
                       <>

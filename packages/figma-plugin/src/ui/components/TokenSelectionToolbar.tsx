@@ -117,6 +117,8 @@ export function TokenSelectionToolbar({
   const visibleSelectedCount = [...displayedLeafPaths].filter((path) =>
     selectedPaths.has(path),
   ).length;
+  const hasVisibleSelection = visibleSelectedCount > 0;
+  const canToggleVisibleSelection = displayedSelectionCount > 0;
   const hiddenSelectionCount = Math.max(
     0,
     selectedPaths.size - visibleSelectedCount,
@@ -126,7 +128,10 @@ export function TokenSelectionToolbar({
     [...displayedLeafPaths].every((path) => selectedPaths.has(path));
   const partiallySelected =
     selectedPaths.size > 0 && !allDisplayedSelected;
-  const selectionSummary = `${visibleSelectedCount} of ${displayedSelectionCount} visible selected`;
+  const selectionSummary =
+    displayedSelectionCount === 0
+      ? "No visible tokens"
+      : `${visibleSelectedCount} of ${displayedSelectionCount} visible selected`;
 
   const openAction = useCallback(
     (action: BatchActionType, close: () => void) => {
@@ -143,12 +148,17 @@ export function TokenSelectionToolbar({
           <div className="tm-responsive-toolbar__leading">
             <label
               className={`tm-selection-toolbar__selection-toggle ${
-                hasSelection ? 'tm-selection-toolbar__selection-toggle--active' : ''
+                hasVisibleSelection ? 'tm-selection-toolbar__selection-toggle--active' : ''
+              } ${
+                canToggleVisibleSelection
+                  ? ''
+                  : 'tm-selection-toolbar__selection-toggle--disabled'
               }`}
             >
               <input
                 type="checkbox"
                 checked={allDisplayedSelected}
+                disabled={!canToggleVisibleSelection}
                 ref={(el) => {
                   if (el) {
                     el.indeterminate = partiallySelected;
@@ -185,135 +195,131 @@ export function TokenSelectionToolbar({
             ) : null}
           </div>
           <div className="tm-responsive-toolbar__actions">
-            <Button
-              onClick={onClearSelection}
-              variant="ghost"
-              size="sm"
-              className="justify-start"
-            >
-              <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                <path d="M2 2l6 6M8 2l-6 6" />
-              </svg>
-              <span className="tm-toolbar-action__label">Clear</span>
-            </Button>
+            {hasSelection ? (
+              <Button
+                onClick={onClearSelection}
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+              >
+                <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M2 2l6 6M8 2l-6 6" />
+                </svg>
+                <span className="tm-toolbar-action__label">Clear</span>
+              </Button>
+            ) : null}
           </div>
         </div>
 
-        <div className="tm-responsive-toolbar__row">
-          <div className="tm-responsive-toolbar__actions tm-selection-toolbar__bulk-actions">
-          {hasSelection && (
-            <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
-              {(close) => (
-                <>
-                  <button type="button" role="menuitem" onClick={() => openAction('set-description', close)} className={menuItemClass}>
-                    Set description
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => openAction('change-type', close)} className={menuItemClass}>
-                    Change type
-                  </button>
-                  <div className={menuSeparator} />
-                  {hasColors && (
-                    <button type="button" role="menuitem" onClick={() => openAction('adjust-colors', close)} className={menuItemClass}>
-                      Adjust colors
+        {hasSelection ? (
+          <div className="tm-responsive-toolbar__row">
+            <div className="tm-responsive-toolbar__actions tm-selection-toolbar__bulk-actions">
+              <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
+                {(close) => (
+                  <>
+                    <button type="button" role="menuitem" onClick={() => openAction('set-description', close)} className={menuItemClass}>
+                      Set description
                     </button>
-                  )}
-                  {hasNumeric && (
-                    <button type="button" role="menuitem" onClick={() => openAction('scale-numbers', close)} className={menuItemClass}>
-                      Scale numbers
+                    <button type="button" role="menuitem" onClick={() => openAction('change-type', close)} className={menuItemClass}>
+                      Change type
                     </button>
-                  )}
-                  <button type="button" role="menuitem" onClick={() => openAction('set-value', close)} className={menuItemClass}>
-                    Set value
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => openAction('set-alias', close)} className={menuItemClass}>
-                    Set alias
-                  </button>
-                  <div className={menuSeparator} />
-                  <button type="button" role="menuitem" onClick={() => openAction('find-replace', close)} className={menuItemClass}>
-                    Find & replace
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => openAction('rewrite-aliases', close)} className={menuItemClass}>
-                    Rewrite aliases
-                  </button>
-                  <div className={menuSeparator} />
-                  {hasScopableTypes && (
-                    <button type="button" role="menuitem" onClick={() => openAction('figma-scopes', close)} className={menuItemClass}>
-                      Can apply to
+                    <div className={menuSeparator} />
+                    {hasColors && (
+                      <button type="button" role="menuitem" onClick={() => openAction('adjust-colors', close)} className={menuItemClass}>
+                        Adjust colors
+                      </button>
+                    )}
+                    {hasNumeric && (
+                      <button type="button" role="menuitem" onClick={() => openAction('scale-numbers', close)} className={menuItemClass}>
+                        Scale numbers
+                      </button>
+                    )}
+                    <button type="button" role="menuitem" onClick={() => openAction('set-value', close)} className={menuItemClass}>
+                      Set value
                     </button>
-                  )}
-                  <button type="button" role="menuitem" onClick={() => openAction('set-extensions', close)} className={menuItemClass}>
-                    Set extensions
-                  </button>
-                  {onCompare && (
-                    <>
-                      <div className={menuSeparator} />
-                      <button type="button" role="menuitem" onClick={() => { close(); onCompare(); }} className={menuItemClass}>
-                        Compare {selectedPaths.size}
+                    <button type="button" role="menuitem" onClick={() => openAction('set-alias', close)} className={menuItemClass}>
+                      Set alias
+                    </button>
+                    <div className={menuSeparator} />
+                    <button type="button" role="menuitem" onClick={() => openAction('find-replace', close)} className={menuItemClass}>
+                      Find & replace
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => openAction('rewrite-aliases', close)} className={menuItemClass}>
+                      Rewrite aliases
+                    </button>
+                    <div className={menuSeparator} />
+                    {hasScopableTypes && (
+                      <button type="button" role="menuitem" onClick={() => openAction('figma-scopes', close)} className={menuItemClass}>
+                        Can apply to
                       </button>
-                    </>
-                  )}
-                </>
-              )}
-            </ToolbarDropdown>
-          )}
+                    )}
+                    <button type="button" role="menuitem" onClick={() => openAction('set-extensions', close)} className={menuItemClass}>
+                      Set extensions
+                    </button>
+                    {onCompare && (
+                      <>
+                        <div className={menuSeparator} />
+                        <button type="button" role="menuitem" onClick={() => { close(); onCompare(); }} className={menuItemClass}>
+                          Compare {selectedPaths.size}
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
+              </ToolbarDropdown>
 
-          {hasSelection && (
-            <ToolbarDropdown label="Copy" disabled={!!operationLoading}>
-              {(close) => (
-                <>
-                  <button type="button" role="menuitem" onClick={() => { close(); onCopyJson(); }} className={menuItemClass}>
-                    <span aria-live="polite">{copyFeedback ? 'Copied!' : 'JSON'}</span>
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { close(); onCopyCssVar(); }} className={menuItemClass}>
-                    <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'CSS variables'}</span>
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { close(); onCopyDtcgRef(); }} className={menuItemClass}>
-                    <span aria-live="polite" className="font-mono">{copyAliasFeedback ? 'Copied!' : '{alias}'}</span>
-                  </button>
-                </>
-              )}
-            </ToolbarDropdown>
-          )}
+              <ToolbarDropdown label="Copy" disabled={!!operationLoading}>
+                {(close) => (
+                  <>
+                    <button type="button" role="menuitem" onClick={() => { close(); onCopyJson(); }} className={menuItemClass}>
+                      <span aria-live="polite">{copyFeedback ? 'Copied!' : 'JSON'}</span>
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { close(); onCopyCssVar(); }} className={menuItemClass}>
+                      <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'CSS variables'}</span>
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { close(); onCopyDtcgRef(); }} className={menuItemClass}>
+                      <span aria-live="polite" className="font-mono">{copyAliasFeedback ? 'Copied!' : '{alias}'}</span>
+                    </button>
+                  </>
+                )}
+              </ToolbarDropdown>
 
-          {hasSelection && (
-            <ToolbarDropdown label="Move" disabled={!!operationLoading}>
-              {(close) => (
-                <>
-                  <button type="button" role="menuitem" onClick={() => { close(); onMoveToGroup(); }} className={menuItemClass}>
-                    Move to group…
-                  </button>
-                  {collectionIds.length > 1 && (
-                    <>
-                      <button type="button" role="menuitem" onClick={() => { close(); onMoveToCollection(); }} className={menuItemClass}>
-                        Move to collection…
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => { close(); onCopyToCollection(); }} className={menuItemClass}>
-                        Copy to collection…
-                      </button>
-                    </>
-                  )}
-                  <div className={menuSeparator} />
-                  <button type="button" role="menuitem" onClick={() => { close(); onLinkToTokens(); }} className={menuItemClass}>
-                    Promote to alias
-                  </button>
-                </>
-              )}
-            </ToolbarDropdown>
-          )}
+              <ToolbarDropdown label="Move" disabled={!!operationLoading}>
+                {(close) => (
+                  <>
+                    <button type="button" role="menuitem" onClick={() => { close(); onMoveToGroup(); }} className={menuItemClass}>
+                      Move to group…
+                    </button>
+                    {collectionIds.length > 1 && (
+                      <>
+                        <button type="button" role="menuitem" onClick={() => { close(); onMoveToCollection(); }} className={menuItemClass}>
+                          Move to collection…
+                        </button>
+                        <button type="button" role="menuitem" onClick={() => { close(); onCopyToCollection(); }} className={menuItemClass}>
+                          Copy to collection…
+                        </button>
+                      </>
+                    )}
+                    <div className={menuSeparator} />
+                    <button type="button" role="menuitem" onClick={() => { close(); onLinkToTokens(); }} className={menuItemClass}>
+                      Promote to alias
+                    </button>
+                  </>
+                )}
+              </ToolbarDropdown>
 
-          {hasSelection && (
-            <Button
-              onClick={onRequestBulkDelete}
-              disabled={!!operationLoading}
-              variant="ghost"
-              size="sm"
-              className="tm-selection-toolbar__action-button justify-start text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
-            >
-              Delete
-            </Button>
-          )}
+              <Button
+                onClick={onRequestBulkDelete}
+                disabled={!!operationLoading}
+                variant="ghost"
+                size="sm"
+                className="tm-selection-toolbar__action-button justify-start text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
+              >
+                Delete
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );

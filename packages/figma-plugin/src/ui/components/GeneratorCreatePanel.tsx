@@ -646,8 +646,8 @@ export function GeneratorCreatePanel({
 
             {templateSelection === "blank" ? (
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                The generator will open with no nodes. Add the source, transform,
-                and output nodes there.
+                The generator will open with no nodes. Add source, transform,
+                and output nodes in the view you choose.
               </p>
             ) : (
               <div className="space-y-3">

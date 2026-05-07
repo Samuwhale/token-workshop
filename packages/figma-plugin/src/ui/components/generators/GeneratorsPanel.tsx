@@ -4395,6 +4395,12 @@ function GeneratorOverviewPanel({
             value={generator.name}
             onChange={onRename}
           />
+          {generator.nodes.length > 0 ? (
+            <Button type="button" size="sm" variant="secondary" onClick={onAddNode}>
+              <Plus size={14} />
+              Add node in Graph
+            </Button>
+          ) : null}
           {generator.nodes.length === 0 ? (
             <div className="space-y-2 py-1">
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
@@ -5293,7 +5299,7 @@ function NodeInspector({
             >
               {collections.map((collection) => (
                 <option key={collection.id} value={collection.id}>
-                  {collection.id}
+                  {readCollectionLabel(collection)}
                 </option>
               ))}
             </select>

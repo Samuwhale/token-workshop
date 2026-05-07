@@ -78,6 +78,14 @@ interface SelectionInspectorProps {
 
 const PROP_FILTER_MODES = ["bound", "unbound", "colors", "dimensions"] as const;
 
+function formatFigmaNodeType(type: string): string {
+  return type
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export function SelectionInspector({
   selectedNodes,
   selectionLoading,
@@ -645,7 +653,7 @@ export function SelectionInspector({
   const headerLabel = !hasSelection
     ? "Select a layer to inspect"
     : rootNodes.length === 1
-      ? `${rootNodes[0].name} (${rootNodes[0].type})`
+      ? `${rootNodes[0].name} · ${formatFigmaNodeType(rootNodes[0].type)}`
       : `${rootNodes.length} layers selected`;
 
   const handleSelectLayer = useCallback((nodeId: string) => {
@@ -847,6 +855,15 @@ export function SelectionInspector({
           )}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+          {connected && currentCollectionId && unboundWithValueCount > 0 && !extractOpen ? (
+            <button
+              onClick={openExtract}
+              className="min-h-7 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)]"
+              title="Create tokens from unbound values on the current selection"
+            >
+              Extract tokens
+            </button>
+          ) : null}
           <SelectionSyncStatusPill
             syncing={syncing}
             syncProgress={syncProgress}
@@ -863,7 +880,7 @@ export function SelectionInspector({
               className="min-h-7 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
               title="Update bound values on the current selection"
             >
-              Update selection
+              Update selection bindings
             </button>
           )}
           {(connected || totalBindings > 0) && (
@@ -895,7 +912,7 @@ export function SelectionInspector({
                 className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
                 title="Update bound values on every page layer"
               >
-                Update page
+                Update all page bindings
               </button>
             )}
             {totalBindings > 0 && (
@@ -921,7 +938,7 @@ export function SelectionInspector({
             value={propFilter}
             onChange={(e) => setPropFilter(e.target.value)}
             onClear={propFilter ? () => setPropFilter("") : undefined}
-            placeholder="Filter properties..."
+            placeholder="Filter properties"
             aria-label="Filter properties"
           />
         </div>
@@ -946,7 +963,7 @@ export function SelectionInspector({
           }`}
           title={deepInspect ? "Hide nested layers" : "Show nested layers"}
         >
-          Children
+          Nested layers
         </button>
       </div>
 
@@ -1149,7 +1166,7 @@ export function SelectionInspector({
             {connected &&
             currentCollectionId &&
             !extractOpen &&
-            (unboundWithValueCount > 0 || suggestions.length > 0) ? (
+            suggestions.length > 0 ? (
               <div className="flex flex-wrap items-center justify-end gap-1 border-t border-[var(--color-figma-border)] px-3 py-1.5">
                 {suggestions.length > 0 && !showSuggestionsPane ? (
                   <button
@@ -1157,14 +1174,6 @@ export function SelectionInspector({
                     className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                   >
                     Suggested matches
-                  </button>
-                ) : null}
-                {unboundWithValueCount > 0 ? (
-                  <button
-                    onClick={openExtract}
-                    className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
-                  >
-                    Extract {unboundWithValueCount} unbound
                   </button>
                 ) : null}
               </div>

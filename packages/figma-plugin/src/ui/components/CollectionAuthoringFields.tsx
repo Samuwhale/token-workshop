@@ -166,7 +166,7 @@ export function CollectionAuthoringFields({
           {draft.modeNames.map((modeName, index) => (
             <label key={index} className="flex flex-col gap-1">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {`Mode ${index + 1}`}
+                Mode name
               </span>
               <div className="flex items-center gap-2">
                 <input

@@ -32,6 +32,8 @@ import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
+const COLLECTION_MENU_ITEM_CLASS =
+  "flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]";
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "Current" },
   { value: "all", label: "All" },
@@ -165,7 +167,23 @@ export function CollectionTabs({
     scopeValue !== "all";
   const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
-  const showOverflowMenu = showCreateButton || showImportButton;
+  const primaryAction =
+    showCreateButton
+      ? {
+          icon: <Plus size={12} strokeWidth={1.5} aria-hidden />,
+          label: "New collection",
+          title: "Create a collection",
+          onClick: () => onOpenCreateCollection?.(),
+        }
+      : showImportButton
+        ? {
+            icon: <Upload size={12} strokeWidth={1.5} aria-hidden />,
+            label: "Import",
+            title: "Import into library",
+            onClick: () => onOpenImport?.(),
+          }
+        : null;
+  const showOverflowMenu = showCreateButton && showImportButton;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
@@ -443,6 +461,21 @@ export function CollectionTabs({
                 </span>
               </Button>
             ) : null}
+            {primaryAction ? (
+              <Button
+                onClick={primaryAction.onClick}
+                aria-label={primaryAction.title}
+                title={primaryAction.title}
+                variant="secondary"
+                size="sm"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start`}
+              >
+                {primaryAction.icon}
+                <span className="tm-toolbar-action__label">
+                  {primaryAction.label}
+                </span>
+              </Button>
+            ) : null}
             {showOverflowMenu ? (
               <div className="relative">
                 <Button
@@ -466,20 +499,6 @@ export function CollectionTabs({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    {showCreateButton ? (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          onOpenCreateCollection?.();
-                          actionsMenu.close({ restoreFocus: false });
-                        }}
-                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                      >
-                        <Plus size={12} strokeWidth={1.5} aria-hidden />
-                        New collection
-                      </button>
-                    ) : null}
                     {showImportButton ? (
                       <button
                         type="button"
@@ -488,7 +507,7 @@ export function CollectionTabs({
                           onOpenImport?.();
                           actionsMenu.close({ restoreFocus: false });
                         }}
-                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                        className={COLLECTION_MENU_ITEM_CLASS}
                       >
                         <Upload size={12} strokeWidth={1.5} aria-hidden />
                         Import into library

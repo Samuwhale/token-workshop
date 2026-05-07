@@ -1677,6 +1677,16 @@ button.tm-status-row:not(:disabled):hover {
   color: var(--color-figma-text);
 }
 
+.tm-selection-toolbar__selection-toggle--disabled {
+  cursor: default;
+  color: var(--color-figma-text-tertiary);
+}
+
+.tm-selection-toolbar__selection-toggle--disabled:hover {
+  background: transparent;
+  color: var(--color-figma-text-tertiary);
+}
+
 .tm-selection-toolbar__selection-count {
   min-inline-size: 0;
 }

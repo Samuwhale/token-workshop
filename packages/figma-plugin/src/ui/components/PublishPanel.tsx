@@ -761,7 +761,7 @@ export function PublishPanel({
     (preflightStage === 'advisory' || preflightStage === 'ready');
   const canProceedToSync = canProceedToCompare && !standardRoutingDirty;
   const compareLockedMessage = !readinessChecks.length
-    ? 'Check Figma changes to run readiness checks first.'
+    ? 'Compare with Figma to run readiness checks first.'
     : standardRoutingDirty
       ? 'Save the sync target before comparing or applying changes.'
     : isReadinessOutdated
@@ -1166,7 +1166,7 @@ export function PublishPanel({
           {/* ── Publish target ──────────────────────────────────────── */}
           <div ref={targetRef} className="flex flex-col gap-2">
             <div className="flex flex-wrap items-start gap-1.5">
-              <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Target</span>
+              <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Figma target</span>
               <span className="min-w-0 flex-[1_1_220px] text-secondary font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]">
                 {resolvedCollectionName} / {resolvedModeName}
               </span>
@@ -1176,9 +1176,16 @@ export function PublishPanel({
                 className="rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
                 aria-expanded={standardRoutingExpanded}
               >
-                {standardRoutingExpanded ? 'Hide target settings' : 'Change target'}
+                {standardRoutingExpanded ? 'Hide Figma target' : 'Change Figma target'}
               </button>
             </div>
+            <CheckboxRow
+              checked={createStylesPref}
+              onChange={setCreateStylesPref}
+              title="Also create Figma styles"
+              description="Variables are always updated. Enable styles for colors, typography, shadows, and gradients that designers should find in Figma style pickers."
+              className="px-0"
+            />
             {standardRoutingExpanded && (
               <div className="flex flex-col gap-3 px-1 py-2">
                 <StandardPublishRoutingCard
@@ -1192,13 +1199,6 @@ export function PublishPanel({
                   onFieldChange={updateStandardRoutingDraft}
                   onReset={resetStandardRoutingDraft}
                   onSave={() => void saveStandardRouting()}
-                />
-                <CheckboxRow
-                  checked={createStylesPref}
-                  onChange={setCreateStylesPref}
-                  title="Create Figma styles for applicable tokens"
-                  description="Colors, typography, shadows, and gradients appear in the Figma style picker. Turn off for a variables-only workflow."
-                  className="px-0"
                 />
               </div>
             )}
@@ -1223,7 +1223,7 @@ export function PublishPanel({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-success)] shrink-0">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
-              <span className="text-body text-[color:var(--color-figma-text)]">Everything in sync</span>
+              <span className="text-body text-[color:var(--color-figma-text)]">Figma is up to date</span>
               {(varSync.snapshot || styleSync.snapshot) && (
                 <button
                   onClick={varSync.snapshot ? varSync.revert : styleSync.revert}
@@ -1240,10 +1240,10 @@ export function PublishPanel({
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-body font-medium text-[color:var(--color-figma-text)]">
-                  Check Figma changes
+                  Compare with Figma
                 </span>
                 <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Compare this collection before Token Workshop writes variables or styles.
+                  Review what will change before Token Workshop writes variables or styles.
                 </span>
               </div>
               <button
@@ -1269,7 +1269,7 @@ export function PublishPanel({
                   ? 'Save target'
                   : canProceedToSync
                     ? 'Review changes'
-                    : 'Check Figma changes'}
+                    : 'Compare with Figma'}
               </button>
             </div>
           )}
@@ -1854,7 +1854,7 @@ function PublishAllPreviewModal({
                 ].filter(Boolean).join(' · ')}
               </p>
               <p className="text-secondary text-[color:var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
-                Target: <span className="font-medium text-[color:var(--color-figma-text)]">{publishTargetLabel}</span>
+                Figma target: <span className="font-medium text-[color:var(--color-figma-text)]">{publishTargetLabel}</span>
               </p>
             </div>
           )}
@@ -1864,7 +1864,7 @@ function PublishAllPreviewModal({
           {/* All in sync — shown when auto-compare found no pending changes */}
           {!hasAnyChanges && (
             <div className="py-3 text-secondary text-[color:var(--color-figma-text-secondary)] text-center">
-              Everything in sync.
+              Figma is up to date.
             </div>
           )}
 
