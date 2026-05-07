@@ -4,9 +4,9 @@ import { parseInlineValue, generateNameSuggestions } from '../components/tokenLi
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { ApiError } from '../shared/apiFetch';
+import { apiFetch } from '../shared/apiFetch';
 import { STORAGE_KEY_BUILDERS, ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
 import {
-  createToken,
   createTokenValueBody,
   deleteToken,
 } from '../shared/tokenMutations';
@@ -38,6 +38,18 @@ function getDraftStorageKey(collectionId: string): string {
 interface TableDraft {
   group: string;
   rows: TableRow[];
+}
+
+interface PreparedTableCreateToken {
+  path: string;
+  body: ReturnType<typeof createTokenValueBody>;
+}
+
+interface BatchCreateResponse {
+  imported: number;
+  skipped: number;
+  changedPaths?: string[];
+  operationId?: string;
 }
 
 function normalizeDraftRow(row: unknown): TableRow | null {
@@ -273,6 +285,11 @@ export function useTableCreate({
       const pathError = validateTokenPath(path);
       if (pathError) { errors[row.id] = pathError; continue; }
       if (seenPaths.has(path)) { errors[row.id] = `Duplicate name "${n}"`; continue; }
+      const existingSiblings = siblingOrderMap.get(g) ?? [];
+      if (existingSiblings.includes(n)) {
+        errors[row.id] = `A token named "${n}" already exists in this group`;
+        continue;
+      }
       if (multiMode) {
         const missingModeName = modeNames.find((modeName) => {
           const hasModeValue = Object.prototype.hasOwnProperty.call(
@@ -297,28 +314,23 @@ export function useTableCreate({
       return;
     }
 
-    setBusy(true);
-    setCreateAllError('');
+    const preparedTokens: PreparedTableCreateToken[] = [];
+    const parseErrors: Record<string, string> = {};
     const effectiveCollectionId = collectionId || 'default';
-    const created: Array<{ path: string; tokenPath: string; body: ReturnType<typeof createTokenValueBody> }> = [];
-
-    let batchAborted = false;
 
     for (const row of rowsToCreate) {
       const g = tableGroup.trim();
       const n = row.name.trim();
       const path = g ? `${g}.${n}` : n;
       const primaryModeName = modeNames[0];
-      const primaryRawValue =
-        row.modeValues[primaryModeName] ?? "";
+      const primaryRawValue = row.modeValues[primaryModeName] ?? "";
       const parsedValue = primaryRawValue.trim()
         ? parseInlineValue(row.type, primaryRawValue.trim())
         : getDefaultValue(row.type);
 
       if (parsedValue === null) {
-        setRowErrors(prev => ({ ...prev, [row.id]: `Invalid ${primaryModeName} value for type` }));
-        batchAborted = true;
-        break;
+        parseErrors[row.id] = `Invalid ${primaryModeName} value for type`;
+        continue;
       }
 
       const secondaryModeValues: Record<string, unknown> = {};
@@ -334,83 +346,114 @@ export function useTableCreate({
           ? parseInlineValue(row.type, rawModeValue.trim())
           : getDefaultValue(row.type);
         if (parsedModeValue === null) {
-          setRowErrors(prev => ({ ...prev, [row.id]: `Invalid ${modeName} value for type` }));
-          batchAborted = true;
+          parseErrors[row.id] = `Invalid ${modeName} value for type`;
           break;
         }
         secondaryModeValues[modeName] = parsedModeValue;
       }
-      if (batchAborted) break;
+      if (parseErrors[row.id]) continue;
 
-      const body = createTokenValueBody({
-        type: row.type,
-        value: parsedValue,
-        extensions:
-          multiMode
-            ? {
-                tokenworkshop: {
-                  modes: {
-                    [effectiveCollectionId]: secondaryModeValues,
+      preparedTokens.push({
+        path,
+        body: createTokenValueBody({
+          type: row.type,
+          value: parsedValue,
+          extensions:
+            multiMode
+              ? {
+                  tokenworkshop: {
+                    modes: {
+                      [effectiveCollectionId]: secondaryModeValues,
+                    },
                   },
-                },
-              }
-            : undefined,
+                }
+              : undefined,
+        }),
       });
-
-      try {
-        await createToken(serverUrl, effectiveCollectionId, path, body);
-        created.push({ path, tokenPath: path, body });
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setRowErrors(prev => ({ ...prev, [row.id]: err.message || `Failed (${err.status})` }));
-        } else {
-          setCreateAllError('Network error — could not create tokens');
-        }
-        batchAborted = true;
-        break;
-      }
     }
 
-    // Always refresh and register undo for any tokens that were created,
-    // even if the batch was aborted mid-way through.
-    if (created.length > 0) {
+    if (Object.keys(parseErrors).length > 0) {
+      setRowErrors(parseErrors);
+      setCreateAllError('No tokens were created. Fix the highlighted values first.');
+      return;
+    }
+
+    setBusy(true);
+    setCreateAllError('');
+
+    try {
+      const result = await apiFetch<BatchCreateResponse>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(effectiveCollectionId)}/batch`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            strategy: 'skip',
+            tokens: preparedTokens.map((token) => ({
+              path: token.path,
+              ...token.body,
+            })),
+          }),
+        },
+      );
+      const changedPaths = new Set(result.changedPaths ?? preparedTokens.map((token) => token.path));
+      const created = preparedTokens.filter((token) => changedPaths.has(token.path));
       onRefresh();
       for (const c of created) {
         onTokenCreated?.(c.path);
         onRecordTouch(c.path);
       }
 
-      if (onPushUndo) {
+      if (onPushUndo && created.length > 0) {
         const capturedUrl = serverUrl;
         const capturedCollectionId = effectiveCollectionId;
+        const operationId = result.operationId;
         onPushUndo({
           description: `Create ${created.length} token${created.length > 1 ? 's' : ''}`,
           restore: async () => {
-            for (const c of created) {
-              await deleteToken(capturedUrl, capturedCollectionId, c.tokenPath);
+            if (operationId) {
+              await apiFetch(`${capturedUrl}/api/operations/${encodeURIComponent(operationId)}/rollback`, { method: 'POST' });
+            } else {
+              for (const c of created) {
+                await deleteToken(capturedUrl, capturedCollectionId, c.path);
+              }
             }
             onRefresh();
           },
           redo: async () => {
-            for (const c of created) {
-              await createToken(capturedUrl, capturedCollectionId, c.tokenPath, c.body);
-            }
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/batch`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                strategy: 'skip',
+                tokens: preparedTokens.map((token) => ({
+                  path: token.path,
+                  ...token.body,
+                })),
+              }),
+            });
             onRefresh();
           },
         });
       }
-    }
-
-    if (batchAborted) {
-      if (created.length > 0) {
-        setCreateAllError(`Created ${created.length} token${created.length > 1 ? 's' : ''} before error — use undo to revert`);
+      if (result.skipped > 0) {
+        setCreateAllError(
+          `Created ${result.imported} token${result.imported === 1 ? '' : 's'}; ${result.skipped} already existed and were left unchanged.`,
+        );
+        setBusy(false);
+        return;
+      }
+      resetTableCreate();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setCreateAllError(err.message || `Failed (${err.status})`);
+      } else {
+        setCreateAllError('Network error — could not create tokens');
       }
       setBusy(false);
       return;
     }
-
-    resetTableCreate();
-  }, [connected, busy, tableRows, tableGroup, collectionId, collectionModeNames, serverUrl, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, resetTableCreate]);
+  }, [connected, busy, tableRows, tableGroup, collectionId, collectionModeNames, siblingOrderMap, serverUrl, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, resetTableCreate]);
 
   // Smart suggestions for the table create group
   const tableSuggestions = useMemo(() => {

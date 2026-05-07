@@ -182,7 +182,7 @@ export function HistoryPanel({
                   className="px-1.5 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
                   title="Save a workspace-wide checkpoint"
                 >
-                  Save workspace checkpoint
+                  Save checkpoint
                 </Button>
               ) : null}
             </div>

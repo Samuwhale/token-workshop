@@ -192,6 +192,27 @@ function getResolverCollectionName(mapping: ResolverPublishSyncMapping): string 
   return mapping.collectionName?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME;
 }
 
+function getPublishCollectionName(
+  currentCollectionId: string,
+  collectionMap: Record<string, string>,
+): string {
+  return collectionMap[currentCollectionId]?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME;
+}
+
+function buildCollectionOrphanCleanupPlan(
+  rows: VariableSyncSnapshot['rows'],
+  collectionName: string,
+): ResolverOrphanCleanupPlan {
+  const targets = getSyncRowsByCategory(rows).figmaOnly.map<OrphanVariableDeleteTarget>((row) => ({
+    path: row.path,
+    collectionName,
+  }));
+  return {
+    targets,
+    orphanPaths: targets.map((target) => `${target.path} (${target.collectionName})`),
+  };
+}
+
 function getMissingVariableTargetLabel(
   token: VariableSyncToken,
   collectionMap: Record<string, string>,
@@ -690,11 +711,18 @@ export function useReadinessChecks({
           return;
         }
 
-        const orphanPaths = getSyncRowsByCategory(snapshot.rows).figmaOnly.map((row) => row.path);
+        const orphanPlan = buildCollectionOrphanCleanupPlan(
+          snapshot.rows,
+          getPublishCollectionName(currentCollectionId, collectionMap),
+        );
 
-        if (orphanPaths.length === 0) return;
+        if (orphanPlan.targets.length === 0) return;
 
-        setOrphanConfirm({ orphanPaths, localPaths });
+        setOrphanConfirm({
+          orphanPaths: orphanPlan.orphanPaths,
+          localPaths,
+          targets: orphanPlan.targets,
+        });
       }
     } catch (error) {
       setReadinessError(describeError(error, 'Readiness action'));

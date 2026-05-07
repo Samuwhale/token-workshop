@@ -103,8 +103,6 @@ export interface TokenListToolbarProps {
   onCreateToken?: () => void;
   onCreateGenerator?: (initialOutputPrefix?: string) => void;
   handleOpenNewGroupDialog: () => void;
-  onShowPasteModal?: () => void;
-  onOpenImportPanel?: () => void;
   onSelectTokens?: () => void;
   onBulkEdit?: () => void;
   onFindReplace?: () => void;
@@ -141,8 +139,6 @@ export function TokenListToolbar({
   onCreateToken,
   onCreateGenerator,
   handleOpenNewGroupDialog,
-  onShowPasteModal,
-  onOpenImportPanel,
   onSelectTokens,
   onBulkEdit,
   onFindReplace,
@@ -580,30 +576,8 @@ export function TokenListToolbar({
                       disabled={!connected}
                       className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
-                      Add multiple tokens
+                      Create several tokens
                     </button>
-                    {onOpenImportPanel ? (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => runCreateAction(onOpenImportPanel)}
-                        disabled={!connected}
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                      >
-                        Import tokens
-                      </button>
-                    ) : null}
-                    {onShowPasteModal ? (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => runCreateAction(onShowPasteModal)}
-                        disabled={!connected}
-                        className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                      >
-                        Paste tokens
-                      </button>
-                    ) : null}
                     {onCreateGenerator ? (
                       <>
                         <div className="h-1.5" aria-hidden />

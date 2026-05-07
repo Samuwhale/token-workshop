@@ -159,7 +159,6 @@ export function TokenList({
     onSelectionChange,
     onOpenCompare,
     onOpenCrossCollectionCompare,
-    onShowPasteModal,
     onOpenImportPanel,
     onExtractFromSelection,
   },
@@ -1934,8 +1933,6 @@ export function TokenList({
             onCreateToken={() => onCreateNew?.()}
             onCreateGenerator={onCreateGenerator}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
-            onShowPasteModal={onShowPasteModal}
-            onOpenImportPanel={onOpenImportPanel}
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}

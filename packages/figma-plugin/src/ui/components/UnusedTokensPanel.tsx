@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { tokenPathToUrlSegment } from '../shared/utils';
 import type { UnusedToken } from '../hooks/useHealthData';
-import { useInlineConfirm } from '../hooks/useInlineConfirm';
+import { getCollectionDisplayName } from '../shared/libraryCollections';
+import { ConfirmModal } from './ConfirmModal';
 
 export interface UnusedTokensPanelProps {
   serverUrl: string;
@@ -10,6 +11,7 @@ export interface UnusedTokensPanelProps {
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
   onMutate: () => void | Promise<void>;
+  collectionDisplayNames?: Record<string, string>;
   /** When true, skip the collapsible wrapper and render content directly */
   embedded?: boolean;
 }
@@ -23,19 +25,26 @@ interface CollectionGroup {
   tokens: UnusedToken[];
 }
 
+interface PendingCleanup {
+  action: CleanupAction;
+  tokens: UnusedToken[];
+  scopeLabel: string;
+}
+
 export function UnusedTokensPanel({
   serverUrl,
   unusedTokens,
   onNavigateToToken,
   onError,
   onMutate,
+  collectionDisplayNames,
   embedded,
 }: UnusedTokensPanelProps) {
   const [showUnused, setShowUnused] = useState(embedded ?? false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
   const [expandedCounts, setExpandedCounts] = useState<Record<string, number>>({});
   const [busyKeys, setBusyKeys] = useState<Set<string>>(new Set());
-  const confirm = useInlineConfirm();
+  const [pendingCleanup, setPendingCleanup] = useState<PendingCleanup | null>(null);
 
   const groups = useMemo<CollectionGroup[]>(() => {
     const map = new Map<string, UnusedToken[]>();
@@ -112,6 +121,21 @@ export function UnusedTokensPanel({
     });
   };
 
+  const openCleanupConfirm = (
+    tokens: UnusedToken[],
+    action: CleanupAction,
+    scopeLabel: string,
+  ) => {
+    setPendingCleanup({ tokens, action, scopeLabel });
+  };
+
+  const confirmCleanup = async () => {
+    if (!pendingCleanup) return;
+    const { tokens, action } = pendingCleanup;
+    setPendingCleanup(null);
+    await runAction(tokens, action);
+  };
+
   const unusedCount = unusedTokens.length;
 
   const content = unusedCount === 0 ? (
@@ -125,28 +149,28 @@ export function UnusedTokensPanel({
                 const visibleLimit = expandedCounts[group.collectionId] ?? ITEMS_PER_PAGE;
                 const visibleTokens = group.tokens.slice(0, visibleLimit);
                 const remainingCount = group.tokens.length - visibleLimit;
-                const collKey = `coll:${group.collectionId}`;
+                const collectionLabel = getCollectionDisplayName(group.collectionId, collectionDisplayNames);
 
                 return (
                   <section key={group.collectionId} className="bg-[var(--color-figma-bg)]">
                     <div className="w-full px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
                       <button onClick={() => toggleCollection(group.collectionId)} className="flex items-center gap-2 min-w-0 flex-1">
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                        <span className="text-body font-semibold text-[color:var(--color-figma-text)] truncate">{group.collectionId}</span>
+                        <span className="text-body font-semibold text-[color:var(--color-figma-text)] truncate">{collectionLabel}</span>
                         <span className="text-secondary text-[color:var(--color-figma-text-secondary)] tabular-nums shrink-0">{group.tokens.length}</span>
                       </button>
                       <div className="shrink-0 flex items-center gap-1">
                         <button
-                          onClick={() => confirm.trigger(`${collKey}:deprecate`, () => runAction(group.tokens, 'deprecate'))}
+                          onClick={() => openCleanupConfirm(group.tokens, 'deprecate', collectionLabel)}
                           className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                         >
-                          {confirm.isPending(`${collKey}:deprecate`) ? 'Confirm?' : 'Deprecate all'}
+                          Deprecate all
                         </button>
                         <button
-                          onClick={() => confirm.trigger(`${collKey}:delete`, () => runAction(group.tokens, 'delete'))}
+                          onClick={() => openCleanupConfirm(group.tokens, 'delete', collectionLabel)}
                           className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors"
                         >
-                          {confirm.isPending(`${collKey}:delete`) ? 'Confirm?' : 'Delete all'}
+                          Delete all
                         </button>
                       </div>
                     </div>
@@ -168,18 +192,18 @@ export function UnusedTokensPanel({
                               </button>
                               <div className="shrink-0 flex items-center gap-1">
                                 <button
-                                  onClick={() => confirm.trigger(`${tokenKey}:deprecate`, () => runAction([token], 'deprecate'))}
+                                  onClick={() => openCleanupConfirm([token], 'deprecate', token.path)}
                                   disabled={isBusy}
                                   className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                                 >
-                                  {confirm.isPending(`${tokenKey}:deprecate`) ? 'Confirm?' : 'Deprecate'}
+                                  Deprecate
                                 </button>
                                 <button
-                                  onClick={() => confirm.trigger(`${tokenKey}:delete`, () => runAction([token], 'delete'))}
+                                  onClick={() => openCleanupConfirm([token], 'delete', token.path)}
                                   disabled={isBusy}
                                   className="text-secondary px-2 py-1 rounded border border-[var(--color-figma-error)]/40 text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
                                 >
-                                  {confirm.isPending(`${tokenKey}:delete`) ? 'Confirm?' : 'Delete'}
+                                  Delete
                                 </button>
                               </div>
                             </div>
@@ -204,23 +228,68 @@ export function UnusedTokensPanel({
             </div>
   );
 
-  if (embedded) return content;
+  const cleanupDialog = pendingCleanup ? (
+    <ConfirmModal
+      title={
+        pendingCleanup.action === 'delete'
+          ? `Delete ${pendingCleanup.tokens.length} unused token${pendingCleanup.tokens.length === 1 ? '' : 's'}?`
+          : `Deprecate ${pendingCleanup.tokens.length} unused token${pendingCleanup.tokens.length === 1 ? '' : 's'}?`
+      }
+      description={
+        pendingCleanup.action === 'delete'
+          ? `This permanently removes unused tokens from ${pendingCleanup.scopeLabel}.`
+          : `This marks unused tokens in ${pendingCleanup.scopeLabel} as deprecated so they stay available but are no longer recommended.`
+      }
+      confirmLabel={pendingCleanup.action === 'delete' ? 'Delete tokens' : 'Deprecate tokens'}
+      danger={pendingCleanup.action === 'delete'}
+      onConfirm={confirmCleanup}
+      onCancel={() => setPendingCleanup(null)}
+    >
+      <div className="max-h-40 overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] px-2 py-1.5">
+        {pendingCleanup.tokens.slice(0, 8).map((token) => (
+          <div key={`${token.collectionId}:${token.path}`} className="flex min-w-0 items-center gap-2 py-0.5 text-secondary">
+            <span className="min-w-0 flex-1 truncate font-mono text-[color:var(--color-figma-text)]">{token.path}</span>
+            <span className="shrink-0 text-[color:var(--color-figma-text-tertiary)]">
+              {getCollectionDisplayName(token.collectionId, collectionDisplayNames)}
+            </span>
+          </div>
+        ))}
+        {pendingCleanup.tokens.length > 8 ? (
+          <div className="py-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+            +{pendingCleanup.tokens.length - 8} more
+          </div>
+        ) : null}
+      </div>
+    </ConfirmModal>
+  ) : null;
+
+  if (embedded) {
+    return (
+      <>
+        {content}
+        {cleanupDialog}
+      </>
+    );
+  }
 
   return (
-    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
-      <button
-        onClick={() => setShowUnused(v => !v)}
-        className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
-      >
-        <span className="flex items-center gap-2">
-          <span className="text-body font-semibold text-[color:var(--color-figma-text)]">Unused tokens</span>
-          {unusedCount > 0 && (
-            <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">{unusedCount}</span>
-          )}
-        </span>
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUnused ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-      </button>
-      {showUnused && <div>{content}</div>}
-    </div>
+    <>
+      <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mb-2">
+        <button
+          onClick={() => setShowUnused(v => !v)}
+          className="w-full px-3 py-2.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between"
+        >
+          <span className="flex items-center gap-2">
+            <span className="text-body font-semibold text-[color:var(--color-figma-text)]">Unused tokens</span>
+            {unusedCount > 0 && (
+              <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">{unusedCount}</span>
+            )}
+          </span>
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showUnused ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+        </button>
+        {showUnused && <div>{content}</div>}
+      </div>
+      {cleanupDialog}
+    </>
   );
 }

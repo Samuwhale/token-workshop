@@ -12,6 +12,7 @@ import {
 } from "../shared/collectionModes";
 import { getCollectionDisplayName } from "../shared/libraryCollections";
 import { getErrorMessage } from "../shared/utils";
+import { AUTHORING } from "../shared/editorClasses";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
 import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
@@ -103,6 +104,8 @@ function Stat({ value, label }: { value: ReactNode; label: string }) {
     </div>
   );
 }
+
+const EMPTY_MODE_SEED = "__token-workshop-empty-mode-seed__";
 
 function ModeRow({
   modeName,
@@ -383,6 +386,7 @@ function ModesSection({
 }) {
   const [adding, setAdding] = useState(false);
   const [addValue, setAddValue] = useState("");
+  const [addSourceModeName, setAddSourceModeName] = useState(EMPTY_MODE_SEED);
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -390,7 +394,13 @@ function ModesSection({
     () => collection.modes.map((mode) => mode.name),
     [collection.modes],
   );
-  const sourceModeName = allModeNames[0];
+  useEffect(() => {
+    setAddSourceModeName((current) =>
+      current === EMPTY_MODE_SEED || allModeNames.includes(current)
+        ? current
+        : EMPTY_MODE_SEED,
+    );
+  }, [allModeNames]);
 
   useEffect(() => {
     if (adding) {
@@ -417,10 +427,12 @@ function ModesSection({
         serverUrl,
         collectionId: collection.id,
         name: trimmed,
-        sourceModeName,
+        sourceModeName:
+          addSourceModeName === EMPTY_MODE_SEED ? undefined : addSourceModeName,
       });
       setAdding(false);
       setAddValue("");
+      setAddSourceModeName(EMPTY_MODE_SEED);
       onModeMutated?.();
     } catch (err) {
       setAddError(getErrorMessage(err, "Could not add this mode."));
@@ -429,11 +441,11 @@ function ModesSection({
     }
   }, [
     addValue,
+    addSourceModeName,
     allModeNames,
     collection.id,
     onModeMutated,
     serverUrl,
-    sourceModeName,
   ]);
 
   return (
@@ -442,9 +454,7 @@ function ModesSection({
       <div className="px-3">
         <p className="px-1 pb-2 text-secondary text-[color:var(--color-figma-text-tertiary)]">
           Every token in this collection uses these modes. New modes{" "}
-          {sourceModeName
-            ? `copy ${sourceModeName} values as an editable starting point.`
-            : "become value columns for every token in the collection."}
+          become value columns for every token in the collection.
         </p>
         {collection.modes.map((mode, index) => (
           <ModeRow
@@ -474,6 +484,7 @@ function ModesSection({
                   if (e.key === "Escape") {
                     setAdding(false);
                     setAddValue("");
+                    setAddSourceModeName(EMPTY_MODE_SEED);
                     setAddError("");
                   }
                 }}
@@ -481,10 +492,9 @@ function ModesSection({
                   if (!addValue.trim()) {
                     setAdding(false);
                     setAddValue("");
+                    setAddSourceModeName(EMPTY_MODE_SEED);
                     setAddError("");
-                    return;
                   }
-                  void handleAdd();
                 }}
                 disabled={addSaving}
                 placeholder="Mode name"
@@ -492,13 +502,56 @@ function ModesSection({
               {addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{addError}</p>
               ) : null}
+              {allModeNames.length > 0 ? (
+                <label className="mt-2 flex flex-col gap-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Seed values
+                  <select
+                    value={addSourceModeName}
+                    onChange={(event) => setAddSourceModeName(event.target.value)}
+                    disabled={addSaving}
+                    className={AUTHORING.select}
+                  >
+                    <option value={EMPTY_MODE_SEED}>Start empty</option>
+                    {allModeNames.map((modeName) => (
+                      <option key={modeName} value={modeName}>
+                        Copy from {modeName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               {!addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  {sourceModeName
-                    ? `Existing tokens will copy ${sourceModeName} values into the new mode.`
-                    : "This mode becomes a value column for every token in this collection."}
+                  {addSourceModeName === EMPTY_MODE_SEED
+                    ? "Existing tokens will show this mode as needing values."
+                    : `Existing tokens will copy ${addSourceModeName} values as editable starting points.`}
                 </p>
               ) : null}
+              <div className="mt-2 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setAdding(false);
+                    setAddValue("");
+                    setAddSourceModeName(EMPTY_MODE_SEED);
+                    setAddError("");
+                  }}
+                  disabled={addSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void handleAdd()}
+                  disabled={!addValue.trim() || addSaving}
+                >
+                  Add mode
+                </Button>
+              </div>
             </div>
           ) : (
             <Button
@@ -855,12 +908,6 @@ export function CollectionDetailsPanel({
                       </div>
                     ) : null}
 
-                    {showRawId ? (
-                      <div className="tm-collection-details__raw-id text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                        ID <span className="font-mono">{collection.id}</span>
-                      </div>
-                    ) : null}
-
                     <div className="tm-collection-details__stats">
                       <Stat value={tokenCount} label={tokenCount === 1 ? "token" : "tokens"} />
                       <Stat value={modeCount} label={modeCount === 1 ? "mode" : "modes"} />
@@ -895,6 +942,14 @@ export function CollectionDetailsPanel({
                 label="Advanced structure"
               >
                 <div className="mt-2">
+                  {showRawId ? (
+                    <div className="mb-2 rounded bg-[var(--surface-group-quiet)] px-2.5 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                      Collection ID{" "}
+                      <span className="font-mono text-[color:var(--color-figma-text)]">
+                        {collection.id}
+                      </span>
+                    </div>
+                  ) : null}
                   <ActionRow onClick={() => onDuplicate?.(collection.id)}>
                     Duplicate collection
                   </ActionRow>

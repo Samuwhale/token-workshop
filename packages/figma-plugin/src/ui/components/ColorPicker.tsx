@@ -32,7 +32,9 @@ interface ColorPickerProps {
   value: string;          // #RRGGBB, #RRGGBBAA, or CSS Color 4 string
   onChange: (color: string) => void;
   onClose: () => void;
+  anchorRef?: React.RefObject<HTMLElement>;
   allTokensFlat?: Record<string, TokenMapEntry>;
+  inline?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -246,7 +248,7 @@ function parseInitialColor(value: string): { h: number; s: number; l: number; al
   return { h: 0, s: 0, l: 0, alpha: 1, initialSpace: 'hex' };
 }
 
-export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPickerProps) {
+export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat, inline = false }: ColorPickerProps) {
   // Parse initial color — supports both hex and CSS Color 4
   const init = parseInitialColor(value);
   const [hue, setHue] = useState(init.h);
@@ -282,30 +284,47 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   const alphaRef = useRef<HTMLCanvasElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Compute fixed position from parent element
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
-  useLayoutEffect(() => {
+  const updatePopoverPosition = useCallback(() => {
+    if (inline) return;
     const el = popoverRef.current;
-    if (!el) return;
-    const parent = el.parentElement;
-    if (!parent) return;
-    const rect = parent.getBoundingClientRect();
-    const pickerWidth = 240;
-    const pickerHeight = el.offsetHeight || 400;
+    const anchor = anchorRef?.current;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    const pickerWidth = el?.offsetWidth || 240;
+    const pickerHeight = el?.offsetHeight || 400;
     const margin = 8;
-    // Position below the trigger, clamped to viewport
-    let top = rect.bottom + 4;
+    const gap = 4;
+
+    let top = rect.bottom + gap;
     let left = rect.left;
-    // Flip above if not enough space below
+
     if (top + pickerHeight + margin > window.innerHeight) {
-      top = Math.max(margin, rect.top - pickerHeight - 4);
+      top = rect.top - pickerHeight - gap;
     }
-    // Clamp left to viewport
-    if (left + pickerWidth + margin > window.innerWidth) {
-      left = Math.max(margin, window.innerWidth - pickerWidth - margin);
-    }
+
+    top = clamp(top, margin, Math.max(margin, window.innerHeight - pickerHeight - margin));
+    left = clamp(left, margin, Math.max(margin, window.innerWidth - pickerWidth - margin));
+
     setPopoverPos({ top, left });
-  }, []);
+  }, [anchorRef, inline]);
+
+  useLayoutEffect(() => {
+    if (inline) return;
+    updatePopoverPosition();
+  }, [inline, updatePopoverPosition]);
+
+  useEffect(() => {
+    if (inline) return;
+    updatePopoverPosition();
+    window.addEventListener('resize', updatePopoverPosition);
+    window.addEventListener('scroll', updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+    };
+  }, [inline, updatePopoverPosition]);
 
   // Current hex (no alpha)
   const hex6 = hslToHex(hue, sat, lit);
@@ -406,14 +425,19 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
   // Click outside to close
   useEffect(() => {
+    if (inline) return;
     const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (popoverRef.current?.contains(target) || anchorRef?.current?.contains(target)) {
+        return;
+      }
+      if (popoverRef.current) {
         closeAndSave();
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [closeAndSave]);
+  }, [anchorRef, closeAndSave, inline]);
 
   // Draw color area
   useEffect(() => {
@@ -639,8 +663,11 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   return (
     <div
       ref={popoverRef}
-      className="fixed z-50 flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2 shadow-[var(--shadow-popover)]"
-      style={{ width: 240, ...(popoverPos ?? { top: 0, left: 0 }) }}
+      className={[
+        'flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2',
+        inline ? 'relative w-full shadow-none' : 'fixed z-50 shadow-[var(--shadow-popover)]',
+      ].join(' ')}
+      style={inline ? { width: '100%' } : { width: 240, ...(popoverPos ?? { top: 0, left: 0 }) }}
     >
       {/* Color area */}
       <div

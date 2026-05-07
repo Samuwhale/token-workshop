@@ -722,6 +722,7 @@ export function HealthPanel({
             onNavigateToToken={onNavigateToToken}
             onError={onError}
             onMutate={refreshHealthState}
+            collectionDisplayNames={collectionDisplayNames}
             onBack={goBack}
           />
         );
@@ -761,6 +762,7 @@ export function HealthPanel({
             onNavigateToToken={onNavigateToToken}
             onError={onError}
             onMutate={refreshHealthState}
+            collectionDisplayNames={collectionDisplayNames}
             onBack={goBack}
           />
         );

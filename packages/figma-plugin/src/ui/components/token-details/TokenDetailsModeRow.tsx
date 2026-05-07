@@ -214,13 +214,6 @@ export function TokenDetailsModeRow({
       value,
     ],
   );
-  const resolvedColorSwatch =
-    tokenType === "color" &&
-    !readOnly.isUnresolvedAlias &&
-    typeof readOnly.resolvedValue === "string"
-      ? readOnly.resolvedValue
-      : null;
-
   const handleAliasToggle = () => {
     if (!editable || !onChange) return;
 
@@ -281,17 +274,17 @@ export function TokenDetailsModeRow({
         title={
           aliasMode
             ? `Use a direct value for ${modeName}`
-            : `Reference another token for ${modeName}`
+            : `Alias another token for ${modeName}`
         }
         aria-label={
           aliasMode
             ? `Use a direct value for ${modeName}`
-            : `Reference another token for ${modeName}`
+            : `Alias another token for ${modeName}`
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
         <span className="tm-token-mode-row__action-button-label">
-          Reference
+          Alias
         </span>
       </button>
     </div>
@@ -356,8 +349,8 @@ export function TokenDetailsModeRow({
                   }
                 }}
                 autoFocus={autoFocus}
-                placeholder="Reference a token"
-                aria-label={`${modeName} reference`}
+                placeholder="Choose a token to alias"
+                aria-label={`${modeName} alias`}
                 aria-invalid={showAliasMissingState || showAliasAmbiguousState}
                 aria-describedby={
                   showAliasMissingState || showAliasAmbiguousState
@@ -387,14 +380,14 @@ export function TokenDetailsModeRow({
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  No token matches this reference yet.
+                  No token matches this alias yet.
                 </p>
               ) : showAliasAmbiguousState ? (
                 <p
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Use the token in this collection, or choose a path that belongs to one collection.
+                  This token name exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Choose the token in this collection, or use a name that belongs to one collection.
                 </p>
               ) : null}
             </div>
@@ -447,7 +440,7 @@ export function TokenDetailsModeRow({
                         )
                       }
                       className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[color:var(--color-figma-text-accent)] hover:underline"
-                      aria-label={`Open referenced token ${readOnly.aliasTargetPath}`}
+                      aria-label={`Open aliased token ${readOnly.aliasTargetPath}`}
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
                       <Link2 size={10} strokeWidth={1.5} aria-hidden />
@@ -477,14 +470,6 @@ export function TokenDetailsModeRow({
             </div>
           )}
         </div>
-
-        {resolvedColorSwatch && (
-          <div
-            className="tm-token-mode-row__swatch"
-            style={{ backgroundColor: resolvedColorSwatch }}
-            aria-label={`Color: ${resolvedColorSwatch}`}
-          />
-        )}
 
         {!showHeader && (controls || modified) ? (
           <div className="tm-token-mode-row__inline-controls">

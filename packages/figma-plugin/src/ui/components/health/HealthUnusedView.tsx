@@ -10,6 +10,7 @@ export interface HealthUnusedViewProps {
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
   onMutate: () => void | Promise<void>;
+  collectionDisplayNames?: Record<string, string>;
   onBack: () => void;
 }
 
@@ -20,6 +21,7 @@ export function HealthUnusedView({
   onNavigateToToken,
   onError,
   onMutate,
+  collectionDisplayNames,
   onBack,
 }: HealthUnusedViewProps) {
   return (
@@ -49,6 +51,7 @@ export function HealthUnusedView({
             onNavigateToToken={onNavigateToToken}
             onError={onError}
             onMutate={onMutate}
+            collectionDisplayNames={collectionDisplayNames}
             embedded
           />
         )}

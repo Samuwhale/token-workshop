@@ -26,12 +26,15 @@ import {
   isModeNameTaken,
 } from "../../shared/collectionModes";
 import { getErrorMessage } from "../../shared/utils";
+import { AUTHORING } from "../../shared/editorClasses";
 
 type VisibleTokenRow = {
   node: TokenNode;
   depth: number;
   ancestorPathLabel?: string;
 };
+
+const EMPTY_MODE_SEED = "__token-workshop-empty-mode-seed__";
 
 interface CrossSetResult {
   path: string;
@@ -230,6 +233,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   } = props.navigation;
 
   const [newModeName, setNewModeName] = useState("");
+  const [newModeSourceName, setNewModeSourceName] = useState(EMPTY_MODE_SEED);
   const [addModeError, setAddModeError] = useState("");
   const [addingModeSaving, setAddingModeSaving] = useState(false);
   const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
@@ -242,7 +246,13 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     () => multiModeData?.results.map((result) => result.optionName) ?? [],
     [multiModeData?.results],
   );
-  const sourceModeName = modeNames[0];
+  useEffect(() => {
+    setNewModeSourceName((current) =>
+      current === EMPTY_MODE_SEED || modeNames.includes(current)
+        ? current
+        : EMPTY_MODE_SEED,
+    );
+  }, [modeNames]);
 
   const handleAddMode = useCallback(async () => {
     const name = newModeName.trim();
@@ -258,9 +268,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         serverUrl,
         collectionId: addModeTargetId,
         name,
-        sourceModeName,
+        sourceModeName:
+          newModeSourceName === EMPTY_MODE_SEED ? undefined : newModeSourceName,
       });
       setNewModeName("");
+      setNewModeSourceName(EMPTY_MODE_SEED);
       setAddModeError("");
       setAddModeMenuOpen(false);
       onModeMutated?.();
@@ -273,9 +285,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     addModeTargetId,
     modeNames,
     newModeName,
+    newModeSourceName,
     onModeMutated,
     serverUrl,
-    sourceModeName,
   ]);
 
   const widthsCollectionId = multiModeData?.collection.id ?? null;
@@ -338,6 +350,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const closeAddModeMenu = useCallback(() => {
     setAddModeMenuOpen(false);
     setNewModeName("");
+    setNewModeSourceName(EMPTY_MODE_SEED);
     setAddModeError("");
   }, []);
 
@@ -463,11 +476,31 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   {addModeError}
                 </p>
               ) : (
-                <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  {sourceModeName
-                    ? `Existing tokens will copy ${sourceModeName} values into the new mode.`
-                    : "This mode becomes a value column for every token in this collection."}
-                </p>
+                <>
+                  {modeNames.length > 0 ? (
+                    <label className="flex flex-col gap-1 px-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                      Seed values
+                      <select
+                        value={newModeSourceName}
+                        onChange={(event) => setNewModeSourceName(event.target.value)}
+                        disabled={addingModeSaving}
+                        className={AUTHORING.select}
+                      >
+                        <option value={EMPTY_MODE_SEED}>Start empty</option>
+                        {modeNames.map((modeName) => (
+                          <option key={modeName} value={modeName}>
+                            Copy from {modeName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                    {newModeSourceName === EMPTY_MODE_SEED
+                      ? "Existing tokens will show this mode as needing values."
+                      : `Existing tokens will copy ${newModeSourceName} values as editable starting points.`}
+                  </p>
+                </>
               )}
               <div className="flex items-center justify-end gap-2">
                 <Button
@@ -707,7 +740,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
     if (onCreateNew) {
       emptyCollectionActions.push({
-        label: "New token",
+        label: "Create token",
         onClick: () => onCreateNew(),
         disabled: !connected,
         tone: "primary",
@@ -716,7 +749,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
     if (onCreateGroup) {
       emptyCollectionActions.push({
-        label: "New group",
+        label: "Create group",
         onClick: onCreateGroup,
         disabled: !connected,
         tone: "secondary",
@@ -753,8 +786,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             title="This collection is empty"
             description={
               hasSelection
-                ? "Create a group or token, import from a file, or extract from your Figma selection."
-                : "Create a group or token, or import tokens into this collection."
+                ? "Start with a token, import an existing system, or extract values from the selected Figma layer."
+                : "Start with one token, import an existing system, or add groups when the structure is clear."
             }
             actions={emptyCollectionActions}
           />

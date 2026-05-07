@@ -58,6 +58,7 @@ export function ModeValueEditor({
           onChange={onChange}
           autoFocus={autoFocus}
           allTokensFlat={allTokensFlat}
+          presentation="inspector"
         />
       );
     case 'dimension':

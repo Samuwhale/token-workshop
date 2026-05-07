@@ -494,7 +494,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
           )}
           {isTokenMode && allCollectionTokens && (
             <button
-              className={`text-secondary shrink-0 rounded px-1.5 py-0.5 transition-colors ${
+              className={`text-secondary shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 transition-colors ${
                 searchAllCollections
                   ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
                   : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]'

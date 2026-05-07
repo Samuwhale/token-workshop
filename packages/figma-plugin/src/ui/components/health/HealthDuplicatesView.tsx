@@ -9,6 +9,7 @@ export interface HealthDuplicatesViewProps {
   onNavigateToToken?: (path: string, collectionId: string) => void;
   onError: (msg: string) => void;
   onMutate: () => Promise<void> | void;
+  collectionDisplayNames?: Record<string, string>;
   onBack: () => void;
 }
 
@@ -19,6 +20,7 @@ export function HealthDuplicatesView({
   onNavigateToToken,
   onError,
   onMutate,
+  collectionDisplayNames,
   onBack,
 }: HealthDuplicatesViewProps) {
   return (
@@ -41,6 +43,7 @@ export function HealthDuplicatesView({
           onNavigateToToken={onNavigateToToken}
           onError={onError}
           onMutate={onMutate}
+          collectionDisplayNames={collectionDisplayNames}
           embedded
         />
       </div>

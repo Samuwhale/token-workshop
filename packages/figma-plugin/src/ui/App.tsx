@@ -101,9 +101,8 @@ function formatCount(
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-const SIDEBAR_HOVER_CLASSES =
-  "hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:bg-[var(--color-figma-bg-hover)]";
 const RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH = 560;
+const SIDEBAR_ICON_BUTTON_CLASS = "tm-sidebar-icon-button";
 
 const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
   accent: "bg-[var(--color-figma-accent)]",
@@ -116,6 +115,39 @@ const SYNC_ADORNMENT_TEXT: Record<"accent" | "warning" | "error", string> = {
   warning: "text-[color:var(--color-figma-text-warning)]",
   error: "text-[color:var(--color-figma-text-error)]",
 };
+
+function getSidebarWorkspaceStateClass({
+  active,
+  disabled,
+  idle,
+}: {
+  active: boolean;
+  disabled: boolean;
+  idle?: boolean;
+}): string {
+  if (disabled) {
+    return "text-[color:var(--color-figma-text-tertiary)] opacity-60";
+  }
+  if (active) {
+    return "font-medium text-[color:var(--color-figma-text)]";
+  }
+  if (idle) {
+    return "text-[color:var(--color-figma-text-tertiary)]";
+  }
+  return "text-[color:var(--color-figma-text-secondary)]";
+}
+
+function getSidebarUtilityStateClass(active: boolean): string {
+  return active
+    ? "text-[color:var(--color-figma-text)]"
+    : "text-[color:var(--color-figma-text-secondary)]";
+}
+
+function getSidebarIconButtonStateClass(active: boolean): string {
+  return active
+    ? "text-[color:var(--color-figma-text)]"
+    : "text-[color:var(--color-figma-text-secondary)]";
+}
 
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
@@ -954,13 +986,10 @@ export function App() {
     triggerUsageScan,
   ]);
 
-  // Moving between Library sections dismisses contextual tools (compare,
-  // color-analysis, import, collection-details) so they
-  // don't leak into Tokens/Review/History. Only fires when both the previous
-  // and next routes are inside the Library workspace — entering Library from
-  // another workspace must not clobber a tool that was just opened alongside
-  // the navigation (e.g. command palette "Color analysis"). The pinned token
-  // editor is preserved deliberately so authors keep context.
+  // Moving between Library sections dismisses maintenance tools so compare,
+  // color-analysis, import, and collection details do not leak into
+  // Tokens/Review/History. Token editor closure is handled by guarded sidebar
+  // navigation so dirty edits still get the unsaved-changes prompt.
   const previousLibraryRouteRef = useRef<{ topTab: TopTab; subTab: SubTab }>({
     topTab: activeTopTab,
     subTab: activeSubTab,
@@ -1673,6 +1702,7 @@ export function App() {
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
     if (librarySetupRequired && item.workspaceId !== "library") {
       guardEditorAction(() => {
+        switchContextualSurface({ surface: null });
         navigateTo("library", "tokens");
         closeSecondarySurface();
         closeNotifications();
@@ -1696,6 +1726,7 @@ export function App() {
       return;
     }
     guardEditorAction(() => {
+      switchContextualSurface({ surface: null });
       navigateTo(item.topTab, item.subTab);
       closeSecondarySurface();
       closeNotifications();
@@ -1712,6 +1743,7 @@ export function App() {
     librarySetupRequired,
     navigateTo,
     openStartHere,
+    switchContextualSurface,
   ]);
   const runStartHereAction = useCallback(
     (action: () => void, options?: { completeFirstRun?: boolean }) => {
@@ -1736,9 +1768,20 @@ export function App() {
 
   const handleSubTabClick = useCallback((section: WorkspaceSection) => {
     guardEditorAction(() => {
+      const sectionChanged =
+        activeTopTab !== section.topTab || activeSubTab !== section.subTab;
+      if (sectionChanged) {
+        switchContextualSurface({ surface: null });
+      }
       navigateTo(section.topTab, section.subTab);
     });
-  }, [guardEditorAction, navigateTo]);
+  }, [
+    activeSubTab,
+    activeTopTab,
+    guardEditorAction,
+    navigateTo,
+    switchContextualSurface,
+  ]);
 
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
@@ -1796,7 +1839,11 @@ export function App() {
                 })();
                 const publishIsIdle =
                   item.id === "publish" && !isWorkspaceActive && syncAdornment === null;
-                const inactiveTextClass = `${publishIsIdle ? "text-[color:var(--color-figma-text-tertiary)]" : "text-[color:var(--color-figma-text-secondary)]"} ${SIDEBAR_HOVER_CLASSES}`;
+                const workspaceStateClass = getSidebarWorkspaceStateClass({
+                  active: isWorkspaceActive,
+                  disabled: requiresSetup,
+                  idle: publishIsIdle,
+                });
 
                 if (sidebarCollapsed) {
                   const tooltipLabel = requiresSetup
@@ -1834,13 +1881,7 @@ export function App() {
                         aria-current={isWorkspaceActive ? "page" : undefined}
                         aria-label={item.label}
                         data-workspace={item.id}
-                        className={`tm-sidebar-workspace-button relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md outline-none transition-colors ${
-                          isWorkspaceActive
-                            ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text-accent)]"
-                            : requiresSetup
-                              ? "text-[color:var(--color-figma-text-tertiary)] opacity-60"
-                              : inactiveTextClass
-                        }`}
+                        className={`tm-sidebar-workspace-button relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md ${workspaceStateClass}`}
                       >
                         {workspaceIcon(item.id)}
                         {showCanvasSelectionAdornment && (
@@ -1874,13 +1915,7 @@ export function App() {
                       aria-controls={sections.length > 0 ? sectionListId : undefined}
                       title={requiresSetup ? "Set up a collection first" : undefined}
                       data-workspace={item.id}
-                      className={`tm-sidebar-workspace-button relative flex min-h-7 w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body outline-none transition-colors ${
-                        isWorkspaceActive
-                          ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
-                          : requiresSetup
-                            ? "text-[color:var(--color-figma-text-tertiary)] opacity-60"
-                            : inactiveTextClass
-                      }`}
+                      className={`tm-sidebar-workspace-button relative flex min-h-7 w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body ${workspaceStateClass}`}
                     >
                       {sections.length > 0 && (
                         <ChevronRight
@@ -1952,10 +1987,10 @@ export function App() {
                                     : undefined
                                 }
                                 data-workspace={item.id}
-                                className={`tm-sidebar-section-button flex min-h-7 w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary outline-none transition-colors ${
+                                className={`tm-sidebar-section-button flex min-h-7 w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary ${
                                   activeSubTab === section.subTab && isWorkspaceActive
-                                    ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
-                                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                                    ? "font-medium text-[color:var(--color-figma-text)]"
+                                    : "text-[color:var(--color-figma-text-secondary)]"
                                 }`}
                               >
                                 <span className="tm-sidebar-nav__sub-label min-w-0 flex-1">{section.label}</span>
@@ -1988,12 +2023,9 @@ export function App() {
                 <Tooltip label={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`} position="right">
                   <button
                     onClick={toggleNotifications}
-                    className={`relative flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
-                      notificationsOpen
-                        ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                    }`}
+                    className={`relative h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} ${getSidebarIconButtonStateClass(notificationsOpen)}`}
                     aria-label="Notifications"
+                    aria-pressed={notificationsOpen}
                   >
                     <Bell size={14} strokeWidth={1.5} aria-hidden />
                     {notificationCount > 0 && (
@@ -2004,12 +2036,9 @@ export function App() {
                 <Tooltip label="Settings" position="right">
                   <button
                     onClick={() => toggleSecondarySurface("settings")}
-                    className={`flex h-8 w-8 items-center justify-center rounded-md outline-none transition-colors ${
-                      activeSecondarySurface === "settings"
-                        ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                    }`}
+                    className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} ${getSidebarIconButtonStateClass(activeSecondarySurface === "settings")}`}
                     aria-label="Settings"
+                    aria-pressed={activeSecondarySurface === "settings"}
                   >
                     <Settings size={14} strokeWidth={1.5} aria-hidden />
                   </button>
@@ -2018,12 +2047,12 @@ export function App() {
               <div className="my-1 w-5 border-t border-[var(--border-muted)]" />
               <div className="flex flex-col items-center gap-0.5">
                 <Tooltip label={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"} position="right">
-                  <button onClick={executeUndo} disabled={!canUndo} className="flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo">
+                  <button onClick={executeUndo} disabled={!canUndo} className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)]`} aria-label="Undo">
                     <Undo2 size={13} strokeWidth={1.5} aria-hidden />
                   </button>
                 </Tooltip>
                 <Tooltip label={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"} position="right">
-                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo">
+                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)]`} aria-label="Redo">
                     <Redo2 size={13} strokeWidth={1.5} aria-hidden />
                   </button>
                 </Tooltip>
@@ -2034,12 +2063,9 @@ export function App() {
               <div className="flex flex-col gap-0.5">
                 <button
                   onClick={toggleNotifications}
-                  className={`tm-sidebar-utility-button relative ${
-                    notificationsOpen
-                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                  }`}
+                  className={`tm-sidebar-utility-button relative ${getSidebarUtilityStateClass(notificationsOpen)}`}
                   aria-label="Notifications"
+                  aria-pressed={notificationsOpen}
                   title={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`}
                 >
                   <Bell size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
@@ -2050,23 +2076,20 @@ export function App() {
                 </button>
                 <button
                   onClick={() => toggleSecondarySurface("settings")}
-                  className={`tm-sidebar-utility-button ${
-                    activeSecondarySurface === "settings"
-                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                  }`}
+                  className={`tm-sidebar-utility-button ${getSidebarUtilityStateClass(activeSecondarySurface === "settings")}`}
                   aria-label="Settings"
+                  aria-pressed={activeSecondarySurface === "settings"}
                   title="Settings"
                 >
                   <Settings size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Settings</span>
                 </button>
                 <div className="my-1 h-px w-full bg-[var(--border-muted)]" />
-                <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+                <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)]" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
                   <Undo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Undo</span>
                 </button>
-                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-30 disabled:pointer-events-none" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)]" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
                   <Redo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Redo</span>
                 </button>
@@ -2102,7 +2125,7 @@ export function App() {
                   onClick={() => openResponsiveSidebarFlyout(activeWorkspace.id, window.innerHeight - 224)}
                   aria-label="Open workspace sections"
                   aria-expanded={responsiveSidebarFlyout?.itemId === activeWorkspace.id}
-                  className="mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-secondary)]"
+                  className={`mx-auto h-7 w-7 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)]`}
                 >
                   <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
                 </button>
@@ -2115,7 +2138,7 @@ export function App() {
                 <button
                   onClick={toggleSidebarCollapsed}
                   aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                  className={`flex h-7 items-center justify-center rounded-md text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-secondary)] ${sidebarCollapsed ? 'mx-auto w-7' : 'w-full'}`}
+                  className={`${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)] ${sidebarCollapsed ? 'mx-auto h-7 w-7' : 'h-7 w-full'}`}
                 >
                   {sidebarCollapsed ? (
                     <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
@@ -2179,10 +2202,11 @@ export function App() {
                       setResponsiveSidebarFlyout(null);
                       handleSubTabClick(section);
                     }}
-                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-secondary outline-none transition-colors ${
+                    data-workspace={item.id}
+                    className={`tm-sidebar-section-button flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-secondary ${
                       isSectionActive
-                        ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)] font-medium"
-                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                        ? "font-medium text-[color:var(--color-figma-text)]"
+                        : "text-[color:var(--color-figma-text-secondary)]"
                     }`}
                   >
                     <span className="tm-sidebar-flyout__label min-w-0 flex-1">{section.label}</span>

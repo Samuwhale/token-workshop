@@ -37,7 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={rest.type ?? "button"}
         {...rest}
-        className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] text-center leading-tight font-medium outline-none transition-colors ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
+        className={`inline-flex min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-[var(--radius-md)] text-center leading-tight font-medium whitespace-nowrap outline-none transition-colors [&>svg]:shrink-0 ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
       >
         {children}
       </button>

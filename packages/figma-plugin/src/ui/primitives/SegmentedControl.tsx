@@ -65,7 +65,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      className="inline-flex max-w-full flex-wrap items-stretch gap-[2px] rounded bg-[var(--color-figma-bg)] p-[2px]"
+      className="inline-flex max-w-full flex-nowrap items-stretch gap-[2px] overflow-x-auto rounded bg-[var(--color-figma-bg)] p-[2px]"
       role="tablist"
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
@@ -80,13 +80,14 @@ export function SegmentedControl<T extends string>({
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
-            className={`inline-flex min-h-7 min-w-[3rem] flex-1 basis-0 items-center justify-center rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
+            title={option.label}
+            className={`inline-flex min-h-7 min-w-[3rem] flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
               selected
                 ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                 : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
             }`}
           >
-            <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-normal [overflow-wrap:anywhere]">
+            <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               {option.label}
             </span>
           </button>

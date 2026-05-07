@@ -76,10 +76,7 @@ import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
 import { Field, IconButton, ListItem, Section, Stack } from "../primitives";
 import { Collapsible } from "./Collapsible";
-import type {
-  TokenEditorModeValues,
-  TokenEditorValue,
-} from "../shared/tokenEditorTypes";
+import type { TokenEditorValue } from "../shared/tokenEditorTypes";
 import { formatCollectionDisplayNameList } from "../shared/libraryCollections";
 interface TokenDetailsProps {
   tokenPath: string;
@@ -122,25 +119,6 @@ function cloneModeValue<T>(value: T): T {
   return typeof value === "object" && value !== null
     ? structuredClone(value)
     : value;
-}
-
-function buildCreateModeValues(
-  collection: TokenCollection | null | undefined,
-  initialValue: TokenEditorValue,
-): TokenEditorModeValues {
-  if (!collection || collection.modes.length <= 1) {
-    return {};
-  }
-
-  const modeValues = Object.fromEntries(
-    collection.modes
-      .slice(1)
-      .map((mode) => [mode.name, cloneModeValue(initialValue)]),
-  );
-
-  return Object.keys(modeValues).length > 0
-    ? { [collection.id]: modeValues }
-    : {};
 }
 
 function getStoredModeValue(
@@ -304,14 +282,12 @@ export function TokenDetails({
   } = fields;
 
   const valueIsAlias = typeof value === "string" && isAlias(value);
-  const ownerCollection = useMemo(
-    () => collections.find((collection) => collection.id === ownerCollectionId),
-    [collections, ownerCollectionId],
-  );
   const buildDefaultModeValues = useCallback(
-    (nextValue: TokenEditorValue) =>
-      buildCreateModeValues(ownerCollection, nextValue),
-    [ownerCollection],
+    (nextValue: TokenEditorValue) => {
+      void nextValue;
+      return {};
+    },
+    [],
   );
 
   const modeValue = useTokenEditorModeValue({

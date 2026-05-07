@@ -169,6 +169,7 @@ export function WelcomePrompt({
     }
     handleAction(onStartFromSelection);
   };
+  const canDismiss = !connected || collectionIds.length > 0;
 
   const renderRoot = () => (
     <div>
@@ -215,7 +216,9 @@ export function WelcomePrompt({
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
-            onClose();
+            if (canDismiss) {
+              onClose();
+            }
           }
         }}
         role="dialog"
@@ -245,14 +248,16 @@ export function WelcomePrompt({
                 {branchTitle}
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              aria-label="Close"
-            >
-              <X size={12} strokeWidth={2} aria-hidden />
-            </button>
+            {canDismiss ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                aria-label="Close"
+              >
+                <X size={12} strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
           </div>
           {branchCopy.description ? (
             <p
