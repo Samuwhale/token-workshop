@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useId, useMemo } from 'react';
 import type {
   ResolverFile,
   ResolverFigmaModeMapping,
@@ -242,6 +242,20 @@ function getAliasTargetCollectionId(
     : undefined;
 }
 
+function uniqueTextSuggestions(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const suggestions: string[] = [];
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLocaleLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    suggestions.push(trimmed);
+  }
+  return suggestions;
+}
+
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
 
@@ -450,6 +464,50 @@ export function PublishPanel({
   const resolvedCollectionName =
     savedCollectionName || DEFAULT_VARIABLE_COLLECTION_NAME;
   const resolvedModeName = savedModeName || 'First Figma mode';
+  const currentCollection = useMemo(
+    () => collections.find((collection) => collection.id === currentCollectionId),
+    [collections, currentCollectionId],
+  );
+  const standardCollectionSuggestions = useMemo(
+    () =>
+      uniqueTextSuggestions([
+        savedCollectionName,
+        currentCollectionId,
+        DEFAULT_VARIABLE_COLLECTION_NAME,
+        ...Object.values(collectionMap),
+      ]),
+    [collectionMap, currentCollectionId, savedCollectionName],
+  );
+  const standardModeSuggestions = useMemo(
+    () =>
+      uniqueTextSuggestions([
+        savedModeName,
+        ...(currentCollection?.modes.map((mode) => mode.name) ?? []),
+        ...Object.values(modeMap),
+      ]),
+    [currentCollection, modeMap, savedModeName],
+  );
+  const resolverCollectionSuggestions = useMemo(
+    () =>
+      uniqueTextSuggestions([
+        DEFAULT_RESOLVER_COLLECTION_NAME,
+        ...Object.values(collectionMap),
+        ...collections.map((collection) => collection.id),
+        ...resolverPublishRows.map((row) => row.sourceCollectionName),
+      ]),
+    [collectionMap, collections, resolverPublishRows],
+  );
+  const resolverModeSuggestions = useMemo(
+    () =>
+      uniqueTextSuggestions([
+        ...Object.values(modeMap),
+        ...collections.flatMap((collection) =>
+          collection.modes.map((mode) => mode.name),
+        ),
+        ...resolverPublishRows.map((row) => row.sourceModeName),
+      ]),
+    [collections, modeMap, resolverPublishRows],
+  );
   const standardRoutingDirty =
     (standardRoutingDraft.collectionName ?? '') !== savedCollectionName ||
     (standardRoutingDraft.modeName ?? '') !== savedModeName;
@@ -1126,6 +1184,8 @@ export function PublishPanel({
                   dirty={standardRoutingDirty}
                   saving={standardRoutingSaving}
                   error={standardRoutingError}
+                  collectionSuggestions={standardCollectionSuggestions}
+                  modeSuggestions={standardModeSuggestions}
                   onFieldChange={updateStandardRoutingDraft}
                   onReset={resetStandardRoutingDraft}
                   onSave={() => void saveStandardRouting()}
@@ -1187,7 +1247,7 @@ export function PublishPanel({
                 type="button"
                 onClick={() => {
                   if (standardRoutingDirty) {
-                    focusPublishTarget();
+                    void saveStandardRouting();
                     return;
                   }
                   if (canProceedToSync) {
@@ -1196,11 +1256,13 @@ export function PublishPanel({
                   }
                   void handleSync();
                 }}
-                disabled={readinessLoading || compareAllLoading}
+                disabled={readinessLoading || compareAllLoading || standardRoutingSaving}
                 title={standardRoutingDirty || readinessChecks.length > 0 ? compareLockedMessage : undefined}
                 className="shrink-0 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
               >
-                {standardRoutingDirty
+                {standardRoutingSaving
+                  ? 'Saving…'
+                  : standardRoutingDirty
                   ? 'Save target'
                   : canProceedToSync
                     ? 'Review changes'
@@ -1319,6 +1381,8 @@ export function PublishPanel({
                 rows={resolverPublishRows}
                 dirtyCount={resolverPublishDirtyCount}
                 mappedCount={resolverPublishMappedCount}
+                collectionSuggestions={resolverCollectionSuggestions}
+                modeSuggestions={resolverModeSuggestions}
                 onFieldChange={updateResolverPublishDraft}
                 onReset={resetResolverPublishDrafts}
                 onSave={() => void saveResolverPublishMappings()}
@@ -1380,6 +1444,8 @@ function StandardPublishRoutingCard({
   dirty,
   saving,
   error,
+  collectionSuggestions,
+  modeSuggestions,
   onFieldChange,
   onReset,
   onSave,
@@ -1389,6 +1455,8 @@ function StandardPublishRoutingCard({
   dirty: boolean;
   saving: boolean;
   error: string | null;
+  collectionSuggestions: string[];
+  modeSuggestions: string[];
   onFieldChange: (field: keyof PublishRoutingDraft, value: string) => void;
   onReset: () => void;
   onSave: () => void;
@@ -1426,35 +1494,23 @@ function StandardPublishRoutingCard({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex min-w-0 flex-col gap-1.5">
-          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Figma collection
-          </span>
-          <input
-            type="text"
-            value={draft.collectionName ?? ''}
-            onChange={(event) =>
-              onFieldChange('collectionName', event.target.value)
-            }
-            placeholder={DEFAULT_VARIABLE_COLLECTION_NAME}
-            disabled={saving}
-            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-          />
-        </label>
+        <PublishTargetTextField
+          label="Figma collection"
+          value={draft.collectionName ?? ''}
+          onChange={(value) => onFieldChange('collectionName', value)}
+          placeholder={DEFAULT_VARIABLE_COLLECTION_NAME}
+          disabled={saving}
+          suggestions={collectionSuggestions}
+        />
 
-        <label className="flex min-w-0 flex-col gap-1.5">
-          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Figma mode
-          </span>
-          <input
-            type="text"
-            value={draft.modeName ?? ''}
-            onChange={(event) => onFieldChange('modeName', event.target.value)}
-            placeholder="First Figma mode"
-            disabled={saving}
-            className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-          />
-        </label>
+        <PublishTargetTextField
+          label="Figma mode"
+          value={draft.modeName ?? ''}
+          onChange={(value) => onFieldChange('modeName', value)}
+          placeholder="First Figma mode"
+          disabled={saving}
+          suggestions={modeSuggestions}
+        />
       </div>
 
       <div className="text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
@@ -1475,6 +1531,56 @@ function StandardPublishRoutingCard({
   );
 }
 
+function PublishTargetTextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  suggestions,
+  ariaLabel,
+  labelClassName = "text-secondary text-[color:var(--color-figma-text-secondary)]",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled: boolean;
+  suggestions: string[];
+  ariaLabel?: string;
+  labelClassName?: string;
+}) {
+  const rawListId = useId();
+  const listId = `publish-target-${rawListId.replace(/:/g, '')}`;
+  const filteredSuggestions = useMemo(
+    () => suggestions.filter((suggestion) => suggestion !== value.trim()),
+    [suggestions, value],
+  );
+
+  return (
+    <label className="flex min-w-0 flex-col gap-1.5">
+      <span className={labelClassName}>{label}</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        list={filteredSuggestions.length > 0 ? listId : undefined}
+        aria-label={ariaLabel ?? label}
+        className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
+      />
+      {filteredSuggestions.length > 0 ? (
+        <datalist id={listId}>
+          {filteredSuggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
+      ) : null}
+    </label>
+  );
+}
+
 function ResolverModePublishCard({
   activeResolver,
   loading,
@@ -1484,6 +1590,8 @@ function ResolverModePublishCard({
   rows,
   dirtyCount,
   mappedCount,
+  collectionSuggestions,
+  modeSuggestions,
   onFieldChange,
   onReset,
   onSave,
@@ -1497,6 +1605,8 @@ function ResolverModePublishCard({
   rows: ResolverPublishMappingRow[];
   dirtyCount: number;
   mappedCount: number;
+  collectionSuggestions: string[];
+  modeSuggestions: string[];
   onFieldChange: (
     key: string,
     field: keyof ResolverPublishMappingDraft,
@@ -1578,31 +1688,35 @@ function ResolverModePublishCard({
                     )}
                   </div>
 
-                  <label className="tm-publish-mapping__field">
-                    <span className="tm-publish-mapping__field-label">Collection</span>
-                    <input
-                      type="text"
+                  <div className="tm-publish-mapping__field">
+                    <PublishTargetTextField
+                      label="Collection"
                       value={row.collectionName}
-                      onChange={(event) => onFieldChange(row.key, 'collectionName', event.target.value)}
+                      onChange={(value) =>
+                        onFieldChange(row.key, 'collectionName', value)
+                      }
                       placeholder={`Default ${DEFAULT_RESOLVER_COLLECTION_NAME} collection`}
                       disabled={saving || syncing}
-                      className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                      aria-label={`Collection for ${row.label}`}
+                      suggestions={collectionSuggestions}
+                      ariaLabel={`Collection for ${row.label}`}
+                      labelClassName="tm-publish-mapping__field-label"
                     />
-                  </label>
+                  </div>
 
-                  <label className="tm-publish-mapping__field">
-                    <span className="tm-publish-mapping__field-label">Mode</span>
-                    <input
-                      type="text"
+                  <div className="tm-publish-mapping__field">
+                    <PublishTargetTextField
+                      label="Mode"
                       value={row.modeName}
-                      onChange={(event) => onFieldChange(row.key, 'modeName', event.target.value)}
+                      onChange={(value) =>
+                        onFieldChange(row.key, 'modeName', value)
+                      }
                       placeholder="Required mode name"
                       disabled={saving || syncing}
-                      className="min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)]"
-                      aria-label={`Mode for ${row.label}`}
+                      suggestions={modeSuggestions}
+                      ariaLabel={`Mode for ${row.label}`}
+                      labelClassName="tm-publish-mapping__field-label"
                     />
-                  </label>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1742,7 +1856,7 @@ function PublishAllPreviewModal({
               className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Applying\u2026' : 'Apply to Figma'}
+              {busy ? 'Applying\u2026' : 'Apply selected changes'}
             </button>
           ) : (
             <button

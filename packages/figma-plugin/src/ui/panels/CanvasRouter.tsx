@@ -68,7 +68,13 @@ export function CanvasRouter({
     workingCollectionId: currentCollectionId,
     refreshCollections: refreshTokens,
   } = useCollectionStateContext();
-  const { allTokensFlat, pathToCollectionId, collectionIdsByPath } = useTokenFlatMapContext();
+  const {
+    allTokensFlat,
+    pathToCollectionId,
+    collectionIdsByPath,
+    perCollectionFlat,
+  } = useTokenFlatMapContext();
+  const currentCollectionFlat = perCollectionFlat[currentCollectionId] ?? {};
   const { selectedNodes, selectionLoading } = useSelectionContext();
   const {
     navigateTo,
@@ -113,7 +119,7 @@ export function CanvasRouter({
           <SelectionInspector
             selectedNodes={selectedNodes}
             selectionLoading={selectionLoading}
-            tokenMap={allTokensFlat}
+            tokenMap={currentCollectionFlat}
             onSync={sync}
             syncing={syncing}
             syncProgress={syncProgress}
