@@ -2137,7 +2137,10 @@ export function GeneratorsPanel({
       setEditorMode("graph");
       setGraphPanelState("none");
       if (issue.id === "missing-output") {
-        addOutputStep();
+        setSelectedNodeId(null);
+        setSelectedEdgeId(null);
+        setGraphMenu(null);
+        setGraphPanelState("nodeLibrary");
         return;
       }
       if (issue.nodeId) {
@@ -2183,7 +2186,50 @@ export function GeneratorsPanel({
         return;
       }
     },
-    [activeGenerator, addOutputStep, graphMenuPointFromNode, inspectorMinimized],
+    [activeGenerator, graphMenuPointFromNode, inspectorMinimized],
+  );
+
+  const focusPreviewGraphTarget = useCallback(
+    (target: { nodeId?: string; edgeId?: string }) => {
+      setEditorMode("graph");
+      setOutputDockOpen(true);
+      if (target.nodeId) {
+        setSelectedNodeId(target.nodeId);
+        setSelectedEdgeId(null);
+        setExpandedGraphNodeIds((current) => new Set(current).add(target.nodeId!));
+        setGraphPanelState(inspectorMinimized ? "none" : "inspector");
+        setGraphMenu(null);
+        return;
+      }
+
+      if (target.edgeId) {
+        const edge = activeGenerator?.edges.find(
+          (candidate) => candidate.id === target.edgeId,
+        );
+        const edgeTargetNode = edge
+          ? activeGenerator?.nodes.find((node) => node.id === edge.to.nodeId)
+          : null;
+        setSelectedNodeId(null);
+        setSelectedEdgeId(target.edgeId);
+        setGraphPanelState("none");
+        setGraphMenu(
+          edgeTargetNode
+            ? {
+                kind: "edge",
+                edgeId: target.edgeId,
+                ...graphMenuPointFromNode(edgeTargetNode),
+              }
+            : null,
+        );
+        return;
+      }
+
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+      setGraphPanelState("none");
+      setGraphMenu(null);
+    },
+    [activeGenerator, graphMenuPointFromNode, inspectorMinimized],
   );
 
   const focusFirstGraphIssue = useCallback(() => {
@@ -2342,6 +2388,7 @@ export function GeneratorsPanel({
               dirty={dirty}
               canRepair={canRepairGraph}
               onFocusIssue={focusGraphIssue}
+              onAddOutput={addOutputStep}
               onRepair={repairGraphConnections}
               onDiscard={discardGeneratorDraft}
             />
@@ -2745,6 +2792,7 @@ export function GeneratorsPanel({
             activeGenerator.targetCollectionId,
           )
         }
+        onViewInGraph={focusPreviewGraphTarget}
       />
     );
   };
@@ -3489,6 +3537,7 @@ function GraphIssueCallout({
   dirty,
   canRepair,
   onFocusIssue,
+  onAddOutput,
   onRepair,
   onDiscard,
 }: {
@@ -3496,6 +3545,7 @@ function GraphIssueCallout({
   dirty: boolean;
   canRepair: boolean;
   onFocusIssue: (issue: GraphIssue) => void;
+  onAddOutput: () => void;
   onRepair: () => void;
   onDiscard: () => void;
 }) {
@@ -3549,9 +3599,15 @@ function GraphIssueCallout({
               type="button"
               size="sm"
               variant="secondary"
-              onClick={() => onFocusIssue(primaryIssue)}
+              onClick={() => {
+                if (primaryIssue.id === "missing-output") {
+                  onAddOutput();
+                  return;
+                }
+                onFocusIssue(primaryIssue);
+              }}
             >
-              Fix
+              {primaryIssue.id === "missing-output" ? "Add output" : "Fix"}
             </Button>
             {canRepair ? (
               <Button

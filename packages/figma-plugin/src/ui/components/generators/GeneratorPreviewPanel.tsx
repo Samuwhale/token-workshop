@@ -5,6 +5,12 @@ import type {
 } from "@token-workshop/core";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 
+type PreviewGraphTarget = {
+  diagnosticId?: string;
+  nodeId?: string;
+  edgeId?: string;
+};
+
 type PreviewChangeCounts = {
   collisions: number;
   created: number;
@@ -61,12 +67,14 @@ export function PreviewPanel({
   focusedDiagnosticId,
   compact = false,
   onNavigateToToken,
+  onViewInGraph,
 }: {
   preview: TokenGeneratorPreviewResult | null;
   targetCollection: TokenCollection | undefined;
   focusedDiagnosticId?: string;
   compact?: boolean;
   onNavigateToToken: (path: string) => void;
+  onViewInGraph?: (target: PreviewGraphTarget) => void;
 }) {
   if (!preview) {
     return (
@@ -94,22 +102,12 @@ export function PreviewPanel({
       {preview.diagnostics.length > 0 && (
         <div className="space-y-1">
           {preview.diagnostics.map((diagnostic) => (
-            <div
+            <PreviewDiagnosticCard
               key={diagnostic.id}
-              className={`rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary ${
-                focusedDiagnosticId === diagnostic.id
-                  ? "ring-1 ring-[var(--color-figma-accent)]"
-                  : ""
-              }`}
-            >
-              <span className="font-medium capitalize">
-                {diagnostic.severity}
-              </span>
-              <span className="text-[color:var(--color-figma-text-secondary)]">
-                {" "}
-                - {diagnostic.message}
-              </span>
-            </div>
+              diagnostic={diagnostic}
+              focused={focusedDiagnosticId === diagnostic.id}
+              onViewInGraph={onViewInGraph}
+            />
           ))}
         </div>
       )}
@@ -136,6 +134,7 @@ export function PreviewPanel({
                 modes={modes}
                 focusedNodeId={focusedDiagnostic?.nodeId}
                 onNavigateToToken={onNavigateToToken}
+                onViewInGraph={onViewInGraph}
               />
             ) : (
               <PreviewOutputTable
@@ -143,6 +142,7 @@ export function PreviewPanel({
                 modes={modes}
                 focusedNodeId={focusedDiagnostic?.nodeId}
                 onNavigateToToken={onNavigateToToken}
+                onViewInGraph={onViewInGraph}
               />
             )}
           </section>
@@ -152,6 +152,55 @@ export function PreviewPanel({
             No outputs yet. Add an output node and connect a value.
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewDiagnosticCard({
+  diagnostic,
+  focused,
+  onViewInGraph,
+}: {
+  diagnostic: TokenGeneratorPreviewResult["diagnostics"][number];
+  focused: boolean;
+  onViewInGraph?: (target: PreviewGraphTarget) => void;
+}) {
+  const canViewInGraph = Boolean(
+    onViewInGraph && (diagnostic.nodeId || diagnostic.edgeId),
+  );
+
+  return (
+    <div
+      className={`rounded-md bg-[var(--color-figma-bg-secondary)] p-2 text-secondary ${
+        focused ? "ring-1 ring-[var(--color-figma-accent)]" : ""
+      }`}
+    >
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <p className="m-0 min-w-0 flex-1">
+          <span className="font-medium capitalize">
+            {diagnostic.severity}
+          </span>
+          <span className="text-[color:var(--color-figma-text-secondary)]">
+            {" "}
+            - {diagnostic.message}
+          </span>
+        </p>
+        {canViewInGraph ? (
+          <button
+            type="button"
+            onClick={() =>
+              onViewInGraph?.({
+                diagnosticId: diagnostic.id,
+                nodeId: diagnostic.nodeId,
+                edgeId: diagnostic.edgeId,
+              })
+            }
+            className="shrink-0 rounded px-1.5 py-0.5 text-tertiary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            View in graph
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -212,11 +261,13 @@ function PreviewOutputTable({
   modes,
   focusedNodeId,
   onNavigateToToken,
+  onViewInGraph,
 }: {
   outputs: TokenGeneratorPreviewOutput[];
   modes: string[];
   focusedNodeId?: string;
   onNavigateToToken: (path: string) => void;
+  onViewInGraph?: (target: PreviewGraphTarget) => void;
 }) {
   return (
     <div className="overflow-x-auto rounded-md bg-[var(--color-figma-bg-secondary)]">
@@ -245,6 +296,7 @@ function PreviewOutputTable({
               modes={modes}
               focused={focusedNodeId === output.nodeId}
               onNavigateToToken={onNavigateToToken}
+              onViewInGraph={onViewInGraph}
             />
           ))}
         </tbody>
@@ -258,11 +310,13 @@ function PreviewOutputRow({
   modes,
   focused,
   onNavigateToToken,
+  onViewInGraph,
 }: {
   output: TokenGeneratorPreviewOutput;
   modes: string[];
   focused: boolean;
   onNavigateToToken: (path: string) => void;
+  onViewInGraph?: (target: PreviewGraphTarget) => void;
 }) {
   return (
     <tr className={focused ? "ring-1 ring-[var(--color-figma-accent)]" : ""}>
@@ -271,6 +325,7 @@ function PreviewOutputRow({
           output={output}
           variant="table"
           onNavigateToToken={onNavigateToToken}
+          onViewInGraph={onViewInGraph}
         />
       </td>
       {modes.map((modeName) => (
@@ -304,11 +359,13 @@ function PreviewOutputStack({
   modes,
   focusedNodeId,
   onNavigateToToken,
+  onViewInGraph,
 }: {
   outputs: TokenGeneratorPreviewOutput[];
   modes: string[];
   focusedNodeId?: string;
   onNavigateToToken: (path: string) => void;
+  onViewInGraph?: (target: PreviewGraphTarget) => void;
 }) {
   return (
     <div className="space-y-1">
@@ -327,6 +384,7 @@ function PreviewOutputStack({
                 output={output}
                 variant="stack"
                 onNavigateToToken={onNavigateToToken}
+                onViewInGraph={onViewInGraph}
               />
             </div>
             <span className={`shrink-0 text-tertiary ${changeToneClass(output)}`}>
@@ -367,10 +425,12 @@ function PreviewOutputPath({
   output,
   variant,
   onNavigateToToken,
+  onViewInGraph,
 }: {
   output: TokenGeneratorPreviewOutput;
   variant: "stack" | "table";
   onNavigateToToken: (path: string) => void;
+  onViewInGraph?: (target: PreviewGraphTarget) => void;
 }) {
   const pathClass =
     variant === "stack"
@@ -400,6 +460,15 @@ function PreviewOutputPath({
         <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
           Manual token exists
         </span>
+      ) : null}
+      {output.change === "created" && output.nodeId && onViewInGraph ? (
+        <button
+          type="button"
+          onClick={() => onViewInGraph({ nodeId: output.nodeId })}
+          className="mt-1 block text-left text-tertiary font-medium text-[color:var(--color-figma-text-accent)] hover:underline"
+        >
+          Show source node
+        </button>
       ) : null}
     </>
   );

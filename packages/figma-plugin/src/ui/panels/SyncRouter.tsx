@@ -11,17 +11,17 @@ import type { PublishRoutingDraft } from "../hooks/usePublishRouting";
 interface SyncRouterProps {
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
-	  onOpenGenerator?: (
-	    generatorId: string,
-	    options?: {
-	      preserveHandoff?: boolean;
-	      focus?: {
-	        diagnosticId?: string;
-	        nodeId?: string;
-	        edgeId?: string;
-	      };
-	    },
-	  ) => void;
+  onOpenGenerator?: (
+    generatorId: string,
+    options?: {
+      preserveHandoff?: boolean;
+      focus?: {
+        diagnosticId?: string;
+        nodeId?: string;
+        edgeId?: string;
+      };
+    },
+  ) => void;
   savePublishRouting: (
     collectionId: string,
     routing: PublishRoutingDraft,
@@ -51,7 +51,7 @@ export function SyncRouter({
     };
   } else if (publishPreflightState.targetDirty) {
     publishAction = {
-      label: "Save target",
+      label: "Review target",
       onClick: () => publishPanelHandleRef.current?.focusPublishTarget(),
     };
   } else if (pendingPublishCount > 0) {

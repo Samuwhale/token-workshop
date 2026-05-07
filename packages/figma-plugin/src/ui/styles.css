@@ -2258,6 +2258,13 @@ button.tm-status-row:not(:disabled):hover {
   background: transparent;
 }
 
+.tm-token-details__mode-list-actions {
+  display: flex;
+  min-inline-size: 0;
+  justify-content: flex-start;
+  padding-top: 2px;
+}
+
 .tm-token-details__section {
   display: flex;
   flex-direction: column;
@@ -3964,14 +3971,15 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__controls {
     justify-content: flex-start;
-    gap: 4px;
+    flex-wrap: wrap;
+    gap: 4px 6px;
     margin-left: 0;
   }
 
   .tm-token-mode-row__action-button {
-    inline-size: 28px;
+    inline-size: auto;
     min-inline-size: 28px;
-    padding-inline: 0;
+    padding-inline: 6px;
   }
 
   .tm-token-mode-row__overflow-button {
@@ -3980,7 +3988,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__action-button-label {
-    display: none;
+    display: block;
   }
 
   .tm-token-mode-row__inline-controls {

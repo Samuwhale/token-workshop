@@ -1,5 +1,10 @@
 import { severityStyles } from './noticeSystem';
 import { LONG_TEXT_CLASSES } from './longTextStyles';
+import {
+  CONTROL_DISABLED_CLASSES,
+  CONTROL_INPUT_BASE_CLASSES,
+  CONTROL_INPUT_DEFAULT_STATE_CLASSES,
+} from './controlClasses';
 
 /**
  * Unified authoring surface classes for all token/generator creation and editing screens.
@@ -9,16 +14,16 @@ export const AUTHORING = {
   // --- Controls ---
   /** Width-free input base — use when the parent controls width (e.g. flex-1, w-16) */
   inputBase:
-    'min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
+    `min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
   input:
-    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
+    `w-full min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
   inputMono:
-    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]',
+    `w-full min-h-[28px] px-2 py-1.5 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
   /** Width-free mono input base — use when the parent controls width */
   inputMonoBase:
-    'min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body font-mono focus-visible:border-[var(--color-figma-accent)]',
+    `min-h-[28px] px-2 py-1.5 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
   select:
-    'w-full min-h-[28px] px-2 py-1.5 rounded-md bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]',
+    `w-full min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
 
   // --- Labels ---
   label: 'text-secondary font-medium text-[color:var(--color-figma-text-secondary)]',

@@ -33,7 +33,7 @@ import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_ACTIONS_COLLAPSE_WIDTH = 860;
+const COLLECTION_INLINE_DETAILS_MIN_WIDTH = 860;
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "Current" },
   { value: "all", label: "All" },
@@ -169,13 +169,11 @@ export function CollectionTabs({
     scopeValue !== "all";
   const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
-  const hasSecondaryActions =
-    showManageButton || showCreateButton || showImportButton;
-  const collapseSecondaryActions =
-    hasSecondaryActions &&
-    toolbarWidth !== null &&
-    toolbarWidth < COLLECTION_ACTIONS_COLLAPSE_WIDTH;
-  const hasCollapsedOverflowActions = showCreateButton || showImportButton;
+  const showDirectManageButton =
+    showManageButton &&
+    (toolbarWidth === null || toolbarWidth >= COLLECTION_INLINE_DETAILS_MIN_WIDTH);
+  const showOverflowMenu =
+    showCreateButton || showImportButton || (showManageButton && !showDirectManageButton);
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
@@ -430,154 +428,104 @@ export function CollectionTabs({
           </div>
 
           <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
-            {collapseSecondaryActions ? (
-              <>
-                {showManageButton ? (
-                  <Button
-                    onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
-                    aria-label={
-                      activeCollectionSettings?.open === true
-                        ? "Hide collection details"
-                        : "Collection details"
-                    }
-                    title={
-                      activeCollectionSettings?.open === true
-                        ? "Hide collection details"
-                        : "Collection details"
-                    }
-                    aria-pressed={activeCollectionSettings?.open === true}
-                    variant="ghost"
-                    size="sm"
-                    className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start ${
-                      activeCollectionSettings?.open === true
-                        ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                    }`}
+            {showDirectManageButton ? (
+              <Button
+                onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
+                aria-label={
+                  activeCollectionSettings?.open === true
+                    ? "Hide collection management"
+                    : "Manage collection"
+                }
+                title={
+                  activeCollectionSettings?.open === true
+                    ? "Hide collection management"
+                    : "Manage collection"
+                }
+                aria-pressed={activeCollectionSettings?.open === true}
+                variant="ghost"
+                size="sm"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start ${
+                  activeCollectionSettings?.open === true
+                    ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
+                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                }`}
+              >
+                <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+                <span className="tm-toolbar-action__label">Details</span>
+              </Button>
+            ) : null}
+
+            {showOverflowMenu ? (
+              <div className="relative">
+                <Button
+                  ref={actionsMenu.triggerRef}
+                  onClick={actionsMenu.toggle}
+                  aria-expanded={actionsMenu.open}
+                  aria-haspopup="menu"
+                  aria-label="Collection actions"
+                  title="Collection actions"
+                  variant="ghost"
+                  size="sm"
+                  className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                >
+                  <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
+                  <span className="tm-toolbar-action__label">Actions</span>
+                </Button>
+                {actionsMenu.open ? (
+                  <div
+                    ref={actionsMenu.menuRef}
+                    style={actionsMenuStyle ?? { visibility: "hidden" }}
+                    className={FLOATING_MENU_CLASS}
+                    role="menu"
                   >
-                    <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                    <span className="tm-toolbar-action__label">Details</span>
-                  </Button>
-                ) : null}
-                {hasCollapsedOverflowActions ? (
-                  <div className="relative">
-                    <Button
-                      ref={actionsMenu.triggerRef}
-                      onClick={actionsMenu.toggle}
-                      aria-expanded={actionsMenu.open}
-                      aria-haspopup="menu"
-                      aria-label="More collection actions"
-                      title="More collection actions"
-                      variant="ghost"
-                      size="sm"
-                      className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-                    >
-                      <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-                      <span className="tm-toolbar-action__label">More</span>
-                    </Button>
-                    {actionsMenu.open ? (
-                      <div
-                        ref={actionsMenu.menuRef}
-                        style={actionsMenuStyle ?? { visibility: "hidden" }}
-                        className={FLOATING_MENU_CLASS}
-                        role="menu"
+                    {showManageButton && !showDirectManageButton ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          activeCollectionSettings?.onToggle(currentCollectionId!);
+                          actionsMenu.close({ restoreFocus: false });
+                        }}
+                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
                       >
-                        {showCreateButton ? (
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              onOpenCreateCollection?.();
-                              actionsMenu.close({ restoreFocus: false });
-                            }}
-                            className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                          >
-                            <Plus size={12} strokeWidth={1.5} aria-hidden />
-                            Create collection
-                          </button>
-                        ) : null}
-                        {showImportButton ? (
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              onOpenImport?.();
-                              actionsMenu.close({ restoreFocus: false });
-                            }}
-                            className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                          >
-                            <Upload size={12} strokeWidth={1.5} aria-hidden />
-                            Import tokens
-                          </button>
-                        ) : null}
-                      </div>
+                        <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+                        {activeCollectionSettings?.open === true
+                          ? "Hide collection details"
+                          : "Collection details"}
+                      </button>
+                    ) : null}
+                    {showCreateButton ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onOpenCreateCollection?.();
+                          actionsMenu.close({ restoreFocus: false });
+                        }}
+                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        <Plus size={12} strokeWidth={1.5} aria-hidden />
+                        Create collection
+                      </button>
+                    ) : null}
+                    {showImportButton ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          onOpenImport?.();
+                          actionsMenu.close({ restoreFocus: false });
+                        }}
+                        className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                      >
+                        <Upload size={12} strokeWidth={1.5} aria-hidden />
+                        Import tokens
+                      </button>
                     ) : null}
                   </div>
                 ) : null}
-              </>
-            ) : (
-              <>
-                {showManageButton ? (
-                  <Button
-                    onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
-                    aria-label={
-                      activeCollectionSettings?.open === true
-                        ? "Hide collection management"
-                        : "Manage collection"
-                    }
-                    title={
-                      activeCollectionSettings?.open === true
-                        ? "Hide collection management"
-                        : "Manage collection"
-                    }
-                    aria-pressed={activeCollectionSettings?.open === true}
-                    variant="ghost"
-                    size="sm"
-                    className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start ${
-                      activeCollectionSettings?.open === true
-                        ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                    }`}
-                  >
-                    <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                    <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                      Details
-                    </span>
-                  </Button>
-                ) : null}
-
-                {showCreateButton ? (
-                  <Button
-                    onClick={onOpenCreateCollection}
-                    aria-label="Create collection"
-                    title="Create collection"
-                    variant="ghost"
-                    size="sm"
-                    className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-                  >
-                    <Plus size={12} strokeWidth={1.5} aria-hidden />
-                    <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                      New collection
-                    </span>
-                  </Button>
-                ) : null}
-
-                {showImportButton ? (
-                  <Button
-                    onClick={onOpenImport}
-                    aria-label="Import tokens"
-                    title="Import tokens"
-                    variant="ghost"
-                    size="sm"
-                    className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-                  >
-                    <Upload size={12} strokeWidth={1.5} aria-hidden />
-                    <span className="tm-toolbar-action__label tm-collection-toolbar__optional-label">
-                      Import tokens
-                    </span>
-                  </Button>
-                ) : null}
-              </>
-            )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

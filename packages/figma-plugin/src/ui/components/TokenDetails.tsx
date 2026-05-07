@@ -1500,17 +1500,6 @@ export function TokenDetails({
 
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Value";
-  const valueSectionActions =
-    fieldEditable && onManageCollectionModes ? (
-      <button
-        type="button"
-        onClick={() => onManageCollectionModes(ownerCollectionId)}
-        className="tm-token-details__text-button inline-flex items-center gap-1"
-      >
-        <Plus size={12} strokeWidth={1.5} aria-hidden />
-        Collection modes
-      </button>
-    ) : null;
   const referenceCount =
     (ancestors.isEmpty ? 0 : ancestors.chains.length) + dependents.length;
   const referencesLabel =
@@ -1748,7 +1737,6 @@ export function TokenDetails({
 
         <Section
           title={valueSectionTitle}
-          actions={valueSectionActions}
           emphasis="primary"
         >
           <Stack
@@ -1848,6 +1836,19 @@ export function TokenDetails({
                 })}
               </Stack>
             </div>
+
+            {fieldEditable && onManageCollectionModes ? (
+              <div className="tm-token-details__mode-list-actions">
+                <button
+                  type="button"
+                  onClick={() => onManageCollectionModes(ownerCollectionId)}
+                  className="tm-token-details__text-button"
+                >
+                  <Plus size={12} strokeWidth={1.5} aria-hidden />
+                  Manage collection modes
+                </button>
+              </div>
+            ) : null}
 
             {fieldEditable && valueIsAlias ? (
               <DerivationEditor

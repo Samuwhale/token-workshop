@@ -1,4 +1,5 @@
 import type { MouseEventHandler, ReactNode } from "react";
+import { CONTROL_FOCUS_ACCENT } from "../shared/controlClasses";
 
 interface ListItemProps {
   leading?: ReactNode;
@@ -65,7 +66,7 @@ export function ListItem({
         onDoubleClick={onDoubleClick}
         disabled={disabled}
         title={title}
-        className={baseClass}
+        className={`${baseClass} ${CONTROL_FOCUS_ACCENT}`}
       >
         {content}
       </button>

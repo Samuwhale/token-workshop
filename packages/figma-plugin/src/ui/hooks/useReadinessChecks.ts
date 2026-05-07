@@ -101,7 +101,7 @@ interface GeneratorStatusItem {
       nodeId?: string;
       edgeId?: string;
     }>;
-    outputs: Array<{ collision?: boolean }>;
+    outputs: Array<{ collision?: boolean; nodeId?: string }>;
   };
   stale: boolean;
   unapplied: boolean;
@@ -120,6 +120,49 @@ function parseResolverRowId(rowId: string): { mappingKey: string; path: string }
     mappingKey: rowId.slice(0, separatorIndex),
     path: rowId.slice(separatorIndex + 2),
   };
+}
+
+function rankGeneratorDiagnostic(
+  diagnostic: GeneratorStatusItem['preview']['diagnostics'][number],
+): number {
+  const severityRank =
+    diagnostic.severity === 'error'
+      ? 0
+      : diagnostic.severity === 'warning'
+      ? 2
+      : 4;
+  return severityRank + (diagnostic.nodeId || diagnostic.edgeId ? 0 : 1);
+}
+
+function rankGeneratorIssue(item: GeneratorStatusItem): number {
+  const bestDiagnosticRank = item.preview.diagnostics.length > 0
+    ? Math.min(...item.preview.diagnostics.map(rankGeneratorDiagnostic))
+    : Number.POSITIVE_INFINITY;
+  if (item.blocking) return 0;
+  if (bestDiagnosticRank <= 1) return 1;
+  if (item.preview.outputs.some((output) => output.collision)) return 2;
+  if (item.stale) return 3;
+  if (item.unapplied) return 4;
+  if (bestDiagnosticRank < Number.POSITIVE_INFINITY) return 5 + bestDiagnosticRank;
+  return 20;
+}
+
+function selectRecommendedGeneratorIssue(
+  generatorIssues: GeneratorStatusItem[],
+): GeneratorStatusItem | undefined {
+  return [...generatorIssues].sort(
+    (a, b) =>
+      rankGeneratorIssue(a) - rankGeneratorIssue(b) ||
+      a.generator.name.localeCompare(b.generator.name),
+  )[0];
+}
+
+function selectRecommendedGeneratorDiagnostic(
+  diagnostics: GeneratorStatusItem['preview']['diagnostics'],
+): GeneratorStatusItem['preview']['diagnostics'][number] | undefined {
+  return [...diagnostics].sort(
+    (a, b) => rankGeneratorDiagnostic(a) - rankGeneratorDiagnostic(b),
+  )[0];
 }
 
 function getResolverCollectionName(mapping: ResolverPublishSyncMapping): string {
@@ -286,8 +329,13 @@ export function useReadinessChecks({
           item.preview.diagnostics.length > 0 ||
           item.preview.outputs.some((output) => output.collision))
       );
-      const recommendedGeneratorIssue = generatorIssues[0];
-      const recommendedGeneratorDiagnostic = recommendedGeneratorIssue?.preview.diagnostics[0];
+      const recommendedGeneratorIssue = selectRecommendedGeneratorIssue(generatorIssues);
+      const recommendedGeneratorDiagnostic = recommendedGeneratorIssue
+        ? selectRecommendedGeneratorDiagnostic(recommendedGeneratorIssue.preview.diagnostics)
+        : undefined;
+      const recommendedGeneratorOutput = recommendedGeneratorIssue?.preview.outputs.find(
+        (output) => output.collision && output.nodeId,
+      ) ?? recommendedGeneratorIssue?.preview.outputs.find((output) => output.nodeId);
       const { localOnly: missingInFigma, figmaOnly: rawOrphans } = getSyncRowsByCategory(snapshot.rows);
       const resolverOrphanPlan = compareMode === 'resolver-publish' && resolverPublishMappings
         ? buildResolverOrphanCleanupPlan(snapshot, resolverPublishMappings)
@@ -412,7 +460,8 @@ export function useReadinessChecks({
           recommendedActionId: generatorStatusError || generatorIssues.length > 0 ? 'review-generator-issues' : undefined,
           recommendedGeneratorId: recommendedGeneratorIssue?.generator.id,
           recommendedGeneratorDiagnosticId: recommendedGeneratorDiagnostic?.id,
-          recommendedGeneratorNodeId: recommendedGeneratorDiagnostic?.nodeId,
+          recommendedGeneratorNodeId:
+            recommendedGeneratorDiagnostic?.nodeId ?? recommendedGeneratorOutput?.nodeId,
           recommendedGeneratorEdgeId: recommendedGeneratorDiagnostic?.edgeId,
         },
         {

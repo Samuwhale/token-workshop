@@ -1,5 +1,9 @@
 import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import {
+  CONTROL_DISABLED_CLASSES,
+  CONTROL_FOCUS_ACCENT,
+} from "../shared/controlClasses";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -33,7 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={rest.type ?? "button"}
         {...rest}
-        className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded text-center leading-tight font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:border-[var(--border-muted)] disabled:bg-[var(--surface-group-quiet)] disabled:text-[color:var(--color-figma-text-tertiary)] disabled:hover:border-[var(--border-muted)] disabled:hover:bg-[var(--surface-group-quiet)] disabled:hover:text-[color:var(--color-figma-text-tertiary)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[1px] ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
+        className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] text-center leading-tight font-medium outline-none transition-colors ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
       >
         {children}
       </button>
