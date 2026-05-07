@@ -748,6 +748,9 @@ export function PublishPanel({
     setChecksStale,
     runReadinessChecks,
     triggerReadinessAction,
+    missingVariablesConfirm,
+    setMissingVariablesConfirm,
+    confirmMissingVariablesPush,
     readinessBlockingFails,
     isReadinessOutdated,
   } = readiness;
@@ -1431,6 +1434,37 @@ export function PublishPanel({
               {p}
             </div>
           ))}
+        </div>
+      </ConfirmModal>
+    )}
+    {missingVariablesConfirm && (
+      <ConfirmModal
+        title={`Create ${missingVariablesConfirm.tokens.length} Figma variable${missingVariablesConfirm.tokens.length !== 1 ? 's' : ''}?`}
+        description={`Token Workshop will create the missing variables in ${missingVariablesConfirm.targetLabel}, then re-run the Figma check.`}
+        confirmLabel="Create variables"
+        wide
+        onCancel={() => setMissingVariablesConfirm(null)}
+        onConfirm={confirmMissingVariablesPush}
+      >
+        <div className="mt-2 max-h-[180px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          {missingVariablesConfirm.tokens.slice(0, 10).map((token) => (
+            <div
+              key={`${token.collectionId ?? ''}:${token.path}`}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-1 text-secondary last:border-b-0"
+            >
+              <span className="truncate font-mono text-[color:var(--color-figma-text)]" title={token.path}>
+                {token.path}
+              </span>
+              <span className="text-[color:var(--color-figma-text-tertiary)]">
+                {token.$type}
+              </span>
+            </div>
+          ))}
+          {missingVariablesConfirm.tokens.length > 10 ? (
+            <div className="px-3 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+              {missingVariablesConfirm.tokens.length - 10} more variable{missingVariablesConfirm.tokens.length - 10 === 1 ? '' : 's'}
+            </div>
+          ) : null}
         </div>
       </ConfirmModal>
     )}

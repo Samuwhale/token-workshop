@@ -443,7 +443,7 @@ function ModesSection({
         <p className="px-1 pb-2 text-secondary text-[color:var(--color-figma-text-tertiary)]">
           Every token in this collection uses these modes. New modes{" "}
           {sourceModeName
-            ? `start with values from ${sourceModeName} so designers can adjust only what differs.`
+            ? `copy ${sourceModeName} values as an editable starting point.`
             : "become value columns for every token in the collection."}
         </p>
         {collection.modes.map((mode, index) => (
@@ -495,7 +495,7 @@ function ModesSection({
               {!addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {sourceModeName
-                    ? `Existing tokens will start with their ${sourceModeName} values in this mode.`
+                    ? `Existing tokens will copy ${sourceModeName} values into the new mode.`
                     : "This mode becomes a value column for every token in this collection."}
                 </p>
               ) : null}

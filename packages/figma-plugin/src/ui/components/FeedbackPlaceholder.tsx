@@ -163,7 +163,11 @@ export function FeedbackPlaceholder({
       <div
         className={joinClasses(
           sizeStyles.content,
-          align === 'center' ? 'items-center' : 'items-start',
+          align === 'center'
+            ? 'items-center'
+            : size === 'full'
+              ? 'max-w-[420px] items-start'
+              : 'max-w-full items-start',
         )}
       >
         {iconNode !== null ? (

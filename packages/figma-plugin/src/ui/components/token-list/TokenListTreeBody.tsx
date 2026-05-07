@@ -465,7 +465,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               ) : (
                 <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {sourceModeName
-                    ? `Existing tokens will start with their ${sourceModeName} values in this mode.`
+                    ? `Existing tokens will copy ${sourceModeName} values into the new mode.`
                     : "This mode becomes a value column for every token in this collection."}
                 </p>
               )}

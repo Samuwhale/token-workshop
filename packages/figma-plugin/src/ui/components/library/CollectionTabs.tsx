@@ -3,20 +3,18 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
-  useRef,
   useState,
+  useRef,
 } from "react";
 import {
   Check,
   ChevronDown,
-  MoreHorizontal,
   Plus,
   Settings2,
   Upload,
 } from "lucide-react";
 import type { TokenCollection } from "@token-workshop/core";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
-import { useElementWidth } from "../../hooks/useElementWidth";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import {
@@ -33,7 +31,6 @@ import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_INLINE_DETAILS_MIN_WIDTH = 680;
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "Current" },
   { value: "all", label: "All" },
@@ -99,8 +96,6 @@ export function CollectionTabs({
   onOpenCreateCollection,
   onOpenImport,
 }: CollectionTabsProps) {
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const toolbarWidth = useElementWidth(toolbarRef);
   const {
     open: switcherOpen,
     setOpen: setSwitcherOpen,
@@ -169,17 +164,16 @@ export function CollectionTabs({
     scopeValue !== "all";
   const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
-  const showDirectManageButton =
-    showManageButton &&
-    (toolbarWidth === null || toolbarWidth >= COLLECTION_INLINE_DETAILS_MIN_WIDTH);
   const showOverflowMenu =
-    showCreateButton || showImportButton || (showManageButton && !showDirectManageButton);
+    showManageButton || showCreateButton || showImportButton;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
       ? `All collections view. Current collection: ${currentDisplayName}. Choose collection`
       : `Current collection: ${currentDisplayName}. Choose collection`
     : "Choose collection";
+  const triggerTitle =
+    visibleMeta.length > 0 ? `${visibleTitle} · ${visibleMeta}` : visibleTitle;
 
   const closeSwitcher = useCallback(() => {
     closeSwitcherMenu({ restoreFocus: false });
@@ -226,10 +220,7 @@ export function CollectionTabs({
   useFocusTrap(switcherMenuRef, { initialFocusRef: searchInputRef });
 
   return (
-    <div
-      ref={toolbarRef}
-      className="flex min-w-0 shrink-0 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1"
-    >
+    <div className="flex min-w-0 shrink-0 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1">
       <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
         <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
           <div className="tm-responsive-toolbar__leading tm-collection-toolbar__leading">
@@ -251,7 +242,7 @@ export function CollectionTabs({
               aria-controls="collection-switcher-dialog"
               aria-expanded={switcherOpen}
               aria-label={triggerAriaLabel}
-              title={currentCollection ? currentDisplayName : "Choose collection"}
+              title={currentCollection ? triggerTitle : "Choose collection"}
               className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
                 switcherOpen
                   ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
@@ -262,11 +253,6 @@ export function CollectionTabs({
                 <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
                   {visibleTitle}
                 </span>
-                {visibleMeta ? (
-                  <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                    {visibleMeta}
-                  </span>
-                ) : null}
               </span>
               <ChevronDown
                 size={12}
@@ -428,33 +414,6 @@ export function CollectionTabs({
           </div>
 
           <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
-            {showDirectManageButton ? (
-              <Button
-                onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
-                aria-label={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection management"
-                    : "Manage collection"
-                }
-                title={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection management"
-                    : "Manage collection"
-                }
-                aria-pressed={activeCollectionSettings?.open === true}
-                variant="ghost"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start ${
-                  activeCollectionSettings?.open === true
-                    ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                }`}
-              >
-                <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label">Details</span>
-              </Button>
-            ) : null}
-
             {showOverflowMenu ? (
               <div className="relative">
                 <Button
@@ -462,14 +421,14 @@ export function CollectionTabs({
                   onClick={actionsMenu.toggle}
                   aria-expanded={actionsMenu.open}
                   aria-haspopup="menu"
-                  aria-label="Collection actions"
-                  title="Collection actions"
+                  aria-label="Collection options"
+                  title="Collection options"
                   variant="ghost"
                   size="sm"
                   className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
                 >
-                  <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-                  <span className="tm-toolbar-action__label">Actions</span>
+                  <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+                  <span className="tm-toolbar-action__label">Collection</span>
                 </Button>
                 {actionsMenu.open ? (
                   <div
@@ -478,7 +437,7 @@ export function CollectionTabs({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    {showManageButton && !showDirectManageButton ? (
+                    {showManageButton ? (
                       <button
                         type="button"
                         role="menuitem"

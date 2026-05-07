@@ -98,6 +98,7 @@ export function RollbackPreviewModal({
 
   const summary = changes && changes.length > 0 ? summarizeChanges(changes) : null;
   const noChanges = changes?.length === 0 && metadataChanges.length === 0;
+  const restoreDisabled = confirming || diffLoading || diffError !== null;
 
   return (
     <div
@@ -152,7 +153,7 @@ export function RollbackPreviewModal({
           {!diffLoading && diffError && (
             <div className="flex flex-col items-center justify-center h-20 gap-1 px-3 text-center">
               <p className="text-body text-[color:var(--color-figma-text-error)]">{diffError}</p>
-              <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">You can still restore this edit — Token Workshop will return affected tokens to their prior state.</p>
+              <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Restore is unavailable until Token Workshop can show the affected tokens.</p>
             </div>
           )}
 
@@ -211,7 +212,7 @@ export function RollbackPreviewModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={confirming || diffLoading}
+            disabled={restoreDisabled}
             className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {confirming && <Spinner size="sm" className="text-white" />}

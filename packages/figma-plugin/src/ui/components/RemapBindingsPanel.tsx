@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TokenMapEntry } from "../../shared/types";
+import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
 import { RemapAutocompleteInput } from "./RemapAutocompleteInput";
 
@@ -38,6 +39,11 @@ interface RemapResultState {
   updatedNodes: number;
   scannedNodes: number;
   nodesWithBindings: number;
+}
+
+interface RemapPlanEntry {
+  from: string;
+  to: string;
 }
 
 export function buildRemapRowsFromEntries(
@@ -102,6 +108,10 @@ export function RemapBindingsPanel({
   const [remapValidationMessage, setRemapValidationMessage] = useState<
     string | null
   >(null);
+  const [pendingPlan, setPendingPlan] = useState<{
+    entries: RemapPlanEntry[];
+    scope: "selection" | "page";
+  } | null>(null);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -161,17 +171,25 @@ export function RemapBindingsPanel({
     onRowsChange(nextRows);
   };
 
+  const plannedEntries = useMemo(
+    () =>
+      remapRows
+        .map((row) => ({
+          from: row.from.trim(),
+          to: row.to.trim(),
+        }))
+        .filter((row) => row.from && row.to && row.from !== row.to),
+    [remapRows],
+  );
+
   const handleRemap = () => {
     const normalizedRows = remapRows.map((row) => ({
       from: row.from.trim(),
       to: row.to.trim(),
     }));
     const hasAnyInput = normalizedRows.some((row) => row.from || row.to);
-    const validEntries = normalizedRows.filter(
-      (row) => row.from && row.to && row.from !== row.to,
-    );
 
-    if (validEntries.length === 0) {
+    if (plannedEntries.length === 0) {
       if (hasAnyInput) {
         setRemapValidationMessage(
           "Add at least one row with both paths filled and different values.",
@@ -180,8 +198,12 @@ export function RemapBindingsPanel({
       return;
     }
 
+    setPendingPlan({ entries: plannedEntries, scope: remapScope });
+  };
+
+  const executeRemap = (entries: RemapPlanEntry[], scope: "selection" | "page") => {
     const remapMap = Object.fromEntries(
-      validEntries.map((row) => [row.from, row.to]),
+      entries.map((row) => [row.from, row.to]),
     );
 
     setRemapRunning(true);
@@ -195,7 +217,7 @@ export function RemapBindingsPanel({
         pluginMessage: {
           type: "remap-bindings",
           remapMap,
-          scope: remapScope,
+          scope,
         },
       },
       "*",
@@ -376,10 +398,58 @@ export function RemapBindingsPanel({
             disabled={remapDisabled}
             className="rounded bg-[var(--color-figma-action-bg)] px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
           >
-            {remapRunning ? "Remapping…" : "Remap"}
+            {remapRunning
+              ? "Remapping…"
+              : remapScope === "selection"
+                ? "Remap selection"
+                : "Remap page"}
           </button>
         </div>
       </div>
+      {pendingPlan ? (
+        <ConfirmModal
+          title={`Remap ${pendingPlan.entries.length} token path${pendingPlan.entries.length === 1 ? "" : "s"}?`}
+          description={
+            pendingPlan.scope === "selection"
+              ? "Token Workshop will replace matching bindings on the selected layers."
+              : "Token Workshop will replace matching bindings on every layer on this page."
+          }
+          confirmLabel={
+            pendingPlan.scope === "selection" ? "Remap selection" : "Remap page"
+          }
+          wide
+          onCancel={() => setPendingPlan(null)}
+          onConfirm={() => {
+            const plan = pendingPlan;
+            setPendingPlan(null);
+            executeRemap(plan.entries, plan.scope);
+          }}
+        >
+          <div className="mt-2 max-h-[180px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            {pendingPlan.entries.slice(0, 8).map((entry) => (
+              <div
+                key={`${entry.from}->${entry.to}`}
+                className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-1 text-secondary last:border-b-0"
+              >
+                <span className="truncate font-mono text-[color:var(--color-figma-text-secondary)]" title={entry.from}>
+                  {entry.from}
+                </span>
+                <span className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
+                  →
+                </span>
+                <span className="truncate font-mono text-[color:var(--color-figma-text)]" title={entry.to}>
+                  {entry.to}
+                </span>
+              </div>
+            ))}
+            {pendingPlan.entries.length > 8 ? (
+              <div className="px-3 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                {pendingPlan.entries.length - 8} more replacement{pendingPlan.entries.length - 8 === 1 ? "" : "s"}
+              </div>
+            ) : null}
+          </div>
+        </ConfirmModal>
+      ) : null}
     </div>
   );
 }

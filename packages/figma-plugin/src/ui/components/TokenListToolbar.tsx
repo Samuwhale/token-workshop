@@ -44,14 +44,6 @@ function MenuSectionLabel({ children }: { children: string }) {
   );
 }
 
-interface RadioMenuGroup<T extends string> {
-  key: string;
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  options: SegmentedOption<T>[];
-}
-
 const GROUP_OPTIONS: SegmentedOption<TokenGroupBy>[] = [
   { value: "path", label: "Hierarchy" },
   { value: "type", label: "By type" },
@@ -66,6 +58,11 @@ const SORT_OPTIONS: SegmentedOption<"default" | "alpha-asc" | "by-type">[] = [
 const RESULT_OPTIONS: SegmentedOption<"grouped" | "flat">[] = [
   { value: "grouped", label: "Grouped" },
   { value: "flat", label: "Flat" },
+];
+
+const VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
+  { value: "tree", label: "Tokens" },
+  { value: "json", label: "JSON" },
 ];
 
 const SEARCH_SCOPE_OPTIONS: SegmentedOption<"collection" | "all">[] = [
@@ -152,13 +149,13 @@ export function TokenListToolbar({
   overflowMenuProps,
 }: TokenListToolbarProps) {
   const actionsMenu = useDropdownMenu();
-  const sortMenu = useDropdownMenu();
+  const viewMenu = useDropdownMenu();
   const createMenu = useDropdownMenu();
-  const sortMenuStyle = useAnchoredFloatingStyle({
-    triggerRef: sortMenu.triggerRef,
-    open: sortMenu.open,
+  const viewMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: viewMenu.triggerRef,
+    open: viewMenu.open,
     preferredWidth: 240,
-    preferredHeight: 360,
+    preferredHeight: 420,
     align: "end",
   });
   const createMenuStyle = useAnchoredFloatingStyle({
@@ -189,9 +186,9 @@ export function TokenListToolbar({
     },
     [createMenu],
   );
-  const closeSortMenu = useCallback(() => {
-    sortMenu.close({ restoreFocus: false });
-  }, [sortMenu]);
+  const closeViewMenu = useCallback(() => {
+    viewMenu.close({ restoreFocus: false });
+  }, [viewMenu]);
 
   const searchScope: "collection" | "all" =
     overflowMenuProps?.crossCollectionSearch === true ? "all" : "collection";
@@ -230,48 +227,15 @@ export function TokenListToolbar({
   const showCreate = viewMode === "tree";
   const showPrimaryCreateAction = onCreateToken !== undefined;
   const sortOrder: SortOrder = overflowMenuProps?.sortOrder ?? "default";
-  const viewSwitchLabel = viewMode === "tree" ? "JSON" : "Tokens";
-  const viewSwitchTitle =
-    viewMode === "tree" ? "Switch to JSON view" : "Switch to token list";
-
-  const sortActive =
+  const viewMenuActive =
     overflowMenuProps !== null &&
     overflowMenuProps !== undefined &&
-    (sortOrder !== "default" || groupBy !== "path");
-  const sortStateLabel =
-    sortOrder === "alpha-asc"
-      ? "A – Z"
-      : sortOrder === "by-type"
-        ? "Type"
-        : groupBy === "type"
-          ? "By type"
-          : null;
-
-  const viewRadioGroups: RadioMenuGroup<string>[] = overflowMenuProps
-    ? [
-        {
-          key: "group",
-          label: "Group by",
-          value: groupBy,
-          onChange: (v: string) => setGroupBy(v as TokenGroupBy),
-          options: GROUP_OPTIONS.map((o) => ({
-            value: o.value,
-            label: o.label,
-          })),
-        } as RadioMenuGroup<string>,
-        {
-          key: "sort",
-          label: "Sort",
-          value: sortOrder,
-          onChange: (v: string) =>
-            overflowMenuProps.onSortOrderChange(v as SortOrder),
-          options: SORT_OPTIONS.map((o) => ({
-            value: o.value,
-            label: o.label,
-          })),
-        } as RadioMenuGroup<string>,
-      ]
-    : [];
+    (sortOrder !== "default" ||
+      groupBy !== "path" ||
+      overflowMenuProps.crossCollectionSearch ||
+      overflowMenuProps.searchResultPresentation === "flat");
+  const viewMenuLabel = "View";
+  const showViewMenu = hasTokens;
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
@@ -458,50 +422,64 @@ export function TokenListToolbar({
               </div>
             ) : null}
 
-            {overflowMenuProps &&
-            viewMode === "tree" &&
-            viewRadioGroups.length > 0 ? (
+            {showViewMenu ? (
               <div className="tm-token-toolbar__sort relative shrink-0">
                 <Button
-                  ref={sortMenu.triggerRef}
-                  onClick={sortMenu.toggle}
-                  aria-expanded={sortMenu.open}
+                  ref={viewMenu.triggerRef}
+                  onClick={viewMenu.toggle}
+                  aria-expanded={viewMenu.open}
                   aria-haspopup="menu"
-                  aria-label="Sort and group"
-                  title="Sort and group"
+                  aria-label="View options"
+                  title="View options"
                   variant="ghost"
                   size="sm"
                   className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
-                    sortMenu.open || sortActive
+                    viewMenu.open || viewMenuActive || viewMode === "json"
                       ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
                       : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   }`}
                 >
                   <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
                   <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
-                    {sortStateLabel ?? "Sort"}
+                    {viewMenuLabel}
                   </span>
                 </Button>
 
-                {sortMenu.open ? (
+                {viewMenu.open ? (
                   <div
-                    ref={sortMenu.menuRef}
-                    style={sortMenuStyle ?? { visibility: "hidden" }}
+                    ref={viewMenu.menuRef}
+                    style={viewMenuStyle ?? { visibility: "hidden" }}
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    {viewRadioGroups.map((group, idx) => (
-                      <div key={group.key}>
-                        {idx > 0 ? <div className="h-2" aria-hidden /> : null}
+                    <MenuRadioGroup
+                      label="Mode"
+                      value={viewMode}
+                      options={VIEW_OPTIONS}
+                      onChange={(value) => setViewMode(value)}
+                      onSelect={closeViewMenu}
+                    />
+
+                    {overflowMenuProps && viewMode === "tree" ? (
+                      <>
                         <MenuRadioGroup
-                          label={group.label}
-                          value={group.value}
-                          options={group.options}
-                          onChange={group.onChange}
-                          onSelect={closeSortMenu}
+                          label="Group by"
+                          value={groupBy}
+                          options={GROUP_OPTIONS}
+                          onChange={(value) => setGroupBy(value)}
+                          onSelect={closeViewMenu}
                         />
-                      </div>
-                    ))}
+                        <MenuRadioGroup
+                          label="Sort"
+                          value={sortOrder}
+                          options={SORT_OPTIONS}
+                          onChange={(value) =>
+                            overflowMenuProps.onSortOrderChange(value)
+                          }
+                          onSelect={closeViewMenu}
+                        />
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -524,22 +502,6 @@ export function TokenListToolbar({
                 <Target size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
                   {selectedNodeCount > 0 ? `${selectedNodeCount} selected` : "Select"}
-                </span>
-              </Button>
-            ) : null}
-
-            {hasTokens ? (
-              <Button
-                type="button"
-                onClick={() => setViewMode(viewMode === "tree" ? "json" : "tree")}
-                variant="ghost"
-                size="sm"
-                aria-label={viewSwitchTitle}
-                title={viewSwitchTitle}
-                className={`${TOOLBAR_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-              >
-                <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
-                  {viewSwitchLabel}
                 </span>
               </Button>
             ) : null}

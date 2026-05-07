@@ -88,6 +88,11 @@ interface ClusterDraft {
 
 type VariableSyncSnapshot = Awaited<ReturnType<typeof loadVariableSyncSnapshot>>;
 
+export interface MissingVariablesConfirmState {
+  tokens: VariableSyncToken[];
+  targetLabel: string;
+}
+
 interface GeneratorStatusItem {
   generator: {
     id: string;
@@ -261,6 +266,9 @@ export interface UseReadinessChecksReturn {
   setChecksStale: React.Dispatch<React.SetStateAction<boolean>>;
   runReadinessChecks: () => Promise<void>;
   triggerReadinessAction: (actionId: PublishPreflightActionId) => Promise<void>;
+  missingVariablesConfirm: MissingVariablesConfirmState | null;
+  setMissingVariablesConfirm: React.Dispatch<React.SetStateAction<MissingVariablesConfirmState | null>>;
+  confirmMissingVariablesPush: () => void;
   readinessFails: number;
   readinessPasses: number;
   readinessBlockingFails: number;
@@ -286,6 +294,8 @@ export function useReadinessChecks({
   const [readinessError, setReadinessError] = useState<string | null>(null);
   const [checksRunAtKey, setChecksRunAtKey] = useState<number | null>(null);
   const [checksStale, setChecksStale] = useState(false);
+  const [missingVariablesConfirm, setMissingVariablesConfirm] =
+    useState<MissingVariablesConfirmState | null>(null);
 
   const isRunningRef = useRef(false);
   const latestTokenChangeKeyRef = useRef<number | undefined>(tokenChangeKey);
@@ -370,7 +380,7 @@ export function useReadinessChecks({
           recommendedActionLabel: missingInFigma.length > 0
             ? compareMode === 'resolver-publish'
               ? `Sync ${missingInFigma.length} missing mapped variable${missingInFigma.length === 1 ? '' : 's'}`
-              : `Push ${missingInFigma.length} missing variable${missingInFigma.length === 1 ? '' : 's'}`
+              : `Review ${missingInFigma.length} missing variable${missingInFigma.length === 1 ? '' : 's'}`
             : undefined,
           recommendedActionId: missingInFigma.length > 0 ? 'push-missing-variables' : undefined,
         },
@@ -556,9 +566,15 @@ export function useReadinessChecks({
 
         if (tokens.length === 0) return;
 
-        if (!postPluginMessage({ type: 'apply-variables', tokens, collectionMap, modeMap })) {
-          setReadinessError('Could not reach the Figma plugin host.');
-        }
+        const figmaCollectionName =
+          collectionMap[currentCollectionId]?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME;
+        const figmaModeName = modeMap[currentCollectionId]?.trim();
+        setMissingVariablesConfirm({
+          tokens,
+          targetLabel: figmaModeName
+            ? `${figmaCollectionName} / ${figmaModeName}`
+            : figmaCollectionName,
+        });
         return;
       }
 
@@ -605,6 +621,21 @@ export function useReadinessChecks({
     setOrphanConfirm,
   ]);
 
+  const confirmMissingVariablesPush = useCallback(() => {
+    if (!missingVariablesConfirm) return;
+    if (!postPluginMessage({
+      type: 'apply-variables',
+      tokens: missingVariablesConfirm.tokens,
+      collectionMap,
+      modeMap,
+    })) {
+      const message = 'Could not reach the Figma plugin host.';
+      setReadinessError(message);
+      throw new Error(message);
+    }
+    setMissingVariablesConfirm(null);
+  }, [collectionMap, missingVariablesConfirm, modeMap]);
+
   const runReadinessChecksRef = useRef(runReadinessChecks);
   useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
   const restoredReadinessRef = useRef(false);
@@ -615,6 +646,7 @@ export function useReadinessChecks({
     setChecksStale(false);
     setReadinessError(null);
     setReadinessChecks([]);
+    setMissingVariablesConfirm(null);
   }, [currentCollectionId]);
 
   useEffect(() => {
@@ -680,6 +712,9 @@ export function useReadinessChecks({
     setChecksStale,
     runReadinessChecks,
     triggerReadinessAction,
+    missingVariablesConfirm,
+    setMissingVariablesConfirm,
+    confirmMissingVariablesPush,
     readinessFails,
     readinessPasses,
     readinessBlockingFails,

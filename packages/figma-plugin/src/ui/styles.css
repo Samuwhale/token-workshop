@@ -3982,10 +3982,6 @@ button.tm-token-details__text-button:disabled:hover {
     padding-inline: 5px;
   }
 
-  .tm-token-mode-row__action-button-label {
-    display: none;
-  }
-
   .tm-token-mode-row__body {
     align-items: start;
   }
@@ -4037,6 +4033,10 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 @container authoring-surface (max-width: 420px) {
+  .tm-token-mode-row__action-button-label {
+    display: none;
+  }
+
   .tm-token-mode-row__empty-actions {
     flex-direction: column;
   }
