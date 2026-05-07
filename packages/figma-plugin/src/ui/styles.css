@@ -3682,15 +3682,7 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-token-mode-row__action-button-label {
   min-inline-size: 0;
   white-space: nowrap;
-  display: none;
-}
-
-.tm-token-mode-row__overflow-button {
-  color: var(--color-figma-text-tertiary);
-}
-
-.tm-token-mode-row__overflow-button:hover {
-  color: var(--color-figma-text);
+  display: block;
 }
 
 .tm-token-mode-row__body {
@@ -3756,10 +3748,9 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row__empty-actions {
-  display: grid;
+  display: flex;
   min-inline-size: 0;
   gap: 6px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .tm-token-mode-row__swatch {
@@ -3780,6 +3771,44 @@ button.tm-token-details__text-button:disabled:hover {
   font-size: var(--font-size-base);
   line-height: var(--leading-body);
   color: var(--color-figma-text-secondary);
+}
+
+.tm-token-mode-row__secondary-actions {
+  display: flex;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-left: 2px;
+}
+
+.tm-token-mode-row__secondary-action {
+  display: inline-flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: 2px 4px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-figma-text-secondary);
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-token-mode-row__secondary-action:hover {
+  background: color-mix(in srgb, var(--workspace-library) 9%, transparent);
+  color: var(--color-figma-text);
+}
+
+.tm-token-mode-row__secondary-action:focus-visible {
+  outline: 1.5px solid var(--color-figma-accent);
+  outline-offset: 1px;
+  background: var(--surface-accent);
+  color: var(--color-figma-text);
 }
 
 .tm-collection-details {
@@ -3980,15 +4009,6 @@ button.tm-token-details__text-button:disabled:hover {
     padding-inline: 6px;
   }
 
-  .tm-token-mode-row__overflow-button {
-    flex: 0 0 auto;
-    align-self: auto;
-  }
-
-  .tm-token-mode-row__action-button-label {
-    display: block;
-  }
-
   .tm-token-mode-row__inline-controls {
     justify-self: start;
     flex-wrap: wrap;
@@ -4000,14 +4020,14 @@ button.tm-token-details__text-button:disabled:hover {
     min-block-size: 28px;
   }
 
-  .tm-token-mode-row__action-button-label {
-    display: block;
+  .tm-token-mode-row__secondary-actions {
+    gap: 6px;
   }
 }
 
 @container authoring-surface (max-width: 420px) {
   .tm-token-mode-row__empty-actions {
-    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
   }
 }
 

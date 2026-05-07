@@ -150,6 +150,9 @@ export function ValueCell({
       secondaryStyle?: CSSProperties;
     },
   ) => {
+    const buttonLabel = secondary
+      ? `${optionName}: ${primary}. ${secondary}`
+      : `${optionName}: ${primary}`;
     const content = (
       <>
         <div
@@ -191,8 +194,8 @@ export function ValueCell({
         onKeyDown={(event) => {
           event.stopPropagation();
         }}
-        aria-label={`Edit ${optionName} value`}
-        title={`${optionName}: ${primary}`}
+        aria-label={`Edit ${buttonLabel}`}
+        title={buttonLabel}
       >
         {content}
       </button>

@@ -284,12 +284,14 @@ export const TokenLeafNode = memo(
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
-    const selectionControlVisibilityClass = "opacity-100";
+    const selectionControlVisibilityClass = selectMode || isSelected || isRowActive
+      ? "opacity-100"
+      : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
     const overflowActionVisibilityClass = selectMode
       ? "hidden"
-      : isRowActive
+      : contextMenuPos || isRowActive
         ? "opacity-100"
-        : "opacity-90";
+        : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected
@@ -916,15 +918,6 @@ export const TokenLeafNode = memo(
                       <ValuePreview type={node.$type} value={displayValue} size={12} />
                     </span>
                   )}
-                  {ancestorPathLabel && (
-                    <span
-                      className="tm-token-tree-row__context shrink min-w-0 truncate text-secondary text-[color:var(--color-figma-text-tertiary)]"
-                      title={`In ${ancestorPathLabel}`}
-                    >
-                      {ancestorPathLabel}
-                      <span aria-hidden="true" className="mx-1 text-[color:var(--color-figma-text-tertiary)]/60">/</span>
-                    </span>
-                  )}
                   <span
                     className="tm-token-tree-row__name min-w-0 truncate text-body text-[color:var(--color-figma-text)]"
                     title={formatDisplayPath(node.path, node.name)}
@@ -937,8 +930,16 @@ export const TokenLeafNode = memo(
                     )}
                   </span>
                 </div>
-                {leafMetadataSegments.length > 0 && (
+                {(ancestorPathLabel || leafMetadataSegments.length > 0) && (
                   <span className="tm-token-tree-row__meta flex min-w-0 items-center gap-1 overflow-hidden text-secondary">
+                    {ancestorPathLabel ? (
+                      <span
+                        className="tm-token-tree-row__context truncate text-[color:var(--color-figma-text-tertiary)]"
+                        title={`In ${ancestorPathLabel}`}
+                      >
+                        In {ancestorPathLabel}
+                      </span>
+                    ) : null}
                     {renderRowMetadataSegments(leafMetadataSegments)}
                   </span>
                 )}

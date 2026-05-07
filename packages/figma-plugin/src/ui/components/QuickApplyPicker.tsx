@@ -243,13 +243,15 @@ function QuickApplyCandidateRow({
       data-qa-item
       role="option"
       aria-selected={isSelected}
+      aria-disabled={isCurrent}
+      disabled={isCurrent}
       className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
         isSelected
           ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
           : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-      } ${isCurrent ? 'opacity-50' : ''}`}
+      } ${isCurrent ? 'cursor-default opacity-65' : ''}`}
       onMouseEnter={onHover}
-      onClick={onSelect}
+      onClick={isCurrent ? undefined : onSelect}
     >
       {colorSwatch ? (
         <div
@@ -389,6 +391,7 @@ export function QuickApplyPicker({
   const hasSingleCurrentBinding = currentBinding !== null && currentBinding !== 'mixed';
 
   const handleSelect = (candidate: QuickApplyCandidate) => {
+    if (currentBinding === candidate.path) return;
     addRecentToken(candidate.path, activeCollectionId);
     onApply(
       candidate.path,

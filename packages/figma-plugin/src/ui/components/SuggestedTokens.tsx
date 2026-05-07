@@ -17,6 +17,14 @@ function formatValue(entry: TokenMapEntry, resolvedValue: unknown): string {
   });
 }
 
+function formatBatchPlan(
+  items: { tokenPath: string; property: BindableProperty }[],
+): string {
+  const labels = items.map((item) => PROPERTY_LABELS[item.property]);
+  if (labels.length <= 3) return labels.join(", ");
+  return `${labels.slice(0, 3).join(", ")} and ${labels.length - 3} more`;
+}
+
 interface SuggestedTokensProps {
   suggestions: SuggestedToken[];
   onApply: (tokenPath: string, property: BindableProperty) => void;
@@ -103,13 +111,21 @@ export function SuggestedTokens({
       {(!showHeader || !collapsed) && (
         <div className="px-1 pb-1.5">
           {showApplyAll && (
-            <div className="flex items-center justify-end px-1.5 pt-1 pb-0.5">
+            <div className="flex items-center gap-2 px-1.5 pt-1 pb-0.5">
+              <span
+                className="min-w-0 flex-1 truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
+                title={strongBatch
+                  .map((item) => `${PROPERTY_LABELS[item.property]}: ${item.tokenPath}`)
+                  .join(", ")}
+              >
+                Strong matches: {formatBatchPlan(strongBatch)}
+              </span>
               <button
                 onClick={() => onApplyBatch?.(strongBatch)}
-                className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
+                className="shrink-0 text-secondary font-medium text-[color:var(--color-figma-text-accent)] hover:underline"
                 title={`Apply ${strongBatch.length} best matches across properties`}
               >
-                Apply all ({strongBatch.length})
+                Bind {strongBatch.length}
               </button>
             </div>
           )}

@@ -24,6 +24,7 @@ import {
   IconButton,
   MenuRadioGroup,
   SearchField,
+  SegmentedControl,
   type SegmentedOption,
 } from "../primitives";
 
@@ -69,8 +70,6 @@ const RESULT_OPTIONS: SegmentedOption<"grouped" | "flat">[] = [
 
 const TOOLBAR_BUTTON_CLASS =
   "inline-flex min-h-7 items-center gap-1 rounded px-2 text-secondary font-medium transition-colors";
-
-type SearchResultPresentation = "grouped" | "flat";
 
 export interface TokenListToolbarProps {
   onNavigateBack?: () => void;
@@ -201,15 +200,20 @@ export function TokenListToolbar({
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
 
   const showSelectionChip = selectedNodeCount > 0 && boundTokenCount > 0;
+  const showResultPresentationToggle =
+    viewMode === "tree" &&
+    overflowMenuProps?.canToggleSearchResultPresentation === true;
   const hasChipRow =
     viewMode === "tree" &&
     hasTokens &&
-    (showSelectionChip || toolbarStateChips.length > 0);
+    (showResultPresentationToggle ||
+      showSelectionChip ||
+      toolbarStateChips.length > 0);
 
   const showTreeActions = viewMode === "tree";
   const hasEditActions =
     showTreeActions &&
-    (Boolean(onSelectTokens) || Boolean(onBulkEdit) || Boolean(onFindReplace));
+    (Boolean(onBulkEdit) || Boolean(onFindReplace));
   const hasGroupOps = showTreeActions && overflowMenuProps?.hasGroups === true;
   const hasOverflowActions = hasEditActions || hasGroupOps;
   const showOverflow = hasOverflowActions;
@@ -256,23 +260,6 @@ export function TokenListToolbar({
             label: o.label,
           })),
         } as RadioMenuGroup<string>,
-        ...(overflowMenuProps.canToggleSearchResultPresentation
-          ? [
-              {
-                key: "results",
-                label: "Results",
-                value: overflowMenuProps.searchResultPresentation,
-                onChange: (v: string) =>
-                  overflowMenuProps.onSearchResultPresentationChange(
-                    v as SearchResultPresentation,
-                  ),
-                options: RESULT_OPTIONS.map((o) => ({
-                  value: o.value,
-                  label: o.label,
-                })),
-              } as RadioMenuGroup<string>,
-            ]
-          : []),
       ]
     : [];
 
@@ -510,6 +497,27 @@ export function TokenListToolbar({
               </div>
             ) : null}
 
+            {showTreeActions && onSelectTokens ? (
+              <Button
+                type="button"
+                onClick={onSelectTokens}
+                variant="ghost"
+                size="sm"
+                aria-label={selectedNodeCount > 0 ? `${selectedNodeCount} selected` : "Select tokens"}
+                title={selectedNodeCount > 0 ? `${selectedNodeCount} selected` : "Select tokens"}
+                className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
+                  selectedNodeCount > 0
+                    ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
+                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                }`}
+              >
+                <Target size={12} strokeWidth={1.5} aria-hidden />
+                <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
+                  {selectedNodeCount > 0 ? `${selectedNodeCount} selected` : "Select"}
+                </span>
+              </Button>
+            ) : null}
+
             {hasTokens ? (
               <Button
                 type="button"
@@ -701,16 +709,6 @@ export function TokenListToolbar({
                           <div className="h-1.5" aria-hidden />
                         ) : null}
                         <MenuSectionLabel>Edit</MenuSectionLabel>
-                        {onSelectTokens ? (
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => runMenuAction(onSelectTokens)}
-                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                          >
-                            Select tokens
-                          </button>
-                        ) : null}
                         {onBulkEdit ? (
                           <button
                             type="button"
@@ -743,6 +741,19 @@ export function TokenListToolbar({
 
         {hasChipRow ? (
           <div className="tm-responsive-toolbar__chips">
+            {showResultPresentationToggle && overflowMenuProps ? (
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Results
+                </span>
+                <SegmentedControl
+                  value={overflowMenuProps.searchResultPresentation}
+                  options={RESULT_OPTIONS}
+                  onChange={overflowMenuProps.onSearchResultPresentationChange}
+                  ariaLabel="Search result layout"
+                />
+              </div>
+            ) : null}
             {showSelectionChip ? (
               <button
                 type="button"

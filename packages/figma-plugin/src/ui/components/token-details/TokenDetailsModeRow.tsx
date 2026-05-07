@@ -1,20 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, MoreHorizontal, Rows3 } from "lucide-react";
+import { Copy, Link2, Rows3 } from "lucide-react";
 import {
   resolveCollectionIdForPath,
   resolveRefValue,
 } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath, isAlias } from "../../../shared/resolveAlias";
-import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ValuePreview } from "../ValuePreview";
 import { ModeValueEditor } from "../token-editor/ModeValueEditor";
-import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
-import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
 import { formatTokenValueForDisplay } from "../../shared/tokenFormatting";
 import { getDefaultValue } from "../tokenListUtils";
-import { IconButton } from "../../primitives";
 import {
   buildTypographyPreviewStyle,
   getTypographyPreviewValue,
@@ -118,7 +114,6 @@ export function TokenDetailsModeRow({
   onCopyToAll,
 }: TokenDetailsModeRowProps) {
   const previousLiteralValueRef = useRef<unknown>(value);
-  const actionsMenu = useDropdownMenu();
   const [aliasMode, setAliasMode] = useState(
     typeof value === "string" && isAlias(value),
   );
@@ -173,13 +168,6 @@ export function TokenDetailsModeRow({
       : null;
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
-  const actionsMenuStyle = useAnchoredFloatingStyle({
-    triggerRef: actionsMenu.triggerRef,
-    open: actionsMenu.open,
-    preferredWidth: 180,
-    preferredHeight: 160,
-    align: "end",
-  });
   const hasSecondaryActions =
     (allowCopyFromPrevious && onCopyFromPrevious) ||
     (allowCopyToAll && onCopyToAll);
@@ -208,14 +196,6 @@ export function TokenDetailsModeRow({
         ? extractAliasPath(value) ?? ""
         : "",
     );
-    setAutocompleteOpen(true);
-  };
-
-  const handleStartReference = () => {
-    if (!editable || !onChange) return;
-    previousLiteralValueRef.current = value;
-    setAliasMode(true);
-    setAliasQuery("");
     setAutocompleteOpen(true);
   };
 
@@ -270,61 +250,6 @@ export function TokenDetailsModeRow({
           Reference
         </span>
       </button>
-      {hasSecondaryActions ? (
-        <div className="relative">
-          <IconButton
-            ref={actionsMenu.triggerRef}
-            onClick={actionsMenu.toggle}
-            aria-expanded={actionsMenu.open}
-            aria-haspopup="menu"
-            aria-label={`Copy value options for ${modeName}`}
-            title={`Copy value options for ${modeName}`}
-            size="sm"
-            className="tm-token-mode-row__overflow-button"
-          >
-            <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-          </IconButton>
-          {actionsMenu.open ? (
-            <div
-              ref={actionsMenu.menuRef}
-              style={actionsMenuStyle ?? { visibility: "hidden" }}
-              className={FLOATING_MENU_CLASS}
-              role="menu"
-            >
-              {allowCopyFromPrevious && onCopyFromPrevious ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onCopyFromPrevious();
-                    actionsMenu.close({ restoreFocus: false });
-                  }}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  {previousModeName
-                    ? `Use ${previousModeName} value`
-                    : "Use previous mode value"}
-                </button>
-              ) : null}
-              {allowCopyToAll && onCopyToAll ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onCopyToAll();
-                    actionsMenu.close({ restoreFocus: false });
-                  }}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                >
-                  <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-                  Copy to all modes
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   ) : null;
 
@@ -439,16 +364,6 @@ export function TokenDetailsModeRow({
               >
                 Add value
               </button>
-              <button
-                type="button"
-                onClick={handleStartReference}
-                aria-label={`Reference another token for ${modeName}`}
-                title={`Reference another token for ${modeName}`}
-                className="inline-flex min-h-8 min-w-0 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 hover:text-[color:var(--color-figma-text-accent)]"
-              >
-                <Link2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="min-w-0 truncate">Reference token</span>
-              </button>
             </div>
           ) : editable ? (
             <ModeValueEditor
@@ -532,6 +447,33 @@ export function TokenDetailsModeRow({
           </div>
         ) : null}
       </div>
+
+      {editable && hasSecondaryActions ? (
+        <div className="tm-token-mode-row__secondary-actions">
+          {allowCopyFromPrevious && onCopyFromPrevious ? (
+            <button
+              type="button"
+              onClick={onCopyFromPrevious}
+              className="tm-token-mode-row__secondary-action"
+            >
+              <Copy size={12} strokeWidth={1.5} aria-hidden />
+              {previousModeName
+                ? `Use ${previousModeName} value`
+                : "Use previous mode value"}
+            </button>
+          ) : null}
+          {allowCopyToAll && onCopyToAll ? (
+            <button
+              type="button"
+              onClick={onCopyToAll}
+              className="tm-token-mode-row__secondary-action"
+            >
+              <Rows3 size={12} strokeWidth={1.5} aria-hidden />
+              Copy to all modes
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {typographyPreview && (
         <span

@@ -114,12 +114,19 @@ export function TokenSelectionToolbar({
 }: TokenSelectionToolbarProps) {
   const hasSelection = selectedPaths.size > 0;
   const displayedSelectionCount = displayedLeafPaths.size;
+  const visibleSelectedCount = [...displayedLeafPaths].filter((path) =>
+    selectedPaths.has(path),
+  ).length;
+  const hiddenSelectionCount = Math.max(
+    0,
+    selectedPaths.size - visibleSelectedCount,
+  );
   const allDisplayedSelected =
     displayedSelectionCount > 0 &&
     [...displayedLeafPaths].every((path) => selectedPaths.has(path));
   const partiallySelected =
     selectedPaths.size > 0 && !allDisplayedSelected;
-  const selectionSummary = `${selectedPaths.size} of ${displayedSelectionCount} selected`;
+  const selectionSummary = `${visibleSelectedCount} of ${displayedSelectionCount} visible selected`;
 
   const openAction = useCallback(
     (action: BatchActionType, close: () => void) => {
@@ -161,6 +168,14 @@ export function TokenSelectionToolbar({
                 title={`Matching "${searchQuery}"`}
               >
                 matching &ldquo;{searchQuery}&rdquo;
+              </span>
+            ) : null}
+            {hiddenSelectionCount > 0 ? (
+              <span
+                className="tm-selection-toolbar__summary-copy text-secondary text-[color:var(--color-figma-text-tertiary)]"
+                title={`${hiddenSelectionCount} selected outside the current results`}
+              >
+                {hiddenSelectionCount} outside current results
               </span>
             ) : null}
             {selectedPaths.size === 1 && !searchQuery ? (

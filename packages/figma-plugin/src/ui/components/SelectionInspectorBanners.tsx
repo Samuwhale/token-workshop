@@ -35,6 +35,12 @@ interface SelectionInspectorBannersProps {
   onDismissCreatedToken: () => void;
 }
 
+function formatPropertyPlan(properties: BindableProperty[]): string {
+  const labels = properties.map((property) => PROPERTY_LABELS[property]);
+  if (labels.length <= 3) return labels.join(", ");
+  return `${labels.slice(0, 3).join(", ")} and ${labels.length - 3} more`;
+}
+
 export function SelectionInspectorBanners({
   staleBindingCount,
   onOpenRepair,
@@ -91,16 +97,20 @@ export function SelectionInspectorBanners({
             <circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
           </svg>
-          <span className="flex-1 text-secondary text-[color:var(--color-figma-text)]">
-            Apply <strong>{PROPERTY_LABELS[peerSuggestion.property]}</strong> to{" "}
-            {peerSuggestion.peerIds.length} sibling
-            {peerSuggestion.peerIds.length !== 1 ? "s" : ""}?
+          <span className="flex-1 text-secondary leading-snug text-[color:var(--color-figma-text)]">
+            Use{" "}
+            <strong className="font-mono font-medium">
+              {peerSuggestion.tokenPath}
+            </strong>{" "}
+            for <strong>{PROPERTY_LABELS[peerSuggestion.property]}</strong> on{" "}
+            {peerSuggestion.peerIds.length} sibling layer
+            {peerSuggestion.peerIds.length !== 1 ? "s" : ""}
           </span>
           <button
             onClick={onApplyPeerSuggestion}
             className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
-            Apply
+            Bind
           </button>
           <button
             onClick={onDismissPeerSuggestion}
@@ -142,23 +152,23 @@ export function SelectionInspectorBanners({
           </svg>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-secondary leading-snug text-[color:var(--color-figma-text)]">
-              Apply{" "}
+              Use{" "}
               <strong className="font-mono">
                 {propTypeSuggestion.tokenPath}
               </strong>{" "}
-              to all <strong>{propTypeSuggestion.tokenType}</strong> properties?
+              for {propTypeSuggestion.targetProps.length} matching{" "}
+              {propTypeSuggestion.tokenType} propert
+              {propTypeSuggestion.targetProps.length === 1 ? "y" : "ies"}
             </span>
             <span className="truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {propTypeSuggestion.targetProps
-                .map((prop) => PROPERTY_LABELS[prop])
-                .join(", ")}
+              Will bind {formatPropertyPlan(propTypeSuggestion.targetProps)}
             </span>
           </div>
           <button
             onClick={onApplyPropTypeSuggestion}
             className="shrink-0 rounded bg-[var(--color-figma-accent)]/10 px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/20"
           >
-            Apply to all
+            Bind {propTypeSuggestion.targetProps.length}
           </button>
           <button
             onClick={onDismissPropTypeSuggestion}

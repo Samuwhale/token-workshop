@@ -238,6 +238,7 @@ export function PropertyRow({
   const showSuggestedDivider = suggestedCount > 0 && suggestedCount < mainBindCandidates.length && !bindQuery;
 
   const handleBindToken = (p: string) => {
+    if (isBound && p === binding) return;
     addRecentToken(p, currentCollectionId);
     onBindToken(prop, p);
   };
@@ -611,15 +612,17 @@ export function PropertyRow({
                         resolvedDisplay: resolvedValueDisplay,
                       } = resolveTokenEntryDisplay(entry, tokenMap);
                       const isSelected = idx === bindSelectedIndex;
-                      const isCurrent = isBound && path === binding;
+                      const isCurrent = Boolean(isBound && path === binding);
                       return (
                         <button
                           key={path}
                           id={`bind-option-${path}`}
                           role="option"
                           aria-selected={isSelected}
-                          onClick={() => handleBindToken(path)}
-                          className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
+                          aria-disabled={isCurrent}
+                          disabled={isCurrent}
+                          onClick={isCurrent ? undefined : () => handleBindToken(path)}
+                          className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'cursor-default opacity-65' : ''}`}
                         >
                           {resolvedColorSwatch ? (
                             <div className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: resolvedColorSwatch }} />
@@ -651,7 +654,7 @@ export function PropertyRow({
                     resolvedDisplay: resolvedValueDisplay,
                   } = resolveTokenEntryDisplay(entry, tokenMap);
                   const isSelected = globalIdx === bindSelectedIndex;
-                  const isCurrent = isBound && path === binding;
+                  const isCurrent = Boolean(isBound && path === binding);
                   const showSuggestedHeader = showSuggestedDivider && idx === 0 && recentBindCandidates.length === 0;
                   const showOthersHeader = showSuggestedDivider && score === 0 && (idx === 0 || mainBindCandidates[idx - 1][2] > 0);
                   return (
@@ -670,8 +673,10 @@ export function PropertyRow({
                         id={`bind-option-${path}`}
                         role="option"
                         aria-selected={isSelected}
-                        onClick={() => handleBindToken(path)}
-                        className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
+                        aria-disabled={isCurrent}
+                        disabled={isCurrent}
+                        onClick={isCurrent ? undefined : () => handleBindToken(path)}
+                        className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'cursor-default opacity-65' : ''}`}
                       >
                         {resolvedColorSwatch ? (
                           <div
