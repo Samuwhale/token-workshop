@@ -1860,7 +1860,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           mergeCollectionSnapshot(afterSnapshot, targetCollectionId, snapshot);
         }
 
-        const operationId = await fastify.operationLog.record({
+        const operationEntry = await fastify.operationLog.record({
           type: 'replace-deprecated-references',
           description: `Replace ${updatedReferences} reference${updatedReferences === 1 ? '' : 's'} from "${deprecatedPath}" to "${replacementPath}"`,
           resourceId: deprecatedDefinition.collectionId,
@@ -1872,7 +1872,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return {
           ok: true,
           updated: updatedReferences,
-          operationId,
+          operationId: operationEntry.id,
         };
       } catch (err) {
         if (Object.keys(beforeSnapshot).length > 0) {

@@ -1,5 +1,6 @@
 import { AlertTriangle, RefreshCcw } from "lucide-react";
 import type { ReactNode } from "react";
+import type { TokenLifecycle } from "@token-workshop/core";
 import type { LintViolation } from "../../hooks/useLint";
 import { ListItem, Stack } from "../../primitives";
 import { TokenEditorLintBanner } from "../token-editor/TokenEditorLintBanner";
@@ -13,7 +14,7 @@ interface TokenDetailsStatusBannersProps {
   displayError: string | null;
   retryAction?: ReactNode;
   lintViolations: LintViolation[];
-  lifecycle: "draft" | "published" | "deprecated";
+  lifecycle: TokenLifecycle;
   isCreateMode: boolean;
   isEditMode: boolean;
   pendingTypeChange: string | null;

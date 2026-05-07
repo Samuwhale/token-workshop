@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { TokenLifecycle } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import type { ValidationIssue } from "./useValidationCache";
 import {
@@ -29,14 +30,14 @@ export interface UnusedToken {
   path: string;
   collectionId: string;
   $type: string;
-  $lifecycle?: "draft" | "published" | "deprecated";
+  $lifecycle?: TokenLifecycle;
 }
 
 interface DuplicateTokenCandidate {
   path: string;
   collectionId: string;
   type: string;
-  lifecycle?: "draft" | "published" | "deprecated";
+  lifecycle?: TokenLifecycle;
   scopes: string[];
   colorHex?: string;
 }

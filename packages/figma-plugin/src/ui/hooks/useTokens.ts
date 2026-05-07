@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTokenLifecycle, isDTCGToken, readTokenScopes } from '@token-workshop/core';
 import type {
   DTCGGroup,
+  TokenLifecycle,
   TokenValue,
   TokenReference,
   SerializedTokenCollection,
@@ -80,7 +81,7 @@ export interface TokenNode {
   $description?: string;
   $extensions?: Record<string, unknown>;
   $scopes?: string[];
-  $lifecycle?: 'draft' | 'published' | 'deprecated';
+  $lifecycle?: TokenLifecycle;
   children?: TokenNode[];
   isGroup: boolean;
 }
