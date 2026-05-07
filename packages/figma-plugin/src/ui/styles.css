@@ -1514,17 +1514,14 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-collection-toolbar__summary-title {
-    display: -webkit-box;
-    white-space: normal;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-    line-height: 1.2;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    white-space: nowrap;
   }
 
   .tm-collection-toolbar__summary-meta {
-    display: none;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -3547,8 +3544,8 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-token-mode-row {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 7px 0;
+  gap: 4px;
+  padding: 6px 0;
   border-radius: 0;
   transition:
     background-color var(--motion-base) var(--ease-standard),
@@ -3578,7 +3575,7 @@ button.tm-token-details__text-button:disabled:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-inline-size: 0;
 }
 
@@ -3587,7 +3584,7 @@ button.tm-token-details__text-button:disabled:hover {
   min-inline-size: 0;
   flex: 1 1 180px;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .tm-token-mode-row__label {
@@ -3622,7 +3619,7 @@ button.tm-token-details__text-button:disabled:hover {
   align-items: center;
   flex-wrap: nowrap;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 4px;
   margin-left: auto;
 }
 
@@ -3637,7 +3634,7 @@ button.tm-token-details__text-button:disabled:hover {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-block-size: 28px;
+  min-block-size: 26px;
   padding-inline: 6px;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -3685,6 +3682,7 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-token-mode-row__action-button-label {
   min-inline-size: 0;
   white-space: nowrap;
+  display: none;
 }
 
 .tm-token-mode-row__overflow-button {
@@ -3699,7 +3697,7 @@ button.tm-token-details__text-button:disabled:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
   min-inline-size: 0;
 }
 
@@ -3994,6 +3992,16 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-token-mode-row__inline-controls {
     justify-self: start;
     flex-wrap: wrap;
+  }
+}
+
+@media (pointer: coarse) {
+  .tm-token-mode-row__action-button {
+    min-block-size: 28px;
+  }
+
+  .tm-token-mode-row__action-button-label {
+    display: block;
   }
 }
 

@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import {
   buildCollectionModeNames,
   CollectionAuthoringFields,
+  createInitialCollectionAuthoringDraft,
   type CollectionAuthoringDraft,
   validateCollectionAuthoringDraft,
 } from "./CollectionAuthoringFields";
@@ -95,10 +96,9 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   onCreated: (collectionId: string, modeCount: number) => void;
 }) {
-  const [draft, setDraft] = useState<CollectionAuthoringDraft>({
-    name: "colors",
-    modeNames: ["Light", "Dark"],
-  });
+  const [draft, setDraft] = useState<CollectionAuthoringDraft>(() =>
+    createInitialCollectionAuthoringDraft(false),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 

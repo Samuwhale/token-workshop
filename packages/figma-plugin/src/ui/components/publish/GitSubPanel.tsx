@@ -132,7 +132,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
   const unresolvedConflictSections = totalConflictSections - resolvedConflictSections;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex min-h-0 flex-col overflow-y-auto">
       {git.gitError && (
         <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[color:var(--color-figma-text-error)] text-secondary">
           {git.gitError}

@@ -303,6 +303,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const tableMinWidth = multiModeData
     ? getGridMinWidth(modeColumnWidths)
     : null;
+  const populatedTreeTableStyle =
+    tableMinWidth && viewMode === "tree" && displayedTokens.length > 0
+      ? { minWidth: `${tableMinWidth}px` }
+      : undefined;
   const crossCollectionSections = useMemo(() => {
     if (!crossCollectionResults) {
       return [];
@@ -662,11 +666,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Inspect mode with no selection
   if (inspectMode && selectedNodes.length === 0) {
     return (
-      <div
-        ref={tableContentRef}
-        className="min-w-full"
-        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
-      >
+      <div ref={tableContentRef} className="min-w-0">
         {tableHeader}
         <FeedbackPlaceholder
           variant="empty"
@@ -681,11 +681,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // JSON editor
   if (viewMode === "json") {
     return (
-      <div
-        ref={tableContentRef}
-        className="min-w-full"
-        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
-      >
+      <div ref={tableContentRef} className="min-w-0">
         {tableHeader}
         <JsonEditorView
           jsonText={jsonEditorProps.jsonText}
@@ -746,11 +742,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     }
 
     return (
-      <div
-        ref={tableContentRef}
-        className="min-w-full"
-        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
-      >
+      <div ref={tableContentRef} className="min-w-0">
         {tableHeader}
         <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
           <FeedbackPlaceholder
@@ -774,11 +766,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Filtered empty state
   if (displayedTokens.length === 0 && filtersActive) {
     return (
-      <div
-        ref={tableContentRef}
-        className="min-w-full"
-        style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
-      >
+      <div ref={tableContentRef} className="min-w-0">
         {tableHeader}
         <TokenListFilteredEmptyState
           searchQuery={searchQuery}
@@ -801,7 +789,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     <div
       ref={tableContentRef}
       className="min-w-full"
-      style={tableMinWidth ? { minWidth: `${tableMinWidth}px` } : undefined}
+      style={populatedTreeTableStyle}
     >
       {tableHeader}
       <div className="py-1">

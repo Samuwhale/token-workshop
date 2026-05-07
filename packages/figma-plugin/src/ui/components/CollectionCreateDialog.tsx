@@ -4,6 +4,7 @@ import { Button } from "../primitives/Button";
 import {
   buildCollectionModeNames,
   CollectionAuthoringFields,
+  createInitialCollectionAuthoringDraft,
   type CollectionAuthoringDraft,
   validateCollectionAuthoringDraft,
 } from "./CollectionAuthoringFields";
@@ -15,6 +16,7 @@ export interface CreateCollectionRequest {
 
 interface CollectionCreateDialogProps {
   isOpen: boolean;
+  hasExistingCollections?: boolean;
   onClose: () => void;
   onCreate: (request: CreateCollectionRequest) => Promise<string>;
   onCreated?: (collectionId: string) => void;
@@ -22,6 +24,7 @@ interface CollectionCreateDialogProps {
 
 export function CollectionCreateDialog({
   isOpen,
+  hasExistingCollections = false,
   onClose,
   onCreate,
   onCreated,
@@ -30,6 +33,7 @@ export function CollectionCreateDialog({
 
   return (
     <CollectionCreateDialogContent
+      hasExistingCollections={hasExistingCollections}
       onClose={onClose}
       onCreate={onCreate}
       onCreated={onCreated}
@@ -38,14 +42,14 @@ export function CollectionCreateDialog({
 }
 
 function CollectionCreateDialogContent({
+  hasExistingCollections = false,
   onClose,
   onCreate,
   onCreated,
 }: Omit<CollectionCreateDialogProps, "isOpen">) {
-  const [draft, setDraft] = useState<CollectionAuthoringDraft>({
-    name: "",
-    modeNames: ["Default"],
-  });
+  const [draft, setDraft] = useState<CollectionAuthoringDraft>(() =>
+    createInitialCollectionAuthoringDraft(hasExistingCollections),
+  );
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);

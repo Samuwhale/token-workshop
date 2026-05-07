@@ -28,7 +28,7 @@ export function GitRepositoryPanel({
   connected,
   onPushUndo,
   onRefreshTokens,
-  embedded = false,
+  embedded: _embedded = false,
 }: GitRepositoryPanelProps) {
   const git = useGitSync({ serverUrl, connected });
   const [confirmAction, setConfirmAction] = useState<RepositoryConfirmAction>(null);
@@ -39,6 +39,7 @@ export function GitRepositoryPanel({
   const [compareA, setCompareA] = useState<CommitEntry | null>(null);
   const [compareB, setCompareB] = useState<CommitEntry | null>(null);
   const [showCompare, setShowCompare] = useState(false);
+  const repositoryReady = git.gitStatus?.isRepo === true;
 
   const handleSelectCommit = useCallback((hash: string, entry?: CommitEntry) => {
     setSelectedCommitHash(hash);
@@ -112,14 +113,18 @@ export function GitRepositoryPanel({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-        <GitSubPanel git={git} diffFilter="" onRequestConfirm={setConfirmAction} />
-        <div
-          className={`flex-1 min-h-[200px] ${
-            embedded ? "" : "border-t border-[var(--color-figma-border)]"
-          }`}
-        >
-          {rightColumn}
-        </div>
+        {repositoryReady ? (
+          <>
+            <div className="flex-1 min-h-[200px]">
+              {rightColumn}
+            </div>
+            <div className="shrink-0 border-t border-[var(--color-figma-border)]">
+              <GitSubPanel git={git} diffFilter="" onRequestConfirm={setConfirmAction} />
+            </div>
+          </>
+        ) : (
+          <GitSubPanel git={git} diffFilter="" onRequestConfirm={setConfirmAction} />
+        )}
       </div>
 
       {confirmAction === 'git-pull' && (

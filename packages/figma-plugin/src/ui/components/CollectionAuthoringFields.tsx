@@ -10,6 +10,20 @@ export interface CollectionAuthoringDraft {
   modeNames: string[];
 }
 
+export function createInitialCollectionAuthoringDraft(
+  hasExistingCollections: boolean,
+): CollectionAuthoringDraft {
+  return hasExistingCollections
+    ? {
+        name: "",
+        modeNames: ["Default"],
+      }
+    : {
+        name: "colors",
+        modeNames: ["Light", "Dark"],
+      };
+}
+
 const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
   { label: "Single mode", modes: ["Default"] },
   { label: "Light / Dark", modes: ["Light", "Dark"] },

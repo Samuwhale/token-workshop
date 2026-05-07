@@ -2,6 +2,7 @@ import { severityStyles } from './noticeSystem';
 import { LONG_TEXT_CLASSES } from './longTextStyles';
 import {
   CONTROL_DISABLED_CLASSES,
+  CONTROL_FOCUS_ACCENT,
   CONTROL_INPUT_BASE_CLASSES,
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
 } from './controlClasses';
@@ -51,9 +52,9 @@ export const AUTHORING = {
 
   // --- Footer buttons ---
   footerBtnSecondary:
-    'px-3 py-1.5 rounded-md text-body text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] transition-colors',
+    `inline-flex min-h-8 min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] disabled:border-transparent disabled:bg-transparent ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT}`,
   footerBtnPrimary:
-    'w-full px-3 py-1.5 rounded-md bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50 transition-colors',
+    `inline-flex min-h-8 w-full min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:border-transparent disabled:bg-[var(--surface-group-quiet)] disabled:text-[color:var(--color-figma-text-tertiary)] ${CONTROL_FOCUS_ACCENT}`,
 
   // --- Feedback ---
   error: 'text-secondary text-[color:var(--color-figma-text-error)] break-words',

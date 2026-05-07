@@ -2272,6 +2272,7 @@ export function App() {
 
       <CollectionCreateDialog
         isOpen={showCollectionCreateDialog}
+        hasExistingCollections={collectionIds.length > 0}
         onClose={closeCollectionCreateDialog}
         onCreate={createCollectionByName}
         onCreated={(collectionId) => {
@@ -2294,18 +2295,13 @@ export function App() {
       {showQuickApply && !selectionLoading && (
         <QuickApplyPicker
           selectedNodes={selectedNodes}
-          tokenMap={perCollectionFlat[currentCollectionId] ?? {}}
+          tokenMapsByCollection={perCollectionFlat}
           currentCollectionId={currentCollectionId}
-          collectionCount={collectionIds.length}
-          onSwitchCollection={
-            collectionIds.length > 1
-              ? () => {
-                  setShowQuickApply(false);
-                  openCollectionPicker();
-                }
-              : undefined
-          }
-          onApply={(tokenPath, tokenType, targetProperty, resolvedValue) => {
+          collectionIds={collectionIds}
+          onApply={(tokenPath, tokenType, targetProperty, resolvedValue, collectionId) => {
+            if (collectionId && collectionId !== currentCollectionId) {
+              setCurrentCollectionId(collectionId);
+            }
             parent.postMessage(
               {
                 pluginMessage: {
