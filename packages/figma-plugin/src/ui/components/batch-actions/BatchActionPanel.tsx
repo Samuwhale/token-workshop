@@ -17,6 +17,7 @@ export interface BatchActionPanelProps {
   selectedPaths: Set<string>;
   selectedEntries: Array<{ path: string; entry: TokenMapEntry }>;
   allTokensFlat: Record<string, TokenMapEntry>;
+  collectionTokensFlat: Record<string, TokenMapEntry>;
   collectionId: string;
   serverUrl: string;
   connected: boolean;
@@ -30,6 +31,7 @@ export function BatchActionPanel({
   selectedPaths,
   selectedEntries,
   allTokensFlat,
+  collectionTokensFlat,
   collectionId,
   serverUrl,
   connected,
@@ -41,6 +43,7 @@ export function BatchActionPanel({
     selectedPaths,
     selectedEntries,
     allTokensFlat,
+    collectionTokensFlat,
     collectionId,
     serverUrl,
     connected,

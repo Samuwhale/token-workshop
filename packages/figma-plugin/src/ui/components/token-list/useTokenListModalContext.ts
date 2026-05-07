@@ -40,33 +40,6 @@ type TokenListModalContextDeps = {
   setExtractError: TokenListModalsState["onSetExtractError"];
   handleConfirmExtractToAlias: TokenListModalsState["handleConfirmExtractToAlias"];
   setExtractToken: TokenListModalsState["onSetExtractToken"];
-  showFindReplace: TokenListModalsState["showFindReplace"];
-  frFind: TokenListModalsState["frFind"];
-  frReplace: TokenListModalsState["frReplace"];
-  frIsRegex: TokenListModalsState["frIsRegex"];
-  frScope: TokenListModalsState["frScope"];
-  frTarget: TokenListModalsState["frTarget"];
-  frError: TokenListModalsState["frError"];
-  frBusy: TokenListModalsState["frBusy"];
-  frRegexError: TokenListModalsState["frRegexError"];
-  frPreview: TokenListModalsState["frPreview"];
-  frValuePreview: TokenListModalsState["frValuePreview"];
-  frConflictCount: TokenListModalsState["frConflictCount"];
-  frRenameCount: TokenListModalsState["frRenameCount"];
-  frValueCount: TokenListModalsState["frValueCount"];
-  frAliasImpact: TokenListModalsState["frAliasImpact"];
-  frTypeFilter: TokenListModalsState["frTypeFilter"];
-  frAvailableTypes: TokenListModalsState["frAvailableTypes"];
-  setFrFind: TokenListModalsState["onSetFrFind"];
-  setFrReplace: TokenListModalsState["onSetFrReplace"];
-  setFrIsRegex: TokenListModalsState["onSetFrIsRegex"];
-  setFrScope: TokenListModalsState["onSetFrScope"];
-  setFrTarget: TokenListModalsState["onSetFrTarget"];
-  setFrTypeFilter: TokenListModalsState["onSetFrTypeFilter"];
-  setFrError: TokenListModalsState["onSetFrError"];
-  setShowFindReplace: TokenListModalsState["onSetShowFindReplace"];
-  handleFindReplace: TokenListModalsState["handleFindReplace"];
-  cancelFindReplace: TokenListModalsState["cancelFindReplace"];
   promoteRows: TokenListModalsState["promoteRows"];
   promoteBusy: TokenListModalsState["promoteBusy"];
   setPromoteRows: TokenListModalsState["onSetPromoteRows"];
@@ -176,33 +149,6 @@ export function useTokenListModalContext(
     onSetExtractError: deps.setExtractError,
     handleConfirmExtractToAlias: deps.handleConfirmExtractToAlias,
     onSetExtractToken: deps.setExtractToken,
-    showFindReplace: deps.showFindReplace,
-    frFind: deps.frFind,
-    frReplace: deps.frReplace,
-    frIsRegex: deps.frIsRegex,
-    frScope: deps.frScope,
-    frTarget: deps.frTarget,
-    frError: deps.frError,
-    frBusy: deps.frBusy,
-    frRegexError: deps.frRegexError,
-    frPreview: deps.frPreview,
-    frValuePreview: deps.frValuePreview,
-    frConflictCount: deps.frConflictCount,
-    frRenameCount: deps.frRenameCount,
-    frValueCount: deps.frValueCount,
-    frAliasImpact: deps.frAliasImpact,
-    frTypeFilter: deps.frTypeFilter,
-    frAvailableTypes: deps.frAvailableTypes,
-    onSetFrFind: deps.setFrFind,
-    onSetFrReplace: deps.setFrReplace,
-    onSetFrIsRegex: deps.setFrIsRegex,
-    onSetFrScope: deps.setFrScope,
-    onSetFrTarget: deps.setFrTarget,
-    onSetFrTypeFilter: deps.setFrTypeFilter,
-    onSetFrError: deps.setFrError,
-    onSetShowFindReplace: deps.setShowFindReplace,
-    handleFindReplace: deps.handleFindReplace,
-    cancelFindReplace: deps.cancelFindReplace,
     promoteRows: deps.promoteRows,
     promoteBusy: deps.promoteBusy,
     onSetPromoteRows: deps.setPromoteRows,

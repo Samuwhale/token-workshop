@@ -35,7 +35,6 @@ import { TokenListModalsProvider } from "./TokenListModalsContext";
 import { useExtractToAlias } from "../hooks/useExtractToAlias";
 import { useTokenCreate } from "../hooks/useTokenCreate";
 import { useTableCreate } from "../hooks/useTableCreate";
-import { useFindReplace } from "../hooks/useFindReplace";
 import { useDragDrop } from "../hooks/useDragDrop";
 import { useGroupOperations } from "../hooks/useGroupOperations";
 import { useTokenPromotion } from "../hooks/useTokenPromotion";
@@ -192,7 +191,6 @@ export function TokenList({
     >
   >(new Map());
   // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
-  // Find/replace state is managed by useFindReplace hook (called below after dependencies)
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [copyCssFeedback, setCopyCssFeedback] = useState(false);
   const [copyPreferredFeedback, setCopyPreferredFeedback] = useState(false);
@@ -577,46 +575,6 @@ export function TokenList({
     handleCreateAll,
     tableSuggestions,
   } = tableCreate;
-
-  const findReplace = useFindReplace({
-    connected,
-    serverUrl,
-    collectionId,
-    tokens,
-    allCollectionIds: collectionIds,
-    perCollectionFlat,
-    onRefresh,
-    onPushUndo,
-  });
-  const {
-    showFindReplace,
-    setShowFindReplace,
-    frFind,
-    setFrFind,
-    frReplace,
-    setFrReplace,
-    frIsRegex,
-    setFrIsRegex,
-    frScope,
-    setFrScope,
-    frTarget,
-    setFrTarget,
-    frTypeFilter,
-    setFrTypeFilter,
-    frAvailableTypes,
-    frError,
-    setFrError,
-    frBusy,
-    frRegexError,
-    frPreview,
-    frValuePreview,
-    frConflictCount,
-    frRenameCount,
-    frValueCount,
-    frAliasImpact,
-    handleFindReplace,
-    cancelFindReplace,
-  } = findReplace;
 
   const dragDrop = useDragDrop({
     connected,
@@ -1258,7 +1216,6 @@ export function TokenList({
     setPromoteRows(null);
     dismissMoveToken();
     dismissCopyToken();
-    setShowFindReplace(false);
     setActiveBatchAction(null);
     setShowBatchEditor(false);
     setPendingBatchEditorFocus(null);
@@ -1267,7 +1224,6 @@ export function TokenList({
     dismissMoveToken,
     setPromoteRows,
     setShowBatchEditor,
-    setShowFindReplace,
   ]);
 
   const handleOpenFindReplaceReview = useCallback(() => {
@@ -1823,13 +1779,6 @@ export function TokenList({
     newPrimitivePath, setNewPrimitivePath, newPrimitiveCollectionId, setNewPrimitiveCollectionId,
     existingAlias, setExistingAlias, existingAliasSearch, setExistingAliasSearch,
     extractError, setExtractError, handleConfirmExtractToAlias, setExtractToken,
-    showFindReplace,
-    frFind, frReplace, frIsRegex, frScope, frTarget, frError, frBusy,
-    frRegexError, frPreview, frValuePreview, frConflictCount, frRenameCount,
-    frValueCount, frAliasImpact, frTypeFilter, frAvailableTypes,
-    setFrFind, setFrReplace, setFrIsRegex, setFrScope, setFrTarget,
-    setFrTypeFilter, setFrError, setShowFindReplace,
-    handleFindReplace, cancelFindReplace,
     promoteRows, promoteBusy, setPromoteRows, handleConfirmPromote,
     movingToken, movingGroup, moveGroupTargetCollectionId, moveTokenTargetCollectionId,
     setMoveGroupTargetCollectionId, handleChangeMoveTokenTargetCollection,
@@ -1942,6 +1891,7 @@ export function TokenList({
               selectedPaths={selectedPaths}
               selectedEntries={selectedEntries}
               allTokensFlat={allTokensFlat}
+              collectionTokensFlat={currentCollectionFlat}
               collectionId={collectionId}
               serverUrl={serverUrl}
               connected={connected}

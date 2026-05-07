@@ -10,9 +10,42 @@ interface FindReplaceActionProps extends BatchActionProps {
   onSelectedPathsChange?: (next: Set<string>) => void;
 }
 
+interface RenamePreview {
+  oldPath: string;
+  newPath: string;
+  conflict: string | null;
+}
+
+function buildRenamePreviews(
+  selectedEntries: BatchActionProps['selectedEntries'],
+  collectionTokensFlat: BatchActionProps['collectionTokensFlat'],
+  replacePath: (path: string) => string,
+): RenamePreview[] {
+  const existingPaths = new Set(Object.keys(collectionTokensFlat));
+  const previews = selectedEntries
+    .map(({ path }) => ({ oldPath: path, newPath: replacePath(path), conflict: null }))
+    .filter(({ oldPath, newPath }) => newPath !== oldPath);
+  const renamedOldPaths = new Set(previews.map(({ oldPath }) => oldPath));
+  const newPathCounts = new Map<string, number>();
+  for (const { newPath } of previews) {
+    newPathCounts.set(newPath, (newPathCounts.get(newPath) ?? 0) + 1);
+  }
+
+  return previews.map((preview) => {
+    if ((newPathCounts.get(preview.newPath) ?? 0) > 1) {
+      return { ...preview, conflict: 'duplicate target' };
+    }
+    if (existingPaths.has(preview.newPath) && !renamedOldPaths.has(preview.newPath)) {
+      return { ...preview, conflict: 'path exists' };
+    }
+    return preview;
+  });
+}
+
 export function FindReplaceAction({
   selectedPaths,
   selectedEntries,
+  collectionTokensFlat,
   collectionId,
   serverUrl,
   connected,
@@ -33,29 +66,36 @@ export function FindReplaceAction({
     if (useRegex) {
       try {
         const re = new RegExp(findText, 'g');
-        const results: Array<{ oldPath: string; newPath: string }> = [];
-        for (const { path } of selectedEntries) {
-          const newPath = path.replace(re, replaceText);
-          if (newPath !== path) results.push({ oldPath: path, newPath });
-        }
-        return { renames: results, regexError: null };
+        return {
+          renames: buildRenamePreviews(
+            selectedEntries,
+            collectionTokensFlat,
+            (path) => path.replace(re, replaceText),
+          ),
+          regexError: null,
+        };
       } catch (e) {
         return { renames: [], regexError: (e as Error).message };
       }
     }
 
-    const results: Array<{ oldPath: string; newPath: string }> = [];
-    for (const { path } of selectedEntries) {
-      if (path.includes(findText)) {
-        results.push({ oldPath: path, newPath: path.split(findText).join(replaceText) });
-      }
-    }
-    return { renames: results, regexError: null };
-  }, [findText, replaceText, useRegex, selectedEntries]);
+    return {
+      renames: buildRenamePreviews(
+        selectedEntries,
+        collectionTokensFlat,
+        (path) => (path.includes(findText) ? path.split(findText).join(replaceText) : path),
+      ),
+      regexError: null,
+    };
+  }, [collectionTokensFlat, findText, replaceText, useRegex, selectedEntries]);
 
-  const canApply = renames.length > 0 && !regexError && !renaming && connected;
+  const conflictCount = renames.filter((rename) => rename.conflict).length;
+  const validRenames = renames.filter((rename) => !rename.conflict);
+  const renamePayload = validRenames.map(({ oldPath, newPath }) => ({ oldPath, newPath }));
+  const canApply = renamePayload.length > 0 && conflictCount === 0 && !regexError && !renaming && connected;
 
   async function handleApply() {
+    if (!canApply) return;
     setRenaming(true);
     setFeedback(null);
     try {
@@ -64,7 +104,7 @@ export function FindReplaceAction({
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ renames }),
+          body: JSON.stringify({ renames: renamePayload }),
         },
       );
 
@@ -76,7 +116,7 @@ export function FindReplaceAction({
       }
 
       if (onSelectedPathsChange) {
-        const renameMap = new Map(renames.map(r => [r.oldPath, r.newPath]));
+        const renameMap = new Map(renamePayload.map(r => [r.oldPath, r.newPath]));
         const next = new Set<string>();
         for (const p of selectedPaths) {
           next.add(renameMap.get(p) ?? p);
@@ -103,7 +143,7 @@ export function FindReplaceAction({
       <div className={AUTHORING_SURFACE_CLASSES.footerActions}>
         <div className={AUTHORING_SURFACE_CLASSES.footerPrimary}>
           <button onClick={handleApply} disabled={!canApply} className={AUTHORING.footerBtnPrimary}>
-            {renaming ? 'Renaming…' : `Rename ${renames.length}`}
+            {renaming ? 'Renaming…' : `Rename ${renamePayload.length}`}
           </button>
         </div>
       </div>
@@ -157,7 +197,9 @@ export function FindReplaceAction({
             <span className={AUTHORING.label}>
               {renames.length === 0
                 ? 'No paths match'
-                : `${renames.length} path${renames.length === 1 ? '' : 's'} will change`}
+                : conflictCount > 0
+                  ? `${conflictCount} path${conflictCount === 1 ? '' : 's'} need a unique target`
+                  : `${renamePayload.length} path${renamePayload.length === 1 ? '' : 's'} will change`}
             </span>
             {renames.length > 0 && (
               <PreviewCard
@@ -169,7 +211,19 @@ export function FindReplaceAction({
                   <div key={r.oldPath} className="flex flex-wrap items-center gap-1">
                     <PreviewPath path={r.oldPath} />
                     <span className="text-[color:var(--color-figma-text-tertiary)] shrink-0">→</span>
-                    <PreviewPath path={r.newPath} className="!text-[color:var(--color-figma-text)]" />
+                    <PreviewPath
+                      path={r.newPath}
+                      className={
+                        r.conflict
+                          ? '!text-[color:var(--color-figma-text-error)]'
+                          : '!text-[color:var(--color-figma-text)]'
+                      }
+                    />
+                    {r.conflict ? (
+                      <span className="text-secondary text-[color:var(--color-figma-text-error)]">
+                        {r.conflict}
+                      </span>
+                    ) : null}
                   </div>
                 ))}
               </PreviewCard>

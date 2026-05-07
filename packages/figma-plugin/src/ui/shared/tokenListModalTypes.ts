@@ -56,27 +56,6 @@ export interface RenameGroupConfirmState {
   deps: RenameDependencyChange[];
 }
 
-export type FindReplaceScope = "active" | "all";
-export type FindReplaceTarget = "names" | "values";
-
-export interface FindReplaceRenamePreviewItem {
-  oldPath: string;
-  newPath: string;
-  conflict: boolean;
-  collectionId: string;
-}
-
-export interface FindReplaceValuePreviewItem {
-  path: string;
-  collectionId: string;
-  oldValue: string;
-  newValue: string;
-}
-
-export interface FindReplaceAliasImpact {
-  tokenCount: number;
-}
-
 export interface TokenListModalsState {
   collectionId: string;
   collectionIds: string[];
@@ -131,34 +110,6 @@ export interface TokenListModalsState {
   onSetExtractError: (value: string) => void;
   handleConfirmExtractToAlias: () => void;
   onSetExtractToken: (value: ExtractAliasTokenDraft | null) => void;
-
-  showFindReplace: boolean;
-  frFind: string;
-  frReplace: string;
-  frIsRegex: boolean;
-  frScope: FindReplaceScope;
-  frTarget: FindReplaceTarget;
-  frError: string;
-  frBusy: boolean;
-  frRegexError: string | null;
-  frPreview: FindReplaceRenamePreviewItem[];
-  frValuePreview: FindReplaceValuePreviewItem[];
-  frConflictCount: number;
-  frRenameCount: number;
-  frValueCount: number;
-  frAliasImpact: FindReplaceAliasImpact;
-  frTypeFilter: string;
-  frAvailableTypes: string[];
-  onSetFrFind: (value: string) => void;
-  onSetFrReplace: (value: string) => void;
-  onSetFrIsRegex: (value: boolean) => void;
-  onSetFrScope: (value: FindReplaceScope) => void;
-  onSetFrTarget: (value: FindReplaceTarget) => void;
-  onSetFrTypeFilter: (value: string) => void;
-  onSetFrError: (value: string) => void;
-  onSetShowFindReplace: (value: boolean) => void;
-  handleFindReplace: () => void;
-  cancelFindReplace: () => void;
 
   promoteRows: PromoteRow[] | null;
   promoteBusy: boolean;

@@ -17,10 +17,10 @@ export interface BatchActionProps {
   selectedPaths: Set<string>;
   selectedEntries: Array<{ path: string; entry: TokenMapEntry }>;
   allTokensFlat: Record<string, TokenMapEntry>;
+  collectionTokensFlat: Record<string, TokenMapEntry>;
   collectionId: string;
   serverUrl: string;
   connected: boolean;
   onApply: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
 }
-
