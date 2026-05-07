@@ -1,4 +1,4 @@
-import { apiFetch } from '../../shared/apiFetch';
+import { rollbackOperation } from '../../shared/tokenMutations';
 
 export type NumericOpMode = 'multiply' | 'divide' | 'add' | 'subtract';
 export type ColorAdjustOp = 'lighten' | 'darken' | 'saturate' | 'desaturate' | 'hue';
@@ -126,6 +126,4 @@ export function formatBatchValue(v: unknown): string {
   return String(v);
 }
 
-export async function rollbackOperation(serverUrl: string, operationId: string) {
-  await apiFetch(`${serverUrl}/api/operations/${operationId}/rollback`, { method: 'POST' });
-}
+export { rollbackOperation };

@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getErrorMessage, isAbortError } from '../shared/utils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, STORAGE_KEYS } from '../shared/storage';
+import { rollbackOperation } from '../shared/tokenMutations';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenValue, TokenReference } from '@token-workshop/core';
 import type { UndoSlot } from './useUndo';
@@ -238,7 +239,7 @@ export function useResolvers(serverUrl: string, connected: boolean) {
       pushUndoRef.current({
         description: `Deleted resolver "${name}"`,
         restore: async () => {
-          await apiFetch(`${url}/api/operations/${encodeURIComponent(opId)}/rollback`, { method: 'POST' });
+          await rollbackOperation(url, opId);
           fetchResolvers();
         },
       });

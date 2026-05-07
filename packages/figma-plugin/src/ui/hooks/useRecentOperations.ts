@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { apiFetch, createFetchSignal, type PaginatedResponse } from '../shared/apiFetch';
+import { rollbackOperation } from '../shared/tokenMutations';
 import { getErrorMessage, isAbortError } from '../shared/utils';
 import type { OperationEntry } from '../components/history/types';
 
@@ -73,10 +74,7 @@ export function useRecentOperations({
 
   const handleRollback = useCallback(async (opId: string) => {
     try {
-      const data = await apiFetch<{ ok: boolean; restoredPaths: string[]; rollbackEntryId: string }>(
-        `${serverUrl}/api/operations/${encodeURIComponent(opId)}/rollback`,
-        { method: 'POST' },
-      );
+      const data = await rollbackOperation(serverUrl, opId);
       // Push to redo stack so user can re-apply this rollback
       if (data.rollbackEntryId) {
         const origOp = recentOperations.find(op => op.id === opId);
@@ -109,10 +107,7 @@ export function useRecentOperations({
     setRedoEntries(prev => prev.filter(e => e !== entry));
 
     try {
-      await apiFetch(
-        `${serverUrl}/api/operations/${encodeURIComponent(entry.rollbackId)}/rollback`,
-        { method: 'POST' },
-      );
+      await rollbackOperation(serverUrl, entry.rollbackId);
       refreshAll();
       fetchRecentOps();
       setSuccessToast('Operation redone');

@@ -42,6 +42,11 @@ export interface TokenMutationResult<T = unknown> {
   response: T;
 }
 
+export interface OperationRollbackResult {
+  restoredPaths: string[];
+  rollbackEntryId: string;
+}
+
 export interface TokenMutationSuccessOptions {
   onAfterSave?: () => void | Promise<void>;
   onRefresh?: () => void | Promise<void>;
@@ -197,6 +202,16 @@ export async function deleteToken<T = unknown>(
     ...options,
     method: 'DELETE',
   });
+}
+
+export async function rollbackOperation(
+  serverUrl: string,
+  operationId: string,
+): Promise<OperationRollbackResult> {
+  return apiFetch<OperationRollbackResult>(
+    `${serverUrl}/api/operations/${encodeURIComponent(operationId)}/rollback`,
+    { method: 'POST' },
+  );
 }
 
 export async function upsertToken<T = unknown>(

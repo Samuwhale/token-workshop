@@ -6,6 +6,7 @@ import {
   isNetworkError,
 } from "../shared/apiFetch";
 import type { CollectionStructuralPreflight } from "../shared/collectionStructuralPreflight";
+import { rollbackOperation } from "../shared/tokenMutations";
 import { isAbortError, stableStringify } from "../shared/utils";
 
 interface MergeCollectionResponse {
@@ -274,10 +275,7 @@ export function useCollectionMergeSplit({
       pushUndo({
         description: `Merged collection "${srcName}" into "${targetName}"`,
         restore: async () => {
-          await apiFetch(
-            `${url}/api/operations/${encodeURIComponent(opId)}/rollback`,
-            { method: "POST" },
-          );
+          await rollbackOperation(url, opId);
           refreshTokens();
         },
       });
@@ -399,10 +397,7 @@ export function useCollectionMergeSplit({
       pushUndo({
         description: `Split collection "${name}" into ${count} collections`,
         restore: async () => {
-          await apiFetch(
-            `${url}/api/operations/${encodeURIComponent(opId)}/rollback`,
-            { method: "POST" },
-          );
+          await rollbackOperation(url, opId);
           refreshTokens();
         },
       });

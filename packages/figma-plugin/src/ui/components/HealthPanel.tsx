@@ -7,6 +7,7 @@ import { statusFromIssueSeverities } from "../hooks/useHealthSignals";
 import type { ValidationIssue } from "../hooks/useValidationCache";
 import type { UseIssueActionsResult } from "../hooks/useIssueActions";
 import { apiFetch } from "../shared/apiFetch";
+import { rollbackOperation } from "../shared/tokenMutations";
 import { dispatchToast } from "../shared/toastBus";
 import { promoteTokensToSharedAlias } from "../hooks/useExtractToAlias";
 import { useHealthData } from "../hooks/useHealthData";
@@ -396,7 +397,7 @@ export function HealthPanel({
         onPushUndo({
           description: `Replace ${result.updated} deprecated reference${result.updated === 1 ? "" : "s"}`,
           restore: async () => {
-            await apiFetch(`${serverUrl}/api/operations/${encodeURIComponent(opId)}/rollback`, { method: "POST" });
+            await rollbackOperation(serverUrl, opId);
             await refreshHealthState();
           },
         });

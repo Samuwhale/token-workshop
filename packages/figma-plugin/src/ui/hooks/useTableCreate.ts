@@ -3,12 +3,13 @@ import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
-import { ApiError } from '../shared/apiFetch';
-import { apiFetch } from '../shared/apiFetch';
+import { ApiError, apiFetch } from '../shared/apiFetch';
 import { STORAGE_KEY_BUILDERS, ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
 import {
   createTokenValueBody,
   deleteToken,
+  rollbackOperation,
+  type TokenMutationBody,
 } from '../shared/tokenMutations';
 
 export interface TableRow {
@@ -50,6 +51,79 @@ interface BatchCreateResponse {
   skipped: number;
   changedPaths?: string[];
   operationId?: string;
+}
+
+type BatchCreateTokenPayload = { path: string } & TokenMutationBody;
+
+function buildBatchCreatePayload(
+  preparedTokens: PreparedTableCreateToken[],
+): BatchCreateTokenPayload[] {
+  return preparedTokens.map((token) => ({
+    path: token.path,
+    ...token.body,
+  }));
+}
+
+async function batchCreateTokens(
+  serverUrl: string,
+  collectionId: string,
+  preparedTokens: PreparedTableCreateToken[],
+): Promise<BatchCreateResponse> {
+  return apiFetch<BatchCreateResponse>(
+    `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}/batch`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        strategy: 'skip',
+        tokens: buildBatchCreatePayload(preparedTokens),
+      }),
+    },
+  );
+}
+
+function makeBatchCreateUndoSlot({
+  serverUrl,
+  collectionId,
+  createdTokens,
+  preparedTokens,
+  operationId,
+  onRefresh,
+}: {
+  serverUrl: string;
+  collectionId: string;
+  createdTokens: PreparedTableCreateToken[];
+  preparedTokens: PreparedTableCreateToken[];
+  operationId?: string;
+  onRefresh: () => void;
+}): UndoSlot {
+  let currentUndoOperationId = operationId;
+  let currentRedoOperationId: string | undefined;
+
+  return {
+    description: `Create ${createdTokens.length} token${createdTokens.length > 1 ? 's' : ''}`,
+    restore: async () => {
+      if (currentUndoOperationId) {
+        const rollback = await rollbackOperation(serverUrl, currentUndoOperationId);
+        currentRedoOperationId = rollback.rollbackEntryId;
+      } else {
+        for (const token of createdTokens) {
+          await deleteToken(serverUrl, collectionId, token.path);
+        }
+      }
+      onRefresh();
+    },
+    redo: async () => {
+      if (currentRedoOperationId) {
+        const rollback = await rollbackOperation(serverUrl, currentRedoOperationId);
+        currentUndoOperationId = rollback.rollbackEntryId;
+      } else {
+        const result = await batchCreateTokens(serverUrl, collectionId, preparedTokens);
+        currentUndoOperationId = result.operationId;
+      }
+      onRefresh();
+    },
+  };
 }
 
 function normalizeDraftRow(row: unknown): TableRow | null {
@@ -382,19 +456,10 @@ export function useTableCreate({
     setCreateAllError('');
 
     try {
-      const result = await apiFetch<BatchCreateResponse>(
-        `${serverUrl}/api/tokens/${encodeURIComponent(effectiveCollectionId)}/batch`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            strategy: 'skip',
-            tokens: preparedTokens.map((token) => ({
-              path: token.path,
-              ...token.body,
-            })),
-          }),
-        },
+      const result = await batchCreateTokens(
+        serverUrl,
+        effectiveCollectionId,
+        preparedTokens,
       );
       const changedPaths = new Set(result.changedPaths ?? preparedTokens.map((token) => token.path));
       const created = preparedTokens.filter((token) => changedPaths.has(token.path));
@@ -405,36 +470,14 @@ export function useTableCreate({
       }
 
       if (onPushUndo && created.length > 0) {
-        const capturedUrl = serverUrl;
-        const capturedCollectionId = effectiveCollectionId;
-        const operationId = result.operationId;
-        onPushUndo({
-          description: `Create ${created.length} token${created.length > 1 ? 's' : ''}`,
-          restore: async () => {
-            if (operationId) {
-              await apiFetch(`${capturedUrl}/api/operations/${encodeURIComponent(operationId)}/rollback`, { method: 'POST' });
-            } else {
-              for (const c of created) {
-                await deleteToken(capturedUrl, capturedCollectionId, c.path);
-              }
-            }
-            onRefresh();
-          },
-          redo: async () => {
-            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedCollectionId)}/batch`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                strategy: 'skip',
-                tokens: preparedTokens.map((token) => ({
-                  path: token.path,
-                  ...token.body,
-                })),
-              }),
-            });
-            onRefresh();
-          },
-        });
+        onPushUndo(makeBatchCreateUndoSlot({
+          serverUrl,
+          collectionId: effectiveCollectionId,
+          createdTokens: created,
+          preparedTokens,
+          operationId: result.operationId,
+          onRefresh,
+        }));
       }
       if (result.skipped > 0) {
         setCreateAllError(

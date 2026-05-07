@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Spinner } from '../Spinner';
 import { apiFetch } from '../../shared/apiFetch';
+import { rollbackOperation } from '../../shared/tokenMutations';
 import { isAbortError } from '../../shared/utils';
 import { summarizeChanges, statusColor, formatRelativeTime } from '../../shared/changeHelpers';
 import { ChangesByCollectionList } from './ChangesByCollectionList';
@@ -205,7 +206,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         onPushUndo({
           description: desc,
           restore: async () => {
-            await apiFetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
+            await rollbackOperation(serverUrl, opId);
             onRefreshTokens?.();
           },
         });

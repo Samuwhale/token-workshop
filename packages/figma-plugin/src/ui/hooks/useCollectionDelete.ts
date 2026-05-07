@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { apiFetch, ApiError, createFetchSignal, isNetworkError } from '../shared/apiFetch';
+import { rollbackOperation } from '../shared/tokenMutations';
 import { isAbortError } from '../shared/utils';
 import type { UndoSlot } from './useUndo';
 
@@ -70,7 +71,7 @@ export function useCollectionDelete({
         onPushUndo({
           description: `Deleted collection "${name}"`,
           restore: async () => {
-            await apiFetch(`${url}/api/operations/${encodeURIComponent(opId)}/rollback`, { method: 'POST' });
+            await rollbackOperation(url, opId);
             refreshTokens();
           },
         });

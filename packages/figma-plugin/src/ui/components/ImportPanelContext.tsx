@@ -24,6 +24,7 @@ import {
   type FileImportValidation,
 } from "../hooks/useImportSource";
 import type { UndoSlot } from "../hooks/useUndo";
+import { rollbackOperation } from "../shared/tokenMutations";
 import { copyToClipboard } from "../shared/comparisonUtils";
 import { apiFetch, ApiError } from "../shared/apiFetch";
 import { dispatchToast } from "../shared/toastBus";
@@ -1051,12 +1052,7 @@ export function ImportPanelProvider({
     const operations = history.operations;
     while (operations.length > 0) {
       const operation = operations[operations.length - 1];
-      await apiFetch(
-        `${serverUrlRef.current}/api/operations/${encodeURIComponent(operation.operationId)}/rollback`,
-        {
-          method: "POST",
-        },
-      );
+      await rollbackOperation(serverUrlRef.current, operation.operationId);
       operations.pop();
     }
   }, []);

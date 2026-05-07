@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../../shared/apiFetch';
+import { rollbackOperation } from '../../shared/tokenMutations';
 import { isAbortError } from '../../shared/utils';
 import { ConfirmModal } from '../ConfirmModal';
 import { summarizeChanges, formatRelativeTime, ChangeSummaryBadges } from '../../shared/changeHelpers';
@@ -225,7 +226,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         onPushUndo({
           description: `Revert to checkpoint`,
           restore: async () => {
-            await apiFetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
+            await rollbackOperation(serverUrl, opId);
             onRefreshTokens?.();
           },
         });
