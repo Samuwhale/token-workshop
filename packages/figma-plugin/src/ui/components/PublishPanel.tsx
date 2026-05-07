@@ -1440,29 +1440,34 @@ export function PublishPanel({
     {missingVariablesConfirm && (
       <ConfirmModal
         title={`Create ${missingVariablesConfirm.tokens.length} Figma variable${missingVariablesConfirm.tokens.length !== 1 ? 's' : ''}?`}
-        description={`Token Workshop will create the missing variables in ${missingVariablesConfirm.targetLabel}, then re-run the Figma check.`}
+        description={`Token Workshop will create the missing variables in ${missingVariablesConfirm.targetSummary}, then re-run the Figma check.`}
         confirmLabel="Create variables"
         wide
         onCancel={() => setMissingVariablesConfirm(null)}
         onConfirm={confirmMissingVariablesPush}
       >
         <div className="mt-2 max-h-[180px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          {missingVariablesConfirm.tokens.slice(0, 10).map((token) => (
+          {missingVariablesConfirm.previewRows.slice(0, 10).map((row) => (
             <div
-              key={`${token.collectionId ?? ''}:${token.path}`}
+              key={row.key}
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-[var(--color-figma-border)] px-3 py-1 text-secondary last:border-b-0"
             >
-              <span className="truncate font-mono text-[color:var(--color-figma-text)]" title={token.path}>
-                {token.path}
-              </span>
+              <div className="min-w-0">
+                <span className="block truncate font-mono text-[color:var(--color-figma-text)]" title={row.path}>
+                  {row.path}
+                </span>
+                <span className="block truncate text-[color:var(--color-figma-text-tertiary)]" title={row.targetLabel}>
+                  {row.targetLabel}
+                </span>
+              </div>
               <span className="text-[color:var(--color-figma-text-tertiary)]">
-                {token.$type}
+                {row.type}
               </span>
             </div>
           ))}
-          {missingVariablesConfirm.tokens.length > 10 ? (
+          {missingVariablesConfirm.previewRows.length > 10 ? (
             <div className="px-3 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              {missingVariablesConfirm.tokens.length - 10} more variable{missingVariablesConfirm.tokens.length - 10 === 1 ? '' : 's'}
+              {missingVariablesConfirm.previewRows.length - 10} more variable{missingVariablesConfirm.previewRows.length - 10 === 1 ? '' : 's'}
             </div>
           ) : null}
         </div>

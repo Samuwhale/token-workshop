@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Plus, X } from "lucide-react";
 import type { TokenMapEntry } from "../../shared/types";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
@@ -267,22 +268,13 @@ export function RemapBindingsPanel({
             Remap Bindings
           </span>
           <button
+            type="button"
             onClick={onClose}
             className="rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             title="Close"
             aria-label="Close"
           >
-            <svg
-              width="8"
-              height="8"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              aria-hidden="true"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <X size={10} strokeWidth={2} aria-hidden />
           </button>
         </div>
       )}
@@ -308,20 +300,12 @@ export function RemapBindingsPanel({
               tokenMap={tokenMap}
               additionalPaths={fromAutocompletePaths}
             />
-            <svg
-              width="8"
-              height="8"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            <ArrowRight
+              size={10}
+              strokeWidth={1.8}
               className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
+              aria-hidden
+            />
             <RemapAutocompleteInput
               value={row.to}
               onChange={(nextValue) =>
@@ -346,6 +330,7 @@ export function RemapBindingsPanel({
             )}
             {remapRows.length > 1 && (
               <button
+                type="button"
                 onClick={() =>
                   updateRows(remapRows.filter((_, rowIdx) => rowIdx !== idx))
                 }
@@ -353,17 +338,7 @@ export function RemapBindingsPanel({
                 title="Remove row"
                 aria-label="Remove row"
               >
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  aria-hidden="true"
-                >
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+                <X size={10} strokeWidth={2} aria-hidden />
               </button>
             )}
           </div>
@@ -374,14 +349,17 @@ export function RemapBindingsPanel({
 
       <div className="flex items-center justify-between gap-2">
         <button
+          type="button"
           onClick={() => updateRows([...remapRows, createEmptyRemapRow()])}
-          className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
+          className="inline-flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
         >
-          + Add row
+          <Plus size={10} strokeWidth={1.8} aria-hidden />
+          Add row
         </button>
 
         <div className="flex items-center gap-1.5">
           <button
+            type="button"
             onClick={() =>
               setRemapScope((currentScope) => {
                 setRemapResult(null);
@@ -394,6 +372,7 @@ export function RemapBindingsPanel({
             {remapScope === "selection" ? "Selection" : "Page"}
           </button>
           <button
+            type="button"
             onClick={handleRemap}
             disabled={remapDisabled}
             className="rounded bg-[var(--color-figma-action-bg)] px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
@@ -434,9 +413,12 @@ export function RemapBindingsPanel({
                 <span className="truncate font-mono text-[color:var(--color-figma-text-secondary)]" title={entry.from}>
                   {entry.from}
                 </span>
-                <span className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
-                  →
-                </span>
+                <ArrowRight
+                  size={10}
+                  strokeWidth={1.8}
+                  className="text-[color:var(--color-figma-text-tertiary)]"
+                  aria-hidden
+                />
                 <span className="truncate font-mono text-[color:var(--color-figma-text)]" title={entry.to}>
                   {entry.to}
                 </span>

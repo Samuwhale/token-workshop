@@ -90,7 +90,13 @@ type VariableSyncSnapshot = Awaited<ReturnType<typeof loadVariableSyncSnapshot>>
 
 export interface MissingVariablesConfirmState {
   tokens: VariableSyncToken[];
-  targetLabel: string;
+  previewRows: Array<{
+    key: string;
+    path: string;
+    type: string;
+    targetLabel: string;
+  }>;
+  targetSummary: string;
 }
 
 interface GeneratorStatusItem {
@@ -140,9 +146,10 @@ function rankGeneratorDiagnostic(
 }
 
 function rankGeneratorIssue(item: GeneratorStatusItem): number {
-  const bestDiagnosticRank = item.preview.diagnostics.length > 0
-    ? Math.min(...item.preview.diagnostics.map(rankGeneratorDiagnostic))
-    : Number.POSITIVE_INFINITY;
+  let bestDiagnosticRank = Number.POSITIVE_INFINITY;
+  for (const diagnostic of item.preview.diagnostics) {
+    bestDiagnosticRank = Math.min(bestDiagnosticRank, rankGeneratorDiagnostic(diagnostic));
+  }
   if (item.blocking) return 0;
   if (bestDiagnosticRank <= 1) return 1;
   if (item.preview.outputs.some((output) => output.collision)) return 2;
@@ -155,23 +162,126 @@ function rankGeneratorIssue(item: GeneratorStatusItem): number {
 function selectRecommendedGeneratorIssue(
   generatorIssues: GeneratorStatusItem[],
 ): GeneratorStatusItem | undefined {
-  return [...generatorIssues].sort(
-    (a, b) =>
-      rankGeneratorIssue(a) - rankGeneratorIssue(b) ||
-      a.generator.name.localeCompare(b.generator.name),
-  )[0];
+  let recommended: GeneratorStatusItem | undefined;
+  for (const issue of generatorIssues) {
+    if (!recommended) {
+      recommended = issue;
+      continue;
+    }
+    const rankDelta = rankGeneratorIssue(issue) - rankGeneratorIssue(recommended);
+    if (rankDelta < 0 || (rankDelta === 0 && issue.generator.name.localeCompare(recommended.generator.name) < 0)) {
+      recommended = issue;
+    }
+  }
+  return recommended;
 }
 
 function selectRecommendedGeneratorDiagnostic(
   diagnostics: GeneratorStatusItem['preview']['diagnostics'],
 ): GeneratorStatusItem['preview']['diagnostics'][number] | undefined {
-  return [...diagnostics].sort(
-    (a, b) => rankGeneratorDiagnostic(a) - rankGeneratorDiagnostic(b),
-  )[0];
+  let recommended: GeneratorStatusItem['preview']['diagnostics'][number] | undefined;
+  for (const diagnostic of diagnostics) {
+    if (!recommended || rankGeneratorDiagnostic(diagnostic) < rankGeneratorDiagnostic(recommended)) {
+      recommended = diagnostic;
+    }
+  }
+  return recommended;
 }
 
 function getResolverCollectionName(mapping: ResolverPublishSyncMapping): string {
   return mapping.collectionName?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME;
+}
+
+function getMissingVariableTargetLabel(
+  token: VariableSyncToken,
+  collectionMap: Record<string, string>,
+  modeMap: Record<string, string>,
+): string {
+  const collectionName =
+    token.figmaCollection?.trim() ||
+    (token.collectionId ? collectionMap[token.collectionId]?.trim() : '') ||
+    DEFAULT_VARIABLE_COLLECTION_NAME;
+  const modeName =
+    token.figmaMode?.trim() ||
+    (token.collectionId ? modeMap[token.collectionId]?.trim() : '');
+  return modeName ? `${collectionName} / ${modeName}` : collectionName;
+}
+
+function summarizeMissingVariableTargets(targetLabels: string[]): string {
+  const uniqueLabels = Array.from(new Set(targetLabels));
+  if (uniqueLabels.length === 0) return DEFAULT_VARIABLE_COLLECTION_NAME;
+  if (uniqueLabels.length === 1) return uniqueLabels[0];
+  if (uniqueLabels.length === 2) return uniqueLabels.join(' and ');
+  return `${uniqueLabels.length} Figma targets`;
+}
+
+function createMissingVariablesConfirmState({
+  rows,
+  snapshot,
+  currentCollectionId,
+  collectionMap,
+  modeMap,
+  resolverName,
+  resolverPublishMappings,
+}: {
+  rows: VariableSyncSnapshot['rows'];
+  snapshot: VariableSyncSnapshot;
+  currentCollectionId: string;
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+  resolverName?: string | null;
+  resolverPublishMappings?: ResolverPublishSyncMapping[];
+}): MissingVariablesConfirmState | null {
+  const tokens: VariableSyncToken[] = [];
+  const previewRows: MissingVariablesConfirmState['previewRows'] = [];
+
+  rows.forEach((row, index) => {
+    const rowId = getDiffRowId(row);
+    const local = snapshot.localMap.get(rowId);
+    const sourceToken = local?.token;
+    const resolverMappingKey = resolverName && row.id
+      ? parseResolverRowId(row.id)?.mappingKey ?? null
+      : null;
+    const resolverMapping = resolverMappingKey
+      ? resolverPublishMappings?.find((mapping) => mapping.key === resolverMappingKey)
+      : undefined;
+    const scopes = local?.scopes;
+    const extensions = sourceToken?.$extensions
+      ? { ...sourceToken.$extensions }
+      : {};
+
+    if (scopes?.length) {
+      extensions['com.figma.scopes'] = scopes;
+    }
+
+    const token: VariableSyncToken = {
+      path: row.path,
+      $type: String(sourceToken?.$type ?? row.localType ?? local?.type ?? 'string'),
+      $value: (sourceToken?.$value ?? row.localRaw ?? local?.raw ?? '') as VariableSyncToken['$value'],
+      ...(Object.keys(extensions).length > 0 ? { $extensions: extensions } : {}),
+      collectionId: resolverName ?? currentCollectionId,
+      figmaCollection: resolverMapping?.collectionName,
+      figmaMode: resolverMapping?.modeName,
+    };
+    const targetLabel = getMissingVariableTargetLabel(token, collectionMap, modeMap);
+    tokens.push(token);
+    previewRows.push({
+      key: `${rowId}:${targetLabel}:${index}`,
+      path: token.path,
+      type: token.$type,
+      targetLabel,
+    });
+  });
+
+  if (tokens.length === 0) return null;
+
+  return {
+    tokens,
+    previewRows,
+    targetSummary: summarizeMissingVariableTargets(
+      previewRows.map((row) => row.targetLabel),
+    ),
+  };
 }
 
 function buildResolverOrphanCleanupPlan(
@@ -545,36 +655,16 @@ export function useReadinessChecks({
           resolverName,
           resolverPublishMappings,
         );
-        const tokens: VariableSyncToken[] = getSyncRowsByCategory(snapshot.rows).localOnly.map((row) => {
-          const local = snapshot.localMap.get(getDiffRowId(row));
-          const scopes = local?.scopes;
-          const resolverMappingKey =
-            resolverName && row.id ? row.id.split('::')[0] : null;
-          const resolverMapping = resolverMappingKey
-            ? resolverPublishMappings?.find((mapping) => mapping.key === resolverMappingKey)
-            : undefined;
-          return {
-            path: row.path,
-            $type: row.localType ?? local?.type ?? 'string',
-            $value: (row.localRaw ?? local?.raw ?? '') as VariableSyncToken['$value'],
-            $extensions: scopes?.length ? { 'com.figma.scopes': scopes } : undefined,
-            collectionId: resolverName ?? currentCollectionId,
-            figmaCollection: resolverMapping?.collectionName,
-            figmaMode: resolverMapping?.modeName,
-          };
+        const confirmState = createMissingVariablesConfirmState({
+          rows: getSyncRowsByCategory(snapshot.rows).localOnly,
+          snapshot,
+          currentCollectionId,
+          collectionMap,
+          modeMap,
+          resolverName,
+          resolverPublishMappings,
         });
-
-        if (tokens.length === 0) return;
-
-        const figmaCollectionName =
-          collectionMap[currentCollectionId]?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME;
-        const figmaModeName = modeMap[currentCollectionId]?.trim();
-        setMissingVariablesConfirm({
-          tokens,
-          targetLabel: figmaModeName
-            ? `${figmaCollectionName} / ${figmaModeName}`
-            : figmaCollectionName,
-        });
+        if (confirmState) setMissingVariablesConfirm(confirmState);
         return;
       }
 
