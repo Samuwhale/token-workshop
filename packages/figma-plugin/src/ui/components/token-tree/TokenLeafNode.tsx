@@ -122,7 +122,12 @@ export const TokenLeafNode = memo(
       rovingFocusPath,
       showDuplicatesFilter,
     } = useTokenTreeLeafState();
-    const { allTokensFlat, pathToCollectionId } = useTokenTreeSharedData();
+    const {
+      allTokensFlat,
+      collectionIdsByPath,
+      pathToCollectionId,
+      perCollectionFlat,
+    } = useTokenTreeSharedData();
     const {
       onEdit,
       onDelete,
@@ -1401,6 +1406,9 @@ export const TokenLeafNode = memo(
               modeLabel={multiModeValues.length > 1 ? quickEditor.optionName : undefined}
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
+              collectionIdsByPath={collectionIdsByPath}
+              perCollectionFlat={perCollectionFlat}
+              preferredCollectionId={quickEditor.collectionId}
               anchorRect={quickEditor.anchor}
               onSave={(newVal, previousState) => {
                 if (quickEditor.targetCollectionId) {

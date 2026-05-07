@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Link2, Rows3 } from "lucide-react";
-import {
-  resolveCollectionIdForPath,
-  resolveRefValue,
-} from "@token-workshop/core";
+import { resolveCollectionIdForPath } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
-import { extractAliasPath, isAlias } from "../../../shared/resolveAlias";
+import {
+  extractAliasPath,
+  isAlias,
+  resolveAliasEntry,
+} from "../../../shared/resolveAlias";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ValuePreview } from "../ValuePreview";
 import { ModeValueEditor } from "../token-editor/ModeValueEditor";
@@ -15,7 +16,7 @@ import {
   buildTypographyPreviewStyle,
   getTypographyPreviewValue,
 } from "../token-editor/tokenEditorHelpers";
-import { getCollectionDisplayName } from "../../shared/libraryCollections";
+import { formatCollectionDisplayNameList } from "../../shared/libraryCollections";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -30,6 +31,7 @@ export interface TokenDetailsModeRowProps {
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
   collectionIdsByPath?: Record<string, string[]>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
   preferredCollectionId?: string;
   collectionDisplayNames?: Record<string, string>;
   showModeLabel?: boolean;
@@ -54,6 +56,7 @@ function resolveReadOnlyPresentation(
   allTokensFlat: Record<string, TokenMapEntry>,
   pathToCollectionId: Record<string, string>,
   collectionIdsByPath: Record<string, string[]>,
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
   preferredCollectionId?: string,
 ) {
   const aliasTargetPath =
@@ -68,10 +71,24 @@ function resolveReadOnlyPresentation(
         preferredCollectionId,
       })
     : null;
-  const resolvedEntry = aliasTargetPath ? allTokensFlat[aliasTargetPath] : null;
+  const aliasTargetCollectionId = aliasResolution?.collectionId;
+  const aliasTokenMap =
+    aliasTargetCollectionId
+      ? perCollectionFlat[aliasTargetCollectionId] ?? allTokensFlat
+      : allTokensFlat;
+  const aliasDirectEntry =
+    aliasTargetPath && aliasResolution?.reason !== "ambiguous"
+      ? aliasTokenMap[aliasTargetPath]
+      : null;
+  const resolvedEntry =
+    aliasTargetPath && aliasDirectEntry
+      ? resolveAliasEntry(aliasTargetPath, aliasTokenMap) ?? aliasDirectEntry
+      : null;
   const resolvedType = resolvedEntry?.$type ?? tokenType;
   const resolvedValue = resolvedEntry?.$value ?? rawValue;
-  const isUnresolvedAlias = aliasTargetPath !== null && !resolvedEntry;
+  const isAmbiguousAlias = aliasResolution?.reason === "ambiguous";
+  const isUnresolvedAlias =
+    aliasTargetPath !== null && (!resolvedEntry || isAmbiguousAlias);
   const displayValue =
     rawValue == null || rawValue === ""
       ? ""
@@ -81,9 +98,10 @@ function resolveReadOnlyPresentation(
 
   return {
     aliasTargetPath,
-    aliasTargetCollectionId: aliasResolution?.collectionId,
+    aliasTargetCollectionId,
     resolvedType,
     resolvedValue,
+    isAmbiguousAlias,
     isUnresolvedAlias,
     displayValue,
   };
@@ -95,24 +113,6 @@ function getInitialModeValue(tokenType: string): unknown {
   return getDefaultValue(tokenType);
 }
 
-function formatCollectionIdList(collectionIds: string[]): string {
-  if (collectionIds.length === 0) return "";
-  if (collectionIds.length === 1) return collectionIds[0];
-  if (collectionIds.length === 2) return `${collectionIds[0]} and ${collectionIds[1]}`;
-  return `${collectionIds.slice(0, -1).join(", ")}, and ${collectionIds.at(-1)}`;
-}
-
-function formatCollectionDisplayNameList(
-  collectionIds: string[],
-  collectionDisplayNames?: Record<string, string>,
-): string {
-  return formatCollectionIdList(
-    collectionIds.map((collectionId) =>
-      getCollectionDisplayName(collectionId, collectionDisplayNames),
-    ),
-  );
-}
-
 export function TokenDetailsModeRow({
   modeName,
   tokenType,
@@ -122,6 +122,7 @@ export function TokenDetailsModeRow({
   allTokensFlat = {},
   pathToCollectionId = {},
   collectionIdsByPath = {},
+  perCollectionFlat = {},
   preferredCollectionId,
   collectionDisplayNames,
   showModeLabel = true,
@@ -186,12 +187,6 @@ export function TokenDetailsModeRow({
     editable && aliasMode && aliasQueryTrimmed.length > 0 && !aliasTargetExists;
   const showAliasAmbiguousState =
     editable && aliasMode && aliasQueryTrimmed.length > 0 && aliasTargetAmbiguous;
-  const resolvedColorSwatch =
-    tokenType === "color" && typeof value === "string"
-      ? isAlias(value)
-        ? resolveRefValue(extractAliasPath(value) ?? "", allTokensFlat) ?? null
-        : value
-      : null;
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
   const hasSecondaryActions =
@@ -206,17 +201,25 @@ export function TokenDetailsModeRow({
         allTokensFlat,
         pathToCollectionId,
         collectionIdsByPath,
+        perCollectionFlat,
         preferredCollectionId,
       ),
     [
       allTokensFlat,
       collectionIdsByPath,
       pathToCollectionId,
+      perCollectionFlat,
       preferredCollectionId,
       tokenType,
       value,
     ],
   );
+  const resolvedColorSwatch =
+    tokenType === "color" &&
+    !readOnly.isUnresolvedAlias &&
+    typeof readOnly.resolvedValue === "string"
+      ? readOnly.resolvedValue
+      : null;
 
   const handleAliasToggle = () => {
     if (!editable || !onChange) return;
@@ -457,7 +460,9 @@ export function TokenDetailsModeRow({
                   )}
                   <div className="whitespace-pre-wrap break-words text-secondary text-[color:var(--color-figma-text-secondary)]">
                     {readOnly.isUnresolvedAlias
-                      ? "Reference not found"
+                      ? readOnly.isAmbiguousAlias
+                        ? "Reference matches multiple collections"
+                        : "Reference not found"
                       : readOnly.displayValue}
                   </div>
                 </div>

@@ -32,18 +32,40 @@ interface GeneratorStatusItem {
     targetCollectionId: string;
   };
   preview: {
-	    diagnostics: Array<{
-	      id: string;
-	      severity: "error" | "warning" | "info";
-	      message: string;
-	      nodeId?: string;
-	      edgeId?: string;
-	    }>;
+    diagnostics: Array<{
+      id: string;
+      severity: "error" | "warning" | "info";
+      message: string;
+      nodeId?: string;
+      edgeId?: string;
+    }>;
     outputs: Array<{ collision?: boolean }>;
   };
   stale: boolean;
   unapplied: boolean;
   blocking: boolean;
+}
+
+const GENERATOR_ISSUE_SEVERITY_RANK = {
+  error: 0,
+  warning: 1,
+  info: 2,
+} as const;
+
+function getHighestPriorityGeneratorIssue(
+  issues: ValidationIssue[],
+): ValidationIssue | null {
+  let highestPriorityIssue: ValidationIssue | null = null;
+  for (const issue of issues) {
+    if (
+      !highestPriorityIssue ||
+      GENERATOR_ISSUE_SEVERITY_RANK[issue.severity] <
+        GENERATOR_ISSUE_SEVERITY_RANK[highestPriorityIssue.severity]
+    ) {
+      highestPriorityIssue = issue;
+    }
+  }
+  return highestPriorityIssue;
 }
 
 export interface HealthPanelProps {
@@ -267,10 +289,8 @@ export function HealthPanel({
   const generatorStatus = statusFromIssueSeverities(
     generatorIssues.map((issue) => issue.severity),
   );
-  const highestPriorityGeneratorIssue = [...generatorIssues].sort((a, b) => {
-    const severityRank = { error: 0, warning: 1, info: 2 } as const;
-    return severityRank[a.severity] - severityRank[b.severity];
-  })[0] ?? null;
+  const highestPriorityGeneratorIssue =
+    getHighestPriorityGeneratorIssue(generatorIssues);
   const unusedCount = unusedTokens.length;
   const deprecatedCount = deprecatedUsageEntriesForCurrent.length;
   const aliasOpportunitiesCount = aliasOpportunityGroups.length;

@@ -80,6 +80,7 @@ import type {
   TokenEditorModeValues,
   TokenEditorValue,
 } from "../shared/tokenEditorTypes";
+import { formatCollectionDisplayNameList } from "../shared/libraryCollections";
 interface TokenDetailsProps {
   tokenPath: string;
   currentCollectionId: string;
@@ -185,17 +186,17 @@ function getAncestorTerminalNote(
   return null;
 }
 
-function formatCollectionIdList(collectionIds: string[]): string {
-  if (collectionIds.length === 0) {
+function formatNameList(names: string[]): string {
+  if (names.length === 0) {
     return "";
   }
-  if (collectionIds.length === 1) {
-    return collectionIds[0];
+  if (names.length === 1) {
+    return names[0];
   }
-  if (collectionIds.length === 2) {
-    return `${collectionIds[0]} and ${collectionIds[1]}`;
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]}`;
   }
-  return `${collectionIds.slice(0, -1).join(", ")}, and ${collectionIds.at(-1)}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
 }
 
 export function TokenDetails({
@@ -515,9 +516,9 @@ export function TokenDetails({
   );
   const firstAmbiguousAliasReference = ambiguousAliasReferences[0] ?? null;
   const ambiguousReferenceMessage = firstAmbiguousAliasReference
-    ? `Mode "${firstAmbiguousAliasReference.modeName}" references "${firstAmbiguousAliasReference.path}", which exists in ${formatCollectionIdList(firstAmbiguousAliasReference.collectionIds)}. References must point to a token path that belongs to one collection.`
+    ? `Mode "${firstAmbiguousAliasReference.modeName}" references "${firstAmbiguousAliasReference.path}", which exists in ${formatCollectionDisplayNameList(firstAmbiguousAliasReference.collectionIds, collectionDisplayNames)}. References must point to a token path that belongs to one collection.`
     : ambiguousExtendsCollectionIds.length > 0
-      ? `Inherited token "${extendsPath}" exists in ${formatCollectionIdList(ambiguousExtendsCollectionIds)}. Inheritance requires a token path that belongs to one collection.`
+      ? `Inherited token "${extendsPath}" exists in ${formatCollectionDisplayNameList(ambiguousExtendsCollectionIds, collectionDisplayNames)}. Inheritance requires a token path that belongs to one collection.`
       : null;
   const missingModeNames = useMemo(
     () =>
@@ -528,7 +529,7 @@ export function TokenDetails({
   );
   const missingModeValuesMessage =
     missingModeNames.length > 0
-      ? `Add a value or token reference for ${formatCollectionIdList(missingModeNames)} before saving.`
+      ? `Add a value or token reference for ${formatNameList(missingModeNames)} before saving.`
       : null;
   const canSave =
     editorCanSave &&
@@ -1456,9 +1457,12 @@ export function TokenDetails({
               return (
                 <p className="text-secondary text-[color:var(--color-figma-text-error)]">
                   This path is also used in{" "}
-                  {formatCollectionIdList(ambiguousExtendsCollectionIds)}. Pick
-                  a token path that belongs to one collection before inheriting
-                  from it.
+                  {formatCollectionDisplayNameList(
+                    ambiguousExtendsCollectionIds,
+                    collectionDisplayNames,
+                  )}
+                  . Pick a token path that belongs to one collection before
+                  inheriting from it.
                 </p>
               );
             }
@@ -1800,6 +1804,7 @@ export function TokenDetails({
                       allTokensFlat={allTokensFlat}
                       pathToCollectionId={pathToCollectionId}
                       collectionIdsByPath={collectionIdsByPath}
+                      perCollectionFlat={perCollectionFlat}
                       preferredCollectionId={ownerCollectionId}
                       collectionDisplayNames={collectionDisplayNames}
                       showModeLabel={showModeLabel}

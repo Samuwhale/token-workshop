@@ -20,6 +20,9 @@ export interface InlineValuePopoverProps {
   modeLabel?: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId?: Record<string, string>;
+  collectionIdsByPath?: Record<string, string[]>;
+  perCollectionFlat?: Record<string, Record<string, TokenMapEntry>>;
+  preferredCollectionId?: string;
   /** Bounding rect of the clicked cell — used to position the popover. */
   anchorRect: DOMRect;
   onSave: (
@@ -40,6 +43,9 @@ export function InlineValuePopover({
   modeLabel,
   allTokensFlat,
   pathToCollectionId = {},
+  collectionIdsByPath = {},
+  perCollectionFlat = {},
+  preferredCollectionId,
   anchorRect,
   onSave,
   onOpenFullEditor,
@@ -163,6 +169,9 @@ export function InlineValuePopover({
             onChange={setDraftValue}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
+            collectionIdsByPath={collectionIdsByPath}
+            perCollectionFlat={perCollectionFlat}
+            preferredCollectionId={preferredCollectionId}
             showModeLabel={Boolean(modeLabel)}
             autoFocus
           />
