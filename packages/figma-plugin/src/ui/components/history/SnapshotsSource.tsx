@@ -31,7 +31,7 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
 }
 
-export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collectionFilter, filterTokenPath, initialComparingId, initialComparingLabel, onBack }: {
+export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collectionFilter, filterTokenPath, initialComparingId, initialComparingLabel, initialPairCompareMode, onBack }: {
   serverUrl: string;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
@@ -39,6 +39,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   filterTokenPath?: string;
   initialComparingId?: string;
   initialComparingLabel?: string;
+  initialPairCompareMode?: boolean;
   onBack?: () => void;
 }) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
@@ -63,7 +64,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   const [ticker, setTicker] = useState(0);
 
   // Snapshot-to-snapshot compare mode
-  const [pairCompareMode, setPairCompareMode] = useState(false);
+  const [pairCompareMode, setPairCompareMode] = useState(initialPairCompareMode ?? false);
   const [pairA, setPairA] = useState<SnapshotSummary | null>(null);
   const [pairB, setPairB] = useState<SnapshotSummary | null>(null);
   const [showPairDiff, setShowPairDiff] = useState(false);

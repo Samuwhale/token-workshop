@@ -17,6 +17,7 @@ export interface CreateCollectionRequest {
 interface CollectionCreateDialogProps {
   isOpen: boolean;
   hasExistingCollections?: boolean;
+  seedModeNames?: string[];
   onClose: () => void;
   onCreate: (request: CreateCollectionRequest) => Promise<string>;
   onCreated?: (collectionId: string) => void;
@@ -25,6 +26,7 @@ interface CollectionCreateDialogProps {
 export function CollectionCreateDialog({
   isOpen,
   hasExistingCollections = false,
+  seedModeNames = [],
   onClose,
   onCreate,
   onCreated,
@@ -34,6 +36,7 @@ export function CollectionCreateDialog({
   return (
     <CollectionCreateDialogContent
       hasExistingCollections={hasExistingCollections}
+      seedModeNames={seedModeNames}
       onClose={onClose}
       onCreate={onCreate}
       onCreated={onCreated}
@@ -43,12 +46,13 @@ export function CollectionCreateDialog({
 
 function CollectionCreateDialogContent({
   hasExistingCollections = false,
+  seedModeNames = [],
   onClose,
   onCreate,
   onCreated,
 }: Omit<CollectionCreateDialogProps, "isOpen">) {
   const [draft, setDraft] = useState<CollectionAuthoringDraft>(() =>
-    createInitialCollectionAuthoringDraft(hasExistingCollections),
+    createInitialCollectionAuthoringDraft(hasExistingCollections, seedModeNames),
   );
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);

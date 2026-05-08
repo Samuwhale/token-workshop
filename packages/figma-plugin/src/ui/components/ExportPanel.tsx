@@ -27,6 +27,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     () => collections.map((collection) => collection.id),
     [collections],
   );
+  const collectionLabels = useMemo(
+    () =>
+      Object.fromEntries(
+        collections.map((collection) => [
+          collection.id,
+          collection.publishRouting?.collectionName?.trim() || collection.id,
+        ]),
+      ),
+    [collections],
+  );
   const [error, setError] = useState<string | null>(null);
 
   const platformConfig = usePlatformConfig();
@@ -223,6 +233,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           onLoadPresetFiltersOnly={handleLoadPresetFiltersOnly}
           onDeletePreset={handleDeletePreset}
           collectionIds={collectionIds}
+          collectionLabels={collectionLabels}
           connected={connected}
           savePresetInputRef={savePresetInputRef}
         />

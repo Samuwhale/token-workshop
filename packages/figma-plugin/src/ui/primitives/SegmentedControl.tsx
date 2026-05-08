@@ -18,6 +18,8 @@ export function SegmentedControl<T extends string>({
   onChange,
   ariaLabel,
 }: SegmentedControlProps<T>) {
+  const adaptiveWrap = options.length > 3;
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = options.findIndex((option) => option.value === value);
     if (currentIndex === -1) {
@@ -65,7 +67,11 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      className="inline-flex max-w-full flex-nowrap items-stretch gap-[2px] overflow-x-auto rounded bg-[var(--color-figma-bg)] p-[2px]"
+      className={`tm-segmented-control inline-flex max-w-full items-stretch gap-[2px] rounded bg-[var(--color-figma-bg)] p-[2px] ${
+        adaptiveWrap
+          ? "tm-segmented-control--adaptive flex-nowrap"
+          : "flex-nowrap overflow-x-auto"
+      }`}
       role="radiogroup"
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
@@ -81,13 +87,13 @@ export function SegmentedControl<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             title={option.label}
-            className={`inline-flex min-h-7 min-w-[3rem] flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
+            className={`tm-segmented-control__button inline-flex min-h-7 min-w-[3rem] flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
               selected
                 ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                 : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
             }`}
           >
-            <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+            <span className="tm-segmented-control__label block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               {option.label}
             </span>
           </button>

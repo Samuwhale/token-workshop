@@ -30,6 +30,7 @@ interface PlatformExportConfigProps {
   onDeletePreset: (id: string) => void;
   // Other
   collectionIds: string[];
+  collectionLabels?: Record<string, string>;
   connected: boolean;
   savePresetInputRef: RefObject<HTMLInputElement>;
 }
@@ -122,6 +123,7 @@ export function PlatformExportConfig({
   onLoadPresetFiltersOnly,
   onDeletePreset,
   collectionIds,
+  collectionLabels = {},
   connected,
   savePresetInputRef,
 }: PlatformExportConfigProps) {
@@ -500,12 +502,23 @@ export function PlatformExportConfig({
                 const isSelected =
                   selectedCollections === null ||
                   selectedCollections.has(collectionId);
+                const collectionLabel = collectionLabels[collectionId] || collectionId;
+                const showCollectionId = collectionLabel !== collectionId;
                 return (
                   <CheckboxRow
                     key={collectionId}
                     checked={isSelected}
                     onChange={() => toggleCollection(collectionId)}
-                    title={<span className="font-mono">{collectionId}</span>}
+                    title={
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="truncate">{collectionLabel}</span>
+                        {showCollectionId ? (
+                          <span className="truncate font-mono text-tertiary text-[color:var(--color-figma-text-tertiary)]">
+                            {collectionId}
+                          </span>
+                        ) : null}
+                      </span>
+                    }
                   />
                 );
               })}

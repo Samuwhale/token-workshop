@@ -202,6 +202,13 @@ export function App() {
     () => collections.map((collection) => collection.id),
     [collections],
   );
+  const currentCollectionModeNames = useMemo(
+    () =>
+      collections
+        .find((collection) => collection.id === currentCollectionId)
+        ?.modes.map((mode) => mode.name) ?? [],
+    [collections, currentCollectionId],
+  );
   const librarySetupRequired = collections.length === 0;
   const {
     allTokensFlat,
@@ -2297,6 +2304,7 @@ export function App() {
       <CollectionCreateDialog
         isOpen={showCollectionCreateDialog}
         hasExistingCollections={collectionIds.length > 0}
+        seedModeNames={currentCollectionModeNames}
         onClose={closeCollectionCreateDialog}
         onCreate={createCollectionByName}
         onCreated={(collectionId) => {

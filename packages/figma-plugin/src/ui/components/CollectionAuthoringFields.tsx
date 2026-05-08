@@ -12,11 +12,16 @@ export interface CollectionAuthoringDraft {
 
 export function createInitialCollectionAuthoringDraft(
   hasExistingCollections: boolean,
+  seedModeNames: string[] = [],
 ): CollectionAuthoringDraft {
+  const reusableModeNames = seedModeNames
+    .map((modeName) => modeName.trim())
+    .filter(Boolean);
+
   return hasExistingCollections
     ? {
         name: "",
-        modeNames: ["Default"],
+        modeNames: reusableModeNames.length > 0 ? reusableModeNames : ["Default"],
       }
     : {
         name: "colors",

@@ -35,8 +35,8 @@ const COLLECTION_ACTION_BUTTON_CLASS =
 const COLLECTION_MENU_ITEM_CLASS =
   "flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]";
 const COLLECTION_SCOPE_OPTIONS = [
-  { value: "current", label: "Current" },
-  { value: "all", label: "All" },
+  { value: "current", label: "This collection" },
+  { value: "all", label: "All collections" },
 ] as const;
 
 interface AllCollectionsScope {
@@ -383,8 +383,7 @@ export function CollectionTabs({
                   ) : (
                     filteredCollections.map((collection) => {
                       const collectionId = collection.id;
-                      const isCurrent =
-                        scopeValue !== "all" && collectionId === currentCollectionId;
+                      const isCurrent = collectionId === currentCollectionId;
                       const displayName = getCollectionDisplayName(
                         collectionId,
                         collectionDisplayNames,

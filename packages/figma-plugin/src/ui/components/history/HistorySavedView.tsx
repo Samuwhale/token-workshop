@@ -5,6 +5,7 @@ import { formatRelativeTime } from '../../shared/changeHelpers';
 import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { SnapshotsSource } from './SnapshotsSource';
+import { Button } from '../../primitives';
 import type {
   SnapshotSummary,
   UndoSlot,
@@ -34,6 +35,7 @@ export function HistorySavedView({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [checkpointToolsOpen, setCheckpointToolsOpen] = useState(false);
 
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
   const [selectedSnapshotLabel, setSelectedSnapshotLabel] = useState<string | null>(null);
@@ -58,6 +60,23 @@ export function HistorySavedView({
   }, [serverUrl, connected]);
 
   useEffect(() => { fetchSnapshots(); }, [fetchSnapshots, refreshKey]);
+
+  if (checkpointToolsOpen) {
+    return (
+      <SnapshotsSource
+        serverUrl={serverUrl}
+        onPushUndo={onPushUndo}
+        onRefreshTokens={onRefreshTokens}
+        collectionFilter={collectionFilter}
+        filterTokenPath={filterTokenPath}
+        initialPairCompareMode
+        onBack={() => {
+          setCheckpointToolsOpen(false);
+          fetchSnapshots();
+        }}
+      />
+    );
+  }
 
   if (selectedSnapshotId) {
     return (
@@ -98,6 +117,17 @@ export function HistorySavedView({
             </button>
           )}
         </div>
+        {snapshots.length >= 2 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => setCheckpointToolsOpen(true)}
+            title="Compare two saved checkpoints"
+          >
+            Compare checkpoints
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex-1 overflow-y-auto">
