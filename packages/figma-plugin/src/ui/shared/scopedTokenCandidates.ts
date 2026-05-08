@@ -48,10 +48,10 @@ export function buildScopedTokenCandidates({
   perCollectionFlat = {},
 }: BuildScopedTokenCandidatesParams): ScopedTokenCandidate[] {
   const scopedCollections = Object.entries(perCollectionFlat);
-  const ownerCounts = new Map<string, number>();
   const candidates: ScopedTokenCandidate[] = [];
 
   if (scopedCollections.length > 0) {
+    const ownerCounts = new Map<string, number>();
     for (const [collectionId, collectionFlat] of scopedCollections) {
       for (const [path, entry] of Object.entries(collectionFlat)) {
         ownerCounts.set(path, (ownerCounts.get(path) ?? 0) + 1);
@@ -79,7 +79,6 @@ export function buildScopedTokenCandidates({
       collectionIdsByPath,
     });
     const collectionId = collectionIds[0] ?? '';
-    ownerCounts.set(path, collectionIds.length > 0 ? collectionIds.length : 1);
     candidates.push({
       key: collectionId ? createRecentTokenKey(path, collectionId) : path,
       path,

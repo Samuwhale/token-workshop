@@ -2322,6 +2322,7 @@ export function App() {
           tokenMapsByCollection={perCollectionFlat}
           currentCollectionId={currentCollectionId}
           collectionIds={collectionIds}
+          collectionDisplayNames={collectionMap}
           onApply={(tokenPath, tokenType, targetProperty, resolvedValue, collectionId) => {
             if (collectionId && collectionId !== currentCollectionId) {
               setCurrentCollectionId(collectionId);

@@ -23,6 +23,7 @@ import { swatchBgColor } from '../shared/colorUtils';
 import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { fuzzyScore } from '../shared/fuzzyMatch';
+import { getCollectionDisplayName } from '../shared/libraryCollections';
 
 function isDimensionLike(value: unknown): value is { value: number; unit: string } {
   return (
@@ -44,7 +45,7 @@ interface QuickApplyPickerProps {
   tokenMapsByCollection: Record<string, Record<string, TokenMapEntry>>;
   currentCollectionId: string;
   collectionIds: string[];
-  collectionLabels?: Record<string, string>;
+  collectionDisplayNames?: Record<string, string>;
   onApply: (
     tokenPath: string,
     tokenType: string,
@@ -61,6 +62,7 @@ interface QuickApplyCandidate {
   collectionLabel: string;
   entry: TokenMapEntry;
   score: number;
+  rankScore: number;
   resolved: unknown;
   confidence: SuggestionConfidence;
   reason: string;
@@ -182,6 +184,7 @@ function buildQuickApplyCandidates({
         collectionLabel,
         entry,
         score,
+        rankScore: score,
         resolved: resolved.value,
         confidence,
         reason,
@@ -191,13 +194,12 @@ function buildQuickApplyCandidates({
   const filtered = query
     ? allCandidates
         .map((candidate) => ({
-          candidate,
-          fuzzy: fuzzyScore(query, candidate.path),
+          ...candidate,
+          rankScore: fuzzyScore(query, candidate.path),
         }))
-        .filter(({ fuzzy }) => fuzzy >= 0)
-        .sort((a, b) => b.fuzzy - a.fuzzy || b.candidate.score - a.candidate.score)
-        .map(({ candidate }) => candidate)
-    : allCandidates.sort((a, b) => b.score - a.score);
+        .filter((candidate) => candidate.rankScore >= 0)
+        .sort((a, b) => b.rankScore - a.rankScore || b.score - a.score)
+    : allCandidates.sort((a, b) => b.rankScore - a.rankScore);
 
   return {
     candidates: filtered.slice(0, MAX_CANDIDATES),
@@ -316,7 +318,7 @@ export function QuickApplyPicker({
   tokenMapsByCollection,
   currentCollectionId,
   collectionIds,
-  collectionLabels,
+  collectionDisplayNames,
   onApply,
   onClose,
 }: QuickApplyPickerProps) {
@@ -363,7 +365,7 @@ export function QuickApplyPicker({
   );
   const activeCollectionLabel = searchAllCollections
     ? "All collections"
-    : collectionLabels?.[activeCollectionId] || activeCollectionId;
+    : getCollectionDisplayName(activeCollectionId, collectionDisplayNames);
   const collectionTokenCount = searchAllCollections
     ? availableCollectionIds.reduce(
         (count, collectionId) =>
@@ -385,7 +387,7 @@ export function QuickApplyPicker({
 
   useEffect(() => {
     setActiveIdx(0);
-  }, [query, activeProp]);
+  }, [query, activeProp, activeCollectionId]);
 
   // Build scored candidates for the active property
   const currentBindingForProp = getBindingForProperty(rootNodes, activeProp);
@@ -417,7 +419,7 @@ export function QuickApplyPicker({
         rootNodes,
         tokenMap: tokenMapsByCollection[collectionId] ?? EMPTY_TOKEN_MAP,
         collectionId,
-        collectionLabel: collectionLabels?.[collectionId] || collectionId,
+        collectionLabel: getCollectionDisplayName(collectionId, collectionDisplayNames),
       }),
     );
     const mergedCandidates = scopedResults
@@ -426,7 +428,7 @@ export function QuickApplyPicker({
         const duplicateCount = pathCounts.get(candidate.path) ?? 0;
         return duplicateCount <= 1 || candidate.collectionId === currentCollectionId;
       })
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => b.rankScore - a.rankScore || b.score - a.score)
       .slice(0, MAX_CANDIDATES);
 
     return {
@@ -438,7 +440,7 @@ export function QuickApplyPicker({
     activeCollectionLabel,
     activeProp,
     availableCollectionIds,
-    collectionLabels,
+    collectionDisplayNames,
     currentBindingForProp,
     currentCollectionId,
     query,
@@ -630,7 +632,7 @@ export function QuickApplyPicker({
                     <option key={collectionId} value={collectionId}>
                       {collectionId === ALL_COLLECTIONS_ID
                         ? "All collections"
-                        : collectionLabels?.[collectionId] || collectionId}
+                        : getCollectionDisplayName(collectionId, collectionDisplayNames)}
                     </option>
                   ))}
                 </select>
@@ -723,7 +725,7 @@ export function QuickApplyPicker({
                     const isCurrent = currentBinding === c.path;
                     return (
                       <QuickApplyCandidateRow
-                        key={c.path}
+                        key={`${c.collectionId}:${c.path}`}
                         candidate={c}
                         isCurrent={isCurrent}
                         isSelected={isSelected}
@@ -743,7 +745,7 @@ export function QuickApplyPicker({
                     const globalIdx = recentCandidates.length + index;
                     return (
                       <QuickApplyCandidateRow
-                        key={candidate.path}
+                        key={`${candidate.collectionId}:${candidate.path}`}
                         candidate={candidate}
                         isCurrent={currentBinding === candidate.path}
                         isSelected={globalIdx === activeIdx}
@@ -773,7 +775,7 @@ export function QuickApplyPicker({
                             recentCandidates.length + itemsBeforeGroup + index;
                           return (
                             <QuickApplyCandidateRow
-                              key={candidate.path}
+                              key={`${candidate.collectionId}:${candidate.path}`}
                               candidate={candidate}
                               isCurrent={currentBinding === candidate.path}
                               isSelected={globalIdx === activeIdx}
