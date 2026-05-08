@@ -1,4 +1,14 @@
 import { useState, useRef, useLayoutEffect, type ReactNode } from 'react';
+import {
+  AlertCircle,
+  ChevronRight,
+  Link,
+  Pencil,
+  Plus,
+  Search,
+  Wrench,
+  X,
+} from 'lucide-react';
 import { NoticeInlineAlert } from '../shared/noticeSystem';
 import type {
   BindableProperty,
@@ -105,6 +115,68 @@ function PropertyActionButton({
     >
       <span className="shrink-0" aria-hidden="true">{icon}</span>
       <span>{label}</span>
+    </button>
+  );
+}
+
+interface BindCandidateButtonProps {
+  path: string;
+  entry: TokenMapEntry;
+  tokenMap: Record<string, TokenMapEntry>;
+  isSelected: boolean;
+  isCurrent: boolean;
+  onSelect: (path: string) => void;
+}
+
+function BindCandidateButton({
+  path,
+  entry,
+  tokenMap,
+  isSelected,
+  isCurrent,
+  onSelect,
+}: BindCandidateButtonProps) {
+  const {
+    resolvedColor: resolvedColorSwatch,
+    resolvedDisplay: resolvedValueDisplay,
+  } = resolveTokenEntryDisplay(entry, tokenMap);
+
+  return (
+    <button
+      id={`bind-option-${path}`}
+      role="option"
+      aria-selected={isSelected}
+      aria-disabled={isCurrent}
+      disabled={isCurrent}
+      onClick={isCurrent ? undefined : () => onSelect(path)}
+      className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'cursor-default opacity-65' : ''}`}
+    >
+      {resolvedColorSwatch ? (
+        <div
+          className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+          style={{ backgroundColor: resolvedColorSwatch }}
+        />
+      ) : (
+        <div className="w-3 h-3 shrink-0 flex items-center justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
+        </div>
+      )}
+      <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text)] group-hover/item:text-[color:var(--color-figma-text-accent)]'}`}>
+        {path}
+      </span>
+      {isCurrent && (
+        <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
+          current
+        </span>
+      )}
+      {resolvedValueDisplay && !isCurrent && (
+        <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0 font-mono">
+          {resolvedValueDisplay}
+        </span>
+      )}
+      <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
+        {entry.$type}
+      </span>
     </button>
   );
 }
@@ -396,19 +468,21 @@ export function PropertyRow({
             </div>
             {isBound && (
               <div className="flex items-center gap-1 mt-1">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${isBroken ? 'text-[color:var(--color-figma-text-warning)]' : 'text-[color:var(--color-figma-text-accent)]'}`} aria-hidden="true">
-                  {isBroken ? (
-                    <>
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 8v4M12 16h.01" />
-                    </>
-                  ) : (
-                    <>
-                      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-                    </>
-                  )}
-                </svg>
+                {isBroken ? (
+                  <AlertCircle
+                    size={10}
+                    strokeWidth={2.5}
+                    className="shrink-0 text-[color:var(--color-figma-text-warning)]"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Link
+                    size={10}
+                    strokeWidth={2.5}
+                    className="shrink-0 text-[color:var(--color-figma-text-accent)]"
+                    aria-hidden="true"
+                  />
+                )}
                 {onNavigateToToken && !isBroken ? (
                   <button
                     onClick={() => onNavigateToToken(binding as string)}
@@ -438,12 +512,7 @@ export function PropertyRow({
                 title={`Search for a token to bind to ${PROPERTY_LABELS[prop]}`}
                 tone="primary"
                 onClick={() => onOpenBind(prop)}
-                icon={
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="M21 21l-4.35-4.35" />
-                  </svg>
-                }
+                icon={<Search size={10} strokeWidth={2.5} />}
               />
             )}
             {canChangeBind && (
@@ -452,12 +521,7 @@ export function PropertyRow({
                 title="Replace with another token"
                 tone="primary"
                 onClick={() => onOpenBind(prop)}
-                icon={
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                }
+                icon={<Pencil size={10} strokeWidth={2.5} />}
               />
             )}
             {canRepair && (
@@ -466,12 +530,7 @@ export function PropertyRow({
                 title={`Pick a replacement for the missing token "${binding as string}"`}
                 tone="primary"
                 onClick={() => onOpenBind(prop)}
-                icon={
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14.7 6.3a4 4 0 015.7 5.7l-1.4 1.4-5.7-5.7 1.4-1.4z" />
-                    <path d="M9 12l-5 5v3h3l5-5" />
-                  </svg>
-                }
+                icon={<Wrench size={10} strokeWidth={2.5} />}
               />
             )}
             {hasExtractableValue && (
@@ -479,11 +538,7 @@ export function PropertyRow({
                 label="Create from value"
                 title="Create token from this value"
                 onClick={() => onOpenCreate(prop)}
-                icon={
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                }
+                icon={<Plus size={10} strokeWidth={2.5} />}
               />
             )}
             {isBound && (
@@ -492,11 +547,7 @@ export function PropertyRow({
                 title="Remove binding"
                 tone="danger"
                 onClick={() => onRemoveBinding(prop)}
-                icon={
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                }
+                icon={<X size={10} strokeWidth={2.5} />}
               />
             )}
             {isMixed && (
@@ -505,15 +556,11 @@ export function PropertyRow({
                 title="Show bindings across layers"
                 onClick={() => setShowMixedDetail(v => !v)}
                 icon={
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 8 8"
-                    fill="currentColor"
+                  <ChevronRight
+                    size={10}
+                    strokeWidth={2.5}
                     className={`transition-transform ${showMixedDetail ? 'rotate-90' : ''}`}
-                  >
-                    <path d="M2 1l4 3-4 3V1z" />
-                  </svg>
+                  />
                 }
               />
             )}
@@ -625,35 +672,18 @@ export function PropertyRow({
                       Recently used
                     </div>
                     {recentBindCandidates.map(([path, entry], idx) => {
-                      const {
-                        resolvedColor: resolvedColorSwatch,
-                        resolvedDisplay: resolvedValueDisplay,
-                      } = resolveTokenEntryDisplay(entry, tokenMap);
                       const isSelected = idx === bindSelectedIndex;
                       const isCurrent = Boolean(isBound && path === binding);
                       return (
-                        <button
+                        <BindCandidateButton
                           key={path}
-                          id={`bind-option-${path}`}
-                          role="option"
-                          aria-selected={isSelected}
-                          aria-disabled={isCurrent}
-                          disabled={isCurrent}
-                          onClick={isCurrent ? undefined : () => handleBindToken(path)}
-                          className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'cursor-default opacity-65' : ''}`}
-                        >
-                          {resolvedColorSwatch ? (
-                            <div className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: resolvedColorSwatch }} />
-                          ) : (
-                            <div className="w-3 h-3 shrink-0 flex items-center justify-center">
-                              <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
-                            </div>
-                          )}
-                          <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text)] group-hover/item:text-[color:var(--color-figma-text-accent)]'}`}>{path}</span>
-                          {isCurrent && <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>}
-                          {resolvedValueDisplay && !isCurrent && <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0 font-mono">{resolvedValueDisplay}</span>}
-                          <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
-                        </button>
+                          path={path}
+                          entry={entry}
+                          tokenMap={tokenMap}
+                          isSelected={isSelected}
+                          isCurrent={isCurrent}
+                          onSelect={handleBindToken}
+                        />
                       );
                     })}
                     {mainBindCandidates.length > 0 && (
@@ -667,10 +697,6 @@ export function PropertyRow({
                 {/* Main candidates */}
                 {mainBindCandidates.map(([path, entry, score], idx) => {
                   const globalIdx = recentBindCandidates.length + idx;
-                  const {
-                    resolvedColor: resolvedColorSwatch,
-                    resolvedDisplay: resolvedValueDisplay,
-                  } = resolveTokenEntryDisplay(entry, tokenMap);
                   const isSelected = globalIdx === bindSelectedIndex;
                   const isCurrent = Boolean(isBound && path === binding);
                   const showSuggestedHeader = showSuggestedDivider && idx === 0 && recentBindCandidates.length === 0;
@@ -687,40 +713,14 @@ export function PropertyRow({
                           All tokens
                         </div>
                       )}
-                      <button
-                        id={`bind-option-${path}`}
-                        role="option"
-                        aria-selected={isSelected}
-                        aria-disabled={isCurrent}
-                        disabled={isCurrent}
-                        onClick={isCurrent ? undefined : () => handleBindToken(path)}
-                        className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'cursor-default opacity-65' : ''}`}
-                      >
-                        {resolvedColorSwatch ? (
-                          <div
-                            className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                            style={{ backgroundColor: resolvedColorSwatch }}
-                          />
-                        ) : (
-                          <div className="w-3 h-3 shrink-0 flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
-                          </div>
-                        )}
-                        <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text)] group-hover/item:text-[color:var(--color-figma-text-accent)]'}`}>
-                          {path}
-                        </span>
-                        {isCurrent && (
-                          <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
-                        )}
-                        {resolvedValueDisplay && !isCurrent && (
-                          <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0 font-mono">
-                            {resolvedValueDisplay}
-                          </span>
-                        )}
-                        <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
-                          {entry.$type}
-                        </span>
-                      </button>
+                      <BindCandidateButton
+                        path={path}
+                        entry={entry}
+                        tokenMap={tokenMap}
+                        isSelected={isSelected}
+                        isCurrent={isCurrent}
+                        onSelect={handleBindToken}
+                      />
                     </div>
                   );
                 })}

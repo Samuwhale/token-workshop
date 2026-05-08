@@ -34,15 +34,6 @@ export function getCurrentValue(
   return nodes[0].currentValues[prop];
 }
 
-function valueIdentity(value: BindablePropertyValue | undefined): string {
-  if (value === undefined) return "__undefined__";
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
 export function getCurrentValueState(
   nodes: SelectionNodeInfo[],
   prop: BindableProperty,
@@ -52,22 +43,38 @@ export function getCurrentValueState(
   count: number;
 } {
   if (nodes.length === 0) return { kind: "empty", count: 0 };
-  const firstValue = nodes[0].currentValues[prop];
-  if (firstValue === undefined || firstValue === null) {
-    return { kind: "empty", count: nodes.length };
-  }
-  const firstKey = valueIdentity(firstValue);
-  for (let index = 1; index < nodes.length; index += 1) {
-    const nextValue = nodes[index].currentValues[prop];
-    if (
-      nextValue === undefined ||
-      nextValue === null ||
-      valueIdentity(nextValue) !== firstKey
-    ) {
+  let firstValue: BindablePropertyValue | undefined;
+  let hasValue = false;
+  let hasEmpty = false;
+
+  for (const node of nodes) {
+    const nextValue = node.currentValues[prop];
+    if (nextValue === undefined || nextValue === null) {
+      hasEmpty = true;
+      if (hasValue) {
+        return { kind: "mixed", value: firstValue, count: nodes.length };
+      }
+      continue;
+    }
+
+    if (hasEmpty) {
+      return { kind: "mixed", value: nextValue, count: nodes.length };
+    }
+
+    if (!hasValue) {
+      firstValue = nextValue;
+      hasValue = true;
+      continue;
+    }
+
+    if (!areComparableValuesEqual(firstValue, nextValue)) {
       return { kind: "mixed", value: firstValue, count: nodes.length };
     }
   }
-  return { kind: "single", value: firstValue, count: nodes.length };
+
+  return hasValue
+    ? { kind: "single", value: firstValue, count: nodes.length }
+    : { kind: "empty", count: nodes.length };
 }
 
 /** Returns the distinct binding values (or null for unbound) with layer counts, for a mixed-state property. */
@@ -288,9 +295,8 @@ function parseHexToRGB(hex: string): { r: number; g: number; b: number } | null 
   const h = hex.length === 4
     ? hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
     : hex.length >= 7 ? hex.slice(1, 7) : null;
-  if (!h) return null;
+  if (!h || !/^[0-9a-fA-F]{6}$/.test(h)) return null;
   const n = parseInt(h, 16);
-  if (isNaN(n)) return null;
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
@@ -487,9 +493,8 @@ export function getNextUnboundProperty(
     if (prop === afterProp) continue;
     const binding = getBindingForProperty(nodes, prop);
     if (!binding) {
-      // Also check there's a meaningful current value to bind
-      const val = getCurrentValue(nodes, prop);
-      if (val !== undefined && val !== null) return prop;
+      const valueState = getCurrentValueState(nodes, prop);
+      if (valueState.kind === 'single') return prop;
     }
   }
   return null;
@@ -729,8 +734,8 @@ export function rankTokensForSelection(
     for (const prop of group.properties) {
       const capKey = CAPABILITY_FILTER[prop];
       if (capKey && !caps[capKey]) continue;
-      const val = getCurrentValue(rootNodes, prop);
-      if (val !== undefined && val !== null) eligibleProps.push(prop);
+      const valueState = getCurrentValueState(rootNodes, prop);
+      if (valueState.kind !== 'empty') eligibleProps.push(prop);
     }
   }
   if (eligibleProps.length === 0) return [];
@@ -745,8 +750,9 @@ export function rankTokensForSelection(
   const boundPrefixes = collectBoundPrefixes(rootNodes);
 
   for (const prop of eligibleProps) {
+    const valueState = getCurrentValueState(rootNodes, prop);
     propContext.set(prop, {
-      currentValue: getCurrentValue(rootNodes, prop),
+      currentValue: valueState.kind === 'single' ? valueState.value : undefined,
       compatibleTypes: new Set(getCompatibleTokenTypes(prop)),
       siblingBindings: collectSiblingBindings(rootNodes, prop),
       existingBinding: getBindingForProperty(rootNodes, prop),
