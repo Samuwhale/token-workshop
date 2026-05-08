@@ -2161,7 +2161,25 @@ button.tm-status-row:not(:disabled):hover {
   outline-offset: 1px;
 }
 
+.tm-value-cell__empty-action {
+  position: relative;
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  min-block-size: 22px;
+}
+
+.tm-value-cell__empty-placeholder {
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
 .tm-value-cell__create-button {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2174,9 +2192,28 @@ button.tm-status-row:not(:disabled):hover {
   font-weight: 500;
   color: var(--color-figma-text-secondary);
   transition:
+    opacity var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.group:hover .tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button,
+.group:focus-within .tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button,
+.tm-value-cell__empty-action:focus-within .tm-value-cell__create-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.group:hover .tm-value-cell__wrapper--empty-actionable .tm-value-cell__empty-placeholder,
+.group:focus-within .tm-value-cell__wrapper--empty-actionable .tm-value-cell__empty-placeholder,
+.tm-value-cell__empty-action:focus-within .tm-value-cell__empty-placeholder {
+  opacity: 0;
 }
 
 .tm-value-cell__create-button:hover {
@@ -4019,7 +4056,23 @@ button.tm-token-details__text-button:disabled:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  max-block-size: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding-left: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    max-block-size var(--motion-fast) var(--ease-standard),
+    padding var(--motion-fast) var(--ease-standard);
+}
+
+.tm-token-mode-row:hover .tm-token-mode-row__secondary-actions,
+.tm-token-mode-row:focus-within .tm-token-mode-row__secondary-actions {
+  max-block-size: 72px;
+  opacity: 1;
   padding-left: 2px;
+  pointer-events: auto;
 }
 
 .tm-token-mode-row__secondary-action {
@@ -4274,6 +4327,14 @@ button.tm-token-details__text-button:disabled:hover {
 @media (pointer: coarse) {
   .tm-token-mode-row__action-button {
     min-block-size: 28px;
+  }
+
+  .tm-token-mode-row__secondary-actions {
+    max-block-size: none;
+    overflow: visible;
+    opacity: 1;
+    padding-left: 2px;
+    pointer-events: auto;
   }
 
   .tm-token-mode-row__secondary-actions {

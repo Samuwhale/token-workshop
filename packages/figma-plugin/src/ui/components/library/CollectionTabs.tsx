@@ -192,6 +192,10 @@ export function CollectionTabs({
     : "Choose collection";
   const triggerTitle =
     visibleMeta.length > 0 ? `${visibleTitle} · ${visibleMeta}` : visibleTitle;
+  const triggerStateClass =
+    switcherOpen || scopeValue === "all"
+      ? "border-[var(--border-accent)] bg-[var(--surface-group)] text-[color:var(--color-figma-text)]"
+      : "border-[var(--border-muted)] bg-[var(--surface-group-quiet)] text-[color:var(--color-figma-text)] hover:border-[var(--border-accent)] hover:bg-[var(--surface-group)]";
 
   const closeSwitcher = useCallback(() => {
     closeSwitcherMenu({ restoreFocus: false });
@@ -261,11 +265,7 @@ export function CollectionTabs({
               aria-expanded={switcherOpen}
               aria-label={triggerAriaLabel}
               title={currentCollection ? triggerTitle : "Choose collection"}
-              className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${
-                switcherOpen
-                  ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                  : "bg-[var(--surface-group-quiet)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-              }`}
+              className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${triggerStateClass}`}
             >
               <span className="tm-collection-toolbar__summary min-w-0 flex-1">
                 <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
@@ -383,7 +383,8 @@ export function CollectionTabs({
                   ) : (
                     filteredCollections.map((collection) => {
                       const collectionId = collection.id;
-                      const isCurrent = collectionId === currentCollectionId;
+                      const isCurrent =
+                        scopeValue !== "all" && collectionId === currentCollectionId;
                       const displayName = getCollectionDisplayName(
                         collectionId,
                         collectionDisplayNames,

@@ -1936,7 +1936,7 @@ export function TokenList({
             onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
-            overflowMenuProps={tokens.length > 0 ? {
+            overflowMenuProps={tokens.length > 0 || collectionIds.length > 1 ? {
               sortOrder,
               onSortOrderChange: setSortOrder,
               onExpandAll: handleExpandAll,

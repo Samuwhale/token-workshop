@@ -57,6 +57,8 @@ interface QuickApplyPickerProps {
 
 interface QuickApplyCandidate {
   path: string;
+  collectionId: string;
+  collectionLabel: string;
   entry: TokenMapEntry;
   score: number;
   resolved: unknown;
@@ -106,6 +108,7 @@ function inferPrimaryProperty(
 const MAX_CANDIDATES = 15;
 const RECENT_CANDIDATE_LIMIT = 5;
 const EMPTY_TOKEN_MAP: Record<string, TokenMapEntry> = {};
+const ALL_COLLECTIONS_ID = "__token-workshop-all-collections__";
 
 function getCandidatePresentation(candidate: QuickApplyCandidate): {
   colorSwatch: string | null;
@@ -136,12 +139,16 @@ function buildQuickApplyCandidates({
   query,
   rootNodes,
   tokenMap,
+  collectionId,
+  collectionLabel,
 }: {
   activeProp: BindableProperty;
   currentBinding: string | null | "mixed";
   query: string;
   rootNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
+  collectionId: string;
+  collectionLabel: string;
 }): { candidates: QuickApplyCandidate[]; totalCount: number } {
   const compatibleTypes = getCompatibleTokenTypes(activeProp);
   const currentPropValue = getCurrentValue(rootNodes, activeProp);
@@ -171,6 +178,8 @@ function buildQuickApplyCandidates({
 
       return {
         path,
+        collectionId,
+        collectionLabel,
         entry,
         score,
         resolved: resolved.value,
@@ -205,7 +214,7 @@ function splitRecentCandidates({
   candidates: QuickApplyCandidate[];
   query: string;
 }): { recentCandidates: QuickApplyCandidate[]; mainCandidates: QuickApplyCandidate[] } {
-  if (query) {
+  if (query || activeCollectionId === ALL_COLLECTIONS_ID) {
     return { recentCandidates: [], mainCandidates: candidates };
   }
 
@@ -227,6 +236,7 @@ function QuickApplyCandidateRow({
   onHover,
   onSelect,
   showReason = false,
+  showCollection = false,
 }: {
   candidate: QuickApplyCandidate;
   isCurrent: boolean;
@@ -234,6 +244,7 @@ function QuickApplyCandidateRow({
   onHover: () => void;
   onSelect: () => void;
   showReason?: boolean;
+  showCollection?: boolean;
 }) {
   const { colorSwatch, valueDisplay } = getCandidatePresentation(candidate);
 
@@ -281,6 +292,14 @@ function QuickApplyCandidateRow({
           {valueDisplay}
         </span>
       )}
+      {showCollection && (
+        <span
+          className={`min-w-[72px] max-w-[140px] shrink truncate text-secondary ${isSelected ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`}
+          title={candidate.collectionLabel}
+        >
+          {candidate.collectionLabel}
+        </span>
+      )}
       <span className={`text-secondary shrink-0 ${isSelected ? 'text-white/60' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
         {candidate.entry.$type}
       </span>
@@ -326,15 +345,33 @@ export function QuickApplyPicker({
     if (ids.includes(activeCollectionId)) {
       return ids;
     }
-    return activeCollectionId ? [activeCollectionId, ...ids] : ids;
+    return activeCollectionId && activeCollectionId !== ALL_COLLECTIONS_ID
+      ? [activeCollectionId, ...ids]
+      : ids;
   }, [activeCollectionId, collectionIds, tokenMapsByCollection]);
+  const collectionScopeIds = useMemo(
+    () =>
+      availableCollectionIds.length > 1
+        ? [ALL_COLLECTIONS_ID, ...availableCollectionIds]
+        : availableCollectionIds,
+    [availableCollectionIds],
+  );
+  const searchAllCollections = activeCollectionId === ALL_COLLECTIONS_ID;
   const tokenMap = useMemo(
     () => tokenMapsByCollection[activeCollectionId] ?? EMPTY_TOKEN_MAP,
     [activeCollectionId, tokenMapsByCollection],
   );
-  const activeCollectionLabel =
-    collectionLabels?.[activeCollectionId] || activeCollectionId;
-  const collectionHasTokens = Object.keys(tokenMap).length > 0;
+  const activeCollectionLabel = searchAllCollections
+    ? "All collections"
+    : collectionLabels?.[activeCollectionId] || activeCollectionId;
+  const collectionTokenCount = searchAllCollections
+    ? availableCollectionIds.reduce(
+        (count, collectionId) =>
+          count + Object.keys(tokenMapsByCollection[collectionId] ?? {}).length,
+        0,
+      )
+    : Object.keys(tokenMap).length;
+  const collectionHasTokens = collectionTokenCount > 0;
 
   useEffect(() => {
     if (eligibleProps.includes(activeProp)) {
@@ -352,17 +389,64 @@ export function QuickApplyPicker({
 
   // Build scored candidates for the active property
   const currentBindingForProp = getBindingForProperty(rootNodes, activeProp);
-  const { candidates, totalCount } = useMemo(
-    () =>
-      buildQuickApplyCandidates({
+  const { candidates, totalCount } = useMemo(() => {
+    if (!searchAllCollections) {
+      return buildQuickApplyCandidates({
         activeProp,
         currentBinding: currentBindingForProp,
         query,
         rootNodes,
         tokenMap,
+        collectionId: activeCollectionId,
+        collectionLabel: activeCollectionLabel,
+      });
+    }
+
+    const pathCounts = new Map<string, number>();
+    for (const collectionId of availableCollectionIds) {
+      for (const path of Object.keys(tokenMapsByCollection[collectionId] ?? {})) {
+        pathCounts.set(path, (pathCounts.get(path) ?? 0) + 1);
+      }
+    }
+
+    const scopedResults = availableCollectionIds.map((collectionId) =>
+      buildQuickApplyCandidates({
+        activeProp,
+        currentBinding: currentBindingForProp,
+        query,
+        rootNodes,
+        tokenMap: tokenMapsByCollection[collectionId] ?? EMPTY_TOKEN_MAP,
+        collectionId,
+        collectionLabel: collectionLabels?.[collectionId] || collectionId,
       }),
-    [activeProp, currentBindingForProp, query, rootNodes, tokenMap],
-  );
+    );
+    const mergedCandidates = scopedResults
+      .flatMap((result) => result.candidates)
+      .filter((candidate) => {
+        const duplicateCount = pathCounts.get(candidate.path) ?? 0;
+        return duplicateCount <= 1 || candidate.collectionId === currentCollectionId;
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_CANDIDATES);
+
+    return {
+      candidates: mergedCandidates,
+      totalCount: scopedResults.reduce((count, result) => count + result.totalCount, 0),
+    };
+  }, [
+    activeCollectionId,
+    activeCollectionLabel,
+    activeProp,
+    availableCollectionIds,
+    collectionLabels,
+    currentBindingForProp,
+    currentCollectionId,
+    query,
+    rootNodes,
+    searchAllCollections,
+    tokenMap,
+    tokenMapsByCollection,
+  ]);
 
   // Recently-used tokens: filter global recents to those present in the current candidate list
   const { recentCandidates, mainCandidates } = useMemo(
@@ -392,13 +476,13 @@ export function QuickApplyPicker({
 
   const handleSelect = (candidate: QuickApplyCandidate) => {
     if (currentBinding === candidate.path) return;
-    addRecentToken(candidate.path, activeCollectionId);
+    addRecentToken(candidate.path, candidate.collectionId);
     onApply(
       candidate.path,
       candidate.entry.$type,
       activeProp,
       candidate.resolved,
-      activeCollectionId,
+      candidate.collectionId,
     );
   };
 
@@ -530,7 +614,7 @@ export function QuickApplyPicker({
           <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             <label className="flex min-w-0 items-center gap-1.5">
               <span className="shrink-0">Apply from</span>
-              {availableCollectionIds.length > 1 ? (
+              {collectionScopeIds.length > 1 ? (
                 <select
                   value={activeCollectionId}
                   onChange={(event) => {
@@ -542,9 +626,11 @@ export function QuickApplyPicker({
                   className="min-w-0 max-w-[180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
                   title="Choose collection to search"
                 >
-                  {availableCollectionIds.map((collectionId) => (
+                  {collectionScopeIds.map((collectionId) => (
                     <option key={collectionId} value={collectionId}>
-                      {collectionLabels?.[collectionId] || collectionId}
+                      {collectionId === ALL_COLLECTIONS_ID
+                        ? "All collections"
+                        : collectionLabels?.[collectionId] || collectionId}
                     </option>
                   ))}
                 </select>
@@ -559,7 +645,7 @@ export function QuickApplyPicker({
             </label>
             {!collectionHasTokens ? (
               <span className="text-[color:var(--color-figma-text-tertiary)]">
-                No tokens in this collection
+                {searchAllCollections ? "No tokens in the library" : "No tokens in this collection"}
               </span>
             ) : null}
           </div>
@@ -643,6 +729,7 @@ export function QuickApplyPicker({
                         isSelected={isSelected}
                         onHover={() => setActiveIdx(idx)}
                         onSelect={() => handleSelect(c)}
+                        showCollection={searchAllCollections}
                       />
                     );
                   })}
@@ -662,6 +749,7 @@ export function QuickApplyPicker({
                         isSelected={globalIdx === activeIdx}
                         onHover={() => setActiveIdx(globalIdx)}
                         onSelect={() => handleSelect(candidate)}
+                        showCollection={searchAllCollections}
                       />
                     );
                   })
@@ -692,6 +780,7 @@ export function QuickApplyPicker({
                               onHover={() => setActiveIdx(globalIdx)}
                               onSelect={() => handleSelect(candidate)}
                               showReason={group.confidence !== 'weak'}
+                              showCollection={searchAllCollections}
                             />
                           );
                         })}

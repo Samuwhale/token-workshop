@@ -86,6 +86,7 @@ export function ValueCell({
   const canActivateValue = canQuickEdit || !!onEdit;
   const canCreate =
     !value && !!tokenType && !!targetCollectionId && !!onRequestQuickEdit;
+  const canAddValue = !value && (canCreate || !!onEdit);
 
   const displayVal = value ? formatValue(value.$type, value.$value) : "—";
   const presentation = value
@@ -113,10 +114,10 @@ export function ValueCell({
   const brokenAliasTint = isBrokenAlias
     ? "bg-[var(--color-figma-warning)]/5"
     : "";
-  const emptyUneditableTint = !value && !canCreate
+  const emptyUneditableTint = !value && !canAddValue
     ? "bg-[var(--color-figma-warning)]/5"
     : "";
-  const wrapperClass = `flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5 ${brokenAliasTint} ${emptyUneditableTint}`;
+  const wrapperClass = `tm-value-cell__wrapper flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5 ${canAddValue ? "tm-value-cell__wrapper--empty-actionable" : ""} ${brokenAliasTint} ${emptyUneditableTint}`;
 
   const derivationMarker = isDerivation ? (
     <span
@@ -132,6 +133,14 @@ export function ValueCell({
     : "";
   const activateValue = () => {
     if (canQuickEdit) {
+      openQuickEdit();
+      return;
+    }
+    onEdit?.();
+  };
+  const handleAddValue = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (canCreate) {
       openQuickEdit();
       return;
     }
@@ -209,30 +218,23 @@ export function ValueCell({
       title={titleLines.join("\n")}
     >
       {!value ? (
-        canCreate ? (
-          <button
-            type="button"
-            className="tm-value-cell__create-button tm-value-cell__interactive-control"
-            onClick={(e) => {
-              e.stopPropagation();
-              openQuickEdit();
-            }}
-            aria-label={`Add ${optionName} value`}
-          >
-            Add
-          </button>
-        ) : onEdit ? (
-          <button
-            type="button"
-            className="tm-value-cell__create-button tm-value-cell__interactive-control"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            aria-label={`Add ${optionName} value`}
-          >
-            Add
-          </button>
+        canAddValue ? (
+          <div className="tm-value-cell__empty-action">
+            <span
+              className="tm-value-cell__empty-placeholder text-body text-[color:var(--color-figma-text-tertiary)]"
+              aria-hidden="true"
+            >
+              —
+            </span>
+            <button
+              type="button"
+              className="tm-value-cell__create-button tm-value-cell__interactive-control"
+              onClick={handleAddValue}
+              aria-label={`Add ${optionName} value`}
+            >
+              Add
+            </button>
+          </div>
         ) : (
           <span className="text-body text-[color:var(--color-figma-text-tertiary)]">
             —

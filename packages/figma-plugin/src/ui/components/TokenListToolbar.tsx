@@ -198,9 +198,12 @@ export function TokenListToolbar({
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
 
   const showSelectionChip = selectedNodeCount > 0 && boundTokenCount > 0;
+  const showSearch =
+    hasTokens ||
+    (viewMode === "tree" && overflowMenuProps?.hasMultipleCollections === true);
   const showSearchScopeToggle =
     viewMode === "tree" &&
-    hasTokens &&
+    showSearch &&
     overflowMenuProps?.hasMultipleCollections === true;
   const showResultPresentationToggle =
     viewMode === "tree" &&
@@ -259,7 +262,7 @@ export function TokenListToolbar({
               </span>
             ) : null}
 
-            {hasTokens ? (
+            {showSearch ? (
               <div className="tm-responsive-toolbar__search relative">
                 <div className="tm-token-toolbar__search-control">
                   <SearchField
@@ -587,23 +590,6 @@ export function TokenListToolbar({
                     </button>
                   )}
 
-                  {showPrimaryCreateAction ? (
-                    <Button
-                      type="button"
-                      onClick={handleOpenNewGroupDialog}
-                      disabled={!connected}
-                      variant="ghost"
-                      size="sm"
-                      aria-label="New group"
-                      title="New group"
-                      className={`${TOOLBAR_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40`}
-                    >
-                      <Plus size={12} strokeWidth={1.5} aria-hidden />
-                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
-                        New group
-                      </span>
-                    </Button>
-                  ) : null}
                 </div>
 
                 {createMenu.open ? (

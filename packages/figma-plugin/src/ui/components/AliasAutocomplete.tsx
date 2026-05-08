@@ -234,6 +234,13 @@ export function AliasAutocomplete({
         const isAliasToken = isAlias(entry.$value);
         const previewValue = formatTokenValuePreview(resolved.$value);
         const rawPreview = isAliasToken ? formatTokenValuePreview(entry.$value) : '';
+        const showCollectionContext =
+          candidate.isAmbiguousPath ||
+          Boolean(
+            candidate.collectionId &&
+            preferredCollectionId &&
+            candidate.collectionId !== preferredCollectionId,
+          );
         return (
         <button
           key={candidate.key}
@@ -274,7 +281,7 @@ export function AliasAutocomplete({
               {entry.$lifecycle === 'deprecated' && (
                 <span className="shrink-0 rounded bg-[var(--color-figma-text-tertiary)]/20 px-1 py-0.5 text-[var(--font-size-xs)] font-medium text-[color:var(--color-figma-text-secondary)]">deprecated</span>
               )}
-              {candidate.isAmbiguousPath ? (
+              {showCollectionContext ? (
                 <span className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]">
                   in {getCollectionLabel(candidate.collectionId)}
                 </span>
