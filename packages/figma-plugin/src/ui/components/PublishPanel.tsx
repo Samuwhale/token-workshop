@@ -1873,10 +1873,12 @@ function PublishAllPreviewModal({
   useFocusTrap(dialogRef);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) onCancel();
+    };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  }, [busy, onCancel]);
 
   const hasAnyChanges = hasVarChanges || hasStyleChanges;
   const totalPush = varPushCount + stylePushCount;
@@ -1902,7 +1904,9 @@ function PublishAllPreviewModal({
   return (
     <div
       className="tm-modal-shell"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !busy) onCancel();
+      }}
     >
       <div
         ref={dialogRef}

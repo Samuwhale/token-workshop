@@ -334,6 +334,7 @@ export function HealthPanel({
       ? "critical"
       : currentReviewSummary?.severity === "warning" ||
           validationIsStale ||
+          !unusedDataReady ||
           duplicateCount > 0 ||
           deprecatedCount > 0 ||
           aliasOpportunitiesCount > 0 ||

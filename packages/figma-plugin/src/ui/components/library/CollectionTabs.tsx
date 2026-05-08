@@ -28,7 +28,7 @@ import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
-import { Button, SearchField, SegmentedControl } from "../../primitives";
+import { Button, IconButton, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
@@ -438,7 +438,7 @@ export function CollectionTabs({
 
           <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
             {showManageButton ? (
-              <Button
+              <IconButton
                 onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
                 aria-pressed={activeCollectionSettings?.open === true}
                 aria-label={
@@ -451,15 +451,11 @@ export function CollectionTabs({
                     ? "Hide collection details"
                     : "Show collection details"
                 }
-                variant="ghost"
                 size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                className="tm-collection-toolbar__icon-action text-[color:var(--color-figma-text-secondary)]"
               >
                 <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label">
-                  {activeCollectionSettings?.open === true ? "Hide details" : "Details"}
-                </span>
-              </Button>
+              </IconButton>
             ) : null}
             {primaryAction ? (
               <Button

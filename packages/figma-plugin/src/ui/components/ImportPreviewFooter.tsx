@@ -6,6 +6,10 @@ import {
 import { ImportConflictResolver } from './ImportConflictResolver';
 import { COLLECTION_NAME_RE } from '../shared/utils';
 
+function formatCollectionOptionLabel(collectionId: string): string {
+  return collectionId.split('/').filter(Boolean).at(-1) ?? collectionId;
+}
+
 export function ImportPreviewFooter() {
   const { tokens, selectedTokens } = useImportSourceContext();
   const {
@@ -120,9 +124,14 @@ export function ImportPreviewFooter() {
             }}
             className="tm-panel-inline-form__field rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
           >
-            {collectionIds.map((id) => (
-              <option key={id} value={id}>{id}</option>
-            ))}
+            {collectionIds.map((id) => {
+              const label = formatCollectionOptionLabel(id);
+              return (
+                <option key={id} value={id}>
+                  {label === id ? id : `${label} (${id})`}
+                </option>
+              );
+            })}
             {!collectionIds.includes(targetCollectionId) && targetCollectionId && (
               <option value={targetCollectionId}>{targetCollectionId} (new)</option>
             )}

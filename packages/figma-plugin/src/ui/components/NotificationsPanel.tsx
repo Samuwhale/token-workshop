@@ -8,8 +8,8 @@ import { Button } from "../primitives/Button";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 
-type InboxFilter = "all" | "blocker" | "attention" | "success";
-type InboxSeverity = "blocker" | "attention" | "success";
+type InboxFilter = "all" | "blocker" | "attention" | "update" | "success";
+type InboxSeverity = "blocker" | "attention" | "update" | "success";
 
 interface NotificationsPanelProps {
   history: NotificationEntry[];
@@ -35,6 +35,7 @@ const INBOX_FILTER_OPTIONS: { value: InboxFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "blocker", label: "Blockers" },
   { value: "attention", label: "Attention" },
+  { value: "update", label: "Updates" },
   { value: "success", label: "Resolved" },
 ];
 
@@ -60,9 +61,10 @@ function normalizeMessage(message: string): string {
 }
 
 function classifySeverity(entry: NotificationEntry): InboxSeverity {
+  if (entry.variant === "error") return "blocker";
   if (entry.variant === "success") return "success";
   if (entry.variant === "warning") return "attention";
-  return "blocker";
+  return "update";
 }
 
 function destinationActionLabel(
@@ -112,7 +114,9 @@ function buildInboxItem(entry: NotificationEntry): InboxItem {
       ? "Needs action"
       : severity === "attention"
         ? "Review"
-        : "Resolved";
+        : severity === "update"
+          ? "Update"
+          : "Resolved";
   return {
     dedupeKey: `${severity}::${normalizeMessage(entry.message)}`,
     message: entry.message,
@@ -130,6 +134,7 @@ function buildInboxItem(entry: NotificationEntry): InboxItem {
 function severityTint(item: InboxItem): string {
   if (item.severity === "blocker") return "bg-[var(--color-figma-error)]/8";
   if (item.severity === "attention") return "bg-[var(--color-figma-warning)]/8";
+  if (item.severity === "update") return "bg-[var(--color-figma-bg-secondary)]";
   return "bg-[var(--color-figma-success)]/8";
 }
 
@@ -172,7 +177,7 @@ export function NotificationsPanel({
       }
     }
     return [...deduped.values()].sort((a, b) => {
-      const severityRank = { blocker: 0, attention: 1, success: 2 };
+      const severityRank = { blocker: 0, attention: 1, update: 2, success: 3 };
       return (
         severityRank[a.severity] - severityRank[b.severity] ||
         b.latestTimestamp - a.latestTimestamp
@@ -290,6 +295,14 @@ function NotificationCard({
   item: InboxItem;
   onOpen: (destination: NotificationDestination | null) => void;
 }) {
+  const metaParts = [
+    item.statusLabel,
+    item.occurrences > 1
+      ? `${item.occurrences} times since ${formatTime(item.firstTimestamp)}`
+      : null,
+    timeAgo(item.latestTimestamp),
+  ].filter(Boolean);
+
   return (
     <div
       className={`border-b border-[var(--color-figma-border)] px-2.5 py-2 ${severityTint(item)}`}
@@ -299,12 +312,12 @@ function NotificationCard({
           <p className="text-body leading-snug text-[color:var(--color-figma-text)] break-words">
             {item.message}
           </p>
-          <span
-            className="mt-0.5 block text-secondary text-[color:var(--color-figma-text-tertiary)]"
-            title={formatTime(item.latestTimestamp)}
+          <p
+            className="mt-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]"
+            title={`Latest: ${formatTime(item.latestTimestamp)}`}
           >
-            {timeAgo(item.latestTimestamp)}
-          </span>
+            {metaParts.join(" · ")}
+          </p>
         </div>
         {item.destination && item.actionLabel && (
           <button

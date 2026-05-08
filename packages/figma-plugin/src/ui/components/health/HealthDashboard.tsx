@@ -227,13 +227,15 @@ export function HealthDashboard({
 
   const statusTitle = validationError
     ? "Check failed"
-    : validationLoading && !validationLastRefreshed
+    : (validationLoading && !validationLastRefreshed) || !unusedReady
       ? "Checking library"
       : totalIssueCount === 0
         ? "Review is clear"
         : "Review needs attention";
   const statusDetail = validationError
     ? validationError
+    : !unusedReady
+      ? `${scopeLabel} Checking Figma usage before marking unused tokens clear.`
     : totalIssueCount === 0
       ? `${scopeLabel} No blocking review items found.`
       : `${totalIssueCount} item${totalIssueCount === 1 ? "" : "s"} need attention. Start with Fix next, then clean up library hygiene.`;

@@ -132,6 +132,15 @@ export function TokenSelectionToolbar({
     displayedSelectionCount === 0
       ? "No visible tokens"
       : `${visibleSelectedCount} of ${displayedSelectionCount} visible selected`;
+  const selectionMetaParts = [
+    searchQuery ? `Matching “${searchQuery}”` : null,
+    hiddenSelectionCount > 0
+      ? `${hiddenSelectionCount} outside these results`
+      : null,
+    selectedPaths.size === 1 ? "Shift-click adds a range" : null,
+  ].filter(Boolean);
+  const selectionMeta =
+    selectionMetaParts.length > 0 ? selectionMetaParts.join(" · ") : null;
 
   const openAction = useCallback(
     (action: BatchActionType, close: () => void) => {
@@ -168,31 +177,20 @@ export function TokenSelectionToolbar({
                 aria-label="Select or clear all visible tokens"
                 className="shrink-0 accent-[var(--color-figma-accent)]"
               />
-              <span className="tm-selection-toolbar__selection-count text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)]">
-                {selectionSummary}
+              <span className="tm-selection-toolbar__selection-copy">
+                <span className="tm-selection-toolbar__selection-count text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)]">
+                  {selectionSummary}
+                </span>
+                {selectionMeta ? (
+                  <span
+                    className="tm-selection-toolbar__selection-meta text-secondary text-[color:var(--color-figma-text-tertiary)]"
+                    title={selectionMeta}
+                  >
+                    {selectionMeta}
+                  </span>
+                ) : null}
               </span>
             </label>
-            {searchQuery ? (
-              <span
-                className="tm-selection-toolbar__summary-copy text-secondary text-[color:var(--color-figma-text-secondary)]"
-                title={`Matching "${searchQuery}"`}
-              >
-                matching &ldquo;{searchQuery}&rdquo;
-              </span>
-            ) : null}
-            {hiddenSelectionCount > 0 ? (
-              <span
-                className="tm-selection-toolbar__summary-copy text-secondary text-[color:var(--color-figma-text-tertiary)]"
-                title={`${hiddenSelectionCount} selected outside the current results`}
-              >
-                {hiddenSelectionCount} outside current results
-              </span>
-            ) : null}
-            {selectedPaths.size === 1 && !searchQuery ? (
-              <span className="tm-selection-toolbar__summary-copy text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Shift-click to add a range
-              </span>
-            ) : null}
           </div>
           <div className="tm-responsive-toolbar__actions">
             {hasSelection ? (

@@ -532,11 +532,39 @@ export function TokenDetails({
     [collectionIdsByPath, modeValue.modes, ownerCollectionId, pathToCollectionId],
   );
   const firstAmbiguousAliasReference = ambiguousAliasReferences[0] ?? null;
+  const missingAliasReferences = useMemo(
+    () =>
+      modeValue.modes.flatMap((mode) => {
+        if (typeof mode.value !== "string" || !isAlias(mode.value)) {
+          return [];
+        }
+
+        const path = extractAliasPath(mode.value)?.trim();
+        if (!path) {
+          return [];
+        }
+
+        const resolution = resolveCollectionIdForPath({
+          path,
+          pathToCollectionId,
+          collectionIdsByPath,
+          preferredCollectionId: ownerCollectionId,
+        });
+        return resolution.reason === "missing"
+          ? [{ modeName: mode.name, path }]
+          : [];
+      }),
+    [collectionIdsByPath, modeValue.modes, ownerCollectionId, pathToCollectionId],
+  );
+  const firstMissingAliasReference = missingAliasReferences[0] ?? null;
   const ambiguousReferenceMessage = firstAmbiguousAliasReference
     ? `Mode "${firstAmbiguousAliasReference.modeName}" references "${firstAmbiguousAliasReference.path}", which exists in ${formatCollectionDisplayNameList(firstAmbiguousAliasReference.collectionIds, collectionDisplayNames)}. References must point to a token path that belongs to one collection.`
     : ambiguousExtendsCollectionIds.length > 0
       ? `Inherited token "${extendsPath}" exists in ${formatCollectionDisplayNameList(ambiguousExtendsCollectionIds, collectionDisplayNames)}. Inheritance requires a token path that belongs to one collection.`
       : null;
+  const missingReferenceMessage = firstMissingAliasReference
+    ? `Mode "${firstMissingAliasReference.modeName}" references "${firstMissingAliasReference.path}", but that token does not exist yet. Create the target token first, or choose another token.`
+    : null;
   const missingModeNames = useMemo(
     () =>
       modeValue.modes
@@ -551,9 +579,13 @@ export function TokenDetails({
   const canSave =
     editorCanSave &&
     ambiguousReferenceMessage === null &&
+    missingReferenceMessage === null &&
     missingModeValuesMessage === null;
   const saveBlockReason =
-    ambiguousReferenceMessage ?? missingModeValuesMessage ?? editorSaveBlockReason;
+    ambiguousReferenceMessage ??
+    missingReferenceMessage ??
+    missingModeValuesMessage ??
+    editorSaveBlockReason;
 
   const requestClose = editorSessionHost.requestClose;
   const beforeSaveGeneratedToken = useCallback(async () => {

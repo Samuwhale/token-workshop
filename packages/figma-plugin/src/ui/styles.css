@@ -1552,6 +1552,10 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
 }
 
+.tm-collection-toolbar__icon-action {
+  align-self: stretch;
+}
+
 .tm-collection-toolbar__trigger {
   border: 1px solid transparent;
 }
@@ -1750,9 +1754,16 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
 }
 
-.tm-selection-toolbar__summary-copy {
+.tm-selection-toolbar__selection-copy {
+  display: flex;
   min-inline-size: 0;
-  flex: 1 1 180px;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tm-selection-toolbar__selection-meta {
+  min-inline-size: 0;
   overflow-wrap: anywhere;
 }
 
@@ -1978,10 +1989,6 @@ button.tm-status-row:not(:disabled):hover {
     flex: 1 1 240px;
   }
 
-  .tm-selection-toolbar__summary-copy {
-    flex: 1 1 140px;
-  }
-
   .tm-selection-toolbar__bulk-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1991,7 +1998,6 @@ button.tm-status-row:not(:disabled):hover {
 
 @container (max-width: 360px) {
   .tm-selection-toolbar__selection-toggle,
-  .tm-selection-toolbar__summary-copy,
   .tm-selection-toolbar__menu,
   .tm-selection-toolbar__bulk-actions > button {
     flex-basis: 100%;
@@ -4084,24 +4090,8 @@ button.tm-token-details__text-button:disabled:hover {
   min-inline-size: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  max-block-size: 0;
-  overflow: hidden;
-  opacity: 0;
-  padding-left: 0;
-  pointer-events: none;
-  transition:
-    opacity var(--motion-fast) var(--ease-standard),
-    max-block-size var(--motion-fast) var(--ease-standard),
-    padding var(--motion-fast) var(--ease-standard);
-}
-
-.tm-token-mode-row:hover .tm-token-mode-row__secondary-actions,
-.tm-token-mode-row:focus-within .tm-token-mode-row__secondary-actions {
-  max-block-size: 72px;
-  opacity: 1;
+  gap: 6px;
   padding-left: 2px;
-  pointer-events: auto;
 }
 
 .tm-token-mode-row__secondary-action {
@@ -4116,7 +4106,7 @@ button.tm-token-details__text-button:disabled:hover {
   padding: 4px 6px;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  color: var(--color-figma-text-secondary);
+  color: var(--color-figma-text-tertiary);
   transition:
     background-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);

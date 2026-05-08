@@ -246,18 +246,20 @@ export function TokenDetailsModeRow({
   const commitAliasQuery = () => {
     if (!onChange) return;
     const path = aliasQuery.trim();
+    if (!path) {
+      return;
+    }
     const resolution = resolveCollectionIdForPath({
       path,
       pathToCollectionId,
       collectionIdsByPath,
       preferredCollectionId,
     });
-    if (!path || !resolution.collectionId || resolution.reason === "ambiguous") {
-      return;
-    }
     onChange(`{${path}}`);
     setAliasQuery(path);
-    setAutocompleteOpen(false);
+    if (resolution.collectionId && resolution.reason !== "ambiguous") {
+      setAutocompleteOpen(false);
+    }
   };
 
   const showHeader = showModeLabel;
@@ -504,7 +506,7 @@ export function TokenDetailsModeRow({
               }
             >
               <Copy size={12} strokeWidth={1.5} aria-hidden />
-              Use previous
+              {previousModeName ? `Use ${previousModeName}` : "Use previous"}
             </button>
           ) : null}
           {allowCopyToAll && onCopyToAll ? (
@@ -516,7 +518,7 @@ export function TokenDetailsModeRow({
               title={`Copy ${modeName} value to all modes`}
             >
               <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-              Copy to all modes
+              Apply to all modes
             </button>
           ) : null}
         </div>
