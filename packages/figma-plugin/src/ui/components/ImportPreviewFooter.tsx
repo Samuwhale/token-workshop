@@ -157,7 +157,7 @@ export function ImportPreviewFooter() {
                 )}
                 {previewOverwriteCount > 0 && (
                   <span className="text-[color:var(--color-figma-text-warning)]">
-                    {previewOverwriteCount} match{previewOverwriteCount === 1 ? "es" : ""} current token{previewOverwriteCount === 1 ? "" : "s"}
+                    {previewOverwriteCount} would update existing token{previewOverwriteCount === 1 ? "" : "s"}
                   </span>
                 )}
               </>
@@ -186,7 +186,7 @@ export function ImportPreviewFooter() {
               ? `Importing ${importProgress.done}/${importProgress.total}...`
               : 'Importing...'
             : hasPreviewConflicts
-              ? `Choose what to keep for ${previewConflictCount} match${previewConflictCount === 1 ? "" : "es"}`
+              ? `Choose what to keep for ${previewConflictCount} existing token${previewConflictCount === 1 ? "" : "s"}`
               : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
       </button>
 

@@ -41,6 +41,7 @@ export interface ImportPanelProps {
   connected: boolean;
   workingCollectionId: string;
   onClose: () => void;
+  onRetryConnection?: () => void;
   onImported: () => void;
   onImportComplete: (result: ImportCompletionResult) => void;
   onOpenImportNextStep: (

@@ -463,7 +463,7 @@ export function PublishPanel({
   const savedModeName = modeMap[currentCollectionId] ?? '';
   const resolvedCollectionName =
     savedCollectionName || DEFAULT_VARIABLE_COLLECTION_NAME;
-  const resolvedModeName = savedModeName || 'First Figma mode';
+  const resolvedModeName = savedModeName || 'First mode in Figma';
   const currentCollection = useMemo(
     () => collections.find((collection) => collection.id === currentCollectionId),
     [collections, currentCollectionId],
@@ -1157,7 +1157,7 @@ export function PublishPanel({
       if (styleSync.pushCount > 0) return 'Update Figma styles';
       return 'Update Figma variables';
     }
-    if (pullsToLocal > 0) return 'Update local tokens';
+    if (pullsToLocal > 0) return 'Use Figma values in Token Workshop';
     return 'Apply changes';
   })();
 
@@ -1567,7 +1567,7 @@ function StandardPublishRoutingCard({
           label="Figma mode"
           value={draft.modeName ?? ''}
           onChange={(value) => onFieldChange('modeName', value)}
-          placeholder="First Figma mode"
+          placeholder="First mode in Figma"
           disabled={saving}
           suggestions={modeSuggestions}
         />

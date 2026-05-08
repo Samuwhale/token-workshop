@@ -10,13 +10,42 @@ import { AliasAutocomplete } from '../AliasAutocomplete';
 import { isAlias, extractAliasPath } from '../../../shared/resolveAlias';
 import { FontFamilyPicker } from '../FontFamilyPicker';
 import { AUTHORING } from '../../shared/editorClasses';
+import { IconButton } from '../../primitives';
 
-const REFERENCE_BUTTON_CLASS =
-  'flex h-7 w-7 shrink-0 items-center justify-center rounded border border-transparent transition-colors focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]';
 const REFERENCE_FIELD_ROW_CLASS =
-  'relative grid min-w-0 items-center gap-1 [grid-template-columns:minmax(0,1fr)_auto]';
+  'relative grid min-w-0 items-stretch gap-1.5 [grid-template-columns:minmax(0,1fr)_auto]';
 const REFERENCE_FIELD_WITH_UNIT_ROW_CLASS =
-  'grid min-w-0 items-center gap-1 [grid-template-columns:minmax(0,1fr)_auto_auto]';
+  'grid min-w-0 items-stretch gap-1.5 [grid-template-columns:minmax(0,1fr)_auto_auto]';
+
+function ReferenceToggleButton({
+  active = false,
+  onClick,
+  title,
+  ariaLabel,
+}: {
+  active?: boolean;
+  onClick: () => void;
+  title: string;
+  ariaLabel: string;
+}) {
+  return (
+    <IconButton
+      type="button"
+      size="md"
+      onClick={onClick}
+      title={title}
+      aria-label={ariaLabel}
+      className={[
+        'shrink-0 self-stretch',
+        active
+          ? 'bg-[var(--surface-selected)] text-[color:var(--color-figma-text-accent)] hover:bg-[var(--surface-selected)] hover:text-[color:var(--color-figma-text-error)]'
+          : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)]',
+      ].join(' ')}
+    >
+      <Link2 size={12} strokeWidth={1.8} aria-hidden />
+    </IconButton>
+  );
+}
 
 export type TokenValueRecord = Record<string, unknown>;
 export type ValueChangeHandler<T = unknown> = (value: T) => void;
@@ -217,19 +246,12 @@ export const SubPropInput = memo(function SubPropInput({
         placeholder={placeholder}
         className={`${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
       />
-      <button
-        type="button"
+      <ReferenceToggleButton
+        active={isAliasVal}
         onClick={openRefPicker}
         title={isAliasVal ? 'Clear reference — use direct value' : 'Reference a token'}
-        aria-label={isAliasVal ? 'Clear reference' : 'Reference a token'}
-        className={`${REFERENCE_BUTTON_CLASS} ${
-          isAliasVal
-            ? 'text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-error)]'
-            : 'text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-        }`}
-      >
-        <Link2 size={12} strokeWidth={1.8} aria-hidden />
-      </button>
+        ariaLabel={isAliasVal ? 'Clear reference' : 'Reference a token'}
+      />
       {showAC && (
         <AliasAutocomplete
           query={displayValue.includes('{') ? displayValue.slice(displayValue.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
@@ -309,15 +331,11 @@ export const DimensionSubProp = memo(function DimensionSubProp({
       >
         {units.map(u => <option key={u} value={u}>{u}</option>)}
       </select>
-      <button
-        type="button"
+      <ReferenceToggleButton
         onClick={() => onChange('{')}
         title="Reference a token"
-        aria-label="Reference a token"
-        className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-      >
-        <Link2 size={12} strokeWidth={1.8} aria-hidden />
-      </button>
+        ariaLabel="Reference a token"
+      />
     </div>
   );
 });
@@ -366,15 +384,12 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           className={`${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
         />
         {isAliasVal && (
-          <button
-            type="button"
+          <ReferenceToggleButton
+            active
             onClick={() => { onChange(''); setShowAC(false); }}
             title="Clear reference — use direct value"
-            aria-label="Clear reference"
-            className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-error)]`}
-          >
-            <Link2 size={12} strokeWidth={1.8} aria-hidden />
-          </button>
+            ariaLabel="Clear reference"
+          />
         )}
         {showAC && (
           <AliasAutocomplete
@@ -409,15 +424,11 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           placeholder="Inter"
         />
       </div>
-      <button
-        type="button"
+      <ReferenceToggleButton
         onClick={() => { onChange('{'); setShowAC(true); }}
         title="Reference a token"
-        aria-label="Reference a token"
-        className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-      >
-        <Link2 size={12} strokeWidth={1.8} aria-hidden />
-      </button>
+        ariaLabel="Reference a token"
+      />
     </div>
   );
 });

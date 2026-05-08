@@ -1618,18 +1618,14 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 420px) {
-  .tm-collection-toolbar__summary-meta {
-    display: none;
-  }
-
   .tm-collection-toolbar__row {
     flex-wrap: wrap;
-    align-items: stretch;
+    align-items: flex-start;
+    gap: 6px;
   }
 
   .tm-collection-toolbar__scope,
-  .tm-collection-toolbar__leading,
-  .tm-collection-toolbar__actions {
+  .tm-collection-toolbar__leading {
     flex-basis: 100%;
   }
 
@@ -1637,12 +1633,25 @@ button.tm-status-row:not(:disabled):hover {
     inline-size: 100%;
   }
 
+  .tm-collection-toolbar__summary-meta {
+    display: -webkit-box;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
   .tm-collection-toolbar__actions {
+    flex-basis: 100%;
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .tm-collection-toolbar__actions > * {
-    flex: 1 1 0;
+    flex: 0 0 auto;
+    max-inline-size: 100%;
   }
 
   .tm-collection-toolbar__actions > .relative {
@@ -1650,11 +1659,12 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-collection-toolbar__actions > .relative > * {
-    inline-size: 100%;
+    inline-size: auto;
+    max-inline-size: 100%;
   }
 
   .tm-collection-toolbar__action--primary {
-    justify-content: center;
+    justify-content: flex-start;
   }
 }
 
@@ -1933,11 +1943,24 @@ button.tm-status-row:not(:disabled):hover {
     justify-content: space-between;
   }
 
-  .tm-selection-toolbar__selection-toggle,
-  .tm-selection-toolbar__summary-copy {
-    flex-basis: 100%;
+  .tm-selection-toolbar__selection-toggle {
+    flex: 1 1 240px;
   }
 
+  .tm-selection-toolbar__summary-copy {
+    flex: 1 1 140px;
+  }
+
+  .tm-selection-toolbar__bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+}
+
+@container (max-width: 360px) {
+  .tm-selection-toolbar__selection-toggle,
+  .tm-selection-toolbar__summary-copy,
   .tm-selection-toolbar__menu,
   .tm-selection-toolbar__bulk-actions > button {
     flex-basis: 100%;

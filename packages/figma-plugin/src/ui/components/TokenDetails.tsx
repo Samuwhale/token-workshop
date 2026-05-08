@@ -74,7 +74,14 @@ import type { LintViolation } from "../hooks/useLint";
 import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
-import { Field, IconButton, ListItem, Section, Stack } from "../primitives";
+import {
+  Field,
+  IconButton,
+  InlineRenameRow,
+  ListItem,
+  Section,
+  Stack,
+} from "../primitives";
 import { Collapsible } from "./Collapsible";
 import type { TokenEditorValue } from "../shared/tokenEditorTypes";
 import { formatCollectionDisplayNameList } from "../shared/libraryCollections";
@@ -296,10 +303,24 @@ export function TokenDetails({
   const valueIsAlias = typeof value === "string" && isAlias(value);
   const buildDefaultModeValues = useCallback(
     (nextValue: TokenEditorValue) => {
-      void nextValue;
-      return {};
+      const collection = collections.find(
+        (candidate) => candidate.id === ownerCollectionId,
+      );
+      const secondaryModes = collection?.modes.slice(1) ?? [];
+      if (secondaryModes.length === 0) {
+        return {};
+      }
+
+      return {
+        [ownerCollectionId]: Object.fromEntries(
+          secondaryModes.map((mode) => [
+            mode.name,
+            cloneModeValue(nextValue),
+          ]),
+        ),
+      };
     },
-    [],
+    [collections, ownerCollectionId],
   );
 
   const modeValue = useTokenEditorModeValue({
@@ -314,6 +335,7 @@ export function TokenDetails({
   const valueEditorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
   const passthroughTokenWorkshopRef = useRef<Record<string, unknown> | null>(
     null,
   );
@@ -1531,6 +1553,23 @@ export function TokenDetails({
     collectionId: ownerCollectionId,
     modeNames: modeValue.modes.map((mode) => mode.name),
   });
+  const firstMode = modeValue.modes[0] ?? null;
+  const emptyModeRows = modeValue.modes
+    .slice(1)
+    .filter((mode) => mode.value === undefined || mode.value === null || mode.value === "");
+  const canFillEmptyModes =
+    fieldEditable &&
+    firstMode !== null &&
+    firstMode.value !== undefined &&
+    firstMode.value !== null &&
+    firstMode.value !== "" &&
+    emptyModeRows.length > 0;
+  const fillEmptyModesFromFirst = () => {
+    if (!firstMode || !canFillEmptyModes) return;
+    emptyModeRows.forEach((mode) => {
+      mode.setValue(cloneModeValue(firstMode.value));
+    });
+  };
   const referenceCount =
     (ancestors.isEmpty ? 0 : ancestors.chains.length) + dependents.length;
   const referencesLabel =
@@ -1721,52 +1760,37 @@ export function TokenDetails({
             ) : (
               <div className="tm-token-details__identity-path">
                 <Field label="Token name" error={renameError}>
-                  <div className="tm-token-details__rename-row">
-                    <input
-                      type="text"
-                      value={renameInput}
-                      disabled={renameDisabled}
-                      onChange={(e) => {
-                        setRenameInput(e.target.value);
-                        setRenameError(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void submitRename();
-                        } else if (e.key === "Escape") {
-                          e.preventDefault();
-                          revertRename();
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
-                      title={
-                        isDirty
-                          ? "Save or discard value changes before renaming"
-                          : undefined
-                      }
-                      className={`${AUTHORING.inputMono} ${
-                        renameError
-                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
-                          : renameInputDiffers
-                            ? "border-[var(--color-figma-accent)] focus-visible:border-[var(--color-figma-accent)]"
-                            : ""
-                      }`}
-                      aria-label="Token name"
-                    />
-                    {renameInputDiffers ? (
-                      <button
-                        type="button"
-                        onClick={() => void submitRename()}
-                        disabled={renameDisabled}
-                        title="Save name"
-                        aria-label="Save name"
-                        className="tm-token-details__inline-icon"
-                      >
-                        <Check size={12} strokeWidth={1.5} aria-hidden />
-                      </button>
-                    ) : null}
-                  </div>
+                  <InlineRenameRow
+                    inputRef={renameInputRef}
+                    value={renameInput}
+                    ariaLabel="Token name"
+                    error={renameError ?? undefined}
+                    inputTitle={
+                      isDirty
+                        ? "Save or discard value changes before renaming"
+                        : undefined
+                    }
+                    confirmLabel="Save token name"
+                    cancelLabel="Revert token name"
+                    confirmDisabled={renameDisabled || !renameInputDiffers}
+                    showActions={renameInputDiffers || Boolean(renameError)}
+                    inputClassName={[
+                      "min-h-[28px] px-2 py-1.5 font-mono",
+                      renameInputDiffers
+                        ? "border-[var(--color-figma-accent)] focus-visible:border-[var(--color-figma-accent)]"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onChange={(nextValue) => {
+                      setRenameInput(nextValue);
+                      setRenameError(null);
+                    }}
+                    onConfirm={() => {
+                      void submitRename();
+                    }}
+                    onCancel={revertRename}
+                  />
                 </Field>
               </div>
             )}
@@ -1809,15 +1833,29 @@ export function TokenDetails({
           description={valueSectionDescription}
           emphasis="primary"
           actions={
-            fieldEditable && onManageCollectionModes ? (
-              <button
-                type="button"
-                onClick={() => onManageCollectionModes(ownerCollectionId)}
-                className="tm-token-details__text-button"
-              >
-                <Plus size={12} strokeWidth={1.5} aria-hidden />
-                Manage modes
-              </button>
+            fieldEditable ? (
+              <>
+                {canFillEmptyModes ? (
+                  <button
+                    type="button"
+                    onClick={fillEmptyModesFromFirst}
+                    className="tm-token-details__text-button"
+                  >
+                    <Copy size={12} strokeWidth={1.5} aria-hidden />
+                    Fill empty modes from {firstMode.name}
+                  </button>
+                ) : null}
+                {onManageCollectionModes ? (
+                  <button
+                    type="button"
+                    onClick={() => onManageCollectionModes(ownerCollectionId)}
+                    className="tm-token-details__text-button"
+                  >
+                    <Plus size={12} strokeWidth={1.5} aria-hidden />
+                    Manage modes
+                  </button>
+                ) : null}
+              </>
             ) : undefined
           }
         >

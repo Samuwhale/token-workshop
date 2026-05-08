@@ -20,9 +20,11 @@ import { Button } from '../primitives';
 function ImportPanelRoot({
   connected,
   onClose,
+  onRetryConnection,
 }: {
   connected: boolean;
   onClose: () => void;
+  onRetryConnection?: () => void;
 }) {
   const {
     collectionData,
@@ -87,8 +89,13 @@ function ImportPanelRoot({
         <FeedbackPlaceholder
           variant="disconnected"
           title="Connect to the token server"
-          description="Import requires an active server connection."
+          description="Import requires an active server connection. Retry after the shared token library is running."
           align="start"
+          primaryAction={
+            onRetryConnection
+              ? { label: "Retry connection", onClick: onRetryConnection }
+              : undefined
+          }
         />
       </SecondaryPanel>
     );
@@ -153,7 +160,11 @@ function ImportPanelRoot({
 export function ImportPanel(props: ImportPanelProps) {
   return (
     <ImportPanelProvider {...props}>
-      <ImportPanelRoot connected={props.connected} onClose={props.onClose} />
+      <ImportPanelRoot
+        connected={props.connected}
+        onClose={props.onClose}
+        onRetryConnection={props.onRetryConnection}
+      />
     </ImportPanelProvider>
   );
 }

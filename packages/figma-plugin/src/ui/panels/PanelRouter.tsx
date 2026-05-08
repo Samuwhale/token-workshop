@@ -295,7 +295,7 @@ export function PanelRouter({
     tokensContextualSurfaceState.maintenanceSurface;
 
   // Read all four contexts — these cover ~40% of the data that panels need.
-  const { serverUrl, connected, checking, updateServerUrlAndConnect } =
+  const { serverUrl, connected, checking, updateServerUrlAndConnect, retryConnection } =
     useConnectionContext();
   const {
     collections,
@@ -1060,6 +1060,7 @@ export function PanelRouter({
                   connected={connected}
                   workingCollectionId={currentCollectionId}
                   onClose={closeMaintenanceSurface}
+                  onRetryConnection={retryConnection}
                   onImported={refreshTokens}
                   onImportComplete={(result) => {
                     controller.onImportComplete(result);

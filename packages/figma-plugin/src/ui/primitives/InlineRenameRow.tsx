@@ -11,9 +11,11 @@ export interface InlineRenameRowProps {
   value: string;
   ariaLabel: string;
   error?: string;
+  inputTitle?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   confirmDisabled?: boolean;
+  showActions?: boolean;
   inputClassName?: string;
   onChange: (value: string) => void;
   onConfirm: () => void;
@@ -25,9 +27,11 @@ export function InlineRenameRow({
   value,
   ariaLabel,
   error,
+  inputTitle,
   confirmLabel = "Save",
   cancelLabel = "Cancel",
   confirmDisabled = false,
+  showActions = true,
   inputClassName,
   onChange,
   onConfirm,
@@ -53,6 +57,7 @@ export function InlineRenameRow({
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
           aria-label={ariaLabel}
+          title={inputTitle}
           className={joinClasses(
             "tm-inline-rename-row__input rounded border bg-[var(--color-figma-bg)] px-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]",
             error
@@ -61,26 +66,28 @@ export function InlineRenameRow({
             inputClassName,
           )}
         />
-        <div className="tm-inline-rename-row__actions">
-          <IconButton
-            size="sm"
-            onClick={onConfirm}
-            disabled={confirmDisabled}
-            title={confirmLabel}
-            aria-label={confirmLabel}
-            className="bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] hover:text-[color:var(--color-figma-text-onbrand)] aria-expanded:bg-[var(--color-figma-action-bg-hover)] aria-expanded:text-[color:var(--color-figma-text-onbrand)]"
-          >
-            <Check size={12} strokeWidth={1.8} aria-hidden />
-          </IconButton>
-          <IconButton
-            size="sm"
-            onClick={onCancel}
-            title={cancelLabel}
-            aria-label={cancelLabel}
-          >
-            <X size={12} strokeWidth={1.8} aria-hidden />
-          </IconButton>
-        </div>
+        {showActions ? (
+          <div className="tm-inline-rename-row__actions">
+            <IconButton
+              size="sm"
+              onClick={onConfirm}
+              disabled={confirmDisabled}
+              title={confirmLabel}
+              aria-label={confirmLabel}
+              className="bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] hover:text-[color:var(--color-figma-text-onbrand)] aria-expanded:bg-[var(--color-figma-action-bg-hover)] aria-expanded:text-[color:var(--color-figma-text-onbrand)]"
+            >
+              <Check size={12} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+            <IconButton
+              size="sm"
+              onClick={onCancel}
+              title={cancelLabel}
+              aria-label={cancelLabel}
+            >
+              <X size={12} strokeWidth={1.8} aria-hidden />
+            </IconButton>
+          </div>
+        ) : null}
       </div>
       {error ? (
         <p role="alert" className="tm-inline-rename-row__error">

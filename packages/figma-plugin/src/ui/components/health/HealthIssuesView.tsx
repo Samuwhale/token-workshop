@@ -273,7 +273,7 @@ export function HealthIssuesView({
                   aria-haspopup="menu"
                   aria-expanded={exportMenu.open}
                 >
-                  <span>Export</span>
+                  <span>Export report</span>
                   <ChevronDown size={12} strokeWidth={1.5} aria-hidden />
                 </button>
                 {exportMenu.open ? (
