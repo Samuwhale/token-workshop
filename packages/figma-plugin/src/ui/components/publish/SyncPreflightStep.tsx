@@ -31,7 +31,7 @@ export function SyncPreflightStep({
 
       {!running && isOutdated && !error && (
         <NoticeBanner severity="warning">
-          Data changed — rerun.
+          Token data changed after the last Figma check. Re-check before applying.
         </NoticeBanner>
       )}
 

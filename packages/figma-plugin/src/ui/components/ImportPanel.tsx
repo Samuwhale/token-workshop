@@ -110,20 +110,30 @@ function ImportPanelRoot({
         </Button>
       }
     >
-      {error && (
-        <FeedbackPlaceholder
-          variant="error"
-          size="section"
-          title="Import failed"
-          description={error}
-          align="start"
-        />
-      )}
+      {error ? (
+        <>
+          <FeedbackPlaceholder
+            variant="error"
+            size="section"
+            title="Import failed"
+            description={error}
+            align="start"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={handleBack} variant="secondary" size="sm">
+              Back
+            </Button>
+            <Button onClick={onClose} variant="ghost" size="sm">
+              Close
+            </Button>
+          </div>
+        </>
+      ) : null}
 
-      {showHome && <ImportSourceHome />}
-      {showSuccess && <ImportSuccessView />}
+      {!error && showHome && <ImportSourceHome />}
+      {!error && showSuccess && <ImportSuccessView />}
 
-      {loading && (
+      {!error && loading && (
         <div
           aria-label={source === 'variables' ? 'Reading variables...' : 'Reading styles...'}
           aria-busy="true"
@@ -134,8 +144,8 @@ function ImportPanelRoot({
         </div>
       )}
 
-      {showVariables && <ImportVariablesSummary />}
-      {showTokenList && <ImportTokenListView />}
+      {!error && showVariables && <ImportVariablesSummary />}
+      {!error && showTokenList && <ImportTokenListView />}
     </SecondaryPanel>
   );
 }

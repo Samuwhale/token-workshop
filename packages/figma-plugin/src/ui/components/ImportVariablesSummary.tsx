@@ -119,7 +119,7 @@ export function ImportVariablesSummary() {
                 />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                    {summary.name} {"->"} destination collection
+                    {summary.name} imports into
                   </div>
                   {editingCollection === summary.name ? (
                     <input
@@ -179,14 +179,14 @@ export function ImportVariablesSummary() {
           <div className="flex flex-wrap items-center gap-2 text-secondary">
             {varConflictPreview.newCount > 0 && (
               <span className="text-[color:var(--color-figma-text-success)]">
-                {varConflictPreview.newCount} new
+                {varConflictPreview.newCount} will be added
               </span>
             )}
             {varConflictPreview.overwriteCount > 0 && (
               <>
                 {varConflictPreview.newCount > 0 && <span className="text-[color:var(--color-figma-border)]">&middot;</span>}
                 <span className="text-[color:var(--color-figma-text-warning)]">
-                  {varConflictPreview.overwriteCount} conflict{varConflictPreview.overwriteCount !== 1 ? 's' : ''}
+                  {varConflictPreview.overwriteCount} match{varConflictPreview.overwriteCount === 1 ? "es" : ""} current token{varConflictPreview.overwriteCount === 1 ? "" : "s"}
                 </span>
               </>
             )}
@@ -228,7 +228,7 @@ export function ImportVariablesSummary() {
                   className="self-start text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:underline"
                   aria-expanded={varConflictDetailsExpanded}
                 >
-                  {varConflictDetailsExpanded ? 'Hide' : 'Review'} {visibleConflictDetails.length} matching token{visibleConflictDetails.length === 1 ? '' : 's'}
+                  {varConflictDetailsExpanded ? 'Hide' : 'Review'} {visibleConflictDetails.length} current token{visibleConflictDetails.length === 1 ? '' : 's'}
                 </button>
                 {varConflictDetailsExpanded ? (
                   <div className="max-h-[220px] overflow-y-auto rounded border border-[var(--color-figma-border)]" style={{ scrollbarWidth: 'thin' }}>

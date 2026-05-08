@@ -223,30 +223,35 @@ function ModeRow({
 
   if (confirmingDelete) {
     return (
-      <div className="mx-2 rounded bg-[var(--color-figma-error)]/10 px-2.5 py-2">
+      <div className="mx-2 rounded-[var(--radius-md)] bg-[var(--color-figma-error)]/10 px-2.5 py-2">
         <p className="text-secondary text-[color:var(--color-figma-text)]">
           Delete {modeName}? This removes the {modeName} value from {tokenCount} token{tokenCount === 1 ? "" : "s"} in this collection.
         </p>
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <button
-            type="button"
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5">
+          <Button
             onClick={() => void handleDelete()}
             disabled={saving}
-            className="rounded bg-[var(--color-figma-error)] px-2 py-0.5 text-secondary font-medium text-white disabled:opacity-50"
+            variant="danger"
+            size="sm"
           >
             {saving ? "Deleting…" : "Delete"}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => setConfirmingDelete(false)}
             disabled={saving}
-            className="rounded px-2 py-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+            variant="ghost"
+            size="sm"
           >
             Cancel
-          </button>
+          </Button>
         </div>
         {error ? (
-          <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{error}</p>
+          <p
+            className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]"
+            role="alert"
+          >
+            {error}
+          </p>
         ) : null}
       </div>
     );

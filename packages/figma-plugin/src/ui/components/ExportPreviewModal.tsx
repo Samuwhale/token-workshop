@@ -3,6 +3,7 @@ import { Spinner } from "./Spinner";
 import type { ExportResultFile } from "../hooks/useExportResults";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { exportFileId, splitExportFilePath } from "../shared/exportFileHelpers";
+import { Button } from "../primitives";
 
 export interface ExportPreviewModalProps {
   results: ExportResultFile[];
@@ -244,10 +245,11 @@ export function ExportPreviewModal({
             {lines.length} line{lines.length !== 1 ? "s" : ""}
           </span>
           <div className="flex min-w-0 flex-[2] flex-wrap items-stretch justify-end gap-2">
-            <button
-              type="button"
+            <Button
               onClick={() => activeFile && onCopyFile(activeFile)}
-              className="flex min-w-[140px] flex-1 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+              variant="secondary"
+              size="md"
+              className="min-w-[140px] flex-1 whitespace-normal"
               title={`Copy ${activeFile?.path}`}
             >
               {activeFile && copiedFile === exportFileId(activeFile) ? (
@@ -286,11 +288,12 @@ export function ExportPreviewModal({
                   Copy file
                 </>
               )}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => activeFile && onDownloadFile(activeFile)}
-              className="flex min-w-[140px] flex-1 items-center justify-center gap-1 rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+              variant="secondary"
+              size="md"
+              className="min-w-[140px] flex-1 whitespace-normal"
               title={`Download ${activeFile?.path}`}
             >
               <svg
@@ -309,12 +312,13 @@ export function ExportPreviewModal({
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
               Download file
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={onDownloadZip}
               disabled={zipProgress !== null}
-              className="flex min-w-[160px] flex-1 basis-full items-center justify-center gap-1 rounded bg-[var(--color-figma-action-bg)] px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
+              variant="primary"
+              size="md"
+              className="min-w-[160px] flex-1 basis-full whitespace-normal"
               title={`Download all ${results.length} files as ${(zipFilename || "tokens").replace(/\.zip$/i, "")}.zip${nestByPlatform ? " (nested by platform)" : ""}`}
             >
               {zipProgress !== null ? (
@@ -342,7 +346,7 @@ export function ExportPreviewModal({
                   Download ZIP
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

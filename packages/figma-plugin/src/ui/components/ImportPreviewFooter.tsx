@@ -107,7 +107,7 @@ export function ImportPreviewFooter() {
         </div>
       ) : (
         <div className="tm-panel-inline-form">
-          <label className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Into</label>
+          <label className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Destination collection</label>
           <select
             value={targetCollectionId}
             onChange={(e) => {
@@ -142,20 +142,22 @@ export function ImportPreviewFooter() {
         <div className="flex flex-wrap items-center justify-between gap-2 text-secondary">
           <div className="flex min-w-0 flex-[1_1_220px] flex-wrap items-center gap-2">
             {existingPathsFetching ? (
-              <span className="text-[color:var(--color-figma-text-secondary)]">Checking existing tokens...</span>
+              <span className="text-[color:var(--color-figma-text-secondary)]">Checking current library...</span>
             ) : existingTokenMapError !== null ? (
-              <span className="text-[color:var(--color-figma-text-warning)]">Conflict detection unavailable</span>
+              <span className="text-[color:var(--color-figma-text-warning)]">Could not check current tokens before import</span>
             ) : previewNewCount !== null && previewOverwriteCount !== null && (
               <>
                 {previewNewCount > 0 && (
-                  <span className="text-[color:var(--color-figma-text-success)]">{previewNewCount} new</span>
+                  <span className="text-[color:var(--color-figma-text-success)]">
+                    {previewNewCount} will be added
+                  </span>
                 )}
                 {previewNewCount > 0 && previewOverwriteCount > 0 && (
                   <span className="text-[color:var(--color-figma-border)]">&middot;</span>
                 )}
                 {previewOverwriteCount > 0 && (
                   <span className="text-[color:var(--color-figma-text-warning)]">
-                    {previewOverwriteCount} existing
+                    {previewOverwriteCount} match{previewOverwriteCount === 1 ? "es" : ""} current token{previewOverwriteCount === 1 ? "" : "s"}
                   </span>
                 )}
               </>
@@ -166,7 +168,7 @@ export function ImportPreviewFooter() {
               onClick={handleImportStyles}
               className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
             >
-              Open conflict review&hellip;
+              Choose what to keep...
             </button>
           )}
         </div>
@@ -184,7 +186,7 @@ export function ImportPreviewFooter() {
               ? `Importing ${importProgress.done}/${importProgress.total}...`
               : 'Importing...'
             : hasPreviewConflicts
-              ? `Review ${previewConflictCount} conflict${previewConflictCount === 1 ? "" : "s"} before import`
+              ? `Choose what to keep for ${previewConflictCount} match${previewConflictCount === 1 ? "" : "es"}`
               : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
       </button>
 

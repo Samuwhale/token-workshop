@@ -274,19 +274,19 @@ export const IMPORT_REVIEW_ACTION_COPY: Record<
     key: "overwrite",
     label: "Overwrite",
     buttonLabel: "Overwrite conflicts",
-    consequence: "Replace current value with incoming.",
+    consequence: "Replace current token values with incoming import values.",
   },
   merge: {
     key: "merge",
     label: "Merge",
     buttonLabel: "Merge conflicts",
-    consequence: "Update value, keep existing notes and metadata.",
+    consequence: "Use incoming values while keeping existing notes and metadata.",
   },
   skip: {
     key: "skip",
     label: "Keep existing",
     buttonLabel: "Keep existing conflicts",
-    consequence: "Skip conflicts, import only new tokens.",
+    consequence: "Keep current token values and import only new tokens.",
   },
 };
 

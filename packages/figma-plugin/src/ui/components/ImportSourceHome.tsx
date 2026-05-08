@@ -1,9 +1,7 @@
 import { FileCode2, Layers3, Table2, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { useImportSourceContext } from "./ImportPanelContext";
-
-const SOURCE_BUTTON_CLASS =
-  "flex flex-1 items-center justify-center gap-2 rounded border border-[var(--color-figma-border)] px-3 py-2 text-body font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]";
+import { Button } from "../primitives";
 
 function SourceButton({
   icon,
@@ -15,10 +13,16 @@ function SourceButton({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className={SOURCE_BUTTON_CLASS}>
+    <Button
+      type="button"
+      onClick={onClick}
+      variant="secondary"
+      size="md"
+      className="flex-1 justify-center px-3"
+    >
       {icon}
       {label}
-    </button>
+    </Button>
   );
 }
 
@@ -120,13 +124,17 @@ export function ImportSourceHome() {
       </div>
 
       {fileImportValidation && (
-        <div className={`rounded px-2.5 py-1.5 text-secondary ${
-          validationIsError
+        <div
+          className={`rounded px-2.5 py-1.5 text-secondary ${
+            validationIsError
             ? 'bg-[var(--color-figma-error)]/8 text-[color:var(--color-figma-text-error)]'
             : fileImportValidation.status === 'partial'
               ? 'bg-[var(--color-figma-warning)]/8 text-[color:var(--color-figma-text-warning)]'
               : 'bg-[var(--color-figma-success)]/8 text-[color:var(--color-figma-text-success)]'
-        }`}>
+          }`}
+          role={validationIsError ? "alert" : "status"}
+          aria-live={validationIsError ? "assertive" : "polite"}
+        >
           {fileImportValidation.summary}
           {fileImportValidation.detail && (
             <span className="text-[color:var(--color-figma-text-secondary)]"> {fileImportValidation.detail}</span>

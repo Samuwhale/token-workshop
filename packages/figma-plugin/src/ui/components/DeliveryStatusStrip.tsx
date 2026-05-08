@@ -53,27 +53,40 @@ function syncChip(
   onOpenRepair?: () => void,
 ): Chip | null {
   if (syncing) {
-    return { id: "sync", label: "Applying…", tone: "accent", onClick: onOpenSync };
+    return {
+      id: "sync",
+      label: "Canvas applying...",
+      tone: "accent",
+      onClick: onOpenSync,
+      title: "Open Canvas selection sync",
+    };
   }
   if (syncError) {
-    return { id: "sync", label: "Apply failed", tone: "error", onClick: onOpenSync, title: syncError };
+    return {
+      id: "sync",
+      label: "Canvas apply failed",
+      tone: "error",
+      onClick: onOpenSync,
+      title: syncError,
+    };
   }
   if (syncResult && syncResult.errors > 0) {
     return {
       id: "sync",
-      label: `${syncResult.errors} failed`,
+      label: `${syncResult.errors} canvas failure${syncResult.errors === 1 ? "" : "s"}`,
       tone: "error",
       onClick: onOpenSync,
+      title: "Open Canvas selection sync to review failed bindings",
     };
   }
   if (syncResult && syncResult.missingTokens.length > 0) {
     const count = syncResult.missingTokens.length;
     return {
       id: "sync",
-      label: `${count} missing`,
+      label: `${count} missing binding${count === 1 ? "" : "s"}`,
       tone: "warning",
       onClick: onOpenRepair ?? onOpenSync,
-      title: `${count} missing token path${count === 1 ? "" : "s"} to repair`,
+      title: `Open Canvas repair for ${count} missing token path${count === 1 ? "" : "s"}`,
     };
   }
   return null;
@@ -97,25 +110,28 @@ export function DeliveryStatusStrip({
   if (reviewItemCount > 0) {
     chips.push({
       id: "health",
-      label: `${reviewItemCount} to review`,
+      label: `${reviewItemCount} library review`,
       tone: healthTone(reviewStatus),
       onClick: onOpenHealth,
+      title: "Open Library Review",
     });
   }
 
   if (publishApplying) {
     chips.push({
       id: "publish",
-      label: "Applying…",
+      label: "Figma applying...",
       tone: "accent",
       onClick: onOpenPublishCompare,
+      title: "Open Publish to Figma",
     });
   } else if (pendingPublishCount > 0) {
     chips.push({
       id: "publish",
-      label: `${pendingPublishCount} to apply`,
+      label: `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? "" : "s"}`,
       tone: "accent",
       onClick: onOpenPublishCompare,
+      title: "Open Publish to review Figma changes",
     });
   }
 

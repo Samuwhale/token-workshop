@@ -432,8 +432,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           variant="ghost"
           size="sm"
           className="tm-token-table__add-mode h-full rounded-none px-2 text-[color:var(--color-figma-text-secondary)]"
-          title="Add mode"
-          aria-label="Add mode"
+          title={`Add mode to ${multiModeData.collection.id}`}
+          aria-label={`Add mode to ${multiModeData.collection.id}`}
           aria-haspopup="menu"
           aria-expanded={addModeMenuOpen}
         >
@@ -449,7 +449,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 htmlFor="token-table-new-mode-name"
                 className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
               >
-                New mode
+                Add mode to collection
               </label>
               <TextInput
                 id="token-table-new-mode-name"
@@ -508,8 +508,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   ) : null}
                   <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                     {newModeSourceName === EMPTY_MODE_SOURCE
-                      ? "Existing tokens will show this mode as needing values."
-                      : `Existing tokens will copy ${newModeSourceName} values as editable starting points.`}
+                      ? `Existing tokens in ${multiModeData.collection.id} will show this mode as needing values.`
+                      : `Existing tokens in ${multiModeData.collection.id} will copy ${newModeSourceName} values as editable starting points.`}
                   </p>
                 </>
               )}
