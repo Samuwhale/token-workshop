@@ -131,6 +131,10 @@ function cloneModeValue<T>(value: T): T {
     : value;
 }
 
+function isEmptyModeValue(value: unknown): boolean {
+  return value === undefined || value === null || value === "";
+}
+
 function getStoredModeValue(
   entry: TokenMapEntry | undefined,
   collectionId: string,
@@ -199,6 +203,19 @@ function getModeValueSectionDescription(params: {
   return `Editing ${modeNames.length} mode values in ${collectionName}: ${formatNameList(modeNames)}. Each row is an equal Figma mode value.`;
 }
 
+type ModeAliasReferenceIssue =
+  | {
+      kind: "ambiguous";
+      modeName: string;
+      path: string;
+      collectionIds: string[];
+    }
+  | {
+      kind: "missing";
+      modeName: string;
+      path: string;
+    };
+
 export function TokenDetails({
   tokenPath,
   currentCollectionId,
@@ -256,7 +273,6 @@ export function TokenDetails({
     () => getCollectionDisplayName(ownerCollectionId, collectionDisplayNames),
     [collectionDisplayNames, ownerCollectionId],
   );
-  const canEditInPlace = true;
   const uiState = useTokenEditorUIState({
     tokenPath,
   });
@@ -497,9 +513,9 @@ export function TokenDetails({
     ownerCollectionId,
     pathToCollectionId,
   ]);
-  const ambiguousAliasReferences = useMemo(
+  const modeAliasReferenceIssues = useMemo<ModeAliasReferenceIssue[]>(
     () =>
-      modeValue.modes.flatMap((mode) => {
+      modeValue.modes.flatMap((mode): ModeAliasReferenceIssue[] => {
         if (typeof mode.value !== "string" || !isAlias(mode.value)) {
           return [];
         }
@@ -515,48 +531,31 @@ export function TokenDetails({
           collectionIdsByPath,
           preferredCollectionId: ownerCollectionId,
         });
+        if (resolution.reason === "missing") {
+          return [{ kind: "missing", modeName: mode.name, path }];
+        }
+
         if (resolution.reason !== "ambiguous") {
           return [];
         }
+
         const collectionIds = getCollectionIdsForPath({
           path,
           pathToCollectionId,
           collectionIdsByPath,
         });
-        if (collectionIds.length <= 1) {
-          return [];
-        }
-
-        return [{ modeName: mode.name, path, collectionIds }];
-      }),
-    [collectionIdsByPath, modeValue.modes, ownerCollectionId, pathToCollectionId],
-  );
-  const firstAmbiguousAliasReference = ambiguousAliasReferences[0] ?? null;
-  const missingAliasReferences = useMemo(
-    () =>
-      modeValue.modes.flatMap((mode) => {
-        if (typeof mode.value !== "string" || !isAlias(mode.value)) {
-          return [];
-        }
-
-        const path = extractAliasPath(mode.value)?.trim();
-        if (!path) {
-          return [];
-        }
-
-        const resolution = resolveCollectionIdForPath({
-          path,
-          pathToCollectionId,
-          collectionIdsByPath,
-          preferredCollectionId: ownerCollectionId,
-        });
-        return resolution.reason === "missing"
-          ? [{ modeName: mode.name, path }]
+        return collectionIds.length > 1
+          ? [{ kind: "ambiguous", modeName: mode.name, path, collectionIds }]
           : [];
       }),
     [collectionIdsByPath, modeValue.modes, ownerCollectionId, pathToCollectionId],
   );
-  const firstMissingAliasReference = missingAliasReferences[0] ?? null;
+  const firstAmbiguousAliasReference =
+    modeAliasReferenceIssues.find((issue) => issue.kind === "ambiguous") ??
+    null;
+  const firstMissingAliasReference =
+    modeAliasReferenceIssues.find((issue) => issue.kind === "missing") ??
+    null;
   const ambiguousReferenceMessage = firstAmbiguousAliasReference
     ? `Mode "${firstAmbiguousAliasReference.modeName}" references "${firstAmbiguousAliasReference.path}", which exists in ${formatCollectionDisplayNameList(firstAmbiguousAliasReference.collectionIds, collectionDisplayNames)}. References must point to a token path that belongs to one collection.`
     : ambiguousExtendsCollectionIds.length > 0
@@ -568,7 +567,7 @@ export function TokenDetails({
   const missingModeNames = useMemo(
     () =>
       modeValue.modes
-        .filter((mode) => mode.value === undefined || mode.value === null || mode.value === "")
+        .filter((mode) => isEmptyModeValue(mode.value))
         .map((mode) => mode.name),
     [modeValue.modes],
   );
@@ -599,6 +598,10 @@ export function TokenDetails({
       setError(ambiguousReferenceMessage);
       return false;
     }
+    if (missingReferenceMessage) {
+      setError(missingReferenceMessage);
+      return false;
+    }
     if (missingModeValuesMessage) {
       setError(missingModeValuesMessage);
       return false;
@@ -608,6 +611,7 @@ export function TokenDetails({
     activeGeneratorProvenance,
     ambiguousReferenceMessage,
     isCreateMode,
+    missingReferenceMessage,
     missingModeValuesMessage,
   ]);
 
@@ -1047,7 +1051,7 @@ export function TokenDetails({
   const parentPrefix = lastDotIdx >= 0 ? tokenPath.slice(0, lastDotIdx) : "";
   const leafName =
     lastDotIdx >= 0 ? tokenPath.slice(lastDotIdx + 1) : tokenPath;
-  const canRenameInPlace = !isCreateMode && fieldEditable && canEditInPlace;
+  const canRenameInPlace = !isCreateMode && fieldEditable;
   const renameInputDiffers = renameInput !== leafName;
   const renameDisabled = !canRenameInPlace || isDirty || saving || renameSaving;
 
@@ -1595,13 +1599,11 @@ export function TokenDetails({
   const firstMode = modeValue.modes[0] ?? null;
   const emptyModeRows = modeValue.modes
     .slice(1)
-    .filter((mode) => mode.value === undefined || mode.value === null || mode.value === "");
+    .filter((mode) => isEmptyModeValue(mode.value));
   const canFillEmptyModes =
     fieldEditable &&
     firstMode !== null &&
-    firstMode.value !== undefined &&
-    firstMode.value !== null &&
-    firstMode.value !== "" &&
+    !isEmptyModeValue(firstMode.value) &&
     emptyModeRows.length > 0;
   const fillEmptyModesFromFirst = () => {
     if (!firstMode || !canFillEmptyModes) return;

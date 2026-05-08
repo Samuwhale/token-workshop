@@ -247,19 +247,13 @@ export function TokenDetailsModeRow({
     if (!onChange) return;
     const path = aliasQuery.trim();
     if (!path) {
+      onChange("");
+      setAutocompleteOpen(false);
       return;
     }
-    const resolution = resolveCollectionIdForPath({
-      path,
-      pathToCollectionId,
-      collectionIdsByPath,
-      preferredCollectionId,
-    });
     onChange(`{${path}}`);
     setAliasQuery(path);
-    if (resolution.collectionId && resolution.reason !== "ambiguous") {
-      setAutocompleteOpen(false);
-    }
+    setAutocompleteOpen(false);
   };
 
   const showHeader = showModeLabel;
