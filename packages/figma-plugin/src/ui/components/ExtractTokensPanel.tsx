@@ -7,7 +7,7 @@ import type {
 import { tokenTypeBadgeClass } from "../../shared/types";
 import { getErrorMessage } from "../shared/utils";
 import {
-  createTokenValueBody,
+  createTokenValueBodyForCollectionModes,
   updateToken,
   upsertToken,
 } from "../shared/tokenMutations";
@@ -16,6 +16,7 @@ import { formatTokenValueForDisplay } from "../shared/tokenFormatting";
 interface ExtractTokensPanelProps {
   connected: boolean;
   currentCollectionId: string;
+  currentCollectionModeNames: string[];
   serverUrl: string;
   tokenMap: Record<string, TokenMapEntry>;
   onTokenCreated: () => void;
@@ -39,6 +40,7 @@ function formatValuePreview(entry: ExtractedTokenEntry): string {
 export function ExtractTokensPanel({
   connected,
   currentCollectionId,
+  currentCollectionModeNames,
   serverUrl,
   tokenMap,
   onTokenCreated,
@@ -69,6 +71,11 @@ export function ExtractTokensPanel({
     () => (propertyFilter?.length ? new Set(propertyFilter) : null),
     [propertyFilter],
   );
+  const modeNamesForCreate =
+    currentCollectionModeNames.length > 0
+      ? currentCollectionModeNames
+      : ["Default"];
+  const multiModeCreate = modeNamesForCreate.length > 1;
 
   const filterExtractedTokens = useCallback(
     (entries: ExtractedTokenEntry[]) => {
@@ -210,7 +217,12 @@ export function ExtractTokensPanel({
 
     for (const item of toCreate) {
       try {
-        const body = createTokenValueBody({ type: item.tokenType, value: item.value });
+        const body = createTokenValueBodyForCollectionModes({
+          type: item.tokenType,
+          value: item.value,
+          collectionId: currentCollectionId,
+          modeNames: modeNamesForCreate,
+        });
         if (tokenMap[item.name]) {
           await updateToken(serverUrl, currentCollectionId, item.name, body);
         } else {
@@ -451,10 +463,15 @@ export function ExtractTokensPanel({
             </label>
             {conflictCount > 0 && (
               <span className="text-secondary text-[color:var(--color-figma-text-warning)]">
-                {conflictCount} will overwrite
+                {conflictCount} will update existing tokens
               </span>
             )}
           </div>
+          {multiModeCreate ? (
+            <div className="border-b border-[var(--color-figma-border)] bg-[var(--surface-info)] px-3 py-1.5 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)] shrink-0">
+              Extracted values will fill all {modeNamesForCreate.length} modes in {currentCollectionId}: {modeNamesForCreate.join(", ")}.
+            </div>
+          ) : null}
 
           {/* Batch prefix bar */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/50 shrink-0">
@@ -520,9 +537,9 @@ export function ExtractTokensPanel({
                       {isConflict && isSelected && (
                         <span
                           className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-warning)] shrink-0"
-                          title="Token already exists — will overwrite"
+                          title="Token already exists — will update"
                         >
-                          overwrite
+                          update
                         </span>
                       )}
                     </div>
@@ -594,7 +611,9 @@ export function ExtractTokensPanel({
               >
                 {creating
                   ? "Creating..."
-                  : `Create ${selectedCount} Token${selectedCount !== 1 ? "s" : ""}`}
+                  : conflictCount > 0
+                    ? `Create and update ${selectedCount}`
+                    : `Create ${selectedCount} Token${selectedCount !== 1 ? "s" : ""}`}
               </button>
             </div>
           </div>

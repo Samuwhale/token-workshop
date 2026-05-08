@@ -65,6 +65,7 @@ export function CanvasRouter({
   const { serverUrl, connected } = useConnectionContext();
   const { sync, syncing, syncProgress, syncResult, syncError } = useSyncContext();
   const {
+    collections,
     workingCollectionId: currentCollectionId,
     refreshCollections: refreshTokens,
   } = useCollectionStateContext();
@@ -125,6 +126,10 @@ export function CanvasRouter({
             syncError={syncError}
             connected={connected}
             currentCollectionId={currentCollectionId}
+            currentCollection={
+              collections.find((collection) => collection.id === currentCollectionId) ??
+              null
+            }
             serverUrl={serverUrl}
             onTokenCreated={refreshTokens}
             onNavigateToToken={(path) => {

@@ -235,7 +235,10 @@ export function HistoryPanel({
       ) : null}
 
       <div className="shrink-0 px-3 pb-1.5">
-        <p className="truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
+        <p
+          className="break-words text-secondary leading-tight text-[color:var(--color-figma-text-tertiary)]"
+          title={[scopeLabel, tokenScopeLabel].filter(Boolean).join(" · ")}
+        >
           {scopeLabel}
           {tokenScopeLabel ? ` · ${tokenScopeLabel}` : ""}
         </p>

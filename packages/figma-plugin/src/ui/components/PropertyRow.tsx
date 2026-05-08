@@ -14,13 +14,14 @@ import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 import {
   applyTokenMutationSuccess,
   createToken,
-  createTokenValueBody,
+  createTokenValueBodyForCollectionModes,
   isTokenMutationConflictError,
   updateToken,
 } from '../shared/tokenMutations';
 import {
   getBindingForProperty,
   getCurrentValue,
+  getCurrentValueState,
   formatCurrentValue,
   getTokenTypeForProperty,
   getCompatibleTokenTypes,
@@ -43,6 +44,7 @@ interface PropertyRowProps {
   tokenMap: Record<string, TokenMapEntry>;
   connected: boolean;
   currentCollectionId: string;
+  currentCollectionModeNames: string[];
   serverUrl: string;
   hasAnyTokens: boolean;
   creatingFromProp: BindableProperty | null;
@@ -114,6 +116,7 @@ export function PropertyRow({
   tokenMap,
   connected,
   currentCollectionId,
+  currentCollectionModeNames,
   serverUrl,
   hasAnyTokens,
   creatingFromProp,
@@ -144,13 +147,20 @@ export function PropertyRow({
 
   const binding = getBindingForProperty(rootNodes, prop);
   const value = getCurrentValue(rootNodes, prop);
+  const valueState = getCurrentValueState(rootNodes, prop);
+  const isMixedLiteralValue = !binding && valueState.kind === 'mixed';
+  const modeNamesForCreate =
+    currentCollectionModeNames.length > 0
+      ? currentCollectionModeNames
+      : ['Default'];
+  const multiModeCreate = modeNamesForCreate.length > 1;
 
   const isBound = binding && binding !== 'mixed';
   const isMixed = binding === 'mixed';
   const isUnbound = !binding || isMixed;
   const isBroken = Boolean(isBound && !tokenMap[binding as string]);
   const isThisPropActive = creatingFromProp === prop || bindingFromProp === prop;
-  const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && currentCollectionId && !isThisPropActive;
+  const hasExtractableValue = value !== undefined && value !== null && !isMixedLiteralValue && connected && isUnbound && currentCollectionId && !isThisPropActive;
   const canBind = !isBound && connected && hasAnyTokens && !isThisPropActive;
   const canChangeBind = isBound && !isBroken && connected && hasAnyTokens && !isThisPropActive;
   const canRepair = isBroken && connected && hasAnyTokens && !isThisPropActive;
@@ -280,10 +290,12 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      await createToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBody({
+      await createToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBodyForCollectionModes({
         type: tokenType,
         value: tokenValue,
         defaultScopes: getDefaultScopesForProperty(prop),
+        collectionId: currentCollectionId,
+        modeNames: modeNamesForCreate,
       }));
       await applyTokenMutationSuccess({
         onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),
@@ -313,10 +325,12 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      await updateToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBody({
+      await updateToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBodyForCollectionModes({
         type: tokenType,
         value: tokenValue,
         defaultScopes: getDefaultScopesForProperty(prop),
+        collectionId: currentCollectionId,
+        modeNames: modeNamesForCreate,
       }));
       await applyTokenMutationSuccess({
         onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),
@@ -363,6 +377,10 @@ export function PropertyRow({
                 ) : isMixed ? (
                   <span className="mt-0.5 text-secondary text-[color:var(--color-figma-text-warning)] block">
                     Different bindings across {rootNodes.length} selected {rootNodes.length === 1 ? 'layer' : 'layers'}
+                  </span>
+                ) : isMixedLiteralValue ? (
+                  <span className="mt-0.5 text-secondary text-[color:var(--color-figma-text-warning)] block">
+                    Different values across {rootNodes.length} selected layers
                   </span>
                 ) : (
                   <span className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] truncate block">
@@ -753,6 +771,11 @@ export function PropertyRow({
                 {formatTokenValuePreview(prop, value)}
               </span>
             </div>
+            {multiModeCreate ? (
+              <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+                This value will be written to all {modeNamesForCreate.length} modes in {currentCollectionId}: {modeNamesForCreate.join(', ')}.
+              </p>
+            ) : null}
             <div className="flex flex-col gap-0.5">
               <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Token path (collection: {currentCollectionId})</label>
               <input
@@ -774,7 +797,7 @@ export function PropertyRow({
                     disabled={creating}
                     className="text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
                   >
-                    Overwrite?
+                    Update existing token?
                   </button>
                 </div>
               )}
@@ -792,7 +815,11 @@ export function PropertyRow({
                 disabled={!newTokenName.trim() || creating}
                 className="px-2 py-1 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-secondary font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
               >
-                {creating ? 'Creating…' : 'Create & bind'}
+                {creating
+                  ? 'Creating…'
+                  : multiModeCreate
+                    ? 'Create all modes & bind'
+                    : 'Create & bind'}
               </button>
             </div>
           </div>

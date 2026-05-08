@@ -15,6 +15,7 @@ import { ImportTokenListView } from './ImportTokenListView';
 import { ImportPreviewFooter } from './ImportPreviewFooter';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 import { SecondaryPanel } from './SecondaryPanel';
+import { Button } from '../primitives';
 
 function ImportPanelRoot({
   connected,
@@ -74,13 +75,13 @@ function ImportPanelRoot({
         className="relative h-full"
         bodyClassName="items-center justify-center"
         actions={
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+            variant="ghost"
+            size="sm"
           >
             Close
-          </button>
+          </Button>
         }
       >
         <FeedbackPlaceholder
@@ -100,13 +101,13 @@ function ImportPanelRoot({
       className="relative h-full"
       footer={showTokenList ? <ImportPreviewFooter /> : undefined}
       actions={
-        <button
-          type="button"
+        <Button
           onClick={onClose}
-          className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+          variant="ghost"
+          size="sm"
         >
           Close
-        </button>
+        </Button>
       }
     >
       {error && (

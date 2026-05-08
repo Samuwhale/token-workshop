@@ -6,6 +6,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
+import type { TokenCollection } from "@token-workshop/core";
 import { Filter, MoreHorizontal } from "lucide-react";
 import {
   PROPERTY_GROUPS,
@@ -27,6 +28,7 @@ import {
   shouldShowGroup,
   getBindingForProperty,
   getCurrentValue,
+  getCurrentValueState,
   getMergedCapabilities,
   getTokenTypeForProperty,
   getCompatibleTokenTypes,
@@ -63,6 +65,7 @@ interface SelectionInspectorProps {
   syncError?: string | null;
   connected: boolean;
   currentCollectionId: string;
+  currentCollection: TokenCollection | null;
   serverUrl: string;
   onTokenCreated: () => void;
   onNavigateToToken?: (tokenPath: string) => void;
@@ -97,6 +100,7 @@ export function SelectionInspector({
   syncError,
   connected,
   currentCollectionId,
+  currentCollection,
   serverUrl,
   onTokenCreated,
   onNavigateToToken,
@@ -275,8 +279,8 @@ export function SelectionInspector({
       for (const group of PROPERTY_GROUPS) {
         if (!shouldShowGroup(group.condition, mergedCaps)) continue;
         for (const prop of group.properties) {
-          const value = getCurrentValue(nodes, prop);
-          if (value !== undefined && value !== null) {
+          const valueState = getCurrentValueState(nodes, prop);
+          if (valueState.kind === "single") {
             firstEligible = prop;
             break;
           }
@@ -681,8 +685,8 @@ export function SelectionInspector({
     return ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
       const binding = getBindingForProperty(rootNodes, prop);
       if (binding) return sum;
-      const value = getCurrentValue(rootNodes, prop);
-      if (value === undefined || value === null) return sum;
+      const valueState = getCurrentValueState(rootNodes, prop);
+      if (valueState.kind === "empty") return sum;
       return sum + 1;
     }, 0);
   }, [hasSelection, rootNodes]);
@@ -707,6 +711,10 @@ export function SelectionInspector({
   }, [freshSyncResult, syncResult]);
 
   const selectionHealth = useSelectionHealth(selectedNodes, tokenMap);
+  const currentCollectionModeNames = useMemo(
+    () => currentCollection?.modes.map((mode) => mode.name) ?? [],
+    [currentCollection],
+  );
 
   useLayoutEffect(() => {
     const element = inspectorSplitRef.current;
@@ -741,8 +749,8 @@ export function SelectionInspector({
     const unboundProperties = ALL_BINDABLE_PROPERTIES.filter((prop) => {
       const binding = getBindingForProperty(rootNodes, prop);
       if (binding) return false;
-      const value = getCurrentValue(rootNodes, prop);
-      return value !== undefined && value !== null;
+      const valueState = getCurrentValueState(rootNodes, prop);
+      return valueState.kind !== "empty";
     });
     setExtractOpen(unboundProperties);
   }, [rootNodes]);
@@ -1089,6 +1097,7 @@ export function SelectionInspector({
                             tokenMap={tokenMap}
                             connected={connected}
                             currentCollectionId={currentCollectionId}
+                            currentCollectionModeNames={currentCollectionModeNames}
                             serverUrl={serverUrl}
                             hasAnyTokens={hasAnyTokens}
                             creatingFromProp={creatingFromProp}
@@ -1219,6 +1228,7 @@ export function SelectionInspector({
               <ExtractTokensPanel
                 connected={connected}
                 currentCollectionId={currentCollectionId}
+                currentCollectionModeNames={currentCollectionModeNames}
                 serverUrl={serverUrl}
                 tokenMap={tokenMap}
                 onTokenCreated={onTokenCreated}

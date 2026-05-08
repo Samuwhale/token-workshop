@@ -41,6 +41,9 @@ export function ExportPreviewModal({
   const lines = activeFile?.content.split("\n") ?? [];
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
+  const getTabDomId = (file: ExportResultFile) =>
+    `export-preview-tab-${exportFileId(file).replace(/[^a-z0-9_-]+/gi, "-")}`;
+  const panelDomId = "export-preview-panel";
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -125,15 +128,64 @@ export function ExportPreviewModal({
           role="tablist"
           aria-label="Export files"
           className="tm-modal-tablist"
+          onKeyDown={(event) => {
+            const activeElement = document.activeElement;
+            if (!(activeElement instanceof HTMLButtonElement)) {
+              return;
+            }
+            const tabs = Array.from(
+              dialogRef.current?.querySelectorAll<HTMLButtonElement>(
+                'button[role="tab"]',
+              ) ?? [],
+            );
+            const currentIndex = tabs.indexOf(activeElement);
+            if (currentIndex < 0) {
+              return;
+            }
+
+            const focusTab = (nextIndex: number) => {
+              const targetIndex = (nextIndex + tabs.length) % tabs.length;
+              const nextTab = tabs[targetIndex];
+              if (!nextTab) {
+                return;
+              }
+              nextTab.focus();
+              onFileSelect(targetIndex);
+            };
+
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+              event.preventDefault();
+              focusTab(currentIndex + 1);
+              return;
+            }
+            if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+              event.preventDefault();
+              focusTab(currentIndex - 1);
+              return;
+            }
+            if (event.key === "Home") {
+              event.preventDefault();
+              focusTab(0);
+              return;
+            }
+            if (event.key === "End") {
+              event.preventDefault();
+              focusTab(tabs.length - 1);
+            }
+          }}
         >
           {results.map((file, i) => {
             const { fileName, directory } = splitExportFilePath(file.path);
+            const tabId = getTabDomId(file);
             return (
               <button
                 key={exportFileId(file)}
                 type="button"
+                id={tabId}
                 role="tab"
                 aria-selected={i === fileIndex}
+                aria-controls={panelDomId}
+                tabIndex={i === fileIndex ? 0 : -1}
                 onClick={() => onFileSelect(i)}
                 className={`tm-modal-tab ${i === fileIndex ? "tm-modal-tab--active" : ""}`}
               >
@@ -159,7 +211,13 @@ export function ExportPreviewModal({
         </div>
 
         {/* Code viewer */}
-        <div className="flex-1 overflow-auto border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <div
+          id={panelDomId}
+          role="tabpanel"
+          aria-labelledby={activeFile ? getTabDomId(activeFile) : undefined}
+          tabIndex={0}
+          className="flex-1 overflow-auto border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
+        >
           {activeFile && (
             <table className="min-w-full w-max border-collapse">
               <tbody>

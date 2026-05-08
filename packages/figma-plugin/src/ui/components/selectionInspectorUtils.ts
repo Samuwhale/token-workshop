@@ -34,6 +34,42 @@ export function getCurrentValue(
   return nodes[0].currentValues[prop];
 }
 
+function valueIdentity(value: BindablePropertyValue | undefined): string {
+  if (value === undefined) return "__undefined__";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+export function getCurrentValueState(
+  nodes: SelectionNodeInfo[],
+  prop: BindableProperty,
+): {
+  kind: "empty" | "single" | "mixed";
+  value?: BindablePropertyValue;
+  count: number;
+} {
+  if (nodes.length === 0) return { kind: "empty", count: 0 };
+  const firstValue = nodes[0].currentValues[prop];
+  if (firstValue === undefined || firstValue === null) {
+    return { kind: "empty", count: nodes.length };
+  }
+  const firstKey = valueIdentity(firstValue);
+  for (let index = 1; index < nodes.length; index += 1) {
+    const nextValue = nodes[index].currentValues[prop];
+    if (
+      nextValue === undefined ||
+      nextValue === null ||
+      valueIdentity(nextValue) !== firstKey
+    ) {
+      return { kind: "mixed", value: firstValue, count: nodes.length };
+    }
+  }
+  return { kind: "single", value: firstValue, count: nodes.length };
+}
+
 /** Returns the distinct binding values (or null for unbound) with layer counts, for a mixed-state property. */
 export function getMixedBindingValues(nodes: SelectionNodeInfo[], prop: BindableProperty): { binding: string | null; count: number }[] {
   const counts = new Map<string | null, number>();

@@ -82,6 +82,10 @@ export function buildCollectionModeNames(
   return draft.modeNames.map((modeName) => modeName.trim()).filter(Boolean);
 }
 
+function getModeFieldLabel(index: number): string {
+  return `Mode ${index + 1}`;
+}
+
 export function CollectionAuthoringFields({
   draft,
   pending = false,
@@ -166,7 +170,7 @@ export function CollectionAuthoringFields({
           {draft.modeNames.map((modeName, index) => (
             <label key={index} className="flex flex-col gap-1">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Mode name
+                {getModeFieldLabel(index)}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -182,7 +186,7 @@ export function CollectionAuthoringFields({
                     type="button"
                     onClick={() => onRemoveMode(index)}
                     disabled={pending}
-                    aria-label={`Remove mode ${index + 1}`}
+                    aria-label={`Remove ${modeName.trim() || getModeFieldLabel(index)}`}
                     className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
                   >
                     <X size={12} strokeWidth={1.5} aria-hidden />
@@ -194,7 +198,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token gets one value for each mode in this collection. Use one mode for a simple collection, or add contexts designers switch between in Figma.
+          Every token gets one value for each mode in this collection. The first mode appears first in Figma; it is still edited the same way as the others.
         </span>
       </div>
 

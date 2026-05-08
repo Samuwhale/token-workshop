@@ -291,12 +291,12 @@ export const TokenLeafNode = memo(
       isSelected || rovingFocusPath === node.path || isPreviewed;
     const selectionControlVisibilityClass = selectMode || isSelected || isRowActive
       ? "opacity-100"
-      : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
+      : "opacity-60 group-hover:opacity-100 group-focus-within:opacity-100";
     const overflowActionVisibilityClass = selectMode
       ? "hidden"
       : contextMenuPos || isRowActive
         ? "opacity-100"
-        : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100";
+        : "opacity-50 group-hover:opacity-100 group-focus-within:opacity-100";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected

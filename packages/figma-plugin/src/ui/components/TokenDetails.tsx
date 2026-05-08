@@ -177,6 +177,18 @@ function formatNameList(names: string[]): string {
   return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
 }
 
+function getModeValueSectionDescription(params: {
+  collectionId: string;
+  modeNames: string[];
+}): string {
+  const { collectionId, modeNames } = params;
+  if (modeNames.length <= 1) {
+    return `Editing the ${modeNames[0] ?? "Default"} value in ${collectionId}. Add modes from collection details when this collection needs more contexts.`;
+  }
+
+  return `Editing ${modeNames.length} mode values in ${collectionId}: ${formatNameList(modeNames)}. Each row is an equal Figma mode value.`;
+}
+
 export function TokenDetails({
   tokenPath,
   currentCollectionId,
@@ -1515,6 +1527,10 @@ export function TokenDetails({
 
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Mode value";
+  const valueSectionDescription = getModeValueSectionDescription({
+    collectionId: ownerCollectionId,
+    modeNames: modeValue.modes.map((mode) => mode.name),
+  });
   const referenceCount =
     (ancestors.isEmpty ? 0 : ancestors.chains.length) + dependents.length;
   const referencesLabel =
@@ -1790,6 +1806,7 @@ export function TokenDetails({
 
         <Section
           title={valueSectionTitle}
+          description={valueSectionDescription}
           emphasis="primary"
           actions={
             fieldEditable && onManageCollectionModes ? (

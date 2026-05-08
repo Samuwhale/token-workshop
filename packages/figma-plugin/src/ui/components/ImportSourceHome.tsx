@@ -78,7 +78,8 @@ export function ImportSourceHome() {
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
           Drop a token file or a source your team already uses.
         </div>
-        <div
+        <button
+          type="button"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
@@ -89,9 +90,7 @@ export function ImportSourceHome() {
               : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)]'
           }`}
           onClick={handleBrowseFile}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleBrowseFile(); }}
+          aria-describedby="import-source-file-types"
         >
           {isDragging ? (
             <Upload
@@ -111,8 +110,11 @@ export function ImportSourceHome() {
           <span className={`text-body ${isDragging ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
             {isDragging ? 'Drop to import' : 'Drop a file or click to browse'}
           </span>
-        </div>
-        <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center">
+        </button>
+        <div
+          id="import-source-file-types"
+          className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center"
+        >
           JSON · CSS · Tailwind · Tokens Studio
         </div>
       </div>

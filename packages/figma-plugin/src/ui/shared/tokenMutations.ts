@@ -34,6 +34,11 @@ export interface TokenValueDraftInput {
   clearEmptyExtensions?: boolean;
 }
 
+export interface TokenModeValueDraftInput extends TokenValueDraftInput {
+  collectionId: string;
+  modeNames: readonly string[];
+}
+
 export type TokenMutationBody = TokenMutationRequest;
 export type TokenMutationMode = 'create' | 'update' | 'upsert';
 
@@ -127,6 +132,46 @@ export function createTokenValueBody({
     $extensions:
       normalizedExtensions ??
       (clearEmptyExtensions ? null : undefined),
+  });
+}
+
+function cloneTokenValue(value: unknown): unknown {
+  return typeof value === 'object' && value !== null
+    ? structuredClone(value)
+    : value;
+}
+
+function readObjectRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
+export function createTokenValueBodyForCollectionModes({
+  collectionId,
+  modeNames,
+  extensions,
+  value,
+  ...input
+}: TokenModeValueDraftInput): TokenMutationBody {
+  const secondaryModeNames = modeNames.slice(1).filter(Boolean);
+  if (secondaryModeNames.length === 0) {
+    return createTokenValueBody({ ...input, value, extensions });
+  }
+
+  const nextExtensions = readObjectRecord(extensions);
+  const tokenworkshop = readObjectRecord(nextExtensions.tokenworkshop);
+  const modes = readObjectRecord(tokenworkshop.modes);
+  modes[collectionId] = Object.fromEntries(
+    secondaryModeNames.map((modeName) => [modeName, cloneTokenValue(value)]),
+  );
+  tokenworkshop.modes = modes;
+  nextExtensions.tokenworkshop = tokenworkshop;
+
+  return createTokenValueBody({
+    ...input,
+    value,
+    extensions: nextExtensions,
   });
 }
 
