@@ -26,7 +26,7 @@ import { usePersistedJsonState } from '../hooks/usePersistedState';
 import { STORAGE_KEYS } from '../shared/storage';
 import { useNavigationContext } from '../contexts/NavigationContext';
 import { useResolverContext } from '../contexts/CollectionContext';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import type { PublishRoutingDraft } from '../hooks/usePublishRouting';
 import type {
   ReadStyleToken,
@@ -325,12 +325,24 @@ export function PublishPanel({
   const renamesRef = useRef<Array<{ oldPath: string; newPath: string }>>([]);
   useEffect(() => {
     if (!connected || !serverUrl) { renamesRef.current = []; return; }
-    fetch(`${serverUrl}/api/operations/path-renames`)
-      .then(r => r.ok ? r.json() : null)
-      .then((data: { renames?: Array<{ oldPath: string; newPath: string }> } | null) => {
-        renamesRef.current = data?.renames ?? [];
+    const controller = new AbortController();
+    apiFetch<{ renames?: Array<{ oldPath: string; newPath: string }> }>(
+      `${serverUrl}/api/operations/path-renames`,
+      { signal: createFetchSignal(controller.signal, 8000) },
+    )
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          renamesRef.current = data.renames ?? [];
+        }
       })
-      .catch(() => { renamesRef.current = []; });
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          renamesRef.current = [];
+        }
+      });
+    return () => {
+      controller.abort();
+    };
   }, [connected, serverUrl, tokenChangeKey]);
 
   const resolverModifierNames = useMemo(

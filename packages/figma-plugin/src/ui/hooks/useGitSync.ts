@@ -69,7 +69,7 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     fetchConflicts,
     resolveConflicts,
     abortMerge,
-  } = useGitConflicts({ serverUrl, fetchStatus, setGitError, setActionLoading });
+  } = useGitConflicts({ serverUrl, connected, fetchStatus, setGitError, setActionLoading });
 
   const {
     diffView,

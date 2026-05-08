@@ -9,7 +9,7 @@ import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
 import { resolveModeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
 function ColorSwatch({ value }: { value: string }) {
   if (typeof value !== 'string' || value === '') return null;
@@ -1018,13 +1018,73 @@ interface CollectionDiffModeProps {
   onTokensCreated?: () => void;
 }
 
+type CollectionDiffFlatToken = { $value: unknown; $type: string };
+type CollectionDiffFlatMap = Record<string, CollectionDiffFlatToken>;
+
+async function fetchCollectionDiffTokens(
+  serverUrl: string,
+  collectionId: string,
+  signal: AbortSignal,
+): Promise<CollectionDiffFlatMap> {
+  const data = await apiFetch<{ tokens?: object }>(
+    `${serverUrl}/api/tokens/${encodeURIComponent(collectionId)}`,
+    { signal },
+  );
+  const flat: CollectionDiffFlatMap = {};
+  for (const [path, token] of flattenTokenGroup(
+    (data.tokens ?? {}) as Parameters<typeof flattenTokenGroup>[0],
+  )) {
+    flat[path] = { $value: token.$value, $type: token.$type ?? 'unknown' };
+  }
+  return flat;
+}
+
+function useCollectionDiffTokens(collectionId: string, serverUrl?: string) {
+  const [flat, setFlat] = useState<CollectionDiffFlatMap | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!collectionId || !serverUrl) {
+      setFlat(null);
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoading(true);
+
+    fetchCollectionDiffTokens(
+      serverUrl,
+      collectionId,
+      createFetchSignal(controller.signal, 8000),
+    )
+      .then((nextFlat) => {
+        if (!controller.signal.aborted) {
+          setFlat(nextFlat);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setFlat(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [collectionId, serverUrl]);
+
+  return { flat, loading };
+}
+
 function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateToken, onTokensCreated }: CollectionDiffModeProps) {
   const [collectionA, setCollectionA] = useState<string>(collectionIds[0] ?? '');
   const [collectionB, setCollectionB] = useState<string>(collectionIds[1] ?? '');
-  const [flatA, setFlatA] = useState<Record<string, { $value: unknown; $type: string }> | null>(null);
-  const [flatB, setFlatB] = useState<Record<string, { $value: unknown; $type: string }> | null>(null);
-  const [loadingA, setLoadingA] = useState(false);
-  const [loadingB, setLoadingB] = useState(false);
   const [statusFilter, setStatusFilter] = useState<CollectionDiffStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1035,42 +1095,8 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
     dispatchToast('Clipboard access denied', 'error');
   }, []);
   const [copyFeedback, triggerCopy] = useCopyFeedback(handleCopyError);
-
-  useEffect(() => {
-    if (!collectionA || !serverUrl) { setFlatA(null); return; }
-    let cancelled = false;
-    setLoadingA(true);
-    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionA)}`)
-      .then((data) => {
-        if (cancelled) return;
-        const flat: Record<string, { $value: unknown; $type: string }> = {};
-        for (const [path, token] of flattenTokenGroup((data.tokens ?? {}) as Parameters<typeof flattenTokenGroup>[0])) {
-          flat[path] = { $value: token.$value, $type: token.$type ?? 'unknown' };
-        }
-        setFlatA(flat);
-      })
-      .catch(() => { if (!cancelled) setFlatA(null); })
-      .finally(() => { if (!cancelled) setLoadingA(false); });
-    return () => { cancelled = true; };
-  }, [collectionA, serverUrl]);
-
-  useEffect(() => {
-    if (!collectionB || !serverUrl) { setFlatB(null); return; }
-    let cancelled = false;
-    setLoadingB(true);
-    apiFetch<{ tokens?: object }>(`${serverUrl}/api/tokens/${encodeURIComponent(collectionB)}`)
-      .then((data) => {
-        if (cancelled) return;
-        const flat: Record<string, { $value: unknown; $type: string }> = {};
-        for (const [path, token] of flattenTokenGroup((data.tokens ?? {}) as Parameters<typeof flattenTokenGroup>[0])) {
-          flat[path] = { $value: token.$value, $type: token.$type ?? 'unknown' };
-        }
-        setFlatB(flat);
-      })
-      .catch(() => { if (!cancelled) setFlatB(null); })
-      .finally(() => { if (!cancelled) setLoadingB(false); });
-    return () => { cancelled = true; };
-  }, [collectionB, serverUrl]);
+  const { flat: flatA, loading: loadingA } = useCollectionDiffTokens(collectionA, serverUrl);
+  const { flat: flatB, loading: loadingB } = useCollectionDiffTokens(collectionB, serverUrl);
 
   const diffs = useMemo((): CollectionDiffRow[] => {
     if (!flatA || !flatB) return [];

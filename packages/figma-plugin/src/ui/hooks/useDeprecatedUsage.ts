@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../shared/apiFetch";
+import { apiFetch, createFetchSignal } from "../shared/apiFetch";
 import { isAbortError } from "../shared/utils";
 import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
 
@@ -37,32 +37,31 @@ export function useDeprecatedUsage({
     setLoading(true);
     setError(null);
 
-    apiFetch<{ entries: DeprecatedUsageEntry[] }>(
-      `${serverUrl}/api/tokens/deprecated-usage`,
-      { signal: controller.signal },
-    )
-      .then((data) => {
+    const loadDeprecatedUsage = async () => {
+      try {
+        const data = await apiFetch<{ entries: DeprecatedUsageEntry[] }>(
+          `${serverUrl}/api/tokens/deprecated-usage`,
+          { signal: createFetchSignal(controller.signal, 8000) },
+        );
         if (!controller.signal.aborted) {
           setEntries(Array.isArray(data.entries) ? data.entries : []);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         if (isAbortError(err) || controller.signal.aborted) {
           return;
         }
 
-        if (!controller.signal.aborted) {
-          setEntries([]);
-          setError("Failed to load deprecated usage. Try refreshing.");
-        }
-
+        setEntries([]);
+        setError("Failed to load deprecated usage. Try refreshing.");
         console.warn("[useDeprecatedUsage] failed to load deprecated usage:", err);
-      })
-      .finally(() => {
+      } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
         }
-      });
+      }
+    };
+
+    void loadDeprecatedUsage();
 
     return () => {
       controller.abort();

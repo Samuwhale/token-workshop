@@ -50,7 +50,7 @@ export function useRecentOperations({
   }, []);
 
   const fetchRecentOps = useCallback(async (limit?: number) => {
-    if (!connected) return;
+    if (!connected || !serverUrl) return;
     const effectiveLimit = limit ?? loadedCount;
     try {
       const data = await apiFetch<PaginatedResponse<OperationEntry>>(
@@ -64,6 +64,14 @@ export function useRecentOperations({
       console.warn('[useRecentOperations] fetch failed:', err);
     }
   }, [serverUrl, connected, loadedCount]);
+
+  useEffect(() => {
+    if (connected && serverUrl) return;
+    setRecentOperations([]);
+    setTotal(0);
+    setLoadedCount(INITIAL_LIMIT);
+    setRedoEntries([]);
+  }, [connected, serverUrl]);
 
   // Refresh operations list whenever tokens refresh or loadedCount changes
   useEffect(() => { fetchRecentOps(); }, [fetchRecentOps, lintKey]);

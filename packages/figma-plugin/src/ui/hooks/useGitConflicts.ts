@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import { dispatchToast } from '../shared/toastBus';
 import { describeError, isAbortError } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
 export interface ConflictRegion {
   index: number;
@@ -16,6 +16,7 @@ export interface FileConflict {
 
 interface UseGitConflictsOptions {
   serverUrl: string;
+  connected: boolean;
   fetchStatus: () => Promise<void>;
   setGitError: (v: string | null) => void;
   setActionLoading: (v: string | null) => void;
@@ -33,6 +34,7 @@ export interface UseGitConflictsReturn {
 
 export function useGitConflicts({
   serverUrl,
+  connected,
   fetchStatus,
   setGitError,
   setActionLoading,
@@ -47,10 +49,18 @@ export function useGitConflicts({
 
   const fetchConflicts = useCallback(async () => {
     fetchAbortRef.current?.abort();
+    if (!connected || !serverUrl) {
+      setMergeConflicts([]);
+      setConflictChoices({});
+      return;
+    }
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     try {
-      const data = await apiFetch<{ conflicts: FileConflict[] }>(`${serverUrl}/api/sync/conflicts`, { signal: controller.signal });
+      const data = await apiFetch<{ conflicts: FileConflict[] }>(
+        `${serverUrl}/api/sync/conflicts`,
+        { signal: createFetchSignal(controller.signal) },
+      );
       const conflicts: FileConflict[] = data.conflicts || [];
       setMergeConflicts(conflicts);
       const choices: Record<string, Record<number, 'ours' | 'theirs'>> = {};
@@ -62,7 +72,7 @@ export function useGitConflicts({
       if (isAbortError(err)) return;
       console.warn('[useGitConflicts] fetch failed:', err);
     }
-  }, [serverUrl]);
+  }, [connected, serverUrl]);
 
   useEffect(() => {
     fetchConflicts();
