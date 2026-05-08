@@ -313,6 +313,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         type="button"
         onClick={() => onChange('{')}
         title="Reference a token"
+        aria-label="Reference a token"
         className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
       >
         <Link2 size={12} strokeWidth={1.8} aria-hidden />
@@ -412,6 +413,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
         type="button"
         onClick={() => { onChange('{'); setShowAC(true); }}
         title="Reference a token"
+        aria-label="Reference a token"
         className={`${REFERENCE_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
       >
         <Link2 size={12} strokeWidth={1.8} aria-hidden />

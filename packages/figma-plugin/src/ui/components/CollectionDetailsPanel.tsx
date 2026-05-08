@@ -386,7 +386,9 @@ function ModesSection({
 }) {
   const [adding, setAdding] = useState(false);
   const [addValue, setAddValue] = useState("");
-  const [addSourceModeName, setAddSourceModeName] = useState(EMPTY_MODE_SEED);
+  const [addSourceModeName, setAddSourceModeName] = useState(
+    () => collection.modes[0]?.name ?? EMPTY_MODE_SEED,
+  );
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
   const addInputRef = useRef<HTMLInputElement>(null);
@@ -394,13 +396,22 @@ function ModesSection({
     () => collection.modes.map((mode) => mode.name),
     [collection.modes],
   );
+  const modeSignature = allModeNames.join("\u0000");
+  const defaultSourceModeName = allModeNames[0] ?? EMPTY_MODE_SEED;
   useEffect(() => {
     setAddSourceModeName((current) =>
-      current === EMPTY_MODE_SEED || allModeNames.includes(current)
+      allModeNames.includes(current)
         ? current
-        : EMPTY_MODE_SEED,
+        : defaultSourceModeName,
     );
-  }, [allModeNames]);
+  }, [allModeNames, defaultSourceModeName]);
+
+  useEffect(() => {
+    setAdding(false);
+    setAddValue("");
+    setAddError("");
+    setAddSourceModeName(defaultSourceModeName);
+  }, [collection.id, defaultSourceModeName, modeSignature]);
 
   useEffect(() => {
     if (adding) {
@@ -511,12 +522,12 @@ function ModesSection({
                     disabled={addSaving}
                     className={AUTHORING.select}
                   >
-                    <option value={EMPTY_MODE_SEED}>Start empty</option>
                     {allModeNames.map((modeName) => (
                       <option key={modeName} value={modeName}>
                         Copy from {modeName}
                       </option>
                     ))}
+                    <option value={EMPTY_MODE_SEED}>Start empty</option>
                   </select>
                 </label>
               ) : null}

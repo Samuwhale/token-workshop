@@ -103,11 +103,6 @@ function CollectionCreateDialogContent({
           if (event.key === "Escape" && !pending) {
             event.preventDefault();
             onClose();
-            return;
-          }
-          if (event.key === "Enter") {
-            event.preventDefault();
-            void handleSubmit();
           }
         }}
         role="dialog"

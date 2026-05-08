@@ -943,6 +943,12 @@ export function PublishPanel({
     resolverPublishDirtyCount > 0 ||
     resolverPublishSyncing ||
     isResolverPublishCompareActive;
+  const resolverRoutingStatusLabel =
+    resolverPublishDirtyCount > 0
+      ? 'Needs save'
+      : savedResolverPublishCount > 0
+        ? 'Mapped'
+        : 'Optional';
 
   const [resolverRoutingExpanded, setResolverRoutingExpanded] = useState(
     resolverRoutingShouldExpand,
@@ -1387,7 +1393,7 @@ export function PublishPanel({
                 : 'Map generated outputs to Figma modes'}
               expanded={resolverRoutingExpanded}
               onToggle={() => setResolverRoutingExpanded((current) => !current)}
-              statusLabel={resolverRoutingShouldExpand ? 'Needs save' : 'Optional'}
+              statusLabel={resolverRoutingStatusLabel}
               statusSeverity="info"
             >
               <ResolverModePublishCard
@@ -1832,6 +1838,12 @@ function PublishAllPreviewModal({
   const hasAnyChanges = hasVarChanges || hasStyleChanges;
   const totalPush = varPushCount + stylePushCount;
   const totalPull = varPullCount + stylePullCount;
+  const confirmLabel =
+    totalPush > 0 && totalPull > 0
+      ? 'Update Figma and local tokens'
+      : totalPush > 0
+        ? 'Update Figma'
+        : 'Update Token Workshop';
 
   const handleConfirm = async () => {
     setBusy(true);
@@ -1858,14 +1870,14 @@ function PublishAllPreviewModal({
       >
         <div className="tm-modal-header border-b border-[var(--color-figma-border)]">
           <h3 id="publish-all-modal-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">
-            Review changes
+            Review Figma sync changes
           </h3>
           {hasAnyChanges && (
             <div className="flex flex-col gap-0.5">
               <p className="text-secondary text-[color:var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
                 {[
-                  totalPush > 0 ? `↑ ${totalPush} to update in Figma` : null,
-                  totalPull > 0 ? `↓ ${totalPull} to update locally` : null,
+                  totalPush > 0 ? `${totalPush} will update Figma` : null,
+                  totalPull > 0 ? `${totalPull} will update Token Workshop` : null,
                 ].filter(Boolean).join(' · ')}
               </p>
               <p className="text-secondary text-[color:var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
@@ -1890,6 +1902,12 @@ function PublishAllPreviewModal({
           {hasStyleChanges && (
             <SyncDiffSummary rows={styleRows} dirs={styleDirs} />
           )}
+
+          {hasAnyChanges ? (
+            <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+              You can undo the last sync from Publish after applying, or use History for older checkpoints.
+            </p>
+          ) : null}
         </div>
 
         {confirmError && (
@@ -1910,7 +1928,7 @@ function PublishAllPreviewModal({
               className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {busy && <Spinner size="sm" className="text-white" />}
-              {busy ? 'Applying\u2026' : 'Apply selected changes'}
+              {busy ? 'Applying\u2026' : confirmLabel}
             </button>
           ) : (
             <button

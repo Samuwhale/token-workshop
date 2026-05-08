@@ -209,7 +209,7 @@ export function AliasAutocomplete({
   if (entries.length === 0 && ambiguousEntries.length === 0) {
     return (
       <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-2 px-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
-        No matching tokens with a unique path
+        No matching {filterType ? `${filterType} ` : ""}tokens. Create the target token first, or keep typing to find another reference.
       </div>
     );
   }
@@ -226,7 +226,7 @@ export function AliasAutocomplete({
       )}
       {entries.length === 0 && ambiguousEntries.length > 0 ? (
         <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Matching paths exist in more than one collection. Use the matching token in this collection, or rename one path before referencing it across collections.
+          Matching paths exist in more than one collection. References need a token path that belongs to one collection.
         </div>
       ) : null}
       {entries.map((candidate, idx) => {
@@ -287,7 +287,7 @@ export function AliasAutocomplete({
       {ambiguousEntries.length > 0 ? (
         <div className="border-t border-[var(--color-figma-border)] py-1">
           <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">
-            Ambiguous paths
+            Needs a unique path
           </div>
           {ambiguousEntries.map((candidate) => (
             <div
@@ -302,7 +302,7 @@ export function AliasAutocomplete({
                 </span>
                 <div />
                 <span className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Exists in {getAmbiguousCollectionLabel(candidate.path)}
+                  Exists in {getAmbiguousCollectionLabel(candidate.path)}. Rename one target or choose a same-collection token.
                 </span>
               </div>
             </div>

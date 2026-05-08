@@ -208,10 +208,7 @@ export function TokenListToolbar({
   const hasChipRow =
     viewMode === "tree" &&
     hasTokens &&
-    (showSearchScopeToggle ||
-      showResultPresentationToggle ||
-      showSelectionChip ||
-      toolbarStateChips.length > 0);
+    (showSelectionChip || toolbarStateChips.length > 0);
 
   const showTreeActions = viewMode === "tree";
   const hasEditActions =
@@ -264,92 +261,113 @@ export function TokenListToolbar({
 
             {hasTokens ? (
               <div className="tm-responsive-toolbar__search relative">
-                <SearchField
-                  ref={searchRef}
-                  role={viewMode === "tree" ? "combobox" : "searchbox"}
-                  aria-autocomplete={viewMode === "tree" ? "list" : undefined}
-                  aria-expanded={
-                    viewMode === "tree"
-                      ? showQualifierHints && qualifierHints.length > 0
-                      : undefined
-                  }
-                  aria-controls={
-                    viewMode === "tree"
-                      ? "qualifier-hints-listbox"
-                      : undefined
-                  }
-                  aria-activedescendant={
-                    viewMode === "tree" &&
-                    showQualifierHints &&
-                    qualifierHints.length > 0
-                      ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
-                      : undefined
-                  }
-                  value={searchQuery}
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value);
-                    setHintIndex(0);
-                  }}
-                  onFocus={() => setShowQualifierHints(viewMode === "tree")}
-                  onBlur={() => {
-                    window.setTimeout(() => setShowQualifierHints(false), 150);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      if (searchQuery) {
-                        setSearchQuery("");
-                        setHintIndex(0);
-                      }
-                      searchRef.current?.blur();
-                      return;
+                <div className="tm-token-toolbar__search-control">
+                  <SearchField
+                    ref={searchRef}
+                    role={viewMode === "tree" ? "combobox" : "searchbox"}
+                    aria-autocomplete={viewMode === "tree" ? "list" : undefined}
+                    aria-expanded={
+                      viewMode === "tree"
+                        ? showQualifierHints && qualifierHints.length > 0
+                        : undefined
                     }
-                    if (viewMode !== "tree") {
-                      return;
+                    aria-controls={
+                      viewMode === "tree"
+                        ? "qualifier-hints-listbox"
+                        : undefined
                     }
-                    if (!showQualifierHints || qualifierHints.length === 0) {
-                      return;
+                    aria-activedescendant={
+                      viewMode === "tree" &&
+                      showQualifierHints &&
+                      qualifierHints.length > 0
+                        ? `qualifier-hint-${qualifierHints[hintIndex]?.id}`
+                        : undefined
                     }
-                    if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      setHintIndex((index: number) =>
-                        Math.min(index + 1, qualifierHints.length - 1),
-                      );
-                    } else if (event.key === "ArrowUp") {
-                      event.preventDefault();
-                      setHintIndex((index: number) => Math.max(index - 1, 0));
-                    } else if (
-                      event.key === "Tab" ||
-                      (event.key === "Enter" && qualifierHints.length > 0)
-                    ) {
-                      const hint = qualifierHints[hintIndex];
-                      if (
-                        !hint ||
-                        hint.kind !== "replacement" ||
-                        !hint.replacement
-                      ) {
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                      setHintIndex(0);
+                    }}
+                    onFocus={() => setShowQualifierHints(viewMode === "tree")}
+                    onBlur={() => {
+                      window.setTimeout(() => setShowQualifierHints(false), 150);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        if (searchQuery) {
+                          setSearchQuery("");
+                          setHintIndex(0);
+                        }
+                        searchRef.current?.blur();
                         return;
                       }
-                      event.preventDefault();
-                      setSearchQuery(
-                        replaceQueryToken(
-                          searchQuery,
-                          activeQueryToken,
-                          hint.replacement,
-                        ),
-                      );
+                      if (viewMode !== "tree") {
+                        return;
+                      }
+                      if (!showQualifierHints || qualifierHints.length === 0) {
+                        return;
+                      }
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setHintIndex((index: number) =>
+                          Math.min(index + 1, qualifierHints.length - 1),
+                        );
+                      } else if (event.key === "ArrowUp") {
+                        event.preventDefault();
+                        setHintIndex((index: number) => Math.max(index - 1, 0));
+                      } else if (
+                        event.key === "Tab" ||
+                        (event.key === "Enter" && qualifierHints.length > 0)
+                      ) {
+                        const hint = qualifierHints[hintIndex];
+                        if (
+                          !hint ||
+                          hint.kind !== "replacement" ||
+                          !hint.replacement
+                        ) {
+                          return;
+                        }
+                        event.preventDefault();
+                        setSearchQuery(
+                          replaceQueryToken(
+                            searchQuery,
+                            activeQueryToken,
+                            hint.replacement,
+                          ),
+                        );
+                        setHintIndex(0);
+                      }
+                    }}
+                    placeholder={searchPlaceholder}
+                    title={effectiveSearchTooltip}
+                    onClear={() => {
+                      setSearchQuery("");
                       setHintIndex(0);
-                    }
-                  }}
-                  placeholder={searchPlaceholder}
-                  title={effectiveSearchTooltip}
-                  onClear={() => {
-                    setSearchQuery("");
-                    setHintIndex(0);
-                    searchRef.current?.focus();
-                  }}
-                  containerClassName="w-full"
-                />
+                      searchRef.current?.focus();
+                    }}
+                    containerClassName="min-w-0 flex-1"
+                  />
+                  {showSearchScopeToggle && overflowMenuProps ? (
+                    <SegmentedControl
+                      value={
+                        overflowMenuProps.crossCollectionSearch
+                          ? "all"
+                          : "collection"
+                      }
+                      options={SEARCH_SCOPE_OPTIONS}
+                      onChange={(value) => {
+                        if (
+                          (value === "all") !==
+                          overflowMenuProps.crossCollectionSearch
+                        ) {
+                          overflowMenuProps.onToggleCrossCollectionSearch();
+                        }
+                      }}
+                      ariaLabel="Search scope"
+                    />
+                  ) : null}
+                </div>
 
                 {showQualifierHints &&
                 viewMode === "tree" &&
@@ -474,6 +492,17 @@ export function TokenListToolbar({
                           }
                           onSelect={closeViewMenu}
                         />
+                        {showResultPresentationToggle ? (
+                          <MenuRadioGroup
+                            label="Search results"
+                            value={overflowMenuProps.searchResultPresentation}
+                            options={RESULT_OPTIONS}
+                            onChange={
+                              overflowMenuProps.onSearchResultPresentationChange
+                            }
+                            onSelect={closeViewMenu}
+                          />
+                        ) : null}
                       </>
                     ) : null}
                   </div>
@@ -507,20 +536,22 @@ export function TokenListToolbar({
                 <div className="flex items-center gap-1">
                   {showPrimaryCreateAction ? (
                     <div className="tm-token-toolbar__split-button">
-                      <button
+                      <Button
                         type="button"
                         onClick={() => onCreateToken?.()}
                         disabled={!connected}
                         title="New token"
                         aria-label="New token"
-                        className="tm-token-toolbar__split-button-primary inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-action-bg)] px-2 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+                        variant="primary"
+                        size="sm"
+                        className="tm-token-toolbar__split-button-primary rounded-r-none border-r border-white/15 pr-2"
                       >
                         <Plus size={12} strokeWidth={2} aria-hidden />
                         <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
                           New token
                         </span>
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         ref={createMenu.triggerRef}
                         type="button"
                         onClick={createMenu.toggle}
@@ -529,10 +560,12 @@ export function TokenListToolbar({
                         aria-haspopup="menu"
                         aria-label="More create actions"
                         title="More create actions"
-                        className="tm-token-toolbar__split-button-toggle inline-flex min-h-7 w-7 items-center justify-center border-l border-white/25 bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+                        variant="primary"
+                        size="sm"
+                        className="tm-token-toolbar__split-button-toggle rounded-l-none px-0"
                       >
                         <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <button
@@ -623,7 +656,7 @@ export function TokenListToolbar({
 
             {showOverflow ? (
               <div className="relative shrink-0">
-                <button
+                <IconButton
                   ref={actionsMenu.triggerRef}
                   type="button"
                   onClick={actionsMenu.toggle}
@@ -631,14 +664,15 @@ export function TokenListToolbar({
                   aria-haspopup="menu"
                   aria-label="More actions"
                   title="More actions"
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded transition-colors ${
+                  size="sm"
+                  className={`${
                     actionsMenu.open
                       ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                      : ""
                   } disabled:opacity-40`}
                 >
                   <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
-                </button>
+                </IconButton>
 
                 {actionsMenu.open ? (
                   <div
@@ -707,43 +741,6 @@ export function TokenListToolbar({
 
         {hasChipRow ? (
           <div className="tm-responsive-toolbar__chips">
-            {showSearchScopeToggle && overflowMenuProps ? (
-              <div className="flex min-w-0 items-center gap-1.5">
-                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Search
-                </span>
-                <SegmentedControl
-                  value={
-                    overflowMenuProps.crossCollectionSearch
-                      ? "all"
-                      : "collection"
-                  }
-                  options={SEARCH_SCOPE_OPTIONS}
-                  onChange={(value) => {
-                    if (
-                      (value === "all") !==
-                      overflowMenuProps.crossCollectionSearch
-                    ) {
-                      overflowMenuProps.onToggleCrossCollectionSearch();
-                    }
-                  }}
-                  ariaLabel="Search scope"
-                />
-              </div>
-            ) : null}
-            {showResultPresentationToggle && overflowMenuProps ? (
-              <div className="flex min-w-0 items-center gap-1.5">
-                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Results
-                </span>
-                <SegmentedControl
-                  value={overflowMenuProps.searchResultPresentation}
-                  options={RESULT_OPTIONS}
-                  onChange={overflowMenuProps.onSearchResultPresentationChange}
-                  ariaLabel="Search result layout"
-                />
-              </div>
-            ) : null}
             {showSelectionChip ? (
               <button
                 type="button"

@@ -181,6 +181,7 @@ export const TypographyEditor = memo(function TypographyEditor({
                   type="button"
                   onClick={() => update('fontWeight', '{')}
                   title="Reference a token"
+                  aria-label="Reference a token for font weight"
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                 >
                   <Link2 size={12} strokeWidth={1.8} aria-hidden />

@@ -31,7 +31,16 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   },
 };
 
-function getStartHereBranchCopy(branch: StartHereBranch): StartHereBranchCopy {
+function getStartHereBranchCopy(
+  branch: StartHereBranch,
+  connected: boolean,
+): StartHereBranchCopy {
+  if (branch === "start-new" && !connected) {
+    return {
+      title: "Connect to your token library",
+      description: "Start the shared token library, then continue creating collections and modes.",
+    };
+  }
   return START_HERE_BRANCH_COPY[branch];
 }
 
@@ -205,7 +214,7 @@ export function WelcomePrompt({
   );
 
   const showBack = branch !== "root";
-  const branchCopy = getStartHereBranchCopy(branch);
+  const branchCopy = getStartHereBranchCopy(branch, connected);
   const branchTitle = branchCopy.title;
 
   return (

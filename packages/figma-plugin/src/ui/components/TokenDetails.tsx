@@ -736,6 +736,39 @@ export function TokenDetails({
     pathToCollectionId,
   ]);
   const trimmedEditPath = editPath.trim();
+  const createPathParts = useMemo(() => {
+    const path = editPath.trim();
+    if (!path) {
+      return { group: "", name: "" };
+    }
+    const pathForSplit = path.endsWith(".") ? path.slice(0, -1) : path;
+    const dotIndex = pathForSplit.lastIndexOf(".");
+    if (dotIndex < 0) {
+      return {
+        group: path.endsWith(".") ? pathForSplit : "",
+        name: path.endsWith(".") ? "" : pathForSplit,
+      };
+    }
+    return {
+      group: pathForSplit.slice(0, dotIndex),
+      name: pathForSplit.slice(dotIndex + 1),
+    };
+  }, [editPath]);
+  const updateCreatePath = useCallback(
+    (group: string, name: string) => {
+      const cleanGroup = group.trim().replace(/^\.+|\.+$/g, "");
+      const cleanName = name.trim().replace(/^\.+/g, "");
+      const nextPath = cleanGroup
+        ? cleanName
+          ? `${cleanGroup}.${cleanName}`
+          : `${cleanGroup}.`
+        : cleanName;
+      setEditPath(nextPath);
+      setDisplayError(null);
+      setShowPathAutocomplete(nextPath.trim().length > 0);
+    },
+    [setDisplayError, setEditPath, setShowPathAutocomplete],
+  );
 
   useEffect(() => {
     editorSessionHost.registerSession({
@@ -1582,42 +1615,80 @@ export function TokenDetails({
         ) : null}
 
         <Section title="Identity" emphasis="secondary" className="pt-0">
-          <div className="tm-token-details__identity-grid">
+          <div
+            className={
+              isCreateMode
+                ? "tm-token-details__create-grid"
+                : "tm-token-details__identity-grid"
+            }
+          >
             {isCreateMode ? (
               <div className="relative tm-token-details__identity-path" ref={pathInputWrapperRef}>
-                <Field label="Token path" error={createPathError}>
-                  <input
-                    type="text"
-                    value={editPath}
-                    onChange={(e) => {
-                      setEditPath(e.target.value);
-                      setDisplayError(null);
-                      setShowPathAutocomplete(true);
-                    }}
-                    onFocus={() => {
-                      if (trimmedEditPath) setShowPathAutocomplete(true);
-                    }}
-                    onBlur={(e) => {
-                      if (
-                        !pathInputWrapperRef.current?.contains(
-                          e.relatedTarget as Node,
-                        )
-                      ) {
-                        setShowPathAutocomplete(false);
+                <div className="tm-token-details__create-name-grid">
+                  <Field label="Group" error={createPathError}>
+                    <input
+                      type="text"
+                      value={createPathParts.group}
+                      onChange={(e) =>
+                        updateCreatePath(e.target.value, createPathParts.name)
                       }
-                    }}
-                    placeholder={
-                      NAMESPACE_SUGGESTIONS[tokenType]?.example ?? "token.name"
-                    }
-                    autoFocus
-                    autoComplete="off"
-                    className={`${AUTHORING.inputMono} ${
-                      duplicatePath
-                        ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
-                        : ""
-                    }`}
-                  />
-                </Field>
+                      onFocus={() => {
+                        if (trimmedEditPath) setShowPathAutocomplete(true);
+                      }}
+                      onBlur={(e) => {
+                        if (
+                          !pathInputWrapperRef.current?.contains(
+                            e.relatedTarget as Node,
+                          )
+                        ) {
+                          setShowPathAutocomplete(false);
+                        }
+                      }}
+                      placeholder="color.brand"
+                      autoFocus
+                      autoComplete="off"
+                      className={`${AUTHORING.inputMono} ${
+                        duplicatePath
+                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
+                          : ""
+                      }`}
+                    />
+                  </Field>
+                  <Field label="Name">
+                    <input
+                      type="text"
+                      value={createPathParts.name}
+                      onChange={(e) =>
+                        updateCreatePath(createPathParts.group, e.target.value)
+                      }
+                      onFocus={() => {
+                        if (trimmedEditPath) setShowPathAutocomplete(true);
+                      }}
+                      onBlur={(e) => {
+                        if (
+                          !pathInputWrapperRef.current?.contains(
+                            e.relatedTarget as Node,
+                          )
+                        ) {
+                          setShowPathAutocomplete(false);
+                        }
+                      }}
+                      placeholder="primary"
+                      autoComplete="off"
+                      className={`${AUTHORING.inputMono} ${
+                        duplicatePath
+                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
+                          : ""
+                      }`}
+                    />
+                  </Field>
+                </div>
+                <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                  Token path:{" "}
+                  <span className="font-mono text-[color:var(--color-figma-text-secondary)]">
+                    {trimmedEditPath || "group.name"}
+                  </span>
+                </p>
                 {showPathAutocomplete && trimmedEditPath ? (
                   <PathAutocomplete
                     query={editPath}
@@ -1695,22 +1766,22 @@ export function TokenDetails({
             </Field>
           </div>
 
-          {isCreateMode && !editPath.includes(".") && createSuggestions.length > 0 ? (
+          {isCreateMode && !createPathParts.group && createSuggestions.length > 0 ? (
             <div className="tm-token-details__suggestions">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Try
+                Groups
               </span>
               {createSuggestions.map((prefix) => (
                 <button
                   key={prefix}
                   type="button"
                   onClick={() => {
-                    setEditPath(prefix);
+                    updateCreatePath(prefix.replace(/\.$/, ""), createPathParts.name);
                     setDisplayError(null);
                   }}
                   className="tm-token-details__suggestion-button"
                 >
-                  {prefix}
+                  {prefix.replace(/\.$/, "")}
                 </button>
               ))}
             </div>

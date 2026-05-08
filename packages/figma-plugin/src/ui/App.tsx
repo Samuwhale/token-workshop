@@ -765,7 +765,7 @@ export function App() {
   const [tokenListSelection, setTokenListSelection] = useState<string[]>([]);
   const sidebarBoundary = useResizableBoundary({
     storageKey: STORAGE_KEYS.SIDEBAR_WIDTH,
-    defaultSize: 136,
+    defaultSize: 148,
     min: 40,
     max: 240,
     axis: "x",

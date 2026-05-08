@@ -461,7 +461,14 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   }
                   if (e.key === "Escape") closeAddModeMenu();
                 }}
-                onBlur={() => {
+                onBlur={(event) => {
+                  if (
+                    addModeMenuContainerRef.current?.contains(
+                      event.relatedTarget as Node | null,
+                    )
+                  ) {
+                    return;
+                  }
                   if (!newModeName.trim()) closeAddModeMenu();
                 }}
                 autoFocus

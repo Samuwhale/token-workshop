@@ -380,14 +380,14 @@ export function TokenDetailsModeRow({
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  No token matches this alias yet.
+                  No token matches this reference yet. Create the target token first, or choose another token.
                 </p>
               ) : showAliasAmbiguousState ? (
                 <p
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  This token name exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Choose the token in this collection, or use a name that belongs to one collection.
+                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. References need one unique target path.
                 </p>
               ) : null}
             </div>
