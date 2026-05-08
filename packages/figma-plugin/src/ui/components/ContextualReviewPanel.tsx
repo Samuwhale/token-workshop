@@ -114,7 +114,7 @@ export function VariableDiffReviewPanel({
     >
       <div className="space-y-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
         <p>
-          {pending.flat.length} token{pending.flat.length !== 1 ? "s" : ""}
+          {pending.flat.length} variable write{pending.flat.length !== 1 ? "s" : ""}
         </p>
         <div className="overflow-hidden rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           {pending.added > 0 && (

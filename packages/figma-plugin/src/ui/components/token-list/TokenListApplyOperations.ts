@@ -2,6 +2,8 @@ import { useCallback, type MutableRefObject } from "react";
 import {
   isReference,
   parseReference,
+  readTokenModeValuesForCollection,
+  type TokenCollection,
   type TokenReference,
   type TokenValue,
 } from "@token-workshop/core";
@@ -19,7 +21,8 @@ import {
   resolveTokenValue,
 } from "../../../shared/resolveAlias";
 import {
-  selectVariableCollectionTokens,
+  buildStandardVariablePublishTargets,
+  selectVariableModeTokens,
   summarizeVariableDiff,
 } from "../../shared/syncWorkflow";
 import { buildStylePublishTokens } from "../../shared/stylePublish";
@@ -32,7 +35,15 @@ import {
 
 type VariablePreviewToken = Pick<
   VariableDiffPendingState["flat"][number],
-  "path" | "$type" | "$value" | "collectionId" | "aliasTargetCollectionId" | "$extensions" | "$scopes"
+  | "path"
+  | "$type"
+  | "$value"
+  | "collectionId"
+  | "aliasTargetCollectionId"
+  | "figmaCollection"
+  | "figmaMode"
+  | "$extensions"
+  | "$scopes"
 >;
 
 type RawVariablePreviewToken = Omit<VariablePreviewToken, "$value"> & {
@@ -154,11 +165,118 @@ function resolveFlat(
   });
 }
 
+function buildVariablePreviewTokens({
+  rawTokens,
+  collection,
+  collectionId,
+  collectionMap,
+  modeMap,
+  allTokensFlat,
+  pathToCollectionId,
+}: {
+  rawTokens: RawVariablePreviewToken[];
+  collection: TokenCollection | undefined;
+  collectionId: string;
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToCollectionId: Record<string, string>;
+}): VariablePreviewToken[] {
+  const targets = buildStandardVariablePublishTargets({
+    currentCollectionId: collectionId,
+    collection,
+    collectionMap,
+    modeMap,
+  });
+  const rawEntries: RawVariablePreviewToken[] = [];
+
+  for (const token of rawTokens) {
+    const modeValues = collection
+      ? readTokenModeValuesForCollection(token, collection)
+      : {};
+
+    for (const target of targets) {
+      const targetModeValue = target.sourceModeName
+        ? modeValues[target.sourceModeName]
+        : undefined;
+      const modeValue =
+        targetModeValue !== undefined
+          ? targetModeValue
+          : token.$value;
+
+      if (modeValue === undefined) {
+        continue;
+      }
+
+      const extensions = token.$scopes?.length
+        ? { ...token.$extensions, "com.figma.scopes": token.$scopes }
+        : token.$extensions;
+
+      rawEntries.push({
+        ...token,
+        $value: modeValue as TokenValue | TokenReference,
+        collectionId,
+        figmaCollection: target.collectionName,
+        figmaMode: target.modeName,
+        $extensions: extensions,
+      });
+    }
+  }
+
+  return resolveFlat(rawEntries, allTokensFlat, pathToCollectionId);
+}
+
+function summarizeVariablePreviewDiff({
+  flat,
+  figmaCollections,
+  collection,
+  collectionId,
+  collectionMap,
+  modeMap,
+}: {
+  flat: VariablePreviewToken[];
+  figmaCollections: VariablesReadMessage["collections"];
+  collection: TokenCollection | undefined;
+  collectionId: string;
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+}): Pick<VariableDiffPendingState, "added" | "modified" | "unchanged"> {
+  const targets = buildStandardVariablePublishTargets({
+    currentCollectionId: collectionId,
+    collection,
+    collectionMap,
+    modeMap,
+  });
+  const totals = { added: 0, modified: 0, unchanged: 0 };
+
+  for (const target of targets) {
+    const localTokens = flat.filter(
+      (token) =>
+        token.figmaCollection === target.collectionName &&
+        token.figmaMode === target.modeName,
+    );
+    if (localTokens.length === 0) {
+      continue;
+    }
+    const figmaTokens = selectVariableModeTokens(
+      figmaCollections,
+      target.collectionName,
+      target.modeName,
+    );
+    const summary = summarizeVariableDiff(localTokens, figmaTokens);
+    totals.added += summary.added;
+    totals.modified += summary.modified;
+    totals.unchanged += summary.unchanged;
+  }
+
+  return totals;
+}
+
 interface ApplyOperationsConfig {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   collectionId: string;
-  collections: Array<{ id: string; modes: Array<{ name: string }> }>;
+  collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
@@ -295,11 +413,16 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
   const handleApplyVariables = useCallback(async () => {
     closeLongLivedReviewSurfaces();
     const pathToCollectionId = buildPathCollectionIndex(perCollectionFlat, collectionId);
-    const flat = resolveFlat(
-      flattenTokens(tokens, collectionId),
+    const collection = collections.find((entry) => entry.id === collectionId);
+    const flat = buildVariablePreviewTokens({
+      rawTokens: flattenTokens(tokens, collectionId),
+      collection,
+      collectionId,
+      collectionMap,
+      modeMap,
       allTokensFlat,
       pathToCollectionId,
-    ).map((token) => ({ ...token, collectionId }));
+    });
     setVarDiffLoading(true);
     try {
       const figmaCollections = await new Promise<VariablesReadMessage["collections"]>(
@@ -326,13 +449,14 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
           }
         },
       );
-      const figmaTokens = selectVariableCollectionTokens(
+      const summary = summarizeVariablePreviewDiff({
+        flat,
         figmaCollections,
+        collection,
         collectionId,
         collectionMap,
         modeMap,
-      );
-      const summary = summarizeVariableDiff(flat, figmaTokens);
+      });
       setVarDiffPending({ ...summary, flat });
     } catch (err) {
       console.warn("[TokenList] Figma variable diff failed:", err);
@@ -353,6 +477,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     tokens,
     allTokensFlat,
     collectionId,
+    collections,
     perCollectionFlat,
     collectionMap,
     modeMap,

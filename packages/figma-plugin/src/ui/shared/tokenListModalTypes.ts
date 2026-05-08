@@ -14,6 +14,8 @@ export interface VariableDiffFlatEntry {
   $value: TokenValue | TokenReference;
   collectionId?: string;
   aliasTargetCollectionId?: string;
+  figmaCollection?: string;
+  figmaMode?: string;
   $extensions?: Record<string, unknown>;
   $scopes?: string[];
 }

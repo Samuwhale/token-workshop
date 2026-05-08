@@ -224,7 +224,7 @@ interface ResolverResolveResponse {
 const STYLE_TYPES = new Set(['color', 'gradient', 'typography', 'shadow']);
 const DEFAULT_VARIABLE_COLLECTION_NAME = 'Token Workshop';
 
-interface StandardPublishTarget {
+export interface StandardVariablePublishTarget {
   key: string;
   sourceModeName?: string;
   collectionName: string;
@@ -400,7 +400,7 @@ function parseStandardModeRowId(rowId: string): { modeKey: string; path: string 
   };
 }
 
-function buildStandardPublishTargets({
+export function buildStandardVariablePublishTargets({
   currentCollectionId,
   collection,
   collectionMap,
@@ -410,7 +410,7 @@ function buildStandardPublishTargets({
   collection?: TokenCollection;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
-}): StandardPublishTarget[] {
+}): StandardVariablePublishTarget[] {
   const collectionName = collectionMap[currentCollectionId] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
   const modes = collection?.modes ?? [];
 
@@ -621,17 +621,6 @@ export function selectVariableModeTokens(
   });
 }
 
-export function selectVariableCollectionTokens(
-  collections: unknown[],
-  currentCollectionId: string,
-  collectionMap: Record<string, string>,
-  modeMap: Record<string, string>,
-): ReadVariableToken[] {
-  const desiredCollectionName = collectionMap[currentCollectionId] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
-  const desiredModeName = modeMap[currentCollectionId];
-  return selectVariableModeTokens(collections, desiredCollectionName, desiredModeName);
-}
-
 function buildStandardVariablePublishFigmaMap({
   figmaCollections,
   currentCollectionId,
@@ -646,11 +635,11 @@ function buildStandardVariablePublishFigmaMap({
   sourceCollections?: TokenCollection[];
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
-  targetByKey?: Map<string, StandardPublishTarget>;
+  targetByKey?: Map<string, StandardVariablePublishTarget>;
   pathByKey?: Map<string, string>;
 }): Map<string, PublishSyncEntry> {
   const collection = sourceCollections?.find((entry) => entry.id === currentCollectionId);
-  const targets = buildStandardPublishTargets({
+  const targets = buildStandardVariablePublishTargets({
     currentCollectionId,
     collection,
     collectionMap,
@@ -690,11 +679,11 @@ function buildStandardVariablePublishLocalMap({
   sourceCollections?: TokenCollection[];
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
-  targetByKey: Map<string, StandardPublishTarget>;
+  targetByKey: Map<string, StandardVariablePublishTarget>;
   pathByKey: Map<string, string>;
 }): Map<string, PublishSyncEntry> {
   const collection = sourceCollections?.find((entry) => entry.id === currentCollectionId);
-  const targets = buildStandardPublishTargets({
+  const targets = buildStandardVariablePublishTargets({
     currentCollectionId,
     collection,
     collectionMap,
@@ -709,9 +698,12 @@ function buildStandardVariablePublishLocalMap({
 
     for (const target of targets) {
       const rowKey = createStandardModeRowKey(target.key, path);
+      const targetModeValue = target.sourceModeName
+        ? modeValues[target.sourceModeName]
+        : undefined;
       const sourceValue =
-        target.sourceModeName && Object.prototype.hasOwnProperty.call(modeValues, target.sourceModeName)
-          ? modeValues[target.sourceModeName]
+        targetModeValue !== undefined
+          ? targetModeValue
           : token.$value;
       keyedTokens.set(rowKey, {
         ...token,
@@ -864,7 +856,7 @@ export async function loadVariablePublishSnapshot({
     { signal: createFetchSignal(signal) },
   );
   const localTokens = flattenTokenGroup((data.tokens ?? {}) as DTCGGroup);
-  const targetByKey = new Map<string, StandardPublishTarget>();
+  const targetByKey = new Map<string, StandardVariablePublishTarget>();
   const pathByKey = new Map<string, string>();
   const sourceCollection = collections?.find((collection) => collection.id === currentCollectionId);
   const multiModePublish = (sourceCollection?.modes.length ?? 0) > 1;

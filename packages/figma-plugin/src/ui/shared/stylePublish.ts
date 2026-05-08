@@ -55,9 +55,10 @@ function buildCollectionModeRawFlatMap(
 
   for (const [path, entry] of Object.entries(collectionFlat)) {
     const modeValues = readTokenModeValuesForCollection(entry, collection);
+    const modeValue = modeValues[modeName];
     nextFlat[path] = {
       ...entry,
-      $value: (modeName in modeValues ? modeValues[modeName] : entry.$value) as TokenMapEntry['$value'],
+      $value: (modeValue !== undefined ? modeValue : entry.$value) as TokenMapEntry['$value'],
     };
   }
 
