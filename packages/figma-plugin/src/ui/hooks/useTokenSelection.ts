@@ -25,9 +25,9 @@ export function useTokenSelection({
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const lastSelectedPathRef = useRef<string | null>(null);
 
-  const selectMode = selectedPaths.size > 0;
+  const selectionActive = selectedPaths.size > 0;
 
-  // Notify parent when multi-select set changes
+  // Notify parent when the token selection set changes.
   useEffect(() => {
     onSelectionChange?.([...selectedPaths]);
   }, [selectedPaths, onSelectionChange]);
@@ -94,15 +94,22 @@ export function useTokenSelection({
     if (!selectionEnabled) {
       return;
     }
-    const allSelected = [...displayedLeafPaths].every(p => selectedPaths.has(p));
-    if (allSelected) {
-      setSelectedPaths(new Set());
-    } else {
-      setSelectedPaths(new Set(displayedLeafPaths));
+    if (displayedLeafPaths.size === 0) {
+      return;
     }
-  }, [displayedLeafPaths, selectedPaths, selectionEnabled]);
+    setSelectedPaths(prev => {
+      const next = new Set(prev);
+      const allDisplayedSelected = [...displayedLeafPaths].every(p => next.has(p));
+      if (allDisplayedSelected) {
+        displayedLeafPaths.forEach(p => next.delete(p));
+      } else {
+        displayedLeafPaths.forEach(p => next.add(p));
+      }
+      return next;
+    });
+  }, [displayedLeafPaths, selectionEnabled]);
 
-  const handleSelectGroupChildren = useCallback((groupNode: TokenNode) => {
+  const handleToggleGroupChildren = useCallback((groupNode: TokenNode) => {
     if (!selectionEnabled) {
       return;
     }
@@ -110,7 +117,12 @@ export function useTokenSelection({
     if (leafPaths.length === 0) return;
     setSelectedPaths(prev => {
       const next = new Set(prev);
-      leafPaths.forEach(p => next.add(p));
+      const allSelected = leafPaths.every(p => next.has(p));
+      if (allSelected) {
+        leafPaths.forEach(p => next.delete(p));
+      } else {
+        leafPaths.forEach(p => next.add(p));
+      }
       return next;
     });
   }, [selectionEnabled]);
@@ -122,7 +134,7 @@ export function useTokenSelection({
   }, []);
 
   return {
-    selectMode,
+    selectionActive,
     selectedPaths,
     setSelectedPaths,
     showBatchEditor,
@@ -132,7 +144,7 @@ export function useTokenSelection({
     selectedLeafNodes,
     handleTokenSelect,
     handleSelectAll,
-    handleSelectGroupChildren,
+    handleToggleGroupChildren,
     clearSelection,
   };
 }

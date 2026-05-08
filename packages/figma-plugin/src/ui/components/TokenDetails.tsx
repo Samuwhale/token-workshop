@@ -84,7 +84,10 @@ import {
 } from "../primitives";
 import { Collapsible } from "./Collapsible";
 import type { TokenEditorValue } from "../shared/tokenEditorTypes";
-import { formatCollectionDisplayNameList } from "../shared/libraryCollections";
+import {
+  formatCollectionDisplayNameList,
+  getCollectionDisplayName,
+} from "../shared/libraryCollections";
 interface TokenDetailsProps {
   tokenPath: string;
   currentCollectionId: string;
@@ -185,15 +188,15 @@ function formatNameList(names: string[]): string {
 }
 
 function getModeValueSectionDescription(params: {
-  collectionId: string;
+  collectionName: string;
   modeNames: string[];
 }): string {
-  const { collectionId, modeNames } = params;
+  const { collectionName, modeNames } = params;
   if (modeNames.length <= 1) {
-    return `Editing the ${modeNames[0] ?? "Default"} value in ${collectionId}. Add modes from collection details when this collection needs more contexts.`;
+    return `Editing the ${modeNames[0] ?? "Default"} value in ${collectionName}. Add modes from collection details when this collection needs more contexts.`;
   }
 
-  return `Editing ${modeNames.length} mode values in ${collectionId}: ${formatNameList(modeNames)}. Each row is an equal Figma mode value.`;
+  return `Editing ${modeNames.length} mode values in ${collectionName}: ${formatNameList(modeNames)}. Each row is an equal Figma mode value.`;
 }
 
 export function TokenDetails({
@@ -249,6 +252,10 @@ export function TokenDetails({
     ],
   );
   const showingExternalCollection = ownerCollectionId !== currentCollectionId;
+  const ownerCollectionName = useMemo(
+    () => getCollectionDisplayName(ownerCollectionId, collectionDisplayNames),
+    [collectionDisplayNames, ownerCollectionId],
+  );
   const canEditInPlace = true;
   const uiState = useTokenEditorUIState({
     tokenPath,
@@ -1192,7 +1199,7 @@ export function TokenDetails({
     footerNote || (isCreateMode && onSaveAndCreateAnother),
   );
   const createPathError = duplicatePath
-    ? `A token with this path already exists in ${ownerCollectionId}.`
+    ? `A token with this path already exists in ${ownerCollectionName}.`
     : null;
 
   const handleCopyPath = () => {
@@ -1211,9 +1218,9 @@ export function TokenDetails({
           ? "New"
           : "Saved";
   const contextLabel = isCreateMode
-    ? `Create in ${ownerCollectionId}`
+    ? `Create in ${ownerCollectionName}`
     : showingExternalCollection
-      ? `${ownerCollectionId} · opened from another collection`
+      ? `${ownerCollectionName} · opened from another collection`
       : null;
 
   const headerTitle = (
@@ -1550,7 +1557,7 @@ export function TokenDetails({
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Mode value";
   const valueSectionDescription = getModeValueSectionDescription({
-    collectionId: ownerCollectionId,
+    collectionName: ownerCollectionName,
     modeNames: modeValue.modes.map((mode) => mode.name),
   });
   const firstMode = modeValue.modes[0] ?? null;

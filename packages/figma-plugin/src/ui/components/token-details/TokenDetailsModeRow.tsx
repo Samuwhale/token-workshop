@@ -492,11 +492,19 @@ export function TokenDetailsModeRow({
               type="button"
               onClick={onCopyFromPrevious}
               className="tm-token-mode-row__secondary-action"
+              aria-label={
+                previousModeName
+                  ? `Use ${previousModeName} value for ${modeName}`
+                  : `Use previous mode value for ${modeName}`
+              }
+              title={
+                previousModeName
+                  ? `Use ${previousModeName} value`
+                  : "Use previous mode value"
+              }
             >
               <Copy size={12} strokeWidth={1.5} aria-hidden />
-              {previousModeName
-                ? `Use ${previousModeName} value`
-                : "Use previous mode value"}
+              Use previous
             </button>
           ) : null}
           {allowCopyToAll && onCopyToAll ? (
@@ -504,6 +512,8 @@ export function TokenDetailsModeRow({
               type="button"
               onClick={onCopyToAll}
               className="tm-token-mode-row__secondary-action"
+              aria-label={`Copy ${modeName} value to all modes`}
+              title={`Copy ${modeName} value to all modes`}
             >
               <Rows3 size={12} strokeWidth={1.5} aria-hidden />
               Copy to all modes

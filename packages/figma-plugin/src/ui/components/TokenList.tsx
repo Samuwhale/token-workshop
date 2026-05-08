@@ -272,6 +272,7 @@ export function TokenList({
   const virtualListRef = useRef<HTMLDivElement>(null);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
   const displayedLeafNodesRef = useRef<TokenNode[]>([]);
+  const selectedTokenNodesRef = useRef<TokenNode[]>([]);
   const copyTokensAsJsonRef = useRef<(nodes: TokenNode[]) => void>(() => {});
   const copyTokensAsPreferredRef = useRef<(nodes: TokenNode[]) => void>(
     () => {},
@@ -975,7 +976,7 @@ export function TokenList({
     onSelectionChange,
   });
   const {
-    selectMode,
+    selectionActive,
     selectedPaths,
     setSelectedPaths,
     showBatchEditor,
@@ -985,7 +986,7 @@ export function TokenList({
     selectedLeafNodes,
     handleTokenSelect,
     handleSelectAll,
-    handleSelectGroupChildren,
+    handleToggleGroupChildren,
     clearSelection: clearSelectionImpl,
   } = tokenSelection;
 
@@ -1026,6 +1027,21 @@ export function TokenList({
       .filter((x): x is { path: string; entry: TokenMapEntry } => x.entry != null),
     [selectedPaths, allTokensFlat],
   );
+  const selectedTokenNodes = useMemo<TokenNode[]>(
+    () => selectedEntries.map(({ path, entry }) => ({
+      path,
+      name: entry.$name ?? path.split(".").at(-1) ?? path,
+      $type: entry.$type,
+      $value: entry.$value,
+      ...(entry.$description ? { $description: entry.$description } : {}),
+      ...(entry.$extensions ? { $extensions: entry.$extensions } : {}),
+      ...(entry.$scopes ? { $scopes: entry.$scopes } : {}),
+      ...(entry.$lifecycle ? { $lifecycle: entry.$lifecycle } : {}),
+      isGroup: false,
+    })),
+    [selectedEntries],
+  );
+  selectedTokenNodesRef.current = selectedTokenNodes;
 
   const hasColors = useMemo(
     () => selectedEntries.some(x => x.entry.$type === 'color'),
@@ -1292,6 +1308,7 @@ export function TokenList({
     editingTokenPath,
     siblingOrderMap,
     displayedLeafNodesRef,
+    selectedTokenNodesRef,
     copyTokensAsJsonRef,
     copyTokensAsPreferredRef,
     copyTokensAsDtcgRefRef,
@@ -1425,7 +1442,7 @@ export function TokenList({
     );
   }, [batchOps, batchCopyToCollectionTarget]);
 
-  // handleTokenSelect, displayedLeafPaths, selectedLeafNodes, handleSelectAll, handleSelectGroupChildren
+  // handleTokenSelect, displayedLeafPaths, selectedLeafNodes, handleSelectAll, handleToggleGroupChildren
   // are managed by useTokenSelection (destructured above)
 
   const {
@@ -1721,7 +1738,7 @@ export function TokenList({
     collections,
   });
   const tokenTreeGroupState = useTokenTreeGroupState({
-    collectionId, groupBy, selectMode, expandedPaths, highlightedToken,
+    collectionId, groupBy, selectionActive, selectedPaths, expandedPaths, highlightedToken,
     searchHighlight, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     collectionCoverage,
     effectiveRovingPath,
@@ -1733,13 +1750,13 @@ export function TokenList({
     handleRequestMoveGroup, handleRequestCopyGroup, handleDuplicateGroup,
     onPublishGroup, onSetGroupScopes: handleSetGroupScopes,
     handleZoomIntoGroup, handleDragOverGroup, handleDropOnGroup,
-    onNavigateToAlias, handleSelectGroupChildren,
+    onNavigateToAlias, handleToggleGroupSelection: handleToggleGroupChildren,
     setRovingFocusPath,
   });
 
   const tokenTreeLeafState = useTokenTreeLeafState({
     serverUrl, collectionId, collectionIds, groupBy, selectionCapabilities, duplicateCounts,
-    selectMode, highlightedToken, inspectMode, syncSnapshot,
+    selectionActive, highlightedToken, inspectMode, syncSnapshot,
     searchHighlight, selectedNodes, boundTokenPaths, dragOverReorder, selectedLeafNodes,
     showResolvedValues,
     starredPaths,
@@ -1830,7 +1847,7 @@ export function TokenList({
       {/* Toolbars — fixed above the scrollable token list */}
       <div className="flex-shrink-0">
         {/* Selection toolbar */}
-        {selectMode && (
+        {selectionActive && (
           <TokenSelectionToolbar
             selectedPaths={selectedPaths}
             displayedLeafPaths={displayedLeafPaths}
@@ -1848,16 +1865,13 @@ export function TokenList({
             onRequestBulkDelete={requestBulkDelete}
             onClearSelection={handleClearSelection}
             onCopyJson={() => {
-              const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
-              copyTokensAsJson(nodes);
+              copyTokensAsJson(selectedTokenNodes);
             }}
             onCopyCssVar={() => {
-              const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
-              copyTokensAsCssVar(nodes);
+              copyTokensAsCssVar(selectedTokenNodes);
             }}
             onCopyDtcgRef={() => {
-              const nodes = displayedLeafNodes.filter((n) => selectedPaths.has(n.path));
-              copyTokensAsDtcgRef(nodes);
+              copyTokensAsDtcgRef(selectedTokenNodes);
             }}
             onMoveToGroup={() => {
               setMoveToGroupTarget("");
@@ -1883,7 +1897,7 @@ export function TokenList({
         )}
 
         {/* Active batch action panel */}
-        {selectMode && activeBatchAction && selectedPaths.size > 0 && (
+        {selectionActive && activeBatchAction && selectedPaths.size > 0 && (
           <div ref={batchEditorPanelRef}>
             <BatchActionPanel
               action={activeBatchAction}
@@ -1902,7 +1916,7 @@ export function TokenList({
         )}
 
         {/* Toolbar — search is primary, while arrangement and filters stay secondary. */}
-        {!selectMode && (
+        {!selectionActive && (
           <TokenListToolbar
             onNavigateBack={onNavigateBack}
             navHistoryLength={navHistoryLength}
@@ -1933,7 +1947,6 @@ export function TokenList({
             onCreateToken={() => onCreateNew?.()}
             onCreateGenerator={onCreateGenerator}
             handleOpenNewGroupDialog={handleOpenNewGroupDialog}
-            onSelectTokens={() => { handleSelectAll(); setActiveBatchAction(null); }}
             onBulkEdit={handleOpenBulkWorkflowForVisibleTokens}
             onFindReplace={handleOpenFindReplaceReview}
             overflowMenuProps={tokens.length > 0 || collectionIds.length > 1 ? {
@@ -2074,6 +2087,8 @@ export function TokenList({
             tokens={tokens}
             displayedTokens={groupedDisplayedTokens}
             selectedPaths={selectedPaths}
+            displayedLeafPaths={displayedLeafPaths}
+            onSelectAll={handleSelectAll}
             sortOrder={sortOrder}
             connected={connected}
             siblingOrderMap={siblingOrderMap}

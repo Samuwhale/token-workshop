@@ -12,7 +12,12 @@ import {
   memo,
 } from "react";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
-import { countTokensInGroup, nodeParentPath, countLeaves } from "../tokenListUtils";
+import {
+  countTokensInGroup,
+  nodeParentPath,
+  countLeaves,
+  flattenLeafNodes,
+} from "../tokenListUtils";
 import { inferGroupTokenType, highlightMatch } from "../tokenListHelpers";
 import {
   useTokenTreeGroupActions,
@@ -55,7 +60,8 @@ export const TokenGroupNode = memo(
 
     const {
       groupBy,
-      selectMode,
+      selectionActive,
+      selectedPaths,
       expandedPaths,
       highlightedToken,
       previewedPath,
@@ -85,7 +91,7 @@ export const TokenGroupNode = memo(
       onZoomIntoGroup,
       onDragOverGroup,
       onDropOnGroup,
-      onSelectGroupChildren,
+      onToggleGroupSelection,
       onRovingFocus: onGroupRovingFocus,
     } = useTokenTreeGroupActions();
 
@@ -134,6 +140,19 @@ export const TokenGroupNode = memo(
     const isCategoryHeader = depth === 0 && !isSyntheticTypeGroup;
     const leafCount = countLeaves(node);
     const collectionCoverageSummary = collectionCoverage?.get(node.path) ?? null;
+    const groupLeafPaths = useMemo(
+      () => flattenLeafNodes(node.children ?? []).map((leaf) => leaf.path),
+      [node.children],
+    );
+    const groupSelectedCount = useMemo(
+      () => groupLeafPaths.filter((path) => selectedPaths.has(path)).length,
+      [groupLeafPaths, selectedPaths],
+    );
+    const hasSelectableTokens = groupLeafPaths.length > 0;
+    const groupAllSelected =
+      hasSelectableTokens && groupSelectedCount === groupLeafPaths.length;
+    const groupPartiallySelected =
+      groupSelectedCount > 0 && !groupAllSelected;
 
     // Aggregate descendant values per mode so collapsed groups preview what's
     // inside without the user having to expand.
@@ -324,7 +343,7 @@ export const TokenGroupNode = memo(
             if (
               e.key === "z" &&
               !renamingGroup &&
-              !selectMode &&
+              !selectionActive &&
               structuralActionsEnabled
             ) {
               e.preventDefault();
@@ -334,7 +353,7 @@ export const TokenGroupNode = memo(
             if (
               e.key === "n" &&
               !renamingGroup &&
-              !selectMode &&
+              !selectionActive &&
               structuralActionsEnabled
             ) {
               e.preventDefault();
@@ -344,7 +363,7 @@ export const TokenGroupNode = memo(
             if (
               e.key === "s" &&
               !renamingGroup &&
-              !selectMode &&
+              !selectionActive &&
               structuralActionsEnabled &&
               onSetGroupScopes
             ) {
@@ -355,7 +374,7 @@ export const TokenGroupNode = memo(
             if (
               e.key === "m" &&
               !renamingGroup &&
-              !selectMode &&
+              !selectionActive &&
               structuralActionsEnabled
             ) {
               e.preventDefault();
@@ -444,23 +463,42 @@ export const TokenGroupNode = memo(
                       {collectionCoverageSummary.totalMissing} missing
                     </span>
                   )}
-                {selectMode && onSelectGroupChildren ? (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onSelectGroupChildren(node);
-                    }}
-                    className="inline-flex min-h-7 shrink-0 items-center rounded px-2 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
-                    title={`Select tokens in ${node.name}`}
-                    aria-label={`Select tokens in ${node.name}`}
+                {hasSelectableTokens && onToggleGroupSelection ? (
+                  <label
+                    className="tm-token-tree-row__group-selection inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-within:outline focus-within:outline-[1.5px] focus-within:outline-[var(--color-figma-accent)]"
+                    title={
+                      groupAllSelected
+                        ? `Clear selection in ${node.name}`
+                        : `Select tokens in ${node.name}`
+                    }
+                    aria-label={
+                      groupAllSelected
+                        ? `Clear selection in ${node.name}`
+                        : `Select tokens in ${node.name}`
+                    }
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    Select
-                  </button>
+                    <input
+                      type="checkbox"
+                      checked={groupAllSelected}
+                      ref={(element) => {
+                        if (element) {
+                          element.indeterminate = groupPartiallySelected;
+                        }
+                      }}
+                      aria-label={
+                        groupAllSelected
+                          ? `Clear selection in ${node.name}`
+                          : `Select tokens in ${node.name}`
+                      }
+                      onChange={() => onToggleGroupSelection(node)}
+                      className="tm-token-selection-checkbox"
+                    />
+                  </label>
                 ) : null}
                 <div
                   className={`tm-token-tree-row__group-actions ${
-                    selectMode || !structuralActionsEnabled
+                    selectionActive || !structuralActionsEnabled
                       ? "hidden"
                       : ""
                   }`}
@@ -563,16 +601,18 @@ export const TokenGroupNode = memo(
                     <span className={MENU_SHORTCUT_CLASS}>N</span>
                   </button>
                 )}
-                {onSelectGroupChildren && (
+                {hasSelectableTokens && onToggleGroupSelection && (
                   <button
                     role="menuitem"
                     tabIndex={-1}
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { closeGroupMenus(); onSelectGroupChildren(node); }}
+                    onClick={() => { closeGroupMenus(); onToggleGroupSelection(node); }}
                     className={MENU_ITEM_CLASS}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-                    <span className="flex-1">Select all tokens</span>
+                    <span className="flex-1">
+                      {groupAllSelected ? "Clear token selection" : "Select all tokens"}
+                    </span>
                   </button>
                 )}
                 {onSetGroupScopes && (

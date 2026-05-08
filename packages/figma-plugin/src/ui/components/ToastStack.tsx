@@ -156,7 +156,7 @@ function MessageRow({
 }) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   // Action toasts persist until explicitly dismissed or clicked
-  const timeout = toast.action
+  const timeout = toast.action || toast.secondaryAction
     ? null
     : toast.variant === "error"
       ? 8000

@@ -14,6 +14,7 @@ interface KeyboardHandlerConfig {
   editingTokenPath?: string | null;
   siblingOrderMap: Map<string, string[]>;
   displayedLeafNodesRef: MutableRefObject<TokenNode[]>;
+  selectedTokenNodesRef: MutableRefObject<TokenNode[]>;
   copyTokensAsJsonRef: MutableRefObject<(nodes: TokenNode[]) => void>;
   copyTokensAsPreferredRef: MutableRefObject<(nodes: TokenNode[]) => void>;
   copyTokensAsDtcgRefRef: MutableRefObject<(nodes: TokenNode[]) => void>;
@@ -56,6 +57,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
     editingTokenPath,
     siblingOrderMap,
     displayedLeafNodesRef,
+    selectedTokenNodesRef,
     copyTokensAsJsonRef,
     copyTokensAsPreferredRef,
     copyTokensAsDtcgRefRef,
@@ -118,10 +120,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       if (matchesShortcut(e, "TOKEN_COPY")) {
         if (hasSelection) {
           e.preventDefault();
-          const nodes = displayedLeafNodesRef.current.filter((n) =>
-            selectedPaths.has(n.path),
-          );
-          copyTokensAsJsonRef.current(nodes);
+          copyTokensAsJsonRef.current(selectedTokenNodesRef.current);
           return;
         }
         // Single focused token row — copy that token
@@ -145,10 +144,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       if (matchesShortcut(e, "TOKEN_COPY_CSS_VAR")) {
         if (hasSelection) {
           e.preventDefault();
-          const nodes = displayedLeafNodesRef.current.filter((n) =>
-            selectedPaths.has(n.path),
-          );
-          copyTokensAsPreferredRef.current(nodes);
+          copyTokensAsPreferredRef.current(selectedTokenNodesRef.current);
           return;
         }
         if (!isTyping) {
@@ -176,10 +172,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       ) {
         if (hasSelection) {
           e.preventDefault();
-          const nodes = displayedLeafNodesRef.current.filter((n) =>
-            selectedPaths.has(n.path),
-          );
-          copyTokensAsDtcgRefRef.current(nodes);
+          copyTokensAsDtcgRefRef.current(selectedTokenNodesRef.current);
           return;
         }
         if (!isTyping) {
@@ -266,8 +259,8 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
         return;
       }
 
-      // m: clear selection when tokens are selected
-      if (matchesShortcut(e, "TOKEN_MULTI_SELECT")) {
+      // m: clear token selection when tokens are selected
+      if (matchesShortcut(e, "TOKEN_CLEAR_SELECTION")) {
         if (hasSelection) {
           e.preventDefault();
           clearSelection();
@@ -518,6 +511,7 @@ export function useTokenListKeyboardHandler(config: KeyboardHandlerConfig) {
       copyTokensAsJsonRef,
       copyTokensAsPreferredRef,
       copyTokensAsDtcgRefRef,
+      selectedTokenNodesRef,
       virtualListRef,
       setZoomRootPath,
     ],

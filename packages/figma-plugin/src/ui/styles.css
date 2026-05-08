@@ -1268,11 +1268,9 @@ button.tm-status-row:not(:disabled):hover {
   gap: 4px;
 }
 
-.tm-segmented-control {
-  container-type: inline-size;
-}
-
 .tm-segmented-control--adaptive {
+  container-type: inline-size;
+  inline-size: 100%;
   overflow-x: clip;
 }
 
@@ -1879,7 +1877,7 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
-@container (max-width: 560px) {
+@container (max-width: 640px) {
   .tm-token-toolbar .tm-responsive-toolbar__leading {
     flex-wrap: wrap;
     gap: 4px;
@@ -1893,15 +1891,22 @@ button.tm-status-row:not(:disabled):hover {
   .tm-token-toolbar .tm-responsive-toolbar__search {
     order: 2;
     min-inline-size: 0;
-    flex: 1 1 220px;
+    flex: 1 1 100%;
   }
 
   .tm-token-toolbar__search-control {
+    flex-wrap: wrap;
     align-items: stretch;
   }
 
+  .tm-token-toolbar__search-control [role="radiogroup"] {
+    inline-size: 100%;
+  }
+
   .tm-token-toolbar .tm-responsive-toolbar__actions {
+    flex-basis: 100%;
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
 
@@ -2188,86 +2193,34 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-value-cell__empty-action {
-  position: relative;
   display: flex;
   min-inline-size: 0;
   align-items: center;
   min-block-size: 22px;
 }
 
-.tm-value-cell__empty-placeholder {
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  color: var(--color-figma-text-secondary);
-  transition:
-    opacity var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard);
-}
-
 .tm-value-cell__create-button {
-  position: absolute;
-  inset-block-start: 50%;
-  inset-inline-start: 0;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-block-size: 22px;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-muted);
   border-radius: var(--radius-sm);
   background: var(--surface-group-quiet);
   padding: 0 8px;
   font-size: var(--font-size-xs);
   font-weight: 500;
-  color: var(--color-figma-text-secondary);
+  color: var(--color-figma-text-accent);
   transition:
-    opacity var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
 }
 
-.tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.group:hover .tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button,
-.group:focus-within .tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button,
-.tm-value-cell__empty-action:focus-within .tm-value-cell__create-button {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.group:hover .tm-value-cell__wrapper--empty-actionable .tm-value-cell__empty-placeholder,
-.group:focus-within .tm-value-cell__wrapper--empty-actionable .tm-value-cell__empty-placeholder,
-.tm-value-cell__empty-action:focus-within .tm-value-cell__empty-placeholder {
-  opacity: 0;
-}
-
-@media (pointer: coarse) {
-  .tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button {
-    position: static;
-    transform: none;
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .tm-value-cell__wrapper--empty-actionable .tm-value-cell__empty-placeholder {
-    display: none;
-  }
-}
-
 @container (max-width: 420px) {
-  .tm-value-cell__wrapper--empty-actionable .tm-value-cell__create-button {
-    position: static;
-    transform: none;
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .tm-value-cell__wrapper--empty-actionable .tm-value-cell__empty-placeholder {
-    display: none;
+  .tm-value-cell__create-button {
+    inline-size: 100%;
+    justify-content: flex-start;
   }
 }
 
@@ -2343,6 +2296,19 @@ button.tm-status-row:not(:disabled):hover {
     opacity var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-token-selection-checkbox {
+  block-size: 14px;
+  inline-size: 14px;
+  margin: 0;
+  accent-color: var(--color-figma-accent);
+  cursor: pointer;
+}
+
+.tm-token-selection-checkbox:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .tm-token-tree-row__title-line {
@@ -3274,6 +3240,14 @@ select.tm-generator-field {
   flex: 0 1 auto;
   justify-content: center;
   overflow-x: auto;
+}
+
+.tm-generator-header__tabs .tm-segmented-control {
+  min-inline-size: 148px;
+}
+
+.tm-generator-header__tabs .tm-segmented-control__button {
+  min-inline-size: 70px;
 }
 
 .tm-generator-header__actions {
@@ -4342,6 +4316,15 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-token-mode-row__body {
     align-items: start;
   }
+
+  .tm-token-mode-row__secondary-actions {
+    max-block-size: none;
+    overflow: visible;
+    opacity: 1;
+    padding-left: 2px;
+    pointer-events: auto;
+    gap: 6px;
+  }
 }
 
 @container authoring-surface (max-width: 420px) {
@@ -4382,18 +4365,6 @@ button.tm-token-details__text-button:disabled:hover {
 @media (pointer: coarse) {
   .tm-token-mode-row__action-button {
     min-block-size: 28px;
-  }
-
-  .tm-token-mode-row__secondary-actions {
-    max-block-size: none;
-    overflow: visible;
-    opacity: 1;
-    padding-left: 2px;
-    pointer-events: auto;
-  }
-
-  .tm-token-mode-row__secondary-actions {
-    gap: 6px;
   }
 }
 

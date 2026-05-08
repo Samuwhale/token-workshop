@@ -7,14 +7,18 @@ export const StringEditor = memo(function StringEditor({
   onChange,
   autoFocus,
 }: BasicValueEditorProps<string>) {
+  const stringValue =
+    typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+  const rows = stringValue.includes('\n') || stringValue.length > 48 ? 3 : 2;
+
   return (
-    <input
-      type="text"
-      value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
+    <textarea
+      value={stringValue}
       onChange={e => onChange(e.target.value)}
       placeholder="Enter value"
+      rows={rows}
       autoFocus={autoFocus}
-      className={AUTHORING.input}
+      className={`${AUTHORING.input} min-h-[52px] resize-y py-1.5 leading-[var(--leading-body)]`}
     />
   );
 });

@@ -148,7 +148,7 @@ export interface TokenListActions {
   onOpenTokenIssues?: (path: string, collectionId: string) => void;
   /** Called whenever the filtered/visible leaf node list changes — used by parent to track navigation targets */
   onDisplayedLeafNodesChange?: (nodes: TokenNode[]) => void;
-  /** Called whenever the multi-selection changes — exposes selection to parent (e.g. command palette bulk-delete) */
+  /** Called whenever token selection changes — exposes selection to parent (e.g. command palette bulk-delete) */
   onSelectionChange?: (paths: string[]) => void;
   /** Open the unified compare view with the given token paths pre-loaded (navigates away from Tokens tab) */
   onOpenCompare?: (paths: Set<string>) => void;
@@ -309,7 +309,8 @@ export interface TokenTreeSharedDataContextType {
 export interface TokenTreeGroupStateContextType {
   collectionId: string;
   groupBy: TokenGroupBy;
-  selectMode: boolean;
+  selectionActive: boolean;
+  selectedPaths: Set<string>;
   expandedPaths: Set<string>;
   highlightedToken: string | null;
   /** Path currently being previewed in the side panel / split preview */
@@ -346,7 +347,7 @@ export interface TokenTreeGroupActionsContextType {
   onZoomIntoGroup?: (groupPath: string) => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
-  onSelectGroupChildren?: (groupNode: TokenNode) => void;
+  onToggleGroupSelection?: (groupNode: TokenNode) => void;
   /** Called when a row receives focus — updates the roving tabindex position */
   onRovingFocus: (path: string) => void;
 }
@@ -358,7 +359,7 @@ export interface TokenTreeLeafStateContextType {
   groupBy: TokenGroupBy;
   selectionCapabilities: NodeCapabilities | null;
   duplicateCounts: Map<string, number>;
-  selectMode: boolean;
+  selectionActive: boolean;
   highlightedToken: string | null;
   /** Path currently being previewed in the side panel / split preview */
   previewedPath: string | null;

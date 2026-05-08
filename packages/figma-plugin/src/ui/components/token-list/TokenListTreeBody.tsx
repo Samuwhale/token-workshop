@@ -147,6 +147,8 @@ interface TokenListTreeBodyProps {
   tokens: TokenNode[];
   displayedTokens: TokenNode[];
   selectedPaths: Set<string>;
+  displayedLeafPaths: Set<string>;
+  onSelectAll: () => void;
   sortOrder: string;
   connected: boolean;
   siblingOrderMap: Map<string, string[]>;
@@ -168,6 +170,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     tokens,
     displayedTokens,
     selectedPaths,
+    displayedLeafPaths,
+    onSelectAll,
     sortOrder,
     connected,
     siblingOrderMap,
@@ -322,6 +326,15 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     tableMinWidth && viewMode === "tree" && displayedTokens.length > 0
       ? { minWidth: `${tableMinWidth}px` }
       : undefined;
+  const visibleSelectedCount = useMemo(
+    () => [...displayedLeafPaths].filter((path) => selectedPaths.has(path)).length,
+    [displayedLeafPaths, selectedPaths],
+  );
+  const allDisplayedSelected =
+    displayedLeafPaths.size > 0 &&
+    visibleSelectedCount === displayedLeafPaths.size;
+  const partiallyDisplayedSelected =
+    visibleSelectedCount > 0 && !allDisplayedSelected;
   const crossCollectionSections = useMemo(() => {
     if (!crossCollectionResults) {
       return [];
@@ -397,6 +410,23 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       style={{ display: "grid", gridTemplateColumns: gridTemplate }}
     >
       <div className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
+        <input
+          type="checkbox"
+          checked={allDisplayedSelected}
+          disabled={displayedLeafPaths.size === 0}
+          ref={(element) => {
+            if (element) {
+              element.indeterminate = partiallyDisplayedSelected;
+            }
+          }}
+          onChange={onSelectAll}
+          aria-label={
+            allDisplayedSelected
+              ? "Clear visible token selection"
+              : "Select all visible tokens"
+          }
+          className="tm-token-selection-checkbox shrink-0"
+        />
         <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
           Token
         </span>
@@ -432,24 +462,28 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           variant="ghost"
           size="sm"
           className="tm-token-table__add-mode h-full rounded-none px-2 text-[color:var(--color-figma-text-secondary)]"
-          title={`Add mode to ${multiModeData.collection.id}`}
-          aria-label={`Add mode to ${multiModeData.collection.id}`}
-          aria-haspopup="menu"
+          title="Add mode"
+          aria-label="Add mode"
+          aria-controls="token-table-add-mode-dialog"
+          aria-haspopup="dialog"
           aria-expanded={addModeMenuOpen}
         >
           <Plus size={12} strokeWidth={2} aria-hidden />
         </Button>
         {addModeMenuOpen && (
           <div
+            id="token-table-add-mode-dialog"
             className="absolute right-0 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
             onMouseDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Add mode"
           >
             <div className="flex flex-col gap-2 px-2 py-2">
               <label
                 htmlFor="token-table-new-mode-name"
                 className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
               >
-                Add mode to collection
+                Add mode
               </label>
               <TextInput
                 id="token-table-new-mode-name"
@@ -508,8 +542,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   ) : null}
                   <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                     {newModeSourceName === EMPTY_MODE_SOURCE
-                      ? `Existing tokens in ${multiModeData.collection.id} will show this mode as needing values.`
-                      : `Existing tokens in ${multiModeData.collection.id} will copy ${newModeSourceName} values as editable starting points.`}
+                      ? "Existing tokens in this collection will show this mode as needing values."
+                      : `Existing tokens in this collection will copy ${newModeSourceName} values as editable starting points.`}
                   </p>
                 </>
               )}

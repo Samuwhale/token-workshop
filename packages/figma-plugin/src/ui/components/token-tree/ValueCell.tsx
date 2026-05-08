@@ -117,7 +117,7 @@ export function ValueCell({
   const emptyUneditableTint = !value && !canAddValue
     ? "bg-[var(--color-figma-warning)]/5"
     : "";
-  const wrapperClass = `tm-value-cell__wrapper flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5 ${canAddValue ? "tm-value-cell__wrapper--empty-actionable" : ""} ${brokenAliasTint} ${emptyUneditableTint}`;
+  const wrapperClass = `tm-value-cell__wrapper flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5 ${brokenAliasTint} ${emptyUneditableTint}`;
 
   const derivationMarker = isDerivation ? (
     <span
@@ -220,17 +220,12 @@ export function ValueCell({
       {!value ? (
         canAddValue ? (
           <div className="tm-value-cell__empty-action">
-            <span
-              className="tm-value-cell__empty-placeholder"
-              aria-hidden="true"
-            >
-              Add
-            </span>
             <button
               type="button"
               className="tm-value-cell__create-button tm-value-cell__interactive-control"
               onClick={handleAddValue}
               aria-label={`Add ${optionName} value`}
+              title={`Add ${optionName} value`}
             >
               Add
             </button>

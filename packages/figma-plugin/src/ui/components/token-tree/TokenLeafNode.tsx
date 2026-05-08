@@ -105,7 +105,7 @@ export const TokenLeafNode = memo(
       collectionId,
       selectionCapabilities,
       groupBy,
-      selectMode,
+      selectionActive,
       duplicateCounts,
       highlightedToken,
       previewedPath,
@@ -289,10 +289,10 @@ export const TokenLeafNode = memo(
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
-    const selectionControlVisibilityClass = selectMode || isSelected || isRowActive
+    const selectionControlVisibilityClass = isSelected
       ? "opacity-100"
-      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100";
-    const overflowActionVisibilityClass = selectMode
+      : "opacity-70 group-hover:opacity-100 group-focus-within:opacity-100";
+    const overflowActionVisibilityClass = selectionActive
       ? "hidden"
       : contextMenuPos || isRowActive
         ? "opacity-100"
@@ -677,20 +677,16 @@ export const TokenLeafNode = memo(
           return;
         }
 
-        // Space: toggle selection in select mode; open full editor otherwise
+        // Space: toggle selection for the focused token row.
         if (e.key === " ") {
           e.preventDefault();
-          if (selectMode) {
-            onToggleSelect(node.path);
-          } else {
-            onEdit(node.path, node.name);
-          }
+          onToggleSelect(node.path);
           return;
         }
 
         // Delete or Backspace: delete token (skip in select mode — container handles bulk delete)
         if (
-          !selectMode &&
+          !selectionActive &&
           (e.key === "Delete" || matchesShortcut(e, "TOKEN_DELETE"))
         ) {
           e.preventDefault();
@@ -726,7 +722,7 @@ export const TokenLeafNode = memo(
         onEdit,
         node.path,
         node.name,
-        selectMode,
+        selectionActive,
         onToggleSelect,
         onDelete,
         onDuplicateToken,
@@ -758,7 +754,7 @@ export const TokenLeafNode = memo(
           data-token-path={node.path}
           data-node-name={node.name}
           onFocus={() => onRovingFocus(node.path)}
-          draggable={structuralActionsEnabled && (!selectMode || isSelected)}
+          draggable={structuralActionsEnabled && (!selectionActive || isSelected)}
           onDragStart={(e) => {
             if (!structuralActionsEnabled) return;
             e.dataTransfer.effectAllowed = "move";
@@ -766,7 +762,7 @@ export const TokenLeafNode = memo(
             let dragPaths: string[];
             let dragNames: string[];
             if (
-              selectMode &&
+              selectionActive &&
               isSelected &&
               selectedLeafNodes &&
               selectedLeafNodes.length > 0
@@ -1129,7 +1125,7 @@ export const TokenLeafNode = memo(
                     <span className="flex-1">Copy path</span>
                     <span className={MENU_SHORTCUT_CLASS}>C</span>
                   </button>
-                  {!selectMode &&
+                  {!selectionActive &&
                     node.$type &&
                     (TOKEN_PROPERTY_MAP[node.$type]?.length > 0 ||
                       node.$type === "composition") &&

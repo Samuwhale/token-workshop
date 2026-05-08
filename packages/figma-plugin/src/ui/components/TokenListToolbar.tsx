@@ -103,7 +103,6 @@ export interface TokenListToolbarProps {
   onCreateToken?: () => void;
   onCreateGenerator?: (initialOutputPrefix?: string) => void;
   handleOpenNewGroupDialog: () => void;
-  onSelectTokens?: () => void;
   onBulkEdit?: () => void;
   onFindReplace?: () => void;
   overflowMenuProps: TokenListOverflowMenuProps | null;
@@ -139,7 +138,6 @@ export function TokenListToolbar({
   onCreateToken,
   onCreateGenerator,
   handleOpenNewGroupDialog,
-  onSelectTokens,
   onBulkEdit,
   onFindReplace,
   overflowMenuProps,
@@ -511,27 +509,6 @@ export function TokenListToolbar({
                   </div>
                 ) : null}
               </div>
-            ) : null}
-
-            {showTreeActions && onSelectTokens ? (
-              <Button
-                type="button"
-                onClick={onSelectTokens}
-                variant="ghost"
-                size="sm"
-                aria-label={selectedNodeCount > 0 ? `${selectedNodeCount} selected` : "Select tokens"}
-                title={selectedNodeCount > 0 ? `${selectedNodeCount} selected` : "Select tokens"}
-                className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
-                  selectedNodeCount > 0
-                    ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
-                    : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                }`}
-              >
-                <Target size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
-                  {selectedNodeCount > 0 ? `${selectedNodeCount} selected` : "Select"}
-                </span>
-              </Button>
             ) : null}
 
             {showCreate ? (

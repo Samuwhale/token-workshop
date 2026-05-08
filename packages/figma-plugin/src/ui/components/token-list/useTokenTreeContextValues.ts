@@ -47,7 +47,8 @@ export function useTokenTreeSharedData(deps: SharedDataDeps): TokenTreeSharedDat
 interface GroupStateDeps {
   collectionId: string;
   groupBy: "path" | "type";
-  selectMode: boolean;
+  selectionActive: boolean;
+  selectedPaths: Set<string>;
   expandedPaths: Set<string>;
   highlightedToken: string | null | undefined;
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
@@ -66,7 +67,8 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
     () => ({
       collectionId: deps.collectionId,
       groupBy: deps.groupBy,
-      selectMode: deps.selectMode,
+      selectionActive: deps.selectionActive,
+      selectedPaths: deps.selectedPaths,
       expandedPaths: deps.expandedPaths,
       highlightedToken: deps.highlightedToken ?? null,
       previewedPath: deps.highlightedToken ?? null,
@@ -78,7 +80,7 @@ export function useTokenTreeGroupState(deps: GroupStateDeps): TokenTreeGroupStat
       rovingFocusPath: deps.effectiveRovingPath,
     }),
     [
-      deps.collectionId, deps.groupBy, deps.selectMode, deps.expandedPaths,
+      deps.collectionId, deps.groupBy, deps.selectionActive, deps.selectedPaths, deps.expandedPaths,
       deps.highlightedToken, deps.searchHighlight, deps.dragOverGroup,
       deps.dragOverGroupIsInvalid, deps.dragSource,
       deps.collectionCoverage, deps.effectiveRovingPath,
@@ -102,7 +104,7 @@ interface GroupActionsDeps {
   handleDragOverGroup: (groupPath: string | null, invalid?: boolean) => void;
   handleDropOnGroup: (groupPath: string) => void;
   onNavigateToAlias?: (path: string, fromPath?: string) => void;
-  handleSelectGroupChildren?: (groupNode: TokenNode) => void;
+  handleToggleGroupSelection?: (groupNode: TokenNode) => void;
   setRovingFocusPath: (path: string) => void;
 }
 
@@ -123,7 +125,7 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       onZoomIntoGroup: deps.handleZoomIntoGroup,
       onDragOverGroup: deps.handleDragOverGroup,
       onDropOnGroup: deps.handleDropOnGroup,
-      onSelectGroupChildren: deps.handleSelectGroupChildren,
+      onToggleGroupSelection: deps.handleToggleGroupSelection,
       onRovingFocus: deps.setRovingFocusPath,
     }),
     [
@@ -141,7 +143,7 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       deps.handleZoomIntoGroup,
       deps.handleDragOverGroup,
       deps.handleDropOnGroup,
-      deps.handleSelectGroupChildren,
+      deps.handleToggleGroupSelection,
       deps.setRovingFocusPath,
     ],
   );
@@ -154,7 +156,7 @@ interface LeafStateDeps {
   groupBy: "path" | "type";
   selectionCapabilities: NodeCapabilities | null;
   duplicateCounts: Map<string, number>;
-  selectMode: boolean;
+  selectionActive: boolean;
   highlightedToken: string | null | undefined;
   inspectMode: boolean;
   syncSnapshot?: Record<string, string>;
@@ -182,7 +184,7 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       groupBy: deps.groupBy,
       selectionCapabilities: deps.selectionCapabilities,
       duplicateCounts: deps.duplicateCounts,
-      selectMode: deps.selectMode,
+      selectionActive: deps.selectionActive,
       highlightedToken: deps.highlightedToken ?? null,
       previewedPath: deps.highlightedToken ?? null,
       inspectMode: deps.inspectMode,
@@ -208,7 +210,7 @@ export function useTokenTreeLeafState(deps: LeafStateDeps): TokenTreeLeafStateCo
       deps.groupBy,
       deps.selectionCapabilities,
       deps.duplicateCounts,
-      deps.selectMode,
+      deps.selectionActive,
       deps.highlightedToken,
       deps.inspectMode,
       deps.syncSnapshot,
