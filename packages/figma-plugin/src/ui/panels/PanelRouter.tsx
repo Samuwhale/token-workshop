@@ -45,6 +45,7 @@ import { NotificationsPanel } from "../components/NotificationsPanel";
 import { KeyboardShortcutsPanel } from "../components/KeyboardShortcutsPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { CollectionTabs } from "../components/library/CollectionTabs";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import {
   useCollectionStateContext,
@@ -94,9 +95,9 @@ import {
 import type { GeneratorEditorMode } from "../components/generators/generatorEditorTypes";
 
 const DEFAULT_CREATE_TYPE = "color";
-const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
-const CONTEXTUAL_PANEL_MIN_WIDTH = 280;
-const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 560;
+const LIBRARY_MAIN_PANE_MIN_WIDTH = 280;
+const CONTEXTUAL_PANEL_MIN_WIDTH = 260;
+const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 480;
 const LazyGeneratorsPanel = lazy(() =>
   Promise.resolve({ default: GeneratorsPanel }),
 );
@@ -106,6 +107,52 @@ interface ContextualPanelLayout {
   isFullWidthOverlay: boolean;
   splitWidth: number;
   overlayWidth: number;
+}
+
+function ContextualOverlayShell({
+  children,
+  width,
+  fullWidth,
+  ariaLabel,
+  onDismiss,
+}: {
+  children: ReactNode;
+  width: number;
+  fullWidth: boolean;
+  ariaLabel: string;
+  onDismiss: () => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Close contextual panel"
+        className="absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
+        onClick={onDismiss}
+      />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
+        className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)] ${
+          fullWidth ? "inset-x-0 border-l-0" : "border-l border-[var(--color-figma-border)]"
+        }`}
+        style={{ width }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.stopPropagation();
+            onDismiss();
+          }
+        }}
+      >
+        {children}
+      </div>
+    </>
+  );
 }
 
 function resolveContextualPanelLayout({
@@ -293,6 +340,46 @@ export function PanelRouter({
   const activeEditorSurface = tokensContextualSurfaceState.editorSurface;
   const activeMaintenanceSurface =
     tokensContextualSurfaceState.maintenanceSurface;
+  const contextualOverlayLabel = showTokensCompare
+    ? "Token comparison"
+    : tokenDetails
+      ? tokenDetails.isCreate
+        ? "Create token"
+        : "Token details"
+      : inspectingCollection
+        ? "Collection details"
+        : activeMaintenanceSurface === "import"
+          ? "Import tokens"
+          : activeMaintenanceSurface === "color-analysis"
+            ? "Color analysis"
+            : "Contextual panel";
+  const dismissContextualPanel = useCallback(() => {
+    if (showTokensCompare) {
+      setShowTokensCompare(false);
+      return;
+    }
+    if (tokenDetails) {
+      setTokenDetails(null);
+      return;
+    }
+    if (inspectingCollection) {
+      setInspectingCollection(null);
+      return;
+    }
+    if (activeEditorSurface || activeMaintenanceSurface) {
+      switchContextualSurface({ surface: null });
+    }
+  }, [
+    activeEditorSurface,
+    activeMaintenanceSurface,
+    inspectingCollection,
+    setInspectingCollection,
+    setShowTokensCompare,
+    setTokenDetails,
+    showTokensCompare,
+    switchContextualSurface,
+    tokenDetails,
+  ]);
 
   // Read all four contexts — these cover ~40% of the data that panels need.
   const { serverUrl, connected, checking, updateServerUrlAndConnect, retryConnection } =
@@ -1449,7 +1536,10 @@ export function PanelRouter({
         ref={libraryShellRef}
         className="relative flex h-full min-h-0 overflow-hidden bg-[var(--color-figma-bg)]"
       >
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          aria-hidden={contextualPanelLayout.renderAsOverlay ? true : undefined}
+        >
           {tabs}
           {(fetchError || tokensError) && (
             <div className="flex shrink-0 items-center gap-2 border-b border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/10 px-3 py-1.5">
@@ -1477,22 +1567,14 @@ export function PanelRouter({
 
         {contextualPanel ? (
           contextualPanelLayout.renderAsOverlay ? (
-            <>
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
-              />
-              <div
-                className={`absolute inset-y-0 right-0 z-20 flex min-h-0 flex-col overflow-hidden bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)] ${
-                  contextualPanelLayout.isFullWidthOverlay
-                    ? "inset-x-0 border-l-0"
-                    : "border-l border-[var(--color-figma-border)]"
-                }`}
-                style={{ width: contextualPanelLayout.overlayWidth }}
-              >
+            <ContextualOverlayShell
+              width={contextualPanelLayout.overlayWidth}
+              fullWidth={contextualPanelLayout.isFullWidthOverlay}
+              ariaLabel={contextualOverlayLabel}
+              onDismiss={dismissContextualPanel}
+            >
                 {contextualPanel}
-              </div>
-            </>
+            </ContextualOverlayShell>
           ) : (
             <>
               <ResizeDivider

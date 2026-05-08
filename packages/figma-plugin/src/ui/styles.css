@@ -2196,6 +2196,9 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-value-cell__empty-placeholder {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-figma-text-secondary);
   transition:
     opacity var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
@@ -4341,7 +4344,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 }
 
-@container authoring-surface (max-width: 560px) {
+@container authoring-surface (max-width: 420px) {
   .tm-token-mode-row__header,
   .tm-token-mode-row__body {
     grid-template-columns: minmax(0, 1fr);

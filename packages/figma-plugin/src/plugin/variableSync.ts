@@ -303,34 +303,37 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
       });
     }
 
-    const aliasTargetsByVariableId = new Map<string, Variable>();
-    const invalidAliasReasonByVariableId = new Map<string, string>();
+    const aliasTargetsByPlan = new Map<VariableApplyPlan, Variable>();
+    const invalidAliasReasonByPlan = new Map<VariableApplyPlan, string>();
     for (const plan of plans) {
       if (!plan.aliasTargetPath) {
         continue;
       }
       const targetVariable = findAliasTargetVariable(plan.aliasTargetPath, plan);
       if (!targetVariable) {
-        invalidAliasReasonByVariableId.set(
-          plan.variable.id,
+        invalidAliasReasonByPlan.set(
+          plan,
           `Alias target not found in Figma variables: {${plan.aliasTargetPath}}`,
         );
         continue;
       }
-      aliasTargetsByVariableId.set(plan.variable.id, targetVariable);
+      aliasTargetsByPlan.set(plan, targetVariable);
     }
 
     let invalidAliasChanged = true;
     while (invalidAliasChanged) {
       invalidAliasChanged = false;
+      const invalidVariableIds = new Set(
+        [...invalidAliasReasonByPlan.keys()].map((plan) => plan.variable.id),
+      );
       for (const plan of plans) {
-        if (!plan.aliasTargetPath || invalidAliasReasonByVariableId.has(plan.variable.id)) {
+        if (!plan.aliasTargetPath || invalidAliasReasonByPlan.has(plan)) {
           continue;
         }
-        const targetVariable = aliasTargetsByVariableId.get(plan.variable.id);
-        if (targetVariable && invalidAliasReasonByVariableId.has(targetVariable.id)) {
-          invalidAliasReasonByVariableId.set(
-            plan.variable.id,
+        const targetVariable = aliasTargetsByPlan.get(plan);
+        if (targetVariable && invalidVariableIds.has(targetVariable.id)) {
+          invalidAliasReasonByPlan.set(
+            plan,
             `Alias target could not be published: {${plan.aliasTargetPath}}`,
           );
           invalidAliasChanged = true;
@@ -339,12 +342,18 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
     }
 
     for (const plan of plans) {
-      const invalidReason = invalidAliasReasonByVariableId.get(plan.variable.id);
+      const invalidReason = invalidAliasReasonByPlan.get(plan);
       if (!invalidReason) {
         continue;
       }
       failures.push({ path: plan.token.path, error: invalidReason });
-      if (plan.created) {
+      const variableHasValidPlan = plans.some(
+        (candidate) =>
+          candidate !== plan &&
+          candidate.variable.id === plan.variable.id &&
+          !invalidAliasReasonByPlan.has(candidate),
+      );
+      if (plan.created && !variableHasValidPlan) {
         try {
           plan.variable.remove();
           const createdIndex = createdVariableIds.indexOf(plan.variable.id);
@@ -377,10 +386,10 @@ export async function applyVariables(tokens: VariableSyncToken[], collectionMap:
 
         let valueToSet: VariableValue | null = literalValue;
         if (aliasTargetPath) {
-          if (invalidAliasReasonByVariableId.has(variable.id)) {
+          if (invalidAliasReasonByPlan.has(plan)) {
             continue;
           }
-          const targetVariable = aliasTargetsByVariableId.get(variable.id);
+          const targetVariable = aliasTargetsByPlan.get(plan);
           if (!targetVariable) continue;
           valueToSet = figma.variables.createVariableAlias(targetVariable);
         }

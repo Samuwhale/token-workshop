@@ -18,6 +18,7 @@ interface VarDiffRow {
   localScopes?: string[];
   figmaScopes?: string[];
   targetLabel?: string;
+  pullDisabledReason?: string;
 }
 
 /* ── Shared types ───────────────────────────────────────────────────────── */
@@ -31,6 +32,7 @@ export interface PreviewRow {
   figmaType?: string;
   cat: "local-only" | "figma-only" | "conflict";
   targetLabel?: string;
+  pullDisabledReason?: string;
 }
 
 export function isHexColor(v: string | undefined): v is string {
@@ -630,10 +632,13 @@ export function VarDiffRowItem({
             onChange={(e) =>
               onChange(e.target.value as "push" | "pull" | "skip")
             }
+            title={row.pullDisabledReason}
             className="text-secondary border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] px-1 py-0.5 shrink-0"
           >
             <option value="push">{"\u2191"} Update Figma</option>
-            <option value="pull">{"\u2193"} Update local</option>
+            <option value="pull" disabled={Boolean(row.pullDisabledReason)}>
+              {"\u2193"} Update local
+            </option>
             <option value="skip">Skip</option>
           </select>
         )}

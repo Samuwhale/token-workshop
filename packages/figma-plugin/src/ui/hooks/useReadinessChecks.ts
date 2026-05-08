@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getTokenLifecycle } from '@token-workshop/core';
+import { getTokenLifecycle, type TokenCollection } from '@token-workshop/core';
 import type { OrphanVariableDeleteTarget, VariableSyncToken } from '../../shared/types';
 import { postPluginMessage } from '../../shared/utils';
 import { describeError } from '../shared/utils';
@@ -63,6 +63,7 @@ interface UseReadinessChecksParams {
   connected: boolean;
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
+  collections: TokenCollection[];
   tokenChangeKey?: number;
   readFigmaTokens: () => Promise<unknown[]>;
   setOrphanConfirm: (val: OrphanConfirmState | null) => void;
@@ -205,11 +206,15 @@ function buildCollectionOrphanCleanupPlan(
 ): ResolverOrphanCleanupPlan {
   const targets = getSyncRowsByCategory(rows).figmaOnly.map<OrphanVariableDeleteTarget>((row) => ({
     path: row.path,
-    collectionName,
+    collectionName: row.targetCollectionName ?? collectionName,
+    modeNames: row.targetModeName ? [row.targetModeName] : undefined,
   }));
   return {
     targets,
-    orphanPaths: targets.map((target) => `${target.path} (${target.collectionName})`),
+    orphanPaths: targets.map((target) => {
+      const modeLabel = target.modeNames && target.modeNames.length > 0 ? ` / ${target.modeNames.join(', ')}` : '';
+      return `${target.path} (${target.collectionName}${modeLabel})`;
+    }),
   };
 }
 
@@ -281,8 +286,8 @@ function createMissingVariablesConfirmState({
       $value: (sourceToken?.$value ?? row.localRaw ?? local?.raw ?? '') as VariableSyncToken['$value'],
       ...(Object.keys(extensions).length > 0 ? { $extensions: extensions } : {}),
       collectionId: resolverName ?? currentCollectionId,
-      figmaCollection: resolverMapping?.collectionName,
-      figmaMode: resolverMapping?.modeName,
+      figmaCollection: resolverMapping?.collectionName ?? row.targetCollectionName,
+      figmaMode: resolverMapping?.modeName ?? row.targetModeName,
     };
     const targetLabel = getMissingVariableTargetLabel(token, collectionMap, modeMap);
     tokens.push(token);
@@ -365,6 +370,7 @@ function buildResolverOrphanCleanupPlan(
 async function loadVariableSyncSnapshot(
   serverUrl: string,
   currentCollectionId: string,
+  collections: TokenCollection[],
   readFigmaTokens: () => Promise<unknown[]>,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
@@ -374,6 +380,7 @@ async function loadVariableSyncSnapshot(
   return loadVariablePublishSnapshot({
     serverUrl,
     currentCollectionId,
+    collections,
     collectionMap,
     modeMap,
     readFigmaTokens,
@@ -412,6 +419,7 @@ export function useReadinessChecks({
   connected,
   collectionMap,
   modeMap,
+  collections,
   tokenChangeKey,
   readFigmaTokens,
   setOrphanConfirm,
@@ -442,6 +450,7 @@ export function useReadinessChecks({
       const snapshot = await loadVariableSyncSnapshot(
         serverUrl,
         currentCollectionId,
+        collections,
         readFigmaTokens,
         collectionMap,
         modeMap,
@@ -651,6 +660,7 @@ export function useReadinessChecks({
     }
   }, [
     currentCollectionId,
+    collections,
     collectionMap,
     compareMode,
     modeMap,
@@ -670,6 +680,7 @@ export function useReadinessChecks({
         const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(
           serverUrl,
           currentCollectionId,
+          collections,
           readFigmaTokens,
           collectionMap,
           modeMap,
@@ -693,6 +704,7 @@ export function useReadinessChecks({
         const snapshot: VariableSyncSnapshot = await loadVariableSyncSnapshot(
           serverUrl,
           currentCollectionId,
+          collections,
           readFigmaTokens,
           collectionMap,
           modeMap,
@@ -729,6 +741,7 @@ export function useReadinessChecks({
     }
   }, [
     currentCollectionId,
+    collections,
     collectionMap,
     compareMode,
     modeMap,

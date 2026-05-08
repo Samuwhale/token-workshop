@@ -471,15 +471,20 @@ export function PublishPanel({
     () => buildResolverPublishSyncMappings(resolverPublishRows),
     [resolverPublishRows],
   );
-  const savedCollectionName = collectionMap[currentCollectionId] ?? '';
-  const savedModeName = modeMap[currentCollectionId] ?? '';
-  const resolvedCollectionName =
-    savedCollectionName || DEFAULT_VARIABLE_COLLECTION_NAME;
-  const resolvedModeName = savedModeName || 'First mode in Figma';
   const currentCollection = useMemo(
     () => collections.find((collection) => collection.id === currentCollectionId),
     [collections, currentCollectionId],
   );
+  const currentCollectionModeNames = currentCollection?.modes.map((mode) => mode.name) ?? [];
+  const standardPublishUsesAllModes = currentCollectionModeNames.length > 1;
+  const savedCollectionName = collectionMap[currentCollectionId] ?? '';
+  const savedModeName = modeMap[currentCollectionId] ?? '';
+  const effectiveSavedModeName = standardPublishUsesAllModes ? '' : savedModeName;
+  const resolvedCollectionName =
+    savedCollectionName || DEFAULT_VARIABLE_COLLECTION_NAME;
+  const resolvedModeName = standardPublishUsesAllModes
+    ? `${currentCollectionModeNames.length} modes`
+    : savedModeName || currentCollectionModeNames[0] || 'First mode in Figma';
   const standardCollectionSuggestions = useMemo(
     () =>
       uniqueTextSuggestions([
@@ -522,7 +527,7 @@ export function PublishPanel({
   );
   const standardRoutingDirty =
     (standardRoutingDraft.collectionName ?? '') !== savedCollectionName ||
-    (standardRoutingDraft.modeName ?? '') !== savedModeName;
+    ((standardPublishUsesAllModes ? '' : standardRoutingDraft.modeName) ?? '') !== effectiveSavedModeName;
   const variableCompareMode: VariablePublishCompareMode =
     activeResolver && resolverPublishSyncMappings.length > 0 ? 'resolver-publish' : 'standard';
   const isResolverPublishCompareActive = variableCompareMode === 'resolver-publish';
@@ -530,10 +535,10 @@ export function PublishPanel({
   useEffect(() => {
     setStandardRoutingDraft({
       collectionName: savedCollectionName,
-      modeName: savedModeName,
+      modeName: effectiveSavedModeName,
     });
     setStandardRoutingError(null);
-  }, [currentCollectionId, savedCollectionName, savedModeName]);
+  }, [currentCollectionId, effectiveSavedModeName, savedCollectionName]);
 
   const updateResolverPublishDraft = useCallback(
     (key: string, field: keyof ResolverPublishMappingDraft, value: string) => {
@@ -608,10 +613,10 @@ export function PublishPanel({
   const resetStandardRoutingDraft = useCallback(() => {
     setStandardRoutingDraft({
       collectionName: savedCollectionName,
-      modeName: savedModeName,
+      modeName: effectiveSavedModeName,
     });
     setStandardRoutingError(null);
-  }, [savedCollectionName, savedModeName]);
+  }, [effectiveSavedModeName, savedCollectionName]);
 
   const saveStandardRouting = useCallback(async () => {
     setStandardRoutingSaving(true);
@@ -619,7 +624,9 @@ export function PublishPanel({
     try {
       await savePublishRouting(currentCollectionId, {
         collectionName: standardRoutingDraft.collectionName?.trim() || undefined,
-        modeName: standardRoutingDraft.modeName?.trim() || undefined,
+        modeName: standardPublishUsesAllModes
+          ? undefined
+          : standardRoutingDraft.modeName?.trim() || undefined,
       });
       dispatchToast('Saved Figma target', 'success', {
         destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
@@ -629,7 +636,7 @@ export function PublishPanel({
     } finally {
       setStandardRoutingSaving(false);
     }
-  }, [currentCollectionId, savePublishRouting, standardRoutingDraft]);
+  }, [currentCollectionId, savePublishRouting, standardPublishUsesAllModes, standardRoutingDraft]);
 
 
   // ── Extracted hooks ──
@@ -648,6 +655,7 @@ export function PublishPanel({
       loadVariablePublishSnapshot({
         serverUrl,
         currentCollectionId,
+        collections,
         collectionMap,
         modeMap,
         readFigmaTokens,
@@ -655,7 +663,7 @@ export function PublishPanel({
         resolverName: isResolverPublishCompareActive ? activeResolver : null,
         resolverPublishMappings: isResolverPublishCompareActive ? resolverPublishSyncMappings : [],
       }),
-    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, currentCollectionId, collectionMap, modeMap),
+    buildFigmaMap: (figmaCollections) => buildVariablePublishFigmaMap(figmaCollections, currentCollectionId, collectionMap, modeMap, collections),
     buildPullPayload: buildPublishPullPayload,
     buildApplyPayload: (rows) => ({
       tokens: rows.map(r => {
@@ -666,6 +674,8 @@ export function PublishPanel({
           $value: r.localRaw ?? '',
           $extensions: extensions,
           collectionId: currentCollectionId,
+          figmaCollection: r.targetCollectionName,
+          figmaMode: r.targetModeName,
           aliasTargetCollectionId: getAliasTargetCollectionId(r.localRaw, pathToCollectionId),
         };
       }),
@@ -741,7 +751,7 @@ export function PublishPanel({
 
   const readiness = useReadinessChecks({
     serverUrl, currentCollectionId, connected,
-    collectionMap, modeMap, tokenChangeKey,
+    collectionMap, modeMap, collections, tokenChangeKey,
     readFigmaTokens: varSync.readFigmaTokens,
     setOrphanConfirm: orphanCleanup.setOrphanConfirm,
     refreshValidation,
@@ -1229,6 +1239,8 @@ export function PublishPanel({
                   error={standardRoutingError}
                   collectionSuggestions={standardCollectionSuggestions}
                   modeSuggestions={standardModeSuggestions}
+                  collectionModeNames={currentCollectionModeNames}
+                  usesAllModes={standardPublishUsesAllModes}
                   onFieldChange={updateStandardRoutingDraft}
                   onReset={resetStandardRoutingDraft}
                   onSave={() => void saveStandardRouting()}
@@ -1518,6 +1530,8 @@ function StandardPublishRoutingCard({
   error,
   collectionSuggestions,
   modeSuggestions,
+  collectionModeNames,
+  usesAllModes,
   onFieldChange,
   onReset,
   onSave,
@@ -1529,6 +1543,8 @@ function StandardPublishRoutingCard({
   error: string | null;
   collectionSuggestions: string[];
   modeSuggestions: string[];
+  collectionModeNames: string[];
+  usesAllModes: boolean;
   onFieldChange: (field: keyof PublishRoutingDraft, value: string) => void;
   onReset: () => void;
   onSave: () => void;
@@ -1541,8 +1557,10 @@ function StandardPublishRoutingCard({
             {currentCollectionId}
           </div>
           <p className="mt-1 max-w-[520px] text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-            Choose where this collection syncs in Figma. This only changes the
-            Figma destination, not the authored modes in your token files.
+            Choose the Figma variable collection for this authored collection.
+            {usesAllModes
+              ? ' Each authored mode syncs to the Figma mode with the same name.'
+              : ' This only changes the Figma destination, not the authored value.'}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -1565,7 +1583,7 @@ function StandardPublishRoutingCard({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className={usesAllModes ? "grid gap-3" : "grid gap-3 md:grid-cols-2"}>
         <PublishTargetTextField
           label="Figma collection"
           value={draft.collectionName ?? ''}
@@ -1575,14 +1593,25 @@ function StandardPublishRoutingCard({
           suggestions={collectionSuggestions}
         />
 
-        <PublishTargetTextField
-          label="Figma mode"
-          value={draft.modeName ?? ''}
-          onChange={(value) => onFieldChange('modeName', value)}
-          placeholder="First mode in Figma"
-          disabled={saving}
-          suggestions={modeSuggestions}
-        />
+        {usesAllModes ? (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+              Figma modes
+            </span>
+            <div className="text-body text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]">
+              {collectionModeNames.join(', ')}
+            </div>
+          </div>
+        ) : (
+          <PublishTargetTextField
+            label="Figma mode"
+            value={draft.modeName ?? ''}
+            onChange={(value) => onFieldChange('modeName', value)}
+            placeholder="First mode in Figma"
+            disabled={saving}
+            suggestions={modeSuggestions}
+          />
+        )}
       </div>
 
       <div className="text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
@@ -1590,7 +1619,9 @@ function StandardPublishRoutingCard({
         <span className="text-[color:var(--color-figma-text)]">
           {DEFAULT_VARIABLE_COLLECTION_NAME}
         </span>
-        . Leave the mode blank to target the first mode in that Figma collection.
+        {usesAllModes
+          ? '. Mode names come from this Token Workshop collection.'
+          : '. Leave the mode blank to target the first mode in that Figma collection.'}
       </div>
 
       {dirty ? (

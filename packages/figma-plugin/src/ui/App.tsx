@@ -149,6 +149,23 @@ function getSidebarIconButtonStateClass(active: boolean): string {
     : "text-[color:var(--color-figma-text-secondary)]";
 }
 
+function getNotificationButtonLabel(count: number): string {
+  return count > 0
+    ? `Notifications, ${formatCount(count, "notification")}`
+    : "Notifications";
+}
+
+function getHistoryActionLabel(
+  action: "Undo" | "Redo",
+  description?: string | null,
+  available = true,
+): string {
+  if (!available) {
+    return `${action} unavailable`;
+  }
+  return description ? `${action}: ${description}` : action;
+}
+
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const {
@@ -1705,6 +1722,17 @@ export function App() {
   };
 
   const notificationCount = notificationHistory.length;
+  const notificationButtonLabel = getNotificationButtonLabel(notificationCount);
+  const undoButtonLabel = getHistoryActionLabel(
+    "Undo",
+    undoSlot?.description,
+    canUndo,
+  );
+  const redoButtonLabel = getHistoryActionLabel(
+    "Redo",
+    redoSlot?.description,
+    canRedo || canServerRedo,
+  );
 
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
     if (librarySetupRequired && item.workspaceId !== "library") {
@@ -1886,7 +1914,7 @@ export function App() {
                             : undefined
                         }
                         aria-current={isWorkspaceActive ? "page" : undefined}
-                        aria-label={item.label}
+                        aria-label={tooltipLabel}
                         data-workspace={item.id}
                         className={`tm-sidebar-workspace-button relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md ${workspaceStateClass}`}
                       >
@@ -2027,11 +2055,12 @@ export function App() {
           {sidebarCollapsed ? (
             <>
               <div className="flex flex-col items-center gap-0.5">
-                <Tooltip label={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`} position="right">
+                <Tooltip label={notificationButtonLabel} position="right">
                   <button
                     onClick={toggleNotifications}
                     className={`relative h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} ${getSidebarIconButtonStateClass(notificationsOpen)}`}
-                    aria-label="Notifications"
+                    aria-label={notificationButtonLabel}
+                    title={notificationButtonLabel}
                     aria-pressed={notificationsOpen}
                   >
                     <Bell size={14} strokeWidth={1.5} aria-hidden />
@@ -2045,6 +2074,7 @@ export function App() {
                     onClick={() => toggleSecondarySurface("settings")}
                     className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} ${getSidebarIconButtonStateClass(activeSecondarySurface === "settings")}`}
                     aria-label="Settings"
+                    title="Settings"
                     aria-pressed={activeSecondarySurface === "settings"}
                   >
                     <Settings size={14} strokeWidth={1.5} aria-hidden />
@@ -2053,13 +2083,13 @@ export function App() {
               </div>
               <div className="my-1 w-5 border-t border-[var(--border-muted)]" />
               <div className="flex flex-col items-center gap-0.5">
-                <Tooltip label={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"} position="right">
-                  <button onClick={executeUndo} disabled={!canUndo} className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)]`} aria-label="Undo">
+                <Tooltip label={undoButtonLabel} position="right">
+                  <button onClick={executeUndo} disabled={!canUndo} className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)]`} aria-label={undoButtonLabel} title={undoButtonLabel}>
                     <Undo2 size={13} strokeWidth={1.5} aria-hidden />
                   </button>
                 </Tooltip>
-                <Tooltip label={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"} position="right">
-                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)]`} aria-label="Redo">
+                <Tooltip label={redoButtonLabel} position="right">
+                  <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)]`} aria-label={redoButtonLabel} title={redoButtonLabel}>
                     <Redo2 size={13} strokeWidth={1.5} aria-hidden />
                   </button>
                 </Tooltip>
@@ -2071,9 +2101,9 @@ export function App() {
                 <button
                   onClick={toggleNotifications}
                   className={`tm-sidebar-utility-button relative ${getSidebarUtilityStateClass(notificationsOpen)}`}
-                  aria-label="Notifications"
+                  aria-label={notificationButtonLabel}
                   aria-pressed={notificationsOpen}
-                  title={`Notifications${notificationCount > 0 ? ` (${notificationCount})` : ""}`}
+                  title={notificationButtonLabel}
                 >
                   <Bell size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Notifications</span>
@@ -2092,11 +2122,11 @@ export function App() {
                   <span className="tm-sidebar-utility-button__label">Settings</span>
                 </button>
                 <div className="my-1 h-px w-full bg-[var(--border-muted)]" />
-                <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)]" aria-label="Undo" title={undoSlot?.description ? `Undo: ${undoSlot.description}` : "Undo"}>
+                <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)]" aria-label={undoButtonLabel} title={undoButtonLabel}>
                   <Undo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Undo</span>
                 </button>
-                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)]" aria-label="Redo" title={redoSlot?.description ? `Redo: ${redoSlot.description}` : "Redo"}>
+                <button onClick={() => { if (canRedo) executeRedo(); else handleServerRedo(); }} disabled={!canRedo && !canServerRedo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)]" aria-label={redoButtonLabel} title={redoButtonLabel}>
                   <Redo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Redo</span>
                 </button>

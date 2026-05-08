@@ -234,7 +234,9 @@ export function useTokenSyncBase<
     const signal = abortRef.current.signal;
 
     const pushRows = rowsSnapshot.filter(r => dirsSnapshot[getDiffRowId(r)] === 'push');
-    const pullRows = rowsSnapshot.filter(r => dirsSnapshot[getDiffRowId(r)] === 'pull');
+    const pullRows = rowsSnapshot.filter(
+      (r) => dirsSnapshot[getDiffRowId(r)] === 'pull' && !r.pullDisabledReason,
+    );
 
     // No-op: nothing to apply (supports quick-sync calling applyDiff unconditionally)
     if (pushRows.length === 0 && pullRows.length === 0) return;

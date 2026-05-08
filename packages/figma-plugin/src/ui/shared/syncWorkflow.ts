@@ -1,5 +1,7 @@
 import {
   flattenTokenGroup,
+  readTokenModeValuesForCollection,
+  type TokenCollection,
   type DTCGGroup,
   type DTCGToken,
   type ResolverInput,
@@ -112,6 +114,9 @@ export interface DiffRowBase {
   localScopes?: string[];
   figmaScopes?: string[];
   targetLabel?: string;
+  targetCollectionName?: string;
+  targetModeName?: string;
+  pullDisabledReason?: string;
 }
 
 export interface PublishDiffRow extends DiffRowBase {
@@ -177,6 +182,7 @@ export interface ResolverPublishSyncMapping {
 export interface VariablePublishSnapshotParams {
   serverUrl: string;
   currentCollectionId: string;
+  collections?: TokenCollection[];
   collectionMap: Record<string, string>;
   modeMap: Record<string, string>;
   readFigmaTokens: () => Promise<unknown[]>;
@@ -217,6 +223,14 @@ interface ResolverResolveResponse {
 
 const STYLE_TYPES = new Set(['color', 'gradient', 'typography', 'shadow']);
 const DEFAULT_VARIABLE_COLLECTION_NAME = 'Token Workshop';
+
+interface StandardPublishTarget {
+  key: string;
+  sourceModeName?: string;
+  collectionName: string;
+  modeName?: string;
+  label: string;
+}
 
 export function getDiffRowId(row: DiffRowBase): string {
   return row.id ?? row.path;
@@ -373,6 +387,55 @@ function createResolverRowKey(mappingKey: string, path: string): string {
   return `${mappingKey}::${path}`;
 }
 
+function createStandardModeRowKey(modeKey: string, path: string): string {
+  return `${modeKey}::${path}`;
+}
+
+function parseStandardModeRowId(rowId: string): { modeKey: string; path: string } | null {
+  const separatorIndex = rowId.indexOf('::');
+  if (separatorIndex < 0) return null;
+  return {
+    modeKey: rowId.slice(0, separatorIndex),
+    path: rowId.slice(separatorIndex + 2),
+  };
+}
+
+function buildStandardPublishTargets({
+  currentCollectionId,
+  collection,
+  collectionMap,
+  modeMap,
+}: {
+  currentCollectionId: string;
+  collection?: TokenCollection;
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+}): StandardPublishTarget[] {
+  const collectionName = collectionMap[currentCollectionId] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
+  const modes = collection?.modes ?? [];
+
+  if (modes.length > 1) {
+    return modes.map((mode) => ({
+      key: mode.name,
+      sourceModeName: mode.name,
+      collectionName,
+      modeName: mode.name,
+      label: `${collectionName} / ${mode.name}`,
+    }));
+  }
+
+  const modeName = modeMap[currentCollectionId] || modes[0]?.name;
+  return [
+    {
+      key: modeName || '__default__',
+      sourceModeName: modes[0]?.name,
+      collectionName,
+      modeName,
+      label: modeName ? `${collectionName} / ${modeName}` : collectionName,
+    },
+  ];
+}
+
 function createResolvedTokenMap(tokens: ResolverResolveResponse['tokens']): Map<string, DTCGToken> {
   const resolvedTokens = resolveAllAliases(tokens as Record<string, TokenMapEntry>);
   return new Map(
@@ -431,6 +494,8 @@ async function loadResolverVariablePublishSnapshot({
   const figmaMap = new Map<string, PublishSyncEntry>();
   const pathByKey = new Map<string, string>();
   const targetLabelByKey = new Map<string, string>();
+  const targetCollectionByKey = new Map<string, string>();
+  const targetModeByKey = new Map<string, string>();
 
   for (const { mapping, result } of resolvedTargets) {
     const targetLabel = buildResolverTargetLabel(mapping);
@@ -453,6 +518,8 @@ async function loadResolverVariablePublishSnapshot({
       localMap.set(rowKey, entry);
       pathByKey.set(rowKey, path);
       targetLabelByKey.set(rowKey, targetLabel);
+      targetCollectionByKey.set(rowKey, mapping.collectionName?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME);
+      targetModeByKey.set(rowKey, mapping.modeName);
     }
 
     for (const [path, entry] of resolverFigmaMap) {
@@ -460,6 +527,8 @@ async function loadResolverVariablePublishSnapshot({
       figmaMap.set(rowKey, entry);
       pathByKey.set(rowKey, path);
       targetLabelByKey.set(rowKey, targetLabel);
+      targetCollectionByKey.set(rowKey, mapping.collectionName?.trim() || DEFAULT_VARIABLE_COLLECTION_NAME);
+      targetModeByKey.set(rowKey, mapping.modeName);
     }
   }
 
@@ -471,6 +540,8 @@ async function loadResolverVariablePublishSnapshot({
       ...row,
       id: key,
       targetLabel: targetLabelByKey.get(key),
+      targetCollectionName: targetCollectionByKey.get(key),
+      targetModeName: targetModeByKey.get(key),
     }),
     defaultDirection: () => 'skip',
     ...variablePublishDiffConfig,
@@ -488,7 +559,7 @@ async function loadResolverVariablePublishSnapshot({
 
 export const variablePublishDiffConfig = createPublishSyncBuilders<PublishSyncEntry>({
   fromFigmaToken: (token) => ({
-    raw: String((token as { $value?: unknown }).$value ?? ''),
+    raw: String((token as { reference?: unknown; $value?: unknown }).reference ?? (token as { $value?: unknown }).$value ?? ''),
     type: String((token as { $type?: unknown }).$type ?? 'string'),
     scopes: Array.isArray((token as { $scopes?: unknown[] }).$scopes)
       ? ((token as { $scopes: string[] }).$scopes)
@@ -559,6 +630,99 @@ export function selectVariableCollectionTokens(
   const desiredCollectionName = collectionMap[currentCollectionId] ?? DEFAULT_VARIABLE_COLLECTION_NAME;
   const desiredModeName = modeMap[currentCollectionId];
   return selectVariableModeTokens(collections, desiredCollectionName, desiredModeName);
+}
+
+function buildStandardVariablePublishFigmaMap({
+  figmaCollections,
+  currentCollectionId,
+  sourceCollections,
+  collectionMap,
+  modeMap,
+  targetByKey,
+  pathByKey,
+}: {
+  figmaCollections: unknown[];
+  currentCollectionId: string;
+  sourceCollections?: TokenCollection[];
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+  targetByKey?: Map<string, StandardPublishTarget>;
+  pathByKey?: Map<string, string>;
+}): Map<string, PublishSyncEntry> {
+  const collection = sourceCollections?.find((entry) => entry.id === currentCollectionId);
+  const targets = buildStandardPublishTargets({
+    currentCollectionId,
+    collection,
+    collectionMap,
+    modeMap,
+  });
+  const figmaMap = new Map<string, PublishSyncEntry>();
+
+  for (const target of targets) {
+    const modeTokens = selectVariableModeTokens(
+      figmaCollections,
+      target.collectionName,
+      target.modeName,
+    );
+    const modeMapEntries = variablePublishDiffConfig.buildFigmaMap(modeTokens);
+    for (const [path, entry] of modeMapEntries) {
+      const rowKey = createStandardModeRowKey(target.key, path);
+      figmaMap.set(rowKey, entry);
+      pathByKey?.set(rowKey, path);
+      targetByKey?.set(rowKey, target);
+    }
+  }
+
+  return figmaMap;
+}
+
+function buildStandardVariablePublishLocalMap({
+  localTokens,
+  currentCollectionId,
+  sourceCollections,
+  collectionMap,
+  modeMap,
+  targetByKey,
+  pathByKey,
+}: {
+  localTokens: Map<string, DTCGToken>;
+  currentCollectionId: string;
+  sourceCollections?: TokenCollection[];
+  collectionMap: Record<string, string>;
+  modeMap: Record<string, string>;
+  targetByKey: Map<string, StandardPublishTarget>;
+  pathByKey: Map<string, string>;
+}): Map<string, PublishSyncEntry> {
+  const collection = sourceCollections?.find((entry) => entry.id === currentCollectionId);
+  const targets = buildStandardPublishTargets({
+    currentCollectionId,
+    collection,
+    collectionMap,
+    modeMap,
+  });
+  const keyedTokens = new Map<string, DTCGToken>();
+
+  for (const [path, token] of localTokens) {
+    const modeValues = collection
+      ? readTokenModeValuesForCollection(token, collection)
+      : {};
+
+    for (const target of targets) {
+      const rowKey = createStandardModeRowKey(target.key, path);
+      const sourceValue =
+        target.sourceModeName && Object.prototype.hasOwnProperty.call(modeValues, target.sourceModeName)
+          ? modeValues[target.sourceModeName]
+          : token.$value;
+      keyedTokens.set(rowKey, {
+        ...token,
+        $value: sourceValue,
+      });
+      pathByKey.set(rowKey, path);
+      targetByKey.set(rowKey, target);
+    }
+  }
+
+  return variablePublishDiffConfig.buildLocalMap(keyedTokens);
 }
 
 function normalizeVariableComparableValue(
@@ -654,14 +818,21 @@ export function buildVariablePublishFigmaMap(
   currentCollectionId: string,
   collectionMap: Record<string, string>,
   modeMap: Record<string, string>,
+  sourceCollections?: TokenCollection[],
 ) {
-  const tokens = selectVariableCollectionTokens(collections, currentCollectionId, collectionMap, modeMap);
-  return variablePublishDiffConfig.buildFigmaMap(tokens);
+  return buildStandardVariablePublishFigmaMap({
+    figmaCollections: collections,
+    currentCollectionId,
+    sourceCollections,
+    collectionMap,
+    modeMap,
+  });
 }
 
 export async function loadVariablePublishSnapshot({
   serverUrl,
   currentCollectionId,
+  collections,
   collectionMap,
   modeMap,
   readFigmaTokens,
@@ -683,16 +854,68 @@ export async function loadVariablePublishSnapshot({
     });
   }
 
-  return loadSyncSnapshot<PublishSyncEntry, PublishSyncEntry, PublishDiffRow>({
-    serverUrl,
-    currentCollectionId,
-    readFigmaTokens,
-    signal,
+  const figmaTokens = await withOptionalTimeout(
+    readFigmaTokens(),
     figmaTimeoutMs,
     figmaTimeoutMessage,
-    ...variablePublishDiffConfig,
-    buildFigmaMap: (collections) => buildVariablePublishFigmaMap(collections, currentCollectionId, collectionMap, modeMap),
+  );
+  const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
+    `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}`,
+    { signal: createFetchSignal(signal) },
+  );
+  const localTokens = flattenTokenGroup((data.tokens ?? {}) as DTCGGroup);
+  const targetByKey = new Map<string, StandardPublishTarget>();
+  const pathByKey = new Map<string, string>();
+  const sourceCollection = collections?.find((collection) => collection.id === currentCollectionId);
+  const multiModePublish = (sourceCollection?.modes.length ?? 0) > 1;
+  const localMap = buildStandardVariablePublishLocalMap({
+    localTokens,
+    currentCollectionId,
+    sourceCollections: collections,
+    collectionMap,
+    modeMap,
+    targetByKey,
+    pathByKey,
   });
+  const figmaMap = buildStandardVariablePublishFigmaMap({
+    figmaCollections: figmaTokens,
+    currentCollectionId,
+    sourceCollections: collections,
+    collectionMap,
+    modeMap,
+    targetByKey,
+    pathByKey,
+  });
+  const { rows, dirs } = buildSyncRowsFromMaps({
+    localMap,
+    figmaMap,
+    resolvePath: (key) => pathByKey.get(key) ?? parseStandardModeRowId(key)?.path ?? key,
+    decorateRow: (row, key) => {
+      const target = targetByKey.get(key);
+      return {
+        ...row,
+        id: key,
+        targetLabel: target?.label,
+        targetCollectionName: target?.collectionName,
+        targetModeName: target?.modeName,
+        pullDisabledReason: multiModePublish
+          ? 'Import from Figma to update multi-mode collection values.'
+          : undefined,
+      };
+    },
+    defaultDirection: (row) =>
+      multiModePublish && row.cat === 'figma-only' ? 'skip' : row.cat === 'figma-only' ? 'pull' : 'push',
+    ...variablePublishDiffConfig,
+  });
+
+  return {
+    localTokens,
+    figmaTokens,
+    localMap,
+    figmaMap,
+    rows,
+    dirs,
+  };
 }
 
 export async function loadSyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase>({

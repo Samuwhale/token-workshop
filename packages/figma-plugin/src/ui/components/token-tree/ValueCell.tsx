@@ -221,10 +221,10 @@ export function ValueCell({
         canAddValue ? (
           <div className="tm-value-cell__empty-action">
             <span
-              className="tm-value-cell__empty-placeholder text-body text-[color:var(--color-figma-text-tertiary)]"
+              className="tm-value-cell__empty-placeholder"
               aria-hidden="true"
             >
-              —
+              Add
             </span>
             <button
               type="button"
