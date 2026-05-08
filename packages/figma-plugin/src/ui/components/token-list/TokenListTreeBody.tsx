@@ -23,6 +23,9 @@ import { Button, TextInput } from "../../primitives";
 import {
   addCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
+  EMPTY_MODE_SOURCE,
+  getDefaultModeSourceName,
+  getModeSourcePayloadValue,
   isModeNameTaken,
 } from "../../shared/collectionModes";
 import { getErrorMessage } from "../../shared/utils";
@@ -33,8 +36,6 @@ type VisibleTokenRow = {
   depth: number;
   ancestorPathLabel?: string;
 };
-
-const EMPTY_MODE_SEED = "__token-workshop-empty-mode-seed__";
 
 interface CrossSetResult {
   path: string;
@@ -233,7 +234,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   } = props.navigation;
 
   const [newModeName, setNewModeName] = useState("");
-  const [newModeSourceName, setNewModeSourceName] = useState(EMPTY_MODE_SEED);
+  const [newModeSourceName, setNewModeSourceName] =
+    useState(EMPTY_MODE_SOURCE);
   const [addModeError, setAddModeError] = useState("");
   const [addingModeSaving, setAddingModeSaving] = useState(false);
   const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
@@ -246,13 +248,14 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     () => multiModeData?.results.map((result) => result.optionName) ?? [],
     [multiModeData?.results],
   );
+  const defaultModeSourceName = getDefaultModeSourceName(modeNames);
   useEffect(() => {
     setNewModeSourceName((current) =>
-      current === EMPTY_MODE_SEED || modeNames.includes(current)
+      modeNames.includes(current)
         ? current
-        : EMPTY_MODE_SEED,
+        : defaultModeSourceName,
     );
-  }, [modeNames]);
+  }, [defaultModeSourceName, modeNames]);
 
   const handleAddMode = useCallback(async () => {
     const name = newModeName.trim();
@@ -268,11 +271,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         serverUrl,
         collectionId: addModeTargetId,
         name,
-        sourceModeName:
-          newModeSourceName === EMPTY_MODE_SEED ? undefined : newModeSourceName,
+        sourceModeName: getModeSourcePayloadValue(newModeSourceName),
       });
       setNewModeName("");
-      setNewModeSourceName(EMPTY_MODE_SEED);
+      setNewModeSourceName(defaultModeSourceName);
       setAddModeError("");
       setAddModeMenuOpen(false);
       onModeMutated?.();
@@ -286,6 +288,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     modeNames,
     newModeName,
     newModeSourceName,
+    defaultModeSourceName,
     onModeMutated,
     serverUrl,
   ]);
@@ -341,18 +344,19 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       if (addModeMenuContainerRef.current?.contains(e.target as Node)) return;
       setAddModeMenuOpen(false);
       setNewModeName("");
+      setNewModeSourceName(defaultModeSourceName);
       setAddModeError("");
     };
     window.addEventListener("mousedown", onDocMouseDown);
     return () => window.removeEventListener("mousedown", onDocMouseDown);
-  }, [addModeMenuOpen]);
+  }, [addModeMenuOpen, defaultModeSourceName]);
 
   const closeAddModeMenu = useCallback(() => {
     setAddModeMenuOpen(false);
     setNewModeName("");
-    setNewModeSourceName(EMPTY_MODE_SEED);
+    setNewModeSourceName(defaultModeSourceName);
     setAddModeError("");
-  }, []);
+  }, [defaultModeSourceName]);
 
   useLayoutEffect(() => {
     const headerElement = tableHeaderRef.current;
@@ -493,17 +497,17 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                         disabled={addingModeSaving}
                         className={AUTHORING.select}
                       >
-                        <option value={EMPTY_MODE_SEED}>Start empty</option>
                         {modeNames.map((modeName) => (
                           <option key={modeName} value={modeName}>
                             Copy from {modeName}
                           </option>
                         ))}
+                        <option value={EMPTY_MODE_SOURCE}>Start empty</option>
                       </select>
                     </label>
                   ) : null}
                   <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                    {newModeSourceName === EMPTY_MODE_SEED
+                    {newModeSourceName === EMPTY_MODE_SOURCE
                       ? "Existing tokens will show this mode as needing values."
                       : `Existing tokens will copy ${newModeSourceName} values as editable starting points.`}
                   </p>

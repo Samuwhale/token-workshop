@@ -6,6 +6,9 @@ import {
   addCollectionMode,
   deleteCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
+  EMPTY_MODE_SOURCE,
+  getDefaultModeSourceName,
+  getModeSourcePayloadValue,
   isModeNameTaken,
   renameCollectionMode,
   reorderCollectionModes,
@@ -104,8 +107,6 @@ function Stat({ value, label }: { value: ReactNode; label: string }) {
     </div>
   );
 }
-
-const EMPTY_MODE_SEED = "__token-workshop-empty-mode-seed__";
 
 function ModeRow({
   modeName,
@@ -387,7 +388,7 @@ function ModesSection({
   const [adding, setAdding] = useState(false);
   const [addValue, setAddValue] = useState("");
   const [addSourceModeName, setAddSourceModeName] = useState(
-    () => collection.modes[0]?.name ?? EMPTY_MODE_SEED,
+    () => getDefaultModeSourceName(collection.modes.map((mode) => mode.name)),
   );
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
@@ -397,7 +398,7 @@ function ModesSection({
     [collection.modes],
   );
   const modeSignature = allModeNames.join("\u0000");
-  const defaultSourceModeName = allModeNames[0] ?? EMPTY_MODE_SEED;
+  const defaultSourceModeName = getDefaultModeSourceName(allModeNames);
   useEffect(() => {
     setAddSourceModeName((current) =>
       allModeNames.includes(current)
@@ -438,12 +439,11 @@ function ModesSection({
         serverUrl,
         collectionId: collection.id,
         name: trimmed,
-        sourceModeName:
-          addSourceModeName === EMPTY_MODE_SEED ? undefined : addSourceModeName,
+        sourceModeName: getModeSourcePayloadValue(addSourceModeName),
       });
       setAdding(false);
       setAddValue("");
-      setAddSourceModeName(EMPTY_MODE_SEED);
+      setAddSourceModeName(defaultSourceModeName);
       onModeMutated?.();
     } catch (err) {
       setAddError(getErrorMessage(err, "Could not add this mode."));
@@ -455,6 +455,7 @@ function ModesSection({
     addSourceModeName,
     allModeNames,
     collection.id,
+    defaultSourceModeName,
     onModeMutated,
     serverUrl,
   ]);
@@ -495,7 +496,7 @@ function ModesSection({
                   if (e.key === "Escape") {
                     setAdding(false);
                     setAddValue("");
-                    setAddSourceModeName(EMPTY_MODE_SEED);
+                    setAddSourceModeName(defaultSourceModeName);
                     setAddError("");
                   }
                 }}
@@ -503,7 +504,7 @@ function ModesSection({
                   if (!addValue.trim()) {
                     setAdding(false);
                     setAddValue("");
-                    setAddSourceModeName(EMPTY_MODE_SEED);
+                    setAddSourceModeName(defaultSourceModeName);
                     setAddError("");
                   }
                 }}
@@ -527,13 +528,13 @@ function ModesSection({
                         Copy from {modeName}
                       </option>
                     ))}
-                    <option value={EMPTY_MODE_SEED}>Start empty</option>
+                    <option value={EMPTY_MODE_SOURCE}>Start empty</option>
                   </select>
                 </label>
               ) : null}
               {!addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  {addSourceModeName === EMPTY_MODE_SEED
+                  {addSourceModeName === EMPTY_MODE_SOURCE
                     ? "Existing tokens will show this mode as needing values."
                     : `Existing tokens will copy ${addSourceModeName} values as editable starting points.`}
                 </p>
@@ -546,7 +547,7 @@ function ModesSection({
                   onClick={() => {
                     setAdding(false);
                     setAddValue("");
-                    setAddSourceModeName(EMPTY_MODE_SEED);
+                    setAddSourceModeName(defaultSourceModeName);
                     setAddError("");
                   }}
                   disabled={addSaving}

@@ -2,6 +2,7 @@ import { normalizeCollectionModeName } from "@token-workshop/core";
 import { apiFetch } from "./apiFetch";
 
 export const DUPLICATE_MODE_NAME_MESSAGE = "Mode names must be different.";
+export const EMPTY_MODE_SOURCE = "__token-workshop-empty-mode-source__";
 
 interface CollectionModeRequest {
   serverUrl: string;
@@ -41,6 +42,16 @@ export function isModeNameTaken(
       normalizedModeName !== normalizedCurrent
     );
   });
+}
+
+export function getDefaultModeSourceName(modeNames: readonly string[]): string {
+  return modeNames[0] ?? EMPTY_MODE_SOURCE;
+}
+
+export function getModeSourcePayloadValue(
+  sourceModeName: string,
+): string | undefined {
+  return sourceModeName === EMPTY_MODE_SOURCE ? undefined : sourceModeName;
 }
 
 export async function addCollectionMode(
