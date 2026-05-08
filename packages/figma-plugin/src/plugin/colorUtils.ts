@@ -1,5 +1,29 @@
 import type { DimensionValue, ShadowTokenValue } from '../shared/types.js';
 
+const HEX_COLOR_PATTERN = /^[0-9a-fA-F]+$/;
+const CSS_NUMBER_SOURCE = String.raw`[-+]?(?:\d+\.?\d*|\.\d+)`;
+const CSS_CHANNEL_SOURCE = String.raw`(${CSS_NUMBER_SOURCE})(%?)`;
+const RGB_COLOR_RE = new RegExp(
+  String.raw`^rgba?\(\s*${CSS_CHANNEL_SOURCE}\s*[,/\s]\s*${CSS_CHANNEL_SOURCE}\s*[,/\s]\s*${CSS_CHANNEL_SOURCE}\s*(?:[,/]\s*${CSS_CHANNEL_SOURCE})?\s*\)$`,
+  'i',
+);
+const HSL_COLOR_RE = new RegExp(
+  String.raw`^hsla?\(\s*(${CSS_NUMBER_SOURCE})\s*[,/\s]\s*(${CSS_NUMBER_SOURCE})%?\s*[,/\s]\s*(${CSS_NUMBER_SOURCE})%?\s*(?:[,/]\s*${CSS_CHANNEL_SOURCE})?\s*\)$`,
+  'i',
+);
+const OKLCH_COLOR_RE = new RegExp(
+  String.raw`^oklch\(\s*${CSS_CHANNEL_SOURCE}\s+(?:,?\s*)(${CSS_NUMBER_SOURCE})\s+(?:,?\s*)(${CSS_NUMBER_SOURCE})\s*(?:/\s*${CSS_CHANNEL_SOURCE})?\s*\)$`,
+  'i',
+);
+const OKLAB_COLOR_RE = new RegExp(
+  String.raw`^oklab\(\s*${CSS_CHANNEL_SOURCE}\s+(?:,?\s*)(${CSS_NUMBER_SOURCE})\s+(?:,?\s*)(${CSS_NUMBER_SOURCE})\s*(?:/\s*${CSS_CHANNEL_SOURCE})?\s*\)$`,
+  'i',
+);
+const CSS_COLOR_FUNCTION_RE = new RegExp(
+  String.raw`^color\(\s*(display-p3|srgb)\s+(${CSS_NUMBER_SOURCE})\s+(${CSS_NUMBER_SOURCE})\s+(${CSS_NUMBER_SOURCE})\s*(?:/\s*${CSS_CHANNEL_SOURCE})?\s*\)$`,
+  'i',
+);
+
 // Named CSS colors → 6-digit hex (no #)
 const CSS_NAMED_COLORS: Record<string, string> = {
   aliceblue:'f0f8ff',antiquewhite:'faebd7',aqua:'00ffff',aquamarine:'7fffd4',azure:'f0ffff',
@@ -39,27 +63,47 @@ const CSS_NAMED_COLORS: Record<string, string> = {
 };
 
 export function parseHexRaw(hex: string): { rgb: RGB; a: number } | null {
-  if (hex.length === 6 || hex.length === 8) {
-    const r = parseInt(hex.slice(0, 2), 16) / 255;
-    const g = parseInt(hex.slice(2, 4), 16) / 255;
-    const b = parseInt(hex.slice(4, 6), 16) / 255;
-    const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+  const clean = hex.trim();
+  if (!HEX_COLOR_PATTERN.test(clean)) {
+    return null;
+  }
+  if (clean.length === 6 || clean.length === 8) {
+    const r = parseInt(clean.slice(0, 2), 16) / 255;
+    const g = parseInt(clean.slice(2, 4), 16) / 255;
+    const b = parseInt(clean.slice(4, 6), 16) / 255;
+    const a = clean.length === 8 ? parseInt(clean.slice(6, 8), 16) / 255 : 1;
     return { rgb: { r, g, b }, a };
   }
-  if (hex.length === 3) {
-    const r = parseInt(hex[0] + hex[0], 16) / 255;
-    const g = parseInt(hex[1] + hex[1], 16) / 255;
-    const b = parseInt(hex[2] + hex[2], 16) / 255;
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16) / 255;
+    const g = parseInt(clean[1] + clean[1], 16) / 255;
+    const b = parseInt(clean[2] + clean[2], 16) / 255;
     return { rgb: { r, g, b }, a: 1 };
   }
-  if (hex.length === 4) {
-    const r = parseInt(hex[0] + hex[0], 16) / 255;
-    const g = parseInt(hex[1] + hex[1], 16) / 255;
-    const b = parseInt(hex[2] + hex[2], 16) / 255;
-    const a = parseInt(hex[3] + hex[3], 16) / 255;
+  if (clean.length === 4) {
+    const r = parseInt(clean[0] + clean[0], 16) / 255;
+    const g = parseInt(clean[1] + clean[1], 16) / 255;
+    const b = parseInt(clean[2] + clean[2], 16) / 255;
+    const a = parseInt(clean[3] + clean[3], 16) / 255;
     return { rgb: { r, g, b }, a };
   }
   return null;
+}
+
+function parseFiniteFloat(raw: string | undefined): number | null {
+  if (raw === undefined) {
+    return null;
+  }
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+function parseAlphaChannel(valueRaw: string | undefined, unitRaw: string | undefined): number {
+  const value = parseFiniteFloat(valueRaw);
+  if (value === null) {
+    return 1;
+  }
+  return unitRaw === '%' ? value / 100 : value;
 }
 
 // Intentional duplicate of core's hslToSrgb — the plugin sandbox runs in a separate
@@ -90,72 +134,79 @@ export function parseColor(value: string): { rgb: RGB; a: number } | null {
   }
 
   // rgb() / rgba()
-  const rgbMatch = trimmed.match(/^rgba?\(\s*([\d.]+)(%?)\s*[,/\s]\s*([\d.]+)(%?)\s*[,/\s]\s*([\d.]+)(%?)\s*(?:[,/]\s*([\d.]+)(%?))?\s*\)$/i);
+  const rgbMatch = trimmed.match(RGB_COLOR_RE);
   if (rgbMatch) {
-    let r = parseFloat(rgbMatch[1]);
-    let g = parseFloat(rgbMatch[3]);
-    let b = parseFloat(rgbMatch[5]);
+    let r = parseFiniteFloat(rgbMatch[1]);
+    let g = parseFiniteFloat(rgbMatch[3]);
+    let b = parseFiniteFloat(rgbMatch[5]);
+    if (r === null || g === null || b === null) {
+      return null;
+    }
     if (rgbMatch[2] === '%') r = r / 100; else r = r / 255;
     if (rgbMatch[4] === '%') g = g / 100; else g = g / 255;
     if (rgbMatch[6] === '%') b = b / 100; else b = b / 255;
-    let a = 1;
-    if (rgbMatch[7] !== undefined) {
-      a = parseFloat(rgbMatch[7]);
-      if (rgbMatch[8] === '%') a = a / 100;
-    }
+    const a = parseAlphaChannel(rgbMatch[7], rgbMatch[8]);
     return { rgb: { r: Math.max(0, Math.min(1, r)), g: Math.max(0, Math.min(1, g)), b: Math.max(0, Math.min(1, b)) }, a: Math.max(0, Math.min(1, a)) };
   }
 
   // hsl() / hsla()
-  const hslMatch = trimmed.match(/^hsla?\(\s*([\d.]+)\s*[,/\s]\s*([\d.]+)%?\s*[,/\s]\s*([\d.]+)%?\s*(?:[,/]\s*([\d.]+)(%?))?\s*\)$/i);
+  const hslMatch = trimmed.match(HSL_COLOR_RE);
   if (hslMatch) {
-    const h = parseFloat(hslMatch[1]) % 360;
-    const s = Math.max(0, Math.min(100, parseFloat(hslMatch[2])));
-    const l = Math.max(0, Math.min(100, parseFloat(hslMatch[3])));
-    let a = 1;
-    if (hslMatch[4] !== undefined) {
-      a = parseFloat(hslMatch[4]);
-      if (hslMatch[5] === '%') a = a / 100;
+    const hue = parseFiniteFloat(hslMatch[1]);
+    const saturation = parseFiniteFloat(hslMatch[2]);
+    const lightness = parseFiniteFloat(hslMatch[3]);
+    if (hue === null || saturation === null || lightness === null) {
+      return null;
     }
+    const h = hue % 360;
+    const s = Math.max(0, Math.min(100, saturation));
+    const l = Math.max(0, Math.min(100, lightness));
+    const a = parseAlphaChannel(hslMatch[4], hslMatch[5]);
     const rgb = hslToRgbValues(h, s, l);
     return { rgb, a: Math.max(0, Math.min(1, a)) };
   }
 
   // oklch()
-  const oklchMatch = trimmed.match(/^oklch\(\s*([\d.]+)(%?)\s+(?:,?\s*)([\d.]+)\s+(?:,?\s*)([\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/i);
+  const oklchMatch = trimmed.match(OKLCH_COLOR_RE);
   if (oklchMatch) {
-    let L = parseFloat(oklchMatch[1]);
+    let L = parseFiniteFloat(oklchMatch[1]);
+    const C = parseFiniteFloat(oklchMatch[3]);
+    const H = parseFiniteFloat(oklchMatch[4]);
+    if (L === null || C === null || H === null) {
+      return null;
+    }
     if (oklchMatch[2] === '%') L = L / 100;
-    const C = parseFloat(oklchMatch[3]);
-    const H = parseFloat(oklchMatch[4]);
-    let a = 1;
-    if (oklchMatch[5] !== undefined) { a = parseFloat(oklchMatch[5]); if (oklchMatch[6] === '%') a = a / 100; }
+    const a = parseAlphaChannel(oklchMatch[5], oklchMatch[6]);
     const srgb = oklchToSrgb(L, C, H);
     return { rgb: srgb, a: Math.max(0, Math.min(1, a)) };
   }
 
   // oklab()
-  const oklabMatch = trimmed.match(/^oklab\(\s*([\d.]+)(%?)\s+(?:,?\s*)([-\d.]+)\s+(?:,?\s*)([-\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/i);
+  const oklabMatch = trimmed.match(OKLAB_COLOR_RE);
   if (oklabMatch) {
-    let L = parseFloat(oklabMatch[1]);
+    let L = parseFiniteFloat(oklabMatch[1]);
+    const oa = parseFiniteFloat(oklabMatch[3]);
+    const ob = parseFiniteFloat(oklabMatch[4]);
+    if (L === null || oa === null || ob === null) {
+      return null;
+    }
     if (oklabMatch[2] === '%') L = L / 100;
-    const oa = parseFloat(oklabMatch[3]);
-    const ob = parseFloat(oklabMatch[4]);
-    let alpha = 1;
-    if (oklabMatch[5] !== undefined) { alpha = parseFloat(oklabMatch[5]); if (oklabMatch[6] === '%') alpha = alpha / 100; }
+    const alpha = parseAlphaChannel(oklabMatch[5], oklabMatch[6]);
     const srgb = oklabToSrgbDirect(L, oa, ob);
     return { rgb: srgb, a: Math.max(0, Math.min(1, alpha)) };
   }
 
   // color(display-p3 r g b) / color(srgb r g b)
-  const colorMatch = trimmed.match(/^color\(\s*(display-p3|srgb)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/i);
+  const colorMatch = trimmed.match(CSS_COLOR_FUNCTION_RE);
   if (colorMatch) {
     const space = colorMatch[1].toLowerCase();
-    const c0 = parseFloat(colorMatch[2]);
-    const c1 = parseFloat(colorMatch[3]);
-    const c2 = parseFloat(colorMatch[4]);
-    let a = 1;
-    if (colorMatch[5] !== undefined) { a = parseFloat(colorMatch[5]); if (colorMatch[6] === '%') a = a / 100; }
+    const c0 = parseFiniteFloat(colorMatch[2]);
+    const c1 = parseFiniteFloat(colorMatch[3]);
+    const c2 = parseFiniteFloat(colorMatch[4]);
+    if (c0 === null || c1 === null || c2 === null) {
+      return null;
+    }
+    const a = parseAlphaChannel(colorMatch[5], colorMatch[6]);
     if (space === 'display-p3') {
       const srgb = p3ToSrgbDirect(c0, c1, c2);
       return { rgb: srgb, a: Math.max(0, Math.min(1, a)) };
@@ -180,6 +231,10 @@ export function parseColor(value: string): { rgb: RGB; a: number } | null {
 // ---------------------------------------------------------------------------
 
 function clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }
+
+function finiteOrNull(value: number): number | null {
+  return Number.isFinite(value) ? value : null;
+}
 
 function fromLinearSrgb(c: number): number {
   const v = Math.max(0, Math.min(1, c));
@@ -220,14 +275,22 @@ function p3ToSrgbDirect(pr: number, pg: number, pb: number): RGB {
 }
 
 export function rgbToHex(color: RGB | RGBA, alpha = 1): string {
-  const r = Math.round(color.r * 255).toString(16).padStart(2, '0');
-  const g = Math.round(color.g * 255).toString(16).padStart(2, '0');
-  const b = Math.round(color.b * 255).toString(16).padStart(2, '0');
-  if (alpha < 1) {
-    const a = Math.round(alpha * 255).toString(16).padStart(2, '0');
-    return `#${r}${g}${b}${a}`;
+  const r = finiteOrNull(color.r);
+  const g = finiteOrNull(color.g);
+  const b = finiteOrNull(color.b);
+  const a = finiteOrNull(alpha);
+  if (r === null || g === null || b === null || a === null) {
+    return '#000000';
   }
-  return `#${r}${g}${b}`;
+  const toChannel = (value: number) => Math.round(clamp01(value) * 255).toString(16).padStart(2, '0');
+  const red = toChannel(r);
+  const green = toChannel(g);
+  const blue = toChannel(b);
+  if (a < 1) {
+    const alphaChannel = toChannel(a);
+    return `#${red}${green}${blue}${alphaChannel}`;
+  }
+  return `#${red}${green}${blue}`;
 }
 
 export function parseDimValue(dim: string | number | DimensionValue | null | undefined): number {

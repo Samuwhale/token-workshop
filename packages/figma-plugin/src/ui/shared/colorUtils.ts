@@ -6,11 +6,6 @@
  * from core — do NOT re-export through this file (bundler scope-hoisting TDZ risk).
  */
 
-let _coreWarnLogged = false;
-function logCoreUnavailable() {
-  if (!_coreWarnLogged) { console.debug('[colorUtils] @token-workshop/core not available at runtime'); _coreWarnLogged = true; }
-}
-
 import {
   srgbToLinear as toLinear,
   srgbFromLinear as fromLinear,
@@ -93,7 +88,6 @@ function formatWideGamut(colorStr: string, format: ColorFormat): string {
       case 'p3': return serializeColor(toDisplayP3(parsed));
     }
   } catch {
-    logCoreUnavailable();
     return colorStr;
   }
 }
@@ -118,7 +112,7 @@ export function parseColorInput(input: string): string | null {
       return isWideGamut(trimmed) ? serializeColor(parsed) : toHex(parsed);
     }
   } catch {
-    logCoreUnavailable();
+    return null;
   }
   return null;
 }
@@ -209,11 +203,11 @@ export function hexToLstar(hex: string): number | null {
 // ---------------------------------------------------------------------------
 
 export function hexToLuminance(hex: string): number | null {
-  const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{3,8}$/.test(clean)) return null;
-  const full = clean.length === 3
-    ? clean.split('').map(c => c + c).join('')
-    : clean.slice(0, 6);
+  const normalized = normalizeHex(hex);
+  if (!/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(normalized)) {
+    return null;
+  }
+  const full = normalized.slice(1, 7);
   const r = parseInt(full.slice(0, 2), 16) / 255;
   const g = parseInt(full.slice(2, 4), 16) / 255;
   const b = parseInt(full.slice(4, 6), 16) / 255;
@@ -241,7 +235,7 @@ export function colorLuminance(colorStr: string): number | null {
     const parsed = parseAnyColor(colorStr);
     if (parsed) return parsedColorLuminance(parsed);
   } catch {
-    logCoreUnavailable();
+    return null;
   }
   return null;
 }
@@ -273,7 +267,6 @@ export function isWideGamutColor(colorStr: string): boolean {
   try {
     return isWideGamut(colorStr);
   } catch {
-    logCoreUnavailable();
     return false;
   }
 }
@@ -287,7 +280,6 @@ export function getSrgbFallback(colorStr: string): string | null {
   try {
     return srgbFallbackHex(colorStr);
   } catch {
-    logCoreUnavailable();
     return null;
   }
 }
