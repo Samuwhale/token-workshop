@@ -61,6 +61,7 @@ import {
   DEFAULT_Z_INDEX_SCALE_CONFIG,
   readStructuredGeneratorDraft,
 } from "@token-workshop/core";
+import { cloneValue } from "../../../shared/clone";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
 import { useElementWidth } from "../../hooks/useElementWidth";
@@ -2032,10 +2033,7 @@ export function GeneratorsPanel({
         id,
         label: `${sourceNode.data.graphNode.label} copy`,
         position,
-        data: JSON.parse(JSON.stringify(sourceNode.data.graphNode.data)) as Record<
-          string,
-          unknown
-        >,
+        data: cloneValue(sourceNode.data.graphNode.data),
       };
       const flowNode: GraphFlowNode = {
         id,

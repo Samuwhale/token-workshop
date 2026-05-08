@@ -416,14 +416,7 @@ function collectListIssues(
 }
 
 function readNodeTokenRefs(node: TokenGeneratorDocumentNode): Record<string, string> {
-  const dataRefs = readGeneratorTokenRefs(node.data.$tokenRefs);
-  const config =
-    node.data.config &&
-    typeof node.data.config === "object" &&
-    !Array.isArray(node.data.config)
-      ? node.data.config as Record<string, unknown>
-      : {};
-  return { ...readGeneratorTokenRefs(config.$tokenRefs), ...dataRefs };
+  return readGeneratorTokenRefs(node.data.$tokenRefs);
 }
 
 function readGeneratorTokenRefs(value: unknown): Record<string, string> {
@@ -584,6 +577,10 @@ function validateListValue(
     }
   }
 
+  if (type === "boolean" && !isBooleanLike(value)) {
+    return "value must be true or false";
+  }
+
   if (type === "token") {
     if (!/^\{[^}]+\}$/.test(String(value ?? ""))) return "choose a token";
     const path = cleanTokenRefPath(String(value ?? ""));
@@ -598,4 +595,18 @@ function validateListValue(
   }
 
   return null;
+}
+
+function isBooleanLike(value: unknown): boolean {
+  if (typeof value === "boolean") return true;
+  if (typeof value === "number") return value === 0 || value === 1;
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "" ||
+    normalized === "false" ||
+    normalized === "true" ||
+    normalized === "0" ||
+    normalized === "1"
+  );
 }

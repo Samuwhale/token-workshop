@@ -220,7 +220,7 @@ export function GeneratorBooleanField({
 }) {
   return (
     <FieldBlock label={label}>
-      <BooleanEditor value={Boolean(value)} onChange={onChange} />
+      <BooleanEditor value={readBooleanInput(value)} onChange={onChange} />
     </FieldBlock>
   );
 }
@@ -768,7 +768,12 @@ function ListValueControl({
     );
   }
   if (type === "boolean") {
-    return <BooleanEditor value={Boolean(row.value)} onChange={(value) => onChange({ ...row, value })} />;
+    return (
+      <BooleanEditor
+        value={readBooleanInput(row.value)}
+        onChange={(value) => onChange({ ...row, value })}
+      />
+    );
   }
   if (type === "token") {
     const value = String(row.value ?? "").replace(/^\{|\}$/g, "");
@@ -1004,9 +1009,24 @@ function normalizeListValueForType(value: unknown, type: string): unknown {
       ? value
       : { value: toFiniteNumber(value, 0), unit: "px" };
   }
-  if (type === "boolean") return Boolean(value);
+  if (type === "boolean") return readBooleanInput(value);
   if (type === "token") {
     return typeof value === "string" && value.startsWith("{") ? value : "";
   }
   return value == null ? "" : String(value);
+}
+
+function readBooleanInput(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return value !== 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "" || normalized === "false" || normalized === "0") {
+      return false;
+    }
+    if (normalized === "true" || normalized === "1") {
+      return true;
+    }
+  }
+  return false;
 }

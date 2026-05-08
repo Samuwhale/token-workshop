@@ -639,7 +639,7 @@ export function tokenFromGeneratorOutput(
 }
 
 function cloneToken(token: Token): Token {
-  return JSON.parse(JSON.stringify(token)) as Token;
+  return cloneGeneratorData(token);
 }
 
 export function readGeneratorProvenance(
@@ -1028,7 +1028,7 @@ function literalValue(
     }
     if (type === 'boolean') {
       validateResolvedTokenRefType(resolvedRef, ['boolean'], 'value');
-      return { kind: 'scalar', type, value: Boolean(resolvedRef.value) };
+      return { kind: 'scalar', type, value: resolvedRef.value as boolean };
     }
     validateResolvedTokenRefType(resolvedRef, [type], 'value');
     return { kind: 'scalar', type, value: String(resolvedRef.value ?? '') };
@@ -1045,7 +1045,13 @@ function literalValue(
       },
     };
   }
-  if (type === 'boolean') return { kind: 'scalar', type, value: Boolean(raw) };
+  if (type === 'boolean') {
+    return {
+      kind: 'scalar',
+      type,
+      value: readBooleanLiteral(raw, 'Boolean literal'),
+    };
+  }
   return { kind: 'scalar', type, value: String(raw ?? '') };
 }
 
@@ -1141,20 +1147,8 @@ function readTokenRefMap(node: TokenGeneratorNode): GeneratorTokenRefMap {
     !Array.isArray(node.data.$tokenRefs)
       ? (node.data.$tokenRefs as Record<string, unknown>)
       : {};
-  const config =
-    node.data.config &&
-    typeof node.data.config === 'object' &&
-    !Array.isArray(node.data.config)
-      ? (node.data.config as Record<string, unknown>)
-      : {};
-  const fromConfig =
-    config.$tokenRefs &&
-    typeof config.$tokenRefs === 'object' &&
-    !Array.isArray(config.$tokenRefs)
-      ? (config.$tokenRefs as Record<string, unknown>)
-      : {};
   return Object.fromEntries(
-    Object.entries({ ...fromConfig, ...fromData })
+    Object.entries(fromData)
       .filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
   );
 }
@@ -1509,12 +1503,9 @@ function readNodeConfig<T extends object>(
   node: TokenGeneratorNode,
   defaults: T,
 ): T {
-  const rawConfig = node.data.config;
-  const explicitConfig =
-    rawConfig && typeof rawConfig === 'object' && !Array.isArray(rawConfig)
-      ? rawConfig as Partial<T>
-      : {};
-  return JSON.parse(JSON.stringify({ ...defaults, ...node.data, ...explicitConfig })) as T;
+  const nodeData = { ...node.data };
+  delete nodeData.config;
+  return cloneGeneratorData({ ...defaults, ...nodeData }) as T;
 }
 
 function readNodeConfigForMode<T extends object>(
@@ -1536,7 +1527,7 @@ function readNodeConfigForMode<T extends object>(
     config[key] = coerceConfigReferenceValue(key, config[key] ?? (defaults as Record<string, unknown>)[key], resolved);
   }
   delete config.$tokenRefs;
-  return JSON.parse(JSON.stringify(config)) as T;
+  return cloneGeneratorData(config) as T;
 }
 
 function coerceConfigReferenceValue(
@@ -1656,7 +1647,7 @@ function listValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
         return {
           key,
           label: String(item.label ?? key),
-          value: item.value as TokenValue,
+          value: normalizeListRuntimeValue(listType, item.value),
           type: listType === 'token'
             ? (item.type as TokenType | undefined) ?? tokenListItemType
             : listItemType,
@@ -1665,11 +1656,50 @@ function listValue(node: TokenGeneratorNode): GeneratorRuntimeValue {
       return {
         key: String(index + 1),
         label: String(index + 1),
-        value: item as TokenValue,
+        value: normalizeListRuntimeValue(listType, item),
         type: listType === 'token' ? tokenListItemType : listItemType,
       };
     }),
   };
+}
+
+function normalizeListRuntimeValue(
+  listType: TokenGeneratorPortType,
+  value: unknown,
+): TokenValue | TokenReference {
+  if (listType === 'boolean') {
+    return readBooleanLiteral(value, 'List item');
+  }
+  return value as TokenValue | TokenReference;
+}
+
+function readBooleanLiteral(value: unknown, label: string): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value !== 0;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '' || normalized === 'false' || normalized === '0') {
+      return false;
+    }
+    if (normalized === 'true' || normalized === '1') {
+      return true;
+    }
+  }
+  if (value == null) {
+    return false;
+  }
+  throw new Error(`${label} must be true or false.`);
+}
+
+function cloneGeneratorData<T>(value: T): T {
+  const clone = (globalThis as typeof globalThis & {
+    structuredClone: <TValue>(input: TValue) => TValue;
+  }).structuredClone;
+  return clone(value);
 }
 
 function tokenTypeForListType(type: TokenGeneratorPortType): TokenType | undefined {
