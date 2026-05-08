@@ -504,21 +504,37 @@ export function TokenListToolbar({
 
             {showCreate ? (
               <div className="tm-token-toolbar__create relative shrink-0">
-                {showPrimaryCreateAction ? (
-                  <div className="tm-token-toolbar__split-button">
-                    <button
-                      type="button"
-                      onClick={() => onCreateToken?.()}
-                      disabled={!connected}
-                      title="New token"
-                      aria-label="New token"
-                      className="tm-token-toolbar__split-button-primary inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-action-bg)] px-2 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
-                    >
-                      <Plus size={12} strokeWidth={2} aria-hidden />
-                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
-                        New token
-                      </span>
-                    </button>
+                <div className="flex items-center gap-1">
+                  {showPrimaryCreateAction ? (
+                    <div className="tm-token-toolbar__split-button">
+                      <button
+                        type="button"
+                        onClick={() => onCreateToken?.()}
+                        disabled={!connected}
+                        title="New token"
+                        aria-label="New token"
+                        className="tm-token-toolbar__split-button-primary inline-flex min-h-[26px] items-center gap-1 bg-[var(--color-figma-action-bg)] px-2 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+                      >
+                        <Plus size={12} strokeWidth={2} aria-hidden />
+                        <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
+                          New token
+                        </span>
+                      </button>
+                      <button
+                        ref={createMenu.triggerRef}
+                        type="button"
+                        onClick={createMenu.toggle}
+                        disabled={!connected}
+                        aria-expanded={createMenu.open}
+                        aria-haspopup="menu"
+                        aria-label="More create actions"
+                        title="More create actions"
+                        className="tm-token-toolbar__split-button-toggle inline-flex min-h-7 w-7 items-center justify-center border-l border-white/25 bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+                      >
+                        <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       ref={createMenu.triggerRef}
                       type="button"
@@ -526,32 +542,36 @@ export function TokenListToolbar({
                       disabled={!connected}
                       aria-expanded={createMenu.open}
                       aria-haspopup="menu"
-                      aria-label="More create actions"
-                      title="More create actions"
-                      className="tm-token-toolbar__split-button-toggle inline-flex min-h-7 w-7 items-center justify-center border-l border-white/25 bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+                      aria-label="Create"
+                      title="Create"
+                      className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40`}
                     >
+                      <Plus size={12} strokeWidth={2} aria-hidden />
+                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
+                        Create
+                      </span>
                       <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                     </button>
-                  </div>
-                ) : (
-                  <button
-                    ref={createMenu.triggerRef}
-                    type="button"
-                    onClick={createMenu.toggle}
-                    disabled={!connected}
-                    aria-expanded={createMenu.open}
-                    aria-haspopup="menu"
-                    aria-label="Create"
-                    title="Create"
-                    className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40`}
-                  >
-                    <Plus size={12} strokeWidth={2} aria-hidden />
-                    <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
-                      Create
-                    </span>
-                    <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
-                  </button>
-                )}
+                  )}
+
+                  {showPrimaryCreateAction ? (
+                    <Button
+                      type="button"
+                      onClick={handleOpenNewGroupDialog}
+                      disabled={!connected}
+                      variant="ghost"
+                      size="sm"
+                      aria-label="New group"
+                      title="New group"
+                      className={`${TOOLBAR_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-40`}
+                    >
+                      <Plus size={12} strokeWidth={1.5} aria-hidden />
+                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
+                        New group
+                      </span>
+                    </Button>
+                  ) : null}
+                </div>
 
                 {createMenu.open ? (
                   <div

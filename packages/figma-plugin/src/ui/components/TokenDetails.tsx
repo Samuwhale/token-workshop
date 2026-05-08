@@ -1481,7 +1481,7 @@ export function TokenDetails({
   ) : null;
 
   const valueSectionTitle =
-    modeValue.modes.length >= 2 ? "Mode values" : "Value";
+    modeValue.modes.length >= 2 ? "Mode values" : "Mode value";
   const referenceCount =
     (ancestors.isEmpty ? 0 : ancestors.chains.length) + dependents.length;
   const referencesLabel =
@@ -1767,8 +1767,6 @@ export function TokenDetails({
                     initialModeVal !== undefined &&
                     stableStringify(modeVal) !==
                       stableStringify(initialModeVal);
-                  const showModeLabel = modeValue.modes.length >= 2;
-
                   return (
                     <TokenDetailsModeRow
                       key={`${ownerCollectionId}:${tokenPath}:${mode.name}`}
@@ -1783,7 +1781,7 @@ export function TokenDetails({
                       perCollectionFlat={perCollectionFlat}
                       preferredCollectionId={ownerCollectionId}
                       collectionDisplayNames={collectionDisplayNames}
-                      showModeLabel={showModeLabel}
+                      showModeLabel
                       autoFocus={modeIdx === 0 && !isCreateMode && fieldEditable}
                       inheritedValue={inheritedValue}
                       availableFonts={availableFonts}

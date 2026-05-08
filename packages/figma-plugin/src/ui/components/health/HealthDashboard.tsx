@@ -230,7 +230,7 @@ export function HealthDashboard({
     : validationLoading && !validationLastRefreshed
       ? "Checking library"
       : totalIssueCount === 0
-        ? "Ready to publish"
+        ? "Review is clear"
         : "Review needs attention";
   const statusDetail = validationError
     ? validationError

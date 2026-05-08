@@ -858,7 +858,7 @@ export const TokenLeafNode = memo(
                 shift: e.shiftKey,
               });
             }}
-            className={`shrink-0 inline-flex h-7 w-7 items-center justify-center rounded transition-opacity focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${
+            className={`tm-token-tree-row__selection-control shrink-0 inline-flex h-7 w-7 items-center justify-center rounded transition-opacity focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${
               selectionControlVisibilityClass
             } hover:bg-[var(--color-figma-bg-hover)]`}
           >
@@ -1025,7 +1025,7 @@ export const TokenLeafNode = memo(
                 </span>
               ))}
               <div
-                className={`shrink-0 transition-opacity ${overflowActionVisibilityClass}`}
+                className={`tm-token-tree-row__overflow-control shrink-0 transition-opacity ${overflowActionVisibilityClass}`}
               >
                 <button
                   onClick={(e) => {

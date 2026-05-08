@@ -312,7 +312,10 @@ export function WelcomePrompt({
                 }}
                 onRetryConnection={onRetryConnection}
                 onAuthorFirstToken={onAuthorFirstToken}
+                onImportExistingSystem={() => handleAction(onImportExistingSystem)}
+                onStartFromSelection={() => handleAction(onStartFromSelection)}
                 onCreateCollection={onCreateCollection}
+                selectedNodeCount={selectedNodeCount}
               />
             </div>
           )}

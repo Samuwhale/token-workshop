@@ -155,6 +155,7 @@ export function PlatformExportConfig({
     presetName, setPresetName,
   } = presetsState;
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     if (showSavePreset) setPresetsOpen(true);
@@ -196,6 +197,18 @@ export function PlatformExportConfig({
       fetchDiff();
     }
   };
+  const showCollections = collectionIds.length > 1 || selected.has('json');
+  const advancedSummary = [
+    selected.has('css') ? `CSS ${cssSelector || ':root'}` : null,
+    showCollections && selectedCollections !== null
+      ? `${selectedCollections.size} collection${selectedCollections.size === 1 ? '' : 's'}`
+      : null,
+    selectedTypes !== null && selectedTypes.size !== ALL_TOKEN_TYPES.length
+      ? `${selectedTypes.size} type${selectedTypes.size === 1 ? '' : 's'}`
+      : null,
+    pathPrefix ? `Path ${pathPrefix}` : null,
+    changesOnly ? 'Changes only' : null,
+  ].filter(Boolean).join(' · ') || 'Defaults';
 
   const intentButtonClass =
     "rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]";
@@ -403,9 +416,19 @@ export function PlatformExportConfig({
         )}
       </div>
 
-      {/* CSS Selector */}
-      {selected.has('css') && (
-        <div>
+      <div>
+        <DisclosureRow
+          title="Advanced file settings"
+          summary={advancedSummary}
+          open={advancedOpen}
+          onToggle={() => setAdvancedOpen(v => !v)}
+          className="mb-1"
+        />
+        {advancedOpen ? (
+          <div className="flex flex-col gap-3 pl-4">
+            {/* CSS Selector */}
+            {selected.has('css') && (
+              <div>
           <DisclosureRow
             title="CSS selector"
             summary={<span className="font-mono">{cssSelector || ':root'}</span>}
@@ -436,12 +459,12 @@ export function PlatformExportConfig({
               </div>
             </div>
           )}
-        </div>
-      )}
+              </div>
+            )}
 
-      {/* Collections */}
-      {collectionIds.length > 0 && (
-        <div>
+            {/* Collections */}
+            {showCollections && (
+              <div>
           <DisclosureRow
             title="Collections"
             summary={
@@ -488,11 +511,11 @@ export function PlatformExportConfig({
               })}
             </div>
           )}
-        </div>
-      )}
+              </div>
+            )}
 
-      {/* Token Types */}
-      <div>
+            {/* Token Types */}
+            <div>
         <DisclosureRow
           title="Token types"
           summary={
@@ -542,10 +565,10 @@ export function PlatformExportConfig({
             })}
           </div>
         )}
-      </div>
+            </div>
 
-      {/* Path Prefix */}
-      <div>
+            {/* Path Prefix */}
+            <div>
         <DisclosureRow
           title="Path prefix"
           summary={<span className="font-mono">{pathPrefix || 'None'}</span>}
@@ -576,10 +599,10 @@ export function PlatformExportConfig({
             </div>
           </>
         )}
-      </div>
+            </div>
 
-      {/* Scope / Changes only */}
-      <div>
+            {/* Scope / Changes only */}
+            <div>
         <DisclosureRow
           title="Scope"
           summary={changesOnly ? 'Changes only' : 'All tokens'}
@@ -729,6 +752,9 @@ export function PlatformExportConfig({
             )}
           </>
         )}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* ZIP Options (shown after first export) */}

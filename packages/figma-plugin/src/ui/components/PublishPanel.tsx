@@ -1139,6 +1139,21 @@ export function PublishPanel({
     ...styleSync.rows.filter(r => r.cat === 'conflict').map(r => ({ ...r, _source: 'style' as const })),
   ], [varSync.rows, styleSync.rows]);
   const nonConflictCount = totalDiffCount - allConflictRows.length;
+  const applyScopeLabel = (() => {
+    if (totalConflictCount > 0) return 'Review conflicts';
+    const writesToFigma = varSync.pushCount + styleSync.pushCount;
+    const pullsToLocal = varSync.pullCount + styleSync.pullCount;
+    if (writesToFigma > 0 && pullsToLocal > 0) return 'Review and apply';
+    if (writesToFigma > 0) {
+      if (varSync.pushCount > 0 && styleSync.pushCount > 0) {
+        return 'Update Figma variables + styles';
+      }
+      if (styleSync.pushCount > 0) return 'Update Figma styles';
+      return 'Update Figma variables';
+    }
+    if (pullsToLocal > 0) return 'Update local tokens';
+    return 'Apply changes';
+  })();
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
@@ -1317,7 +1332,7 @@ export function PublishPanel({
                       disabled={isApplying}
                       className="rounded-md bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
                     >
-                      {totalConflictCount > 0 ? 'Review & apply' : 'Apply all'}
+                      {applyScopeLabel}
                     </button>
                   )}
                 </div>

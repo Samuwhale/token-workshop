@@ -284,7 +284,7 @@ export function TokenDetailsModeRow({
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
         <span className="tm-token-mode-row__action-button-label">
-          Alias
+          {aliasMode ? "Aliased" : "Alias"}
         </span>
       </button>
     </div>

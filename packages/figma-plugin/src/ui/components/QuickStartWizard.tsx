@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { X } from "lucide-react";
+import { MousePointer2, Plus, Upload, X } from "lucide-react";
 import {
   buildCollectionModeNames,
   CollectionAuthoringFields,
@@ -23,7 +23,10 @@ interface QuickStartWizardProps {
   onCollectionCreated?: (collectionId: string) => void;
   onRetryConnection?: () => void;
   onAuthorFirstToken?: (collectionId: string) => void;
+  onImportExistingSystem?: () => void;
+  onStartFromSelection?: () => void;
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
+  selectedNodeCount?: number;
   embedded?: boolean;
   onBack?: () => void;
 }
@@ -231,6 +234,41 @@ function QuickStartShell({
   );
 }
 
+function NextStepButton({
+  title,
+  description,
+  onClick,
+  disabled,
+  icon,
+}: {
+  title: string;
+  description: string;
+  onClick: () => void;
+  disabled?: boolean;
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+    >
+      <span className="mt-0.5 shrink-0 text-[color:var(--color-figma-text-secondary)]">
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-body font-medium text-[color:var(--color-figma-text)]">
+          {title}
+        </span>
+        <span className="mt-0.5 block text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+          {description}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export function QuickStartWizard({
   serverUrl,
   currentCollectionId,
@@ -242,7 +280,10 @@ export function QuickStartWizard({
   onCollectionCreated,
   onRetryConnection,
   onAuthorFirstToken,
+  onImportExistingSystem,
+  onStartFromSelection,
   onCreateCollection,
+  selectedNodeCount = 0,
   embedded = false,
   onBack,
 }: QuickStartWizardProps) {
@@ -303,26 +344,47 @@ export function QuickStartWizard({
             {wizardCreatedCollection
               ? `"${wizardCreatedCollection}" is ready with ${createdModeCount} mode${createdModeCount === 1 ? "" : "s"}.`
               : effectiveCollectionId
-                ? "Create your first group or token next."
-                : "Create your first token next."}
+                ? "Choose the next library step."
+                : "Choose the next library step."}
           </p>
           <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Start with one real token in this collection. Add generators after the authored structure is clear.
+            Start with authored tokens, import an existing source, or extract values from the canvas.
           </p>
         </div>
-        <div className="px-4 pb-2">
-          <button
-            type="button"
+        <div className="px-2 pb-2">
+          <NextStepButton
+            title="Create token"
+            description="Author the first real token in this collection."
             onClick={() => {
               if (effectiveCollectionId) {
                 onAuthorFirstToken?.(effectiveCollectionId);
               }
             }}
             disabled={!connected || !effectiveCollectionId}
-            className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
-          >
-            Create token
-          </button>
+            icon={<Plus size={13} strokeWidth={1.75} aria-hidden />}
+          />
+          {onImportExistingSystem ? (
+            <NextStepButton
+              title="Import tokens"
+              description="Bring in Figma variables, styles, or token files."
+              onClick={onImportExistingSystem}
+              disabled={!connected}
+              icon={<Upload size={13} strokeWidth={1.75} aria-hidden />}
+            />
+          ) : null}
+          {onStartFromSelection ? (
+            <NextStepButton
+              title="Extract from selection"
+              description={
+                selectedNodeCount > 0
+                  ? "Turn selected layer values into tokens."
+                  : "Select a layer in Figma, then extract values."
+              }
+              onClick={onStartFromSelection}
+              disabled={!connected || selectedNodeCount === 0}
+              icon={<MousePointer2 size={13} strokeWidth={1.75} aria-hidden />}
+            />
+          ) : null}
         </div>
         <div className="flex items-center justify-between gap-2 px-4 py-3">
           {embedded && onBack ? (

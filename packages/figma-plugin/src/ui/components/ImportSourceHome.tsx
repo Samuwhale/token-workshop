@@ -73,10 +73,10 @@ export function ImportSourceHome() {
 
       <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          From token or code files
+          From another token source
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Drop one file to detect DTCG JSON, CSS variables, Tailwind config, or Tokens Studio exports.
+          Drop a token file or a source your team already uses.
         </div>
         <div
           onDragEnter={handleDragEnter}

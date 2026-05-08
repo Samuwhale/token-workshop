@@ -53,7 +53,7 @@ export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
     const isStatus = segment === statusSegment;
     const hoverClass = isResting
       ? ""
-      : "hidden group-hover:inline-flex group-focus-within:inline-flex";
+      : "opacity-70 group-hover:opacity-100 group-focus-within:opacity-100";
 
     return (
       <span

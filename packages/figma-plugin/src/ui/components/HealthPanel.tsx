@@ -543,7 +543,7 @@ export function HealthPanel({
           ? "Checking library"
           : collectionSummaries.length > 0
             ? "Review needs attention"
-            : "Ready to publish";
+            : "Review is clear";
     const allScopeStatusDetail =
       libraryReviewErrors.length > 0
         ? "Some checks failed. Refresh Review once the server is connected."

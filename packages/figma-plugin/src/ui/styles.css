@@ -2106,6 +2106,14 @@ button.tm-status-row:not(:disabled):hover {
   overflow: hidden;
 }
 
+.tm-token-tree-row__selection-control,
+.tm-token-tree-row__overflow-control {
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+
 .tm-token-tree-row__title-line {
   display: flex;
   min-inline-size: 0;
@@ -2145,7 +2153,7 @@ button.tm-status-row:not(:disabled):hover {
     overflow-wrap: anywhere;
     line-height: 1.15;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
   }
 }
 
@@ -2190,6 +2198,28 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
+@media (pointer: coarse) {
+  .tm-token-tree-row__selection-control {
+    opacity: 0.72 !important;
+    pointer-events: auto !important;
+  }
+
+  .tm-token-tree-row__overflow-control {
+    opacity: 0.68 !important;
+  }
+}
+
+@container (max-width: 480px) {
+  .tm-token-tree-row__selection-control {
+    opacity: 0.72 !important;
+    pointer-events: auto !important;
+  }
+
+  .tm-token-tree-row__overflow-control {
+    opacity: 0.68 !important;
+  }
+}
+
 /* Token details surface */
 .tm-token-details__header-title {
   display: flex;
@@ -2203,6 +2233,7 @@ button.tm-status-row:not(:disabled):hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  overflow-wrap: anywhere;
   font-size: var(--font-size-base);
   line-height: var(--leading-tight);
   font-weight: 600;
@@ -2229,6 +2260,7 @@ button.tm-status-row:not(:disabled):hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  overflow-wrap: anywhere;
   font-size: var(--font-size-base);
   line-height: var(--leading-tight);
   font-weight: 600;
@@ -3698,8 +3730,8 @@ button.tm-token-details__text-button:disabled:hover {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-block-size: 26px;
-  padding-inline: 6px;
+  min-block-size: 28px;
+  padding-inline: 8px;
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
@@ -3840,12 +3872,13 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-token-mode-row__secondary-action {
   display: inline-flex;
   min-inline-size: 0;
+  min-block-size: 28px;
   align-items: center;
   gap: 4px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  padding: 2px 4px;
+  padding: 4px 6px;
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-figma-text-secondary);
@@ -4123,7 +4156,7 @@ button.tm-token-details__text-button:disabled:hover {
 
 @container authoring-surface (max-width: 320px) {
   .tm-token-mode-row__action-button-label {
-    display: none;
+    font-size: var(--font-size-xs);
   }
 }
 
