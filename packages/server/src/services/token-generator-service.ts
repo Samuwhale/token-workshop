@@ -18,6 +18,7 @@ import {
   type TokenCollection,
   type TokenGeneratorDocument,
   type TokenGeneratorDocumentNode,
+  type TokenGeneratorDiagnostic,
   type TokenGeneratorEdge,
   type TokenGeneratorPreviewResult,
   type TokenGeneratorViewport,
@@ -34,6 +35,7 @@ import {
 } from "./operation-log.js";
 import type { OperationLog } from "./operation-log.js";
 import type { TokenStore } from "./token-store.js";
+import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
 interface GeneratorStoreFile {
@@ -58,6 +60,12 @@ const GENERATOR_NODE_KINDS = new Set<string>([
   "alias",
   "output",
   "groupOutput",
+]);
+
+const GENERATOR_DIAGNOSTIC_SEVERITIES = new Set<string>([
+  "info",
+  "warning",
+  "error",
 ]);
 
 export interface GeneratorCreateInput {
@@ -134,18 +142,18 @@ export class TokenGeneratorService {
   async reloadFromDisk(): Promise<void> {
     try {
       const raw = await fs.readFile(this.filePath, "utf-8");
-      const parsed = JSON.parse(raw) as GeneratorStoreFile;
+      const parsed = expectJsonObject(
+        parseJsonFile(raw, { filePath: this.filePath }),
+        { filePath: this.filePath },
+      ) as unknown as GeneratorStoreFile;
       if (!Array.isArray(parsed.$generators)) {
         throw new Error(
           `Invalid generator store "${this.filePath}": $generators must be an array`,
         );
       }
-      const generators = parsed.$generators;
-      this.generators = new Map(
-        generators.map((generator) => {
-          const normalized = normalizeGeneratorDocument(generator);
-          return [normalized.id, normalized] as const;
-        }),
+      this.generators = normalizeGeneratorStoreDocuments(
+        parsed.$generators,
+        this.filePath,
       );
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
@@ -1016,48 +1024,208 @@ function validateGeneratorEdge(
   validateGeneratorEdgeEndpoint(generatorId, edge.id, "to", edge.to);
 }
 
-function normalizeGeneratorDocument(
-  generator: TokenGeneratorDocument,
-): TokenGeneratorDocument {
-  if (!generator || typeof generator !== "object") {
-    throw new Error("Invalid generator document: expected an object");
-  }
-  if (!generator.id || !generator.name || !generator.targetCollectionId) {
+function readRequiredStringField(
+  record: Record<string, unknown>,
+  field: "id" | "name" | "targetCollectionId" | "createdAt" | "updatedAt",
+  label: string,
+): string {
+  const value = record[field];
+  if (typeof value !== "string" || value.trim() === "") {
     throw new Error(
-      "Invalid generator document: id, name, and targetCollectionId are required",
+      `Invalid generator document ${label}: ${field} must be a non-empty string`,
     );
   }
+  return value;
+}
+
+function readOptionalStringField(
+  record: Record<string, unknown>,
+  field: "lastAppliedAt",
+  label: string,
+): string | undefined {
+  const value = record[field];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(
+      `Invalid generator document ${label}: ${field} must be a non-empty string`,
+    );
+  }
+  return value;
+}
+
+function normalizeGeneratorDiagnostics(
+  generatorId: string,
+  value: unknown,
+): TokenGeneratorDiagnostic[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error(
+      `Invalid generator document "${generatorId}": lastApplyDiagnostics must be an array`,
+    );
+  }
+
+  return value.map((diagnostic, index) => {
+    if (!isRecord(diagnostic)) {
+      throw new Error(
+        `Invalid generator document "${generatorId}": diagnostic ${index + 1} must be an object`,
+      );
+    }
+    const id = readRequiredStringField(diagnostic, "id", `"${generatorId}"`);
+    const severity = diagnostic.severity;
+    if (
+      typeof severity !== "string" ||
+      !GENERATOR_DIAGNOSTIC_SEVERITIES.has(severity)
+    ) {
+      throw new Error(
+        `Invalid generator document "${generatorId}": diagnostic "${id}" has invalid severity`,
+      );
+    }
+    const message = diagnostic.message;
+    if (typeof message !== "string" || message.trim() === "") {
+      throw new Error(
+        `Invalid generator document "${generatorId}": diagnostic "${id}" message must be a non-empty string`,
+      );
+    }
+
+    return {
+      id,
+      severity: severity as TokenGeneratorDiagnostic["severity"],
+      message,
+      nodeId:
+        typeof diagnostic.nodeId === "string" ? diagnostic.nodeId : undefined,
+      edgeId:
+        typeof diagnostic.edgeId === "string" ? diagnostic.edgeId : undefined,
+    };
+  });
+}
+
+function normalizeOutputHashes(
+  generatorId: string,
+  value: unknown,
+): Record<string, string> | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!isRecord(value)) {
+    throw new Error(
+      `Invalid generator document "${generatorId}": outputHashes must be an object`,
+    );
+  }
+
+  const outputHashes: Record<string, string> = {};
+  for (const [outputPath, hash] of Object.entries(value)) {
+    if (typeof hash !== "string" || hash.trim() === "") {
+      throw new Error(
+        `Invalid generator document "${generatorId}": output hash for "${outputPath}" must be a non-empty string`,
+      );
+    }
+    outputHashes[outputPath] = hash;
+  }
+  return outputHashes;
+}
+
+function normalizeGeneratorDocument(generator: unknown): TokenGeneratorDocument {
+  if (!isRecord(generator)) {
+    throw new Error("Invalid generator document: expected an object");
+  }
+
+  const id = readRequiredStringField(generator, "id", "without id");
+  const label = `"${id}"`;
+  const name = readRequiredStringField(generator, "name", label);
+  const targetCollectionId = readRequiredStringField(
+    generator,
+    "targetCollectionId",
+    label,
+  );
+  const createdAt = readRequiredStringField(generator, "createdAt", label);
+  const updatedAt = readRequiredStringField(generator, "updatedAt", label);
+
   if (!Array.isArray(generator.nodes) || !Array.isArray(generator.edges)) {
     throw new Error(
-      `Invalid generator document "${generator.id}": nodes and edges must be arrays`,
+      `Invalid generator document "${id}": nodes and edges must be arrays`,
     );
   }
   if (!generator.viewport) {
     throw new Error(
-      `Invalid generator document "${generator.id}": viewport is required`,
+      `Invalid generator document "${id}": viewport is required`,
     );
   }
-  validateGeneratorViewport(generator.id, generator.viewport);
-  generator.nodes.forEach((node) => validateGeneratorNode(generator.id, node));
-  generator.edges.forEach((edge) => validateGeneratorEdge(generator.id, edge));
-  if (!generator.createdAt || !generator.updatedAt) {
-    throw new Error(
-      `Invalid generator document "${generator.id}": createdAt and updatedAt are required`,
-    );
-  }
+  validateGeneratorViewport(id, generator.viewport);
+  generator.nodes.forEach((node) => validateGeneratorNode(id, node));
+  generator.edges.forEach((edge) => validateGeneratorEdge(id, edge));
+  validateUniqueGeneratorChildIds(id, "node", generator.nodes);
+  validateUniqueGeneratorChildIds(id, "edge", generator.edges);
+
   return {
-    id: String(generator.id),
-    name: String(generator.name),
-    targetCollectionId: String(generator.targetCollectionId),
-    nodes: generator.nodes,
-    edges: generator.edges,
-    viewport: generator.viewport,
-    createdAt: generator.createdAt,
-    updatedAt: generator.updatedAt,
-    lastAppliedAt: generator.lastAppliedAt,
-    lastApplyDiagnostics: generator.lastApplyDiagnostics,
-    outputHashes: generator.outputHashes,
+    id,
+    name,
+    targetCollectionId,
+    nodes: structuredClone(generator.nodes),
+    edges: structuredClone(generator.edges),
+    viewport: structuredClone(generator.viewport),
+    createdAt,
+    updatedAt,
+    lastAppliedAt: readOptionalStringField(generator, "lastAppliedAt", label),
+    lastApplyDiagnostics: normalizeGeneratorDiagnostics(
+      id,
+      generator.lastApplyDiagnostics,
+    ),
+    outputHashes: normalizeOutputHashes(id, generator.outputHashes),
   };
+}
+
+function validateUniqueGeneratorChildIds(
+  generatorId: string,
+  childType: "node" | "edge",
+  children: ReadonlyArray<{ id: string }>,
+): void {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const child of children) {
+    if (seen.has(child.id)) {
+      duplicates.add(child.id);
+    } else {
+      seen.add(child.id);
+    }
+  }
+  if (duplicates.size > 0) {
+    throw new Error(
+      `Invalid generator document "${generatorId}": duplicate ${childType} ids: ${[
+        ...duplicates,
+      ].join(", ")}`,
+    );
+  }
+}
+
+function normalizeGeneratorStoreDocuments(
+  documents: readonly unknown[],
+  storeLabel: string,
+): Map<string, TokenGeneratorDocument> {
+  const generators = new Map<string, TokenGeneratorDocument>();
+  const duplicateIds = new Set<string>();
+
+  for (const document of documents) {
+    const normalized = normalizeGeneratorDocument(document);
+    if (generators.has(normalized.id)) {
+      duplicateIds.add(normalized.id);
+      continue;
+    }
+    generators.set(normalized.id, normalized);
+  }
+
+  if (duplicateIds.size > 0) {
+    throw new Error(
+      `Invalid generator store "${storeLabel}": duplicate generator ids: ${[
+        ...duplicateIds,
+      ].join(", ")}`,
+    );
+  }
+
+  return generators;
 }
 
 function cloneGenerator(
