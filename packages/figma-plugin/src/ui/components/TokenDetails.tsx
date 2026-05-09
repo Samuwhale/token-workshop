@@ -23,6 +23,7 @@ import {
   getCollectionIdsForPath,
   pathExistsInCollection,
   readGeneratorProvenance,
+  readTokenModeValuesForCollection,
   resolveCollectionIdForPath,
   resolveRefValue,
 } from "@token-workshop/core";
@@ -137,28 +138,24 @@ function isEmptyModeValue(value: unknown): boolean {
 
 function getStoredModeValue(
   entry: TokenMapEntry | undefined,
-  collectionId: string,
+  collection: TokenCollection | null | undefined,
   modeName: string,
-  modeIndex: number,
 ): unknown {
-  if (!entry) {
-    return undefined;
-  }
-  if (modeIndex === 0) {
-    return entry.$value;
-  }
-
-  const collectionModes =
-    entry.$extensions?.tokenworkshop?.modes?.[collectionId];
-  if (
-    !collectionModes ||
-    typeof collectionModes !== "object" ||
-    Array.isArray(collectionModes)
-  ) {
+  if (!entry || !collection) {
     return undefined;
   }
 
-  return (collectionModes as Record<string, unknown>)[modeName];
+  const values = readTokenModeValuesForCollection(
+    {
+      $value: entry.$value,
+      ...(entry.$extensions ? { $extensions: entry.$extensions } : {}),
+    },
+    collection,
+  );
+  if (!Object.prototype.hasOwnProperty.call(values, modeName)) {
+    return undefined;
+  }
+  return values[modeName];
 }
 
 function getAncestorRowStatusLabel(
@@ -466,21 +463,50 @@ export function TokenDetails({
   const [showDetachGeneratorConfirm, setShowDetachGeneratorConfirm] = useState(false);
 
   const initialFieldsSnapshot = initialRef.current;
-  const ambiguousExtendsCollectionIds = useMemo(() => {
+  const extendsPathResolution = useMemo(() => {
     const path = extendsPath.trim();
     if (!path) {
-      return [];
+      return null;
     }
-
-    const resolution = resolveCollectionIdForPath({
+    return resolveCollectionIdForPath({
       path,
       pathToCollectionId,
       collectionIdsByPath,
       preferredCollectionId: ownerCollectionId,
     });
-    if (resolution.reason !== "ambiguous") {
+  }, [
+    collectionIdsByPath,
+    extendsPath,
+    ownerCollectionId,
+    pathToCollectionId,
+  ]);
+  const extendsCollectionId =
+    extendsPathResolution !== null &&
+    extendsPathResolution.reason !== "ambiguous" &&
+    extendsPathResolution.reason !== "missing"
+      ? (extendsPathResolution.collectionId ?? null)
+      : null;
+  const extendsCollection = useMemo(
+    () =>
+      extendsCollectionId
+        ? collections.find((collection) => collection.id === extendsCollectionId)
+        : null,
+    [collections, extendsCollectionId],
+  );
+  const extendsTokenEntry = useMemo(() => {
+    const path = extendsPath.trim();
+    if (!path) {
+      return undefined;
+    }
+    return extendsCollectionId
+      ? (perCollectionFlat[extendsCollectionId]?.[path] ?? allTokensFlat[path])
+      : allTokensFlat[path];
+  }, [allTokensFlat, extendsCollectionId, extendsPath, perCollectionFlat]);
+  const ambiguousExtendsCollectionIds = useMemo(() => {
+    if (extendsPathResolution?.reason !== "ambiguous") {
       return [];
     }
+    const path = extendsPath.trim();
     const collectionIds = getCollectionIdsForPath({
       path,
       pathToCollectionId,
@@ -490,7 +516,7 @@ export function TokenDetails({
   }, [
     collectionIdsByPath,
     extendsPath,
-    ownerCollectionId,
+    extendsPathResolution?.reason,
     pathToCollectionId,
   ]);
   const modeAliasReferenceIssues = useMemo<ModeAliasReferenceIssue[]>(
@@ -1516,6 +1542,7 @@ export function TokenDetails({
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
             currentPath={isCreateMode ? trimmedEditPath : tokenPath}
+            currentCollectionId={ownerCollectionId}
             onSelect={setExtendsPath}
           />
         ) : (
@@ -1538,8 +1565,7 @@ export function TokenDetails({
                 </p>
               );
             }
-            const source = allTokensFlat[extendsPath];
-            if (!source) {
+            if (!extendsTokenEntry) {
               return (
                 <p className="text-secondary text-[color:var(--color-figma-text-error)]">
                   Source token not found
@@ -1897,10 +1923,9 @@ export function TokenDetails({
                   const modeVal = mode.value;
                   const inheritedValue = extendsPath
                     ? getStoredModeValue(
-                        allTokensFlat[extendsPath],
-                        ownerCollectionId,
+                        extendsTokenEntry,
+                        extendsCollection,
                         mode.name,
-                        modeIdx,
                       )
                     : undefined;
                   const initialModeVal =

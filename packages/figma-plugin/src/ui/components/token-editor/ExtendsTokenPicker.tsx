@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
-import { useCollectionStateContext, useTokenFlatMapContext } from "../../contexts/TokenDataContext";
+import { useTokenFlatMapContext } from "../../contexts/TokenDataContext";
 import {
   buildScopedTokenCandidates,
   type ScopedTokenCandidate,
@@ -13,15 +13,16 @@ export function ExtendsTokenPicker({
   allTokensFlat,
   pathToCollectionId,
   currentPath,
+  currentCollectionId,
   onSelect,
 }: {
   tokenType: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToCollectionId: Record<string, string>;
   currentPath: string;
+  currentCollectionId: string;
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
 }) {
-  const { workingCollectionId } = useCollectionStateContext();
   const { perCollectionFlat, collectionIdsByPath } = useTokenFlatMapContext();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -42,10 +43,10 @@ export function ExtendsTokenPicker({
         candidate.entry.$type === tokenType &&
         !(
           candidate.path === currentPath &&
-          candidate.collectionId === workingCollectionId
+          candidate.collectionId === currentCollectionId
         ),
     );
-  }, [scopedCandidates, tokenType, currentPath, workingCollectionId]);
+  }, [scopedCandidates, tokenType, currentPath, currentCollectionId]);
   const filteredAll = useMemo(() => {
     if (!search) return candidates;
     const q = search.toLowerCase();
