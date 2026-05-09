@@ -1758,6 +1758,17 @@ button.tm-status-row:not(:disabled):hover {
   gap: 4px;
 }
 
+.tm-token-toolbar__chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.tm-token-toolbar__chips > * {
+  flex: 0 0 auto;
+}
+
 .tm-selection-toolbar {
   gap: 6px;
 }
@@ -2207,7 +2218,7 @@ button.tm-status-row:not(:disabled):hover {
   white-space: nowrap;
 }
 
-@container (max-width: 420px) {
+@container (max-width: 120px) {
   .tm-mode-column-header__label {
     display: -webkit-box;
     overflow: hidden;
@@ -2220,8 +2231,52 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
+.tm-token-table__scroll-hint {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-figma-border) 42%, transparent);
+  background: color-mix(in srgb, var(--surface-panel-header) 82%, var(--surface-app));
+  color: var(--color-figma-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--leading-tight);
+}
+
+.tm-token-table__scroll-hint-action {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: 2px 4px;
+  color: var(--color-figma-text-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-token-table__scroll-hint-action:hover {
+  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
+  color: var(--color-figma-text);
+}
+
+.tm-token-table__scroll-hint-action:focus-visible {
+  outline: 1.5px solid var(--color-figma-accent);
+  outline-offset: 1px;
+  background: var(--surface-accent);
+  color: var(--color-figma-text);
+}
+
 .tm-value-cell {
   container-type: inline-size;
+}
+
+.tm-value-cell__wrapper {
+  min-inline-size: 0;
 }
 
 .tm-value-cell__prefix,
@@ -2309,6 +2364,27 @@ button.tm-status-row:not(:disabled):hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@container (max-width: 112px) {
+  .tm-value-cell__wrapper {
+    align-items: flex-start;
+    padding-block: 4px;
+  }
+
+  .tm-value-cell__line {
+    display: -webkit-box;
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    line-height: 1.12;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .tm-value-cell__line + .tm-value-cell__line {
+    margin-top: 2px;
+  }
 }
 
 @container (max-width: 420px) {
@@ -2641,6 +2717,16 @@ button.tm-status-row:not(:disabled):hover {
   overflow: visible;
   border-radius: 0;
   background: transparent;
+}
+
+.tm-token-details__mode-list-footer {
+  display: flex;
+  min-inline-size: 0;
+  justify-content: flex-start;
+}
+
+.tm-token-details__mode-list-footer-action {
+  max-inline-size: 100%;
 }
 
 .tm-token-details__section {

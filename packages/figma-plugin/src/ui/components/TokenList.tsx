@@ -49,6 +49,7 @@ import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { useBoundTokenPaths } from "../hooks/useBoundTokenPaths";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
+import { getCollectionDisplayName } from "../shared/libraryCollections";
 import { dispatchToast } from "../shared/toastBus";
 import {
   buildReferencedTokenPathSetFromEntries,
@@ -1784,7 +1785,7 @@ export function TokenList({
   });
 
   const modalContextValue = useTokenListModalContext({
-    collectionId, collectionIds, allTokensFlat, connected,
+    collectionId, collectionIds, collectionDisplayNames: collectionMap, allTokensFlat, connected,
     deleteConfirm, modalProps, executeDelete, setDeleteConfirm,
     newGroupDialogParent, newGroupName, newGroupError,
     setNewGroupName, setNewGroupError, handleCreateGroup, setNewGroupDialogParent,
@@ -2097,6 +2098,7 @@ export function TokenList({
             expandedChains={expandedChains}
             handleMoveTokenInGroup={handleMoveTokenInGroup}
             clearFilters={clearFilters}
+            collectionDisplayNames={collectionMap}
           />
         </TokenTreeProvider>
         </div>
@@ -2142,6 +2144,7 @@ export function TokenList({
       {showTableCreate && (
         <TableCreateForm
           collectionId={collectionId}
+          collectionLabel={getCollectionDisplayName(collectionId, collectionMap)}
           collectionModeNames={activeCollections[0]?.modes.map((mode) => mode.name) ?? []}
           tableGroup={tableGroup}
           onSetTableGroup={setTableGroup}

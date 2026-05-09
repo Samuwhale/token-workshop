@@ -30,6 +30,7 @@ import {
 } from "../../shared/collectionModes";
 import { getErrorMessage } from "../../shared/utils";
 import { AUTHORING } from "../../shared/editorClasses";
+import { getCollectionDisplayName } from "../../shared/libraryCollections";
 
 type VisibleTokenRow = {
   node: TokenNode;
@@ -158,6 +159,7 @@ interface TokenListTreeBodyProps {
   expandedChains: Set<string>;
   handleMoveTokenInGroup: (path: string, name: string, dir: "up" | "down") => void;
   clearFilters: () => void;
+  collectionDisplayNames?: Record<string, string>;
 }
 
 const EMPTY_LINT_VIOLATIONS: LintViolation[] = [];
@@ -181,6 +183,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     expandedChains,
     handleMoveTokenInGroup,
     clearFilters,
+    collectionDisplayNames,
   } = props;
   const {
     query: searchQuery,
@@ -322,6 +325,13 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const tableMinWidth = multiModeData
     ? getGridMinWidth(modeColumnWidths)
     : null;
+  const modeTableOverflowing =
+    viewMode === "tree" &&
+    multiModeData !== null &&
+    multiModeData.results.length > 1 &&
+    tableMinWidth !== null &&
+    tableViewportWidth !== null &&
+    tableMinWidth > tableViewportWidth + 8;
   const populatedTreeTableStyle =
     tableMinWidth && viewMode === "tree" && displayedTokens.length > 0
       ? { minWidth: `${tableMinWidth}px` }
@@ -371,6 +381,17 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     setAddModeError("");
   }, [defaultModeSourceName]);
 
+  const scrollModeColumns = useCallback(() => {
+    const viewport = tableContentRef.current?.parentElement;
+    if (!viewport) {
+      return;
+    }
+    viewport.scrollBy({
+      left: Math.max(160, Math.round(viewport.clientWidth * 0.72)),
+      behavior: "smooth",
+    });
+  }, []);
+
   useLayoutEffect(() => {
     const headerElement = tableHeaderRef.current;
     if (!headerElement) {
@@ -404,172 +425,186 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // collections this renders one mode column; multi-mode collections render
   // one column per mode. The trailing + button adds new modes via a popover.
   const tableHeader = multiModeData && viewMode === "tree" ? (
-    <div
-      ref={tableHeaderRef}
-      className="sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
-      style={{ display: "grid", gridTemplateColumns: gridTemplate }}
-    >
-      <div className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
-        <input
-          type="checkbox"
-          checked={allDisplayedSelected}
-          disabled={displayedLeafPaths.size === 0}
-          ref={(element) => {
-            if (element) {
-              element.indeterminate = partiallyDisplayedSelected;
-            }
-          }}
-          onChange={onSelectAll}
-          aria-label={
-            allDisplayedSelected
-              ? "Clear visible token selection"
-              : "Select all visible tokens"
-          }
-          className="tm-token-selection-checkbox shrink-0"
-        />
-        <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Token
-        </span>
-      </div>
-      {multiModeData.results.map((r, idx) => (
-        <ModeColumnHeader
-          key={r.optionName}
-          modeName={r.optionName}
-          modeIndex={idx}
-          allModeNames={modeNames}
-          collectionId={multiModeData.collection.id}
-          serverUrl={serverUrl}
-          onMutated={onModeMutated}
-          connected={connected}
-          width={modeColumnWidths[idx] ?? 0}
-          onResize={(w) => setModeColumnWidth(idx, w)}
-        />
-      ))}
+    <>
       <div
-        ref={addModeMenuContainerRef}
-        className="sticky right-0 z-20 bg-[var(--color-figma-bg-secondary)] flex items-stretch"
+        ref={tableHeaderRef}
+        className="sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
+        style={{ display: "grid", gridTemplateColumns: gridTemplate }}
       >
-        <Button
-          onClick={() => {
-            if (addModeMenuOpen) {
-              closeAddModeMenu();
-              return;
+        <div className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
+          <input
+            type="checkbox"
+            checked={allDisplayedSelected}
+            disabled={displayedLeafPaths.size === 0}
+            ref={(element) => {
+              if (element) {
+                element.indeterminate = partiallyDisplayedSelected;
+              }
+            }}
+            onChange={onSelectAll}
+            aria-label={
+              allDisplayedSelected
+                ? "Clear visible token selection"
+                : "Select all visible tokens"
             }
-            setAddModeMenuOpen(true);
-            setAddModeError("");
-          }}
-          disabled={!connected}
-          variant="ghost"
-          size="sm"
-          className="tm-token-table__add-mode h-full rounded-none px-2 text-[color:var(--color-figma-text-secondary)]"
-          title="Add mode"
-          aria-label="Add mode"
-          aria-controls="token-table-add-mode-dialog"
-          aria-haspopup="dialog"
-          aria-expanded={addModeMenuOpen}
+            className="tm-token-selection-checkbox shrink-0"
+          />
+          <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+            Token
+          </span>
+        </div>
+        {multiModeData.results.map((r, idx) => (
+          <ModeColumnHeader
+            key={r.optionName}
+            modeName={r.optionName}
+            modeIndex={idx}
+            allModeNames={modeNames}
+            collectionId={multiModeData.collection.id}
+            serverUrl={serverUrl}
+            onMutated={onModeMutated}
+            connected={connected}
+            width={modeColumnWidths[idx] ?? 0}
+            onResize={(w) => setModeColumnWidth(idx, w)}
+          />
+        ))}
+        <div
+          ref={addModeMenuContainerRef}
+          className="sticky right-0 z-20 bg-[var(--color-figma-bg-secondary)] flex items-stretch"
         >
-          <Plus size={12} strokeWidth={2} aria-hidden />
-        </Button>
-        {addModeMenuOpen && (
-          <div
-            id="token-table-add-mode-dialog"
-            className="absolute right-0 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
-            onMouseDown={(e) => e.stopPropagation()}
-            role="dialog"
+          <Button
+            onClick={() => {
+              if (addModeMenuOpen) {
+                closeAddModeMenu();
+                return;
+              }
+              setAddModeMenuOpen(true);
+              setAddModeError("");
+            }}
+            disabled={!connected}
+            variant="ghost"
+            size="sm"
+            className="tm-token-table__add-mode h-full rounded-none px-2 text-[color:var(--color-figma-text-secondary)]"
+            title="Add mode"
             aria-label="Add mode"
+            aria-controls="token-table-add-mode-dialog"
+            aria-haspopup="dialog"
+            aria-expanded={addModeMenuOpen}
           >
-            <div className="flex flex-col gap-2 px-2 py-2">
-              <label
-                htmlFor="token-table-new-mode-name"
-                className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
-              >
-                Add mode
-              </label>
-              <TextInput
-                id="token-table-new-mode-name"
-                size="sm"
-                value={newModeName}
-                onChange={(e) => {
-                  setNewModeName(e.target.value);
-                  setAddModeError("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    void handleAddMode();
-                  }
-                  if (e.key === "Escape") closeAddModeMenu();
-                }}
-                onBlur={(event) => {
-                  if (
-                    addModeMenuContainerRef.current?.contains(
-                      event.relatedTarget as Node | null,
-                    )
-                  ) {
-                    return;
-                  }
-                  if (!newModeName.trim()) closeAddModeMenu();
-                }}
-                autoFocus
-                disabled={addingModeSaving}
-                placeholder="Mode name"
-                aria-label="New mode name"
-                invalid={Boolean(addModeError)}
-                className={addModeError ? "" : "focus-visible:border-[var(--color-figma-accent)]"}
-              />
-              {addModeError ? (
-                <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
-                  {addModeError}
-                </p>
-              ) : (
-                <>
-                  {modeNames.length > 0 ? (
-                    <label className="flex flex-col gap-1 px-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                      Seed values
-                      <select
-                        value={newModeSourceName}
-                        onChange={(event) => setNewModeSourceName(event.target.value)}
-                        disabled={addingModeSaving}
-                        className={AUTHORING.select}
-                      >
-                        {modeNames.map((modeName) => (
-                          <option key={modeName} value={modeName}>
-                            Copy from {modeName}
-                          </option>
-                        ))}
-                        <option value={EMPTY_MODE_SOURCE}>Start empty</option>
-                      </select>
-                    </label>
-                  ) : null}
-                  <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                    {newModeSourceName === EMPTY_MODE_SOURCE
-                      ? "Existing tokens in this collection will show this mode as needing values."
-                      : `Existing tokens in this collection will copy ${newModeSourceName} values as editable starting points.`}
-                  </p>
-                </>
-              )}
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={closeAddModeMenu}
-                  disabled={addingModeSaving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void handleAddMode()}
-                  disabled={!newModeName.trim() || addingModeSaving}
+            <Plus size={12} strokeWidth={2} aria-hidden />
+          </Button>
+          {addModeMenuOpen && (
+            <div
+              id="token-table-add-mode-dialog"
+              className="absolute right-0 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
+              onMouseDown={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Add mode"
+            >
+              <div className="flex flex-col gap-2 px-2 py-2">
+                <label
+                  htmlFor="token-table-new-mode-name"
+                  className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
                 >
                   Add mode
-                </Button>
+                </label>
+                <TextInput
+                  id="token-table-new-mode-name"
+                  size="sm"
+                  value={newModeName}
+                  onChange={(e) => {
+                    setNewModeName(e.target.value);
+                    setAddModeError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      void handleAddMode();
+                    }
+                    if (e.key === "Escape") closeAddModeMenu();
+                  }}
+                  onBlur={(event) => {
+                    if (
+                      addModeMenuContainerRef.current?.contains(
+                        event.relatedTarget as Node | null,
+                      )
+                    ) {
+                      return;
+                    }
+                    if (!newModeName.trim()) closeAddModeMenu();
+                  }}
+                  autoFocus
+                  disabled={addingModeSaving}
+                  placeholder="Mode name"
+                  aria-label="New mode name"
+                  invalid={Boolean(addModeError)}
+                  className={addModeError ? "" : "focus-visible:border-[var(--color-figma-accent)]"}
+                />
+                {addModeError ? (
+                  <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
+                    {addModeError}
+                  </p>
+                ) : (
+                  <>
+                    {modeNames.length > 0 ? (
+                      <label className="flex flex-col gap-1 px-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                        Seed values
+                        <select
+                          value={newModeSourceName}
+                          onChange={(event) => setNewModeSourceName(event.target.value)}
+                          disabled={addingModeSaving}
+                          className={AUTHORING.select}
+                        >
+                          {modeNames.map((modeName) => (
+                            <option key={modeName} value={modeName}>
+                              Copy from {modeName}
+                            </option>
+                          ))}
+                          <option value={EMPTY_MODE_SOURCE}>Start empty</option>
+                        </select>
+                      </label>
+                    ) : null}
+                    <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                      {newModeSourceName === EMPTY_MODE_SOURCE
+                        ? "Existing tokens in this collection will show this mode as needing values."
+                        : `Existing tokens in this collection will copy ${newModeSourceName} values as editable starting points.`}
+                    </p>
+                  </>
+                )}
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={closeAddModeMenu}
+                    disabled={addingModeSaving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void handleAddMode()}
+                    disabled={!newModeName.trim() || addingModeSaving}
+                  >
+                    Add mode
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+      {modeTableOverflowing ? (
+        <div className="tm-token-table__scroll-hint">
+          <span>Scroll to review all {modeNames.length} modes.</span>
+          <button
+            type="button"
+            onClick={scrollModeColumns}
+            className="tm-token-table__scroll-hint-action"
+          >
+            Scroll right
+          </button>
+        </div>
+      ) : null}
+    </>
   ) : null;
 
   // Cross-collection search results
@@ -655,10 +690,18 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
     return (
       <div>
-        {crossCollectionSections.map(([collectionId, collectionResults]) => (
+        {crossCollectionSections.map(([collectionId, collectionResults]) => {
+          const collectionLabel = getCollectionDisplayName(
+            collectionId,
+            collectionDisplayNames,
+          );
+          return (
           <div key={collectionId}>
-            <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] sticky top-0 z-10">
-              {collectionId}{" "}
+            <div
+              className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] sticky top-0 z-10"
+              title={collectionId === collectionLabel ? undefined : collectionId}
+            >
+              {collectionLabel}{" "}
               <span className="font-normal opacity-60">
                 ({collectionResults.length})
               </span>
@@ -694,7 +737,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               </button>
             ))}
           </div>
-        ))}
+          );
+        })}
         {(crossCollectionError || crossCollectionTotal > crossCollectionResults.length) && (
           <div className="px-3 py-2 flex items-center justify-between gap-3">
             <div className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)]">

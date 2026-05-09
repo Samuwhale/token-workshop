@@ -9,6 +9,7 @@ import { FieldMessage } from '../shared/FieldMessage';
 import { LONG_TEXT_CLASSES } from '../shared/longTextStyles';
 import { NoticePill } from '../shared/noticeSystem';
 import { fieldBorderClass } from '../shared/editorClasses';
+import { getCollectionDisplayName } from '../shared/libraryCollections';
 import {
   getGroupPathPreview,
   getGroupPathValidationError,
@@ -630,6 +631,7 @@ export function TokenListModals() {
   const {
     collectionId,
     collectionIds,
+    collectionDisplayNames,
     allTokensFlat: _allTokensFlat,
     perCollectionFlat,
     connected: _connected,
@@ -686,6 +688,9 @@ export function TokenListModals() {
     newGroupParent,
     newGroupName,
   );
+  const collectionLabel = (targetCollectionId: string) =>
+    getCollectionDisplayName(targetCollectionId, collectionDisplayNames);
+  const currentCollectionLabel = collectionLabel(collectionId);
 
   return (
     <>
@@ -720,7 +725,7 @@ export function TokenListModals() {
           }}
           meta={
             <span>
-              In <span className={LONG_TEXT_CLASSES.monoPrimary}>{collectionId}</span>
+              In <span className={LONG_TEXT_CLASSES.monoPrimary}>{currentCollectionLabel}</span>
               {newGroupDialogParent ? (
                 <>
                   {" / "}
@@ -831,7 +836,7 @@ export function TokenListModals() {
           ? paths.reduce((count, p) => (targetTokens[p] ? count + 1 : count), 0)
           : 0;
         const outboundAliasNote = outboundAliasCount > 0
-          ? `${outboundAliasCount} alias${outboundAliasCount === 1 ? "" : "es"} inside this group will become cross-collection references to ${collectionId}.`
+          ? `${outboundAliasCount} alias${outboundAliasCount === 1 ? "" : "es"} inside this group will become cross-collection references to ${currentCollectionLabel}.`
           : null;
         return (
           <ModalFrame
@@ -859,10 +864,10 @@ export function TokenListModals() {
             }
           >
               <MoveScopePreview
-                fromCollection={collectionId}
+                fromCollection={currentCollectionLabel}
                 fromGroup={movingGroup}
                 paths={paths}
-                toLabel={moveTargetCollectionId || null}
+                toLabel={moveTargetCollectionId ? collectionLabel(moveTargetCollectionId) : null}
                 conflictCount={conflictCount}
                 outboundAliasNote={outboundAliasNote}
               />
@@ -875,7 +880,7 @@ export function TokenListModals() {
               >
                 <option value="">Choose a collection…</option>
                 {collectionIds.filter(s => s !== collectionId).map(s => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{collectionLabel(s)}</option>
                 ))}
               </select>
           </ModalFrame>
@@ -893,9 +898,9 @@ export function TokenListModals() {
           ? paths.reduce((count, p) => (targetTokens[p] ? count + 1 : count), 0)
           : 0;
         const aliasPart = outboundAliasCount > 0
-          ? ` ${outboundAliasCount} alias${outboundAliasCount === 1 ? "" : "es"} inside the copy will still reference ${collectionId}.`
+          ? ` ${outboundAliasCount} alias${outboundAliasCount === 1 ? "" : "es"} inside the copy will still reference ${currentCollectionLabel}.`
           : "";
-        const outboundAliasNote = `Originals stay in ${collectionId}.${aliasPart}`;
+        const outboundAliasNote = `Originals stay in ${currentCollectionLabel}.${aliasPart}`;
         return (
           <ModalFrame
             titleId="copy-group-dialog-title"
@@ -922,10 +927,10 @@ export function TokenListModals() {
             }
           >
               <MoveScopePreview
-                fromCollection={collectionId}
+                fromCollection={currentCollectionLabel}
                 fromGroup={copyingGroup}
                 paths={paths}
-                toLabel={copyTargetCollectionId || null}
+                toLabel={copyTargetCollectionId ? collectionLabel(copyTargetCollectionId) : null}
                 conflictCount={conflictCount}
                 outboundAliasNote={outboundAliasNote}
               />
@@ -938,7 +943,7 @@ export function TokenListModals() {
               >
                 <option value="">Choose a collection…</option>
                 {collectionIds.filter(s => s !== collectionId).map(s => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{collectionLabel(s)}</option>
                 ))}
               </select>
           </ModalFrame>
@@ -951,7 +956,7 @@ export function TokenListModals() {
         const trimmedTarget = moveToGroupTarget.trim();
         const targetGroup = trimmedTarget.replace(/\.+$/, "");
         const toLabel = trimmedTarget
-          ? `${collectionId}${targetGroup ? ` / ${targetGroup}` : ""}`
+          ? `${currentCollectionLabel}${targetGroup ? ` / ${targetGroup}` : ""}`
           : null;
         const sourceTokens = perCollectionFlat[collectionId] ?? {};
         const conflictCount = trimmedTarget
@@ -988,7 +993,7 @@ export function TokenListModals() {
             }
           >
               <MoveScopePreview
-                fromCollection={collectionId}
+                fromCollection={currentCollectionLabel}
                 fromGroup={fromGroup}
                 paths={selectedMovePaths}
                 toLabel={toLabel}
@@ -1050,10 +1055,10 @@ export function TokenListModals() {
             }
           >
               <MoveScopePreview
-                fromCollection={collectionId}
+                fromCollection={currentCollectionLabel}
                 fromGroup={fromGroup}
                 paths={selectedMovePaths}
-                toLabel={batchMoveToCollectionTarget || null}
+                toLabel={batchMoveToCollectionTarget ? collectionLabel(batchMoveToCollectionTarget) : null}
                 conflictCount={conflictCount}
               />
               <select
@@ -1068,7 +1073,7 @@ export function TokenListModals() {
               >
                 <option value="">Choose a collection…</option>
                 {collectionIds.filter(s => s !== collectionId).map(s => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{collectionLabel(s)}</option>
                 ))}
               </select>
           </ModalFrame>
@@ -1102,7 +1107,7 @@ export function TokenListModals() {
           }
         >
             <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-              Tokens will be duplicated into the target collection. Originals in <span className="font-mono text-[color:var(--color-figma-text)]">{collectionId}</span> are kept.
+              Tokens will be duplicated into the target collection. Originals in <span className="font-mono text-[color:var(--color-figma-text)]">{currentCollectionLabel}</span> are kept.
             </div>
             <select
               value={batchCopyToCollectionTarget}
@@ -1115,7 +1120,7 @@ export function TokenListModals() {
               autoFocus
             >
               {collectionIds.filter(s => s !== collectionId).map(s => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>{collectionLabel(s)}</option>
               ))}
             </select>
         </ModalFrame>

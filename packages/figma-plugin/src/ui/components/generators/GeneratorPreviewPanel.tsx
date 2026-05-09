@@ -348,7 +348,7 @@ function PreviewOutputRow({
         </td>
       ))}
       <td className={`px-2 py-2 align-top text-tertiary ${changeToneClass(output)}`}>
-        {output.collision ? "manual token" : output.change}
+        {output.collision ? "authored token" : output.change}
       </td>
     </tr>
   );
@@ -458,7 +458,7 @@ function PreviewOutputPath({
       )}
       {output.collision ? (
         <span className="mt-1 block text-tertiary text-[color:var(--color-figma-text-error)]">
-          Manual token exists
+          Authored token exists
         </span>
       ) : null}
       {output.change === "created" && output.nodeId && onViewInGraph ? (

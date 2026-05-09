@@ -10,6 +10,7 @@ type TableRowField = keyof Omit<TableRow, "id" | "modeValues">;
 
 export interface TableCreateFormProps {
   collectionId: string;
+  collectionLabel?: string;
   collectionModeNames: string[];
   tableGroup: string;
   onSetTableGroup: (v: string) => void;
@@ -34,6 +35,7 @@ export interface TableCreateFormProps {
 
 export function TableCreateForm({
   collectionId,
+  collectionLabel,
   collectionModeNames,
   tableGroup,
   onSetTableGroup,
@@ -64,6 +66,7 @@ export function TableCreateForm({
   const hasNamedRows = creatableRowCount > 0;
   const modeNames =
     collectionModeNames.length > 0 ? collectionModeNames : ["Default"];
+  const displayCollectionName = collectionLabel?.trim() || collectionId;
   const multiMode = modeNames.length > 1;
   const rowGridTemplateColumns = multiMode
     ? `minmax(116px,1fr) 76px repeat(${modeNames.length}, minmax(104px,1fr)) 18px`
@@ -133,7 +136,7 @@ export function TableCreateForm({
             Bulk create in:
           </span>
           <span className="text-secondary font-medium text-[color:var(--color-figma-text)] truncate">
-            {collectionId}
+            {displayCollectionName}
           </span>
         </div>
         {/* Group picker */}
@@ -274,10 +277,17 @@ export function TableCreateForm({
                       onChange={(e) => {
                         const val = e.target.value;
                         onUpdateModeValue(row.id, modeName, val);
-                        if (isPrimaryMode) {
-                          const inferred = inferTypeFromValue(val);
-                          if (inferred) onUpdateRow(row.id, "type", inferred);
-                        }
+                        const nextModeValues = {
+                          ...row.modeValues,
+                          [modeName]: val,
+                        };
+                        const firstFilledValue = modeNames
+                          .map((candidateMode) => nextModeValues[candidateMode] ?? "")
+                          .find((candidateValue) => candidateValue.trim());
+                        const inferred = firstFilledValue
+                          ? inferTypeFromValue(firstFilledValue)
+                          : null;
+                        if (inferred) onUpdateRow(row.id, "type", inferred);
                       }}
                       onKeyDown={(e) => {
                         if (

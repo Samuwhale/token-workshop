@@ -651,6 +651,7 @@ export interface ApplyToNodesMessage {
   type: 'apply-to-nodes';
   nodeIds: string[];
   tokenPath: string;
+  collectionId?: string;
   tokenType: string;
   targetProperty: string;
   resolvedValue: ResolvedTokenValue;

@@ -887,9 +887,14 @@ export function CollectionDetailsPanel({
                           variant="ghost"
                           size="sm"
                           className="shrink-0"
+                          title={
+                            showRawId
+                              ? "Rename the Token Workshop collection ID"
+                              : "Rename collection"
+                          }
                         >
                           <Pencil size={11} strokeWidth={1.75} aria-hidden />
-                          Rename
+                          {showRawId ? "Rename ID" : "Rename"}
                         </Button>
                       ) : null}
                     </div>

@@ -59,6 +59,8 @@ interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
   selectionLoading: boolean;
   tokenMap: Record<string, TokenMapEntry>;
+  tokenMapsByCollection?: Record<string, Record<string, TokenMapEntry>>;
+  collectionDisplayNames?: Record<string, string>;
   onSync: (scope: "page" | "selection") => void;
   syncing: boolean;
   syncProgress: { processed: number; total: number } | null;
@@ -94,6 +96,8 @@ export function SelectionInspector({
   selectedNodes,
   selectionLoading,
   tokenMap,
+  tokenMapsByCollection = {},
+  collectionDisplayNames,
   onSync,
   syncing,
   syncProgress,
@@ -142,6 +146,7 @@ export function SelectionInspector({
     property: BindableProperty;
     peerIds: string[];
     tokenPath: string;
+    collectionId: string;
     tokenType: string;
     resolvedValue: unknown;
   } | null>(null);
@@ -168,16 +173,24 @@ export function SelectionInspector({
   }, [toggleDeepInspect]);
 
   const handleDeepRemoveBinding = useCallback(
-    (nodeId: string, property: BindableProperty, tokenPath: string) => {
+    (
+      nodeId: string,
+      property: BindableProperty,
+      tokenPath: string,
+      collectionId?: string,
+    ) => {
       parent.postMessage(
         { pluginMessage: { type: "remove-binding-from-node", nodeId, property } },
         "*",
       );
       if (onPushUndo) {
-        const entry = tokenMap[tokenPath];
+        const scopedTokenMap = collectionId
+          ? tokenMapsByCollection[collectionId] ?? tokenMap
+          : tokenMap;
+        const entry = scopedTokenMap[tokenPath] ?? tokenMap[tokenPath];
         const tokenType = entry?.$type ?? "unknown";
         const resolved = entry
-          ? resolveTokenValue(entry.$value, entry.$type, tokenMap)
+          ? resolveTokenValue(entry.$value, entry.$type, scopedTokenMap)
           : { value: null };
         onPushUndo({
           description: `Unbound "${tokenPath}" from nested layer`,
@@ -188,6 +201,7 @@ export function SelectionInspector({
                   type: "apply-to-nodes",
                   nodeIds: [nodeId],
                   tokenPath,
+                  collectionId,
                   tokenType,
                   targetProperty: property,
                   resolvedValue: resolved.value,
@@ -199,20 +213,33 @@ export function SelectionInspector({
         });
       }
     },
-    [onPushUndo, tokenMap],
+    [onPushUndo, tokenMap, tokenMapsByCollection],
   );
 
   const handleDeepBindToken = useCallback(
-    (nodeId: string, property: BindableProperty, tokenPath: string) => {
-      const entry = tokenMap[tokenPath];
+    (
+      nodeId: string,
+      property: BindableProperty,
+      tokenPath: string,
+      collectionId?: string,
+    ) => {
+      const scopedTokenMap = collectionId
+        ? tokenMapsByCollection[collectionId] ?? tokenMap
+        : tokenMap;
+      const entry = scopedTokenMap[tokenPath] ?? tokenMap[tokenPath];
       if (!entry) return;
-      const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+      const resolved = resolveTokenValue(
+        entry.$value,
+        entry.$type,
+        scopedTokenMap,
+      );
       parent.postMessage(
         {
           pluginMessage: {
             type: "apply-to-nodes",
             nodeIds: [nodeId],
             tokenPath,
+            collectionId,
             tokenType: entry.$type,
             targetProperty: property,
             resolvedValue: resolved.value,
@@ -221,7 +248,7 @@ export function SelectionInspector({
         "*",
       );
     },
-    [tokenMap],
+    [tokenMap, tokenMapsByCollection],
   );
 
   const handleSelectDeepNode = useCallback((nodeId: string) => {
@@ -640,6 +667,7 @@ export function SelectionInspector({
           property: prop,
           peerIds,
           tokenPath,
+          collectionId: currentCollectionId,
           tokenType: entry.$type,
           resolvedValue: resolved.value,
         });
@@ -1190,6 +1218,8 @@ export function SelectionInspector({
                 <DeepInspectSection
                   deepChildNodes={deepChildNodes}
                   tokenMap={tokenMap}
+                  tokenMapsByCollection={tokenMapsByCollection}
+                  collectionDisplayNames={collectionDisplayNames}
                   onNavigateToToken={onNavigateToToken}
                   onRemoveBinding={handleDeepRemoveBinding}
                   onBindToken={handleDeepBindToken}
@@ -1352,6 +1382,7 @@ export function SelectionInspector({
                 type: "apply-to-nodes",
                 nodeIds: peerSuggestion.peerIds,
                 tokenPath: peerSuggestion.tokenPath,
+                collectionId: peerSuggestion.collectionId,
                 tokenType: peerSuggestion.tokenType,
                 targetProperty: peerSuggestion.property,
                 resolvedValue: peerSuggestion.resolvedValue,

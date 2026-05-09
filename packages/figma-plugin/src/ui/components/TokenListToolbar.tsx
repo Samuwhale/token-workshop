@@ -230,6 +230,7 @@ export function TokenListToolbar({
       overflowMenuProps.searchResultPresentation === "flat");
   const viewMenuLabel = "View";
   const showViewMenu = hasTokens;
+  const showInlineSearchScopeToggle = showSearchScopeToggle && !showViewMenu;
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
@@ -349,7 +350,7 @@ export function TokenListToolbar({
                     }}
                     containerClassName="min-w-0 flex-1"
                   />
-                  {showSearchScopeToggle && overflowMenuProps ? (
+                  {showInlineSearchScopeToggle && overflowMenuProps ? (
                     <SegmentedControl
                       value={
                         overflowMenuProps.crossCollectionSearch
@@ -503,6 +504,22 @@ export function TokenListToolbar({
                             onChange={
                               overflowMenuProps.onSearchResultPresentationChange
                             }
+                            onSelect={closeViewMenu}
+                          />
+                        ) : null}
+                        {showSearchScopeToggle && !showInlineSearchScopeToggle ? (
+                          <MenuRadioGroup
+                            label="Search scope"
+                            value={searchScope}
+                            options={SEARCH_SCOPE_OPTIONS}
+                            onChange={(value) => {
+                              if (
+                                (value === "all") !==
+                                overflowMenuProps.crossCollectionSearch
+                              ) {
+                                overflowMenuProps.onToggleCrossCollectionSearch();
+                              }
+                            }}
                             onSelect={closeViewMenu}
                           />
                         ) : null}
@@ -714,7 +731,7 @@ export function TokenListToolbar({
         </div>
 
         {hasChipRow ? (
-          <div className="tm-responsive-toolbar__chips">
+          <div className="tm-responsive-toolbar__chips tm-token-toolbar__chips">
             {showSelectionChip ? (
               <button
                 type="button"

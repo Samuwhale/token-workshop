@@ -1875,28 +1875,16 @@ export function TokenDetails({
           emphasis="primary"
           actions={
             fieldEditable ? (
-              <>
-                {canFillEmptyModes ? (
-                  <button
-                    type="button"
-                    onClick={fillEmptyModesFromFirst}
-                    className="tm-token-details__text-button"
-                  >
-                    <Copy size={12} strokeWidth={1.5} aria-hidden />
-                    Fill empty modes from {firstMode.name}
-                  </button>
-                ) : null}
-                {onManageCollectionModes ? (
-                  <button
-                    type="button"
-                    onClick={() => onManageCollectionModes(ownerCollectionId)}
-                    className="tm-token-details__text-button"
-                  >
-                    <Plus size={12} strokeWidth={1.5} aria-hidden />
-                    Manage modes
-                  </button>
-                ) : null}
-              </>
+              canFillEmptyModes ? (
+                <button
+                  type="button"
+                  onClick={fillEmptyModesFromFirst}
+                  className="tm-token-details__text-button"
+                >
+                  <Copy size={12} strokeWidth={1.5} aria-hidden />
+                  Fill empty modes from {firstMode.name}
+                </button>
+              ) : undefined
             ) : undefined
           }
         >
@@ -1999,6 +1987,19 @@ export function TokenDetails({
                 })}
               </Stack>
             </div>
+
+            {fieldEditable && onManageCollectionModes ? (
+              <div className="tm-token-details__mode-list-footer">
+                <button
+                  type="button"
+                  onClick={() => onManageCollectionModes(ownerCollectionId)}
+                  className="tm-token-details__text-button tm-token-details__mode-list-footer-action"
+                >
+                  <Plus size={12} strokeWidth={1.5} aria-hidden />
+                  Edit collection modes
+                </button>
+              </div>
+            ) : null}
 
             {fieldEditable && valueIsAlias ? (
               <DerivationEditor

@@ -11,20 +11,28 @@ import {
   getCompatibleTokenTypes,
   isTokenScopeCompatible,
 } from "./selectionInspectorUtils";
+import { getCollectionDisplayName } from "../shared/libraryCollections";
+import {
+  buildScopedTokenCandidates,
+} from "../shared/scopedTokenCandidates";
 
 interface DeepInspectSectionProps {
   deepChildNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
+  tokenMapsByCollection?: Record<string, Record<string, TokenMapEntry>>;
+  collectionDisplayNames?: Record<string, string>;
   onNavigateToToken?: (tokenPath: string) => void;
   onRemoveBinding?: (
     nodeId: string,
     property: BindableProperty,
     tokenPath: string,
+    collectionId?: string,
   ) => void;
   onBindToken?: (
     nodeId: string,
     property: BindableProperty,
     tokenPath: string,
+    collectionId?: string,
   ) => void;
   onSelectNode?: (nodeId: string) => void;
   showHeader?: boolean;
@@ -34,38 +42,72 @@ function DeepBindPanel({
   childNode,
   prop,
   tokenMap,
+  tokenMapsByCollection = {},
+  collectionDisplayNames,
   currentBinding,
+  currentBindingCollectionId,
   onBind,
   onClose,
 }: {
   childNode: SelectionNodeInfo;
   prop: BindableProperty;
   tokenMap: Record<string, TokenMapEntry>;
+  tokenMapsByCollection?: Record<string, Record<string, TokenMapEntry>>;
+  collectionDisplayNames?: Record<string, string>;
   currentBinding: string;
-  onBind: (nodeId: string, prop: BindableProperty, tokenPath: string) => void;
+  currentBindingCollectionId?: string;
+  onBind: (
+    nodeId: string,
+    prop: BindableProperty,
+    tokenPath: string,
+    collectionId?: string,
+  ) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [ignoreScope, setIgnoreScope] = useState(false);
 
+  const scopedCandidates = useMemo(
+    () =>
+      buildScopedTokenCandidates({
+        allTokensFlat: tokenMap,
+        perCollectionFlat: tokenMapsByCollection,
+      }),
+    [tokenMap, tokenMapsByCollection],
+  );
+
   const { candidates, compatibleTypes, hiddenByScope } = useMemo(() => {
     const compatibleTypes = getCompatibleTokenTypes(prop);
-    const typeCompatible = Object.entries(tokenMap).filter(([, entry]) =>
-      compatibleTypes.includes(entry.$type),
+    const typeCompatible = scopedCandidates.filter((candidate) =>
+      compatibleTypes.includes(candidate.entry.$type),
     );
-    const scopeCompatible = typeCompatible.filter(([, entry]) =>
-      isTokenScopeCompatible(entry, prop),
+    const scopeCompatible = typeCompatible.filter((candidate) =>
+      isTokenScopeCompatible(candidate.entry, prop),
     );
     const filtered = (ignoreScope ? typeCompatible : scopeCompatible).filter(
-      ([path]) => !query || path.toLowerCase().includes(query.toLowerCase()),
+      (candidate) =>
+        !query ||
+        candidate.path.toLowerCase().includes(query.toLowerCase()) ||
+        getCollectionDisplayName(
+          candidate.collectionId,
+          collectionDisplayNames,
+        )
+          .toLowerCase()
+          .includes(query.toLowerCase()),
     );
     return {
       candidates: filtered.slice(0, 12),
       compatibleTypes,
       hiddenByScope: Math.max(0, typeCompatible.length - scopeCompatible.length),
     };
-  }, [ignoreScope, prop, query, tokenMap]);
+  }, [
+    collectionDisplayNames,
+    ignoreScope,
+    prop,
+    query,
+    scopedCandidates,
+  ]);
 
   useEffect(() => {
     setSelectedIndex((index) => {
@@ -122,7 +164,9 @@ function DeepBindPanel({
             if (e.key === "Enter" && candidates.length > 0) {
               const target =
                 selectedIndex >= 0 ? candidates[selectedIndex] : candidates[0];
-              if (target) onBind(childNode.id, prop, target[0]);
+              if (target) {
+                onBind(childNode.id, prop, target.path, target.collectionId);
+              }
             }
           }}
           placeholder="Search tokens\u2026"
@@ -142,25 +186,35 @@ function DeepBindPanel({
             aria-label="Token candidates"
             className="max-h-[120px] overflow-y-auto flex flex-col gap-px"
           >
-            {candidates.map(([path, entry], idx) => {
+            {candidates.map((candidate, idx) => {
+              const { path, collectionId, entry } = candidate;
+              const candidateTokenMap =
+                tokenMapsByCollection[collectionId] ?? tokenMap;
               let swatchColor: string | null = null;
               if (entry.$type === "color") {
                 const r = resolveTokenValue(
                   entry.$value,
                   entry.$type,
-                  tokenMap,
+                  candidateTokenMap,
                 );
                 if (typeof r.value === "string" && r.value.startsWith("#"))
                   swatchColor = r.value;
               }
               const isSelected = idx === selectedIndex;
-              const isCurrent = path === currentBinding;
+              const isCurrent =
+                path === currentBinding &&
+                (!currentBindingCollectionId ||
+                  collectionId === currentBindingCollectionId);
+              const showCollection =
+                candidate.isAmbiguousPath ||
+                (currentBindingCollectionId &&
+                  collectionId !== currentBindingCollectionId);
               return (
                 <button
-                  key={path}
+                  key={candidate.key}
                   role="option"
                   aria-selected={isSelected}
-                  onClick={() => onBind(childNode.id, prop, path)}
+                  onClick={() => onBind(childNode.id, prop, path, collectionId)}
                   className={`w-full flex items-center gap-1 px-1.5 py-0.5 rounded text-left transition-colors ${isSelected ? "bg-[var(--color-figma-accent)]/15" : "hover:bg-[var(--color-figma-accent)]/10"} ${isCurrent ? "opacity-50" : ""}`}
                 >
                   {swatchColor ? (
@@ -183,6 +237,20 @@ function DeepBindPanel({
                       current
                     </span>
                   )}
+                  {showCollection ? (
+                    <span
+                      className="max-w-[92px] truncate text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink"
+                      title={getCollectionDisplayName(
+                        collectionId,
+                        collectionDisplayNames,
+                      )}
+                    >
+                      {getCollectionDisplayName(
+                        collectionId,
+                        collectionDisplayNames,
+                      )}
+                    </span>
+                  ) : null}
                   <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
                     {entry.$type}
                   </span>
@@ -232,6 +300,8 @@ function getBoundProperties(child: SelectionNodeInfo): BindableProperty[] {
 export function DeepInspectSection({
   deepChildNodes,
   tokenMap,
+  tokenMapsByCollection = {},
+  collectionDisplayNames,
   onNavigateToToken,
   onRemoveBinding,
   onBindToken,
@@ -272,8 +342,9 @@ export function DeepInspectSection({
     nodeId: string,
     prop: BindableProperty,
     tokenPath: string,
+    collectionId?: string,
   ) => {
-    onBindToken?.(nodeId, prop, tokenPath);
+    onBindToken?.(nodeId, prop, tokenPath, collectionId);
     setActiveBindKey(null);
   };
 
@@ -331,13 +402,18 @@ export function DeepInspectSection({
             <div className="flex flex-col gap-0.5 pl-3">
               {boundProps.map((prop) => {
                 const tokenPath = child.bindings[prop];
-                const entry = tokenMap[tokenPath];
+                const bindingCollectionId = child.bindingCollections?.[prop];
+                const scopedTokenMap =
+                  (bindingCollectionId
+                    ? tokenMapsByCollection[bindingCollectionId]
+                    : undefined) ?? tokenMap;
+                const entry = scopedTokenMap[tokenPath] ?? tokenMap[tokenPath];
                 let swatchColor: string | null = null;
                 if (entry?.$type === "color") {
                   const r = resolveTokenValue(
                     entry.$value,
                     entry.$type,
-                    tokenMap,
+                    scopedTokenMap,
                   );
                   if (typeof r.value === "string" && r.value.startsWith("#"))
                     swatchColor = r.value;
@@ -397,7 +473,12 @@ export function DeepInspectSection({
                         {onRemoveBinding && (
                           <button
                             onClick={() =>
-                              onRemoveBinding(child.id, prop, tokenPath)
+                              onRemoveBinding(
+                                child.id,
+                                prop,
+                                tokenPath,
+                                bindingCollectionId,
+                              )
                             }
                             title="Remove binding"
                             aria-label="Remove binding"
@@ -414,7 +495,10 @@ export function DeepInspectSection({
                         childNode={child}
                         prop={prop}
                         tokenMap={tokenMap}
+                        tokenMapsByCollection={tokenMapsByCollection}
+                        collectionDisplayNames={collectionDisplayNames}
                         currentBinding={tokenPath}
+                        currentBindingCollectionId={bindingCollectionId}
                         onBind={handleBind}
                         onClose={() => setActiveBindKey(null)}
                       />

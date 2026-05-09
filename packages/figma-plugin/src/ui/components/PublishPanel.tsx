@@ -1182,6 +1182,29 @@ export function PublishPanel({
     if (pullsToLocal > 0) return 'Use Figma values in Token Workshop';
     return 'Apply changes';
   })();
+  const hasVariableSnapshot = Boolean(varSync.snapshot);
+  const hasStyleSnapshot = Boolean(styleSync.snapshot);
+  const hasRevertSnapshot = hasVariableSnapshot || hasStyleSnapshot;
+  const revertTargetLabel =
+    hasVariableSnapshot && hasStyleSnapshot
+      ? "Variables and styles"
+      : hasVariableSnapshot
+        ? "Variables"
+        : "Styles";
+  const handleUndoLastFigmaSync = useCallback(async () => {
+    if (varSync.reverting || styleSync.reverting) return;
+    if (hasVariableSnapshot) {
+      await varSync.revert();
+    }
+    if (hasStyleSnapshot) {
+      await styleSync.revert();
+    }
+  }, [
+    hasStyleSnapshot,
+    hasVariableSnapshot,
+    styleSync,
+    varSync,
+  ]);
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
@@ -1269,13 +1292,14 @@ export function PublishPanel({
                 <path d="M20 6L9 17l-5-5" />
               </svg>
               <span className="text-body text-[color:var(--color-figma-text)]">Figma is up to date</span>
-              {(varSync.snapshot || styleSync.snapshot) && (
+              {hasRevertSnapshot && (
                 <button
-                  onClick={varSync.snapshot ? varSync.revert : styleSync.revert}
+                  onClick={() => void handleUndoLastFigmaSync()}
                   disabled={varSync.reverting || styleSync.reverting}
                   className="ml-auto text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] transition-colors"
+                  title={`Undo last Figma sync: ${revertTargetLabel}`}
                 >
-                  {varSync.reverting || styleSync.reverting ? 'Reverting…' : 'Undo last sync'}
+                  {varSync.reverting || styleSync.reverting ? 'Reverting…' : 'Undo last Figma sync'}
                 </button>
               )}
             </div>

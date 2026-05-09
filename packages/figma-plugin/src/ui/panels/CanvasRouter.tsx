@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { resolveCollectionIdForPath } from "@token-workshop/core";
 import { DeliveryStatusStrip } from "../components/DeliveryStatusStrip";
@@ -71,6 +71,7 @@ export function CanvasRouter({
   } = useCollectionStateContext();
   const {
     allTokensFlat,
+    perCollectionFlat,
     pathToCollectionId,
     collectionIdsByPath,
   } = useTokenFlatMapContext();
@@ -106,6 +107,16 @@ export function CanvasRouter({
       onOpenSync={() => navigateTo("publish", "publish-figma")}
     />
   );
+  const collectionDisplayNames = useMemo(
+    () =>
+      Object.fromEntries(
+        collections.map((collection) => [
+          collection.id,
+          collection.publishRouting?.collectionName?.trim() || collection.id,
+        ]),
+      ),
+    [collections],
+  );
 
   if (subTab === "inspect") {
     return (
@@ -119,6 +130,8 @@ export function CanvasRouter({
             selectedNodes={selectedNodes}
             selectionLoading={selectionLoading}
             tokenMap={allTokensFlat}
+            tokenMapsByCollection={perCollectionFlat}
+            collectionDisplayNames={collectionDisplayNames}
             onSync={sync}
             syncing={syncing}
             syncProgress={syncProgress}

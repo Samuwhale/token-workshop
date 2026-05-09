@@ -4987,7 +4987,7 @@ function OutputPreviewRow({
           output.collision ? "tm-graph-node__result-change--warning" : ""
         }`}
       >
-        {output.collision ? "manual token" : output.change}
+        {output.collision ? "authored token" : output.change}
       </div>
       <ModeValueStack
         modeNames={modes}

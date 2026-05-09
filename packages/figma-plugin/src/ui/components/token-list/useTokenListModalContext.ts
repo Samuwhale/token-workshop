@@ -3,6 +3,7 @@ import type { VariableDiffPendingState, TokenListModalsState } from "../../share
 type TokenListModalContextDeps = {
   collectionId: TokenListModalsState["collectionId"];
   collectionIds: TokenListModalsState["collectionIds"];
+  collectionDisplayNames: TokenListModalsState["collectionDisplayNames"];
   allTokensFlat: TokenListModalsState["allTokensFlat"];
   connected: TokenListModalsState["connected"];
   deleteConfirm: TokenListModalsState["deleteConfirm"];
@@ -112,6 +113,7 @@ export function useTokenListModalContext(
   return {
     collectionId: deps.collectionId,
     collectionIds: deps.collectionIds,
+    collectionDisplayNames: deps.collectionDisplayNames,
     allTokensFlat: deps.allTokensFlat,
     connected: deps.connected,
     deleteConfirm: deps.deleteConfirm,

@@ -563,7 +563,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'apply-to-nodes':
       try {
-        await applyToNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+        await applyToNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue, msg.collectionId);
       } catch (e) {
         reportError('apply-to-nodes', e);
       }

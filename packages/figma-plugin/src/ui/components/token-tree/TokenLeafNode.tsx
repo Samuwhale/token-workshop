@@ -310,7 +310,7 @@ export const TokenLeafNode = memo(
       ? "hidden"
       : contextMenuPos || isRowActive
         ? "opacity-100"
-        : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100";
+        : "opacity-60 group-hover:opacity-100 group-focus-within:opacity-100";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected

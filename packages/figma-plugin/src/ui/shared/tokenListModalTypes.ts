@@ -61,6 +61,7 @@ export interface RenameGroupConfirmState {
 export interface TokenListModalsState {
   collectionId: string;
   collectionIds: string[];
+  collectionDisplayNames?: Record<string, string>;
   allTokensFlat: Record<string, TokenMapEntry>;
   connected: boolean;
 
