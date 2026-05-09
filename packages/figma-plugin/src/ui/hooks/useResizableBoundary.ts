@@ -42,6 +42,17 @@ function readInitial(storageKey: string, defaultSize: number, min: number, max: 
   return clamp(n, min, max);
 }
 
+function pointerRatioWithinRect(rect: DOMRect, axis: ResizeAxis, measureFrom: 'start' | 'end', event: MouseEvent): number {
+  const length = axis === 'x' ? rect.width : rect.height;
+  if (length <= 0) return 0;
+
+  const pointer = axis === 'x' ? event.clientX : event.clientY;
+  const start = axis === 'x' ? rect.left : rect.top;
+  const end = axis === 'x' ? rect.right : rect.bottom;
+  const distance = measureFrom === 'start' ? pointer - start : end - pointer;
+  return distance / length;
+}
+
 export interface ResizableBoundary {
   /** Current size (px when mode === 'px', ratio 0..1 when mode === 'ratio'). */
   size: number;
@@ -114,12 +125,7 @@ export function useResizableBoundary(options: UseResizableBoundaryOptions): Resi
     const onMove = (me: MouseEvent) => {
       if (mode === 'ratio') {
         if (!startRect) return;
-        const length = axis === 'x' ? startRect.width : startRect.height;
-        if (length <= 0) return;
-        const origin = axis === 'x' ? startRect.left : startRect.top;
-        const pointer = axis === 'x' ? me.clientX : me.clientY;
-        const raw = (pointer - origin) / length;
-        commit(raw);
+        commit(pointerRatioWithinRect(startRect, axis, measureFrom, me));
       } else {
         const pointer = axis === 'x' ? me.clientX : me.clientY;
         const delta = pointer - startClient;

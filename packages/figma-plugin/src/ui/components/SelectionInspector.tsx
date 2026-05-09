@@ -167,6 +167,25 @@ export function SelectionInspector({
   } | null>(null);
 
   const prevNodeIdsRef = useRef<string>("");
+  const scheduledTimeoutsRef = useRef<Set<number>>(new Set());
+
+  const clearScheduledTimeouts = useCallback(() => {
+    for (const timeoutId of scheduledTimeoutsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    scheduledTimeoutsRef.current.clear();
+  }, []);
+
+  const scheduleTimeout = useCallback((callback: () => void, delay: number) => {
+    const timeoutId = window.setTimeout(() => {
+      scheduledTimeoutsRef.current.delete(timeoutId);
+      callback();
+    }, delay);
+    scheduledTimeoutsRef.current.add(timeoutId);
+    return timeoutId;
+  }, []);
+
+  useEffect(() => clearScheduledTimeouts, [clearScheduledTimeouts]);
 
   const handleToggleDeepInspect = useCallback(() => {
     toggleDeepInspect();
@@ -277,12 +296,12 @@ export function SelectionInspector({
       if (msg?.type === "select-next-sibling-result") {
         if (!msg.found) {
           setNoMoreSiblings(true);
-          setTimeout(() => setNoMoreSiblings(false), 2000);
+          scheduleTimeout(() => setNoMoreSiblings(false), 2000);
         }
       }
       if (msg?.type === "removed-binding-from-node" && !msg.success) {
         setDeepRemoveError(msg.error ?? "Failed to remove binding");
-        setTimeout(() => setDeepRemoveError(null), 3000);
+        scheduleTimeout(() => setDeepRemoveError(null), 3000);
       }
       if (msg?.type === "apply-progress") {
         setApplyProgress({ processed: msg.processed, total: msg.total });
@@ -293,7 +312,7 @@ export function SelectionInspector({
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, []);
+  }, [scheduleTimeout]);
 
   useEffect(() => {
     if (!triggerCreateToken) return;
@@ -336,8 +355,18 @@ export function SelectionInspector({
     setNewTokenName,
   ]);
 
-  const rootNodes = selectedNodes.filter((n) => (n.depth ?? 0) === 0);
-  const deepChildNodes = selectedNodes.filter((n) => (n.depth ?? 0) > 0);
+  const rootNodes = useMemo(
+    () => selectedNodes.filter((node) => (node.depth ?? 0) === 0),
+    [selectedNodes],
+  );
+  const deepChildNodes = useMemo(
+    () => selectedNodes.filter((node) => (node.depth ?? 0) > 0),
+    [selectedNodes],
+  );
+  const rootNodeIds = useMemo(
+    () => rootNodes.map((node) => node.id).join(","),
+    [rootNodes],
+  );
 
   const hasSelection = rootNodes.length > 0;
   const caps = getMergedCapabilities(rootNodes);
@@ -351,9 +380,9 @@ export function SelectionInspector({
   }, [syncResult]);
 
   useEffect(() => {
-    const ids = rootNodes.map((n) => n.id).join(",");
-    if (ids !== prevNodeIdsRef.current) {
-      prevNodeIdsRef.current = ids;
+    if (rootNodeIds !== prevNodeIdsRef.current) {
+      prevNodeIdsRef.current = rootNodeIds;
+      clearScheduledTimeouts();
       setFreshSyncResult(null);
       setBindingFromProp(null);
       setLastBoundProp(null);
@@ -367,7 +396,7 @@ export function SelectionInspector({
       setExtractOpen(null);
       setShowClearConfirm(false);
     }
-  }, [selectedNodes, rootNodes]);
+  }, [rootNodeIds, clearScheduledTimeouts]);
 
   const totalBindings = workflowSummary.boundPropertyCount;
   const mixedBindings = workflowSummary.mixedPropertyCount;
@@ -606,14 +635,14 @@ export function SelectionInspector({
     }
     cancelBind();
     setLastBoundProp(prop);
-    setTimeout(
+    scheduleTimeout(
       () => setLastBoundProp((prev) => (prev === prop ? null : prev)),
       1500,
     );
 
     const nextUnbound = getNextUnboundProperty(prop, rootNodes, caps);
     if (nextUnbound) {
-      setTimeout(() => {
+      scheduleTimeout(() => {
         setBindingFromProp((prev) => {
           // Only advance if user hasn't manually opened a different panel
           if (prev === null) return nextUnbound;
@@ -673,7 +702,7 @@ export function SelectionInspector({
         });
       };
       window.addEventListener("message", handler);
-      setTimeout(() => window.removeEventListener("message", handler), 5000);
+      scheduleTimeout(() => window.removeEventListener("message", handler), 5000);
     }
   };
 
@@ -703,7 +732,7 @@ export function SelectionInspector({
 
     const nextUnbound = getNextUnboundProperty(prop, rootNodes, caps);
     if (nextUnbound) {
-      setTimeout(() => {
+      scheduleTimeout(() => {
         setBindingFromProp((prev) => {
           if (prev === null) return nextUnbound;
           return prev;

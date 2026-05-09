@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { downloadBlob, getErrorMessage } from '../shared/utils';
@@ -91,6 +91,15 @@ export function useExportResults({
   const [showExportPreviewModal, setShowExportPreviewModal] = useState(false);
   const [previewModalFileIndex, setPreviewModalFileIndex] = useState(0);
   const [zipProgress, setZipProgress] = useState<number | null>(null);
+  const copiedFileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedFileTimerRef.current !== null) {
+        clearTimeout(copiedFileTimerRef.current);
+      }
+    };
+  }, []);
 
   const {
     selected, selectedCollections, selectedTypes, pathPrefix, cssSelector,
@@ -290,7 +299,13 @@ export function useExportResults({
     try {
       await navigator.clipboard.writeText(file.content);
       setCopiedFile(exportFileId(file));
-      setTimeout(() => setCopiedFile(null), 1500);
+      if (copiedFileTimerRef.current !== null) {
+        clearTimeout(copiedFileTimerRef.current);
+      }
+      copiedFileTimerRef.current = setTimeout(() => {
+        setCopiedFile(null);
+        copiedFileTimerRef.current = null;
+      }, 1500);
       dispatchToast('Copied to clipboard', 'success');
     } catch (err) {
       console.warn('[useExportResults] clipboard write failed:', err);
