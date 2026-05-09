@@ -37,14 +37,14 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   description: string;
 }> = {
   full: {
-    container: 'flex h-full w-full flex-1 flex-col justify-center px-3 py-2',
-    content: 'flex w-full max-w-[340px] min-w-0 flex-col gap-1.5',
+    container: 'tm-feedback-placeholder tm-feedback-placeholder--full flex h-full w-full flex-1 flex-col justify-center px-3 py-2',
+    content: 'tm-feedback-placeholder__content flex w-full min-w-0 flex-col gap-1.5',
     title: 'text-body font-medium',
     description: 'text-body leading-[var(--leading-body)]',
   },
   section: {
-    container: 'flex w-full flex-col justify-center px-2 py-1.5',
-    content: 'flex w-full max-w-[320px] min-w-0 flex-col gap-1.5',
+    container: 'tm-feedback-placeholder tm-feedback-placeholder--section flex w-full flex-col justify-center px-2 py-1.5',
+    content: 'tm-feedback-placeholder__content flex w-full min-w-0 flex-col gap-1.5',
     title: 'text-secondary font-medium',
     description: 'text-body leading-[var(--leading-body)]',
   },
@@ -166,8 +166,8 @@ export function FeedbackPlaceholder({
           align === 'center'
             ? 'items-center'
             : size === 'full'
-              ? 'max-w-[420px] items-start'
-              : 'max-w-full items-start',
+              ? 'tm-feedback-placeholder__content--start items-start'
+              : 'items-start',
         )}
       >
         {iconNode !== null ? (
@@ -187,7 +187,7 @@ export function FeedbackPlaceholder({
         {resolvedActions.length > 0 ? (
           <div
             className={joinClasses(
-              'flex flex-wrap items-center gap-2',
+              'tm-feedback-placeholder__actions flex flex-wrap items-center gap-2',
               align === 'center' ? 'justify-center' : 'justify-start',
             )}
           >

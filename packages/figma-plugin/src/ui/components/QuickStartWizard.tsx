@@ -37,33 +37,33 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
   onRetry?: () => void;
   onClose: () => void;
 }) {
-  const [showDeveloperDetails, setShowDeveloperDetails] = useState(false);
+  const [showServerDetails, setShowServerDetails] = useState(false);
 
   return (
     <div className="flex flex-col gap-3">
       <div>
         <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Your token library is offline
+          Start Token Workshop locally
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Ask your team to start the shared token library, then retry the connection here.
+          Run the local token server from the folder where your token files should live, then retry the connection here.
         </p>
       </div>
 
       <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
+        <code className="block rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body font-mono text-[color:var(--color-figma-text-accent)]">
+          npx token-workshop --dir ./tokens
+        </code>
         <button
           type="button"
-          onClick={() => setShowDeveloperDetails((open) => !open)}
-          aria-expanded={showDeveloperDetails}
-          className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
+          onClick={() => setShowServerDetails((open) => !open)}
+          aria-expanded={showServerDetails}
+          className="mt-2 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
         >
-          Developer setup details
+          Server details
         </button>
-        {showDeveloperDetails ? (
-          <div className="mt-2 flex flex-col gap-2">
-            <code className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body font-mono text-[color:var(--color-figma-text-accent)]">
-              token-manager start
-            </code>
+        {showServerDetails ? (
+          <div className="mt-2">
             <div className="flex flex-wrap items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
               <span>Looking for</span>
               <code className="font-mono rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[color:var(--color-figma-text)]">

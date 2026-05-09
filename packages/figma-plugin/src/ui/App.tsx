@@ -71,6 +71,7 @@ import { useValidationCache } from "./hooks/useValidationCache";
 import type { DerivationOp } from "@token-workshop/core";
 import { usePublishRouting } from "./hooks/usePublishRouting";
 import { useSettingsListener } from "./components/SettingsPanel";
+import { useFocusTrap } from "./hooks/useFocusTrap";
 import {
   WorkspaceControllerProvider,
   type EditorSessionRegistration,
@@ -805,6 +806,8 @@ export function App() {
     itemId: string;
     top: number;
   } | null>(null);
+  const responsiveSidebarFlyoutRef = useRef<HTMLDivElement>(null);
+  const responsiveSidebarFlyoutInitialFocusRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const updateResponsiveSidebar = () => {
       setResponsiveSidebarCollapsed(
@@ -838,6 +841,9 @@ export function App() {
           },
     );
   }, []);
+  useFocusTrap(responsiveSidebarFlyoutRef, {
+    initialFocusRef: responsiveSidebarFlyoutInitialFocusRef,
+  });
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(
     () => new Set([activeWorkspace.id]),
   );
@@ -2159,7 +2165,12 @@ export function App() {
               <Tooltip label="Workspace sections" position="right">
                 <button
                   type="button"
-                  onClick={() => openResponsiveSidebarFlyout(activeWorkspace.id, window.innerHeight - 224)}
+                  onClick={(event) =>
+                    openResponsiveSidebarFlyout(
+                      activeWorkspace.id,
+                      event.currentTarget.getBoundingClientRect().top,
+                    )
+                  }
                   aria-label="Open workspace sections"
                   aria-expanded={responsiveSidebarFlyout?.itemId === activeWorkspace.id}
                   className={`mx-auto h-7 w-7 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)]`}
@@ -2212,13 +2223,27 @@ export function App() {
           <>
             <button
               type="button"
-              className="fixed inset-0 z-20 cursor-default"
+              className="fixed inset-0 z-20 bg-[var(--color-figma-overlay)] cursor-default"
               aria-label="Close workspace navigation"
               onClick={() => setResponsiveSidebarFlyout(null)}
             />
             <div
+              ref={responsiveSidebarFlyoutRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${item.label} sections`}
               className="tm-sidebar-flyout absolute left-10 z-30 rounded-md border border-[var(--border-muted)] bg-[var(--surface-panel-header)] p-1 shadow-[var(--shadow-popover)]"
-              style={{ top: responsiveSidebarFlyout.top }}
+              style={{
+                top: responsiveSidebarFlyout.top,
+                maxHeight: `calc(100vh - ${responsiveSidebarFlyout.top + 8}px)`,
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setResponsiveSidebarFlyout(null);
+                }
+              }}
             >
               <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
                 {item.label}
@@ -2234,6 +2259,7 @@ export function App() {
                 return (
                   <button
                     key={section.id}
+                    ref={isSectionActive ? responsiveSidebarFlyoutInitialFocusRef : undefined}
                     type="button"
                     onClick={() => {
                       setResponsiveSidebarFlyout(null);

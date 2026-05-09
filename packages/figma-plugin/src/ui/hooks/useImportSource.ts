@@ -123,9 +123,9 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const [fileImportValidation, setFileImportValidation] = useState<FileImportValidation | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cssFileInputRef = useRef<HTMLInputElement | null>(null);
-  const tailwindFileInputRef = useRef<HTMLInputElement | null>(null);
-  const tokensStudioFileInputRef = useRef<HTMLInputElement | null>(null);
+  const cssFileInputRef = useRef<HTMLInputElement>(null);
+  const tailwindFileInputRef = useRef<HTMLInputElement>(null);
+  const tokensStudioFileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);

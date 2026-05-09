@@ -253,6 +253,7 @@ export function CollectionTabs({
                   options={[...COLLECTION_SCOPE_OPTIONS]}
                   onChange={allCollectionsScope.onChange}
                   ariaLabel="Collection scope"
+                  allowWrap
                 />
               </div>
             ) : null}

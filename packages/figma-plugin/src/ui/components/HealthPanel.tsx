@@ -327,8 +327,9 @@ export function HealthPanel({
   const currentReviewSummary = scopedCollectionKey
     ? collectionReviewSummaries.get(scopedCollectionKey)
     : undefined;
+  const reviewError = validationError ?? generatorStatusError;
   const overallStatus: HealthStatus =
-    validationError || generatorStatusError
+    reviewError
       ? "critical"
       : currentReviewSummary?.severity === "critical"
       ? "critical"
@@ -779,7 +780,7 @@ export function HealthPanel({
             totalIssueCount={totalIssueCount}
             validationLoading={validationLoading}
             validationLastRefreshed={validationLastRefreshed}
-            validationError={validationError}
+            validationError={reviewError}
             issueCount={issueCount}
             issueStatus={issueStatus}
             generatorIssueCount={generatorIssueCount}

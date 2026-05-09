@@ -1,4 +1,4 @@
-import { FileCode2, Layers3, Table2, Upload } from "lucide-react";
+import { Braces, Code2, FileCode2, Layers3, Table2, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { useImportSourceContext } from "./ImportPanelContext";
 import { Button } from "../primitives";
@@ -31,10 +31,20 @@ export function ImportSourceHome() {
     isDragging,
     fileImportValidation,
     fileInputRef,
+    cssFileInputRef,
+    tailwindFileInputRef,
+    tokensStudioFileInputRef,
     handleReadVariables,
     handleReadStyles,
+    handleReadJson,
+    handleReadCSS,
+    handleReadTailwind,
+    handleReadTokensStudio,
     handleBrowseFile,
     handleUnifiedFileChange,
+    handleCSSFileChange,
+    handleTailwindFileChange,
+    handleTokensStudioFileChange,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
@@ -56,10 +66,7 @@ export function ImportSourceHome() {
 
       <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          From this Figma file
-        </div>
-        <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Keep existing collection and mode structure when importing variables.
+          Choose a source
         </div>
         <div className="tm-import-home__actions">
           <SourceButton
@@ -72,15 +79,38 @@ export function ImportSourceHome() {
             onClick={handleReadStyles}
             label="Figma styles"
           />
+          <SourceButton
+            icon={<Braces size={14} strokeWidth={1.75} aria-hidden />}
+            onClick={handleReadJson}
+            label="Token JSON"
+          />
+          <SourceButton
+            icon={<Code2 size={14} strokeWidth={1.75} aria-hidden />}
+            onClick={handleReadCSS}
+            label="CSS values"
+          />
+          <SourceButton
+            icon={<Code2 size={14} strokeWidth={1.75} aria-hidden />}
+            onClick={handleReadTailwind}
+            label="Tailwind config"
+          />
+          <SourceButton
+            icon={<FileCode2 size={14} strokeWidth={1.75} aria-hidden />}
+            onClick={handleReadTokensStudio}
+            label="Tokens Studio"
+          />
+        </div>
+        <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+          Variables keep Figma collection and mode structure. Token files import into the selected collection unless the file contains collections.
         </div>
       </div>
 
       <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          From another token source
+          Drop a file
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Drop a token file or a source your team already uses.
+          Drop JSON, CSS, Tailwind config, or Tokens Studio export files here.
         </div>
         <button
           type="button"
@@ -139,6 +169,11 @@ export function ImportSourceHome() {
           {fileImportValidation.detail && (
             <span className="text-[color:var(--color-figma-text-secondary)]"> {fileImportValidation.detail}</span>
           )}
+          {fileImportValidation.nextAction ? (
+            <div className="mt-1 text-[color:var(--color-figma-text)]">
+              {fileImportValidation.nextAction}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -148,6 +183,27 @@ export function ImportSourceHome() {
         accept=".json,.css,.js,.ts,.mjs,.cjs,application/json,text/css"
         className="sr-only"
         onChange={handleUnifiedFileChange}
+      />
+      <input
+        ref={cssFileInputRef}
+        type="file"
+        accept=".css,text/css"
+        className="sr-only"
+        onChange={handleCSSFileChange}
+      />
+      <input
+        ref={tailwindFileInputRef}
+        type="file"
+        accept=".js,.ts,.mjs,.cjs"
+        className="sr-only"
+        onChange={handleTailwindFileChange}
+      />
+      <input
+        ref={tokensStudioFileInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="sr-only"
+        onChange={handleTokensStudioFileChange}
       />
     </div>
   );

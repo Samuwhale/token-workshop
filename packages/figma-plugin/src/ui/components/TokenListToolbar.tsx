@@ -366,6 +366,7 @@ export function TokenListToolbar({
                         }
                       }}
                       ariaLabel="Search scope"
+                      allowWrap
                     />
                   ) : null}
                 </div>
@@ -448,6 +449,7 @@ export function TokenListToolbar({
                   title="View options"
                   variant="ghost"
                   size="sm"
+                  wrap
                   className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
                     viewMenu.open || viewMenuActive || viewMode === "json"
                       ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
@@ -524,6 +526,7 @@ export function TokenListToolbar({
                         aria-label="New token"
                         variant="primary"
                         size="sm"
+                        wrap
                         className="tm-token-toolbar__split-button-primary rounded-r-none border-r border-white/15 pr-2"
                       >
                         <Plus size={12} strokeWidth={2} aria-hidden />
@@ -548,7 +551,7 @@ export function TokenListToolbar({
                       </Button>
                     </div>
                   ) : (
-                    <button
+                    <Button
                       ref={createMenu.triggerRef}
                       type="button"
                       onClick={createMenu.toggle}
@@ -557,14 +560,17 @@ export function TokenListToolbar({
                       aria-haspopup="menu"
                       aria-label="Create"
                       title="Create"
-                      className={`${TOOLBAR_BUTTON_CLASS} bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40`}
+                      variant="primary"
+                      size="sm"
+                      wrap
+                      className={`${TOOLBAR_BUTTON_CLASS} justify-start disabled:opacity-40`}
                     >
                       <Plus size={12} strokeWidth={2} aria-hidden />
                       <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
                         Create
                       </span>
                       <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
-                    </button>
+                    </Button>
                   )}
 
                 </div>
@@ -619,7 +625,7 @@ export function TokenListToolbar({
 
             {showOverflow ? (
               <div className="relative shrink-0">
-                <IconButton
+                <Button
                   ref={actionsMenu.triggerRef}
                   type="button"
                   onClick={actionsMenu.toggle}
@@ -627,15 +633,20 @@ export function TokenListToolbar({
                   aria-haspopup="menu"
                   aria-label="More actions"
                   title="More actions"
+                  variant="ghost"
                   size="sm"
-                  className={`${
+                  wrap
+                  className={`tm-token-toolbar__overflow-button justify-start ${
                     actionsMenu.open
                       ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                       : ""
                   } disabled:opacity-40`}
                 >
                   <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
-                </IconButton>
+                  <span className="tm-toolbar-action__label tm-token-toolbar__overflow-label">
+                    More
+                  </span>
+                </Button>
 
                 {actionsMenu.open ? (
                   <div

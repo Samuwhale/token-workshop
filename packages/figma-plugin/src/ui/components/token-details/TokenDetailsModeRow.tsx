@@ -17,6 +17,12 @@ import {
   getTypographyPreviewValue,
 } from "../token-editor/tokenEditorHelpers";
 import { formatCollectionDisplayNameList } from "../../shared/libraryCollections";
+import {
+  CONTROL_DISABLED_CLASSES,
+  CONTROL_INPUT_BASE_CLASSES,
+  CONTROL_INPUT_DEFAULT_STATE_CLASSES,
+  CONTROL_INPUT_INVALID_STATE_CLASSES,
+} from "../../shared/controlClasses";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -354,9 +360,11 @@ export function TokenDetailsModeRow({
                     : undefined
                 }
                 className={joinClasses(
-                  "tm-token-mode-row__alias-input min-h-8 w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] outline-none transition-colors hover:border-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]",
-                  showAliasMissingState && "tm-token-mode-row__alias-input--invalid",
-                  showAliasAmbiguousState && "tm-token-mode-row__alias-input--invalid",
+                  `tm-token-mode-row__alias-input min-h-8 w-full px-2 py-1 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_DISABLED_CLASSES} ${
+                    showAliasMissingState || showAliasAmbiguousState
+                      ? CONTROL_INPUT_INVALID_STATE_CLASSES
+                      : CONTROL_INPUT_DEFAULT_STATE_CLASSES
+                  }`,
                 )}
               />
               {autocompleteOpen && (

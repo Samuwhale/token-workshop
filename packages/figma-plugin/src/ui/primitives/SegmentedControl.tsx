@@ -10,6 +10,7 @@ interface SegmentedControlProps<T extends string> {
   options: SegmentedOption<T>[];
   onChange: (value: T) => void;
   ariaLabel?: string;
+  allowWrap?: boolean;
 }
 
 export function SegmentedControl<T extends string>({
@@ -17,8 +18,9 @@ export function SegmentedControl<T extends string>({
   options,
   onChange,
   ariaLabel,
+  allowWrap = false,
 }: SegmentedControlProps<T>) {
-  const adaptiveWrap = options.length > 3;
+  const adaptiveWrap = allowWrap || options.length > 3;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = options.findIndex((option) => option.value === value);

@@ -31,7 +31,13 @@ export function ImportSuccessView() {
     ? "var(--color-figma-warning)"
     : "var(--color-figma-success)";
 
-  const nextStepRecommendations = importNextStepRecommendations.slice(0, 2);
+  const nextStepRecommendations = (
+    hasFailedWrites
+      ? importNextStepRecommendations.filter(
+          (recommendation) => recommendation.rationale !== "Retry failed batches.",
+        )
+      : importNextStepRecommendations
+  ).slice(0, 2);
 
   return (
     <div className="flex flex-col items-center gap-3 py-6">
@@ -67,10 +73,12 @@ export function ImportSuccessView() {
       {nextStepRecommendations.length > 0 ? (
         <div className="flex flex-col items-center gap-1 text-center">
           <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
-            Next step
+            {hasFailedWrites ? "After retrying" : "Next step"}
           </div>
           <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {nextStepRecommendations[0]?.rationale}
+            {hasFailedWrites
+              ? "Keep this result open until failed batches are recovered or copied for follow-up."
+              : nextStepRecommendations[0]?.rationale}
           </div>
         </div>
       ) : null}
@@ -120,12 +128,21 @@ export function ImportSuccessView() {
       )}
 
       <div className="flex flex-wrap items-center justify-center gap-2">
+        {hasFailedWrites && failedImportBatches.length > 0 ? (
+          <button
+            onClick={handleRetryFailed}
+            disabled={retrying}
+            className="rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 disabled:opacity-50"
+          >
+            {retrying ? "Retrying..." : "Retry failed batches"}
+          </button>
+        ) : null}
         {nextStepRecommendations.map((recommendation, index) => (
           <button
             key={`${recommendation.label}:${index}`}
             onClick={() => openImportNextStep(recommendation)}
             className={
-              index === 0
+              index === 0 && !hasFailedWrites
                 ? "rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] hover:opacity-90"
                 : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
             }

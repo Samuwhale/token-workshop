@@ -36,6 +36,8 @@ import {
   type WorkspaceImportNextStepRecommendation,
 } from "../shared/navigationTypes";
 
+const DEFAULT_FLAT_IMPORT_MODE_NAME = "Default";
+
 export interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
@@ -144,9 +146,9 @@ export interface ImportSourceContextValue {
   fileImportValidation: FileImportValidation | null;
   isDragging: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
-  cssFileInputRef: React.RefObject<HTMLInputElement | null>;
-  tailwindFileInputRef: React.RefObject<HTMLInputElement | null>;
-  tokensStudioFileInputRef: React.RefObject<HTMLInputElement | null>;
+  cssFileInputRef: React.RefObject<HTMLInputElement>;
+  tailwindFileInputRef: React.RefObject<HTMLInputElement>;
+  tokensStudioFileInputRef: React.RefObject<HTMLInputElement>;
   setTypeFilter: React.Dispatch<React.SetStateAction<string | null>>;
   setSkippedExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   handleReadVariables: () => void;
@@ -1014,7 +1016,10 @@ export function ImportPanelProvider({
         await apiFetch(`${serverUrl}/api/collections`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: collectionId }),
+          body: JSON.stringify({
+            id: collectionId,
+            modes: [{ name: DEFAULT_FLAT_IMPORT_MODE_NAME }],
+          }),
         });
       } catch (err) {
         if (!(err instanceof ApiError && err.status === 409)) {
@@ -1578,6 +1583,15 @@ export function ImportPanelProvider({
         setFailedImportPaths([]);
         setFailedImportBatches([]);
         setSucceededImportCount((prev) => prev + retried);
+        setLastImportResult((previous) =>
+          previous
+            ? {
+                ...previous,
+                hadFailures: false,
+                totalImportedCount: previous.totalImportedCount + retried,
+              }
+            : previous,
+        );
         setSuccessMessage((prev) =>
           prev
             ? `${prev} (${retried} recovered on retry)`

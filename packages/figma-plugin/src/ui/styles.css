@@ -1274,6 +1274,37 @@ button.tm-status-row:not(:disabled):hover {
   overflow-x: clip;
 }
 
+.tm-feedback-placeholder {
+  container-type: inline-size;
+}
+
+.tm-feedback-placeholder__content {
+  max-inline-size: min(30rem, 100%);
+}
+
+.tm-feedback-placeholder--section .tm-feedback-placeholder__content {
+  max-inline-size: min(26rem, 100%);
+}
+
+.tm-feedback-placeholder__content--start {
+  max-inline-size: min(34rem, 100%);
+}
+
+.tm-feedback-placeholder__actions {
+  inline-size: 100%;
+}
+
+@container (max-width: 360px) {
+  .tm-feedback-placeholder__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tm-feedback-placeholder__actions > * {
+    inline-size: 100%;
+  }
+}
+
 @container (max-width: 420px) {
   .tm-segmented-control--adaptive {
     display: grid;
@@ -1424,8 +1455,11 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-sidebar-flyout {
+  display: flex;
+  flex-direction: column;
   inline-size: 236px;
   max-inline-size: min(236px, calc(100vw - 56px));
+  overflow-y: auto;
   background: var(--surface-panel-header);
 }
 
@@ -1842,6 +1876,10 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
 }
 
+.tm-token-toolbar__overflow-label {
+  display: none;
+}
+
 .tm-token-toolbar__split-button {
   display: inline-flex;
   min-inline-size: 0;
@@ -1953,6 +1991,11 @@ button.tm-status-row:not(:disabled):hover {
     inline-size: 100%;
   }
 
+  .tm-token-toolbar__overflow-button {
+    inline-size: 100%;
+    justify-content: center;
+  }
+
   .tm-token-toolbar .tm-responsive-toolbar__actions > .relative {
     inline-size: 100%;
   }
@@ -1966,6 +2009,10 @@ button.tm-status-row:not(:disabled):hover {
     white-space: normal;
     text-overflow: clip;
     overflow-wrap: anywhere;
+  }
+
+  .tm-token-toolbar__overflow-label {
+    display: block;
   }
 }
 
@@ -4038,15 +4085,6 @@ button.tm-token-details__text-button:disabled:hover {
   min-inline-size: 0;
 }
 
-.tm-token-mode-row__alias-input--invalid {
-  border-color: color-mix(
-    in srgb,
-    var(--color-figma-error) 70%,
-    var(--color-figma-border)
-  );
-  background: color-mix(in srgb, var(--color-figma-error) 8%, var(--color-figma-bg));
-}
-
 .tm-token-mode-row__helper {
   margin: 4px 0 0;
   font-size: var(--font-size-sm);
@@ -4462,6 +4500,11 @@ button.tm-token-details__text-button:disabled:hover {
     min-inline-size: 0;
   }
 
+  .tm-token-toolbar__overflow-button {
+    inline-size: 100%;
+    justify-content: center;
+  }
+
   .tm-token-toolbar__split-button {
     inline-size: 100%;
   }
@@ -4476,6 +4519,10 @@ button.tm-token-details__text-button:disabled:hover {
     white-space: normal;
     text-overflow: clip;
     overflow-wrap: anywhere;
+  }
+
+  .tm-token-toolbar__overflow-label {
+    display: block;
   }
 }
 

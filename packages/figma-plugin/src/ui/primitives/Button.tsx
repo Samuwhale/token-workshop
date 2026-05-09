@@ -8,6 +8,7 @@ import {
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md";
+  wrap?: boolean;
   children: ReactNode;
 }
 
@@ -29,7 +30,14 @@ const SIZE_CLASS: Record<NonNullable<ButtonProps["size"]>, string> = {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
-    { variant = "secondary", size = "md", className = "", children, ...rest },
+    {
+      variant = "secondary",
+      size = "md",
+      wrap = false,
+      className = "",
+      children,
+      ...rest
+    },
     ref,
   ) {
     return (
@@ -37,7 +45,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={rest.type ?? "button"}
         {...rest}
-        className={`inline-flex min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-[var(--radius-md)] text-center leading-tight font-medium whitespace-nowrap outline-none transition-colors [&>svg]:shrink-0 ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
+        className={`inline-flex min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-[var(--radius-md)] leading-tight font-medium outline-none transition-colors [&>svg]:shrink-0 ${
+          wrap ? "whitespace-normal text-left" : "whitespace-nowrap text-center"
+        } ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
       >
         {children}
       </button>
