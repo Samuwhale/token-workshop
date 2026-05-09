@@ -157,6 +157,7 @@ export function PlatformExportConfig({
     presetName, setPresetName,
   } = presetsState;
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [platformsOpen, setPlatformsOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
@@ -211,6 +212,15 @@ export function PlatformExportConfig({
     pathPrefix ? `Path ${pathPrefix}` : null,
     changesOnly ? 'Changes only' : null,
   ].filter(Boolean).join(' · ') || 'Defaults';
+  const selectedPlatformLabels = PLATFORMS
+    .filter((platform) => selected.has(platform.id))
+    .map((platform) => platform.label);
+  const platformSummary =
+    selectedPlatformLabels.length === 0
+      ? 'No files selected'
+      : selectedPlatformLabels.length === PLATFORMS.length
+        ? 'All file formats'
+        : selectedPlatformLabels.join(', ');
 
   const intentButtonClass =
     "rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]";
@@ -270,50 +280,52 @@ export function PlatformExportConfig({
         </div>
       </div>
 
-      {/* Target Platforms */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <div className="text-body text-[color:var(--color-figma-text)] font-semibold">
-              Target platforms
-            </div>
-            <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              Choose the files this export should generate.
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              if (selected.size === PLATFORMS.length) {
-                setSelected(new Set());
-              } else {
-                setSelected(new Set(PLATFORMS.map(p => p.id)));
-              }
-            }}
-            className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
-          >
-            {selected.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
-          </button>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          {PLATFORMS.map(platform => {
-            const isSelected = selected.has(platform.id);
-            return (
-              <CheckboxRow
-                key={platform.id}
-                checked={isSelected}
-                onChange={() => togglePlatform(platform.id)}
-                title={platform.label}
-                description={platform.description}
+        <DisclosureRow
+          title="File formats"
+          summary={platformSummary}
+          open={platformsOpen}
+          onToggle={() => setPlatformsOpen((open) => !open)}
+          action={
+            platformsOpen ? (
+              <button
+                onClick={() => {
+                  if (selected.size === PLATFORMS.length) {
+                    setSelected(new Set());
+                  } else {
+                    setSelected(new Set(PLATFORMS.map((p) => p.id)));
+                  }
+                }}
+                className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
               >
-                {isSelected ? (
-                  <span className="block min-w-0 break-all font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-tertiary)]">
-                    {platform.example}
-                  </span>
-                ) : null}
-              </CheckboxRow>
-            );
-          })}
-        </div>
+                {selected.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
+              </button>
+            ) : undefined
+          }
+          className="mb-1"
+        />
+        {platformsOpen ? (
+          <div className="flex flex-col gap-0.5 pl-4">
+            {PLATFORMS.map(platform => {
+              const isSelected = selected.has(platform.id);
+              return (
+                <CheckboxRow
+                  key={platform.id}
+                  checked={isSelected}
+                  onChange={() => togglePlatform(platform.id)}
+                  title={platform.label}
+                  description={platform.description}
+                >
+                  {isSelected ? (
+                    <span className="block min-w-0 break-all font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-tertiary)]">
+                      {platform.example}
+                    </span>
+                  ) : null}
+                </CheckboxRow>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       {/* Export presets */}

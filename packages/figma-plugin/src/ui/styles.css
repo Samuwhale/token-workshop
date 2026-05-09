@@ -1274,6 +1274,10 @@ button.tm-status-row:not(:disabled):hover {
   overflow-x: clip;
 }
 
+.tm-segmented-control--compact .tm-segmented-control__label {
+  line-height: 1.1;
+}
+
 .tm-feedback-placeholder {
   container-type: inline-size;
 }
@@ -1604,6 +1608,10 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
 }
 
+.tm-collection-toolbar__action-label {
+  display: block;
+}
+
 .tm-collection-toolbar__icon-action {
   align-self: stretch;
 }
@@ -1680,10 +1688,7 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-collection-toolbar__summary-meta {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
   }
 }
 
@@ -1694,6 +1699,22 @@ button.tm-status-row:not(:disabled):hover {
     align-items: center;
     padding-block: 4px;
     padding-inline: 7px;
+  }
+}
+
+@container (max-width: 460px) {
+  .tm-collection-toolbar__action {
+    min-inline-size: 28px;
+    justify-content: center;
+    padding-inline: 7px;
+  }
+
+  .tm-collection-toolbar__action-label {
+    display: none;
+  }
+
+  .tm-collection-toolbar__actions {
+    gap: 4px;
   }
 }
 
@@ -1908,6 +1929,10 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
 }
 
+.tm-token-toolbar__secondary-label {
+  display: block;
+}
+
 .tm-token-toolbar__overflow-label {
   display: none;
 }
@@ -2045,6 +2070,17 @@ button.tm-status-row:not(:disabled):hover {
 
   .tm-token-toolbar__overflow-label {
     display: block;
+  }
+}
+
+@container (max-width: 480px) {
+  .tm-token-toolbar__secondary-label {
+    display: none;
+  }
+
+  .tm-token-toolbar__sort > *,
+  .tm-token-toolbar__overflow-button {
+    justify-content: center;
   }
 }
 

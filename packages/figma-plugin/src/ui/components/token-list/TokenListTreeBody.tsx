@@ -572,9 +572,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                       </label>
                     ) : null}
                     <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      {newModeSourceName === EMPTY_MODE_SOURCE
-                        ? "Existing tokens in this collection will show this mode as needing values."
-                        : `Existing tokens in this collection will copy ${newModeSourceName} values as editable starting points.`}
+                      {tokens.length === 0
+                        ? "New tokens in this collection will include this mode."
+                        : newModeSourceName === EMPTY_MODE_SOURCE
+                          ? "Existing tokens in this collection will show this mode as needing values."
+                          : `Existing tokens in this collection will copy ${newModeSourceName} values as editable starting points.`}
                     </p>
                   </>
                 )}
@@ -884,8 +886,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             title="This collection is empty"
             description={
               hasSelection
-                ? "Start with a token, import an existing system, or extract values from the selected Figma layer."
-                : "Start with one token, import an existing system, or add groups when the structure is clear."
+                ? "Modes are ready above. Create a token, import an existing system, or extract values from the selected Figma layer."
+                : "Modes are ready above. Create the first token, import an existing system, or add groups when the structure is clear."
             }
             actions={emptyCollectionActions}
           />

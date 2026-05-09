@@ -97,7 +97,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
 
 function CreateCollectionStep({ onCreateCollection, onCreated }: {
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
-  onCreated: (collectionId: string, modeCount: number) => void;
+  onCreated: (collectionId: string, modeCount: number, collectionLabel: string) => void;
 }) {
   const [draft, setDraft] = useState<CollectionAuthoringDraft>(() =>
     createInitialCollectionAuthoringDraft(false),
@@ -120,7 +120,7 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
         name: collectionName,
         modes,
       });
-      onCreated(createdCollectionId, modes.length);
+      onCreated(createdCollectionId, modes.length, collectionName);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to create collection");
     } finally {
@@ -288,6 +288,8 @@ export function QuickStartWizard({
   onBack,
 }: QuickStartWizardProps) {
   const [wizardCreatedCollection, setWizardCreatedCollection] = useState<string | null>(null);
+  const [wizardCreatedCollectionLabel, setWizardCreatedCollectionLabel] =
+    useState<string | null>(null);
   const [wizardCreatedModeCount, setWizardCreatedModeCount] = useState<number | null>(null);
   const hasCollections =
     collectionIds.length > 0 || wizardCreatedCollection !== null;
@@ -307,8 +309,9 @@ export function QuickStartWizard({
     setPrereqPhase(hasCollections ? null : "create-collection");
   }, [connected, hasCollections]);
 
-  const handleCollectionCreated = useCallback((collectionId: string, modeCount: number) => {
+  const handleCollectionCreated = useCallback((collectionId: string, modeCount: number, collectionLabel: string) => {
     setWizardCreatedCollection(collectionId);
+    setWizardCreatedCollectionLabel(collectionLabel);
     setWizardCreatedModeCount(modeCount);
     onCollectionCreated?.(collectionId);
     setPrereqPhase(null);
@@ -342,7 +345,7 @@ export function QuickStartWizard({
         <div className="px-4 pb-3 pt-4">
           <p className="text-body font-medium text-[color:var(--color-figma-text)]">
             {wizardCreatedCollection
-              ? `"${wizardCreatedCollection}" is ready with ${createdModeCount} mode${createdModeCount === 1 ? "" : "s"}.`
+              ? `"${wizardCreatedCollectionLabel ?? wizardCreatedCollection}" is ready with ${createdModeCount} mode${createdModeCount === 1 ? "" : "s"}.`
               : effectiveCollectionId
                 ? "Choose the next library step."
                 : "Choose the next library step."}

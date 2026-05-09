@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, MoreHorizontal } from "lucide-react";
 import type { ValidationIssue } from "../../hooks/useValidationCache";
 import { severityStyles } from "../../shared/noticeSystem";
 import type { NoticeSeverity } from "../../shared/noticeSystem";
@@ -273,8 +273,8 @@ export function HealthIssuesView({
                   aria-haspopup="menu"
                   aria-expanded={exportMenu.open}
                 >
-                  <span>Export report</span>
-                  <ChevronDown size={12} strokeWidth={1.5} aria-hidden />
+                  <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
+                  <span>Report</span>
                 </button>
                 {exportMenu.open ? (
                   <div

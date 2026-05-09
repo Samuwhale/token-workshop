@@ -1826,6 +1826,7 @@ export function PanelRouter({
     );
     return renderLibraryScaffold({
       body,
+      tabs: renderCollectionTabs("generators"),
       contextualPanel: renderTokensContextualPanel(),
     });
   }

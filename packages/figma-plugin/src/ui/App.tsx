@@ -127,7 +127,7 @@ function getSidebarWorkspaceStateClass({
   idle?: boolean;
 }): string {
   if (disabled) {
-    return "text-[color:var(--color-figma-text-tertiary)] opacity-60";
+    return "text-[color:var(--color-figma-text-secondary)]";
   }
   if (active) {
     return "font-medium text-[color:var(--color-figma-text)]";
@@ -1786,6 +1786,26 @@ export function App() {
     openStartHere,
     switchContextualSurface,
   ]);
+  const handleResponsiveSidebarItemClick = useCallback(
+    (item: SidebarItem, top: number) => {
+      const workspace = WORKSPACE_TABS.find(
+        (candidate) => candidate.id === item.workspaceId,
+      );
+      const canOpenSections =
+        !librarySetupRequired && (workspace?.sections?.length ?? 0) > 0;
+      if (responsiveSidebarCollapsed && canOpenSections) {
+        openResponsiveSidebarFlyout(item.id, top);
+        return;
+      }
+      handleSidebarItemClick(item);
+    },
+    [
+      handleSidebarItemClick,
+      librarySetupRequired,
+      openResponsiveSidebarFlyout,
+      responsiveSidebarCollapsed,
+    ],
+  );
   const runStartHereAction = useCallback(
     (action: () => void, options?: { completeFirstRun?: boolean }) => {
       if (options?.completeFirstRun) {
@@ -1847,6 +1867,7 @@ export function App() {
                 const workspace = WORKSPACE_TABS.find((w) => w.id === item.workspaceId);
                 const allSections = workspace?.sections ?? [];
                 const sections = requiresSetup ? [] : allSections;
+                const hasSections = sections.length > 0;
                 const showCanvasSelectionAdornment =
                   item.id === "canvas" &&
                   !requiresSetup &&
@@ -1889,6 +1910,8 @@ export function App() {
                 if (sidebarCollapsed) {
                   const tooltipLabel = requiresSetup
                     ? `${item.label} · set up a collection first`
+                    : responsiveSidebarCollapsed && hasSections
+                      ? `Open ${item.label} sections`
                     : showCanvasSelectionAdornment
                       ? canvasHasBrokenBindings
                         ? `${item.label} · ${selectionHealth.selectionCount} selected · ${selectionHealth.staleBindingCount} broken`
@@ -1903,11 +1926,24 @@ export function App() {
                       position="right"
                     >
                       <button
-                        onClick={() => {
+                        onClick={(event) => {
                           setResponsiveSidebarFlyout(null);
-                          handleSidebarItemClick(item);
+                          handleResponsiveSidebarItemClick(
+                            item,
+                            event.currentTarget.getBoundingClientRect().top,
+                          );
                         }}
                         aria-current={isWorkspaceActive ? "page" : undefined}
+                        aria-expanded={
+                          responsiveSidebarCollapsed && hasSections
+                            ? responsiveSidebarFlyout?.itemId === item.id
+                            : undefined
+                        }
+                        aria-haspopup={
+                          responsiveSidebarCollapsed && hasSections
+                            ? "dialog"
+                            : undefined
+                        }
                         aria-label={tooltipLabel}
                         data-workspace={item.id}
                         className={`tm-sidebar-workspace-button relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md ${workspaceStateClass}`}
@@ -2147,27 +2183,7 @@ export function App() {
               <div className="mx-auto h-2 w-2 rounded-full bg-[var(--color-figma-error)]" />
             </Tooltip>
           )}
-          {responsiveSidebarCollapsed ? (
-            <>
-              <div className="my-1 w-5 mx-auto border-t border-[var(--border-muted)]" />
-              <Tooltip label={`Open ${activeWorkspace.label} sections`} position="right">
-                <button
-                  type="button"
-                  onClick={(event) =>
-                    openResponsiveSidebarFlyout(
-                      activeWorkspace.id,
-                      event.currentTarget.getBoundingClientRect().top,
-                    )
-                  }
-                  aria-label={`Open ${activeWorkspace.label} sections`}
-                  aria-expanded={responsiveSidebarFlyout?.itemId === activeWorkspace.id}
-                  className={`mx-auto h-7 w-7 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)]`}
-                >
-                  <ChevronsRight size={12} strokeWidth={1.5} aria-hidden />
-                </button>
-              </Tooltip>
-            </>
-          ) : (
+          {!responsiveSidebarCollapsed ? (
             <>
               <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--border-muted)]`} />
               <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
@@ -2184,7 +2200,7 @@ export function App() {
                 </button>
               </Tooltip>
             </>
-          )}
+          ) : null}
         </div>
       </nav>
       {!responsiveSidebarCollapsed ? (
@@ -2207,6 +2223,9 @@ export function App() {
         if (!item || sections.length === 0) return null;
         const isWorkspaceActive =
           item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
+        const activeSectionIndex = sections.findIndex(
+          (section) => isWorkspaceActive && activeSubTab === section.subTab,
+        );
         return (
           <>
             <button
@@ -2236,7 +2255,7 @@ export function App() {
               <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
                 {item.label}
               </div>
-              {sections.map((section) => {
+              {sections.map((section, index) => {
                 const isSectionActive =
                   isWorkspaceActive && activeSubTab === section.subTab;
                 const showReviewBadge =
@@ -2247,7 +2266,12 @@ export function App() {
                 return (
                   <button
                     key={section.id}
-                    ref={isSectionActive ? responsiveSidebarFlyoutInitialFocusRef : undefined}
+                    ref={
+                      isSectionActive ||
+                      (activeSectionIndex === -1 && index === 0)
+                        ? responsiveSidebarFlyoutInitialFocusRef
+                        : undefined
+                    }
                     type="button"
                     onClick={() => {
                       setResponsiveSidebarFlyout(null);

@@ -11,6 +11,7 @@ interface SegmentedControlProps<T extends string> {
   onChange: (value: T) => void;
   ariaLabel?: string;
   allowWrap?: boolean;
+  size?: "default" | "compact";
 }
 
 export function SegmentedControl<T extends string>({
@@ -19,8 +20,10 @@ export function SegmentedControl<T extends string>({
   onChange,
   ariaLabel,
   allowWrap = false,
+  size = "default",
 }: SegmentedControlProps<T>) {
   const adaptiveWrap = allowWrap || options.length > 3;
+  const compact = size === "compact";
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = options.findIndex((option) => option.value === value);
@@ -73,7 +76,7 @@ export function SegmentedControl<T extends string>({
         adaptiveWrap
           ? "tm-segmented-control--adaptive flex-nowrap"
           : "flex-nowrap overflow-x-auto"
-      }`}
+      } ${compact ? "tm-segmented-control--compact" : ""}`}
       role="radiogroup"
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
@@ -89,7 +92,11 @@ export function SegmentedControl<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             title={option.label}
-            className={`tm-segmented-control__button inline-flex min-h-7 min-w-[3rem] flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] px-2 py-1 text-center text-secondary font-medium leading-tight transition-colors ${
+            className={`tm-segmented-control__button inline-flex flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] text-center font-medium leading-tight transition-colors ${
+              compact
+                ? "min-h-6 min-w-[2.25rem] px-1.5 py-0.5 text-[10px]"
+                : "min-h-7 min-w-[3rem] px-2 py-1 text-secondary"
+            } ${
               selected
                 ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
                 : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"

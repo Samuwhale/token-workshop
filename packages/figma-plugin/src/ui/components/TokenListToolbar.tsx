@@ -368,6 +368,7 @@ export function TokenListToolbar({
                       }}
                       ariaLabel="Search scope"
                       allowWrap
+                      size="compact"
                     />
                   ) : null}
                 </div>

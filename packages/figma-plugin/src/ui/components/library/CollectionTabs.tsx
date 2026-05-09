@@ -254,6 +254,7 @@ export function CollectionTabs({
                   onChange={allCollectionsScope.onChange}
                   ariaLabel="Collection scope"
                   allowWrap
+                  size="compact"
                 />
               </div>
             ) : null}
@@ -468,7 +469,7 @@ export function CollectionTabs({
                 className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start`}
               >
                 {primaryAction.icon}
-                <span className="tm-toolbar-action__label">
+                <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
                   {primaryAction.label}
                 </span>
               </Button>
@@ -487,7 +488,7 @@ export function CollectionTabs({
                   className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
                 >
                   <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-                  <span className="tm-toolbar-action__label">More</span>
+                  <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">More</span>
                 </Button>
                 {actionsMenu.open ? (
                   <div

@@ -387,11 +387,7 @@ export function TokenList({
   );
 
   const multiModeData = useMemo(() => {
-    if (
-      Object.keys(currentCollectionFlat).length === 0 ||
-      !currentCollection
-    )
-      return null;
+    if (!currentCollection) return null;
     if (currentCollection.modes.length === 0) return null;
 
     const results: Array<{
