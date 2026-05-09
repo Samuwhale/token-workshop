@@ -95,6 +95,7 @@ export interface HistoryPanelProps {
   serverUrl: string;
   connected: boolean;
   collectionIds?: string[];
+  collectionDisplayNames?: Record<string, string>;
   workingCollectionId: string;
   scope: HistoryScope;
   onScopeChange: (scope: HistoryScope) => void;

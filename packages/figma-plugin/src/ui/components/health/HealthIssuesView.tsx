@@ -9,6 +9,7 @@ import { downloadBlob } from "../../shared/utils";
 import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
 import { Spinner } from "../Spinner";
 import { getRuleLabel, hasFix, fixLabel, suppressKey } from "../../shared/ruleLabels";
+import { getCollectionDisplayName } from "../../shared/libraryCollections";
 import { HealthSubViewHeader } from "./HealthSubViewHeader";
 import {
   FeedbackPlaceholder,
@@ -21,6 +22,7 @@ const ISSUES_PER_PAGE = 20;
 export interface HealthIssuesViewProps {
   validationIssues: ValidationIssue[];
   validationLastRefreshed: Date | null;
+  collectionDisplayNames?: Record<string, string>;
   suppressedKeys: Set<string>;
   fixingKeys: Set<string>;
   onFix: (issue: ValidationIssue) => void;
@@ -38,6 +40,7 @@ export interface HealthIssuesViewProps {
 export function HealthIssuesView({
   validationIssues,
   validationLastRefreshed,
+  collectionDisplayNames,
   suppressedKeys,
   fixingKeys,
   onFix,
@@ -139,7 +142,7 @@ export function HealthIssuesView({
       if (group.length === 0) continue;
       lines.push(`## ${sev.charAt(0).toUpperCase() + sev.slice(1)}s (${group.length})`);
       for (const issue of group) {
-        lines.push(`- **${issue.path}** (collection: ${issue.collectionId}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`);
+        lines.push(`- **${issue.path}** (${getCollectionDisplayName(issue.collectionId, collectionDisplayNames)}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ""}`);
       }
       lines.push("");
     }
@@ -373,6 +376,7 @@ export function HealthIssuesView({
                       <IssueRow
                         key={i}
                         issue={issue}
+                        collectionDisplayNames={collectionDisplayNames}
                         selected={
                           selectedIssueKey
                             ? selectedIssueKey === suppressKey(issue)
@@ -440,6 +444,7 @@ function lastRefreshedLabel(date: Date | null) {
 
 function IssueRow({
   issue,
+  collectionDisplayNames,
   selected,
   fixing,
   hasFix: hasFixAction,
@@ -451,6 +456,7 @@ function IssueRow({
   onViewInGenerator,
 }: {
   issue: ValidationIssue;
+  collectionDisplayNames?: Record<string, string>;
   selected: boolean;
   fixing: boolean;
   hasFix: boolean;
@@ -462,6 +468,10 @@ function IssueRow({
   onViewInGenerator?: () => void;
 }) {
   const overflowMenu = useDropdownMenu();
+  const collectionLabel = getCollectionDisplayName(
+    issue.collectionId,
+    collectionDisplayNames,
+  );
 
   return (
     <div
@@ -480,7 +490,7 @@ function IssueRow({
             {issue.path}
           </span>
           <span className="text-secondary text-[color:var(--color-figma-text-secondary)] opacity-60 shrink-0">
-            {issue.collectionId}
+            {collectionLabel}
           </span>
         </div>
         <div className="mt-0.5 break-words text-secondary text-[color:var(--color-figma-text-secondary)]">

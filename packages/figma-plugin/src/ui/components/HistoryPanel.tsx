@@ -18,6 +18,7 @@ export function HistoryPanel({
   serverUrl,
   connected,
   workingCollectionId,
+  collectionDisplayNames,
   scope,
   onScopeChange,
   collectionIds = [],
@@ -275,6 +276,7 @@ export function HistoryPanel({
             onRefreshTokens={onRefreshTokens}
             collectionFilter={activeCollectionFilter ?? undefined}
             filterTokenPath={scope.tokenPath ?? undefined}
+            collectionDisplayNames={collectionDisplayNames}
             refreshKey={savedViewRefreshKey}
           />
         )}

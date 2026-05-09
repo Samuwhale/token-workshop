@@ -35,7 +35,8 @@ export function SyncRouter({
   savePublishRouting,
 }: SyncRouterProps): ReactNode {
   const { serverUrl, connected } = useConnectionContext();
-  const { collections, workingCollectionId: currentCollectionId } = useCollectionStateContext();
+  const { collections, workingCollectionId: currentCollectionId } =
+    useCollectionStateContext();
   const { perCollectionFlat } = useTokenFlatMapContext();
   const { navigateTo } = useNavigationContext();
   const controller = useSyncWorkspaceController();

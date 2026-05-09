@@ -689,6 +689,7 @@ export function HealthPanel({
           <HealthIssuesView
             validationIssues={unifiedIssuesForView}
             validationLastRefreshed={validationLastRefreshed}
+            collectionDisplayNames={collectionDisplayNames}
             suppressedKeys={suppressedKeysForCurrent}
             fixingKeys={fixingKeys}
             onFix={applyIssueFix}

@@ -324,27 +324,7 @@ export function TokenDetails({
   } = fields;
 
   const valueIsAlias = typeof value === "string" && isAlias(value);
-  const buildDefaultModeValues = useCallback(
-    (nextValue: TokenEditorValue) => {
-      const collection = collections.find(
-        (candidate) => candidate.id === ownerCollectionId,
-      );
-      const secondaryModes = collection?.modes.slice(1) ?? [];
-      if (secondaryModes.length === 0) {
-        return {};
-      }
-
-      return {
-        [ownerCollectionId]: Object.fromEntries(
-          secondaryModes.map((mode) => [
-            mode.name,
-            cloneModeValue(nextValue),
-          ]),
-        ),
-      };
-    },
-    [collections, ownerCollectionId],
-  );
+  const buildDefaultModeValues = useCallback((_nextValue: TokenEditorValue) => ({}), []);
 
   const modeValue = useTokenEditorModeValue({
     collectionId: ownerCollectionId,

@@ -117,7 +117,17 @@ export function ValueCell({
   const emptyUneditableTint = !value && !canAddValue
     ? "bg-[var(--color-figma-warning)]/5"
     : "";
-  const wrapperClass = `tm-value-cell__wrapper flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5 ${brokenAliasTint} ${emptyUneditableTint}`;
+  const wrapperClass = [
+    "tm-value-cell__wrapper",
+    "flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5",
+    canActivateValue || canAddValue
+      ? "tm-value-cell__wrapper--interactive"
+      : null,
+    brokenAliasTint,
+    emptyUneditableTint,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const derivationMarker = isDerivation ? (
     <span

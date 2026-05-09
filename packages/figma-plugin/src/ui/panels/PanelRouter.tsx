@@ -1937,6 +1937,7 @@ export function PanelRouter({
             serverUrl={serverUrl}
             connected={connected}
             workingCollectionId={currentCollectionId}
+            collectionDisplayNames={collectionMap}
             scope={historyScope}
             onScopeChange={setHistoryScope}
             collectionIds={collectionIds}

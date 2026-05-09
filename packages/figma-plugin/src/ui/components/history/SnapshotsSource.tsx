@@ -31,12 +31,13 @@ function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   return `${workspaceDiffs.length} workspace ${workspaceDiffs.length === 1 ? 'change' : 'changes'} (${parts.join(', ')})`;
 }
 
-export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collectionFilter, filterTokenPath, initialComparingId, initialComparingLabel, initialPairCompareMode, onBack }: {
+export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collectionFilter, filterTokenPath, collectionDisplayNames, initialComparingId, initialComparingLabel, initialPairCompareMode, onBack }: {
   serverUrl: string;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
   collectionFilter?: string;
   filterTokenPath?: string;
+  collectionDisplayNames?: Record<string, string>;
   initialComparingId?: string;
   initialComparingLabel?: string;
   initialPairCompareMode?: boolean;
@@ -356,6 +357,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               changes={displayChanges}
               openSections={pairOpenSections}
               onToggleSection={togglePairSection}
+              collectionDisplayNames={collectionDisplayNames}
             />
           )}
         </div>
@@ -448,6 +450,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               changes={displayChanges}
               openSections={openSections}
               onToggleSection={toggleSection}
+              collectionDisplayNames={collectionDisplayNames}
             />
           )}
         </div>
@@ -486,7 +489,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
         {showRestoreConfirm && (() => {
           const snap = snapshots.find(s => s.id === comparing);
           const label = snap?.label ?? initialComparingLabel ?? 'this checkpoint';
-          const summary = displayChanges ? summarizeChanges(displayChanges) : { added: 0, modified: 0, removed: 0 };
+          const summary = changes ? summarizeChanges(changes) : { added: 0, modified: 0, removed: 0 };
           const total = summary.added + summary.modified + summary.removed;
           const summaryText = total > 0
             ? `${total} token change${total !== 1 ? 's' : ''} (${[
@@ -606,11 +609,11 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
           </svg>
           {!pairA ? (
             <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              Click <span className="font-semibold text-[color:var(--color-figma-text-accent)]">Set A</span> on a checkpoint to start comparing
+              Choose the <span className="font-semibold text-[color:var(--color-figma-text-accent)]">before</span> checkpoint to start comparing
             </span>
           ) : !pairB ? (
             <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              <span className="font-medium text-[color:var(--color-figma-text)]">{pairA.label}</span> selected as A — click <span className="font-semibold text-[color:var(--color-figma-text-success)]">Set B</span>
+              <span className="font-medium text-[color:var(--color-figma-text)]">{pairA.label}</span> is the before checkpoint. Choose the <span className="font-semibold text-[color:var(--color-figma-text-success)]">after</span> checkpoint.
             </span>
           ) : (
             <span className="flex-1 text-secondary text-[color:var(--color-figma-text-secondary)] truncate min-w-0">
@@ -687,10 +690,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                             setPairA(isA ? null : s);
                             if (pairB?.id === s.id) setPairB(null);
                           }}
-                          title={isA ? 'Deselect as A' : 'Set as checkpoint A (before)'}
+                          title={isA ? 'Deselect before checkpoint' : 'Set as before checkpoint'}
                           disabled={isB}
                         >
-                          A
+                          Before
                         </button>
                         <button
                           className={`px-2 py-1 rounded text-secondary font-medium border transition-colors ${
@@ -705,10 +708,10 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
                             setPairB(isB ? null : s);
                             if (pairA?.id === s.id) setPairA(null);
                           }}
-                          title={isB ? 'Deselect as B' : 'Set as checkpoint B (after)'}
+                          title={isB ? 'Deselect after checkpoint' : 'Set as after checkpoint'}
                           disabled={isA}
                         >
-                          B
+                          After
                         </button>
                       </>
                     ) : (

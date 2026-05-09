@@ -1,4 +1,5 @@
 import { ValueDiff } from '../ValueDiff';
+import { getCollectionDisplayName } from '../../shared/libraryCollections';
 import {
   type ChangeStatus,
   type TokenChange,
@@ -86,6 +87,7 @@ interface ChangesByCollectionListProps {
   renderRowActions?: (change: TokenChange) => React.ReactNode;
   /** Show a "N changes across M collections" summary bar above the list */
   showSummaryBar?: boolean;
+  collectionDisplayNames?: Record<string, string>;
 }
 
 /**
@@ -99,6 +101,7 @@ export function ChangesByCollectionList({
   onToggleSection,
   renderRowActions,
   showSummaryBar,
+  collectionDisplayNames,
 }: ChangesByCollectionListProps) {
   const changesByCollection = new Map<string, TokenChange[]>();
   for (const change of changes) {
@@ -123,7 +126,7 @@ export function ChangesByCollectionList({
         return (
           <CollapsibleChangeSection
             key={collectionId}
-            title={collectionId}
+            title={getCollectionDisplayName(collectionId, collectionDisplayNames)}
             open={openSections[collectionId] ?? true}
             onToggle={() => onToggleSection(collectionId)}
             badge={<ChangeSummaryBadges {...collectionSummary} />}

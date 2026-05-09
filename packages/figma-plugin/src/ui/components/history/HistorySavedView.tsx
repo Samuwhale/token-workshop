@@ -18,6 +18,7 @@ export interface HistorySavedViewProps {
   onRefreshTokens?: () => void;
   collectionFilter?: string;
   filterTokenPath?: string;
+  collectionDisplayNames?: Record<string, string>;
   refreshKey?: number;
 }
 
@@ -28,6 +29,7 @@ export function HistorySavedView({
   onRefreshTokens,
   collectionFilter,
   filterTokenPath,
+  collectionDisplayNames,
   refreshKey = 0,
 }: HistorySavedViewProps) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
@@ -69,6 +71,7 @@ export function HistorySavedView({
         onRefreshTokens={onRefreshTokens}
         collectionFilter={collectionFilter}
         filterTokenPath={filterTokenPath}
+        collectionDisplayNames={collectionDisplayNames}
         initialPairCompareMode
         onBack={() => {
           setCheckpointToolsOpen(false);
@@ -86,6 +89,7 @@ export function HistorySavedView({
         onRefreshTokens={onRefreshTokens}
         collectionFilter={collectionFilter}
         filterTokenPath={filterTokenPath}
+        collectionDisplayNames={collectionDisplayNames}
         initialComparingId={selectedSnapshotId}
         initialComparingLabel={selectedSnapshotLabel ?? undefined}
         onBack={() => { setSelectedSnapshotId(null); setSelectedSnapshotLabel(null); fetchSnapshots(); }}

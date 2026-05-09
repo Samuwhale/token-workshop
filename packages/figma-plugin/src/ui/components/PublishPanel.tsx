@@ -58,6 +58,7 @@ import {
 import { buildStylePublishTokens } from '../shared/stylePublish';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { CheckboxRow } from '../primitives';
+import { getCollectionDisplayName } from '../shared/libraryCollections';
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
 
@@ -474,6 +475,10 @@ export function PublishPanel({
   const currentCollection = useMemo(
     () => collections.find((collection) => collection.id === currentCollectionId),
     [collections, currentCollectionId],
+  );
+  const currentCollectionLabel = getCollectionDisplayName(
+    currentCollectionId,
+    collectionMap,
   );
   const currentCollectionModeNames = currentCollection?.modes.map((mode) => mode.name) ?? [];
   const standardPublishUsesAllModes = currentCollectionModeNames.length > 1;
@@ -947,6 +952,11 @@ export function PublishPanel({
     () => resolverPublishRows.filter((row) => row.sourceModeName.trim().length > 0).length,
     [resolverPublishRows],
   );
+  const activeResolverLabel =
+    resolverPublishFile?.name?.trim() ||
+    resolverPublishFile?.description?.trim() ||
+    activeResolver ||
+    '';
   const standardRoutingShouldExpand =
     standardRoutingDirty ||
     standardRoutingSaving ||
@@ -1256,6 +1266,7 @@ export function PublishPanel({
               <div className="flex flex-col gap-3 px-1 py-2">
                 <StandardPublishRoutingCard
                   currentCollectionId={currentCollectionId}
+                  currentCollectionLabel={currentCollectionLabel}
                   draft={standardRoutingDraft}
                   dirty={standardRoutingDirty}
                   saving={standardRoutingSaving}
@@ -1446,6 +1457,7 @@ export function PublishPanel({
             >
               <ResolverModePublishCard
                 activeResolver={activeResolver}
+                activeResolverLabel={activeResolverLabel}
                 loading={resolverPublishLoading}
                 saving={resolverPublishSaving}
                 syncing={resolverPublishSyncing}
@@ -1548,6 +1560,7 @@ export function PublishPanel({
 
 function StandardPublishRoutingCard({
   currentCollectionId,
+  currentCollectionLabel,
   draft,
   dirty,
   saving,
@@ -1561,6 +1574,7 @@ function StandardPublishRoutingCard({
   onSave,
 }: {
   currentCollectionId: string;
+  currentCollectionLabel: string;
   draft: PublishRoutingDraft;
   dirty: boolean;
   saving: boolean;
@@ -1577,8 +1591,8 @@ function StandardPublishRoutingCard({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-body font-medium text-[color:var(--color-figma-text)]">
-            {currentCollectionId}
+          <div className="text-body font-medium text-[color:var(--color-figma-text)]" title={currentCollectionId}>
+            {currentCollectionLabel}
           </div>
           <p className="mt-1 max-w-[520px] text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
             Choose the Figma variable collection for this authored collection.
@@ -1710,6 +1724,7 @@ function PublishTargetTextField({
 
 function ResolverModePublishCard({
   activeResolver,
+  activeResolverLabel,
   loading,
   saving,
   syncing,
@@ -1725,6 +1740,7 @@ function ResolverModePublishCard({
   onSync,
 }: {
   activeResolver: string | null;
+  activeResolverLabel: string;
   loading: boolean;
   saving: boolean;
   syncing: boolean;
@@ -1748,8 +1764,11 @@ function ResolverModePublishCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           {activeResolver ? (
-            <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {activeResolver}
+            <span
+              className="text-secondary text-[color:var(--color-figma-text-secondary)]"
+              title={activeResolver}
+            >
+              {activeResolverLabel}
             </span>
           ) : null}
         </div>

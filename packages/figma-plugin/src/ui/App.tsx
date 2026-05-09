@@ -15,6 +15,10 @@ import { AppCommandPalette } from "./components/AppCommandPalette";
 import { CollectionCreateDialog } from "./components/CollectionCreateDialog";
 import type { CreateCollectionRequest } from "./components/CollectionCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
+import {
+  getBindingCollectionForProperty,
+  getBindingForProperty,
+} from "./components/selectionInspectorUtils";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Tooltip } from "./shared/Tooltip";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
@@ -77,7 +81,8 @@ import {
   type EditorSessionRegistration,
 } from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
-import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
+import { KNOWN_CONTROLLER_MESSAGE_TYPES, PROPERTY_LABELS } from "../shared/types";
+import { resolveTokenValue } from "../shared/resolveAlias";
 import { getErrorMessage, stableStringify } from "./shared/utils";
 import {
   createAliasToken,
@@ -2418,9 +2423,18 @@ export function App() {
           collectionIds={collectionIds}
           collectionDisplayNames={collectionMap}
           onApply={(tokenPath, tokenType, targetProperty, resolvedValue, collectionId) => {
-            if (collectionId && collectionId !== currentCollectionId) {
-              setCurrentCollectionId(collectionId);
-            }
+            const previousBinding = getBindingForProperty(selectedNodes, targetProperty);
+            const previousBindingCollection =
+              getBindingCollectionForProperty(selectedNodes, targetProperty);
+            const previousCollectionId =
+              previousBindingCollection && previousBindingCollection !== "mixed"
+                ? previousBindingCollection
+                : currentCollectionId;
+            const previousTokenMap = perCollectionFlat[previousCollectionId] ?? {};
+            const previousEntry =
+              previousBinding && previousBinding !== "mixed"
+                ? previousTokenMap[previousBinding] ?? allTokensFlat[previousBinding]
+                : null;
             parent.postMessage(
               {
                 pluginMessage: {
@@ -2434,8 +2448,45 @@ export function App() {
               },
               "*",
             );
+            pushUndo({
+              description: `Bound "${tokenPath}" to ${PROPERTY_LABELS[targetProperty]}`,
+              restore: async () => {
+                if (previousBinding && previousBinding !== "mixed") {
+                  const previousResolved = previousEntry
+                    ? resolveTokenValue(
+                        previousEntry.$value,
+                        previousEntry.$type,
+                        previousTokenMap,
+                      )
+                    : { value: null };
+                  parent.postMessage(
+                    {
+                      pluginMessage: {
+                        type: "apply-to-selection",
+                        tokenPath: previousBinding,
+                        collectionId: previousCollectionId,
+                        tokenType: previousEntry?.$type ?? tokenType,
+                        targetProperty,
+                        resolvedValue: previousResolved.value,
+                      },
+                    },
+                    "*",
+                  );
+                  return;
+                }
+                parent.postMessage(
+                  {
+                    pluginMessage: {
+                      type: "remove-binding",
+                      property: targetProperty,
+                    },
+                  },
+                  "*",
+                );
+              },
+            });
             setShowQuickApply(false);
-            setSuccessToast(`Bound "${tokenPath}" to ${targetProperty}`);
+            setSuccessToast(`Bound "${tokenPath}" to ${PROPERTY_LABELS[targetProperty]}`);
           }}
           onClose={() => setShowQuickApply(false)}
         />
