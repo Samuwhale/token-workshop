@@ -263,7 +263,9 @@ export function useTokenSearch({
       abortCrossCollectionSearch();
       resetCrossCollectionState(
         [],
-        `Unsupported search filter${unsupportedTokens.length === 1 ? '' : 's'}: ${unsupportedTokens.join(', ')}.`,
+        `Search all collections does not use ${unsupportedTokens.join(', ')}. Remove ${
+          unsupportedTokens.length === 1 ? 'that filter' : 'those filters'
+        } or search this collection.`,
       );
       return;
     }
@@ -289,9 +291,9 @@ export function useTokenSearch({
       abortCrossCollectionSearch();
       resetCrossCollectionState(
         [],
-        `Search across all collections does not support ${unsupportedHasValues
+        `That token state filter only works inside one collection: ${unsupportedHasValues
           .map((value) => `has:${value}`)
-          .join(', ')} yet.`,
+          .join(', ')}.`,
       );
       return;
     }

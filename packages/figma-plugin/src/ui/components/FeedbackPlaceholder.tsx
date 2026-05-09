@@ -37,13 +37,13 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   description: string;
 }> = {
   full: {
-    container: 'tm-feedback-placeholder tm-feedback-placeholder--full flex h-full w-full flex-1 flex-col justify-center px-3 py-2',
+    container: 'tm-feedback-placeholder tm-feedback-placeholder--full flex h-full w-full flex-1 flex-col px-3 py-2',
     content: 'tm-feedback-placeholder__content flex w-full min-w-0 flex-col gap-1.5',
     title: 'text-body font-medium',
     description: 'text-body leading-[var(--leading-body)]',
   },
   section: {
-    container: 'tm-feedback-placeholder tm-feedback-placeholder--section flex w-full flex-col justify-center px-2 py-1.5',
+    container: 'tm-feedback-placeholder tm-feedback-placeholder--section flex w-full flex-col px-2 py-1.5',
     content: 'tm-feedback-placeholder__content flex w-full min-w-0 flex-col gap-1.5',
     title: 'text-secondary font-medium',
     description: 'text-body leading-[var(--leading-body)]',
@@ -156,7 +156,9 @@ export function FeedbackPlaceholder({
     <div
       className={joinClasses(
         sizeStyles.container,
-        align === 'center' ? 'items-center text-center' : 'items-start text-left',
+        align === 'center'
+          ? 'items-center justify-center text-center'
+          : 'items-start justify-start text-left',
         className,
       )}
     >

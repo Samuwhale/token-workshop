@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useId } from "react";
 import {
   STORAGE_KEYS,
   STORAGE_PREFIXES,
@@ -113,23 +113,35 @@ function Toggle({
   onChange: (v: boolean) => void;
   label: string;
 }) {
+  const labelId = useId();
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 py-1 group">
-      <span className="text-body text-[color:var(--color-figma-text)]">
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={labelId}
+      onClick={() => onChange(!checked)}
+      className="flex w-full min-w-0 items-center justify-between gap-3 rounded-[var(--radius-md)] px-1 py-1 text-left outline-none transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+    >
+      <span
+        id={labelId}
+        className="min-w-0 flex-1 text-body text-[color:var(--color-figma-text)]"
+      >
         {label}
       </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative shrink-0 w-7 h-4 rounded-full transition-colors ${checked ? "bg-[var(--color-figma-accent)]" : "bg-[var(--color-figma-border)]"}`}
+      <span
+        aria-hidden="true"
+        className={`relative shrink-0 h-5 w-9 rounded-full transition-colors ${
+          checked ? "bg-[var(--color-figma-accent)]" : "bg-[var(--color-figma-border)]"
+        }`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${checked ? "translate-x-3" : ""}`}
+          className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-[var(--color-figma-text-onbrand)] transition-transform ${
+            checked ? "translate-x-4" : ""
+          }`}
         />
-      </button>
-    </label>
+      </span>
+    </button>
   );
 }
 

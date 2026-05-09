@@ -38,7 +38,7 @@ function ReferenceToggleButton({
       className={[
         'shrink-0 self-stretch',
         active
-          ? 'bg-[var(--surface-selected)] text-[color:var(--color-figma-text-accent)] hover:bg-[var(--surface-selected)] hover:text-[color:var(--color-figma-text-error)]'
+          ? 'bg-[var(--surface-selected)] text-[color:var(--color-figma-text-accent)] hover:bg-[var(--surface-selected)] hover:text-[color:var(--color-figma-text)]'
           : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)]',
       ].join(' ')}
     >

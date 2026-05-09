@@ -150,7 +150,7 @@ export function HistorySavedView({
             <button
               key={snapshot.id}
               onClick={() => { setSelectedSnapshotId(snapshot.id); setSelectedSnapshotLabel(snapshot.label); }}
-              className="w-full text-left flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+              className="group flex w-full items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline-none focus-visible:bg-[var(--color-figma-bg-hover)]"
             >
               <div className="mt-0.5 shrink-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
@@ -166,7 +166,7 @@ export function HistorySavedView({
                   <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
                 </div>
               </div>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[color:var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0 text-[color:var(--color-figma-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
             </button>
           ))
         )}

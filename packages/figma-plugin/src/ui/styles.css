@@ -4499,7 +4499,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 }
 
-@container authoring-surface (max-width: 420px) {
+@container authoring-surface (max-width: 520px) {
   .tm-token-mode-row__header,
   .tm-token-mode-row__body {
     grid-template-columns: minmax(0, 1fr);
@@ -4540,7 +4540,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 }
 
-@container authoring-surface (max-width: 420px) {
+@container authoring-surface (max-width: 520px) {
   .tm-token-mode-row__empty-actions {
     flex-direction: column;
   }

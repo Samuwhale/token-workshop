@@ -203,7 +203,7 @@ export function TokenListFilteredEmptyState({
             q.includes(".") && /^[a-zA-Z0-9._-]+$/.test(q);
           if (looksLikePath && connected) {
             suggestions.push({
-              label: `Create "${q.split(".").pop() || q}"`,
+              label: `Create "${q}"`,
               icon: "create",
               action: () => {
                 onCreateNew?.(q);

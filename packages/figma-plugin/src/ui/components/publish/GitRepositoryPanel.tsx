@@ -437,7 +437,7 @@ function RepositoryTimeline({
                   {canSetA && (
                     <button
                       onClick={() => onSetCompareA(commit)}
-                      className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)]"
+                      className="inline-flex min-h-6 items-center rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-figma-accent)_20%,transparent)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                     >
                       {compareA === null ? 'Set A' : 'Swap A'}
                     </button>
@@ -445,7 +445,7 @@ function RepositoryTimeline({
                   {canSetB && (
                     <button
                       onClick={() => onSetCompareB(commit)}
-                      className="text-secondary px-1.5 py-0.5 rounded font-medium transition-colors bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] text-[color:var(--color-figma-text-success)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)]"
+                      className="inline-flex min-h-6 items-center rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-success)] transition-colors bg-[color-mix(in_srgb,var(--color-figma-success)_12%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-figma-success)_20%,transparent)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                     >
                       Set B
                     </button>
@@ -453,7 +453,7 @@ function RepositoryTimeline({
                   {isA && !isB && (
                     <button
                       onClick={onClearCompareA}
-                      className="text-secondary px-1 py-0.5 rounded transition-colors text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)]"
+                      className="inline-flex min-h-6 min-w-6 items-center justify-center rounded px-1 py-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
                       title="Clear A"
                       aria-label="Clear A"
                     >
@@ -471,7 +471,7 @@ function RepositoryTimeline({
             <button
               key={commit.hash}
               onClick={() => onSelectCommit(commit.hash, commit)}
-              className="w-full text-left flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+              className="group flex w-full items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline-none focus-visible:bg-[var(--color-figma-bg-hover)]"
             >
               <div className="mt-0.5 shrink-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
@@ -485,10 +485,10 @@ function RepositoryTimeline({
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">{commit.author}</span>
                   <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(commit.date))}</span>
-                  <span className="text-secondary font-mono text-[color:var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+                  <span className="text-secondary font-mono text-[color:var(--color-figma-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">{commit.hash.slice(0, 7)}</span>
                 </div>
               </div>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-1 text-[color:var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0 text-[color:var(--color-figma-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" aria-hidden="true">
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </button>

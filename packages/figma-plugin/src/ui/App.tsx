@@ -2255,7 +2255,27 @@ export function App() {
               <div className="tm-sidebar-flyout__label px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
                 {item.label}
               </div>
-              {sections.map((section, index) => {
+              <button
+                type="button"
+                ref={activeSectionIndex === -1 ? responsiveSidebarFlyoutInitialFocusRef : undefined}
+                onClick={() => {
+                  setResponsiveSidebarFlyout(null);
+                  guardEditorAction(() => {
+                    switchContextualSurface({ surface: null });
+                    navigateTo(item.topTab, item.subTab);
+                    closeSecondarySurface();
+                    closeNotifications();
+                    clearHandoff();
+                  });
+                }}
+                data-workspace={item.id}
+                className="tm-sidebar-section-button flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-secondary font-medium text-[color:var(--color-figma-text)]"
+              >
+                <span className="tm-sidebar-flyout__label min-w-0 flex-1">
+                  Open {item.label}
+                </span>
+              </button>
+              {sections.map((section) => {
                 const isSectionActive =
                   isWorkspaceActive && activeSubTab === section.subTab;
                 const showReviewBadge =
@@ -2267,8 +2287,7 @@ export function App() {
                   <button
                     key={section.id}
                     ref={
-                      isSectionActive ||
-                      (activeSectionIndex === -1 && index === 0)
+                      isSectionActive
                         ? responsiveSidebarFlyoutInitialFocusRef
                         : undefined
                     }
@@ -2320,7 +2339,11 @@ export function App() {
       {paletteDeleteConfirm && (
         <ConfirmModal
           title={paletteDeleteConfirm.label}
-          description={`Delete from "${currentCollectionId}"? Use undo to restore.`}
+          description={`Delete ${
+            paletteDeleteConfirm.paths.length === 1
+              ? `"${paletteDeleteConfirm.paths[0]}"`
+              : `${paletteDeleteConfirm.paths.length} tokens`
+          } from "${getCollectionDisplayName(paletteDeleteConfirm.collectionId, collectionMap)}"? Use undo to restore.`}
           confirmLabel={`Delete ${paletteDeleteConfirm.paths.length === 1 ? "token" : `${paletteDeleteConfirm.paths.length} tokens`}`}
           danger
           onConfirm={handlePaletteDeleteConfirm}

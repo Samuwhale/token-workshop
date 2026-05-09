@@ -17,6 +17,7 @@ import {
 } from "../contexts/NavigationContext";
 import {
   useApplyWorkspaceController,
+  useShellWorkspaceController,
   useSyncWorkspaceController,
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
@@ -82,6 +83,7 @@ export function CanvasRouter({
     consumePendingRepairPrefill,
   } = useNavigationContext();
   const tokens = useTokensWorkspaceController();
+  const shell = useShellWorkspaceController();
   const apply = useApplyWorkspaceController();
   const syncCtrl = useSyncWorkspaceController();
   const deliveryStrip = (
@@ -181,6 +183,7 @@ export function CanvasRouter({
             onPushUndo={tokens.pushUndo}
             onToast={tokens.setSuccessToast}
             onGoToTokens={() => navigateTo("library", "tokens")}
+            onQuickApply={shell.toggleQuickApply}
             triggerCreateToken={apply.triggerCreateToken}
             triggerExtractToken={apply.triggerExtractToken}
             onOpenRepair={(entries) => {

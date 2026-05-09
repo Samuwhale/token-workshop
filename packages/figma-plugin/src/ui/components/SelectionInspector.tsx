@@ -75,6 +75,7 @@ interface SelectionInspectorProps {
   onPushUndo?: (slot: UndoSlot) => void;
   onToast?: (message: string) => void;
   onGoToTokens?: () => void;
+  onQuickApply?: () => void;
   triggerCreateToken?: number;
   triggerExtractToken?: number;
   onOpenRepair?: (
@@ -112,6 +113,7 @@ export function SelectionInspector({
   onPushUndo,
   onToast,
   onGoToTokens,
+  onQuickApply,
   triggerCreateToken,
   triggerExtractToken,
   onOpenRepair,
@@ -950,6 +952,16 @@ export function SelectionInspector({
           )}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+          {connected && hasSelection && hasAnyTokens && onQuickApply ? (
+            <button
+              type="button"
+              onClick={onQuickApply}
+              className="min-h-7 rounded px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+              title="Choose a token to bind to the current selection"
+            >
+              Apply token
+            </button>
+          ) : null}
           {connected && currentCollectionId && unboundWithValueCount > 0 && !extractOpen ? (
             <button
               onClick={openExtract}
