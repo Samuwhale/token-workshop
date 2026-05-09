@@ -54,7 +54,7 @@ export function useTokenCrud(params: UseTokenCrudParams) {
 
   const del = useTokenDelete({ connected, serverUrl, collectionId, tokens, allTokensFlat, perCollectionFlat, collections, onRefresh, onPushUndo, onSetOperationLoading, onSetLocallyDeletedPaths, onDeletePaths, onClearSelection, onError });
 
-  const dup = useTokenDuplicate({ connected, serverUrl, collectionId, tokens, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
+  const dup = useTokenDuplicate({ connected, serverUrl, collectionId, allTokensFlat, onRefresh, onRecordTouch, onSetOperationLoading, onNewPath: rename.setPendingRenameToken, onError });
 
   const save = useTokenSave({ connected, serverUrl, collectionId, allTokensFlat, perCollectionFlat, collections, onRefresh, onPushUndo, onRecordTouch, onError });
 

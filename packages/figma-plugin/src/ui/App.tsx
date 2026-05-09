@@ -78,13 +78,18 @@ import {
 } from "./contexts/WorkspaceControllerContext";
 import type { TokenMapEntry } from "../shared/types";
 import { KNOWN_CONTROLLER_MESSAGE_TYPES } from "../shared/types";
-import { getErrorMessage, stableStringify, tokenPathToUrlSegment } from "./shared/utils";
+import { getErrorMessage, stableStringify } from "./shared/utils";
 import {
   createAliasToken,
   createDerivationToken,
   detachAliasModes,
   rewireAliasModes,
 } from "./shared/aliasMutations";
+import {
+  createToken,
+  createTokenCloneBody,
+  getNextTokenCopyPath,
+} from "./shared/tokenMutations";
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { getCollectionDisplayName } from "./shared/libraryCollections";
@@ -1309,26 +1314,14 @@ export function App() {
       const entry =
         perCollectionFlat[targetCollectionId]?.[path] ?? allTokensFlat[path];
       if (!entry || !connected) return;
-      const baseCopy = `${path}-copy`;
-      let newPath = baseCopy;
-      let i = 2;
-      while (perCollectionFlat[targetCollectionId]?.[newPath]) {
-        newPath = `${baseCopy}-${i++}`;
-      }
+      const targetTokens = perCollectionFlat[targetCollectionId] ?? {};
+      const newPath = getNextTokenCopyPath(path, targetTokens);
       try {
-        const body: Record<string, unknown> = {
-          $type: entry.$type,
-          $value: entry.$value,
-        };
-        if (entry.$description) body.$description = entry.$description;
-        if (entry.$extensions) body.$extensions = entry.$extensions;
-        await apiFetch(
-          `${serverUrl}/api/tokens/${encodeURIComponent(targetCollectionId)}/${tokenPathToUrlSegment(newPath)}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          },
+        await createToken(
+          serverUrl,
+          targetCollectionId,
+          newPath,
+          createTokenCloneBody(entry),
         );
         await refreshTokens();
         navigateTo("library", "tokens");
@@ -1340,6 +1333,7 @@ export function App() {
         }
       } catch (err) {
         console.warn("[App] duplicate token from palette failed:", err);
+        setErrorToast("Couldn’t create copy — check server connection");
       }
     },
     [
@@ -1353,6 +1347,7 @@ export function App() {
       setCurrentCollectionId,
       setPendingHighlightForCollection,
       setHighlightedToken,
+      setErrorToast,
     ],
   );
 

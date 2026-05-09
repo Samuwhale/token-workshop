@@ -21,6 +21,7 @@ export interface TokenMutationSnapshotToken {
   $value: unknown;
   $description?: string;
   $extensions?: Record<string, unknown>;
+  $scopes?: readonly string[] | null;
 }
 
 export interface TokenValueDraftInput {
@@ -181,7 +182,10 @@ export function createTokenMutationBodyFromSnapshot(
   const extensions = token.$extensions
     ? structuredClone(token.$extensions)
     : undefined;
-  const scopes = readScopesFromExtensions(extensions);
+  const scopes =
+    token.$scopes !== undefined && token.$scopes !== null
+      ? normalizeTokenScopes(token.$scopes)
+      : readScopesFromExtensions(extensions);
   const normalizedExtensions = stripTokenScopesFromExtensions(extensions);
 
   return createTokenBody({
@@ -191,6 +195,29 @@ export function createTokenMutationBodyFromSnapshot(
     $scopes: scopes ?? null,
     $extensions: normalizedExtensions ?? null,
   });
+}
+
+export function createTokenCloneBody(token: TokenMutationSnapshotToken): TokenMutationBody {
+  return createTokenValueBody({
+    type: token.$type,
+    value: token.$value,
+    description: token.$description,
+    extensions: token.$extensions,
+    scopes: token.$scopes,
+  });
+}
+
+export function getNextTokenCopyPath(
+  sourcePath: string,
+  existingTokens: Record<string, unknown>,
+): string {
+  const baseCopyPath = `${sourcePath}-copy`;
+  let copyPath = baseCopyPath;
+  let suffix = 2;
+  while (existingTokens[copyPath]) {
+    copyPath = `${baseCopyPath}-${suffix++}`;
+  }
+  return copyPath;
 }
 
 export function getTokenMutationUrl(serverUrl: string, collectionId: string, tokenPath: string): string {
