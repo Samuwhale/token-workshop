@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Braces, Code2, FileCode2, Layers3, Table2, Upload } from "lucide-react";
+import {
+  Braces,
+  Code2,
+  FileCode2,
+  Layers3,
+  Table2,
+  Upload,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useImportSourceContext } from "./ImportPanelContext";
 import { Button, DisclosureRow } from "../primitives";
@@ -17,6 +24,11 @@ function SourceButton({
   variant?: "primary" | "secondary";
   onClick: () => void;
 }) {
+  const descriptionClassName =
+    variant === "primary"
+      ? "text-[color:var(--color-figma-text-onbrand)] opacity-75"
+      : "text-[color:var(--color-figma-text-tertiary)]";
+
   return (
     <Button
       type="button"
@@ -31,11 +43,7 @@ function SourceButton({
         <span>{label}</span>
         {description ? (
           <span
-            className={`text-[var(--font-size-xs)] font-normal leading-tight ${
-              variant === "primary"
-                ? "text-[color:var(--color-figma-text-onbrand)]/75"
-                : "text-[color:var(--color-figma-text-tertiary)]"
-            }`}
+            className={`text-[var(--font-size-xs)] font-normal leading-tight ${descriptionClassName}`}
           >
             {description}
           </span>
@@ -73,7 +81,10 @@ export function ImportSourceHome() {
     handleDrop,
   } = useImportSourceContext();
 
-  const validationIsError = fileImportValidation && (fileImportValidation.status === 'error' || fileImportValidation.status === 'unsupported');
+  const validationIsError =
+    fileImportValidation &&
+    (fileImportValidation.status === "error" ||
+      fileImportValidation.status === "unsupported");
 
   return (
     <div className="tm-import-home">
@@ -82,7 +93,8 @@ export function ImportSourceHome() {
           Bring tokens into this library
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Start with the variables or styles already in this Figma file, or import token files when you need a handoff format.
+          Start with the variables or styles already in this Figma file, or
+          import token files when you need a handoff format.
         </div>
       </div>
 
@@ -106,7 +118,8 @@ export function ImportSourceHome() {
           />
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Variables preserve the collection and mode structure designers already use in Figma.
+          Variables preserve the collection and mode structure designers already
+          use in Figma.
         </div>
       </div>
 
@@ -142,7 +155,8 @@ export function ImportSourceHome() {
               />
             </div>
             <div className="pl-4 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              Token files import into the selected collection unless the file contains collections.
+              Token files import into the selected collection unless the file
+              contains collections.
             </div>
           </>
         ) : null}
@@ -164,8 +178,8 @@ export function ImportSourceHome() {
             onDrop={handleDrop}
             className={`tm-import-home__dropzone flex flex-col items-center justify-center gap-1 rounded border border-dashed transition-colors cursor-pointer ${
               isDragging
-                ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)]'
+                ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5"
+                : "border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)]"
             }`}
             onClick={handleBrowseFile}
             aria-describedby="import-source-file-types"
@@ -185,8 +199,10 @@ export function ImportSourceHome() {
                 aria-hidden
               />
             )}
-            <span className={`text-body ${isDragging ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
-              {isDragging ? 'Drop to import' : 'Drop a file or click to browse'}
+            <span
+              className={`text-body ${isDragging ? "text-[color:var(--color-figma-text-accent)]" : "text-[color:var(--color-figma-text-secondary)]"}`}
+            >
+              {isDragging ? "Drop to import" : "Drop a file or click to browse"}
             </span>
           </button>
           <div
@@ -202,17 +218,20 @@ export function ImportSourceHome() {
         <div
           className={`rounded px-2.5 py-1.5 text-secondary ${
             validationIsError
-            ? 'bg-[var(--color-figma-error)]/8 text-[color:var(--color-figma-text-error)]'
-            : fileImportValidation.status === 'partial'
-              ? 'bg-[var(--color-figma-warning)]/8 text-[color:var(--color-figma-text-warning)]'
-              : 'bg-[var(--color-figma-success)]/8 text-[color:var(--color-figma-text-success)]'
+              ? "bg-[var(--color-figma-error)]/8 text-[color:var(--color-figma-text-error)]"
+              : fileImportValidation.status === "partial"
+                ? "bg-[var(--color-figma-warning)]/8 text-[color:var(--color-figma-text-warning)]"
+                : "bg-[var(--color-figma-success)]/8 text-[color:var(--color-figma-text-success)]"
           }`}
           role={validationIsError ? "alert" : "status"}
           aria-live={validationIsError ? "assertive" : "polite"}
         >
           {fileImportValidation.summary}
           {fileImportValidation.detail && (
-            <span className="text-[color:var(--color-figma-text-secondary)]"> {fileImportValidation.detail}</span>
+            <span className="text-[color:var(--color-figma-text-secondary)]">
+              {" "}
+              {fileImportValidation.detail}
+            </span>
           )}
           {fileImportValidation.nextAction ? (
             <div className="mt-1 text-[color:var(--color-figma-text)]">
