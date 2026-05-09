@@ -300,11 +300,20 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     serverUrl,
   ]);
 
+  const tableContentRef = useRef<HTMLDivElement | null>(null);
+  const [tableContentElement, setTableContentElement] =
+    useState<HTMLDivElement | null>(null);
+  const setTableContentRef = useCallback<React.RefCallback<HTMLDivElement>>(
+    (element) => {
+      tableContentRef.current = element;
+      setTableContentElement(element);
+    },
+    [],
+  );
   const widthsCollectionId = multiModeData?.collection.id ?? null;
-  const tableContentRef = useRef<HTMLDivElement>(null);
   const [tableViewportWidth, setTableViewportWidth] = useState<number | null>(null);
   useLayoutEffect(() => {
-    const viewport = tableContentRef.current?.parentElement;
+    const viewport = tableContentElement?.parentElement;
     if (!viewport) {
       setTableViewportWidth(null);
       return;
@@ -318,7 +327,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     const observer = new ResizeObserver(updateWidth);
     observer.observe(viewport);
     return () => observer.disconnect();
-  }, []);
+  }, [tableContentElement]);
   const { widths: modeColumnWidths, setWidth: setModeColumnWidth } =
     useModeColumnWidths(widthsCollectionId, modeNames, tableViewportWidth);
   const gridTemplate = getGridTemplate(modeColumnWidths);
@@ -788,7 +797,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Inspect mode with no selection
   if (inspectMode && selectedNodes.length === 0) {
     return (
-      <div ref={tableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0">
         {tableHeader}
         <FeedbackPlaceholder
           variant="empty"
@@ -803,7 +812,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // JSON editor
   if (viewMode === "json") {
     return (
-      <div ref={tableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0">
         {tableHeader}
         <JsonEditorView
           jsonText={jsonEditorProps.jsonText}
@@ -864,7 +873,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     }
 
     return (
-      <div ref={tableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0">
         {tableHeader}
         <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
           <FeedbackPlaceholder
@@ -888,7 +897,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Filtered empty state
   if (displayedTokens.length === 0 && filtersActive) {
     return (
-      <div ref={tableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0">
         {tableHeader}
         <TokenListFilteredEmptyState
           searchQuery={searchQuery}
@@ -909,7 +918,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Tree view with virtual scroll
   return (
     <div
-      ref={tableContentRef}
+      ref={setTableContentRef}
       className="min-w-full"
       style={populatedTreeTableStyle}
     >

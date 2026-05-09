@@ -21,7 +21,7 @@ interface DeepInspectSectionProps {
   tokenMap: Record<string, TokenMapEntry>;
   tokenMapsByCollection?: Record<string, Record<string, TokenMapEntry>>;
   collectionDisplayNames?: Record<string, string>;
-  onNavigateToToken?: (tokenPath: string) => void;
+  onNavigateToToken?: (tokenPath: string, collectionId?: string) => void;
   onRemoveBinding?: (
     nodeId: string,
     property: BindableProperty,
@@ -78,6 +78,7 @@ function DeepBindPanel({
   );
 
   const { candidates, compatibleTypes, hiddenByScope } = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
     const compatibleTypes = getCompatibleTokenTypes(prop);
     const typeCompatible = scopedCandidates.filter((candidate) =>
       compatibleTypes.includes(candidate.entry.$type),
@@ -86,15 +87,19 @@ function DeepBindPanel({
       isTokenScopeCompatible(candidate.entry, prop),
     );
     const filtered = (ignoreScope ? typeCompatible : scopeCompatible).filter(
-      (candidate) =>
-        !query ||
-        candidate.path.toLowerCase().includes(query.toLowerCase()) ||
-        getCollectionDisplayName(
+      (candidate) => {
+        if (!normalizedQuery) {
+          return true;
+        }
+        const collectionName = getCollectionDisplayName(
           candidate.collectionId,
           collectionDisplayNames,
-        )
-          .toLowerCase()
-          .includes(query.toLowerCase()),
+        );
+        return (
+          candidate.path.toLowerCase().includes(normalizedQuery) ||
+          collectionName.toLowerCase().includes(normalizedQuery)
+        );
+      },
     );
     return {
       candidates: filtered.slice(0, 12),
@@ -187,18 +192,18 @@ function DeepBindPanel({
             className="max-h-[120px] overflow-y-auto flex flex-col gap-px"
           >
             {candidates.map((candidate, idx) => {
-              const { path, collectionId, entry } = candidate;
-              const candidateTokenMap =
-                tokenMapsByCollection[collectionId] ?? tokenMap;
+              const { path, collectionId, entry, resolvedEntry } = candidate;
+              const collectionName = getCollectionDisplayName(
+                collectionId,
+                collectionDisplayNames,
+              );
               let swatchColor: string | null = null;
-              if (entry.$type === "color") {
-                const r = resolveTokenValue(
-                  entry.$value,
-                  entry.$type,
-                  candidateTokenMap,
-                );
-                if (typeof r.value === "string" && r.value.startsWith("#"))
-                  swatchColor = r.value;
+              if (
+                resolvedEntry.$type === "color" &&
+                typeof resolvedEntry.$value === "string" &&
+                resolvedEntry.$value.startsWith("#")
+              ) {
+                swatchColor = resolvedEntry.$value;
               }
               const isSelected = idx === selectedIndex;
               const isCurrent =
@@ -240,15 +245,9 @@ function DeepBindPanel({
                   {showCollection ? (
                     <span
                       className="max-w-[92px] truncate text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink"
-                      title={getCollectionDisplayName(
-                        collectionId,
-                        collectionDisplayNames,
-                      )}
+                      title={collectionName}
                     >
-                      {getCollectionDisplayName(
-                        collectionId,
-                        collectionDisplayNames,
-                      )}
+                      {collectionName}
                     </span>
                   ) : null}
                   <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
@@ -450,7 +449,9 @@ export function DeepInspectSection({
                       <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity">
                         {onNavigateToToken && (
                           <button
-                            onClick={() => onNavigateToToken(tokenPath)}
+                            onClick={() =>
+                              onNavigateToToken(tokenPath, bindingCollectionId)
+                            }
                             title="Go to token"
                             aria-label="Go to token"
                             className="p-0.5 rounded text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"

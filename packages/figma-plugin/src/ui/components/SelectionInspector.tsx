@@ -71,7 +71,7 @@ interface SelectionInspectorProps {
   currentCollection: TokenCollection | null;
   serverUrl: string;
   onTokenCreated: () => void;
-  onNavigateToToken?: (tokenPath: string) => void;
+  onNavigateToToken?: (tokenPath: string, collectionId?: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onToast?: (message: string) => void;
   onGoToTokens?: () => void;

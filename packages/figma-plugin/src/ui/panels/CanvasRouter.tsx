@@ -145,7 +145,17 @@ export function CanvasRouter({
             }
             serverUrl={serverUrl}
             onTokenCreated={refreshTokens}
-            onNavigateToToken={(path) => {
+            onNavigateToToken={(path, collectionId) => {
+              if (collectionId) {
+                openTokenInContext({
+                  path,
+                  collectionId,
+                  mode: "inspect",
+                  origin: "canvas",
+                  returnLabel: "Back to Canvas",
+                });
+                return;
+              }
               const resolution = resolveCollectionIdForPath({
                 path,
                 pathToCollectionId,
