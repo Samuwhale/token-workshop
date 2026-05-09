@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect, useMemo, type ReactNode } from 'react';
 import {
   AlertCircle,
   ChevronRight,
@@ -279,10 +279,13 @@ export function PropertyRow({
   const value = getCurrentValue(rootNodes, prop);
   const valueState = getCurrentValueState(rootNodes, prop);
   const isMixedLiteralValue = !binding && valueState.kind === 'mixed';
-  const modeNamesForCreate =
-    currentCollectionModeNames.length > 0
-      ? currentCollectionModeNames
-      : ['Default'];
+  const modeNamesForCreate = useMemo(
+    () =>
+      currentCollectionModeNames.length > 0
+        ? currentCollectionModeNames
+        : ['Default'],
+    [currentCollectionModeNames],
+  );
   const multiModeCreate = modeNamesForCreate.length > 1;
   const createTokenType = getTokenTypeForProperty(prop);
   const createSourceValue = getTokenValueFromProp(prop, value);
@@ -389,20 +392,7 @@ export function PropertyRow({
     onBindToken(prop, p);
   };
 
-  // Reset bind query when opening bind panel
   const prevBindingFromProp = useRef<BindableProperty | null>(null);
-  if (bindingFromProp === prop && prevBindingFromProp.current !== prop) {
-    const currentBinding = getBindingForProperty(rootNodes, prop);
-    if (currentBinding && currentBinding !== 'mixed') {
-      const leafName = tokenMap[currentBinding]?.$name;
-      setBindQuery(leafName ? nodeParentPath(currentBinding, leafName) : '');
-    } else {
-      setBindQuery('');
-    }
-    setBindSelectedIndex(-1);
-    setBindShowAll(false);
-  }
-  prevBindingFromProp.current = bindingFromProp;
 
   useLayoutEffect(() => {
     if (creatingFromProp === prop && nameInputRef.current) {
@@ -425,6 +415,21 @@ export function PropertyRow({
       modeNamesForCreate.map(() => cloneModeDraftValue(createSourceValue)),
     );
   }, [createSessionKey, createSourceValue, modeNamesForCreate]);
+
+  useEffect(() => {
+    if (bindingFromProp === prop && prevBindingFromProp.current !== prop) {
+      const currentBinding = getBindingForProperty(rootNodes, prop);
+      if (currentBinding && currentBinding !== 'mixed') {
+        const leafName = tokenMap[currentBinding]?.$name;
+        setBindQuery(leafName ? nodeParentPath(currentBinding, leafName) : '');
+      } else {
+        setBindQuery('');
+      }
+      setBindSelectedIndex(-1);
+      setBindShowAll(false);
+    }
+    prevBindingFromProp.current = bindingFromProp;
+  }, [bindingFromProp, prop, rootNodes, tokenMap]);
 
   const handleCreateToken = async () => {
     if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;

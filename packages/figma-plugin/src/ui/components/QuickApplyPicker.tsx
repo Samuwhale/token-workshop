@@ -432,7 +432,6 @@ export function QuickApplyPicker({
     availableCollectionIds,
     collectionDisplayNames,
     currentBindingForProp,
-    currentCollectionId,
     query,
     rootNodes,
     searchAllCollections,
