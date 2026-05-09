@@ -7,6 +7,7 @@ import { useNavigationContext } from "../contexts/NavigationContext";
 interface GitRouterProps {
   serverUrl: string;
   connected: boolean;
+  collectionDisplayNames?: Record<string, string>;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
 }
@@ -14,6 +15,7 @@ interface GitRouterProps {
 export function GitRouter({
   serverUrl,
   connected,
+  collectionDisplayNames,
   onPushUndo,
   onRefreshTokens,
 }: GitRouterProps): ReactNode {
@@ -27,6 +29,7 @@ export function GitRouter({
       <GitRepositoryPanel
         serverUrl={serverUrl}
         connected={connected}
+        collectionDisplayNames={collectionDisplayNames}
         onPushUndo={onPushUndo}
         onRefreshTokens={onRefreshTokens}
       />

@@ -30,7 +30,6 @@ export interface TokenSelectionToolbarProps {
   onCopyToCollection: () => void;
   onCompare?: () => void;
   onLinkToTokens: () => void;
-  searchQuery?: string;
 }
 
 const menuItemClass =
@@ -110,7 +109,6 @@ export function TokenSelectionToolbar({
   onCopyToCollection,
   onCompare,
   onLinkToTokens,
-  searchQuery,
 }: TokenSelectionToolbarProps) {
   const hasSelection = selectedPaths.size > 0;
   const displayedSelectionCount = displayedLeafPaths.size;
@@ -131,13 +129,20 @@ export function TokenSelectionToolbar({
   const selectionSummary =
     displayedSelectionCount === 0
       ? "No visible tokens"
-      : `${visibleSelectedCount} of ${displayedSelectionCount} visible selected`;
+      : visibleSelectedCount === 0
+        ? `${displayedSelectionCount} visible token${
+            displayedSelectionCount === 1 ? "" : "s"
+          }`
+        : hiddenSelectionCount > 0
+          ? `${visibleSelectedCount} selected in these results`
+          : `${visibleSelectedCount} selected`;
   const selectionMetaParts = [
-    searchQuery ? `Matching “${searchQuery}”` : null,
     hiddenSelectionCount > 0
-      ? `${hiddenSelectionCount} outside these results`
+      ? `${hiddenSelectionCount} selected outside these results`
       : null,
-    selectedPaths.size === 1 ? "Shift-click adds a range" : null,
+    selectedPaths.size === 1 && hiddenSelectionCount === 0
+      ? "Shift-click adds a range"
+      : null,
   ].filter(Boolean);
   const selectionMeta =
     selectionMetaParts.length > 0 ? selectionMetaParts.join(" · ") : null;
@@ -178,7 +183,10 @@ export function TokenSelectionToolbar({
                 className="shrink-0 accent-[var(--color-figma-accent)]"
               />
               <span className="tm-selection-toolbar__selection-copy">
-                <span className="tm-selection-toolbar__selection-count text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)]">
+                <span
+                  className="tm-selection-toolbar__selection-count text-secondary tabular-nums text-[color:var(--color-figma-text-secondary)]"
+                  title={`${selectedPaths.size} selected total`}
+                >
                   {selectionSummary}
                 </span>
                 {selectionMeta ? (

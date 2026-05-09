@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect, type ReactNode } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect, type ReactNode } from 'react';
 import {
   AlertCircle,
   ChevronRight,
@@ -24,7 +24,7 @@ import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 import {
   applyTokenMutationSuccess,
   createToken,
-  createTokenValueBodyForCollectionModes,
+  createTokenValueBody,
   isTokenMutationConflictError,
   updateToken,
 } from '../shared/tokenMutations';
@@ -46,6 +46,7 @@ import {
   collectBoundPrefixes,
   getMixedBindingValues,
 } from './selectionInspectorUtils';
+import { ModeValueEditor } from './token-editor/ModeValueEditor';
 
 interface PropertyRowProps {
   prop: BindableProperty;
@@ -181,6 +182,61 @@ function BindCandidateButton({
   );
 }
 
+function cloneModeDraftValue(value: unknown): unknown {
+  return typeof value === 'object' && value !== null
+    ? structuredClone(value)
+    : value;
+}
+
+function buildCreateValueBodyForModeDrafts({
+  tokenType,
+  modeValues,
+  defaultValue,
+  defaultScopes,
+  collectionId,
+  modeNames,
+}: {
+  tokenType: string;
+  modeValues: unknown[];
+  defaultValue: unknown;
+  defaultScopes: readonly string[];
+  collectionId: string;
+  modeNames: string[];
+}) {
+  const values =
+    modeValues.length === modeNames.length
+      ? modeValues
+      : modeNames.map(() => cloneModeDraftValue(defaultValue));
+  const primaryValue = values[0] ?? defaultValue;
+  const secondaryModeNames = modeNames.slice(1).filter(Boolean);
+
+  if (secondaryModeNames.length === 0) {
+    return createTokenValueBody({
+      type: tokenType,
+      value: primaryValue,
+      defaultScopes,
+    });
+  }
+
+  return createTokenValueBody({
+    type: tokenType,
+    value: primaryValue,
+    defaultScopes,
+    extensions: {
+      tokenworkshop: {
+        modes: {
+          [collectionId]: Object.fromEntries(
+            secondaryModeNames.map((modeName, index) => [
+              modeName,
+              cloneModeDraftValue(values[index + 1] ?? primaryValue),
+            ]),
+          ),
+        },
+      },
+    },
+  });
+}
+
 export function PropertyRow({
   prop,
   rootNodes,
@@ -214,8 +270,10 @@ export function PropertyRow({
   const [bindSelectedIndex, setBindSelectedIndex] = useState(-1);
   const [bindShowAll, setBindShowAll] = useState(false);
   const [showMixedDetail, setShowMixedDetail] = useState(false);
+  const [createModeValues, setCreateModeValues] = useState<unknown[]>([]);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const createSessionKeyRef = useRef<string | null>(null);
 
   const binding = getBindingForProperty(rootNodes, prop);
   const value = getCurrentValue(rootNodes, prop);
@@ -226,6 +284,12 @@ export function PropertyRow({
       ? currentCollectionModeNames
       : ['Default'];
   const multiModeCreate = modeNamesForCreate.length > 1;
+  const createTokenType = getTokenTypeForProperty(prop);
+  const createSourceValue = getTokenValueFromProp(prop, value);
+  const createSessionKey =
+    creatingFromProp === prop
+      ? `${prop}:${currentCollectionId}:${modeNamesForCreate.join('\u0000')}:${formatTokenValuePreview(prop, value)}`
+      : null;
 
   const isBound = binding && binding !== 'mixed';
   const isMixed = binding === 'mixed';
@@ -347,6 +411,21 @@ export function PropertyRow({
     }
   }, [creatingFromProp, prop]);
 
+  useEffect(() => {
+    if (!createSessionKey) {
+      createSessionKeyRef.current = null;
+      setCreateModeValues([]);
+      return;
+    }
+    if (createSessionKeyRef.current === createSessionKey) {
+      return;
+    }
+    createSessionKeyRef.current = createSessionKey;
+    setCreateModeValues(
+      modeNamesForCreate.map(() => cloneModeDraftValue(createSourceValue)),
+    );
+  }, [createSessionKey, createSourceValue, modeNamesForCreate]);
+
   const handleCreateToken = async () => {
     if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;
     const pathTrimmed = newTokenName.trim();
@@ -356,21 +435,26 @@ export function PropertyRow({
       return;
     }
     const currentValue = getCurrentValue(selectedNodes, prop);
-    const tokenType = getTokenTypeForProperty(prop);
+    const tokenType = createTokenType;
     const tokenValue = getTokenValueFromProp(prop, currentValue);
     const tokenPath = newTokenName.trim();
+    const modeValuesForCreate =
+      createModeValues.length === modeNamesForCreate.length
+        ? createModeValues
+        : modeNamesForCreate.map(() => cloneModeDraftValue(tokenValue));
 
     setCreating(true);
     try {
-      await createToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBodyForCollectionModes({
-        type: tokenType,
-        value: tokenValue,
+      await createToken(serverUrl, currentCollectionId, tokenPath, buildCreateValueBodyForModeDrafts({
+        tokenType,
+        modeValues: modeValuesForCreate,
+        defaultValue: tokenValue,
         defaultScopes: getDefaultScopesForProperty(prop),
         collectionId: currentCollectionId,
         modeNames: modeNamesForCreate,
       }));
       await applyTokenMutationSuccess({
-        onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),
+        onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, modeValuesForCreate[0] ?? tokenValue),
         successMessage: `Token "${tokenPath}" created`,
       });
       setCreateError('');
@@ -391,21 +475,26 @@ export function PropertyRow({
   const handleOverwriteToken = async () => {
     if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;
     const currentValue = getCurrentValue(selectedNodes, prop);
-    const tokenType = getTokenTypeForProperty(prop);
+    const tokenType = createTokenType;
     const tokenValue = getTokenValueFromProp(prop, currentValue);
     const tokenPath = newTokenName.trim();
+    const modeValuesForCreate =
+      createModeValues.length === modeNamesForCreate.length
+        ? createModeValues
+        : modeNamesForCreate.map(() => cloneModeDraftValue(tokenValue));
 
     setCreating(true);
     try {
-      await updateToken(serverUrl, currentCollectionId, tokenPath, createTokenValueBodyForCollectionModes({
-        type: tokenType,
-        value: tokenValue,
+      await updateToken(serverUrl, currentCollectionId, tokenPath, buildCreateValueBodyForModeDrafts({
+        tokenType,
+        modeValues: modeValuesForCreate,
+        defaultValue: tokenValue,
         defaultScopes: getDefaultScopesForProperty(prop),
         collectionId: currentCollectionId,
         modeNames: modeNamesForCreate,
       }));
       await applyTokenMutationSuccess({
-        onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, tokenValue),
+        onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, modeValuesForCreate[0] ?? tokenValue),
         successMessage: `Token "${tokenPath}" overwritten`,
       });
       setCreateError('');
@@ -757,25 +846,61 @@ export function PropertyRow({
             </button>
           </div>
           <div className="px-2 py-1.5 flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">Value:</span>
-              {(prop === 'fill' || prop === 'stroke') &&
-               typeof value === 'string' &&
-               value.startsWith('#') && (
-                <div
-                  className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                  style={{ backgroundColor: value }}
-                />
-              )}
-              <span className="text-secondary text-[color:var(--color-figma-text)] font-mono truncate">
-                {formatTokenValuePreview(prop, value)}
-              </span>
-            </div>
             {multiModeCreate ? (
-              <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
-                This value will be written to all {modeNamesForCreate.length} modes in {currentCollectionId}: {modeNamesForCreate.join(', ')}.
-              </p>
-            ) : null}
+              <div className="flex flex-col gap-1.5">
+                <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+                  Mode values
+                </div>
+                <div className="flex flex-col gap-2">
+                  {modeNamesForCreate.map((modeName, index) => (
+                    <div key={`${modeName}:${index}`} className="flex flex-col gap-1">
+                      <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                        {modeName}
+                      </div>
+                      <ModeValueEditor
+                        tokenType={createTokenType}
+                        value={createModeValues[index] ?? createSourceValue}
+                        onChange={(nextValue) => {
+                          setCreateModeValues((current) => {
+                            const next = current.length === modeNamesForCreate.length
+                              ? [...current]
+                              : modeNamesForCreate.map(() =>
+                                  cloneModeDraftValue(createSourceValue),
+                                );
+                            next[index] = nextValue;
+                            return next;
+                          });
+                          setCreateError('');
+                          setConflictExists(false);
+                        }}
+                        allTokensFlat={tokenMap}
+                        pathToCollectionId={Object.fromEntries(
+                          Object.keys(tokenMap).map((path) => [
+                            path,
+                            currentCollectionId,
+                          ]),
+                        )}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)] shrink-0">Value:</span>
+                {(prop === 'fill' || prop === 'stroke') &&
+                 typeof value === 'string' &&
+                 value.startsWith('#') && (
+                  <div
+                    className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                    style={{ backgroundColor: value }}
+                  />
+                )}
+                <span className="text-secondary text-[color:var(--color-figma-text)] font-mono truncate">
+                  {formatTokenValuePreview(prop, value)}
+                </span>
+              </div>
+            )}
             <div className="flex flex-col gap-0.5">
               <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Token path (collection: {currentCollectionId})</label>
               <input

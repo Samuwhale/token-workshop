@@ -214,6 +214,7 @@ export function ValueCell({
   return (
     <div
       ref={cellRef}
+      data-token-mode-cell={optionName}
       className={`tm-value-cell ${wrapperClass}`}
       title={titleLines.join("\n")}
     >

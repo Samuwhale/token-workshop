@@ -7,6 +7,7 @@ import {
   getMergedCapabilities,
   shouldShowGroup,
   getBindingForProperty,
+  getBindingCollectionForProperty,
   getCurrentValue,
   getCompatibleTokenTypes,
   getTokenTypeForProperty,
@@ -404,13 +405,6 @@ export function QuickApplyPicker({
       });
     }
 
-    const pathCounts = new Map<string, number>();
-    for (const collectionId of availableCollectionIds) {
-      for (const path of Object.keys(tokenMapsByCollection[collectionId] ?? {})) {
-        pathCounts.set(path, (pathCounts.get(path) ?? 0) + 1);
-      }
-    }
-
     const scopedResults = availableCollectionIds.map((collectionId) =>
       buildQuickApplyCandidates({
         activeProp,
@@ -424,10 +418,6 @@ export function QuickApplyPicker({
     );
     const mergedCandidates = scopedResults
       .flatMap((result) => result.candidates)
-      .filter((candidate) => {
-        const duplicateCount = pathCounts.get(candidate.path) ?? 0;
-        return duplicateCount <= 1 || candidate.collectionId === currentCollectionId;
-      })
       .sort((a, b) => b.rankScore - a.rankScore || b.score - a.score)
       .slice(0, MAX_CANDIDATES);
 
@@ -474,10 +464,16 @@ export function QuickApplyPicker({
 
   // Current binding for this property
   const currentBinding = getBindingForProperty(rootNodes, activeProp);
+  const currentBindingCollection = getBindingCollectionForProperty(rootNodes, activeProp);
   const hasSingleCurrentBinding = currentBinding !== null && currentBinding !== 'mixed';
+  const isCurrentCandidate = (candidate: QuickApplyCandidate): boolean =>
+    currentBinding === candidate.path &&
+    (currentBindingCollection && currentBindingCollection !== 'mixed'
+      ? candidate.collectionId === currentBindingCollection
+      : !searchAllCollections || candidate.collectionId === currentCollectionId);
 
   const handleSelect = (candidate: QuickApplyCandidate) => {
-    if (currentBinding === candidate.path) return;
+    if (isCurrentCandidate(candidate)) return;
     addRecentToken(candidate.path, candidate.collectionId);
     onApply(
       candidate.path,
@@ -722,7 +718,7 @@ export function QuickApplyPicker({
                   </div>
                   {recentCandidates.map((c, idx) => {
                     const isSelected = idx === activeIdx;
-                    const isCurrent = currentBinding === c.path;
+                    const isCurrent = isCurrentCandidate(c);
                     return (
                       <QuickApplyCandidateRow
                         key={`${c.collectionId}:${c.path}`}
@@ -747,7 +743,7 @@ export function QuickApplyPicker({
                       <QuickApplyCandidateRow
                         key={`${candidate.collectionId}:${candidate.path}`}
                         candidate={candidate}
-                        isCurrent={currentBinding === candidate.path}
+                        isCurrent={isCurrentCandidate(candidate)}
                         isSelected={globalIdx === activeIdx}
                         onHover={() => setActiveIdx(globalIdx)}
                         onSelect={() => handleSelect(candidate)}
@@ -777,7 +773,7 @@ export function QuickApplyPicker({
                             <QuickApplyCandidateRow
                               key={`${candidate.collectionId}:${candidate.path}`}
                               candidate={candidate}
-                              isCurrent={currentBinding === candidate.path}
+                              isCurrent={isCurrentCandidate(candidate)}
                               isSelected={globalIdx === activeIdx}
                               onHover={() => setActiveIdx(globalIdx)}
                               onSelect={() => handleSelect(candidate)}

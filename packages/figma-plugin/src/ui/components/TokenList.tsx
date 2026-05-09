@@ -1892,7 +1892,6 @@ export function TokenList({
             }}
             onCompare={selectedPaths.size >= 2 && onOpenCompare ? () => onOpenCompare(selectedPaths) : undefined}
             onLinkToTokens={() => handleOpenPromoteReview()}
-            searchQuery={searchQuery}
           />
         )}
 

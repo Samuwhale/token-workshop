@@ -9,6 +9,7 @@ import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
 import { formatRelativeTime } from '../../shared/changeHelpers';
 import { apiFetch } from '../../shared/apiFetch';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
+import { getCollectionDisplayName } from '../../shared/libraryCollections';
 import { TokenChangeRow } from './PublishShared';
 import type { CommitEntry, UndoSlot } from '../history/types';
 import type { GitPreview, TokenChange } from '../../hooks/useGitDiff';
@@ -19,6 +20,7 @@ type RepositoryConfirmAction = 'git-push' | 'git-pull' | 'git-commit' | 'apply-d
 interface GitRepositoryPanelProps {
   serverUrl: string;
   connected: boolean;
+  collectionDisplayNames?: Record<string, string>;
   onPushUndo?: (slot: UndoSlot) => void;
   onRefreshTokens?: () => void;
   embedded?: boolean;
@@ -27,6 +29,7 @@ interface GitRepositoryPanelProps {
 export function GitRepositoryPanel({
   serverUrl,
   connected,
+  collectionDisplayNames,
   onPushUndo,
   onRefreshTokens,
   embedded: _embedded = false,
@@ -146,6 +149,7 @@ export function GitRepositoryPanel({
           preview={git.pullPreview}
           loading={git.pullPreviewLoading}
           fetchPreview={git.fetchPullPreview}
+          collectionDisplayNames={collectionDisplayNames}
           onCancel={() => {
             setConfirmAction(null);
             git.clearPullPreview();
@@ -166,6 +170,7 @@ export function GitRepositoryPanel({
           preview={git.pushPreview}
           loading={git.pushPreviewLoading}
           fetchPreview={git.fetchPushPreview}
+          collectionDisplayNames={collectionDisplayNames}
           onCancel={() => {
             setConfirmAction(null);
             git.clearPushPreview();
@@ -237,6 +242,7 @@ function RepositoryTimeline({
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [compareMode, setCompareMode] = useState(false);
 
   useEffect(() => {
@@ -247,6 +253,7 @@ function RepositoryTimeline({
   const fetchCommits = useCallback(async (searchQuery = '') => {
     setLoading(true);
     setError(null);
+    setLoadMoreError(null);
     setOffset(0);
     try {
       const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
@@ -267,6 +274,7 @@ function RepositoryTimeline({
   const handleLoadMore = async () => {
     if (loadingMore) return;
     setLoadingMore(true);
+    setLoadMoreError(null);
     const nextOffset = offset + 50;
     try {
       const searchParam = debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : '';
@@ -274,8 +282,10 @@ function RepositoryTimeline({
       setCommits(prev => [...prev, ...(data.data ?? [])]);
       setHasMore(data.hasMore ?? false);
       setOffset(nextOffset);
-    } catch {
-      // silently fail, user can retry
+    } catch (err) {
+      setLoadMoreError(
+        err instanceof Error ? err.message : 'Could not load more versions',
+      );
     } finally {
       setLoadingMore(false);
     }
@@ -487,6 +497,14 @@ function RepositoryTimeline({
 
         {!loading && hasMore && (
           <div className="px-3 py-2 border-b border-[var(--color-figma-border)]">
+            {loadMoreError ? (
+              <div
+                role="alert"
+                className="mb-2 rounded bg-[var(--color-figma-error)]/10 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-error)]"
+              >
+                Could not load more versions. {loadMoreError}
+              </div>
+            ) : null}
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
@@ -511,6 +529,7 @@ function GitPreviewModal({
   preview,
   loading,
   fetchPreview,
+  collectionDisplayNames,
   onCancel,
   onConfirm,
 }: {
@@ -520,6 +539,7 @@ function GitPreviewModal({
   preview: GitPreview | null;
   loading: boolean;
   fetchPreview: () => Promise<void>;
+  collectionDisplayNames?: Record<string, string>;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 }) {
@@ -556,6 +576,8 @@ function GitPreviewModal({
   const totalAdded = bySet.reduce((c, s) => c + s.added.length, 0);
   const totalModified = bySet.reduce((c, s) => c + s.modified.length, 0);
   const totalRemoved = bySet.reduce((c, s) => c + s.removed.length, 0);
+  const hasPreviewChanges =
+    preview !== null && (preview.commits.length > 0 || bySet.length > 0);
 
   const toggleSet = (set: string) => {
     setExpandedSets(prev => {
@@ -619,12 +641,23 @@ function GitPreviewModal({
                     {bySet.map(({ collectionId, added, modified, removed }) => {
                       const isExpanded = expandedSets.has(collectionId);
                       const allChanges = [...added, ...modified, ...removed];
+                      const collectionLabel = getCollectionDisplayName(
+                        collectionId,
+                        collectionDisplayNames,
+                      );
                       return (
                         <div key={collectionId} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                           <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors" onClick={() => toggleSet(collectionId)}>
                             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[color:var(--color-figma-text-tertiary)] shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3V1z" /></svg>
-                            <span className={`text-secondary font-medium text-[color:var(--color-figma-text)] flex-1 ${LONG_TEXT_CLASSES.text}`}>
-                              {collectionId}
+                            <span className="min-w-0 flex-1">
+                              <span className={`block text-secondary font-medium text-[color:var(--color-figma-text)] ${LONG_TEXT_CLASSES.text}`}>
+                                {collectionLabel}
+                              </span>
+                              {collectionLabel !== collectionId ? (
+                                <span className={`block text-secondary font-mono text-[color:var(--color-figma-text-tertiary)] ${LONG_TEXT_CLASSES.text}`}>
+                                  {collectionId}
+                                </span>
+                              ) : null}
                             </span>
                             <span className="flex items-center gap-2 text-secondary font-mono shrink-0">
                               {added.length > 0 && <span className="text-[color:var(--color-figma-text-success)]">+{added.length}</span>}
@@ -647,11 +680,15 @@ function GitPreviewModal({
           )}
         </div>
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
-          <button onClick={onCancel} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
-          <button onClick={handleConfirm} disabled={loading || busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
-            {busy && <Spinner size="sm" className="text-white" />}
-            {busy ? `${confirmLabel}…` : confirmLabel}
+          <button onClick={onCancel} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+            {hasPreviewChanges ? 'Cancel' : 'Close'}
           </button>
+          {hasPreviewChanges ? (
+            <button onClick={handleConfirm} disabled={loading || busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+              {busy && <Spinner size="sm" className="text-white" />}
+              {busy ? `${confirmLabel}…` : confirmLabel}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

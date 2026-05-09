@@ -1331,6 +1331,7 @@ export function PanelRouter({
         <GitRouter
           serverUrl={serverUrl}
           connected={connected}
+          collectionDisplayNames={collectionMap}
           onPushUndo={controller.pushUndo}
           onRefreshTokens={controller.refreshAll}
         />

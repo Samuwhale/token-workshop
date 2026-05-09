@@ -164,6 +164,7 @@ export interface NodeCapabilities {
 export interface NodeBinding {
   property: BindableProperty;
   tokenPath: string;
+  collectionId?: string;
 }
 
 /**
@@ -205,6 +206,8 @@ export interface SelectionNodeInfo {
   type: string;
   /** Maps BindableProperty name → token path for each active binding. */
   bindings: Record<string, string>;
+  /** Maps BindableProperty name → collection id for collection-scoped bindings. */
+  bindingCollections?: Record<string, string>;
   capabilities: NodeCapabilities;
   currentValues: NodeCurrentValues;
   /** 0 = directly selected, 1+ = nested descendant (deep inspect mode). */
@@ -221,6 +224,7 @@ export interface SetDeepInspectMessage {
 export interface ApplyToSelectionMessage {
   type: 'apply-to-selection';
   tokenPath: string;
+  collectionId?: string;
   tokenType: string;
   targetProperty: BindableProperty;
   resolvedValue: ResolvedTokenValue;

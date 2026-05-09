@@ -1527,6 +1527,24 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
+@container (max-width: 640px) {
+  .tm-collection-toolbar__row {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .tm-collection-toolbar__leading {
+    flex: 1 1 100%;
+  }
+
+  .tm-collection-toolbar__actions {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
 .tm-collection-toolbar {
   gap: 0;
 }
@@ -1786,6 +1804,8 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-selection-toolbar__selection-count {
   min-inline-size: 0;
+  font-weight: 500;
+  line-height: var(--leading-tight);
 }
 
 .tm-selection-toolbar__selection-copy {
@@ -1793,11 +1813,12 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .tm-selection-toolbar__selection-meta {
   min-inline-size: 0;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 

@@ -227,6 +227,20 @@ export const TokenLeafNode = memo(
       setTokenMenuAdvanced(false);
     }, []);
 
+    const resolveQuickEditorAnchor = useCallback(
+      (optionName: string): DOMRect | null => {
+        const modeCell = Array.from(
+          nodeRef.current?.querySelectorAll<HTMLElement>("[data-token-mode-cell]") ?? [],
+        ).find((element) => element.dataset.tokenModeCell === optionName);
+        return (
+          modeCell?.getBoundingClientRect() ??
+          nodeRef.current?.getBoundingClientRect() ??
+          null
+        );
+      },
+      [],
+    );
+
     useContextMenuController({
       isOpen: contextMenuPos !== null,
       menuRef: tokenMenuRef,
@@ -289,7 +303,7 @@ export const TokenLeafNode = memo(
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
-    const selectionControlVisibilityClass = isSelected
+    const selectionControlVisibilityClass = selectionActive || isSelected
       ? "opacity-100"
       : "opacity-70 group-hover:opacity-100 group-focus-within:opacity-100";
     const overflowActionVisibilityClass = selectionActive
@@ -511,6 +525,7 @@ export const TokenLeafNode = memo(
             pluginMessage: {
               type: "apply-to-selection",
               tokenPath: node.path,
+              collectionId,
               tokenType: resolved.$type,
               targetProperty: property,
               resolvedValue: resolved.value,
@@ -520,7 +535,7 @@ export const TokenLeafNode = memo(
         );
         setShowPicker(false);
       },
-      [node.$value, node.$type, node.path, allTokensFlat],
+      [collectionId, node.$value, node.$type, node.path, allTokensFlat],
     );
 
     const confirmTokenRename = useCallback(() => {
@@ -583,6 +598,7 @@ export const TokenLeafNode = memo(
             pluginMessage: {
               type: "apply-to-selection",
               tokenPath: node.path,
+              collectionId,
               tokenType: "composition",
               targetProperty: "composition",
               resolvedValue: resolveCompositeForApply(node, allTokensFlat),
@@ -622,7 +638,7 @@ export const TokenLeafNode = memo(
         setPickerProps(null);
         setShowPicker(true);
       }
-    }, [node, allTokensFlat, selectedNodes, applyWithProperty]);
+    }, [collectionId, node, allTokensFlat, selectedNodes, applyWithProperty]);
 
     // When a Tab from a sibling row targets this row, open the popover on the matching mode.
     useEffect(() => {
@@ -632,7 +648,7 @@ export const TokenLeafNode = memo(
         multiModeValues.find((m) => m.optionName === pendingTabEdit.columnId) ??
         multiModeValues[0];
       if (!targetMv) return;
-      const rect = nodeRef.current?.getBoundingClientRect();
+      const rect = resolveQuickEditorAnchor(targetMv.optionName);
       if (!rect) return;
       setQuickEditor({
         anchor: rect,
@@ -642,14 +658,23 @@ export const TokenLeafNode = memo(
         currentValue: targetMv.resolved,
       });
       clearPendingTabEdit();
-    }, [pendingTabEdit, node.path, node.$type, canQuickEdit, multiModeValues, clearPendingTabEdit]);
+    }, [
+      pendingTabEdit,
+      node.path,
+      node.$type,
+      canQuickEdit,
+      multiModeValues,
+      clearPendingTabEdit,
+      resolveQuickEditorAnchor,
+    ]);
 
     // Open the quick editor popover on the first editable mode cell.
     const openQuickEditorFirstMode = useCallback(() => {
       if (!canQuickEdit || !node.$type) return;
-      const firstEditable = multiModeValues.find((mv) => mv.targetCollectionId) ?? multiModeValues[0];
+      const firstEditable =
+        multiModeValues.find((mv) => mv.targetCollectionId) ?? multiModeValues[0];
       if (!firstEditable) return;
-      const rect = nodeRef.current?.getBoundingClientRect();
+      const rect = resolveQuickEditorAnchor(firstEditable.optionName);
       if (!rect) return;
       setQuickEditor({
         anchor: rect,
@@ -659,7 +684,7 @@ export const TokenLeafNode = memo(
         currentValue: firstEditable.resolved,
       });
       setInlineNudgeVisible(false);
-    }, [canQuickEdit, node.$type, multiModeValues]);
+    }, [canQuickEdit, node.$type, multiModeValues, resolveQuickEditorAnchor]);
 
     const handleRowKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1432,7 +1457,7 @@ export const TokenLeafNode = memo(
                 const nextIdx = idx + dir;
                 if (nextIdx >= 0 && nextIdx < multiModeValues.length) {
                   const next = multiModeValues[nextIdx];
-                  const rect = nodeRef.current?.getBoundingClientRect();
+                  const rect = resolveQuickEditorAnchor(next.optionName);
                   if (rect) {
                     setQuickEditor({
                       anchor: rect,

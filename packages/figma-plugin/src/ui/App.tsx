@@ -1903,22 +1903,10 @@ export function App() {
                       position="right"
                     >
                       <button
-                        onClick={(event) => {
-                          if (responsiveSidebarCollapsed && sections.length > 0) {
-                            openResponsiveSidebarFlyout(
-                              item.id,
-                              event.currentTarget.getBoundingClientRect().top,
-                            );
-                            return;
-                          }
+                        onClick={() => {
                           setResponsiveSidebarFlyout(null);
                           handleSidebarItemClick(item);
                         }}
-                        aria-expanded={
-                          responsiveSidebarCollapsed && sections.length > 0
-                            ? responsiveSidebarFlyout?.itemId === item.id
-                            : undefined
-                        }
                         aria-current={isWorkspaceActive ? "page" : undefined}
                         aria-label={tooltipLabel}
                         data-workspace={item.id}
@@ -2162,7 +2150,7 @@ export function App() {
           {responsiveSidebarCollapsed ? (
             <>
               <div className="my-1 w-5 mx-auto border-t border-[var(--border-muted)]" />
-              <Tooltip label="Workspace sections" position="right">
+              <Tooltip label={`Open ${activeWorkspace.label} sections`} position="right">
                 <button
                   type="button"
                   onClick={(event) =>
@@ -2171,7 +2159,7 @@ export function App() {
                       event.currentTarget.getBoundingClientRect().top,
                     )
                   }
-                  aria-label="Open workspace sections"
+                  aria-label={`Open ${activeWorkspace.label} sections`}
                   aria-expanded={responsiveSidebarFlyout?.itemId === activeWorkspace.id}
                   className={`mx-auto h-7 w-7 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-tertiary)]`}
                 >
@@ -2396,6 +2384,7 @@ export function App() {
                 pluginMessage: {
                   type: "apply-to-selection",
                   tokenPath,
+                  collectionId,
                   tokenType,
                   targetProperty,
                   resolvedValue,

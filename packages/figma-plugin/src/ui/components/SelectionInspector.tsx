@@ -27,6 +27,7 @@ import {
   summarizeApplyWorkflow,
   shouldShowGroup,
   getBindingForProperty,
+  getBindingCollectionForProperty,
   getCurrentValue,
   getCurrentValueState,
   getMergedCapabilities,
@@ -352,7 +353,17 @@ export function SelectionInspector({
     );
     if (binding && binding !== "mixed") {
       if (onPushUndo) {
-        onPushUndo(buildRemoveBindingUndo(binding, prop, tokenMap));
+        const collectionId = getBindingCollectionForProperty(selectedNodes, prop);
+        onPushUndo(
+          buildRemoveBindingUndo(
+            binding,
+            prop,
+            tokenMap,
+            collectionId && collectionId !== "mixed"
+              ? collectionId
+              : currentCollectionId,
+          ),
+        );
       }
       onToast?.("Binding removed");
     }
@@ -362,6 +373,7 @@ export function SelectionInspector({
     const boundProps: Array<{
       prop: BindableProperty;
       tokenPath: string;
+      collectionId: string | null;
       tokenType: string;
       resolvedValue: unknown;
     }> = [];
@@ -373,9 +385,12 @@ export function SelectionInspector({
         const resolved = entry
           ? resolveTokenValue(entry.$value, entry.$type, tokenMap)
           : { value: null };
+        const collectionId = getBindingCollectionForProperty(rootNodes, prop);
         boundProps.push({
           prop,
           tokenPath: binding,
+          collectionId:
+            collectionId && collectionId !== "mixed" ? collectionId : currentCollectionId,
           tokenType,
           resolvedValue: resolved.value,
         });
@@ -398,6 +413,7 @@ export function SelectionInspector({
           for (const {
             prop,
             tokenPath,
+            collectionId,
             tokenType,
             resolvedValue,
           } of boundProps) {
@@ -406,6 +422,7 @@ export function SelectionInspector({
                 pluginMessage: {
                   type: "apply-to-selection",
                   tokenPath,
+                  collectionId: collectionId ?? currentCollectionId,
                   tokenType,
                   targetProperty: prop,
                   resolvedValue,
@@ -423,6 +440,7 @@ export function SelectionInspector({
     const boundProps: Array<{
       prop: BindableProperty;
       tokenPath: string;
+      collectionId: string | null;
       tokenType: string;
       resolvedValue: unknown;
     }> = [];
@@ -434,9 +452,12 @@ export function SelectionInspector({
         const resolved = entry
           ? resolveTokenValue(entry.$value, entry.$type, tokenMap)
           : { value: null };
+        const collectionId = getBindingCollectionForProperty(rootNodes, prop);
         boundProps.push({
           prop,
           tokenPath: binding,
+          collectionId:
+            collectionId && collectionId !== "mixed" ? collectionId : currentCollectionId,
           tokenType,
           resolvedValue: resolved.value,
         });
@@ -455,6 +476,7 @@ export function SelectionInspector({
           for (const {
             prop,
             tokenPath,
+            collectionId,
             tokenType,
             resolvedValue,
           } of boundProps) {
@@ -463,6 +485,7 @@ export function SelectionInspector({
                 pluginMessage: {
                   type: "apply-to-selection",
                   tokenPath,
+                  collectionId: collectionId ?? currentCollectionId,
                   tokenType,
                   targetProperty: prop,
                   resolvedValue,
@@ -505,12 +528,14 @@ export function SelectionInspector({
     const entry = tokenMap[tokenPath];
     if (!entry) return;
     const oldBinding = getBindingForProperty(selectedNodes, prop);
+    const oldBindingCollection = getBindingCollectionForProperty(selectedNodes, prop);
     const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
     parent.postMessage(
       {
         pluginMessage: {
           type: "apply-to-selection",
           tokenPath,
+          collectionId: currentCollectionId,
           tokenType: entry.$type,
           targetProperty: prop,
           resolvedValue: resolved.value,
@@ -532,6 +557,10 @@ export function SelectionInspector({
                 pluginMessage: {
                   type: "apply-to-selection",
                   tokenPath: oldBinding,
+                  collectionId:
+                    oldBindingCollection && oldBindingCollection !== "mixed"
+                      ? oldBindingCollection
+                      : currentCollectionId,
                   tokenType: prevEntry?.$type ?? entry.$type,
                   targetProperty: prop,
                   resolvedValue: prevResolved.value,
@@ -631,6 +660,7 @@ export function SelectionInspector({
         pluginMessage: {
           type: "apply-to-selection",
           tokenPath,
+          collectionId: currentCollectionId,
           tokenType,
           targetProperty: prop,
           resolvedValue: tokenValue,
@@ -1341,6 +1371,7 @@ export function SelectionInspector({
                 pluginMessage: {
                   type: "apply-to-selection",
                   tokenPath: propTypeSuggestion.tokenPath,
+                  collectionId: currentCollectionId,
                   tokenType: propTypeSuggestion.tokenType,
                   targetProperty: prop,
                   resolvedValue: propTypeSuggestion.resolvedValue,

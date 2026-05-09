@@ -415,7 +415,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'apply-to-selection':
       try {
-        await applyToSelection(msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+        await applyToSelection(
+          msg.tokenPath,
+          msg.tokenType,
+          msg.targetProperty,
+          msg.resolvedValue,
+          msg.collectionId,
+        );
       } catch (e) {
         reportError('apply-to-selection', e);
       }

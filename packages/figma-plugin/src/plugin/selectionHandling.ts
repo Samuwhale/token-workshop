@@ -20,10 +20,21 @@ function hasStoredBinding(node: SceneNode, property: string): boolean {
 
 function clearStoredBinding(node: SceneNode, property: string): void {
   node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
+  node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, `${property}:collection`, '');
 }
 
-function setStoredBinding(node: SceneNode, property: string, tokenPath: string): void {
+function setStoredBinding(
+  node: SceneNode,
+  property: string,
+  tokenPath: string,
+  collectionId?: string,
+): void {
   node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, tokenPath);
+  node.setSharedPluginData(
+    PLUGIN_DATA_NAMESPACE,
+    `${property}:collection`,
+    collectionId ?? '',
+  );
 }
 
 function parseRequiredDimensionValue(
@@ -196,7 +207,13 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 }
 
 // Apply token to selected nodes
-export async function applyToSelection(tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: ResolvedTokenValue) {
+export async function applyToSelection(
+  tokenPath: string,
+  tokenType: string,
+  targetProperty: string,
+  resolvedValue: ResolvedTokenValue,
+  collectionId?: string,
+) {
   const selection = figma.currentPage.selection;
   if (selection.length === 0) {
     figma.notify('Select a layer first');
@@ -210,7 +227,7 @@ export async function applyToSelection(tokenPath: string, tokenType: string, tar
     const snap = captureNodeProps(node, [targetProperty]);
     try {
       await applyTokenValue(node, targetProperty, resolvedValue, tokenType);
-      setStoredBinding(node, targetProperty, tokenPath);
+      setStoredBinding(node, targetProperty, tokenPath, collectionId);
       applied++;
     } catch (err) {
       const msg = getErrorMessage(err);
@@ -261,6 +278,7 @@ export async function clearAllBindings() {
     for (const prop of ALL_BINDABLE_PROPERTIES) {
       try {
         node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, prop, '');
+        node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, `${prop}:collection`, '');
       } catch (err) {
         const msg = getErrorMessage(err);
         if (!errors.includes(msg)) errors.push(msg);
@@ -388,6 +406,15 @@ function readNodeBindings(node: SceneNode): Record<string, string> {
   return bindings;
 }
 
+function readNodeBindingCollections(node: SceneNode): Record<string, string> {
+  const bindingCollections: Record<string, string> = {};
+  for (const prop of ALL_BINDABLE_PROPERTIES) {
+    const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, `${prop}:collection`);
+    if (val) bindingCollections[prop] = val;
+  }
+  return bindingCollections;
+}
+
 function collectDescendantsWithBindings(node: SceneNode, depth: number): SelectionNodeInfo[] {
   const results: SelectionNodeInfo[] = [];
   if (!('children' in node)) return results;
@@ -399,6 +426,7 @@ function collectDescendantsWithBindings(node: SceneNode, depth: number): Selecti
         name: child.name,
         type: child.type,
         bindings,
+        bindingCollections: readNodeBindingCollections(child),
         capabilities: getNodeCapabilities(child),
         currentValues: readCurrentValues(child),
         depth,
@@ -417,6 +445,7 @@ export async function getSelection(deepInspectEnabled = selectionDeepInspectEnab
     name: node.name,
     type: node.type,
     bindings: readNodeBindings(node),
+    bindingCollections: readNodeBindingCollections(node),
     capabilities: getNodeCapabilities(node),
     currentValues: readCurrentValues(node),
     depth: 0,
@@ -1080,6 +1109,7 @@ export async function applyToNodes(
   tokenType: string,
   targetProperty: string,
   resolvedValue: ResolvedTokenValue,
+  collectionId?: string,
 ) {
   let applied = 0;
   const errors: string[] = [];
@@ -1101,7 +1131,7 @@ export async function applyToNodes(
         await restoreNodeProps(sceneNode, snapshot);
         throw error;
       }
-      setStoredBinding(sceneNode, targetProperty, tokenPath);
+      setStoredBinding(sceneNode, targetProperty, tokenPath, collectionId);
       applied++;
     } catch (err) {
       errors.push(getErrorMessage(err));

@@ -26,6 +26,19 @@ export function getBindingForProperty(nodes: SelectionNodeInfo[], prop: Bindable
   return first;
 }
 
+export function getBindingCollectionForProperty(
+  nodes: SelectionNodeInfo[],
+  prop: BindableProperty,
+): string | null | 'mixed' {
+  if (nodes.length === 0) return null;
+  const first = nodes[0].bindingCollections?.[prop] || null;
+  for (let i = 1; i < nodes.length; i++) {
+    const val = nodes[i].bindingCollections?.[prop] || null;
+    if (val !== first) return 'mixed';
+  }
+  return first;
+}
+
 export function getCurrentValue(
   nodes: SelectionNodeInfo[],
   prop: BindableProperty,
@@ -848,6 +861,7 @@ export function buildRemoveBindingUndo(
   binding: string,
   prop: BindableProperty,
   tokenMap: Record<string, TokenMapEntry>,
+  collectionId?: string | null,
 ): UndoSlot {
   const entry = tokenMap[binding];
   const tokenType = entry?.$type ?? getTokenTypeForProperty(prop);
@@ -860,6 +874,7 @@ export function buildRemoveBindingUndo(
         pluginMessage: {
           type: 'apply-to-selection',
           tokenPath: binding,
+          collectionId: collectionId ?? undefined,
           tokenType,
           targetProperty: prop,
           resolvedValue,
