@@ -31,6 +31,7 @@ export interface UseImportSourceParams {
 }
 
 const DEFAULT_IMPORT_MODE_NAME = 'Default';
+const TAILWIND_CONFIG_FILE_RE = /\.(js|ts|mjs|cjs)$/i;
 
 export type FileImportSource = Exclude<ImportSource, 'variables' | 'styles'>;
 export type FileImportValidationStatus = 'ready' | 'partial' | 'error' | 'unsupported';
@@ -103,6 +104,28 @@ function getParserLimitsForSource(source: FileImportSource | null): string[] {
   return FILE_IMPORT_PARSER_LIMITS[source];
 }
 
+function getSourceForFile(file: File): FileImportSource | null {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.css') || file.type === 'text/css') return 'css';
+  if (TAILWIND_CONFIG_FILE_RE.test(name)) return 'tailwind';
+  if (name.endsWith('.json') || file.type === 'application/json') return 'json';
+  return null;
+}
+
+function getFileFromInput(event: React.ChangeEvent<HTMLInputElement>): File | null {
+  const file = event.currentTarget.files?.[0] ?? null;
+  event.currentTarget.value = '';
+  return file;
+}
+
+function selectFirstSupportedFile(files: readonly File[]): { file: File; source: FileImportSource } | null {
+  for (const file of files) {
+    const source = getSourceForFile(file);
+    if (source) return { file, source };
+  }
+  return null;
+}
+
 export function useImportSource({ onClearConflictState, onResetExistingPathsCache }: UseImportSourceParams) {
   const [source, setSource] = useState<'variables' | 'styles' | 'json' | 'css' | 'tailwind' | 'tokens-studio' | null>(null);
   const [sourceFamily, setSourceFamily] = useState<SourceFamily | null>(null);
@@ -122,7 +145,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const [isDragging, setIsDragging] = useState(false);
   const [fileImportValidation, setFileImportValidation] = useState<FileImportValidation | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const unifiedFileInputRef = useRef<HTMLInputElement>(null);
+  const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const cssFileInputRef = useRef<HTMLInputElement>(null);
   const tailwindFileInputRef = useRef<HTMLInputElement>(null);
   const tokensStudioFileInputRef = useRef<HTMLInputElement>(null);
@@ -917,48 +941,66 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     reader.readAsText(file);
   }, [clearParsedImportData, processTokensStudioContent, updateFileImportValidation]);
 
-  const handleReadJson = useCallback(() => { fileInputRef.current?.click(); }, []);
+  const showUnsupportedFileValidation = useCallback((files: readonly File[]) => {
+    const firstFileName = files[0]?.name ?? 'Selected file';
+    clearParsedImportData();
+    setError(null);
+    updateFileImportValidation({
+      fileName: firstFileName,
+      source: null,
+      status: 'unsupported',
+      summary: `Unsupported file: ${firstFileName}`,
+      detail: `Use ${formatSupportedFileFormats(getAllSupportedFileFormats())}.`,
+      nextAction: 'Choose a supported file or use the matching source button.',
+      tokenCount: 0,
+      skippedCount: 0,
+      issues: files.length > 1
+        ? [{ message: `Received ${files.length} files but none matched a supported import format.`, severity: 'error' }]
+        : [{ message: `${firstFileName} does not match a supported import format.`, severity: 'error' }],
+      skippedEntries: [],
+      supportedFormats: getSupportedFormatsForSource(null),
+      parserLimits: getParserLimitsForSource(null),
+    });
+  }, [clearParsedImportData, updateFileImportValidation]);
+
+  const handleReadJson = useCallback(() => { jsonFileInputRef.current?.click(); }, []);
   const handleReadCSS = useCallback(() => { cssFileInputRef.current?.click(); }, []);
   const handleReadTailwind = useCallback(() => { tailwindFileInputRef.current?.click(); }, []);
   const handleReadTokensStudio = useCallback(() => { tokensStudioFileInputRef.current?.click(); }, []);
 
-  const handleBrowseFile = useCallback(() => { fileInputRef.current?.click(); }, []);
+  const handleBrowseFile = useCallback(() => { unifiedFileInputRef.current?.click(); }, []);
 
   const handleUnifiedFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = getFileFromInput(e);
     if (!file) return;
-    e.target.value = '';
-    const name = file.name.toLowerCase();
-    if (name.endsWith('.css')) { processCSSFile(file); return; }
-    if (/\.(js|ts|mjs|cjs)$/.test(name)) { processTailwindFile(file); return; }
-    processJsonFile(file);
-  }, [processCSSFile, processTailwindFile, processJsonFile]);
+    const source = getSourceForFile(file);
+    if (source === 'css') { processCSSFile(file); return; }
+    if (source === 'tailwind') { processTailwindFile(file); return; }
+    if (source === 'json') { processJsonFile(file); return; }
+    showUnsupportedFileValidation([file]);
+  }, [processCSSFile, processTailwindFile, processJsonFile, showUnsupportedFileValidation]);
 
   const handleJsonFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = getFileFromInput(e);
     if (!file) return;
-    e.target.value = '';
     processJsonFile(file);
   }, [processJsonFile]);
 
   const handleCSSFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = getFileFromInput(e);
     if (!file) return;
-    e.target.value = '';
     processCSSFile(file);
   }, [processCSSFile]);
 
   const handleTailwindFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = getFileFromInput(e);
     if (!file) return;
-    e.target.value = '';
     processTailwindFile(file);
   }, [processTailwindFile]);
 
   const handleTokensStudioFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = getFileFromInput(e);
     if (!file) return;
-    e.target.value = '';
     processTokensStudioFile(file);
   }, [processTokensStudioFile]);
 
@@ -970,7 +1012,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    dragCounterRef.current -= 1;
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
     if (dragCounterRef.current === 0) setIsDragging(false);
   }, []);
 
@@ -983,32 +1025,12 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     dragCounterRef.current = 0;
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    const jsonFile = files.find(f => f.name.toLowerCase().endsWith('.json') || f.type === 'application/json');
-    if (jsonFile) { processJsonFile(jsonFile); return; }
-    const cssFile = files.find(f => f.name.toLowerCase().endsWith('.css') || f.type === 'text/css');
-    if (cssFile) { processCSSFile(cssFile); return; }
-    const twFile = files.find(f => /\.(js|ts|mjs|cjs)$/i.test(f.name));
-    if (twFile) { processTailwindFile(twFile); return; }
-    const firstFileName = files[0]?.name ?? 'Dropped file';
-    clearParsedImportData();
-    setError(null);
-    updateFileImportValidation({
-      fileName: firstFileName,
-      source: null,
-      status: 'unsupported',
-      summary: `Unsupported file: ${firstFileName}`,
-      detail: `Use ${formatSupportedFileFormats(getAllSupportedFileFormats())}.`,
-      nextAction: 'Drop a supported file or choose a source family to open the matching picker.',
-      tokenCount: 0,
-      skippedCount: 0,
-      issues: files.length > 1
-        ? [{ message: `Received ${files.length} files but none matched a supported import format.`, severity: 'error' }]
-        : [{ message: `${firstFileName} does not match a supported import format.`, severity: 'error' }],
-      skippedEntries: [],
-      supportedFormats: getSupportedFormatsForSource(null),
-      parserLimits: getParserLimitsForSource(null),
-    });
-  }, [clearParsedImportData, processJsonFile, processCSSFile, processTailwindFile, updateFileImportValidation]);
+    const supported = selectFirstSupportedFile(files);
+    if (supported?.source === 'json') { processJsonFile(supported.file); return; }
+    if (supported?.source === 'css') { processCSSFile(supported.file); return; }
+    if (supported?.source === 'tailwind') { processTailwindFile(supported.file); return; }
+    showUnsupportedFileValidation(files);
+  }, [processJsonFile, processCSSFile, processTailwindFile, showUnsupportedFileValidation]);
 
   const handleBack = useCallback(() => {
     if (workflowStage === 'preview') {
@@ -1072,7 +1094,8 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
     setSkippedExpanded,
     fileImportValidation,
     isDragging,
-    fileInputRef,
+    unifiedFileInputRef,
+    jsonFileInputRef,
     cssFileInputRef,
     tailwindFileInputRef,
     tokensStudioFileInputRef,

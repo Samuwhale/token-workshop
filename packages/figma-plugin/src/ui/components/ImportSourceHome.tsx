@@ -30,7 +30,8 @@ export function ImportSourceHome() {
   const {
     isDragging,
     fileImportValidation,
-    fileInputRef,
+    unifiedFileInputRef,
+    jsonFileInputRef,
     cssFileInputRef,
     tailwindFileInputRef,
     tokensStudioFileInputRef,
@@ -42,6 +43,7 @@ export function ImportSourceHome() {
     handleReadTokensStudio,
     handleBrowseFile,
     handleUnifiedFileChange,
+    handleJsonFileChange,
     handleCSSFileChange,
     handleTailwindFileChange,
     handleTokensStudioFileChange,
@@ -178,11 +180,18 @@ export function ImportSourceHome() {
       )}
 
       <input
-        ref={fileInputRef}
+        ref={unifiedFileInputRef}
         type="file"
         accept=".json,.css,.js,.ts,.mjs,.cjs,application/json,text/css"
         className="sr-only"
         onChange={handleUnifiedFileChange}
+      />
+      <input
+        ref={jsonFileInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="sr-only"
+        onChange={handleJsonFileChange}
       />
       <input
         ref={cssFileInputRef}

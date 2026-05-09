@@ -145,7 +145,8 @@ export interface ImportSourceContextValue {
   skippedExpanded: boolean;
   fileImportValidation: FileImportValidation | null;
   isDragging: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  unifiedFileInputRef: React.RefObject<HTMLInputElement>;
+  jsonFileInputRef: React.RefObject<HTMLInputElement>;
   cssFileInputRef: React.RefObject<HTMLInputElement>;
   tailwindFileInputRef: React.RefObject<HTMLInputElement>;
   tokensStudioFileInputRef: React.RefObject<HTMLInputElement>;
@@ -1707,7 +1708,8 @@ export function ImportPanelProvider({
       skippedExpanded: src.skippedExpanded,
       fileImportValidation: src.fileImportValidation,
       isDragging: src.isDragging,
-      fileInputRef: src.fileInputRef,
+      unifiedFileInputRef: src.unifiedFileInputRef,
+      jsonFileInputRef: src.jsonFileInputRef,
       cssFileInputRef: src.cssFileInputRef,
       tailwindFileInputRef: src.tailwindFileInputRef,
       tokensStudioFileInputRef: src.tokensStudioFileInputRef,
@@ -1740,7 +1742,8 @@ export function ImportPanelProvider({
       src.cssFileInputRef,
       src.error,
       src.fileImportValidation,
-      src.fileInputRef,
+      src.jsonFileInputRef,
+      src.unifiedFileInputRef,
       src.handleBack,
       src.handleCSSFileChange,
       src.handleDragEnter,
