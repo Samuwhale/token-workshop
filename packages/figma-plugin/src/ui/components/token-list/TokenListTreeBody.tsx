@@ -432,7 +432,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
 
   // Unified table header — always shown for the tree view. For single-mode
   // collections this renders one mode column; multi-mode collections render
-  // one column per mode. The trailing + button adds new modes via a popover.
+  // one column per mode. The add-mode action stays in the sticky token column
+  // so authored values keep the full available width.
   const tableHeader = multiModeData && viewMode === "tree" ? (
     <>
       <div
@@ -440,7 +441,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         className="sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
         style={{ display: "grid", gridTemplateColumns: gridTemplate }}
       >
-        <div className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-1 bg-[var(--color-figma-bg-secondary)]">
+        <div
+          ref={addModeMenuContainerRef}
+          className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-2 bg-[var(--color-figma-bg-secondary)]"
+        >
           <input
             type="checkbox"
             checked={allDisplayedSelected}
@@ -458,28 +462,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             }
             className="tm-token-selection-checkbox shrink-0"
           />
-          <span className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+          <span className="min-w-0 flex-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
             Token
           </span>
-        </div>
-        {multiModeData.results.map((r, idx) => (
-          <ModeColumnHeader
-            key={r.optionName}
-            modeName={r.optionName}
-            modeIndex={idx}
-            allModeNames={modeNames}
-            collectionId={multiModeData.collection.id}
-            serverUrl={serverUrl}
-            onMutated={onModeMutated}
-            connected={connected}
-            width={modeColumnWidths[idx] ?? 0}
-            onResize={(w) => setModeColumnWidth(idx, w)}
-          />
-        ))}
-        <div
-          ref={addModeMenuContainerRef}
-          className="sticky right-0 z-20 bg-[var(--color-figma-bg-secondary)] flex items-stretch"
-        >
           <Button
             onClick={() => {
               if (addModeMenuOpen) {
@@ -492,7 +477,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             disabled={!connected}
             variant="ghost"
             size="sm"
-            className="tm-token-table__add-mode h-full rounded-none px-2 text-[color:var(--color-figma-text-secondary)]"
+            className="tm-token-table__add-mode shrink-0 px-2 text-[color:var(--color-figma-text-secondary)]"
             title="Add mode"
             aria-label="Add mode"
             aria-controls="token-table-add-mode-dialog"
@@ -500,11 +485,12 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             aria-expanded={addModeMenuOpen}
           >
             <Plus size={12} strokeWidth={2} aria-hidden />
+            <span className="tm-token-table__add-mode-label">Add mode</span>
           </Button>
           {addModeMenuOpen && (
             <div
               id="token-table-add-mode-dialog"
-              className="absolute right-0 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
+              className="absolute right-2 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
               onMouseDown={(e) => e.stopPropagation()}
               role="dialog"
               aria-label="Add mode"
@@ -602,6 +588,20 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             </div>
           )}
         </div>
+        {multiModeData.results.map((r, idx) => (
+          <ModeColumnHeader
+            key={r.optionName}
+            modeName={r.optionName}
+            modeIndex={idx}
+            allModeNames={modeNames}
+            collectionId={multiModeData.collection.id}
+            serverUrl={serverUrl}
+            onMutated={onModeMutated}
+            connected={connected}
+            width={modeColumnWidths[idx] ?? 0}
+            onResize={(w) => setModeColumnWidth(idx, w)}
+          />
+        ))}
       </div>
       {modeTableOverflowing ? (
         <div className="tm-token-table__scroll-hint">

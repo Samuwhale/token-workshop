@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { STORAGE_KEY_BUILDERS, lsGet, lsSet } from "../shared/storage";
 import {
-  ADD_MODE_SLOT_PX,
   DEFAULT_MODE_COL_PX,
   MAX_MODE_COL_PX,
   MIN_MODE_COL_PX,
@@ -21,7 +20,7 @@ function getResponsiveModeMax(
   }
 
   const remainingWidth =
-    availableWidthPx - TOKEN_COLUMN_MIN_PX - ADD_MODE_SLOT_PX;
+    availableWidthPx - TOKEN_COLUMN_MIN_PX;
   if (remainingWidth <= 0) {
     return MIN_MODE_COL_PX;
   }

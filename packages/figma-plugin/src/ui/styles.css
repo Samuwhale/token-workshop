@@ -1866,7 +1866,10 @@ button.tm-status-row:not(:disabled):hover {
 .tm-token-table__add-mode {
   min-inline-size: 0;
   justify-content: center;
-  padding-inline: 0;
+}
+
+.tm-token-table__add-mode-label {
+  display: block;
 }
 
 .tm-token-toolbar__row {
@@ -1985,12 +1988,13 @@ button.tm-status-row:not(:disabled):hover {
 
 @container (max-width: 640px) {
   .tm-token-toolbar .tm-responsive-toolbar__leading {
+    flex-basis: 100%;
     flex-wrap: wrap;
     gap: 4px;
   }
 
   .tm-token-toolbar__scope {
-    flex: 1 1 160px;
+    flex: 1 1 100%;
     order: 1;
   }
 
@@ -2011,8 +2015,25 @@ button.tm-status-row:not(:disabled):hover {
 
   .tm-token-toolbar .tm-responsive-toolbar__actions {
     flex-basis: 100%;
-    justify-content: flex-start;
+    justify-content: space-between;
     flex-wrap: wrap;
+  }
+
+  .tm-token-toolbar__create {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  .tm-token-toolbar__create > * {
+    inline-size: 100%;
+  }
+
+  .tm-token-toolbar__split-button {
+    inline-size: 100%;
+  }
+
+  .tm-token-toolbar__split-button-primary {
+    justify-content: center;
   }
 }
 
@@ -2081,6 +2102,16 @@ button.tm-status-row:not(:disabled):hover {
   .tm-token-toolbar__sort > *,
   .tm-token-toolbar__overflow-button {
     justify-content: center;
+  }
+
+  .tm-token-table__add-mode {
+    padding-inline: 6px;
+  }
+}
+
+@container (max-width: 420px) {
+  .tm-token-table__add-mode-label {
+    display: none;
   }
 }
 
@@ -2187,11 +2218,10 @@ button.tm-status-row:not(:disabled):hover {
   inset-block: 0;
   inset-inline-end: 0;
   z-index: 10;
-  inline-size: 18px;
-  transform: translateX(50%);
+  inline-size: 12px;
   cursor: col-resize;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-figma-border) 18%, transparent);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--color-figma-border) 10%, transparent);
   transition:
     background-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard);
@@ -2214,7 +2244,7 @@ button.tm-status-row:not(:disabled):hover {
   position: absolute;
   inset-block: 6px;
   inset-inline-start: 50%;
-  inline-size: 3px;
+  inline-size: 2px;
   transform: translateX(-50%);
   border-radius: var(--radius-pill);
   background: color-mix(
@@ -2254,7 +2284,7 @@ button.tm-status-row:not(:disabled):hover {
   white-space: nowrap;
 }
 
-@container (max-width: 120px) {
+@container (max-width: 144px) {
   .tm-mode-column-header__label {
     display: -webkit-box;
     overflow: hidden;
@@ -2313,6 +2343,7 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-value-cell__wrapper {
   min-inline-size: 0;
+  min-block-size: 24px;
 }
 
 .tm-value-cell__prefix,
@@ -2382,13 +2413,6 @@ button.tm-status-row:not(:disabled):hover {
     color var(--motion-fast) var(--ease-standard);
 }
 
-@container (max-width: 420px) {
-  .tm-value-cell__create-button {
-    inline-size: 100%;
-    justify-content: flex-start;
-  }
-}
-
 .tm-value-cell__create-button:hover {
   background: var(--surface-accent);
   border-color: var(--border-muted);
@@ -2404,38 +2428,12 @@ button.tm-status-row:not(:disabled):hover {
 
 @container (max-width: 112px) {
   .tm-value-cell__wrapper {
-    align-items: flex-start;
-    padding-block: 4px;
+    gap: 1px;
+    padding-inline: 4px;
   }
 
-  .tm-value-cell__line {
-    display: -webkit-box;
-    white-space: normal;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-    line-height: 1.12;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  .tm-value-cell__line + .tm-value-cell__line {
-    margin-top: 2px;
-  }
-}
-
-@container (max-width: 420px) {
   .tm-value-cell__line {
     font-size: var(--font-size-xs);
-    white-space: normal;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-    line-height: 1.15;
-  }
-}
-
-@container (max-width: 420px) {
-  .tm-value-cell__line + .tm-value-cell__line {
-    display: block;
   }
 }
 
@@ -2552,9 +2550,12 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-token-tree-row__name {
+    display: -webkit-box;
     white-space: normal;
     text-overflow: clip;
     overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .tm-token-tree-row__meta {
@@ -4597,7 +4598,7 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-toolbar__scope {
     order: 1;
-    flex: 1 1 140px;
+    flex: 1 1 100%;
   }
 
   .tm-token-toolbar .tm-responsive-toolbar__search {

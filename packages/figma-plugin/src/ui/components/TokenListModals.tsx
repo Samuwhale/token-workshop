@@ -231,6 +231,7 @@ function ExtractToAliasModal() {
   const {
     allTokensFlat,
     collectionIds,
+    collectionDisplayNames,
     extractToken,
     extractMode,
     onSetExtractMode,
@@ -268,7 +269,7 @@ function ExtractToAliasModal() {
     <ModalFrame
       dialogRef={dialogRef}
       titleId="extract-to-alias-dialog-title"
-      title="Link to token"
+      title="Replace value with alias"
       onClose={() => onSetExtractToken(null)}
       wide
       meta={<span className={LONG_TEXT_CLASSES.monoPrimary}>{extractToken.path}</span>}
@@ -281,7 +282,7 @@ function ExtractToAliasModal() {
               extractMode === 'new' && 'tm-modal-tab--active',
             )}
           >
-            Create new primitive
+            Create reusable token
           </button>
           <button
             onClick={() => onSetExtractMode('existing')}
@@ -309,7 +310,7 @@ function ExtractToAliasModal() {
             className="w-full rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
             disabled={extractMode === 'existing' && !existingAlias}
           >
-            Extract
+            Replace with alias
           </button>
         </>
       }
@@ -318,7 +319,7 @@ function ExtractToAliasModal() {
           {extractMode === 'new' ? (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">New primitive path</label>
+                <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Reusable token path</label>
                 <input
                   type="text"
                   value={newPrimitivePath}
@@ -335,7 +336,11 @@ function ExtractToAliasModal() {
                   onChange={e => onSetNewPrimitiveCollectionId(e.target.value)}
                   className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                 >
-                  {collectionIds.map(s => <option key={s} value={s}>{s}</option>)}
+                  {collectionIds.map((targetCollectionId) => (
+                    <option key={targetCollectionId} value={targetCollectionId}>
+                      {getCollectionDisplayName(targetCollectionId, collectionDisplayNames)}
+                    </option>
+                  ))}
                 </select>
               </div>
             </>

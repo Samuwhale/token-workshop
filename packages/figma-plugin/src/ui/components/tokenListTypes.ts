@@ -36,9 +36,7 @@ export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 // Table grid template
 // ---------------------------------------------------------------------------
 
-/** Width of the trailing add-mode slot in the header (icon-only action). */
-export const ADD_MODE_SLOT_PX = 24;
-export const TOKEN_COLUMN_MIN_PX = 128;
+export const TOKEN_COLUMN_MIN_PX = 160;
 
 /** Default / min / max widths for individual mode columns (px). */
 export const DEFAULT_MODE_COL_PX = 88;
@@ -51,16 +49,12 @@ export function getGridTemplate(modeWidths: number[]): string {
   const modeCols = widths
     .map((width) => `minmax(${MIN_MODE_COL_PX}px, ${width}px)`)
     .join(" ");
-  return `minmax(${TOKEN_COLUMN_MIN_PX}px, 2.6fr) ${modeCols} minmax(${ADD_MODE_SLOT_PX}px, ${ADD_MODE_SLOT_PX}px)`;
+  return `minmax(${TOKEN_COLUMN_MIN_PX}px, 2.6fr) ${modeCols}`;
 }
 
 export function getGridMinWidth(modeWidths: number[]): number {
   const widths = modeWidths.length > 0 ? modeWidths : [DEFAULT_MODE_COL_PX];
-  return (
-    TOKEN_COLUMN_MIN_PX +
-    widths.reduce((sum, width) => sum + width, 0) +
-    ADD_MODE_SLOT_PX
-  );
+  return TOKEN_COLUMN_MIN_PX + widths.reduce((sum, width) => sum + width, 0);
 }
 
 // ---------------------------------------------------------------------------

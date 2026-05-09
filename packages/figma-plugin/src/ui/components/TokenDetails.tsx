@@ -1054,6 +1054,12 @@ export function TokenDetails({
   const canRenameInPlace = !isCreateMode && fieldEditable;
   const renameInputDiffers = renameInput !== leafName;
   const renameDisabled = !canRenameInPlace || isDirty || saving || renameSaving;
+  const renameDisabledReason = (() => {
+    if (!canRenameInPlace) return "Detach generator before renaming this token.";
+    if (isDirty) return "Save or revert value changes before renaming this token.";
+    if (saving || renameSaving) return "Finish the current save before renaming this token.";
+    return null;
+  })();
 
   const revertRename = useCallback(() => {
     setRenameInput(leafName);
@@ -1833,6 +1839,11 @@ export function TokenDetails({
                     onCancel={revertRename}
                   />
                 </Field>
+                {renameDisabledReason ? (
+                  <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                    {renameDisabledReason}
+                  </p>
+                ) : null}
               </div>
             )}
 
@@ -2312,7 +2323,7 @@ export function TokenDetails({
               Collection
             </p>
             <p className="m-0 break-words font-medium text-[color:var(--color-figma-text)]">
-              {ownerCollectionId}
+              {ownerCollectionName}
             </p>
             <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
               Token path

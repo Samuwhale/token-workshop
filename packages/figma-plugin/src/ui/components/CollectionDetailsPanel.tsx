@@ -889,12 +889,12 @@ export function CollectionDetailsPanel({
                           className="shrink-0"
                           title={
                             showRawId
-                              ? "Rename the Token Workshop collection ID"
+                              ? "Rename collection. This changes its stored ID."
                               : "Rename collection"
                           }
                         >
                           <Pencil size={11} strokeWidth={1.75} aria-hidden />
-                          {showRawId ? "Rename ID" : "Rename"}
+                          Rename
                         </Button>
                       ) : null}
                     </div>

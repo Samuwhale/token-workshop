@@ -15,6 +15,7 @@ import { formatHexAs } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { buildPluginDocumentationUrl, downloadBlob } from "../shared/utils";
 import { SegmentedControl } from "../primitives/SegmentedControl";
+import { SecondaryTakeoverHeader } from "./SecondaryTakeoverHeader";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -573,31 +574,7 @@ export function SettingsPanel({
 
   return (
     <>
-      <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] px-2 py-1.5">
-        <button
-          onClick={onClose}
-          className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors"
-          aria-label="Back"
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6.5 2L3.5 5l3 3" />
-          </svg>
-          Back
-        </button>
-        <span className="text-secondary font-medium text-[color:var(--color-figma-text)] ml-1">
-          Settings
-        </span>
-      </div>
+      <SecondaryTakeoverHeader title="Settings" onClose={onClose} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col gap-2.5 px-3 py-2">

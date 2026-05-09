@@ -1267,7 +1267,9 @@ export function PanelRouter({
   const SECONDARY_PANEL_MAP: Partial<
     Record<SecondarySurfaceId, SecondaryPanelRenderer>
   > = {
-    shortcuts: () => <KeyboardShortcutsPanel />,
+    shortcuts: () => (
+      <KeyboardShortcutsPanel onClose={closeSecondarySurface} />
+    ),
     settings: () => (
       <SettingsPanel
         serverUrl={serverUrl}

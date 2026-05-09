@@ -317,7 +317,7 @@ export function ModeColumnHeader({
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-label={`Edit ${modeName} mode`}
-          className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-body font-medium text-left text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[color:var(--color-figma-text-secondary)]"
+          className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 pr-4 text-body font-medium text-left text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[color:var(--color-figma-text-secondary)]"
           title={`Edit ${modeName} mode`}
         >
           <span className="tm-mode-column-header__label min-w-0 flex-1">

@@ -193,7 +193,7 @@ export function PlatformExportConfig({
     setSelected(new Set(ids));
   };
 
-  const useChangedTokensIntent = () => {
+  const toggleChangesOnly = () => {
     const nextChangesOnly = !changesOnly;
     setChangesOnly(nextChangesOnly);
     if (nextChangesOnly && connected && diffPaths === null) {
@@ -265,18 +265,6 @@ export function PlatformExportConfig({
           >
             Token file
           </button>
-          <button
-            type="button"
-            onClick={useChangedTokensIntent}
-            className={`${intentButtonClass} ${
-              changesOnly
-                ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
-                : ''
-            }`}
-            aria-pressed={changesOnly}
-          >
-            Changed tokens
-          </button>
         </div>
       </div>
 
@@ -326,6 +314,116 @@ export function PlatformExportConfig({
             })}
           </div>
         ) : null}
+      </div>
+
+      <div>
+        <DisclosureRow
+          title="Scope"
+          summary={changesOnly ? 'Changed tokens only' : 'All tokens'}
+          open={scopeOpen}
+          onToggle={() => setScopeOpen(v => !v)}
+          className="mb-1"
+        />
+        {scopeOpen && (
+          <>
+            <CheckboxRow
+              checked={changesOnly}
+              onChange={toggleChangesOnly}
+              title="Changed tokens only"
+              description={
+                isGitRepo === false
+                  ? 'Export tokens from files modified since the last export.'
+                  : 'Export tokens added or modified since the last commit.'
+              }
+              className="px-0"
+            />
+
+            {changesOnly && (
+              <div className="mt-2 pl-6">
+                {isGitRepo === false ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-start gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-px shrink-0 text-[color:var(--color-figma-text-tertiary)]">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      <span>Git not available; changes are tracked by file modification time.</span>
+                    </div>
+                    {lastExportTimestamp === null ? (
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                          Set a baseline before exporting changed tokens.
+                        </span>
+                        <button
+                          onClick={handleSetBaseline}
+                          className="self-start rounded bg-[var(--color-figma-action-bg)] px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)]"
+                        >
+                          Set baseline
+                        </button>
+                      </div>
+                    ) : diffLoading ? (
+                      <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                        <Spinner size="sm" />
+                        Checking changes...
+                      </div>
+                    ) : diffError ? (
+                      <div className="text-secondary text-[color:var(--color-figma-text-error)]">
+                        {diffError}
+                      </div>
+                    ) : diffPaths !== null ? (
+                      <div className="flex flex-wrap items-center gap-2 text-secondary">
+                        <span className={diffPaths.length > 0 ? 'text-[color:var(--color-figma-text)]' : 'text-[color:var(--color-figma-text-tertiary)]'}>
+                          {diffPaths.length === 0
+                            ? `No changes since ${new Date(lastExportTimestamp).toLocaleString()}`
+                            : `${diffPaths.length} token${diffPaths.length === 1 ? '' : 's'} changed`}
+                        </span>
+                        <button
+                          onClick={() => fetchDiffSince(lastExportTimestamp)}
+                          className="text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)]"
+                        >
+                          Refresh
+                        </button>
+                        <button
+                          onClick={handleSetBaseline}
+                          className="text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)]"
+                        >
+                          Reset baseline
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Fetching changes...</span>
+                    )}
+                  </div>
+                ) : diffLoading ? (
+                  <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                    <Spinner size="sm" />
+                    Checking changes...
+                  </div>
+                ) : diffError ? (
+                  <div className="text-secondary text-[color:var(--color-figma-text-error)]">
+                    {diffError}
+                  </div>
+                ) : diffPaths !== null ? (
+                  <div className="flex items-center gap-2 text-secondary">
+                    <span className={diffPaths.length > 0 ? 'text-[color:var(--color-figma-text)]' : 'text-[color:var(--color-figma-text-tertiary)]'}>
+                      {diffPaths.length === 0
+                        ? 'No uncommitted token changes'
+                        : `${diffPaths.length} token${diffPaths.length === 1 ? '' : 's'} changed`}
+                    </span>
+                    <button
+                      onClick={fetchDiff}
+                      className="text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)]"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Fetching changes...</span>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Export presets */}
@@ -626,158 +724,6 @@ export function PlatformExportConfig({
         )}
             </div>
 
-            {/* Scope / Changes only */}
-            <div>
-        <DisclosureRow
-          title="Scope"
-          summary={changesOnly ? 'Changes only' : 'All tokens'}
-          open={scopeOpen}
-          onToggle={() => setScopeOpen(v => !v)}
-          className="mb-1"
-        />
-        {scopeOpen && (
-          <>
-            <CheckboxRow
-              checked={changesOnly}
-              onChange={() => {
-                  const next = !changesOnly;
-                  setChangesOnly(next);
-                  if (next && connected && diffPaths === null) {
-                    fetchDiff();
-                  }
-                }}
-              title="Changes only"
-              description={
-                isGitRepo === false
-                    ? 'Tokens from files modified since last export'
-                    : 'Tokens added or modified since last commit'
-              }
-            />
-
-            {changesOnly && (
-              <div className="mt-2 pl-6">
-                {isGitRepo === false ? (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-start gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[color:var(--color-figma-text-tertiary)] shrink-0 mt-px">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                      </svg>
-                      <span>Git not available — tracking by file modification time instead.</span>
-                    </div>
-                    {lastExportTimestamp === null ? (
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                          Set a baseline to track changes. Future exports will include only tokens from files modified after that point.
-                        </span>
-                        <button
-                          onClick={handleSetBaseline}
-                          className="self-start px-2 py-1 rounded text-secondary font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors"
-                        >
-                          Set baseline now
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-1">
-                        {diffLoading ? (
-                          <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                            <Spinner size="sm" />
-                            Checking for changes…
-                          </div>
-                        ) : diffError ? (
-                          <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-error)]">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <circle cx="12" cy="12" r="10" />
-                              <line x1="15" y1="9" x2="9" y2="15" />
-                              <line x1="9" y1="9" x2="15" y2="15" />
-                            </svg>
-                            {diffError}
-                          </div>
-                        ) : diffPaths !== null ? (
-                          <div className="flex items-center gap-2 flex-wrap flex-1">
-                            {diffPaths.length === 0 ? (
-                              <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                                No changes since {new Date(lastExportTimestamp).toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-secondary text-[color:var(--color-figma-text)]">
-                                <span className="font-medium text-[color:var(--color-figma-text-accent)]">{diffPaths.length}</span>
-                                {' '}token{diffPaths.length !== 1 ? 's' : ''} modified since {new Date(lastExportTimestamp).toLocaleString()}
-                              </span>
-                            )}
-                            <button
-                              onClick={() => fetchDiffSince(lastExportTimestamp)}
-                              title="Re-check for changes"
-                              className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)] transition-colors flex items-center gap-1"
-                            >
-                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <polyline points="23 4 23 10 17 10" />
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                              </svg>
-                              Refresh
-                            </button>
-                            <button
-                              onClick={handleSetBaseline}
-                              title="Reset baseline to now"
-                              className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
-                            >
-                              Reset baseline
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Fetching changes…</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {diffLoading ? (
-                      <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                        <Spinner size="sm" />
-                        Checking for changes…
-                      </div>
-                    ) : diffError ? (
-                      <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-error)]">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="15" y1="9" x2="9" y2="15" />
-                          <line x1="9" y1="9" x2="15" y2="15" />
-                        </svg>
-                        {diffError}
-                      </div>
-                    ) : diffPaths !== null ? (
-                      <div className="flex items-center gap-2 flex-1">
-                        {diffPaths.length === 0 ? (
-                          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">No uncommitted changes detected</span>
-                        ) : (
-                          <span className="text-secondary text-[color:var(--color-figma-text)]">
-                            <span className="font-medium text-[color:var(--color-figma-text-accent)]">{diffPaths.length}</span>
-                            {' '}token{diffPaths.length !== 1 ? 's' : ''} changed
-                          </span>
-                        )}
-                        <button
-                          onClick={fetchDiff}
-                          title="Re-check for changes"
-                          className="text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)] transition-colors flex items-center gap-1"
-                        >
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <polyline points="23 4 23 10 17 10" />
-                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                          </svg>
-                          Refresh
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Fetching changes…</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-            </div>
           </div>
         ) : null}
       </div>

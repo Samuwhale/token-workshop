@@ -1,14 +1,18 @@
 import { adaptShortcut } from "../shared/utils";
 import { SHORTCUT_SECTIONS } from "../shared/shortcutRegistry";
+import { SecondaryTakeoverHeader } from "./SecondaryTakeoverHeader";
 
-export function KeyboardShortcutsPanel() {
+interface KeyboardShortcutsPanelProps {
+  onClose: () => void;
+}
+
+export function KeyboardShortcutsPanel({ onClose }: KeyboardShortcutsPanelProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2.5">
-        <h2 className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Keyboard shortcuts
-        </h2>
-      </div>
+      <SecondaryTakeoverHeader
+        title="Keyboard shortcuts"
+        onClose={onClose}
+      />
 
       <div className="flex-1 overflow-y-auto py-1">
         {SHORTCUT_SECTIONS.map((section) => (
