@@ -43,6 +43,7 @@ export function ImportPreviewFooter() {
   const selectedCount = selectedTokens.size;
   const hasPreviewConflicts = conflictPaths === null && (previewOverwriteCount ?? 0) > 0;
   const previewConflictCount = previewOverwriteCount ?? 0;
+  const importWithoutConflictCheck = existingTokenMapError !== null;
   const importDisabled = selectedCount === 0 || importing || checkingConflicts;
 
   // Once conflicts have been fetched, swap the footer for the resolver flow.
@@ -153,7 +154,9 @@ export function ImportPreviewFooter() {
             {existingPathsFetching ? (
               <span className="text-[color:var(--color-figma-text-secondary)]">Checking current library...</span>
             ) : existingTokenMapError !== null ? (
-              <span className="text-[color:var(--color-figma-text-warning)]">Could not check current tokens before import</span>
+              <span className="text-[color:var(--color-figma-text-warning)]">
+                Could not check current tokens. Importing may overwrite matching paths.
+              </span>
             ) : previewNewCount !== null && previewOverwriteCount !== null && (
               <>
                 {previewNewCount > 0 && (
@@ -196,6 +199,8 @@ export function ImportPreviewFooter() {
               : 'Importing...'
             : hasPreviewConflicts
               ? `Choose what to keep for ${previewConflictCount} existing token${previewConflictCount === 1 ? "" : "s"}`
+              : importWithoutConflictCheck
+                ? `Import ${selectedCount} without conflict check`
               : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
       </button>
 

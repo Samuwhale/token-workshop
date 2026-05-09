@@ -135,7 +135,7 @@ function ChangeScopeStatus({
     return (
       <div className="flex flex-col gap-1.5">
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Set a baseline before exporting changed tokens.
+          Set a baseline to mark the current library as unchanged.
         </span>
         <button
           type="button"
@@ -211,7 +211,7 @@ function ChangeScopeStatus({
           onClick={handleSetBaseline}
           className={textActionClass}
         >
-          Reset baseline
+          Reset baseline to now
         </button>
       ) : null}
     </div>
@@ -502,7 +502,7 @@ export function PlatformExportConfig({
               title="Changed tokens only"
               description={
                 isGitRepo === false
-                  ? 'Export tokens from files modified since the last export.'
+                  ? 'Export tokens changed since the current baseline. Each successful export resets the baseline to now.'
                   : 'Export tokens added or modified since the last commit.'
               }
               className="px-0"

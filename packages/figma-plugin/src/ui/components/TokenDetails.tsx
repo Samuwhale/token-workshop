@@ -5,10 +5,9 @@ import {
 } from "../shared/utils";
 import {
   Copy,
-  Check,
   Clock,
-  Files,
   Link2,
+  MoreHorizontal,
   X,
   Plus,
 } from "lucide-react";
@@ -62,6 +61,9 @@ import {
   hasSyncSnapshotChange,
   resolveSyncComparableValue,
 } from "../shared/tokenSync";
+import { useDropdownMenu } from "../hooks/useDropdownMenu";
+import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
+import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
 
 import {
   detectAliasCycle,
@@ -194,11 +196,14 @@ function getModeValueSectionDescription(params: {
 }): string {
   const { collectionName, modeNames } = params;
   if (modeNames.length <= 1) {
-    return `Editing the ${modeNames[0] ?? "Default"} value in ${collectionName}. Add modes from collection details when this collection needs more contexts.`;
+    return `Editing the ${modeNames[0] ?? "Default"} value in ${collectionName}.`;
   }
 
-  return `Editing ${modeNames.length} mode values in ${collectionName}: ${formatNameList(modeNames)}. Each row is an equal Figma mode value.`;
+  return `${collectionName} has ${modeNames.length} mode values: ${formatNameList(modeNames)}.`;
 }
+
+const TOKEN_DETAILS_MENU_ITEM_CLASS =
+  "flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40";
 
 type ModeAliasReferenceIssue =
   | {
@@ -285,6 +290,14 @@ export function TokenDetails({
     pathInputWrapperRef,
     handlePasteInValueEditor,
   } = uiState;
+  const detailsMenu = useDropdownMenu();
+  const detailsMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: detailsMenu.triggerRef,
+    open: detailsMenu.open,
+    preferredWidth: 200,
+    preferredHeight: 180,
+    align: "end",
+  });
 
   const fields = useTokenEditorFields({
     isCreateMode,
@@ -1255,6 +1268,13 @@ export function TokenDetails({
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
+  const runDetailsMenuAction = useCallback(
+    (action: () => void) => {
+      action();
+      detailsMenu.close({ restoreFocus: false });
+    },
+    [detailsMenu],
+  );
 
   const headerStatus = isGeneratorLocked
     ? "Managed by generator"
@@ -1293,14 +1313,6 @@ export function TokenDetails({
           aria-hidden
         />
       </div>
-      {!isCreateMode && (
-        <span
-          className={`tm-token-details__header-full-path ${LONG_TEXT_CLASSES.pathSecondary}`}
-          title={tokenPath}
-        >
-          {tokenPath}
-        </span>
-      )}
       <div className="tm-token-details__header-context">
         {contextLabel ? (
           <>
@@ -1315,32 +1327,6 @@ export function TokenDetails({
 
   const headerActions = (
     <>
-      {!isCreateMode && (
-        <IconButton
-          onClick={handleCopyPath}
-          title="Copy token path"
-          aria-label="Copy token path"
-          size="sm"
-          className="tm-token-details__header-icon"
-        >
-          {copied ? (
-            <Check size={12} strokeWidth={1.5} aria-hidden />
-          ) : (
-            <Copy size={12} strokeWidth={1.5} aria-hidden />
-          )}
-        </IconButton>
-      )}
-      {!isCreateMode && onDuplicate && (
-        <IconButton
-          onClick={onDuplicate}
-          title="Duplicate token"
-          aria-label="Duplicate token"
-          size="sm"
-          className="tm-token-details__header-icon"
-        >
-          <Files size={12} strokeWidth={1.5} aria-hidden />
-        </IconButton>
-      )}
       {valueIsAlias &&
         tokenType === "color" &&
         (() => {
@@ -1358,6 +1344,61 @@ export function TokenDetails({
             />
           );
         })()}
+      {!isCreateMode && (
+        <div className="relative">
+          <IconButton
+            ref={detailsMenu.triggerRef}
+            onClick={detailsMenu.toggle}
+            title="Token actions"
+            aria-label="Token actions"
+            aria-haspopup="menu"
+            aria-expanded={detailsMenu.open}
+            size="sm"
+            className="tm-token-details__header-icon"
+          >
+            <MoreHorizontal size={14} strokeWidth={1.8} aria-hidden />
+          </IconButton>
+          {detailsMenu.open ? (
+            <div
+              ref={detailsMenu.menuRef}
+              style={detailsMenuStyle ?? { visibility: "hidden" }}
+              className={FLOATING_MENU_CLASS}
+              role="menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => runDetailsMenuAction(handleCopyPath)}
+                className={TOKEN_DETAILS_MENU_ITEM_CLASS}
+              >
+                {copied ? "Path copied" : "Copy token path"}
+              </button>
+              {onDuplicate ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => runDetailsMenuAction(onDuplicate)}
+                  className={TOKEN_DETAILS_MENU_ITEM_CLASS}
+                >
+                  Duplicate token
+                </button>
+              ) : null}
+              {!activeGeneratorProvenance ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() =>
+                    runDetailsMenuAction(() => setShowDeleteConfirm(true))
+                  }
+                  className={`${TOKEN_DETAILS_MENU_ITEM_CLASS} text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10`}
+                >
+                  Delete token
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      )}
     </>
   );
 
@@ -1438,15 +1479,6 @@ export function TokenDetails({
         <div
           className={`flex flex-wrap items-center gap-2 ${AUTHORING_SURFACE_CLASSES.footerSecondary}`}
         >
-          {!isCreateMode && !activeGeneratorProvenance && (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className={`${AUTHORING.footerBtnSecondary} text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]`}
-            >
-              Delete
-            </button>
-          )}
           <button
             type="button"
             onClick={requestClose}
@@ -1663,6 +1695,7 @@ export function TokenDetails({
           isEditMode
           pendingTypeChange={pendingTypeChange}
           tokenType={tokenType}
+          modeValueCount={modeValue.modes.length}
           dependents={dependents}
           showPendingDependents={showPendingDependents}
           ownerCollectionId={ownerCollectionId}
@@ -1850,6 +1883,23 @@ export function TokenDetails({
                     {renameDisabledReason}
                   </p>
                 ) : null}
+                <div className="tm-token-details__path-summary">
+                  <div className="tm-token-details__path-summary-body">
+                    <span
+                      className={`tm-token-details__path-summary-value ${LONG_TEXT_CLASSES.pathSecondary}`}
+                      title={tokenPath}
+                    >
+                      {tokenPath}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyPath}
+                      className="tm-token-details__text-button tm-token-details__text-button--muted"
+                    >
+                      {copied ? "Copied" : "Copy path"}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

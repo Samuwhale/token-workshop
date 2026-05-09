@@ -24,6 +24,8 @@ import {
   addCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
   EMPTY_MODE_SOURCE,
+  MODE_STARTING_VALUES_LABEL,
+  formatModeCopyOption,
   getDefaultModeSourceName,
   getModeSourcePayloadValue,
   isModeNameTaken,
@@ -541,7 +543,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   <>
                     {modeNames.length > 0 ? (
                       <label className="flex flex-col gap-1 px-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                        Seed values
+                        {MODE_STARTING_VALUES_LABEL}
                         <select
                           value={newModeSourceName}
                           onChange={(event) => setNewModeSourceName(event.target.value)}
@@ -550,10 +552,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                         >
                           {modeNames.map((modeName) => (
                             <option key={modeName} value={modeName}>
-                              Copy from {modeName}
+                              {formatModeCopyOption(modeName)}
                             </option>
                           ))}
-                          <option value={EMPTY_MODE_SOURCE}>Start empty</option>
+                          <option value={EMPTY_MODE_SOURCE}>Leave empty</option>
                         </select>
                       </label>
                     ) : null}
@@ -561,8 +563,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                       {tokens.length === 0
                         ? "New tokens in this collection will include this mode."
                         : newModeSourceName === EMPTY_MODE_SOURCE
-                          ? "Existing tokens in this collection will show this mode as needing values."
-                          : `Existing tokens in this collection will copy ${newModeSourceName} values as editable starting points.`}
+                          ? "Existing tokens in this collection will show this mode with no value until each one is filled."
+                          : `Existing tokens in this collection will start with editable copies of their ${newModeSourceName} values.`}
                     </p>
                   </>
                 )}

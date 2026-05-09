@@ -170,13 +170,13 @@ function CollectionCreateDialogContent({
           />
         </div>
 
-        <div className="tm-modal-footer border-t border-[var(--color-figma-border)] pt-3">
+        <div className="tm-modal-footer tm-modal-footer--confirm border-t border-[var(--color-figma-border)] pt-3">
           <Button
             type="button"
             onClick={onClose}
             disabled={pending}
             variant="secondary"
-            className="w-full bg-[var(--color-figma-bg-secondary)]"
+            className="bg-[var(--color-figma-bg-secondary)]"
           >
             Cancel
           </Button>
@@ -185,7 +185,7 @@ function CollectionCreateDialogContent({
             onClick={() => void handleSubmit()}
             disabled={pending || !draft.name.trim()}
             variant="primary"
-            className="w-full"
+            data-modal-primary="true"
           >
             {pending ? "Creating…" : "Create collection"}
           </Button>

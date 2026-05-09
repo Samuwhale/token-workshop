@@ -3,6 +3,7 @@ import { apiFetch } from "./apiFetch";
 
 export const DUPLICATE_MODE_NAME_MESSAGE = "Mode names must be different.";
 export const EMPTY_MODE_SOURCE = "__token-workshop-empty-mode-source__";
+export const MODE_STARTING_VALUES_LABEL = "New mode values";
 
 interface CollectionModeRequest {
   serverUrl: string;
@@ -52,6 +53,10 @@ export function getModeSourcePayloadValue(
   sourceModeName: string,
 ): string | undefined {
   return sourceModeName === EMPTY_MODE_SOURCE ? undefined : sourceModeName;
+}
+
+export function formatModeCopyOption(modeName: string): string {
+  return `Copy ${modeName} values`;
 }
 
 export async function addCollectionMode(

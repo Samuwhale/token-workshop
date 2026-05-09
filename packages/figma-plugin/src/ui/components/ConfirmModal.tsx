@@ -115,7 +115,7 @@ export function ConfirmModal({
             </p>
           )}
         </div>
-        <div className="tm-modal-footer">
+        <div className="tm-modal-footer tm-modal-footer--confirm">
           <Button
             onClick={onCancel}
             disabled={!canCancel}

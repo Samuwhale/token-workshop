@@ -210,15 +210,15 @@ export function DerivationEditor({
     setRowIds((prev) => [...prev, newRowId()]);
   };
 
-  const baseHex =
+  const sourceHex =
     effectiveSourceType === 'color' && typeof resolvedSource.sourceValue === 'string'
       ? resolvedSource.sourceValue
       : undefined;
   let previewHex: string | undefined;
-  if (baseHex && derivationOps.length > 0 && effectiveSourceType === 'color') {
+  if (sourceHex && derivationOps.length > 0 && effectiveSourceType === 'color') {
     try {
       const resolveOpRef = (path: string) => resolveFlatTokenValue(path, allTokensFlat);
-      const result = applyDerivation(baseHex, 'color', derivationOps, resolveOpRef);
+      const result = applyDerivation(sourceHex, 'color', derivationOps, resolveOpRef);
       if (typeof result === 'string') previewHex = result;
     } catch {
       previewHex = undefined;
@@ -277,9 +277,9 @@ export function DerivationEditor({
             Add modifier
           </button>
         )}
-        {baseHex && previewHex && derivationOps.length > 0 && (
+        {sourceHex && previewHex && derivationOps.length > 0 && (
           <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 h-5 rounded border border-[var(--color-figma-border)]" style={{ backgroundColor: baseHex }} title={`Base: ${baseHex}`} />
+            <div className="flex-1 h-5 rounded border border-[var(--color-figma-border)]" style={{ backgroundColor: sourceHex }} title={`Source: ${sourceHex}`} />
             <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[color:var(--color-figma-text-tertiary)] shrink-0" aria-hidden><path d="M2 6h8M7 3l3 3-3 3"/></svg>
             <div className="flex-1 h-5 rounded border border-[var(--color-figma-border)]" style={{ backgroundColor: previewHex }} title={`Modified: ${previewHex}`} />
           </div>

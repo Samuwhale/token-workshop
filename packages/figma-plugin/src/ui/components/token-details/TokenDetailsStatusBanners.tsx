@@ -19,6 +19,7 @@ interface TokenDetailsStatusBannersProps {
   isEditMode: boolean;
   pendingTypeChange: string | null;
   tokenType: string;
+  modeValueCount: number;
   dependents: DependentToken[];
   showPendingDependents: boolean;
   ownerCollectionId: string;
@@ -40,6 +41,7 @@ export function TokenDetailsStatusBanners({
   isEditMode,
   pendingTypeChange,
   tokenType,
+  modeValueCount,
   dependents,
   showPendingDependents,
   ownerCollectionId,
@@ -97,7 +99,9 @@ export function TokenDetailsStatusBanners({
               Switch to {pendingTypeChange}?
             </div>
             <div className="tm-token-details__banner-description">
-              The current value will reset to the default for that token type.
+              {modeValueCount > 1
+                ? `All ${modeValueCount} mode values will reset to the default for that token type.`
+                : "This mode value will reset to the default for that token type."}
             </div>
             {dependents.length > 0 ? (
               <div className="tm-token-details__dependent-warning">

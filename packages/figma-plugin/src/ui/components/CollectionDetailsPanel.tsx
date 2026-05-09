@@ -7,6 +7,8 @@ import {
   deleteCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
   EMPTY_MODE_SOURCE,
+  MODE_STARTING_VALUES_LABEL,
+  formatModeCopyOption,
   getDefaultModeSourceName,
   getModeSourcePayloadValue,
   isModeNameTaken,
@@ -521,7 +523,7 @@ function ModesSection({
               ) : null}
               {allModeNames.length > 0 ? (
                 <label className="mt-2 flex flex-col gap-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Seed values
+                  {MODE_STARTING_VALUES_LABEL}
                   <select
                     value={addSourceModeName}
                     onChange={(event) => setAddSourceModeName(event.target.value)}
@@ -530,18 +532,18 @@ function ModesSection({
                   >
                     {allModeNames.map((modeName) => (
                       <option key={modeName} value={modeName}>
-                        Copy from {modeName}
+                        {formatModeCopyOption(modeName)}
                       </option>
                     ))}
-                    <option value={EMPTY_MODE_SOURCE}>Start empty</option>
+                    <option value={EMPTY_MODE_SOURCE}>Leave empty</option>
                   </select>
                 </label>
               ) : null}
               {!addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {addSourceModeName === EMPTY_MODE_SOURCE
-                    ? "Existing tokens will show this mode as needing values."
-                    : `Existing tokens will copy ${addSourceModeName} values as editable starting points.`}
+                    ? "Existing tokens will show this mode with no value until each one is filled."
+                    : `Existing tokens will start with editable copies of their ${addSourceModeName} values.`}
                 </p>
               ) : null}
               <div className="mt-2 flex items-center justify-end gap-2">
@@ -858,7 +860,14 @@ export function CollectionDetailsPanel({
               <div className="tm-collection-details__header">
                 {renaming ? (
                   <div className="tm-collection-details__heading">
+                    <label
+                      htmlFor="collection-id-input"
+                      className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
+                    >
+                      Collection ID
+                    </label>
                     <TextInput
+                      id="collection-id-input"
                       ref={renameInputRef}
                       value={renameValue}
                       onChange={(e) => {
@@ -872,6 +881,9 @@ export function CollectionDetailsPanel({
                       onBlur={() => void confirmRename()}
                       className="w-full text-[17px] font-semibold tracking-tight"
                     />
+                    <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                      This changes the stored collection ID used by tokens and files.
+                    </p>
                     {renameError ? (
                       <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{renameError}</p>
                     ) : null}
@@ -887,14 +899,10 @@ export function CollectionDetailsPanel({
                           variant="ghost"
                           size="sm"
                           className="shrink-0"
-                          title={
-                            showRawId
-                              ? "Rename collection. This changes its stored ID."
-                              : "Rename collection"
-                          }
+                          title="Change the stored collection ID"
                         >
                           <Pencil size={11} strokeWidth={1.75} aria-hidden />
-                          Rename
+                          Change ID
                         </Button>
                       ) : null}
                     </div>
