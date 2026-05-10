@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { dispatchToast } from '../shared/toastBus';
 import { downloadBlob, getErrorMessage } from '../shared/utils';
@@ -11,6 +11,7 @@ import {
 } from '../shared/exportFileHelpers';
 import type { PlatformConfig } from './usePlatformConfig';
 import type { DiffState } from './useDiffState';
+import { useTransientValue } from './useTransientValue';
 
 export interface ExportResultFile {
   platform: string;
@@ -87,19 +88,10 @@ export function useExportResults({
   const [exporting, setExporting] = useState(false);
   const [results, setResults] = useState<ExportResultFile[]>([]);
   const [previewFileIndex, setPreviewFileIndex] = useState(0);
-  const [copiedFile, setCopiedFile] = useState<string | null>(null);
+  const [copiedFile, showCopiedFile] = useTransientValue<string | null>(null, 1500);
   const [showExportPreviewModal, setShowExportPreviewModal] = useState(false);
   const [previewModalFileIndex, setPreviewModalFileIndex] = useState(0);
   const [zipProgress, setZipProgress] = useState<number | null>(null);
-  const copiedFileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (copiedFileTimerRef.current !== null) {
-        clearTimeout(copiedFileTimerRef.current);
-      }
-    };
-  }, []);
 
   const {
     selected, selectedCollections, selectedTypes, pathPrefix, cssSelector,
@@ -298,14 +290,7 @@ export function useExportResults({
   const handleCopyFile = async (file: ExportResultFile) => {
     try {
       await navigator.clipboard.writeText(file.content);
-      setCopiedFile(exportFileId(file));
-      if (copiedFileTimerRef.current !== null) {
-        clearTimeout(copiedFileTimerRef.current);
-      }
-      copiedFileTimerRef.current = setTimeout(() => {
-        setCopiedFile(null);
-        copiedFileTimerRef.current = null;
-      }, 1500);
+      showCopiedFile(exportFileId(file));
       dispatchToast('Copied to clipboard', 'success');
     } catch (err) {
       console.warn('[useExportResults] clipboard write failed:', err);

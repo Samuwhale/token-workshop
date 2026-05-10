@@ -25,7 +25,13 @@ export function useDropdownMenu(options?: UseDropdownMenuOptions) {
     }
   }, [onClose]);
 
-  const toggle = useCallback(() => setOpen((prev) => !prev), []);
+  const toggle = useCallback(() => {
+    if (open) {
+      close();
+      return;
+    }
+    setOpen(true);
+  }, [close, open]);
 
   useEffect(() => {
     if (!open) return;

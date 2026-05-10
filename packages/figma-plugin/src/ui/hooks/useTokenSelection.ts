@@ -2,14 +2,28 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import { flattenLeafNodes } from '../components/tokenListUtils';
 
+interface CrossCollectionSelectionResult {
+  path: string;
+}
+
 export interface UseTokenSelectionParams {
   viewMode: string;
   flatItems: Array<{ node: TokenNode; depth: number }>;
   displayedLeafNodes: TokenNode[];
-  crossCollectionResults: unknown[] | null;
+  crossCollectionResults: CrossCollectionSelectionResult[] | null;
   selectionScopeKey: string;
   selectionEnabled?: boolean;
   onSelectionChange?: (paths: string[]) => void;
+}
+
+function getOrderedLeafPaths(
+  viewMode: string,
+  flatItems: Array<{ node: TokenNode; depth: number }>,
+  displayedLeafNodes: TokenNode[],
+): string[] {
+  return viewMode === 'tree'
+    ? flatItems.flatMap(({ node }) => (node.isGroup ? [] : [node.path]))
+    : displayedLeafNodes.map((node) => node.path);
 }
 
 export function useTokenSelection({
@@ -44,13 +58,44 @@ export function useTokenSelection({
         return new Set<string>();
       }
       return crossCollectionResults !== null
-        ? new Set(
-            (crossCollectionResults as Array<{ path: string }>).map((result) => result.path),
-          )
+        ? new Set(crossCollectionResults.map((result) => result.path))
         : new Set(displayedLeafNodes.map((node) => node.path));
     },
     [crossCollectionResults, displayedLeafNodes, selectionEnabled],
   );
+
+  useEffect(() => {
+    if (!selectionEnabled) {
+      return;
+    }
+    setSelectedPaths((current) => {
+      if (current.size === 0) {
+        return current;
+      }
+      let changed = false;
+      const next = new Set<string>();
+      for (const path of current) {
+        if (displayedLeafPaths.has(path)) {
+          next.add(path);
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+    if (
+      lastSelectedPathRef.current !== null &&
+      !displayedLeafPaths.has(lastSelectedPathRef.current)
+    ) {
+      lastSelectedPathRef.current = null;
+    }
+  }, [displayedLeafPaths, selectionEnabled]);
+
+  useEffect(() => {
+    if (selectedPaths.size === 0) {
+      setShowBatchEditor(false);
+    }
+  }, [selectedPaths.size]);
 
   const selectedLeafNodes = useMemo(
     () => displayedLeafNodes.filter(n => selectedPaths.has(n.path)),
@@ -64,9 +109,7 @@ export function useTokenSelection({
     const isShift = modifiers?.shift ?? false;
 
     if (isShift && lastSelectedPathRef.current !== null) {
-      const orderedPaths = viewMode === 'tree'
-        ? flatItems.filter(i => !i.node.isGroup).map(i => i.node.path)
-        : displayedLeafNodes.map(n => n.path);
+      const orderedPaths = getOrderedLeafPaths(viewMode, flatItems, displayedLeafNodes);
       const anchorIdx = orderedPaths.indexOf(lastSelectedPathRef.current);
       const targetIdx = orderedPaths.indexOf(path);
       if (anchorIdx !== -1 && targetIdx !== -1) {

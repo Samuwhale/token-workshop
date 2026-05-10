@@ -26,14 +26,24 @@ export function generateCommitMessage(changes: Array<{ file: string; status: str
     return `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
   };
 
-  const modified = changes.filter(c => c.status === 'M').map(c => c.file);
-  const added = changes.filter(c => c.status === 'A' || c.status === '?').map(c => c.file);
-  const deleted = changes.filter(c => c.status === 'D').map(c => c.file);
+  const changedFiles = changes.reduce(
+    (groups, change) => {
+      if (change.status === 'M') {
+        groups.modified.push(change.file);
+      } else if (change.status === 'A' || change.status === '?') {
+        groups.added.push(change.file);
+      } else if (change.status === 'D') {
+        groups.deleted.push(change.file);
+      }
+      return groups;
+    },
+    { modified: [] as string[], added: [] as string[], deleted: [] as string[] },
+  );
 
   const parts: string[] = [];
-  if (modified.length > 0) parts.push(`Update ${listNames(modified)}`);
-  if (added.length > 0) parts.push(`Add ${listNames(added)}`);
-  if (deleted.length > 0) parts.push(`Remove ${listNames(deleted)}`);
+  if (changedFiles.modified.length > 0) parts.push(`Update ${listNames(changedFiles.modified)}`);
+  if (changedFiles.added.length > 0) parts.push(`Add ${listNames(changedFiles.added)}`);
+  if (changedFiles.deleted.length > 0) parts.push(`Remove ${listNames(changedFiles.deleted)}`);
 
   return parts.join('; ') || 'Update token files';
 }
