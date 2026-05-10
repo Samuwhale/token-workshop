@@ -69,7 +69,7 @@ export function useModeColumnWidths(
       if (!collectionId) return;
       const modeName = modeNames[index];
       if (!modeName) return;
-      const clamped = clampWidth(width);
+      const clamped = clampWidth(width, responsiveModeMax);
       lsSet(
         STORAGE_KEY_BUILDERS.modeColumnWidth(collectionId, modeName),
         String(clamped),
@@ -79,7 +79,7 @@ export function useModeColumnWidths(
         [collectionId]: { ...(prev[collectionId] ?? {}), [modeName]: clamped },
       }));
     },
-    [collectionId, modeNames],
+    [collectionId, modeNames, responsiveModeMax],
   );
 
   return { widths, setWidth };

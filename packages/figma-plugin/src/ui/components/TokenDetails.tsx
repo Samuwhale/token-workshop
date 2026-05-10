@@ -97,6 +97,7 @@ import {
   formatCollectionDisplayNameList,
   getCollectionDisplayName,
 } from "../shared/libraryCollections";
+import { cloneValue } from "../../shared/clone";
 interface TokenDetailsProps {
   tokenPath: string;
   currentCollectionId: string;
@@ -132,12 +133,6 @@ interface TokenDetailsProps {
   onDuplicate?: () => void;
   onOpenInHealth?: () => void;
   onManageCollectionModes?: (collectionId: string) => void;
-}
-
-function cloneModeValue<T>(value: T): T {
-  return typeof value === "object" && value !== null
-    ? structuredClone(value)
-    : value;
 }
 
 function isEmptyModeValue(value: unknown): boolean {
@@ -1658,7 +1653,7 @@ export function TokenDetails({
   const fillEmptyModesFromFirst = () => {
     if (!firstMode || !canFillEmptyModes) return;
     emptyModeRows.forEach((mode) => {
-      mode.setValue(cloneModeValue(firstMode.value));
+      mode.setValue(cloneValue(firstMode.value));
     });
   };
   const referenceCount =
@@ -2031,7 +2026,7 @@ export function TokenDetails({
                               const sourceValue =
                                 modeValue.modes[sourceIdx].value;
                               if (sourceValue != null) {
-                                mode.setValue(cloneModeValue(sourceValue));
+                                mode.setValue(cloneValue(sourceValue));
                               }
                             }
                           : undefined
@@ -2050,7 +2045,7 @@ export function TokenDetails({
                               if (sourceValue == null) return;
                               modeValue.modes.forEach((destMode, destIdx) => {
                                 if (destIdx === modeIdx) return;
-                                destMode.setValue(cloneModeValue(sourceValue));
+                                destMode.setValue(cloneValue(sourceValue));
                               });
                             }
                           : undefined

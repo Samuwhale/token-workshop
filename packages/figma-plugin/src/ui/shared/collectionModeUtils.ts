@@ -1,5 +1,6 @@
 import type { TokenCollection } from "@token-workshop/core";
 import type { TokenEditorModeValues } from "./tokenEditorTypes";
+import { cloneValue } from "../../shared/clone";
 import {
   readTokenCollectionModeValues,
   sanitizeModeValuesForCollection,
@@ -11,12 +12,6 @@ type SelectedModeNamesByCollection = Record<string, string>;
 
 interface ApplyModeSelectionOptions {
   missingModeValue?: "fallback-to-first" | "omit";
-}
-
-function cloneModeValue<T>(value: T): T {
-  return typeof value === "object" && value !== null
-    ? structuredClone(value)
-    : value;
 }
 
 function readTokenModes(
@@ -112,7 +107,7 @@ export function createEditorModeValuesForCollection(
     [collection.id]: Object.fromEntries(
       additionalModes.map((mode) => [
         mode.name,
-        cloneModeValue(firstModeValue),
+        cloneValue(firstModeValue),
       ]),
     ),
   };

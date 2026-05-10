@@ -7,6 +7,7 @@ import type { ApiError } from './apiFetch';
 import { apiFetch } from './apiFetch';
 import { dispatchToast } from './toastBus';
 import { tokenPathToUrlSegment } from './utils';
+import { cloneValue } from '../../shared/clone';
 
 export interface TokenMutationRequest {
   $type?: string;
@@ -135,12 +136,6 @@ export function createTokenValueBody({
   });
 }
 
-function cloneTokenValue(value: unknown): unknown {
-  return typeof value === 'object' && value !== null
-    ? structuredClone(value)
-    : value;
-}
-
 function readObjectRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? { ...(value as Record<string, unknown>) }
@@ -163,7 +158,7 @@ export function createTokenValueBodyForCollectionModes({
   const tokenworkshop = readObjectRecord(nextExtensions.tokenworkshop);
   const modes = readObjectRecord(tokenworkshop.modes);
   modes[collectionId] = Object.fromEntries(
-    secondaryModeNames.map((modeName) => [modeName, cloneTokenValue(value)]),
+    secondaryModeNames.map((modeName) => [modeName, cloneValue(value)]),
   );
   tokenworkshop.modes = modes;
   nextExtensions.tokenworkshop = tokenworkshop;

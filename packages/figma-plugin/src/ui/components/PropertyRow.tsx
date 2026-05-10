@@ -32,6 +32,7 @@ import {
   isTokenMutationConflictError,
   updateToken,
 } from '../shared/tokenMutations';
+import { cloneValue } from '../../shared/clone';
 import { getCollectionDisplayName } from '../shared/libraryCollections';
 import {
   getBindingForProperty,
@@ -205,12 +206,6 @@ function BindCandidateButton({
   );
 }
 
-function cloneModeDraftValue(value: unknown): unknown {
-  return typeof value === 'object' && value !== null
-    ? structuredClone(value)
-    : value;
-}
-
 function buildCreateValueBodyForModeDrafts({
   tokenType,
   modeValues,
@@ -229,7 +224,7 @@ function buildCreateValueBodyForModeDrafts({
   const values =
     modeValues.length === modeNames.length
       ? modeValues
-      : modeNames.map(() => cloneModeDraftValue(defaultValue));
+      : modeNames.map(() => cloneValue(defaultValue));
   const primaryValue = values[0] ?? defaultValue;
   const secondaryModeNames = modeNames.slice(1).filter(Boolean);
 
@@ -251,7 +246,7 @@ function buildCreateValueBodyForModeDrafts({
           [collectionId]: Object.fromEntries(
             secondaryModeNames.map((modeName, index) => [
               modeName,
-              cloneModeDraftValue(values[index + 1] ?? primaryValue),
+              cloneValue(values[index + 1] ?? primaryValue),
             ]),
           ),
         },
@@ -525,7 +520,7 @@ export function PropertyRow({
     }
     createSessionKeyRef.current = createSessionKey;
     setCreateModeValues(
-      modeNamesForCreate.map(() => cloneModeDraftValue(createSourceValue)),
+      modeNamesForCreate.map(() => cloneValue(createSourceValue)),
     );
   }, [createSessionKey, createSourceValue, modeNamesForCreate]);
 
@@ -566,7 +561,7 @@ export function PropertyRow({
     const modeValuesForCreate =
       createModeValues.length === modeNamesForCreate.length
         ? createModeValues
-        : modeNamesForCreate.map(() => cloneModeDraftValue(tokenValue));
+        : modeNamesForCreate.map(() => cloneValue(tokenValue));
 
     setCreating(true);
     try {
@@ -1007,7 +1002,7 @@ export function PropertyRow({
                             const next = current.length === modeNamesForCreate.length
                               ? [...current]
                               : modeNamesForCreate.map(() =>
-                                  cloneModeDraftValue(createSourceValue),
+                                  cloneValue(createSourceValue),
                                 );
                             next[index] = nextValue;
                             return next;
