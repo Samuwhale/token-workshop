@@ -16,19 +16,26 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
 /**
  * Traps keyboard focus within a dialog container.
  *
+ * - Pass `enabled: false` for flyouts that are conditionally rendered inside an already-mounted component.
  * - Auto-focuses `initialFocusRef` if provided, otherwise the first focusable element.
  * - Cycles Tab/Shift+Tab within the container.
  * - Restores focus to the previously focused element on unmount.
  */
 export function useFocusTrap(
   containerRef: RefObject<HTMLElement | null>,
-  options?: { initialFocusRef?: RefObject<HTMLElement | null> }
+  options?: {
+    initialFocusRef?: RefObject<HTMLElement | null>;
+    enabled?: boolean;
+  }
 ) {
   useEffect(() => {
+    if (options?.enabled === false) return;
+
     const container = containerRef.current;
     if (!container) return;
 
     const previouslyFocused = document.activeElement as HTMLElement | null;
+    let addedContainerTabIndex = false;
 
     // Focus initial element
     const initialEl = options?.initialFocusRef?.current;
@@ -40,6 +47,7 @@ export function useFocusTrap(
         focusable[0].focus();
       } else {
         container.setAttribute('tabindex', '-1');
+        addedContainerTabIndex = true;
         container.focus();
       }
     }
@@ -73,8 +81,12 @@ export function useFocusTrap(
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused?.focus();
+      if (addedContainerTabIndex) {
+        container.removeAttribute('tabindex');
+      }
+      if (previouslyFocused?.isConnected) {
+        previouslyFocused.focus();
+      }
     };
-     
-  }, [containerRef, options?.initialFocusRef]);
+  }, [containerRef, options?.enabled, options?.initialFocusRef]);
 }

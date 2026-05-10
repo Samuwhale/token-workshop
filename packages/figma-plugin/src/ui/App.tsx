@@ -848,6 +848,7 @@ export function App() {
     );
   }, []);
   useFocusTrap(responsiveSidebarFlyoutRef, {
+    enabled: Boolean(responsiveSidebarFlyout),
     initialFocusRef: responsiveSidebarFlyoutInitialFocusRef,
   });
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(

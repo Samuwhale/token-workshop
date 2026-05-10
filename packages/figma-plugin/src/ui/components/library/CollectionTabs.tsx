@@ -218,14 +218,21 @@ export function CollectionTabs({
   useEffect(() => {
     if (!switcherOpen) {
       if (query.length > 0) setQuery("");
-      return;
     }
+  }, [query.length, switcherOpen]);
+
+  useEffect(() => {
+    if (!switcherOpen) return;
+
     requestAnimationFrame(() => {
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
     });
-  }, [query.length, switcherOpen]);
-  useFocusTrap(switcherMenuRef, { initialFocusRef: searchInputRef });
+  }, [switcherOpen]);
+  useFocusTrap(switcherMenuRef, {
+    enabled: switcherOpen,
+    initialFocusRef: searchInputRef,
+  });
 
   return (
     <div className="flex min-w-0 shrink-0 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1">

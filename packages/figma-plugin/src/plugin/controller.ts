@@ -97,7 +97,6 @@ function clearScanSignal(kind: ScanKind, signal: { aborted: boolean }): void {
   }
 }
 
-/** Extract a human-readable message from an unknown thrown value. */
 /** Post a generic error back to the UI so it doesn't hang waiting for a response. */
 function reportError(handler: string, e: unknown): void {
   const message = getErrorMessage(e, `Unexpected error in ${handler}`);
