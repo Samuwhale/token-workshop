@@ -1,41 +1,53 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useImportSourceContext } from './ImportPanelContext';
 import { type ImportToken } from './importPanelTypes';
 import { tokenTypeBadgeClass } from '../../shared/types';
+import { SearchField } from '../primitives';
+
+const ALIAS_VALUE_PATTERN = /^\{(.+)\}$/;
+const COLOR_HEX_PATTERN = /^#[0-9a-fA-F]{3,8}$/;
+
+function isAliasValue(value: unknown): value is string {
+  return typeof value === 'string' && ALIAS_VALUE_PATTERN.test(value);
+}
 
 function resolveAlias(token: ImportToken, tokensByPath: Map<string, ImportToken>, depth = 0): string | null {
   if (depth > 10 || typeof token.$value !== 'string') return null;
-  const match = token.$value.match(/^\{(.+)\}$/);
+  const match = token.$value.match(ALIAS_VALUE_PATTERN);
   if (!match) return null;
   const target = tokensByPath.get(match[1]);
   if (!target) return match[1];
-  if (typeof target.$value === 'string' && /^\{.+\}$/.test(target.$value)) {
+  if (isAliasValue(target.$value)) {
     return resolveAlias(target, tokensByPath, depth + 1) ?? String(target.$value);
   }
   return String(target.$value);
 }
 
 function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: Map<string, ImportToken> }) {
-  const isAlias = typeof token.$value === 'string' && /^\{.+\}$/.test(token.$value);
-  const aliasTarget = isAlias ? (token.$value as string).slice(1, -1) : null;
+  const tokenValue = token.$value;
+  const isAlias = isAliasValue(tokenValue);
+  const aliasTarget = isAlias ? tokenValue.slice(1, -1) : null;
   const resolvedValue = isAlias ? resolveAlias(token, tokensByPath) : null;
   const isChained = resolvedValue !== null && resolvedValue !== aliasTarget;
-  const resolvedIsColor = resolvedValue !== null && /^#[0-9a-fA-F]{3,8}$/.test(resolvedValue);
+  const resolvedColor =
+    resolvedValue !== null && COLOR_HEX_PATTERN.test(resolvedValue)
+      ? resolvedValue
+      : null;
 
   return (
     <div className="flex items-start gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-      {token.$type === 'color' && typeof token.$value === 'string' && !isAlias && (
+      {token.$type === 'color' && typeof tokenValue === 'string' && !isAlias && (
         <div
           className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
-          style={{ backgroundColor: token.$value }}
+          style={{ backgroundColor: tokenValue }}
         />
       )}
-      {token.$type === 'color' && isAlias && resolvedIsColor && (
+      {token.$type === 'color' && isAlias && resolvedColor !== null && (
         <div
           className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
-          style={{ backgroundColor: resolvedValue! }}
-          title={resolvedValue!}
+          style={{ backgroundColor: resolvedColor }}
+          title={resolvedColor}
         />
       )}
       <div className="flex-1 min-w-0">
@@ -81,26 +93,47 @@ export function ImportTokenListView() {
 
   const validation = fileImportValidation?.source === source ? fileImportValidation : null;
   const skippedCount = validation?.skippedCount ?? skippedEntries.length;
-  const duplicatePathWarnings = tokens.filter((token) =>
-    token._warning?.startsWith('Duplicate path'),
+  const duplicatePathWarnings = useMemo(
+    () => tokens.filter((token) => token._warning?.startsWith('Duplicate path')),
+    [tokens],
   );
-  const skippedPreview = skippedEntries.slice(0, 4);
+  const skippedPreview = useMemo(() => skippedEntries.slice(0, 4), [skippedEntries]);
   const hiddenSkippedCount = Math.max(0, skippedEntries.length - skippedPreview.length);
 
-  const tokensByPath = new Map(tokens.map(t => [t.path, t]));
+  const tokensByPath = useMemo(
+    () => new Map(tokens.map((token) => [token.path, token])),
+    [tokens],
+  );
 
-  const typeFilteredTokens = typeFilter ? tokens.filter(t => t.$type === typeFilter) : tokens;
+  const typeFilteredTokens = useMemo(
+    () => (typeFilter ? tokens.filter((token) => token.$type === typeFilter) : tokens),
+    [tokens, typeFilter],
+  );
 
   const lowerSearch = searchText.trim().toLowerCase();
-  const filteredTokens = lowerSearch
-    ? typeFilteredTokens.filter(t => {
-        if (t.path.toLowerCase().includes(lowerSearch)) return true;
-        if (typeof t.$value === 'string' && t.$value.toLowerCase().includes(lowerSearch)) return true;
-        return false;
-      })
-    : typeFilteredTokens;
+  const filteredTokens = useMemo(
+    () =>
+      lowerSearch
+        ? typeFilteredTokens.filter((token) => {
+            if (token.path.toLowerCase().includes(lowerSearch)) return true;
+            if (typeof token.$value === 'string' && token.$value.toLowerCase().includes(lowerSearch)) return true;
+            return false;
+          })
+        : typeFilteredTokens,
+    [lowerSearch, typeFilteredTokens],
+  );
 
-  const types = [...new Set(tokens.map(t => t.$type))].sort();
+  const types = useMemo(
+    () => [...new Set(tokens.map((token) => token.$type))].sort(),
+    [tokens],
+  );
+  const tokenCountByType = useMemo(() => {
+    const countByType = new Map<ImportToken['$type'], number>();
+    for (const token of tokens) {
+      countByType.set(token.$type, (countByType.get(token.$type) ?? 0) + 1);
+    }
+    return countByType;
+  }, [tokens]);
 
   return (
     <>
@@ -161,24 +194,23 @@ export function ImportTokenListView() {
           >
             <option value="">All types</option>
             {types.map(type => (
-              <option key={type} value={type ?? ''}>
-                {type} ({tokens.filter(t => t.$type === type).length})
+              <option key={type} value={type}>
+                {type} ({tokenCountByType.get(type) ?? 0})
               </option>
             ))}
           </select>
         )}
 
         {tokens.length > 10 && (
-          <div className="tm-panel-search min-w-0 flex-[999_1_180px]">
-            <input
-              type="search"
-              placeholder="Filter by name or value"
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              className="tm-panel-search__input"
-              aria-label="Filter tokens by name or value"
-            />
-          </div>
+          <SearchField
+            size="sm"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            onClear={() => setSearchText('')}
+            placeholder="Filter by name or value"
+            aria-label="Filter tokens by name or value"
+            containerClassName="min-w-0 flex-[999_1_180px]"
+          />
         )}
       </div>
 

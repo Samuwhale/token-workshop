@@ -1154,28 +1154,6 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
-.tm-panel-search {
-  display: flex;
-  min-inline-size: 0;
-  align-items: center;
-  gap: 4px;
-  min-block-size: 26px;
-  border-radius: var(--radius-md);
-  background: var(--surface-group-quiet);
-  padding-inline: 7px;
-}
-
-.tm-panel-search__input {
-  min-inline-size: 0;
-  flex: 1 1 auto;
-  background: transparent;
-  color: var(--color-figma-text);
-}
-
-.tm-panel-search__input::placeholder {
-  color: var(--color-figma-text-tertiary);
-}
-
 .tm-panel-inline-form {
   display: flex;
   min-inline-size: 0;
