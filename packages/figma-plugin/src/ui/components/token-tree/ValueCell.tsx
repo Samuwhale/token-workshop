@@ -8,7 +8,7 @@
  */
 import { useRef } from "react";
 import type { CSSProperties } from "react";
-import { AlertTriangle, Link2 } from "lucide-react";
+import { AlertTriangle, Link2, Plus } from "lucide-react";
 import type { TokenMapEntry } from "../../../shared/types";
 import { extractAliasPath, isAlias } from "../../../shared/resolveAlias";
 import { formatValue } from "../tokenListUtils";
@@ -238,7 +238,8 @@ export function ValueCell({
               aria-label={`Add ${optionName} value`}
               title={`Add ${optionName} value`}
             >
-              Add value
+              <Plus size={10} strokeWidth={2} aria-hidden />
+              <span className="tm-value-cell__create-button-label">Add</span>
             </button>
           </div>
         ) : (

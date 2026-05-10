@@ -996,16 +996,16 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 <X size={10} strokeWidth={2} aria-hidden />
                 <span>All tokens</span>
               </button>
-              <div className="min-w-0 flex items-center gap-0.5 overflow-x-auto">
+              <div className="min-w-0 flex flex-wrap items-center gap-0.5">
                 {zoomBreadcrumb.map((seg, i) => (
                   <span
                     key={seg.path}
-                    className="flex items-center gap-0.5 shrink-0"
+                    className="flex min-w-0 items-center gap-0.5"
                   >
                     {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
                     {i < zoomBreadcrumb.length - 1 ? (
                       <button
-                        className="truncate text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline max-w-[200px]"
+                        className="min-w-0 max-w-full text-left text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
                         title={seg.path}
                         onClick={() => handleZoomToAncestor(seg.path)}
                       >
@@ -1013,7 +1013,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                       </button>
                     ) : (
                       <span
-                        className="truncate font-medium text-[color:var(--color-figma-text)] max-w-[200px]"
+                        className="min-w-0 max-w-full font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
                         title={seg.path}
                       >
                         {seg.name}
@@ -1024,7 +1024,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               </div>
             </div>
             {zoomSiblingBranches.length > 0 && (
-              <div className="mt-1 flex items-center gap-1 overflow-x-auto">
+              <div className="mt-1 flex flex-wrap items-center gap-1">
                 <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   Other branches
                 </span>
@@ -1032,7 +1032,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   <button
                     key={branch.path}
                     onClick={() => handleZoomToAncestor(branch.path)}
-                    className="shrink-0 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline"
+                    className="min-w-0 max-w-full text-left text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
                     title={`Scope to ${branch.path}`}
                   >
                     {branch.name}
@@ -1043,7 +1043,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           </div>
         ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
           <div
-            className="sticky z-10 flex items-center gap-0.5 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] group/breadcrumb"
+            className="sticky z-10 flex flex-wrap items-center gap-0.5 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]"
             style={{ top: tableHeaderHeight }}
           >
             <svg
@@ -1062,11 +1062,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
             {breadcrumbSegments.map((seg, i) => (
-              <span key={seg.path} className="flex items-center gap-0.5">
+              <span key={seg.path} className="flex min-w-0 items-center gap-0.5">
                 {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
                 {i < breadcrumbSegments.length - 1 ? (
                   <button
-                    className="hover:text-[color:var(--color-figma-text)] hover:underline truncate max-w-[200px]"
+                    className="min-w-0 max-w-full text-left hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
                     title={`Jump to ${seg.path}`}
                     onClick={() => handleJumpToGroup(seg.path)}
                   >
@@ -1074,7 +1074,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   </button>
                 ) : (
                   <span
-                    className="font-medium text-[color:var(--color-figma-text)] truncate max-w-[200px]"
+                    className="min-w-0 max-w-full font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
                     title={seg.path}
                   >
                     {seg.name}
@@ -1083,7 +1083,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               </span>
             ))}
             <button
-              className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] shrink-0"
+              className="ml-auto flex shrink-0 items-center gap-0.5 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
               title="Collapse and jump to group"
               onClick={() =>
                 handleCollapseBelow(

@@ -28,6 +28,7 @@ export interface CollectionStateContextValue {
   setWorkingCollectionId: (collectionId: string) => void;
   currentCollectionTokens: TokenNode[];
   collectionRevision: number;
+  collectionsLoaded: boolean;
   collectionTokenCounts: Record<string, number>;
   collectionDescriptions: Record<string, string>;
   collectionsError: string | null;
@@ -96,6 +97,7 @@ function CollectionStateProvider({
       setWorkingCollectionId: collectionState.setWorkingCollectionId,
       currentCollectionTokens: collectionState.currentCollectionTokens,
       collectionRevision: collectionState.collectionRevision,
+      collectionsLoaded: collectionState.collectionsLoaded,
       collectionTokenCounts: collectionState.collectionTokenCounts,
       collectionDescriptions: collectionState.collectionDescriptions,
       collectionsError: collectionState.collectionsError,
@@ -114,6 +116,7 @@ function CollectionStateProvider({
       collectionState.setWorkingCollectionId,
       collectionState.currentCollectionTokens,
       collectionState.collectionRevision,
+      collectionState.collectionsLoaded,
       collectionState.collectionTokenCounts,
       collectionState.collectionDescriptions,
       collectionState.collectionsError,

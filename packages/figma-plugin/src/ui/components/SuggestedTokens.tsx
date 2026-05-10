@@ -18,18 +18,28 @@ function formatValue(entry: TokenMapEntry, resolvedValue: unknown): string {
 }
 
 function formatBatchPlan(
-  items: { tokenPath: string; property: BindableProperty }[],
+  items: SuggestedTokenApplyItem[],
 ): string {
   const labels = items.map((item) => PROPERTY_LABELS[item.property]);
   if (labels.length <= 3) return labels.join(", ");
   return `${labels.slice(0, 3).join(", ")} and ${labels.length - 3} more`;
 }
 
+interface SuggestedTokenApplyItem {
+  tokenPath: string;
+  property: BindableProperty;
+  collectionId?: string;
+}
+
 interface SuggestedTokensProps {
   suggestions: SuggestedToken[];
-  onApply: (tokenPath: string, property: BindableProperty) => void;
-  onApplyBatch?: (items: { tokenPath: string; property: BindableProperty }[]) => void;
-  onNavigateToToken?: (tokenPath: string) => void;
+  onApply: (
+    tokenPath: string,
+    property: BindableProperty,
+    collectionId?: string,
+  ) => void;
+  onApplyBatch?: (items: SuggestedTokenApplyItem[]) => void;
+  onNavigateToToken?: (tokenPath: string, collectionId?: string) => void;
   title?: string;
   showHeader?: boolean;
 }
@@ -70,7 +80,7 @@ export function SuggestedTokens({
 
   // Batch apply: one strong suggestion per distinct property (already sorted by score).
   // Never batch-apply scope-hidden tokens — Figma will reject the bind.
-  const strongBatch: { tokenPath: string; property: BindableProperty }[] = [];
+  const strongBatch: SuggestedTokenApplyItem[] = [];
   const seenBatchProps = new Set<BindableProperty>();
   for (const suggestion of filteredSuggestions) {
     if (suggestion.scopeHidden) continue;
@@ -80,6 +90,7 @@ export function SuggestedTokens({
     strongBatch.push({
       tokenPath: suggestion.path,
       property: suggestion.bestProperty,
+      collectionId: suggestion.collectionId,
     });
   }
   const showApplyAll = onApplyBatch !== undefined && strongBatch.length >= 2;
@@ -148,7 +159,7 @@ export function SuggestedTokens({
 
                 return (
                   <div
-                    key={s.path}
+                    key={`${s.collectionId ?? ""}:${s.path}`}
                     className={`group relative flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
                       s.scopeHidden ? 'opacity-50' : ''
                     }`}
@@ -173,7 +184,7 @@ export function SuggestedTokens({
                     {/* Token path + metadata */}
                     <div className="flex-1 min-w-0">
                       <button
-                        onClick={() => onNavigateToToken?.(s.path)}
+                        onClick={() => onNavigateToToken?.(s.path, s.collectionId)}
                         className="block text-secondary text-[color:var(--color-figma-text)] truncate font-mono w-full text-left hover:underline"
                         title={`${s.path} — ${valueStr}`}
                       >
@@ -207,7 +218,7 @@ export function SuggestedTokens({
 
                     {/* Apply button — always faintly visible, full opacity on hover */}
                     <button
-                      onClick={() => onApply(s.path, s.bestProperty)}
+                      onClick={() => onApply(s.path, s.bestProperty, s.collectionId)}
                       className="shrink-0 opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-secondary px-1.5 py-0.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] font-medium hover:bg-[var(--color-figma-accent-hover,var(--color-figma-accent))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-figma-accent)]"
                       title={`Apply "${s.path}" to ${propLabel}`}
                       aria-label={`Apply ${s.path} to ${propLabel}`}

@@ -103,6 +103,7 @@ export function useCollectionState(
   }, []);
   const [currentCollectionTokens, setCurrentCollectionTokens] = useState<TokenNode[]>([]);
   const [collectionRevision, setCollectionRevision] = useState(0);
+  const [collectionsLoaded, setCollectionsLoaded] = useState(false);
   const [collectionsError, setCollectionsError] = useState<string | null>(null);
   const [collectionTokenCounts, setCollectionTokenCounts] = useState<Record<string, number>>({});
   const [collectionDescriptions, setCollectionDescriptions] = useState<Record<string, string>>({});
@@ -193,7 +194,10 @@ export function useCollectionState(
   }, [applyCollectionStateSnapshot]);
 
   const refreshCollections = useCallback(async () => {
-    if (!connected) return;
+    if (!connected) {
+      setCollectionsLoaded(false);
+      return;
+    }
 
     const generation = ++fetchGenRef.current;
     const unmountSignal = unmountControllerRef.current.signal;
@@ -205,6 +209,7 @@ export function useCollectionState(
     const signal = createFetchSignal(combinedDisconnectSignal);
 
     try {
+      setCollectionsLoaded(false);
       const collectionSummaries = await fetchCollectionSummaries(signal);
       if (generation !== fetchGenRef.current || signal.aborted) return;
       const snapshot = buildCollectionStateSnapshot(collectionSummaries);
@@ -219,6 +224,7 @@ export function useCollectionState(
         }
         setCurrentCollectionTokens([]);
         setCollectionRevision((revision) => revision + 1);
+        setCollectionsLoaded(true);
         return;
       }
 
@@ -238,11 +244,13 @@ export function useCollectionState(
       if (generation !== fetchGenRef.current || signal.aborted) return;
       setCurrentCollectionTokens(buildTree(tokensData.tokens || {}));
       setCollectionRevision((revision) => revision + 1);
+      setCollectionsLoaded(true);
     } catch (error) {
       if (isAbortError(error)) return;
       const networkError = isNetworkError(error);
       if (networkError) onNetworkError?.();
       else setCollectionsError(error instanceof Error ? error.message : 'Failed to fetch collections');
+      setCollectionsLoaded(true);
       console.error('Failed to fetch collections:', error);
     }
   }, [
@@ -336,6 +344,7 @@ export function useCollectionState(
     setWorkingCollectionId,
     currentCollectionTokens,
     collectionRevision,
+    collectionsLoaded,
     collectionTokenCounts,
     collectionDescriptions,
     collectionsError,

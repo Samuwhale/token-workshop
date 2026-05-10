@@ -779,12 +779,45 @@ export function SelectionInspector({
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
   const suggestions = useMemo(
-    () =>
-      hasSelection && hasAnyTokens
-        ? rankTokensForSelection(rootNodes, tokenMap, caps)
-        : [],
+    () => {
+      if (!hasSelection || !hasAnyTokens) {
+        return [];
+      }
 
-    [hasSelection, hasAnyTokens, rootNodes, tokenMap, caps],
+      const collectionMaps = Object.entries(tokenMapsByCollection);
+      if (collectionMaps.length === 0) {
+        return rankTokensForSelection(
+          rootNodes,
+          tokenMap,
+          caps,
+          8,
+          currentCollectionId,
+        );
+      }
+
+      return collectionMaps
+        .flatMap(([collectionId, collectionTokenMap]) =>
+          rankTokensForSelection(
+            rootNodes,
+            collectionTokenMap,
+            caps,
+            8,
+            collectionId,
+          ),
+        )
+        .sort((left, right) => right.score - left.score)
+        .slice(0, 8);
+    },
+
+    [
+      caps,
+      currentCollectionId,
+      hasAnyTokens,
+      hasSelection,
+      rootNodes,
+      tokenMap,
+      tokenMapsByCollection,
+    ],
   );
 
   const allPropertiesBound =
@@ -1367,7 +1400,7 @@ export function SelectionInspector({
                 currentCollectionId={currentCollectionId}
                 currentCollectionModeNames={currentCollectionModeNames}
                 serverUrl={serverUrl}
-                tokenMap={tokenMap}
+                tokenMap={activeCollectionTokenMap}
                 onTokenCreated={onTokenCreated}
                 onClose={() => setExtractOpen(null)}
                 propertyFilter={extractOpen}
@@ -1413,12 +1446,16 @@ export function SelectionInspector({
             <div className="flex-1 overflow-y-auto">
               <SuggestedTokens
                 suggestions={suggestions}
-                onApply={(tokenPath, property) =>
-                  handleBindToken(property, tokenPath)
+                onApply={(tokenPath, property, collectionId) =>
+                  handleBindToken(property, tokenPath, collectionId)
                 }
                 onApplyBatch={(items) => {
                   for (const item of items) {
-                    handleBindToken(item.property, item.tokenPath);
+                    handleBindToken(
+                      item.property,
+                      item.tokenPath,
+                      item.collectionId,
+                    );
                   }
                 }}
                 onNavigateToToken={onNavigateToToken}

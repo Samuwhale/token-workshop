@@ -575,6 +575,7 @@ export type SuggestionConfidence = 'strong' | 'moderate' | 'weak';
 
 export interface SuggestedToken {
   path: string;
+  collectionId?: string;
   entry: TokenMapEntry;
   score: number;
   bestProperty: BindableProperty;
@@ -735,6 +736,7 @@ export function rankTokensForSelection(
   tokenMap: Record<string, TokenMapEntry>,
   caps: NodeCapabilities,
   limit = 8,
+  collectionId?: string,
 ): SuggestedToken[] {
   if (rootNodes.length === 0) return [];
   const tokenEntries = Object.entries(tokenMap);
@@ -839,6 +841,7 @@ export function rankTokensForSelection(
       const { confidence, reason } = classifySuggestion(bestScore, bestReason);
       scored.push({
         path: tokenPath,
+        collectionId,
         entry,
         score: bestScore,
         bestProperty: bestProp,

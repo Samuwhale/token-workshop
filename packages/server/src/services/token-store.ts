@@ -98,6 +98,35 @@ function normalizeSearchTerms(values?: string[]): string[] | undefined {
   return normalized.length > 0 ? [...new Set(normalized)] : undefined;
 }
 
+function readSearchableTokenValues(
+  token: Token,
+  collectionId: string,
+): unknown[] {
+  const values: unknown[] = [token.$value];
+  const modeValues =
+    readTokenCollectionModeValues(token)[collectionId] ?? {};
+  values.push(...Object.values(modeValues));
+  return values;
+}
+
+function tokenHasReferenceInAnyMode(
+  token: Token,
+  collectionId: string,
+): boolean {
+  return readSearchableTokenValues(token, collectionId).some((value) =>
+    isReference(value),
+  );
+}
+
+function stringifySearchableTokenValues(
+  token: Token,
+  collectionId: string,
+): string {
+  return readSearchableTokenValues(token, collectionId)
+    .map((value) => stableStringify(value).toLowerCase())
+    .join("\n");
+}
+
 export class TokenStore {
   /** Shared async mutex — route handlers and watcher callbacks serialize through this single lock. */
   readonly lock = new PromiseChainLock();
@@ -1329,23 +1358,25 @@ export class TokenStore {
       normalizedHas &&
       normalizedHas.some((value) => value === "duplicate" || value === "dup")
         ? (() => {
-            const valueToEntries = new Map<string, string[]>();
+            const valueToEntries = new Map<string, Set<string>>();
             for (const [tokenPath, entries] of this.flatTokens) {
               for (const entry of entries) {
-                const duplicateKey = stableStringify(entry.token.$value);
                 const entryKey = `${entry.collectionId}:${tokenPath}`;
-                const existing = valueToEntries.get(duplicateKey);
-                if (existing) {
-                  existing.push(entryKey);
-                } else {
-                  valueToEntries.set(duplicateKey, [entryKey]);
+                for (const value of readSearchableTokenValues(
+                  entry.token,
+                  entry.collectionId,
+                )) {
+                  const duplicateKey = stableStringify(value);
+                  const existing = valueToEntries.get(duplicateKey);
+                  if (existing) existing.add(entryKey);
+                  else valueToEntries.set(duplicateKey, new Set([entryKey]));
                 }
               }
             }
 
             const duplicates = new Set<string>();
             for (const entryKeys of valueToEntries.values()) {
-              if (entryKeys.length < 2) continue;
+              if (entryKeys.size < 2) continue;
               for (const entryKey of entryKeys) {
                 duplicates.add(entryKey);
               }
@@ -1386,13 +1417,23 @@ export class TokenStore {
         continue;
 
       for (const entry of entries) {
+        const searchableValueText = stringifySearchableTokenValues(
+          entry.token,
+          entry.collectionId,
+        );
+        const hasReference = tokenHasReferenceInAnyMode(
+          entry.token,
+          entry.collectionId,
+        );
+
         // Free text: match against path, leaf name, or description
         if (qLower) {
           const ld = (entry.token.$description || "").toLowerCase();
           if (
             !lp.includes(qLower) &&
             !ln.includes(qLower) &&
-            !ld.includes(qLower)
+            !ld.includes(qLower) &&
+            !searchableValueText.includes(qLower)
           )
             continue;
         }
@@ -1415,12 +1456,12 @@ export class TokenStore {
           for (const h of normalizedHas) {
             if (
               (h === "alias" || h === "ref") &&
-              !isReference(entry.token.$value)
+              !hasReference
             ) {
               skip = true;
               break;
             }
-            if (h === "direct" && isReference(entry.token.$value)) {
+            if (h === "direct" && hasReference) {
               skip = true;
               break;
             }
@@ -1456,8 +1497,11 @@ export class TokenStore {
 
         // value: qualifier
         if (normalizedValues && normalizedValues.length > 0) {
-          const sv = stableStringify(entry.token.$value).toLowerCase();
-          if (!normalizedValues.some((valueTerm) => sv.includes(valueTerm))) {
+          if (
+            !normalizedValues.some((valueTerm) =>
+              searchableValueText.includes(valueTerm),
+            )
+          ) {
             continue;
           }
         }

@@ -1825,6 +1825,10 @@ button.tm-status-row:not(:disabled):hover {
   flex: 0 0 auto;
 }
 
+.tm-collection-toolbar__overflow-button {
+  flex: 0 0 auto;
+}
+
 .tm-collection-toolbar__actions {
   flex: 0 1 auto;
   flex-wrap: nowrap;
@@ -1966,14 +1970,10 @@ button.tm-status-row:not(:disabled):hover {
 @container (max-width: 560px) {
   .tm-collection-toolbar__action {
     min-block-size: 28px;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     padding-block: 4px;
     padding-inline: 7px;
-  }
-
-  .tm-collection-toolbar__action--secondary .tm-collection-toolbar__action-label {
-    display: none;
   }
 }
 
@@ -2728,18 +2728,19 @@ button.tm-status-row:not(:disabled):hover {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 4px;
   min-block-size: var(--control-size-compact);
-  border: 1px solid var(--border-muted);
+  min-inline-size: 0;
+  border: 1px dashed color-mix(in srgb, var(--border-muted) 78%, transparent);
   border-radius: var(--radius-sm);
-  background: var(--surface-group-quiet);
-  padding: 0 10px;
+  background: transparent;
+  padding: 0 6px;
   font-size: var(--font-size-sm);
   font-weight: 500;
   line-height: 1.15;
   text-align: left;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  color: var(--color-figma-text-accent);
+  white-space: nowrap;
+  color: var(--color-figma-text-secondary);
   transition:
     background-color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
@@ -2747,9 +2748,13 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-value-cell__create-button:hover {
-  background: var(--surface-accent);
-  border-color: var(--border-muted);
+  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
+  border-color: color-mix(in srgb, var(--workspace-library) 42%, transparent);
   color: var(--color-figma-text);
+}
+
+.tm-value-cell__create-button-label {
+  min-inline-size: 0;
 }
 
 .tm-value-cell__line {
@@ -5065,7 +5070,8 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__action-button-label--secondary {
-    display: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -5096,7 +5102,9 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__action-button-label {
-    display: none;
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .tm-token-mode-row__action-button--menu {

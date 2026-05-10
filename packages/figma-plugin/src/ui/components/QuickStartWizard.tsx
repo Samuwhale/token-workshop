@@ -389,7 +389,7 @@ export function QuickStartWizard({
                 : "Choose the next library step."}
           </p>
           <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Start with authored tokens, import an existing source, or extract values from the canvas.
+            Create tokens, import an existing library, or extract values from the canvas.
           </p>
         </div>
         <div className="px-2 pb-2">

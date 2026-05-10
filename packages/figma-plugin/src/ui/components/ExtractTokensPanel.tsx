@@ -271,6 +271,7 @@ export function ExtractTokensPanel({
               type: "apply-to-nodes",
               nodeIds,
               tokenPath: item.name,
+              collectionId: currentCollectionId,
               tokenType: item.tokenType,
               targetProperty,
               resolvedValue: item.value,

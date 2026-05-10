@@ -88,7 +88,7 @@ export function buildCollectionModeNames(
 }
 
 function getModeFieldLabel(index: number): string {
-  return `Mode ${index + 1}`;
+  return index === 0 ? "Default mode" : `Mode ${index + 1}`;
 }
 
 export function CollectionAuthoringFields({

@@ -1818,14 +1818,10 @@ export function TokenDetails({
                       placeholder="primary"
                       autoFocus
                       autoComplete="off"
-                      className={`${AUTHORING.inputMono} ${
-                        duplicatePath
-                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
-                          : ""
-                      }`}
+                      className={AUTHORING.inputMono}
                     />
                   </Field>
-                  <Field label="Group" error={createPathError}>
+                  <Field label="Group">
                     <input
                       type="text"
                       value={createPathParts.group}
@@ -1846,11 +1842,7 @@ export function TokenDetails({
                       }}
                       placeholder="color.brand"
                       autoComplete="off"
-                      className={`${AUTHORING.inputMono} ${
-                        duplicatePath
-                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
-                          : ""
-                      }`}
+                      className={AUTHORING.inputMono}
                     />
                   </Field>
                 </div>
@@ -1860,6 +1852,14 @@ export function TokenDetails({
                     {trimmedEditPath || "group.name"}
                   </span>
                 </p>
+                {createPathError ? (
+                  <p
+                    role="alert"
+                    className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]"
+                  >
+                    {createPathError}
+                  </p>
+                ) : null}
                 {showPathAutocomplete && trimmedEditPath ? (
                   <PathAutocomplete
                     query={editPath}

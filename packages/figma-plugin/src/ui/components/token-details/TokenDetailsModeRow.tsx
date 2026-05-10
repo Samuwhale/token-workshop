@@ -493,20 +493,23 @@ export function TokenDetailsModeRow({
               <button
                 type="button"
                 onClick={() => onChange?.(defaultModeValue)}
-                aria-label={`Use ${defaultModeValueLabel} for ${modeName}`}
-                title={`Use ${defaultModeValueLabel}`}
+                aria-label={`Add ${modeName} value`}
+                title={`Add ${defaultModeValueLabel} for ${modeName}`}
                 className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
               >
-                Use suggested value
+                Add value
               </button>
               <button
                 type="button"
                 onClick={handleAliasToggle}
                 aria-label={`Reference another token for ${modeName}`}
                 title={`Reference another token for ${modeName}`}
-                className="tm-token-mode-row__empty-action"
+                className="tm-token-mode-row__action-button"
               >
-                Reference token
+                <Link2 size={12} strokeWidth={1.5} aria-hidden />
+                <span className="tm-token-mode-row__action-button-label">
+                  Reference
+                </span>
               </button>
             </div>
           ) : editable ? (

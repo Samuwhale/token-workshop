@@ -1141,8 +1141,8 @@ export function ImportPanelProvider({
       if (hasAmbiguousCollectionImport) {
         dispatchToast(
           ambiguousCollectionImportCount === 1
-            ? "Duplicate token paths in one collection. Change the mapping or disable a mode."
-            : `${ambiguousCollectionImportCount} duplicate paths across modes. Change mappings or disable conflicting modes.`,
+            ? "Duplicate token paths in one collection. Change the collection mapping."
+            : `${ambiguousCollectionImportCount} duplicate paths across modes. Change the collection mappings.`,
           "error",
           { destination: { kind: "contextual-surface", surface: "import" } },
         );

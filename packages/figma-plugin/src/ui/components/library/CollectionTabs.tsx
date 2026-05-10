@@ -9,6 +9,7 @@ import {
 import {
   Check,
   ChevronDown,
+  MoreHorizontal,
   Plus,
   Settings2,
   Upload,
@@ -17,7 +18,11 @@ import type { TokenCollection } from "@token-workshop/core";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
-import { FLOATING_MENU_WIDE_CLASS } from "../../shared/menuClasses";
+import {
+  FLOATING_MENU_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+  FLOATING_MENU_WIDE_CLASS,
+} from "../../shared/menuClasses";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
 import type { CollectionReviewSummary } from "../../shared/reviewSummary";
 import {
@@ -109,6 +114,14 @@ export function CollectionTabs({
     preferredHeight: 380,
     align: "start",
   });
+  const actionsMenu = useDropdownMenu();
+  const actionsMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: actionsMenu.triggerRef,
+    open: actionsMenu.open,
+    preferredWidth: 220,
+    preferredHeight: 220,
+    align: "end",
+  });
 
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -142,7 +155,7 @@ export function CollectionTabs({
       ? `Editing ${currentDisplayName}`
       : null;
   const visibleTitle =
-    scopeValue === "all" ? "Browsing all collections" : currentDisplayName;
+    scopeValue === "all" ? "All collections" : currentDisplayName;
   const visibleMeta =
     scopeValue === "all"
       ? [editingContext, formatAllCollectionsMeta(collections.length, allCollectionsTokenCount)]
@@ -178,13 +191,44 @@ export function CollectionTabs({
           }
         : null;
   const showImportAction = showCreateButton && showImportButton;
+  const secondaryActions = [
+    showManageButton
+      ? {
+          key: "details",
+          label:
+            activeCollectionSettings?.open === true
+              ? "Hide details"
+              : "Show details",
+          icon: <Settings2 size={12} strokeWidth={1.5} aria-hidden />,
+          onClick: () =>
+            activeCollectionSettings?.onToggle(currentCollectionId!),
+        }
+      : null,
+    showImportAction
+      ? {
+          key: "import",
+          label: "Import",
+          icon: <Upload size={12} strokeWidth={1.5} aria-hidden />,
+          onClick: () => onOpenImport?.(),
+        }
+      : null,
+  ].filter(
+    (
+      action,
+    ): action is {
+      key: string;
+      label: string;
+      icon: JSX.Element;
+      onClick: () => void;
+    } => action !== null,
+  );
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
-      ? `All collections view. Editing ${currentDisplayName}. Choose collection`
-      : `Current collection: ${currentDisplayName}. Choose collection`
+      ? `All collections. Editing ${currentDisplayName}. Choose collection`
+      : `Collection: ${currentDisplayName}. Choose collection`
     : scopeValue === "all"
-      ? "All collections view. Choose collection"
+      ? "All collections. Choose collection"
       : "Choose collection";
   const triggerTitle =
     visibleMeta.length > 0 ? `${visibleTitle} · ${visibleMeta}` : visibleTitle;
@@ -445,30 +489,6 @@ export function CollectionTabs({
           </div>
 
           <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
-            {showManageButton ? (
-              <Button
-                onClick={() => activeCollectionSettings?.onToggle(currentCollectionId!)}
-                aria-pressed={activeCollectionSettings?.open === true}
-                aria-label={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection details"
-                    : "Open collection details"
-                }
-                title={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection details"
-                    : "Open collection details"
-                }
-                variant="ghost"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
-              >
-                <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  Details
-                </span>
-              </Button>
-            ) : null}
             {primaryAction ? (
               <Button
                 onClick={primaryAction.onClick}
@@ -484,20 +504,51 @@ export function CollectionTabs({
                 </span>
               </Button>
             ) : null}
-            {showImportAction ? (
+            {secondaryActions.length > 0 ? (
               <Button
-                onClick={() => onOpenImport?.()}
-                aria-label="Import into library"
-                title="Import into library"
-                variant="ghost"
+                ref={actionsMenu.triggerRef}
+                onClick={actionsMenu.toggle}
+                aria-expanded={actionsMenu.open}
+                aria-haspopup="menu"
+                aria-label="Collection actions"
+                title="Collection actions"
+                variant="secondary"
                 size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary tm-collection-toolbar__overflow-button justify-start`}
               >
-                <Upload size={12} strokeWidth={1.5} aria-hidden />
+                <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  Import
+                  More
                 </span>
               </Button>
+            ) : null}
+            {actionsMenu.open ? (
+              <div
+                ref={actionsMenu.menuRef}
+                style={actionsMenuStyle ?? { visibility: "hidden" }}
+                className={FLOATING_MENU_CLASS}
+                role="menu"
+              >
+                {secondaryActions.map((action) => (
+                  <button
+                    key={action.key}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      action.onClick();
+                      actionsMenu.close({ restoreFocus: false });
+                    }}
+                    className={FLOATING_MENU_ITEM_CLASS}
+                  >
+                    <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
+                      {action.icon}
+                    </span>
+                    <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
+                      {action.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
             ) : null}
           </div>
         </div>
