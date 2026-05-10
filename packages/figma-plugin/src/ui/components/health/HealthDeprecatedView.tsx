@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TokenMapEntry } from "../../../shared/types";
-import type { DeprecatedUsageEntry } from "../../shared/deprecatedUsage";
+import type {
+  DeprecatedReplacementSelection,
+  DeprecatedUsageEntry,
+} from "../../shared/deprecatedUsage";
 import { TokenPickerDropdown } from "../TokenPicker";
 import type { ScopedTokenCandidate } from "../../shared/scopedTokenCandidates";
 import { Spinner } from "../Spinner";
@@ -17,11 +20,6 @@ export interface HealthDeprecatedViewProps {
     replacement: DeprecatedReplacementSelection,
   ) => Promise<void>;
   onBack: () => void;
-}
-
-interface DeprecatedReplacementSelection {
-  path: string;
-  collectionId: string;
 }
 
 function formatCount(count: number, singular: string, plural = `${singular}s`): string {

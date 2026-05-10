@@ -43,6 +43,7 @@ export function ModeColumnHeader({
   const [actionError, setActionError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -182,11 +183,13 @@ export function ModeColumnHeader({
       e.stopPropagation();
       const startX = e.clientX;
       const startWidth = widthRef.current;
+      setIsResizing(true);
       const onMove = (me: MouseEvent) => {
         const delta = me.clientX - startX;
         onResize(startWidth + delta);
       };
       const onUp = () => {
+        setIsResizing(false);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
       };
@@ -266,7 +269,10 @@ export function ModeColumnHeader({
   );
 
   return (
-    <div ref={cellRef} className="tm-mode-column-header group/mode-column relative min-w-0">
+    <div
+      ref={cellRef}
+      className={`tm-mode-column-header group/mode-column relative min-w-0${isResizing ? " tm-mode-column-header--resizing" : ""}`}
+    >
       <div
         role="separator"
         aria-orientation="vertical"

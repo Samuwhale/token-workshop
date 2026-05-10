@@ -7,7 +7,7 @@ import {
 import type { TokenMapEntry } from "../../shared/types";
 import { resolveAllAliases } from "../../shared/resolveAlias";
 
-type ModeSelections = Record<string, string>;
+type SelectedModeNamesByCollection = Record<string, string>;
 
 function cloneModeValue<T>(value: T): T {
   return typeof value === "object" && value !== null
@@ -20,6 +20,29 @@ function readTokenModes(
 ): ReturnType<typeof readTokenCollectionModeValues> | null {
   const modes = readTokenCollectionModeValues(entry);
   return Object.keys(modes).length > 0 ? modes : null;
+}
+
+function getSelectedModeValue(
+  entry: TokenMapEntry,
+  collection: TokenCollection,
+  selectedModeName: string | undefined,
+): TokenMapEntry["$value"] {
+  if (!selectedModeName) {
+    return entry.$value;
+  }
+
+  const selectedModeIndex = collection.modes.findIndex(
+    (mode) => mode.name === selectedModeName,
+  );
+  if (selectedModeIndex <= 0) {
+    return entry.$value;
+  }
+
+  const tokenModes = readTokenModes(entry);
+  const selectedModeValue = tokenModes?.[collection.id]?.[selectedModeName];
+  return selectedModeValue === undefined
+    ? entry.$value
+    : selectedModeValue as TokenMapEntry["$value"];
 }
 
 export function readEditorCollectionModeValues(
@@ -92,7 +115,7 @@ export function createEditorModeValuesForCollection(
 export function applyModeSelectionsToTokens(
   allTokensFlat: Record<string, TokenMapEntry>,
   collections: TokenCollection[],
-  selections: ModeSelections,
+  selections: SelectedModeNamesByCollection,
   pathToCollectionId?: Record<string, string>,
 ): Record<string, TokenMapEntry> {
   if (collections.length === 0 || Object.keys(selections).length === 0) {
@@ -105,27 +128,20 @@ export function applyModeSelectionsToTokens(
   const collectionResolvedEntries: Record<string, TokenMapEntry> = {};
 
   for (const [path, entry] of Object.entries(allTokensFlat)) {
-    const tokenModes = readTokenModes(entry);
     const collectionId = pathToCollectionId?.[path];
-    if (!collectionId || !collectionsById.has(collectionId)) {
+    const collection = collectionId
+      ? collectionsById.get(collectionId)
+      : undefined;
+    if (!collectionId || !collection) {
       collectionResolvedEntries[path] = entry;
       continue;
     }
 
-    let nextValue = entry.$value;
-    const optionName = selections[collectionId];
-    if (optionName) {
-      const collection = collectionsById.get(collectionId);
-      const optionIndex =
-        collection?.modes.findIndex((mode) => mode.name === optionName) ?? -1;
-      if (optionIndex > 0) {
-        const overrideValue = tokenModes?.[collectionId]?.[optionName];
-        if (overrideValue === undefined) {
-          continue;
-        }
-        nextValue = overrideValue as TokenMapEntry["$value"];
-      }
-    }
+    const nextValue = getSelectedModeValue(
+      entry,
+      collection,
+      selections[collectionId],
+    );
 
     collectionResolvedEntries[path] =
       nextValue === entry.$value

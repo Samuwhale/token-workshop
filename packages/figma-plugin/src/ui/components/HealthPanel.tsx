@@ -22,7 +22,11 @@ import { HealthDeprecatedView } from "./health/HealthDeprecatedView";
 import { HealthAliasOpportunitiesView } from "./health/HealthAliasOpportunitiesView";
 import { HealthDuplicatesView } from "./health/HealthDuplicatesView";
 import { HealthRulesView } from "./health/HealthRulesView";
-import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
+import {
+  replaceDeprecatedReferences,
+  type DeprecatedReplacementSelection,
+  type DeprecatedUsageEntry,
+} from "../shared/deprecatedUsage";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 import type { CollectionReviewSummary } from "../shared/reviewSummary";
 
@@ -378,22 +382,15 @@ export function HealthPanel({
 
   const handleReplaceDeprecated = async (
     entry: DeprecatedUsageEntry,
-    replacement: { path: string; collectionId: string },
+    replacement: DeprecatedReplacementSelection,
   ) => {
     try {
-      const result = await apiFetch<{ ok: true; updated: number; operationId?: string }>(
-        `${serverUrl}/api/tokens/deprecated-usage/replace`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            collectionId: entry.collectionId,
-            deprecatedPath: entry.deprecatedPath,
-            replacementPath: replacement.path,
-            replacementCollectionId: replacement.collectionId,
-          }),
-        },
-      );
+      const result = await replaceDeprecatedReferences({
+        serverUrl,
+        deprecatedPath: entry.deprecatedPath,
+        collectionId: entry.collectionId,
+        replacement,
+      });
       if (onPushUndo && result.operationId && result.updated > 0) {
         const opId = result.operationId;
         onPushUndo({

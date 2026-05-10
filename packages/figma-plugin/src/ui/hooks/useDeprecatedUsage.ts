@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { apiFetch, createFetchSignal } from "../shared/apiFetch";
+import { createFetchSignal } from "../shared/apiFetch";
 import { isAbortError } from "../shared/utils";
-import type { DeprecatedUsageEntry } from "../shared/deprecatedUsage";
+import {
+  fetchDeprecatedUsage,
+  type DeprecatedUsageEntry,
+} from "../shared/deprecatedUsage";
 
 interface UseDeprecatedUsageOptions {
   serverUrl: string;
@@ -39,12 +42,12 @@ export function useDeprecatedUsage({
 
     const loadDeprecatedUsage = async () => {
       try {
-        const data = await apiFetch<{ entries: DeprecatedUsageEntry[] }>(
-          `${serverUrl}/api/tokens/deprecated-usage`,
-          { signal: createFetchSignal(controller.signal, 8000) },
+        const nextEntries = await fetchDeprecatedUsage(
+          serverUrl,
+          createFetchSignal(controller.signal, 8000),
         );
         if (!controller.signal.aborted) {
-          setEntries(Array.isArray(data.entries) ? data.entries : []);
+          setEntries(nextEntries);
         }
       } catch (err) {
         if (isAbortError(err) || controller.signal.aborted) {
