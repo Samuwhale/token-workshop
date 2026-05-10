@@ -66,7 +66,7 @@ export const TOP_TABS: {
       { id: "tokens", label: "Tokens" },
       { id: "generators", label: "Generators" },
       { id: "health", label: "Review" },
-      { id: "history", label: "History" },
+      { id: "history", label: "Local history" },
     ],
   },
   {
@@ -83,7 +83,7 @@ export const TOP_TABS: {
     subTabs: [
       { id: "publish-figma", label: "Figma" },
       { id: "publish-code", label: "Export files" },
-      { id: "publish-repository", label: "Shared versions" },
+      { id: "publish-repository", label: "Team versions" },
     ],
   },
 ];
@@ -290,7 +290,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       { id: "tokens",  label: "Tokens",  topTab: "library", subTab: "tokens" },
       { id: "generators", label: "Generators", topTab: "library", subTab: "generators" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
-      { id: "history", label: "History", topTab: "library", subTab: "history" },
+      { id: "history", label: "Local history", topTab: "library", subTab: "history" },
     ],
     matchRoutes: [
       route("library", "tokens"),
@@ -323,7 +323,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     sections: [
       { id: "publish-figma", label: "Figma", topTab: "publish", subTab: "publish-figma" },
       { id: "publish-code",  label: "Export files",  topTab: "publish", subTab: "publish-code" },
-      { id: "publish-repository",  label: "Shared versions",  topTab: "publish", subTab: "publish-repository" },
+      { id: "publish-repository",  label: "Team versions",  topTab: "publish", subTab: "publish-repository" },
     ],
     matchRoutes: [
       route("publish", "publish-figma"),

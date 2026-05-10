@@ -155,6 +155,47 @@ function ContextualOverlayShell({
   );
 }
 
+function SideSheetOverlay({
+  children,
+  ariaLabel,
+  onDismiss,
+  maxWidthClass = "max-w-[min(360px,calc(100vw-16px))]",
+}: {
+  children: ReactNode;
+  ariaLabel: string;
+  onDismiss: () => void;
+  maxWidthClass?: string;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`Close ${ariaLabel.toLowerCase()}`}
+        className="absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
+        onClick={onDismiss}
+      />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
+        className={`panel-slide-in absolute inset-y-0 right-0 z-20 flex w-full min-h-0 flex-col overflow-hidden border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)] ${maxWidthClass}`}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.stopPropagation();
+            onDismiss();
+          }
+        }}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
+
 function resolveContextualPanelLayout({
   shellWidth,
   requestedWidth,
@@ -1348,29 +1389,26 @@ export function PanelRouter({
     <div className="relative flex h-full min-h-0 overflow-hidden">
       <div className="min-w-0 flex-1 overflow-hidden">{panelContent}</div>
       {notificationsOpen && (
-        <>
-          <div
-            className="absolute inset-0 z-10 bg-[var(--color-figma-overlay)]"
-            onClick={closeNotifications}
+        <SideSheetOverlay
+          ariaLabel="Notifications"
+          onDismiss={closeNotifications}
+        >
+          <NotificationsPanel
+            history={controller.notificationHistory}
+            onClear={controller.clearNotificationHistory}
+            onClose={closeNotifications}
+            onOpenToken={(path, collectionId) =>
+              openTokenInContext({
+                path,
+                collectionId,
+                mode: "inspect",
+                origin: "notifications",
+                returnLabel: "Back to Notifications",
+                onReturn: openNotifications,
+              })
+            }
           />
-          <div className="panel-slide-in absolute bottom-0 right-0 top-0 z-20 w-full max-w-[min(360px,calc(100vw-16px))] border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-panel)]">
-            <NotificationsPanel
-              history={controller.notificationHistory}
-              onClear={controller.clearNotificationHistory}
-              onClose={closeNotifications}
-              onOpenToken={(path, collectionId) =>
-                openTokenInContext({
-                  path,
-                  collectionId,
-                  mode: "inspect",
-                  origin: "notifications",
-                  returnLabel: "Back to Notifications",
-                  onReturn: openNotifications,
-                })
-              }
-            />
-          </div>
-        </>
+        </SideSheetOverlay>
       )}
     </div>
   );

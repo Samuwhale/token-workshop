@@ -23,7 +23,7 @@ export function GitRouter({
 
   return (
     <ErrorBoundary
-      panelName="Publish · Shared versions"
+      panelName="Publish · Team versions"
       onReset={() => navigateTo("publish", "publish-repository")}
     >
       <GitRepositoryPanel

@@ -261,7 +261,12 @@ export function TokenDetailsModeRow({
 
   const showHeader = showModeLabel;
   const controls = editable ? (
-    <div className="tm-token-mode-row__controls">
+    <div
+      className={joinClasses(
+        "tm-token-mode-row__controls",
+        showHeader && "tm-token-mode-row__controls--body",
+      )}
+    >
       <button
         type="button"
         onClick={handleAliasToggle}
@@ -293,18 +298,18 @@ export function TokenDetailsModeRow({
           className="tm-token-mode-row__action-button"
           title={
             previousModeName
-              ? `Use the ${previousModeName} value for ${modeName}`
-              : `Use the previous mode value for ${modeName}`
+              ? `Copy the ${previousModeName} value to ${modeName}`
+              : `Copy the previous mode value to ${modeName}`
           }
           aria-label={
             previousModeName
-              ? `Use the ${previousModeName} value for ${modeName}`
-              : `Use the previous mode value for ${modeName}`
+              ? `Copy the ${previousModeName} value to ${modeName}`
+              : `Copy the previous mode value to ${modeName}`
           }
         >
           <Copy size={12} strokeWidth={1.5} aria-hidden />
           <span className="tm-token-mode-row__action-button-label">
-            Use previous
+            Copy value
           </span>
         </button>
       ) : null}
@@ -313,12 +318,12 @@ export function TokenDetailsModeRow({
           type="button"
           onClick={onCopyToAll}
           className="tm-token-mode-row__action-button"
-          title={`Apply the ${modeName} value to every mode`}
-          aria-label={`Apply the ${modeName} value to every mode`}
+          title={`Copy the ${modeName} value to every mode`}
+          aria-label={`Copy the ${modeName} value to every mode`}
         >
           <Rows3 size={12} strokeWidth={1.5} aria-hidden />
           <span className="tm-token-mode-row__action-button-label">
-            Apply to all
+            Copy to all
           </span>
         </button>
       ) : null}
@@ -354,8 +359,6 @@ export function TokenDetailsModeRow({
               ) : null}
             </div>
           </div>
-
-          {controls}
         </div>
       )}
 
@@ -407,6 +410,7 @@ export function TokenDetailsModeRow({
                   pathToCollectionId={pathToCollectionId}
                   preferredCollectionId={preferredCollectionId}
                   collectionDisplayNames={collectionDisplayNames}
+                  previewModeName={modeName}
                   filterType={tokenType}
                   onSelect={handleAliasSelect}
                   onClose={() => setAutocompleteOpen(false)}
@@ -516,6 +520,8 @@ export function TokenDetailsModeRow({
             </div>
           )}
         </div>
+
+        {showHeader ? controls : null}
 
         {!showHeader && (controls || modified) ? (
           <div className="tm-token-mode-row__inline-controls">

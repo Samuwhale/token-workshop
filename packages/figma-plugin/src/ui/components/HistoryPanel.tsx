@@ -330,7 +330,7 @@ export function HistoryPanel({
           onClick={() => navigateTo("publish", "publish-repository")}
           className="text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)]"
         >
-          Need team versions? Open Shared versions
+          Need team versions? Open Team versions
         </button>
       </div>
     </div>

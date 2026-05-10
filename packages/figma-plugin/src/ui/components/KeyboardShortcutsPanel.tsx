@@ -8,7 +8,7 @@ interface KeyboardShortcutsPanelProps {
 
 export function KeyboardShortcutsPanel({ onClose }: KeyboardShortcutsPanelProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="tm-shortcuts-panel flex h-full flex-col overflow-hidden">
       <SecondaryTakeoverHeader
         title="Keyboard shortcuts"
         onClose={onClose}
@@ -24,12 +24,12 @@ export function KeyboardShortcutsPanel({ onClose }: KeyboardShortcutsPanelProps)
               ({ mac, altMac, description, qualifier }) => (
                 <div
                   key={description}
-                  className="flex items-center justify-between px-3 py-1"
+                  className="tm-shortcuts-panel__row px-3 py-1"
                 >
-                  <span className="pr-3 text-body text-[color:var(--color-figma-text)]">
+                  <span className="tm-shortcuts-panel__description text-body text-[color:var(--color-figma-text)]">
                     {description}
                   </span>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="tm-shortcuts-panel__keys">
                     {qualifier ? (
                       <code className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1 py-0.5 font-mono text-secondary text-[color:var(--color-figma-text-secondary)]">
                         {mac}

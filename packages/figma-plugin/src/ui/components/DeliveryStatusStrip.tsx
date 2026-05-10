@@ -55,7 +55,7 @@ function syncChip(
   if (syncing) {
     return {
       id: "sync",
-      label: "Canvas applying...",
+      label: "Applying to canvas...",
       tone: "accent",
       onClick: onOpenSync,
       title: "Open Canvas selection sync",
@@ -64,7 +64,7 @@ function syncChip(
   if (syncError) {
     return {
       id: "sync",
-      label: "Canvas apply failed",
+      label: "Review canvas failure",
       tone: "error",
       onClick: onOpenSync,
       title: syncError,
@@ -73,7 +73,7 @@ function syncChip(
   if (syncResult && syncResult.errors > 0) {
     return {
       id: "sync",
-      label: `${syncResult.errors} canvas failure${syncResult.errors === 1 ? "" : "s"}`,
+      label: `Review canvas failures (${syncResult.errors})`,
       tone: "error",
       onClick: onOpenSync,
       title: "Open Canvas selection sync to review failed bindings",
@@ -83,7 +83,7 @@ function syncChip(
     const count = syncResult.missingTokens.length;
     return {
       id: "sync",
-      label: `${count} missing binding${count === 1 ? "" : "s"}`,
+      label: `Repair canvas bindings (${count})`,
       tone: "warning",
       onClick: onOpenRepair ?? onOpenSync,
       title: `Open Canvas repair for ${count} missing token path${count === 1 ? "" : "s"}`,
@@ -110,7 +110,7 @@ export function DeliveryStatusStrip({
   if (reviewItemCount > 0) {
     chips.push({
       id: "health",
-      label: `${reviewItemCount} library review`,
+      label: `Fix library (${reviewItemCount})`,
       tone: healthTone(reviewStatus),
       onClick: onOpenHealth,
       title: "Open Library Review",
@@ -120,7 +120,7 @@ export function DeliveryStatusStrip({
   if (publishApplying) {
     chips.push({
       id: "publish",
-      label: "Figma applying...",
+      label: "Publishing to Figma...",
       tone: "accent",
       onClick: onOpenPublishCompare,
       title: "Open Publish to Figma",
@@ -128,7 +128,7 @@ export function DeliveryStatusStrip({
   } else if (pendingPublishCount > 0) {
     chips.push({
       id: "publish",
-      label: `${pendingPublishCount} Figma change${pendingPublishCount === 1 ? "" : "s"}`,
+      label: `Review Figma changes (${pendingPublishCount})`,
       tone: "accent",
       onClick: onOpenPublishCompare,
       title: "Open Publish to review Figma changes",

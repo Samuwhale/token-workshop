@@ -277,7 +277,7 @@ export function HealthDashboard({
       <div className="tm-health-rules">
         <StatusRow
           tone="neutral"
-          label="Rules"
+          label="Review settings"
           icon={<SlidersHorizontal size={14} strokeWidth={2.25} aria-hidden />}
           onClick={openView("rules")}
         />

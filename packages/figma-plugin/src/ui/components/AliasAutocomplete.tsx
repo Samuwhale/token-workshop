@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { readTokenCollectionModeValues } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { tokenTypeBadgeClass } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
-import { isAlias } from '../../shared/resolveAlias';
+import { isAlias, resolveAliasEntry } from '../../shared/resolveAlias';
 import { addRecentToken } from '../shared/recentTokens';
 import { useTokenFlatMapContext } from '../contexts/TokenDataContext';
 import {
@@ -20,6 +21,7 @@ interface AliasAutocompleteProps {
   pathToCollectionId?: Record<string, string>;
   preferredCollectionId?: string;
   collectionDisplayNames?: Record<string, string>;
+  previewModeName?: string;
   filterType?: string;
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
   onClose: () => void;
@@ -34,6 +36,7 @@ export function AliasAutocomplete({
   pathToCollectionId = {},
   preferredCollectionId,
   collectionDisplayNames,
+  previewModeName,
   filterType,
   onSelect,
   onClose,
@@ -177,6 +180,62 @@ export function AliasAutocomplete({
     [collectionDisplayNames],
   );
 
+  const modePreviewMaps = useMemo(() => {
+    if (!previewModeName) {
+      return {};
+    }
+    const collectionIds = new Set(
+      candidates
+        .map((candidate) => candidate.collectionId)
+        .filter((collectionId): collectionId is string => Boolean(collectionId)),
+    );
+    const maps: Record<string, Record<string, TokenMapEntry>> = {};
+
+    for (const collectionId of collectionIds) {
+      const baseMap = perCollectionFlat[collectionId];
+      if (!baseMap) {
+        continue;
+      }
+      let changed = false;
+      const modeMap: Record<string, TokenMapEntry> = {};
+      for (const [path, entry] of Object.entries(baseMap)) {
+        const modeValues =
+          readTokenCollectionModeValues(entry)[collectionId] ?? {};
+        if (Object.prototype.hasOwnProperty.call(modeValues, previewModeName)) {
+          modeMap[path] = {
+            ...entry,
+            $value: modeValues[previewModeName] as TokenMapEntry["$value"],
+          };
+          changed = true;
+          continue;
+        }
+        modeMap[path] = entry;
+      }
+      if (changed) {
+        maps[collectionId] = modeMap;
+      }
+    }
+
+    return maps;
+  }, [candidates, perCollectionFlat, previewModeName]);
+
+  const getModePreviewEntry = useCallback(
+    (candidate: ScopedTokenCandidate): TokenMapEntry => {
+      const modeMap = candidate.collectionId
+        ? modePreviewMaps[candidate.collectionId]
+        : undefined;
+      if (!modeMap) {
+        return candidate.resolvedEntry;
+      }
+      return (
+        resolveAliasEntry(candidate.path, modeMap) ??
+        modeMap[candidate.path] ??
+        candidate.resolvedEntry
+      );
+    },
+    [modePreviewMaps],
+  );
+
   useEffect(() => {
     setActiveIdx(0);
   }, [query]);
@@ -230,7 +289,8 @@ export function AliasAutocomplete({
         </div>
       ) : null}
       {entries.map((candidate, idx) => {
-        const { path, entry, resolvedEntry: resolved } = candidate;
+        const { path, entry } = candidate;
+        const resolved = getModePreviewEntry(candidate);
         const isAliasToken = isAlias(entry.$value);
         const previewValue = formatTokenValuePreview(resolved.$value);
         const rawPreview = isAliasToken ? formatTokenValuePreview(entry.$value) : '';

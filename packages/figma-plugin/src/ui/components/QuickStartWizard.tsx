@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { MousePointer2, Plus, Upload, X } from "lucide-react";
 import {
   buildCollectionModeNames,
@@ -8,6 +8,8 @@ import {
   validateCollectionAuthoringDraft,
 } from "./CollectionAuthoringFields";
 import type { CreateCollectionRequest } from "./CollectionCreateDialog";
+import { Button, IconButton } from "../primitives";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 type PrereqPhase = "connect" | "create-collection" | null;
 const QUICK_START_TITLE = "Start a token library";
@@ -74,22 +76,24 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
         ) : null}
       </div>
 
-      <div className="flex gap-2">
-        <button
+      <div className="flex flex-wrap gap-2">
+        <Button
           type="button"
           onClick={onClose}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] text-body hover:bg-[var(--color-figma-bg-hover)]"
+          variant="secondary"
+          className="flex-1"
         >
           Close
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => onRetry?.()}
           disabled={checking}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-60"
+          variant="primary"
+          className="flex-1"
         >
           {checking ? "Checking…" : "Retry connection"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -176,14 +180,15 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
         }}
       />
 
-      <button
+      <Button
         type="button"
         onClick={handleCreate}
         disabled={saving || !draft.name.trim()}
-        className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
+        variant="primary"
+        className="w-full"
       >
         {saving ? "Creating…" : "Create collection"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -197,21 +202,43 @@ function QuickStartShell({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
+
+  useEffect(() => {
+    if (embedded) {
+      return;
+    }
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [embedded, onClose]);
+
   const content = (
     <>
       {!embedded ? (
-        <div className="flex items-center justify-between border-b border-[var(--color-figma-border)] px-4 py-3">
-          <div className="text-heading font-semibold text-[color:var(--color-figma-text)]">
-            {QUICK_START_TITLE}
+        <div className="tm-modal-header tm-modal-header--split border-b border-[var(--color-figma-border)]">
+          <div className="tm-modal-header__headline">
+            <div className="tm-dialog-title">
+              {QUICK_START_TITLE}
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded p-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            <X size={12} strokeWidth={2} aria-hidden />
-          </button>
+          <div className="tm-modal-header__actions">
+            <IconButton
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              title="Close"
+              size="sm"
+              className="tm-modal-close-button"
+            >
+              <X size={12} strokeWidth={2} aria-hidden />
+            </IconButton>
+          </div>
         </div>
       ) : null}
       {children}
@@ -223,10 +250,21 @@ function QuickStartShell({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-figma-overlay)]">
+    <div
+      className="tm-modal-shell"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div
-        className="flex w-80 flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-dialog)]"
-        style={{ maxHeight: "85vh" }}
+        ref={dialogRef}
+        className="tm-modal-panel tm-modal-panel--dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={QUICK_START_TITLE}
+        style={{ inlineSize: "min(100%, 24rem)", maxBlockSize: "85vh" }}
       >
         {content}
       </div>

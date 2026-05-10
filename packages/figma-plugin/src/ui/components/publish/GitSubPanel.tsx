@@ -163,7 +163,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
             disabled={git.actionLoading !== null}
             className="w-full px-4 py-2 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
           >
-            {git.actionLoading === 'init' ? 'Setting up\u2026' : 'Set up shared versions'}
+            {git.actionLoading === 'init' ? 'Setting up\u2026' : 'Set up team versions'}
           </button>
         </div>
       )}

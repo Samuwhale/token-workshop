@@ -676,7 +676,7 @@ export function HealthPanel({
               <SlidersHorizontal size={14} strokeWidth={2.25} aria-hidden />
             </span>
             <span className="min-w-0 flex-1 truncate text-body text-[color:var(--color-figma-text)]">
-              Rules
+              Review settings
             </span>
           </button>
         </div>

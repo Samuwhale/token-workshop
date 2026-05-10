@@ -217,20 +217,20 @@ export function ExportPreviewModal({
           role="tabpanel"
           aria-labelledby={activeFile ? getTabDomId(activeFile) : undefined}
           tabIndex={0}
-          className="flex-1 overflow-auto border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
+          className="tm-export-preview__viewport flex-1 overflow-auto border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]"
         >
           {activeFile && (
-            <table className="min-w-full w-max border-collapse">
+            <table className="tm-export-preview__table min-w-full w-max border-collapse">
               <tbody>
                 {lines.map((line, lineIdx) => (
                   <tr
                     key={lineIdx}
                     className="hover:bg-[var(--color-figma-bg-hover)]/50"
                   >
-                    <td className="px-2 py-0 text-secondary font-mono text-[color:var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
+                    <td className="tm-export-preview__line-number px-2 py-0 text-secondary font-mono text-[color:var(--color-figma-text-tertiary)] text-right select-none w-[1%] whitespace-nowrap border-r border-[var(--color-figma-border)] align-top">
                       {lineIdx + 1}
                     </td>
-                    <td className="px-3 py-0 text-secondary font-mono text-[color:var(--color-figma-text)] whitespace-pre">
+                    <td className="tm-export-preview__line px-3 py-0 text-secondary font-mono text-[color:var(--color-figma-text)] whitespace-pre">
                       {line || "\u00A0"}
                     </td>
                   </tr>

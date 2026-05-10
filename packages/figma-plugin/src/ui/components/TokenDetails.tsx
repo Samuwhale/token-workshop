@@ -1964,10 +1964,12 @@ export function TokenDetails({
                 <button
                   type="button"
                   onClick={fillEmptyModesFromFirst}
+                  title={`Copy the ${firstMode.name} value to empty modes`}
+                  aria-label={`Copy the ${firstMode.name} value to empty modes`}
                   className="tm-token-details__text-button"
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  Fill empty modes from {firstMode.name}
+                  Fill empty modes
                 </button>
               ) : undefined
             ) : undefined

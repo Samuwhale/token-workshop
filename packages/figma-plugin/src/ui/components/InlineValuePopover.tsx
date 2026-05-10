@@ -159,23 +159,21 @@ export function InlineValuePopover({
       </div>
 
       {/* Editor area */}
-      <div className="flex-1 overflow-y-auto p-3 min-h-0">
-        <div className="rounded-md border border-[var(--color-figma-border)]/65 divide-y divide-[var(--color-figma-border)]/50">
-          <TokenDetailsModeRow
-            modeName={modeLabel ?? tokenName}
-            tokenType={tokenType}
-            value={draftValue}
-            editable
-            onChange={setDraftValue}
-            allTokensFlat={allTokensFlat}
-            pathToCollectionId={pathToCollectionId}
-            collectionIdsByPath={collectionIdsByPath}
-            perCollectionFlat={perCollectionFlat}
-            preferredCollectionId={preferredCollectionId}
-            showModeLabel={Boolean(modeLabel)}
-            autoFocus
-          />
-        </div>
+      <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
+        <TokenDetailsModeRow
+          modeName={modeLabel ?? tokenName}
+          tokenType={tokenType}
+          value={draftValue}
+          editable
+          onChange={setDraftValue}
+          allTokensFlat={allTokensFlat}
+          pathToCollectionId={pathToCollectionId}
+          collectionIdsByPath={collectionIdsByPath}
+          perCollectionFlat={perCollectionFlat}
+          preferredCollectionId={preferredCollectionId}
+          showModeLabel={Boolean(modeLabel)}
+          autoFocus
+        />
       </div>
 
       {/* Footer */}

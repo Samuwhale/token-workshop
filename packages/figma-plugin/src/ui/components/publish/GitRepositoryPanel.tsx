@@ -124,7 +124,7 @@ export function GitRepositoryPanel({
             onClick={() => navigateTo('library', 'history')}
             className="text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)]"
           >
-            Need local undo or checkpoints? Open History
+            Need undo or checkpoints? Open Local history
           </button>
         </div>
         {repositoryReady ? (
