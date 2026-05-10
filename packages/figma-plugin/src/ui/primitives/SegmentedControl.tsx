@@ -75,7 +75,7 @@ export function SegmentedControl<T extends string>({
     <div
       className={`tm-segmented-control inline-flex max-w-full items-stretch gap-[2px] rounded bg-[var(--color-figma-bg)] p-[2px] ${
         adaptiveWrap
-          ? "tm-segmented-control--adaptive flex-nowrap"
+          ? "tm-segmented-control--adaptive"
           : "flex-nowrap overflow-x-auto"
       } ${compact ? "tm-segmented-control--compact" : ""}`}
       role="radiogroup"

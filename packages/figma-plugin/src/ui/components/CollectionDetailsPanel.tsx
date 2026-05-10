@@ -886,7 +886,7 @@ export function CollectionDetailsPanel({
                       className="w-full text-[17px] font-semibold tracking-tight"
                     />
                     <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      This renames the collection designers see in Token Workshop and in token files.
+                      This renames the collection designers see throughout Token Workshop.
                     </p>
                     {renameError ? (
                       <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{renameError}</p>

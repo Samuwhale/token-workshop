@@ -1976,7 +1976,7 @@ export function TokenDetails({
                   className="tm-token-details__text-button"
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  Fill empty modes
+                  Copy {firstMode.name} to empty modes
                 </button>
               ) : undefined
             ) : undefined

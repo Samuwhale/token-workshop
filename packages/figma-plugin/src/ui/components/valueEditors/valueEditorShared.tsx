@@ -13,9 +13,9 @@ import { AUTHORING } from '../../shared/editorClasses';
 import { IconButton } from '../../primitives';
 
 const REFERENCE_FIELD_ROW_CLASS =
-  'relative grid min-w-0 items-stretch gap-1.5 [grid-template-columns:minmax(0,1fr)_auto]';
+  'tm-value-editor-row tm-value-editor-row--reference relative grid min-w-0 items-stretch gap-1.5 [grid-template-columns:minmax(0,1fr)_auto]';
 const REFERENCE_FIELD_WITH_UNIT_ROW_CLASS =
-  'grid min-w-0 items-stretch gap-1.5 [grid-template-columns:minmax(0,1fr)_auto_auto]';
+  'tm-value-editor-row tm-value-editor-row--reference-unit grid min-w-0 items-stretch gap-1.5 [grid-template-columns:minmax(0,1fr)_auto_auto]';
 
 function ReferenceToggleButton({
   active = false,
@@ -36,7 +36,7 @@ function ReferenceToggleButton({
       title={title}
       aria-label={ariaLabel}
       className={[
-        'shrink-0 self-stretch',
+        'tm-value-editor-row__toggle shrink-0 self-stretch',
         active
           ? 'bg-[var(--surface-selected)] text-[color:var(--color-figma-text-accent)] hover:bg-[var(--surface-selected)] hover:text-[color:var(--color-figma-text)]'
           : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)]',
@@ -244,7 +244,7 @@ export const SubPropInput = memo(function SubPropInput({
         }}
         onBlur={() => setTimeout(() => setShowAC(false), 150)}
         placeholder={placeholder}
-        className={`${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
+        className={`tm-value-editor-row__input ${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
       />
       <ReferenceToggleButton
         active={isAliasVal}
@@ -315,7 +315,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
         type="number"
         value={dim.value ?? 0}
         onChange={e => onChange({ ...dim, value: parseFloat(e.target.value) || 0 })}
-        className={`${AUTHORING.input} min-w-[72px] flex-1`}
+        className={`tm-value-editor-row__input ${AUTHORING.input} min-w-[72px] flex-1`}
         placeholder={placeholder}
         onKeyDown={e => {
           if (e.key === '{') {
@@ -327,7 +327,7 @@ export const DimensionSubProp = memo(function DimensionSubProp({
       <select
         value={dim.unit ?? units[0]}
         onChange={e => onChange({ ...dim, unit: e.target.value })}
-        className={`${AUTHORING.input} w-[64px] shrink-0`}
+        className={`tm-value-editor-row__unit ${AUTHORING.input} w-[64px] shrink-0`}
       >
         {units.map(u => <option key={u} value={u}>{u}</option>)}
       </select>
@@ -381,7 +381,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           }}
           onBlur={() => setTimeout(() => setShowAC(false), 150)}
           placeholder="Inter"
-          className={`${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
+          className={`tm-value-editor-row__input ${AUTHORING.input} min-w-[72px] flex-1${isAliasVal ? ' !border-[var(--color-figma-accent)]' : ''}`}
         />
         {isAliasVal && (
           <ReferenceToggleButton
@@ -411,7 +411,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
   // Literal mode — use font picker with a way to switch to alias
   return (
     <div className={REFERENCE_FIELD_ROW_CLASS}>
-      <div className="min-w-0">
+      <div className="tm-value-editor-row__picker min-w-0">
         <FontFamilyPicker
           value={typeof value === 'string' ? value : ''}
           onChange={v => {

@@ -238,7 +238,7 @@ export function ValueCell({
               aria-label={`Add ${optionName} value`}
               title={`Add ${optionName} value`}
             >
-              Add
+              Add value
             </button>
           </div>
         ) : (

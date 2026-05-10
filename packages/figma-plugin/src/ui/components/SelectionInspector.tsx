@@ -1213,6 +1213,7 @@ export function SelectionInspector({
                             connected={connected}
                             currentCollectionId={currentCollectionId}
                             currentCollectionModeNames={currentCollectionModeNames}
+                            collectionDisplayNames={collectionDisplayNames}
                             serverUrl={serverUrl}
                             hasAnyTokens={activeCollectionHasTokens}
                             creatingFromProp={creatingFromProp}

@@ -309,7 +309,9 @@ export function TokenDetailsModeRow({
         >
           <Copy size={12} strokeWidth={1.5} aria-hidden />
           <span className="tm-token-mode-row__action-button-label">
-            Copy value
+            {previousModeName
+              ? `Copy from ${previousModeName}`
+              : "Copy from another mode"}
           </span>
         </button>
       ) : null}

@@ -28,6 +28,7 @@ import {
   isTokenMutationConflictError,
   updateToken,
 } from '../shared/tokenMutations';
+import { getCollectionDisplayName } from '../shared/libraryCollections';
 import {
   getBindingForProperty,
   getCurrentValue,
@@ -56,6 +57,7 @@ interface PropertyRowProps {
   connected: boolean;
   currentCollectionId: string;
   currentCollectionModeNames: string[];
+  collectionDisplayNames?: Record<string, string>;
   serverUrl: string;
   hasAnyTokens: boolean;
   creatingFromProp: BindableProperty | null;
@@ -245,6 +247,7 @@ export function PropertyRow({
   connected,
   currentCollectionId,
   currentCollectionModeNames,
+  collectionDisplayNames,
   serverUrl,
   hasAnyTokens,
   creatingFromProp,
@@ -271,6 +274,10 @@ export function PropertyRow({
   const [bindShowAll, setBindShowAll] = useState(false);
   const [showMixedDetail, setShowMixedDetail] = useState(false);
   const [createModeValues, setCreateModeValues] = useState<unknown[]>([]);
+  const currentCollectionLabel = getCollectionDisplayName(
+    currentCollectionId,
+    collectionDisplayNames,
+  );
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const createSessionKeyRef = useRef<string | null>(null);
@@ -907,7 +914,10 @@ export function PropertyRow({
               </div>
             )}
             <div className="flex flex-col gap-0.5">
-              <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Token path (collection: {currentCollectionId})</label>
+              <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Token path</label>
+              <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                Creates this token in {currentCollectionLabel}.
+              </span>
               <input
                 ref={nameInputRef}
                 value={newTokenName}

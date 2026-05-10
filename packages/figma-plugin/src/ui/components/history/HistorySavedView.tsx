@@ -5,7 +5,7 @@ import { formatRelativeTime } from '../../shared/changeHelpers';
 import { FeedbackPlaceholder } from '../FeedbackPlaceholder';
 import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { SnapshotsSource } from './SnapshotsSource';
-import { Button } from '../../primitives';
+import { Button, SearchField } from '../../primitives';
 import type {
   SnapshotSummary,
   UndoSlot,
@@ -103,24 +103,15 @@ export function HistorySavedView({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="shrink-0 flex items-center gap-2 px-3 py-1.5">
-        <div className="tm-panel-search flex-1">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search checkpoints…"
-            aria-label="Search checkpoints"
-            className="tm-panel-search__input text-secondary"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="shrink-0 text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] transition-colors" aria-label="Clear search">
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-            </button>
-          )}
-        </div>
+        <SearchField
+          size="sm"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          onClear={() => setSearchQuery('')}
+          placeholder="Search checkpoints…"
+          aria-label="Search checkpoints"
+          containerClassName="flex-1"
+        />
         {snapshots.length >= 2 ? (
           <Button
             type="button"
@@ -154,7 +145,7 @@ export function HistorySavedView({
             <button
               key={snapshot.id}
               onClick={() => { setSelectedSnapshotId(snapshot.id); setSelectedSnapshotLabel(snapshot.label); }}
-              className="group flex w-full items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline-none focus-visible:bg-[var(--color-figma-bg-hover)]"
+              className="group flex w-full items-start gap-2 border-b border-[var(--color-figma-border)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-figma-bg-hover)] focus-visible:bg-[var(--color-figma-bg-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[-1px]"
             >
               <div className="mt-0.5 shrink-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
@@ -170,7 +161,7 @@ export function HistorySavedView({
                   <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">· {formatRelativeTime(new Date(snapshot.timestamp))}</span>
                 </div>
               </div>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0 text-[color:var(--color-figma-text-tertiary)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0 text-[color:var(--color-figma-text-tertiary)] opacity-70 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
             </button>
           ))
         )}
