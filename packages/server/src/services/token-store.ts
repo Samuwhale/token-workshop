@@ -109,12 +109,21 @@ function readSearchableTokenValues(
   return values;
 }
 
-function tokenHasReferenceInAnyMode(
+function tokenHasAliasValueInAnyMode(
   token: Token,
   collectionId: string,
 ): boolean {
   return readSearchableTokenValues(token, collectionId).some((value) =>
     isReference(value),
+  );
+}
+
+function tokenHasDirectValueInAnyMode(
+  token: Token,
+  collectionId: string,
+): boolean {
+  return readSearchableTokenValues(token, collectionId).some(
+    (value) => !isReference(value),
   );
 }
 
@@ -316,6 +325,47 @@ export class TokenStore {
     this._clearWriteGuard(absoluteFilePath);
   }
 
+  private async loadCollectionFromWatchedFile(
+    collectionId: string,
+    errorMessage: string,
+  ): Promise<boolean> {
+    try {
+      await this.loadRegisteredCollection(collectionId);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(errorMessage, err);
+      this.emitEvent({ type: "file-load-error", collectionId, message });
+      return false;
+    }
+  }
+
+  private handleWatchedTokenFileReload(
+    filePath: string,
+    errorMessage: string,
+  ): void {
+    if (this._writingFiles.has(filePath)) {
+      this._clearWriteGuard(filePath);
+      return;
+    }
+
+    const relativePath = path.relative(this.dir, filePath);
+    const collectionId = this.collectionIdFromTokenFilePath(relativePath);
+    if (!this.collections.has(collectionId)) {
+      return;
+    }
+
+    void this.lock.withLock(async () => {
+      const loaded = await this.loadCollectionFromWatchedFile(
+        collectionId,
+        errorMessage,
+      );
+      if (loaded) {
+        this.scheduleRebuild({ type: "collection-updated", collectionId });
+      }
+    });
+  }
+
   /**
    * Explicitly reload a token file by its relative path (relative to this.dir).
    * Acquires the internal lock so it serializes correctly with watcher callbacks.
@@ -327,14 +377,13 @@ export class TokenStore {
       return;
     }
     await this.lock.withLock(async () => {
-      let loaded = true;
-      await this.loadRegisteredCollection(collectionId).catch((err) => {
-        loaded = false;
-        const message = err instanceof Error ? err.message : String(err);
-        console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
-        this.emitEvent({ type: "file-load-error", collectionId, message });
-      });
-      if (loaded) this.scheduleRebuild({ type: "collection-updated", collectionId });
+      const loaded = await this.loadCollectionFromWatchedFile(
+        collectionId,
+        `[TokenStore] Error reloading "${relativePath}":`,
+      );
+      if (loaded) {
+        this.scheduleRebuild({ type: "collection-updated", collectionId });
+      }
     });
   }
 
@@ -345,50 +394,19 @@ export class TokenStore {
     });
 
     this.watcher.on("change", (filePath) => {
-      if (this._writingFiles.has(filePath as string)) {
-        this._clearWriteGuard(filePath as string);
-        return;
-      }
       const relativePath = path.relative(this.dir, filePath as string);
-      const collectionId = this.collectionIdFromTokenFilePath(relativePath);
-      if (!this.collections.has(collectionId)) {
-        return;
-      }
-      void this.lock.withLock(async () => {
-        let loaded = true;
-        await this.loadRegisteredCollection(collectionId).catch((err) => {
-          loaded = false;
-          const message = err instanceof Error ? err.message : String(err);
-          console.warn(`[TokenStore] Error reloading "${relativePath}":`, err);
-          this.emitEvent({ type: "file-load-error", collectionId, message });
-        });
-        if (loaded) this.scheduleRebuild({ type: "collection-updated", collectionId });
-      });
+      this.handleWatchedTokenFileReload(
+        filePath as string,
+        `[TokenStore] Error reloading "${relativePath}":`,
+      );
     });
 
     this.watcher.on("add", (filePath) => {
-      if (this._writingFiles.has(filePath as string)) {
-        this._clearWriteGuard(filePath as string);
-        return;
-      }
       const relativePath = path.relative(this.dir, filePath as string);
-      const collectionId = this.collectionIdFromTokenFilePath(relativePath);
-      if (!this.collections.has(collectionId)) {
-        return;
-      }
-      void this.lock.withLock(async () => {
-        let loaded = true;
-        await this.loadRegisteredCollection(collectionId).catch((err) => {
-          loaded = false;
-          const message = err instanceof Error ? err.message : String(err);
-          console.warn(
-            `[TokenStore] Error loading collection file "${relativePath}":`,
-            err,
-          );
-          this.emitEvent({ type: "file-load-error", collectionId, message });
-        });
-        if (loaded) this.scheduleRebuild({ type: "collection-updated", collectionId });
-      });
+      this.handleWatchedTokenFileReload(
+        filePath as string,
+        `[TokenStore] Error loading collection file "${relativePath}":`,
+      );
     });
 
     this.watcher.on("unlink", (filePath) => {
@@ -1421,7 +1439,11 @@ export class TokenStore {
           entry.token,
           entry.collectionId,
         );
-        const hasReference = tokenHasReferenceInAnyMode(
+        const hasAliasValue = tokenHasAliasValueInAnyMode(
+          entry.token,
+          entry.collectionId,
+        );
+        const hasDirectValue = tokenHasDirectValueInAnyMode(
           entry.token,
           entry.collectionId,
         );
@@ -1456,12 +1478,12 @@ export class TokenStore {
           for (const h of normalizedHas) {
             if (
               (h === "alias" || h === "ref") &&
-              !hasReference
+              !hasAliasValue
             ) {
               skip = true;
               break;
             }
-            if (h === "direct" && hasReference) {
+            if (h === "direct" && !hasDirectValue) {
               skip = true;
               break;
             }
