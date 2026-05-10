@@ -410,6 +410,7 @@ export function TokenList({
           [currentCollection],
           { [currentCollection.id]: option.name },
           currentCollectionPathMap,
+          { missingModeValue: "omit" },
         ),
       });
     }
@@ -794,7 +795,7 @@ export function TokenList({
     }
     handleCollapseAllPath();
   }, [groupBy, handleCollapseAllPath, setExpandedPaths]);
-  const filterMenuActiveCount = activeFilterCount + (inspectMode ? 1 : 0);
+  const filterMenuActiveCount = activeFilterCount;
 
   const {
     toolbarStateChips,

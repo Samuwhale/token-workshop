@@ -440,12 +440,12 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     <>
       <div
         ref={tableHeaderRef}
-        className="sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
+        className="tm-token-table__header sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
         style={{ display: "grid", gridTemplateColumns: gridTemplate }}
       >
         <div
           ref={addModeMenuContainerRef}
-          className="sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-2 bg-[var(--color-figma-bg-secondary)]"
+          className="tm-token-table__token-header sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-2 bg-[var(--color-figma-bg-secondary)]"
         >
           <input
             type="checkbox"

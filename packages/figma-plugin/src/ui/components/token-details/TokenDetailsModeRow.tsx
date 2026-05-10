@@ -303,7 +303,7 @@ export function TokenDetailsModeRow({
     <div
       className={joinClasses(
         "tm-token-mode-row__controls",
-        showHeader && "tm-token-mode-row__controls--body",
+        !showHeader && "tm-token-mode-row__controls--body",
       )}
     >
       <button
@@ -317,12 +317,12 @@ export function TokenDetailsModeRow({
         title={
           aliasMode
             ? `Use a direct value for ${modeName}`
-            : `Alias another token for ${modeName}`
+            : `Reference another token for ${modeName}`
         }
         aria-label={
           aliasMode
             ? `Use a direct value for ${modeName}`
-            : `Alias another token for ${modeName}`
+            : `Reference another token for ${modeName}`
         }
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
@@ -412,6 +412,7 @@ export function TokenDetailsModeRow({
               ) : null}
             </div>
           </div>
+          {controls}
         </div>
       )}
 
@@ -440,8 +441,8 @@ export function TokenDetailsModeRow({
                   }
                 }}
                 autoFocus={autoFocus}
-                placeholder="Choose a token to alias"
-                aria-label={`${modeName} alias`}
+                placeholder="Choose a token to reference"
+                aria-label={`${modeName} reference`}
                 aria-invalid={showAliasMissingState || showAliasAmbiguousState}
                 aria-describedby={
                   showAliasMissingState || showAliasAmbiguousState
@@ -481,7 +482,7 @@ export function TokenDetailsModeRow({
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. References need one unique token path.
+                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Use a unique token path.
                 </p>
               ) : null}
             </div>
@@ -490,11 +491,11 @@ export function TokenDetailsModeRow({
               <button
                 type="button"
                 onClick={() => onChange?.(defaultModeValue)}
-                aria-label={`Start ${modeName} with ${defaultModeValueLabel}`}
-                title={`Start with ${defaultModeValueLabel}`}
+                aria-label={`Use ${defaultModeValueLabel} for ${modeName}`}
+                title={`Use ${defaultModeValueLabel}`}
                 className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
               >
-                Start with default
+                Use suggested value
               </button>
               <button
                 type="button"
@@ -543,7 +544,7 @@ export function TokenDetailsModeRow({
                         )
                       }
                       className="inline-flex max-w-full items-center gap-1 text-left font-mono text-body text-[color:var(--color-figma-text-accent)] hover:underline"
-                      aria-label={`Open aliased token ${readOnly.aliasTargetPath}`}
+                      aria-label={`Open referenced token ${readOnly.aliasTargetPath}`}
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
                       <Link2 size={10} strokeWidth={1.5} aria-hidden />
@@ -573,8 +574,6 @@ export function TokenDetailsModeRow({
             </div>
           )}
         </div>
-
-        {showHeader ? controls : null}
 
         {!showHeader && (controls || modified) ? (
           <div className="tm-token-mode-row__inline-controls">

@@ -171,7 +171,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     <>
       <SecondaryPanel
         title="Export files"
-        description="Generate platform token files for apps, web, and developer handoff."
+        description="Generate platform files for apps, web, and handoff."
         className="h-full"
         bodyClassName="gap-3"
         actions={

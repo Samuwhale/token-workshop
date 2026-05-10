@@ -9,6 +9,10 @@ import { resolveAllAliases } from "../../shared/resolveAlias";
 
 type SelectedModeNamesByCollection = Record<string, string>;
 
+interface ApplyModeSelectionOptions {
+  missingModeValue?: "fallback-to-first" | "omit";
+}
+
 function cloneModeValue<T>(value: T): T {
   return typeof value === "object" && value !== null
     ? structuredClone(value)
@@ -26,7 +30,8 @@ function getSelectedModeValue(
   entry: TokenMapEntry,
   collection: TokenCollection,
   selectedModeName: string | undefined,
-): TokenMapEntry["$value"] {
+  options: ApplyModeSelectionOptions = {},
+): TokenMapEntry["$value"] | undefined {
   if (!selectedModeName) {
     return entry.$value;
   }
@@ -40,9 +45,10 @@ function getSelectedModeValue(
 
   const tokenModes = readTokenModes(entry);
   const selectedModeValue = tokenModes?.[collection.id]?.[selectedModeName];
-  return selectedModeValue === undefined
-    ? entry.$value
-    : selectedModeValue as TokenMapEntry["$value"];
+  if (selectedModeValue === undefined) {
+    return options.missingModeValue === "omit" ? undefined : entry.$value;
+  }
+  return selectedModeValue as TokenMapEntry["$value"];
 }
 
 export function readEditorCollectionModeValues(
@@ -117,6 +123,7 @@ export function applyModeSelectionsToTokens(
   collections: TokenCollection[],
   selections: SelectedModeNamesByCollection,
   pathToCollectionId?: Record<string, string>,
+  options: ApplyModeSelectionOptions = {},
 ): Record<string, TokenMapEntry> {
   if (collections.length === 0 || Object.keys(selections).length === 0) {
     return resolveAllAliases(allTokensFlat);
@@ -141,7 +148,12 @@ export function applyModeSelectionsToTokens(
       entry,
       collection,
       selections[collectionId],
+      options,
     );
+
+    if (nextValue === undefined) {
+      continue;
+    }
 
     collectionResolvedEntries[path] =
       nextValue === entry.$value

@@ -45,7 +45,7 @@ export function Section({
               </h3>
             ) : null}
             {description ? (
-              <p className="m-0 min-w-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+              <p className="m-0 min-w-0 max-w-[34ch] text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
                 {description}
               </p>
             ) : null}

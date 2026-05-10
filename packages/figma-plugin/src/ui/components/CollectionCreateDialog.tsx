@@ -129,7 +129,7 @@ function CollectionCreateDialogContent({
             id="new-collection-dialog-description"
             className="text-secondary text-[color:var(--color-figma-text-secondary)]"
           >
-            Collections match Figma variable collections. Name the collection, then add the modes every token should support.
+            Name the collection and add the modes it uses.
           </p>
           <CollectionAuthoringFields
             draft={draft}

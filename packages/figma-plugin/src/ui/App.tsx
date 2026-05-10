@@ -1431,8 +1431,8 @@ export function App() {
     shell: {
       openPasteModal: () => setShowPasteModal(true),
       openImportPanel: () => {
-        navigateTo("library", "tokens");
-        switchContextualSurface({ surface: "import" });
+        switchContextualSurface({ surface: null });
+        navigateTo("library", "import");
       },
       openCollectionCreateDialog,
       openGeneratorsWorkspace: () => {
@@ -2531,8 +2531,8 @@ export function App() {
           onRetryConnection={retryConnection}
           onImportExistingSystem={() => {
             runStartHereAction(() => {
-              navigateTo("library", "tokens");
-              switchContextualSurface({ surface: "import" });
+              switchContextualSurface({ surface: null });
+              navigateTo("library", "import");
             });
           }}
           onStartFromSelection={() => {

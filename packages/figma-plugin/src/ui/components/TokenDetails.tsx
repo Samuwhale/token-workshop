@@ -196,18 +196,6 @@ function formatNameList(names: string[]): string {
   return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
 }
 
-function getModeValueSectionDescription(params: {
-  collectionName: string;
-  modeNames: string[];
-}): string {
-  const { collectionName, modeNames } = params;
-  if (modeNames.length <= 1) {
-    return `Editing the ${modeNames[0] ?? "Default"} value in ${collectionName}.`;
-  }
-
-  return `${collectionName} has ${modeNames.length} mode values: ${formatNameList(modeNames)}.`;
-}
-
 type ModeAliasReferenceIssue =
   | {
       kind: "ambiguous";
@@ -1658,10 +1646,6 @@ export function TokenDetails({
 
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Mode value";
-  const valueSectionDescription = getModeValueSectionDescription({
-    collectionName: ownerCollectionName,
-    modeNames: modeValue.modes.map((mode) => mode.name),
-  });
   const firstMode = modeValue.modes[0] ?? null;
   const emptyModeRows = modeValue.modes
     .slice(1)
@@ -1960,7 +1944,6 @@ export function TokenDetails({
 
         <Section
           title={valueSectionTitle}
-          description={valueSectionDescription}
           emphasis="primary"
           actions={
             fieldEditable ? (

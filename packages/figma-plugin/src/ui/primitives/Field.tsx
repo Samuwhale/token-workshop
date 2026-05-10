@@ -27,7 +27,9 @@ export function Field({ label, help, error, children, htmlFor, className = "" }:
     if (existingId && !htmlFor) {
       controlId = existingId;
     }
-    const describedBy = errorId ?? helpId;
+    const describedBy = [childProps["aria-describedby"], helpId, errorId]
+      .filter(Boolean)
+      .join(" ") || undefined;
     const overrides: {
       id?: string;
       invalid?: boolean;
@@ -37,9 +39,7 @@ export function Field({ label, help, error, children, htmlFor, className = "" }:
     if (!htmlFor && !existingId) overrides.id = controlId;
     if (error && childProps.invalid === undefined) overrides.invalid = true;
     if (describedBy) {
-      overrides["aria-describedby"] = childProps["aria-describedby"]
-        ? `${childProps["aria-describedby"]} ${describedBy}`
-        : describedBy;
+      overrides["aria-describedby"] = describedBy;
     }
     if (error && childProps["aria-invalid"] === undefined) {
       overrides["aria-invalid"] = true;
@@ -65,19 +65,20 @@ export function Field({ label, help, error, children, htmlFor, className = "" }:
         {label}
       </label>
       {control}
+      {help ? (
+        <p
+          id={helpId}
+          className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
+        >
+          {help}
+        </p>
+      ) : null}
       {error ? (
         <p
           id={errorId}
           className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-error)]"
         >
           {error}
-        </p>
-      ) : help ? (
-        <p
-          id={helpId}
-          className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
-        >
-          {help}
         </p>
       ) : null}
     </div>

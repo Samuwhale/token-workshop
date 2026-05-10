@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
-import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
 import { ApiError, apiFetch } from '../shared/apiFetch';
 import { STORAGE_KEY_BUILDERS, ssGetJson, ssRemove, ssSetJson } from '../shared/storage';
@@ -350,7 +349,6 @@ export function useTableCreate({
     const seenPaths = new Set<string>();
     const modeNames =
       collectionModeNames.length > 0 ? collectionModeNames : ['Default'];
-    const multiMode = modeNames.length > 1;
 
     for (const row of rowsToCreate) {
       const g = tableGroup.trim();
@@ -364,21 +362,22 @@ export function useTableCreate({
         errors[row.id] = `A token named "${n}" already exists in this group`;
         continue;
       }
-      if (multiMode) {
-        const missingModeName = modeNames.find((modeName) => {
-          const hasModeValue = Object.prototype.hasOwnProperty.call(
-            row.modeValues,
-            modeName,
-          );
-          const rawValue =
-            (hasModeValue ? row.modeValues[modeName] : undefined) ??
-            "";
-          return !rawValue.trim();
-        });
-        if (missingModeName) {
-          errors[row.id] = `Add a value for ${missingModeName}`;
-          continue;
-        }
+      const missingModeName = modeNames.find((modeName) => {
+        const hasModeValue = Object.prototype.hasOwnProperty.call(
+          row.modeValues,
+          modeName,
+        );
+        const rawValue =
+          (hasModeValue ? row.modeValues[modeName] : undefined) ??
+          "";
+        return !rawValue.trim();
+      });
+      if (missingModeName) {
+        errors[row.id] =
+          modeNames.length > 1
+            ? `Add a value for ${missingModeName}`
+            : "Add a value";
+        continue;
       }
       seenPaths.add(path);
     }
@@ -398,9 +397,7 @@ export function useTableCreate({
       const path = g ? `${g}.${n}` : n;
       const primaryModeName = modeNames[0];
       const primaryRawValue = row.modeValues[primaryModeName] ?? "";
-      const parsedValue = primaryRawValue.trim()
-        ? parseInlineValue(row.type, primaryRawValue.trim())
-        : getDefaultValue(row.type);
+      const parsedValue = parseInlineValue(row.type, primaryRawValue.trim());
 
       if (parsedValue === null) {
         parseErrors[row.id] = `Invalid ${primaryModeName} value for type`;
@@ -416,9 +413,10 @@ export function useTableCreate({
         const rawModeValue =
           (hasModeValue ? row.modeValues[modeName] : undefined) ??
           "";
-        const parsedModeValue = rawModeValue.trim()
-          ? parseInlineValue(row.type, rawModeValue.trim())
-          : getDefaultValue(row.type);
+        const parsedModeValue = parseInlineValue(
+          row.type,
+          rawModeValue.trim(),
+        );
         if (parsedModeValue === null) {
           parseErrors[row.id] = `Invalid ${modeName} value for type`;
           break;
@@ -433,7 +431,7 @@ export function useTableCreate({
           type: row.type,
           value: parsedValue,
           extensions:
-            multiMode
+            modeNames.length > 1
               ? {
                   tokenworkshop: {
                     modes: {

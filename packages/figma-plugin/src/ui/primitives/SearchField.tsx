@@ -19,8 +19,8 @@ export interface SearchFieldProps
 }
 
 const SIZE_CLASS: Record<NonNullable<SearchFieldProps["size"]>, string> = {
-  sm: "min-h-7 pl-7 pr-7 py-1",
-  md: "min-h-8 pl-8 pr-8 py-1.5",
+  sm: "min-h-7 pl-7 pr-8 py-1",
+  md: "min-h-8 pl-8 pr-9 py-1.5",
 };
 
 const ICON_SIZE_CLASS: Record<NonNullable<SearchFieldProps["size"]>, string> = {

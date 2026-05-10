@@ -507,7 +507,7 @@ export const TokenGroupNode = memo(
                     className={`tm-token-tree-row__overflow-control flex shrink-0 items-center gap-0.5 transition-opacity ${
                       isGroupActive
                         ? "opacity-100"
-                        : "opacity-85 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
+                        : "opacity-95 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
                     }`}
                   >
                     <button

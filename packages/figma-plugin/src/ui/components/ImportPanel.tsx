@@ -89,7 +89,7 @@ function ImportPanelRoot({
         <FeedbackPlaceholder
           variant="disconnected"
           title="Connect to the token server"
-          description="Import requires an active server connection. Retry after the shared token library is running."
+          description="Import needs a server connection. Start the shared library and retry."
           align="start"
           primaryAction={
             onRetryConnection

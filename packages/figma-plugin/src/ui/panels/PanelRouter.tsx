@@ -1347,6 +1347,7 @@ export function PanelRouter({
   const PANEL_MAP: Record<TopTab, Partial<Record<SubTab, PanelRenderer>>> = {
     library: {
       tokens: renderLibraryTokens,
+      import: renderLibraryImport,
       generators: renderLibraryGenerators,
       health: renderLibraryHealth,
       history: renderLibraryHistory,
@@ -1874,6 +1875,38 @@ export function PanelRouter({
     return renderLibraryScaffold({
       body,
       tabs: renderCollectionTabs("generators"),
+      contextualPanel: renderTokensContextualPanel(),
+    });
+  }
+
+  function renderLibraryImport(): ReactNode {
+    const body = (
+      <div className="h-full min-h-0 overflow-hidden">
+        <ErrorBoundary
+          panelName="Import"
+          onReset={() => navigateTo("library", "import")}
+        >
+          <ImportPanel
+            serverUrl={serverUrl}
+            connected={connected}
+            workingCollectionId={currentCollectionId}
+            onClose={() => navigateTo("library", "tokens")}
+            onRetryConnection={retryConnection}
+            onImported={refreshTokens}
+            onImportComplete={(result) => {
+              controller.onImportComplete(result);
+            }}
+            onOpenImportNextStep={(result, recommendation) =>
+              openImportNextStep(result, recommendation)
+            }
+            onPushUndo={controller.pushUndo}
+          />
+        </ErrorBoundary>
+      </div>
+    );
+
+    return renderLibraryScaffold({
+      body,
       contextualPanel: renderTokensContextualPanel(),
     });
   }
