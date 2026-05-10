@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { TokenMapEntry } from "../../shared/types";
 import type { TokenCollection } from "@token-workshop/core";
 import { hexToLuminance, wcagContrast } from "../shared/colorUtils";
 import { normalizeHex, hexToLab } from "@token-workshop/core";
 import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
 import { isHexColorLiteral } from "../shared/colorAnalysis";
+import { useTransientValue } from "../hooks/useTransientValue";
 
 export interface ContrastMatrixPanelProps {
   /** Non-alias color tokens sorted by luminance */
@@ -23,7 +24,8 @@ export function ContrastMatrixPanel({
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
   const [contrastPage, setContrastPage] = useState(0);
   const [contrastFailuresOnly, setContrastFailuresOnly] = useState(false);
-  const [contrastCopied, setContrastCopied] = useState(false);
+  const [contrastCopied, showContrastCopied] =
+    useTransientValue(false, 2000);
   const [contrastGroupFilter, setContrastGroupFilter] = useState<string>("all");
   const [contrastSortMode, setContrastSortMode] = useState<
     "luminance" | "failures"
@@ -574,8 +576,7 @@ export function ContrastMatrixPanel({
                   }
                 }
                 navigator.clipboard.writeText(rows.join("\n")).then(() => {
-                  setContrastCopied(true);
-                  setTimeout(() => setContrastCopied(false), 2000);
+                  showContrastCopied(true);
                 });
               }}
               className="flex items-center gap-1 px-2 py-0.5 text-secondary rounded border border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

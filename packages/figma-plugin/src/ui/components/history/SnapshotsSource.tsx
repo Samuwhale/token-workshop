@@ -7,6 +7,7 @@ import { summarizeChanges, formatRelativeTime, ChangeSummaryBadges } from '../..
 import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { SnapshotSummary, SnapshotCompareResponse, UndoSlot, TokenChange, WorkspaceDiff } from './types';
 import { snapshotDiffToChange } from './types';
+import { useTransientValue } from '../../hooks/useTransientValue';
 
 function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   if (workspaceDiffs.length === 0) {
@@ -55,7 +56,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   const [singleCompareError, setSingleCompareError] = useState<string | null>(null);
   const [pairCompareError, setPairCompareError] = useState<string | null>(null);
 
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [ticker, setTicker] = useState(0);
 
@@ -75,6 +75,8 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
 
   const singleCompareAbortRef = useRef<AbortController | null>(null);
   const pairCompareAbortRef = useRef<AbortController | null>(null);
+  const [successMsg, showSuccess] =
+    useTransientValue<string | null>(null, 3000);
 
   useEffect(() => {
     const id = setInterval(() => setTicker(t => t + 1), 30_000);
@@ -100,11 +102,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
       loadSnapshots();
     }
   }, [loadSnapshots, initialComparingId]);
-
-  const showSuccess = (msg: string) => {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 3000);
-  };
 
   const handleCompare = useCallback(async (id: string) => {
     singleCompareAbortRef.current?.abort();

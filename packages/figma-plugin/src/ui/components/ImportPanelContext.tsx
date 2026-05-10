@@ -23,6 +23,7 @@ import {
   useImportSource,
   type FileImportValidation,
 } from "../hooks/useImportSource";
+import { useTransientValue } from "../hooks/useTransientValue";
 import type { UndoSlot } from "../hooks/useUndo";
 import { rollbackOperation } from "../shared/tokenMutations";
 import { copyToClipboard } from "../shared/comparisonUtils";
@@ -662,7 +663,7 @@ export function ImportPanelProvider({
     useState<ImportStrategy>("overwrite");
   const [succeededImportCount, setSucceededImportCount] = useState(0);
   const [retrying, setRetrying] = useState(false);
-  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [copyFeedback, showCopyFeedback] = useTransientValue(false, 2000);
   const [lastImport, setLastImport] = useState<ImportHistory | null>(null);
   const [lastImportResult, setLastImportResult] =
     useState<ImportCompletionResult | null>(null);
@@ -1633,13 +1634,10 @@ export function ImportPanelProvider({
     }
     void copyToClipboard(
       failedImportPaths.join("\n"),
-      () => {
-        setCopyFeedback(true);
-        window.setTimeout(() => setCopyFeedback(false), 2000);
-      },
+      () => showCopyFeedback(true),
       () => dispatchToast("Copy failed", "error"),
     );
-  }, [failedImportPaths]);
+  }, [failedImportPaths, showCopyFeedback]);
 
   const clearSuccessState = useCallback(() => {
     setSuccessMessage(null);

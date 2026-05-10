@@ -10,6 +10,7 @@ import { swatchBgColor } from '../shared/colorUtils';
 import { resolveModeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
+import { useTransientValue } from '../hooks/useTransientValue';
 
 function ColorSwatch({ value }: { value: string }) {
   if (typeof value !== 'string' || value === '') return null;
@@ -1089,7 +1090,8 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
   const [typeFilter, setTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [bulkCreating, setBulkCreating] = useState<'A' | 'B' | null>(null);
-  const [bulkResult, setBulkResult] = useState<string | null>(null);
+  const [bulkResult, showBulkResult, resetBulkResult] =
+    useTransientValue<string | null>(null, 3000);
 
   const handleCopyError = useCallback(() => {
     dispatchToast('Clipboard access denied', 'error');
@@ -1173,7 +1175,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
     const missing = side === 'A' ? onlyInB : onlyInA;
     if (!targetCollectionId || missing.length === 0) return;
     setBulkCreating(side);
-    setBulkResult(null);
+    resetBulkResult();
     try {
       const tokens = missing.map(d => ({
         path: d.path,
@@ -1185,16 +1187,23 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokens, strategy: 'overwrite' }),
       });
-      setBulkResult(`Created ${tokens.length} token${tokens.length !== 1 ? 's' : ''}`);
-      setTimeout(() => setBulkResult(null), 3000);
+      showBulkResult(`Created ${tokens.length} token${tokens.length !== 1 ? 's' : ''}`);
       onTokensCreated?.();
     } catch {
-      setBulkResult('Failed');
-      setTimeout(() => setBulkResult(null), 3000);
+      showBulkResult('Failed');
     } finally {
       setBulkCreating(null);
     }
-  }, [serverUrl, collectionA, collectionB, onlyInA, onlyInB, onTokensCreated]);
+  }, [
+    serverUrl,
+    collectionA,
+    collectionB,
+    onlyInA,
+    onlyInB,
+    onTokensCreated,
+    resetBulkResult,
+    showBulkResult,
+  ]);
 
   return (
     <div className="flex flex-col h-full">

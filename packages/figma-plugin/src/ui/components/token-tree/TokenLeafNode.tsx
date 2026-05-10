@@ -52,6 +52,7 @@ import {
   COMPLEX_PREVIEW_TYPES,
 } from "../ComplexTypePreviewCard";
 import { useNearbyTokenMatch } from "../../hooks/useNearbyTokenMatch";
+import { useTransientValue } from "../../hooks/useTransientValue";
 import { TokenNudge } from "../TokenNudge";
 import { matchesShortcut } from "../../shared/shortcutRegistry";
 import { InlineRenameRow } from "../../primitives";
@@ -178,7 +179,8 @@ export const TokenLeafNode = memo(
     const refsPopoverRef = useRef<HTMLDivElement>(null);
     const chainExpanded = chainExpandedProp;
     const [inlineNudgeVisible, setInlineNudgeVisible] = useState(false);
-    const [quickBound, setQuickBound] = useState<string | null>(null);
+    const [quickBound, showQuickBoundFeedback] =
+      useTransientValue<string | null>(null, 1500);
     const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(
       null,
     );
@@ -619,8 +621,7 @@ export const TokenLeafNode = memo(
 
       if (targets.length === 1) {
         applyWithProperty(targets[0]);
-        setQuickBound(PROPERTY_LABELS[targets[0]]);
-        setTimeout(() => setQuickBound(null), 1500);
+        showQuickBoundFeedback(PROPERTY_LABELS[targets[0]]);
         return;
       }
       if (targets.length > 1 && targets.length < validProps.length) {
@@ -636,7 +637,14 @@ export const TokenLeafNode = memo(
         setPickerProps(null);
         setShowPicker(true);
       }
-    }, [collectionId, node, allTokensFlat, selectedNodes, applyWithProperty]);
+    }, [
+      collectionId,
+      node,
+      allTokensFlat,
+      selectedNodes,
+      applyWithProperty,
+      showQuickBoundFeedback,
+    ]);
 
     // When a Tab from a sibling row targets this row, open the popover on the matching mode.
     useEffect(() => {
