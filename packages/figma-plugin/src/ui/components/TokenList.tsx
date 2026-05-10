@@ -1399,7 +1399,13 @@ export function TokenList({
     setExtractError,
     handleOpenExtractToAlias,
     handleConfirmExtractToAlias,
-  } = useExtractToAlias({ connected, serverUrl, collectionId, onRefresh });
+  } = useExtractToAlias({
+    connected,
+    serverUrl,
+    collectionId,
+    perCollectionFlat: perCollectionFlat ?? {},
+    onRefresh,
+  });
 
   // requestBulkDelete wrapper — passes current selectedPaths
   const requestBulkDelete = useCallback(() => {

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import type { StartHereBranch } from "../components/WelcomePrompt";
-import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
+import { STORAGE_KEYS, lsSet } from "../shared/storage";
 
 interface PaletteDeleteConfirm {
   paths: string[];
@@ -19,12 +19,11 @@ export function useOverlayManager() {
   const [paletteDeleteConfirm, setPaletteDeleteConfirm] =
     useState<PaletteDeleteConfirm | null>(null);
 
-  const initialFirstRun = !lsGet(STORAGE_KEYS.FIRST_RUN_DONE);
   const [startHereState, setStartHereState] = useState<{
     open: boolean;
     initialBranch: StartHereBranch;
   }>(() => ({
-    open: initialFirstRun,
+    open: false,
     initialBranch: "root",
   }));
 
@@ -75,7 +74,6 @@ export function useOverlayManager() {
     setPaletteDeleteConfirm,
     startHereState,
     setStartHereState,
-    initialFirstRun,
     dismissEphemeralOverlays,
     openStartHere,
     closeStartHere,

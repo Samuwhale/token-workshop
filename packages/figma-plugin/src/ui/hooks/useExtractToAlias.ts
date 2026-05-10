@@ -8,11 +8,13 @@ import type {
   ExtractAliasMode,
   ExtractAliasTokenDraft,
 } from '../shared/tokenListModalTypes';
+import type { TokenMapEntry } from '../../shared/types';
 
 export interface UseExtractToAliasParams {
   connected: boolean;
   serverUrl: string;
   collectionId: string;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onRefresh: () => void;
 }
 
@@ -121,6 +123,7 @@ export function useExtractToAlias({
   connected,
   serverUrl,
   collectionId,
+  perCollectionFlat,
   onRefresh,
 }: UseExtractToAliasParams) {
   const [extractToken, setExtractToken] = useState<ExtractAliasTokenDraft | null>(null);
@@ -163,6 +166,13 @@ export function useExtractToAlias({
       }
     } else {
       if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
+      const matchingCollections = Object.entries(perCollectionFlat)
+        .filter(([, tokens]) => Boolean(tokens[existingAlias]))
+        .map(([candidateCollectionId]) => candidateCollectionId);
+      if (matchingCollections.length !== 1) {
+        setExtractError('Choose a token path that exists in one collection only.');
+        return;
+      }
       await updateToken(serverUrl, collectionId, extractToken.path, createTokenBody({
         $value: `{${existingAlias}}`,
       }));
@@ -170,7 +180,7 @@ export function useExtractToAlias({
 
     setExtractToken(null);
     onRefresh();
-  }, [extractToken, extractMode, newPrimitivePath, newPrimitiveCollectionId, existingAlias, connected, serverUrl, collectionId, onRefresh]);
+  }, [extractToken, extractMode, newPrimitivePath, newPrimitiveCollectionId, existingAlias, connected, serverUrl, collectionId, perCollectionFlat, onRefresh]);
 
   return {
     extractToken, setExtractToken,

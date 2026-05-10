@@ -885,9 +885,9 @@ export const TokenLeafNode = memo(
                 shift: e.shiftKey,
               });
             }}
-            className={`tm-token-tree-row__selection-control shrink-0 inline-flex h-7 w-7 items-center justify-center rounded transition-opacity focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${
+            className={`tm-token-tree-row__selection-control tm-token-tree-row__icon-button shrink-0 transition-opacity ${
               selectionControlVisibilityClass
-            } hover:bg-[var(--color-figma-bg-hover)]`}
+            }`}
           >
             <span
               className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border transition-colors ${
@@ -981,10 +981,10 @@ export const TokenLeafNode = memo(
 
           {/* Right-edge status cluster: star, status icon, action menu */}
           {!renamingToken && (
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="tm-token-tree-row__trailing">
               {isFavorite && (
                 <span
-                  className="shrink-0 text-[color:var(--color-figma-text-warning)]"
+                  className="tm-token-tree-row__status-icon text-[color:var(--color-figma-text-warning)]"
                   title="Favorited"
                   aria-label="Favorited"
                 >
@@ -1015,7 +1015,7 @@ export const TokenLeafNode = memo(
                   }}
                   title={`${tokenStatus.title}\n\nClick to view issues`}
                   aria-label={`${tokenStatus.title}. Open review issues`}
-                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded cursor-pointer transition-colors hover:bg-[var(--color-figma-bg-secondary)] ${tokenStatus.toneClass}`}
+                  className={`tm-token-tree-row__status-button ${tokenStatus.toneClass}`}
                 >
                   <svg
                     width="12"
@@ -1033,7 +1033,7 @@ export const TokenLeafNode = memo(
                 </button>
               ) : (
                 <span
-                  className={`shrink-0 inline-flex items-center justify-center w-4 h-4 rounded ${tokenStatus.toneClass}`}
+                  className={`tm-token-tree-row__status-icon ${tokenStatus.toneClass}`}
                   title={tokenStatus.title}
                   aria-label={tokenStatus.title}
                 >
@@ -1063,7 +1063,7 @@ export const TokenLeafNode = memo(
                   aria-label={`More actions for ${formatDisplayPath(node.path, node.name)}`}
                   aria-haspopup="menu"
                   aria-expanded={!!contextMenuPos}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                  className="tm-token-tree-row__icon-button"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <circle cx="5" cy="12" r="2" />

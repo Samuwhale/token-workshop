@@ -36,7 +36,7 @@ export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 // Table grid template
 // ---------------------------------------------------------------------------
 
-export const TOKEN_COLUMN_MIN_PX = 160;
+export const TOKEN_COLUMN_MIN_PX = 176;
 
 /** Default / min / max widths for individual mode columns (px). */
 export const DEFAULT_MODE_COL_PX = 88;
@@ -49,7 +49,7 @@ export function getGridTemplate(modeWidths: number[]): string {
   const modeCols = widths
     .map((width) => `minmax(${MIN_MODE_COL_PX}px, ${width}px)`)
     .join(" ");
-  return `minmax(${TOKEN_COLUMN_MIN_PX}px, 2.6fr) ${modeCols}`;
+  return `minmax(${TOKEN_COLUMN_MIN_PX}px, 3fr) ${modeCols}`;
 }
 
 export function getGridMinWidth(modeWidths: number[]): number {

@@ -190,7 +190,7 @@ export const TokenGroupNode = memo(
     if (node.$type) {
       groupMetadataSegments.push({
         label: `Type: ${node.$type}`,
-        title: `Inherited type: ${node.$type}`,
+        title: `Suggested type: ${node.$type}`,
         priority: "detail",
         hoverOnly: true,
       });
@@ -465,7 +465,7 @@ export const TokenGroupNode = memo(
                   )}
                 {hasSelectableTokens && onToggleGroupSelection ? (
                   <label
-                    className="tm-token-tree-row__group-selection inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] focus-within:outline focus-within:outline-[1.5px] focus-within:outline-[var(--color-figma-accent)]"
+                    className="tm-token-tree-row__group-selection tm-token-tree-row__icon-button shrink-0 cursor-pointer"
                     title={
                       groupAllSelected
                         ? `Clear selection in ${node.name}`
@@ -520,7 +520,7 @@ export const TokenGroupNode = memo(
                       aria-label="Group actions"
                       aria-haspopup="menu"
                       aria-expanded={!!groupMenuPos}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                      className="tm-token-tree-row__icon-button"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
                     </button>
@@ -780,7 +780,7 @@ export const TokenGroupNode = memo(
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-              Group defaults
+              Group metadata
             </div>
             <div className="flex items-center gap-1.5">
               <label className="text-secondary text-[color:var(--color-figma-text-secondary)] w-20 shrink-0">

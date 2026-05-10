@@ -175,6 +175,12 @@ export function TokenDetailsModeRow({
   }, [value]);
 
   const isEmpty = value === undefined || value === null || value === "";
+  const defaultModeValue = getInitialModeValue(tokenType);
+  const defaultModeValueLabel = formatTokenValueForDisplay(
+    tokenType,
+    defaultModeValue,
+    { emptyPlaceholder: "default" },
+  );
   const aliasStatusId = `mode-alias-status-${modeName
     .trim()
     .toLowerCase()
@@ -483,12 +489,12 @@ export function TokenDetailsModeRow({
             <div className="tm-token-mode-row__empty-actions">
               <button
                 type="button"
-                onClick={() => onChange?.(getInitialModeValue(tokenType))}
-                aria-label={`Add direct value for ${modeName}`}
-                title={`Add direct value for ${modeName}`}
+                onClick={() => onChange?.(defaultModeValue)}
+                aria-label={`Start ${modeName} with ${defaultModeValueLabel}`}
+                title={`Start with ${defaultModeValueLabel}`}
                 className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
               >
-                Set value
+                Start with default
               </button>
               <button
                 type="button"

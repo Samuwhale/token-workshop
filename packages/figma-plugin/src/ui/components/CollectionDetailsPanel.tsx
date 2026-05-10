@@ -340,6 +340,7 @@ function ModeRow({
                     actionsMenu.close({ restoreFocus: false });
                   }}
                   disabled={!canMoveUp || saving}
+                  title={!canMoveUp ? "Already the first mode" : "Move mode up"}
                   className={FLOATING_MENU_ITEM_CLASS}
                 >
                   <ArrowUp size={10} strokeWidth={2} aria-hidden />
@@ -353,6 +354,7 @@ function ModeRow({
                     actionsMenu.close({ restoreFocus: false });
                   }}
                   disabled={!canMoveDown || saving}
+                  title={!canMoveDown ? "Already the last mode" : "Move mode down"}
                   className={FLOATING_MENU_ITEM_CLASS}
                 >
                   <ArrowDown size={10} strokeWidth={2} aria-hidden />
@@ -366,6 +368,11 @@ function ModeRow({
                     actionsMenu.close({ restoreFocus: false });
                   }}
                   disabled={allModeNames.length <= 1 || saving}
+                  title={
+                    allModeNames.length <= 1
+                      ? "Keep at least one mode"
+                      : "Delete mode"
+                  }
                   className={FLOATING_MENU_DANGER_ITEM_CLASS}
                 >
                   <X size={10} strokeWidth={2} aria-hidden />

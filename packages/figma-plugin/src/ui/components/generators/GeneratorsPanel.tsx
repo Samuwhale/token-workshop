@@ -59,6 +59,7 @@ import {
   DEFAULT_SPACING_SCALE_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
   DEFAULT_Z_INDEX_SCALE_CONFIG,
+  readGeneratorProvenance,
   readStructuredGeneratorDraft,
 } from "@token-workshop/core";
 import { cloneValue } from "../../../shared/clone";
@@ -80,6 +81,7 @@ import {
   countPreviewChanges,
   formatOutputChangeSummary,
   formatValue,
+  withRemovedPreviewChanges,
 } from "./GeneratorPreviewPanel";
 import {
   FieldBlock,
@@ -240,6 +242,34 @@ const GENERATOR_EDITOR_TABS: Array<{ value: GeneratorEditorMode; label: string }
   { value: "overview", label: "Overview" },
   { value: "graph", label: "Graph" },
 ];
+
+function findGeneratorOwnedPathsToRemove({
+  generatorId,
+  targetCollectionId,
+  preview,
+  perCollectionFlat,
+}: {
+  generatorId: string | null;
+  targetCollectionId: string | null;
+  preview: TokenGeneratorPreviewResult | null;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+}): string[] {
+  if (!generatorId || !targetCollectionId || !preview) {
+    return [];
+  }
+
+  const previewOutputPaths = new Set(
+    preview.outputs.map((output) => output.path),
+  );
+  return Object.entries(perCollectionFlat[targetCollectionId] ?? {})
+    .filter(([, token]) => {
+      const provenance = readGeneratorProvenance(token);
+      return provenance?.generatorId === generatorId;
+    })
+    .map(([path]) => path)
+    .filter((path) => !previewOutputPaths.has(path))
+    .sort((a, b) => a.localeCompare(b));
+}
 
 const GENERATOR_LIST_SCOPE_OPTIONS: Array<{
   value: GeneratorListScope;
@@ -659,6 +689,21 @@ export function GeneratorsPanel({
   const previewHasCollisions =
     preview?.outputs.some((output) => output.collision) ?? false;
   const previewHasNoOutputs = preview ? preview.outputs.length === 0 : false;
+  const deletedPreviewOutputPaths = useMemo(
+    () =>
+      findGeneratorOwnedPathsToRemove({
+        generatorId: activeGenerator?.id ?? null,
+        targetCollectionId: activeGenerator?.targetCollectionId ?? null,
+        preview,
+        perCollectionFlat,
+      }),
+    [
+      activeGenerator?.id,
+      activeGenerator?.targetCollectionId,
+      perCollectionFlat,
+      preview,
+    ],
+  );
   const graphHasErrors = graphIssues.some(
     (issue) => issue.severity === "error",
   );
@@ -2304,12 +2349,20 @@ export function GeneratorsPanel({
   const activeGeneratorSummary = activeGenerator
     ? `${activeGeneratorDestinationLabel} · ${activeGeneratorCollectionLabel}`
     : "Choose a generator";
+  const previewChangeCounts = preview
+    ? withRemovedPreviewChanges(
+        countPreviewChanges(preview.outputs),
+        deletedPreviewOutputPaths.length,
+      )
+    : null;
   const workbenchStateSummary = preview
     ? `${
         preview.outputs.length === 1
           ? "1 output"
           : `${preview.outputs.length} outputs`
-      } · ${formatOutputChangeSummary(countPreviewChanges(preview.outputs))}`
+      } · ${formatOutputChangeSummary(
+        previewChangeCounts ?? countPreviewChanges(preview.outputs),
+      )}`
     : statusLabel;
 
   const openNodeLibraryPanel = useCallback(() => {
@@ -2787,6 +2840,7 @@ export function GeneratorsPanel({
         preview={preview}
         targetCollection={targetCollection}
         focusedDiagnosticId={activeInitialFocus?.diagnosticId}
+        deletedOutputPaths={deletedPreviewOutputPaths}
         compact={compactGenerators}
         onNavigateToToken={(path) =>
           onNavigateToToken(
@@ -3249,7 +3303,12 @@ export function GeneratorsPanel({
 
   const renderOutputDock = () => {
     if (!activeGenerator) return null;
-    const counts = preview ? countPreviewChanges(preview.outputs) : null;
+    const counts = preview
+      ? withRemovedPreviewChanges(
+          countPreviewChanges(preview.outputs),
+          deletedPreviewOutputPaths.length,
+        )
+      : null;
     const previewDiagnosticCount = preview?.diagnostics.length ?? 0;
     const previewIssueCount =
       previewDiagnosticCount +

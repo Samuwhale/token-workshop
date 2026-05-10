@@ -16,6 +16,7 @@ type PreviewChangeCounts = {
   created: number;
   updated: number;
   unchanged: number;
+  removed: number;
 };
 
 export function countPreviewChanges(
@@ -34,8 +35,15 @@ export function countPreviewChanges(
       }
       return counts;
     },
-    { collisions: 0, created: 0, updated: 0, unchanged: 0 },
+    { collisions: 0, created: 0, updated: 0, unchanged: 0, removed: 0 },
   );
+}
+
+export function withRemovedPreviewChanges(
+  counts: PreviewChangeCounts,
+  removed: number,
+): PreviewChangeCounts {
+  return { ...counts, removed };
 }
 
 export function formatOutputChangeSummary(counts: PreviewChangeCounts): string {
@@ -45,6 +53,7 @@ export function formatOutputChangeSummary(counts: PreviewChangeCounts): string {
   }
   if (counts.created > 0) parts.push(`${counts.created} new`);
   if (counts.updated > 0) parts.push(`${counts.updated} updated`);
+  if (counts.removed > 0) parts.push(`${counts.removed} removed`);
   if (counts.unchanged > 0) parts.push(`${counts.unchanged} same`);
   return parts.length > 0 ? parts.join(", ") : "No output changes";
 }
@@ -65,6 +74,7 @@ export function PreviewPanel({
   preview,
   targetCollection,
   focusedDiagnosticId,
+  deletedOutputPaths = [],
   compact = false,
   onNavigateToToken,
   onViewInGraph,
@@ -72,6 +82,7 @@ export function PreviewPanel({
   preview: TokenGeneratorPreviewResult | null;
   targetCollection: TokenCollection | undefined;
   focusedDiagnosticId?: string;
+  deletedOutputPaths?: string[];
   compact?: boolean;
   onNavigateToToken: (path: string) => void;
   onViewInGraph?: (target: PreviewGraphTarget) => void;
@@ -94,11 +105,17 @@ export function PreviewPanel({
   const focusedDiagnostic = preview.diagnostics.find(
     (diagnostic) => diagnostic.id === focusedDiagnosticId,
   );
-  const changeCounts = countPreviewChanges(preview.outputs);
+  const changeCounts = withRemovedPreviewChanges(
+    countPreviewChanges(preview.outputs),
+    deletedOutputPaths.length,
+  );
 
   return (
     <div className="space-y-3">
       <PreviewChangeSummary counts={changeCounts} compact={compact} />
+      {deletedOutputPaths.length > 0 ? (
+        <DeletedOutputsNotice paths={deletedOutputPaths} compact={compact} />
+      ) : null}
       {preview.diagnostics.length > 0 && (
         <div className="space-y-1">
           {preview.diagnostics.map((diagnostic) => (
@@ -152,6 +169,40 @@ export function PreviewPanel({
             No outputs yet. Add an output node and connect a value.
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function DeletedOutputsNotice({
+  paths,
+  compact,
+}: {
+  paths: string[];
+  compact: boolean;
+}) {
+  const visiblePaths = paths.slice(0, compact ? 3 : 6);
+  const remaining = paths.length - visiblePaths.length;
+
+  return (
+    <div className="rounded-md bg-[color-mix(in_srgb,var(--color-figma-warning)_12%,var(--color-figma-bg-secondary))] p-2 text-secondary text-[color:var(--color-figma-text-warning)]">
+      <div className="font-medium">
+        {paths.length} stale generated token{paths.length === 1 ? "" : "s"} will be removed
+      </div>
+      <div className="mt-1 text-[color:var(--color-figma-text-secondary)]">
+        These paths are still owned by this generator but are no longer in the preview.
+      </div>
+      <div className="mt-1 flex flex-col gap-0.5">
+        {visiblePaths.map((path) => (
+          <span key={path} className="break-all font-mono text-tertiary">
+            {path}
+          </span>
+        ))}
+        {remaining > 0 ? (
+          <span className="text-tertiary">
+            {remaining} more
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -220,12 +271,19 @@ function PreviewChangeSummary({
       tone: "error",
       hidden: counts.collisions === 0,
     },
+    {
+      label: "Removed",
+      value: counts.removed,
+      tone: "warning",
+      hidden: counts.removed === 0,
+    },
     { label: "New", value: counts.created, tone: "success", hidden: false },
     { label: "Updated", value: counts.updated, tone: "accent", hidden: false },
     { label: "Same", value: counts.unchanged, tone: "muted", hidden: false },
   ] as const;
   const toneClass: Record<(typeof items)[number]["tone"], string> = {
     error: "bg-[color-mix(in_srgb,var(--color-figma-error)_12%,var(--color-figma-bg-secondary))] text-[color:var(--color-figma-text-error)]",
+    warning: "bg-[color-mix(in_srgb,var(--color-figma-warning)_14%,var(--color-figma-bg-secondary))] text-[color:var(--color-figma-text-warning)]",
     success: "bg-[color-mix(in_srgb,var(--color-figma-success)_16%,var(--color-figma-bg-secondary))] text-[color:var(--color-figma-text-success)]",
     accent: "bg-[color-mix(in_srgb,var(--color-figma-accent)_14%,var(--color-figma-bg-secondary))] text-[color:var(--color-figma-text-accent)]",
     muted: "bg-[var(--surface-muted)] text-[color:var(--color-figma-text-secondary)]",

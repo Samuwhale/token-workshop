@@ -340,6 +340,7 @@ export function HealthIssuesView({
                 : group.severity === "warning"
                   ? "text-[color:var(--color-figma-text-warning)]"
                   : "text-[color:var(--color-figma-text-secondary)]";
+            const panelId = `health-issue-group-${group.rule}`;
 
             return (
               <div key={group.rule}>
@@ -352,6 +353,8 @@ export function HealthIssuesView({
                       return next;
                     })
                   }
+                  aria-expanded={!isCollapsed}
+                  aria-controls={panelId}
                   className="w-full flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   title={group.tip || undefined}
                 >
@@ -371,7 +374,7 @@ export function HealthIssuesView({
                 </button>
 
                 {!isCollapsed && (
-                  <>
+                  <div id={panelId}>
                     {visibleIssues.map((issue, i) => (
                       <IssueRow
                         key={i}
@@ -419,7 +422,7 @@ export function HealthIssuesView({
                         {remainingCount > ISSUES_PER_PAGE ? ` of ${remainingCount} remaining` : ""}
                       </button>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             );
@@ -547,7 +550,7 @@ function IssueRow({
               event.stopPropagation();
               overflowMenu.toggle();
             }}
-            className="text-secondary rounded px-1 py-0.5 text-[color:var(--color-figma-text-tertiary)] opacity-0 transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-secondary)] group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
+            className="text-secondary rounded px-1 py-0.5 text-[color:var(--color-figma-text-tertiary)] opacity-70 transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-secondary)] group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
             aria-haspopup="true"
             aria-expanded={overflowMenu.open}
             aria-label="More actions"

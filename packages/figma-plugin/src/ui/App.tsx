@@ -2402,6 +2402,7 @@ export function App() {
         onClose={closeCollectionCreateDialog}
         onCreate={createCollectionByName}
         onCreated={(collectionId) => {
+          finishStartHere();
           setCurrentCollectionId(collectionId);
           navigateTo("library", "tokens");
         }}

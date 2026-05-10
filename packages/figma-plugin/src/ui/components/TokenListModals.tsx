@@ -229,10 +229,10 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpact
 
 function ExtractToAliasModal() {
   const {
-    allTokensFlat,
     collectionIds,
     collectionDisplayNames,
     extractToken,
+    perCollectionFlat,
     extractMode,
     onSetExtractMode,
     newPrimitivePath,
@@ -260,10 +260,29 @@ function ExtractToAliasModal() {
 
   if (!extractToken) return null;
 
-  const candidateTokens = Object.entries(allTokensFlat)
-    .filter(([path, t]) => path !== extractToken.path && t.$type === extractToken.$type && !isAlias(t.$value))
-    .filter(([path]) => !existingAliasSearch || path.toLowerCase().includes(existingAliasSearch.toLowerCase()))
-    .slice(0, 40);
+  const matchingAliasCandidates = collectionIds
+    .flatMap((candidateCollectionId) =>
+      Object.entries(perCollectionFlat[candidateCollectionId] ?? {}).map(
+        ([path, token]) => ({ collectionId: candidateCollectionId, path, token }),
+      ),
+    )
+    .filter(({ path, token }) =>
+      path !== extractToken.path &&
+      token.$type === extractToken.$type &&
+      !isAlias(token.$value),
+    )
+    .filter(({ path }) =>
+      !existingAliasSearch ||
+      path.toLowerCase().includes(existingAliasSearch.toLowerCase()),
+    );
+  const candidatePathCounts = matchingAliasCandidates.reduce<Record<string, number>>(
+    (counts, candidate) => {
+      counts[candidate.path] = (counts[candidate.path] ?? 0) + 1;
+      return counts;
+    },
+    {},
+  );
+  const candidateTokens = matchingAliasCandidates.slice(0, 40);
 
   return (
     <ModalFrame
@@ -360,17 +379,44 @@ function ExtractToAliasModal() {
                   <div className="text-secondary text-[color:var(--color-figma-text-secondary)] py-2 text-center">
                     No matching {extractToken.$type} tokens found
                   </div>
-                ) : candidateTokens.map(([path, t]) => (
+                ) : candidateTokens.map(({ collectionId: candidateCollectionId, path, token }) => {
+                  const ambiguousPath = (candidatePathCounts[path] ?? 0) > 1;
+                  const collectionLabel = getCollectionDisplayName(
+                    candidateCollectionId,
+                    collectionDisplayNames,
+                  );
+                  return (
                   <button
-                    key={path}
+                    key={`${candidateCollectionId}:${path}`}
                     onMouseDown={e => e.preventDefault()}
-                    onClick={() => { onSetExistingAlias(path); onSetExtractError(''); }}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${existingAlias === path ? 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)]' : 'hover:bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]'}`}
+                    onClick={() => {
+                      if (ambiguousPath) {
+                        onSetExistingAlias('');
+                        onSetExtractError('This path exists in multiple collections. Choose a unique token path.');
+                        return;
+                      }
+                      onSetExistingAlias(path);
+                      onSetExtractError('');
+                    }}
+                    aria-disabled={ambiguousPath}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
+                      existingAlias === path
+                        ? 'bg-[var(--color-figma-accent)]/15 text-[color:var(--color-figma-text-accent)]'
+                        : ambiguousPath
+                          ? 'text-[color:var(--color-figma-text-tertiary)]'
+                          : 'hover:bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]'
+                    }`}
                   >
-                    <ValuePreview type={t.$type} value={t.$value} />
-                    <span className={`flex-1 ${LONG_TEXT_CLASSES.mono}`}>{path}</span>
+                    <ValuePreview type={token.$type} value={token.$value} />
+                    <span className="min-w-0 flex-1">
+                      <span className={`block ${LONG_TEXT_CLASSES.mono}`}>{path}</span>
+                      <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                        {ambiguousPath ? `${collectionLabel} · duplicate path` : collectionLabel}
+                      </span>
+                    </span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

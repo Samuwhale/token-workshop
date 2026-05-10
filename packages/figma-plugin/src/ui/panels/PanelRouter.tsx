@@ -1713,6 +1713,13 @@ export function PanelRouter({
   function renderLibraryTokens(): ReactNode {
     const tokensEmpty =
       collections.length === 0 && !createFromEmpty && !tokenDetails;
+    const openFirstCollectionCreate = () => {
+      if (connected) {
+        controller.onOpenCollectionCreateDialog();
+        return;
+      }
+      controller.onOpenStartHere("start-new");
+    };
 
     const body = tokensEmpty ? (
       <FeedbackPlaceholder
@@ -1720,11 +1727,11 @@ export function PanelRouter({
         size="full"
         icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
         title="Create your first collection"
-        description="Start with a collection, then add tokens or import existing work."
+        description="Collections match Figma variable collections. Add modes now, then create tokens or import existing work."
         actions={[
           {
             label: "Create collection",
-            onClick: () => controller.onOpenStartHere("start-new"),
+            onClick: openFirstCollectionCreate,
             tone: "primary",
           },
           {

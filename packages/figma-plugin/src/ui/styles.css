@@ -1009,6 +1009,7 @@ a[role="menuitem"] {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 8px;
   background: var(--surface-app);
 }
@@ -1017,6 +1018,8 @@ a[role="menuitem"] {
   position: sticky;
   bottom: 0;
   z-index: 1;
+  border-top: 1px solid var(--border-muted);
+  background: var(--surface-panel-header);
 }
 
 .tm-section {
@@ -2584,8 +2587,17 @@ button.tm-status-row:not(:disabled):hover {
     color var(--motion-fast) var(--ease-standard);
 }
 
+.tm-value-cell__wrapper--interactive {
+  cursor: pointer;
+}
+
 .tm-value-cell__wrapper--interactive:hover {
   background: color-mix(in srgb, var(--workspace-library) 7%, transparent);
+}
+
+.tm-value-cell__wrapper--interactive:focus-within {
+  background: var(--surface-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--workspace-library) 28%, transparent);
 }
 
 .tm-value-cell__prefix,
@@ -2786,6 +2798,15 @@ button.tm-status-row:not(:disabled):hover {
   gap: 2px;
 }
 
+.tm-token-tree-row__trailing {
+  display: flex;
+  min-inline-size: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
 .tm-token-tree-row__content {
   display: flex;
   min-inline-size: 0;
@@ -2800,6 +2821,68 @@ button.tm-status-row:not(:disabled):hover {
     opacity var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-token-tree-row__icon-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--control-size-compact);
+  min-block-size: var(--control-size-compact);
+  border-radius: var(--radius-md);
+  color: var(--color-figma-text-secondary);
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.tm-token-tree-row__icon-button:hover {
+  background: var(--surface-hover);
+  color: var(--color-figma-text);
+}
+
+.tm-token-tree-row__icon-button:focus-visible {
+  outline: 1.5px solid var(--color-figma-accent);
+  outline-offset: -1px;
+}
+
+.tm-token-tree-row__icon-button:focus-within {
+  outline: 1.5px solid var(--color-figma-accent);
+  outline-offset: -1px;
+}
+
+.tm-token-tree-row__icon-button[aria-expanded="true"],
+.tm-token-tree-row__icon-button[aria-pressed="true"] {
+  background: var(--surface-selected);
+  color: var(--color-figma-text);
+}
+
+.tm-token-tree-row__status-button,
+.tm-token-tree-row__status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 18px;
+  min-block-size: 18px;
+  border-radius: var(--radius-sm);
+}
+
+.tm-token-tree-row__status-button {
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.tm-token-tree-row__status-button:hover {
+  background: var(--surface-hover);
+}
+
+.tm-token-tree-row__status-button:focus-visible {
+  outline: 1.5px solid var(--color-figma-accent);
+  outline-offset: 0;
 }
 
 .tm-token-selection-checkbox {
@@ -2859,6 +2942,12 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 480px) {
+  .tm-token-tree-row__main {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 4px;
+  }
+
   .tm-token-tree-row__content {
     flex-direction: column;
     align-items: flex-start;
@@ -2891,6 +2980,12 @@ button.tm-status-row:not(:disabled):hover {
   .tm-token-tree-row__group-trailing {
     flex-basis: 100%;
     justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .tm-token-tree-row__trailing {
+    flex-basis: 100%;
+    justify-content: flex-end;
     margin-left: 0;
   }
 
