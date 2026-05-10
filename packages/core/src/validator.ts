@@ -460,6 +460,9 @@ export class TokenValidator {
       errors.push(`${path}: gradient must be an array of stops`);
       return;
     }
+    if (value.length < 2) {
+      errors.push(`${path}: gradient must include at least 2 stops`);
+    }
     for (let i = 0; i < value.length; i++) {
       const stopRaw: unknown = value[i];
       if (typeof stopRaw !== 'object' || stopRaw === null) {
@@ -474,8 +477,10 @@ export class TokenValidator {
       }
       if (!('position' in stop)) {
         errors.push(`${path}[${i}]: gradient stop missing "position"`);
-      } else if (typeof stop.position !== 'number') {
-        errors.push(`${path}[${i}].position: must be a number`);
+      } else if (typeof stop.position !== 'number' || !Number.isFinite(stop.position)) {
+        errors.push(`${path}[${i}].position: must be a finite number`);
+      } else if (stop.position < 0 || stop.position > 1) {
+        errors.push(`${path}[${i}].position: must be between 0 and 1`);
       }
     }
   }

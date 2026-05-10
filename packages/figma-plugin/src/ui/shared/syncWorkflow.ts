@@ -262,13 +262,32 @@ function withOptionalTimeout<T>(promise: Promise<T>, timeoutMs?: number, timeout
   });
 }
 
+function summarizeGradientValue(value: unknown): string | null {
+  const source = Array.isArray(value)
+    ? value
+    : isRecord(value) && Array.isArray(value.stops)
+      ? value.stops
+      : null;
+  if (!source) {
+    return null;
+  }
+
+  const gradientType =
+    isRecord(value) && typeof value.type === 'string'
+      ? value.type
+      : 'linear';
+  const stopColors = source
+    .map((stop) => (isRecord(stop) && typeof stop.color === 'string' ? stop.color : ''))
+    .filter(Boolean)
+    .join(' → ');
+
+  return `${gradientType}: ${stopColors || `${source.length} stops`}`.slice(0, 48);
+}
+
 function summarizeStyleValue(value: unknown, type: string): string {
   if (type === 'color') return String(value);
-  if (type === 'gradient' && value && typeof value === 'object' && Array.isArray((value as { stops?: unknown[] }).stops)) {
-    const gradient = value as { type?: string; stops: Array<{ color?: string }> };
-    const gradientType = gradient.type ?? 'linear';
-    const stopColors = gradient.stops.map((stop) => stop?.color ?? '').filter(Boolean).join(' → ');
-    return `${gradientType}: ${stopColors}`.slice(0, 48);
+  if (type === 'gradient') {
+    return summarizeGradientValue(value) ?? truncateValueForDisplay(value, 28);
   }
   if (type === 'typography' && value && typeof value === 'object') {
     const typography = value as { fontFamily?: string | string[]; fontSize?: { value?: number; unit?: string } | string | number };

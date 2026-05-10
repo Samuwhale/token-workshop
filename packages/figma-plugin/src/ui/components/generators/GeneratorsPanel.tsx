@@ -5761,19 +5761,21 @@ function nodeInspectorNote(node: TokenGeneratorDocumentNode): string | null {
 }
 
 function portHandleStyle(total: number, index: number): CSSProperties {
-  const verticalPosition =
-    total <= 1 ? "50%" : `${Math.round(((index + 1) / (total + 1)) * 100)}%`;
   return {
-    top: verticalPosition,
+    top: portVerticalPosition(total, index),
   };
 }
 
 function portLabelStyle(total: number, index: number): CSSProperties {
-  const verticalPosition =
-    total <= 1 ? "50%" : `${Math.round(((index + 1) / (total + 1)) * 100)}%`;
   return {
-    top: verticalPosition,
+    top: portVerticalPosition(total, index),
   };
+}
+
+function portVerticalPosition(total: number, index: number): string {
+  return total <= 1
+    ? "50%"
+    : `${Math.round(((index + 1) / (total + 1)) * 100)}%`;
 }
 
 function formatPortLabel(port: TokenGeneratorPortDescriptor): string {

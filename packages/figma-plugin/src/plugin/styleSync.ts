@@ -48,12 +48,13 @@ interface ShadowStyleToken extends BaseStyleToken {
 
 export type StyleToken = ColorStyleToken | GradientStyleToken | TypographyStyleToken | ShadowStyleToken;
 
-type LegacyGradientValue = {
+type ObjectGradientValue = {
   type?: unknown;
   stops?: unknown;
 };
 
-type GradientStyleValue = GradientValue | LegacyGradientValue;
+type GradientStyleValue = GradientValue | ObjectGradientValue;
+type GeneratedVariableModeValue = Exclude<VariableValue, VariableAlias>;
 
 function isStyleToken(token: BaseStyleToken & { $type: string }): token is StyleToken {
   return token.$type === 'color'
@@ -570,11 +571,11 @@ function bindPaintColorVariable(style: PaintStyle, variable: Variable | null, fa
   style.paints = [solidPaint];
 }
 
-function setGeneratedFloatVariableValues(
+function setGeneratedVariableValues(
   variable: Variable,
   token: BaseStyleToken,
   cache: StyleCache,
-  convert: (value: unknown) => number | null,
+  convert: (value: unknown) => GeneratedVariableModeValue | null,
 ): void {
   const collection = cache.collectionsById.get(variable.variableCollectionId);
   if (!collection) {
@@ -594,28 +595,22 @@ function setGeneratedFloatVariableValues(
   }
 }
 
+function setGeneratedFloatVariableValues(
+  variable: Variable,
+  token: BaseStyleToken,
+  cache: StyleCache,
+  convert: (value: unknown) => number | null,
+): void {
+  setGeneratedVariableValues(variable, token, cache, convert);
+}
+
 function setGeneratedStringVariableValues(
   variable: Variable,
   token: BaseStyleToken,
   cache: StyleCache,
   convert: (value: unknown) => string | null,
 ): void {
-  const collection = cache.collectionsById.get(variable.variableCollectionId);
-  if (!collection) {
-    return;
-  }
-
-  for (const { modeName, resolved } of tokenModeValues(token)) {
-    const targetModeName =
-      modeName === (token.primaryModeName ?? modeName)
-        ? getPrimaryTargetModeName(token)
-        : modeName;
-    const modeId = getOrCreateVariableMode(collection, targetModeName);
-    const nextValue = convert(resolved);
-    if (nextValue !== null) {
-      variable.setValueForMode(modeId, nextValue);
-    }
-  }
+  setGeneratedVariableValues(variable, token, cache, convert);
 }
 
 function setGeneratedColorVariableValues(
@@ -626,28 +621,19 @@ function setGeneratedColorVariableValues(
     typeof value === 'string' ? value : null
   ),
 ): void {
-  const collection = cache.collectionsById.get(variable.variableCollectionId);
-  if (!collection) {
-    return;
-  }
-
-  for (const { modeName, resolved } of tokenModeValues(token)) {
-    const targetModeName =
-      modeName === (token.primaryModeName ?? modeName)
-        ? getPrimaryTargetModeName(token)
-        : modeName;
-    const modeId = getOrCreateVariableMode(collection, targetModeName);
+  setGeneratedVariableValues(variable, token, cache, (resolved) => {
     const parsedValue = convert(resolved);
     const parsed = parsedValue ? parseColor(parsedValue) : null;
-    if (parsed) {
-      variable.setValueForMode(modeId, {
-        r: parsed.rgb.r,
-        g: parsed.rgb.g,
-        b: parsed.rgb.b,
-        a: parsed.a,
-      });
+    if (!parsed) {
+      return null;
     }
-  }
+    return {
+      r: parsed.rgb.r,
+      g: parsed.rgb.g,
+      b: parsed.rgb.b,
+      a: parsed.a,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
