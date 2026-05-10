@@ -6,6 +6,7 @@ import { LONG_TEXT_CLASSES } from '../../shared/longTextStyles';
 import { RollbackPreviewModal } from './RollbackPreviewModal';
 import { OperationIcon } from './OperationIcon';
 import { formatMetadataValue, type OperationEntry } from './types';
+import { SearchField } from '../../primitives';
 
 function getFieldChanges(op: OperationEntry) {
   if (!Array.isArray(op.metadata?.changes)) return [];
@@ -175,36 +176,23 @@ export function HistoryRecentView({
       )}
 
       <div className="shrink-0 flex flex-wrap items-center gap-2 px-3 py-1.5">
-        <div className="tm-panel-search min-w-0 flex-1">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[color:var(--color-figma-text-tertiary)]" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search activity"
-            aria-label="Search activity"
-            className="tm-panel-search__input py-1 text-secondary"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="shrink-0 text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)] transition-colors" aria-label="Clear search">
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
-            </button>
-          )}
-        </div>
+        <SearchField
+          size="sm"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search activity"
+          aria-label="Search activity"
+          onClear={searchQuery ? () => setSearchQuery('') : undefined}
+          containerClassName="min-w-0 flex-1"
+        />
         {filterTokenPath && onClearFilter ? (
-          <div className="flex min-w-0 max-w-full items-center gap-1.5 rounded bg-[var(--surface-group-quiet)] px-2 py-1">
-            <span className={`min-w-0 ${LONG_TEXT_CLASSES.pathSecondary}`}>
-              {filterTokenPath}
+          <div
+            className="min-w-0 max-w-full text-secondary text-[color:var(--color-figma-text-tertiary)]"
+            title={filterTokenPath}
+          >
+            <span className={LONG_TEXT_CLASSES.pathSecondary}>
+              Token filter active
             </span>
-            <button
-              type="button"
-              onClick={onClearFilter}
-              className="shrink-0 text-[color:var(--color-figma-text-accent)] hover:underline"
-            >
-              Clear
-            </button>
           </div>
         ) : null}
       </div>

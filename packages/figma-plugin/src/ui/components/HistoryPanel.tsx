@@ -8,6 +8,7 @@ import { HistoryRecentView } from "./history/HistoryRecentView";
 import { HistorySavedView } from "./history/HistorySavedView";
 import { Button, TextInput } from "../primitives";
 import { useNavigationContext } from "../contexts/NavigationContext";
+import { getCollectionDisplayName } from "../shared/libraryCollections";
 
 const HISTORY_VIEWS: Array<{ id: HistoryView; label: string }> = [
   { id: "recent", label: "Recent" },
@@ -60,6 +61,27 @@ export function HistoryPanel({
   const tokenScopeLabel = scope.tokenPath
     ? scope.tokenPath
     : null;
+  const scopedCollectionLabel =
+    activeCollectionFilter !== null
+      ? getCollectionDisplayName(activeCollectionFilter, collectionDisplayNames)
+      : null;
+  const showAllHistoryAction =
+    scope.mode === "current" || tokenScopeLabel !== null;
+  const historyScopeSummary =
+    scope.view === "saved"
+      ? activeCollectionFilter || tokenScopeLabel
+        ? "Checkpoints are workspace-wide. Compare results are filtered below."
+        : "Workspace-wide checkpoints"
+      : scope.mode === "all"
+        ? "Showing activity from all collections."
+        : scopedCollectionLabel
+          ? `Showing activity from ${scopedCollectionLabel}.`
+          : "Showing activity from the current collection.";
+  const historyScopeDetails = tokenScopeLabel
+    ? `Token filter: ${tokenScopeLabel}`
+    : scope.view === "saved" && scopedCollectionLabel
+      ? `Collection compare filter: ${scopedCollectionLabel}`
+      : null;
 
   useEffect(() => {
     if (scope.mode !== "current") {
@@ -235,14 +257,35 @@ export function HistoryPanel({
         </div>
       ) : null}
 
-      <div className="shrink-0 px-3 pb-1.5">
-        <p
-          className="break-words text-secondary leading-tight text-[color:var(--color-figma-text-tertiary)]"
-          title={[scopeLabel, tokenScopeLabel].filter(Boolean).join(" · ")}
-        >
-          {scopeLabel}
-          {tokenScopeLabel ? ` · ${tokenScopeLabel}` : ""}
-        </p>
+      <div className="shrink-0 px-3 pb-2">
+        <div className="tm-panel-filter-summary">
+          <div className="tm-panel-filter-summary__copy">
+            <p
+              className="tm-panel-filter-summary__title"
+              title={[scopeLabel, tokenScopeLabel].filter(Boolean).join(" · ")}
+            >
+              {historyScopeSummary}
+            </p>
+            {historyScopeDetails ? (
+              <p
+                className="tm-panel-filter-summary__detail"
+                title={historyScopeDetails}
+              >
+                {historyScopeDetails}
+              </p>
+            ) : null}
+          </div>
+          {showAllHistoryAction ? (
+            <Button
+              onClick={handleClearFilters}
+              variant="ghost"
+              size="sm"
+              className="tm-panel-filter-summary__action"
+            >
+              Show all history
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div

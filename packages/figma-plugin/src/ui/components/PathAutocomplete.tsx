@@ -14,8 +14,9 @@ const MAX_RESULTS = 16;
 
 /**
  * Autocomplete dropdown for the token path input in create mode.
- * Suggests existing group prefixes and token paths so users can discover
- * the tree hierarchy without memorizing it.
+ * Suggests existing group prefixes, sibling conventions, and new paths so users
+ * can discover the tree hierarchy without accidentally selecting a duplicate
+ * token path in create mode.
  */
 export function PathAutocomplete({
   query,
@@ -171,8 +172,7 @@ export function PathAutocomplete({
         if (suggestions[activeIdx]) {
           e.preventDefault();
           const s = suggestions[activeIdx];
-          // For groups, append a dot so the user can keep typing the next segment
-          onSelect(s.isGroup ? s.label + '.' : s.label);
+          onSelect(resolveSuggestionSelection(s));
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -202,7 +202,7 @@ export function PathAutocomplete({
           data-idx={idx}
           onMouseDown={e => {
             e.preventDefault();
-            onSelect(isGroup ? label + '.' : label);
+            onSelect(resolveSuggestionSelection({ label, isGroup, isGhost, isSibling }));
           }}
           onMouseEnter={() => setActiveIdx(idx)}
           className={`w-full flex items-center gap-1.5 px-2 py-1 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
@@ -225,7 +225,7 @@ export function PathAutocomplete({
             {label}{isGroup ? '.' : ''}
           </span>
           <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
-            {isGhost ? 'new' : isGroup ? 'group' : isSibling ? 'sibling' : 'token'}
+            {isGhost ? 'new' : isGroup ? 'group' : isSibling ? 'use group' : 'use group'}
           </span>
         </button>
       ))}
@@ -244,4 +244,26 @@ export function PathAutocomplete({
  */
 function splitPath(path: string): string[] {
   return path.split('.');
+}
+
+function resolveSuggestionSelection({
+  label,
+  isGroup,
+  isGhost,
+}: {
+  label: string;
+  isGroup: boolean;
+  isGhost: boolean;
+  isSibling: boolean;
+}): string {
+  if (isGroup) {
+    return `${label}.`;
+  }
+  if (isGhost) {
+    return label;
+  }
+  const parentPath = label.includes(".")
+    ? label.split(".").slice(0, -1).join(".")
+    : "";
+  return parentPath ? `${parentPath}.` : "";
 }

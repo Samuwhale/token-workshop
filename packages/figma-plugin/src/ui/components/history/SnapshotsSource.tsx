@@ -6,7 +6,7 @@ import { ConfirmModal } from '../ConfirmModal';
 import { summarizeChanges, formatRelativeTime, ChangeSummaryBadges } from '../../shared/changeHelpers';
 import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { SnapshotSummary, SnapshotCompareResponse, UndoSlot, TokenChange, WorkspaceDiff } from './types';
-import { snapshotDiffToChange, defaultSnapshotLabel } from './types';
+import { snapshotDiffToChange } from './types';
 
 function formatWorkspaceDiffSummary(workspaceDiffs: WorkspaceDiff[]) {
   if (workspaceDiffs.length === 0) {
@@ -45,7 +45,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
 }) {
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [comparing, setComparing] = useState<string | null>(initialComparingId ?? null);
   const [changes, setChanges] = useState<TokenChange[] | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
@@ -59,8 +58,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   const [pairCompareError, setPairCompareError] = useState<string | null>(null);
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [labelInput, setLabelInput] = useState('');
-  const [showLabelInput, setShowLabelInput] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [ticker, setTicker] = useState(0);
 
@@ -110,28 +107,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
-  };
-
-  const handleSave = async () => {
-    const label = labelInput.trim() || `Checkpoint ${new Date().toLocaleString()}`;
-    setSaving(true);
-    setListError(null);
-    try {
-      await apiFetch(`${serverUrl}/api/snapshots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label }),
-      });
-      setLabelInput('');
-      setShowLabelInput(false);
-      showSuccess('Checkpoint saved');
-      await loadSnapshots();
-    } catch (err) {
-      console.warn('[SnapshotsSource] failed to save snapshot:', err);
-      setListError('Failed to save checkpoint');
-    } finally {
-      setSaving(false);
-    }
   };
 
   // Bug fix: abort previous in-flight compare request before starting a new one,
@@ -526,73 +501,33 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   // ── List view ──────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Save bar */}
       <div className="shrink-0 p-3 border-b border-[var(--color-figma-border)]">
-        {!showLabelInput ? (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            Save checkpoints from the History header. Use this view to compare or restore saved workspace states.
+          </p>
+          {snapshots.length >= 2 && (
             <button
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
-              onClick={() => { setLabelInput(defaultSnapshotLabel()); setShowLabelInput(true); }}
-              disabled={saving}
+              onClick={() => {
+                setPairCompareMode(m => {
+                  if (m) { setPairA(null); setPairB(null); }
+                  return !m;
+                });
+              }}
+              className={`shrink-0 flex items-center gap-1 px-2 py-1.5 rounded text-body font-medium border transition-colors ${
+                pairCompareMode
+                  ? 'border-[var(--color-figma-accent)] bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)]'
+                  : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+              }`}
+              title={pairCompareMode ? 'Exit compare mode' : 'Compare two checkpoints'}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                <polyline points="17 21 17 13 7 13 7 21" />
-                <polyline points="7 3 7 8 15 8" />
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 20V10M12 20V4M6 20v-6" />
               </svg>
-              Save workspace checkpoint
+              Compare
             </button>
-            {snapshots.length >= 2 && (
-              <button
-                onClick={() => {
-                  setPairCompareMode(m => {
-                    if (m) { setPairA(null); setPairB(null); }
-                    return !m;
-                  });
-                }}
-                className={`shrink-0 flex items-center gap-1 px-2 py-2 rounded text-body font-medium border transition-colors ${
-                  pairCompareMode
-                    ? 'border-[var(--color-figma-accent)] bg-[color-mix(in_srgb,var(--color-figma-accent)_12%,transparent)] text-[color:var(--color-figma-text-accent)]'
-                    : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-                }`}
-                title={pairCompareMode ? 'Exit compare mode' : 'Compare two checkpoints'}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M18 20V10M12 20V4M6 20v-6" />
-                </svg>
-                Compare
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <input
-              className="w-full px-2 py-1.5 text-body rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-tertiary)] focus:focus-visible:border-[var(--color-figma-accent)]"
-              placeholder="Checkpoint label"
-              value={labelInput}
-              onChange={e => setLabelInput(e.target.value)}
-              onFocus={e => e.target.select()}
-              onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setShowLabelInput(false); setLabelInput(''); } }}
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button
-                className="flex-1 px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-body text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                onClick={() => { setShowLabelInput(false); setLabelInput(''); }}
-              >
-                Cancel
-              </button>
-              <button
-                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-body font-medium hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-        )}
-
+          )}
+        </div>
         {successMsg && (
           <p className="mt-2 text-secondary text-[color:var(--color-figma-text-success)] text-center">{successMsg}</p>
         )}

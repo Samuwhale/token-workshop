@@ -13,7 +13,6 @@ import { ConfirmModal } from './ConfirmModal';
 import { FeedbackPlaceholder } from './FeedbackPlaceholder';
 import { useSyncEntity, type SyncMessages } from '../hooks/useSyncEntity';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { useFigmaMessage } from '../hooks/useFigmaMessage';
 import { SyncPreflightStep } from './publish/SyncPreflightStep';
 import { SyncDiffSummary, VarDiffRowItem } from './publish/PublishShared';
 import type { PreviewRow } from './publish/PublishShared';
@@ -37,7 +36,6 @@ import type {
   TokenMapEntry,
   VariablesAppliedMessage,
   VariablesReadMessage,
-  VariableSyncToken,
   VarSnapshot,
 } from '../../shared/types';
 import {
@@ -53,10 +51,10 @@ import {
   type PublishSyncEntry,
   type PublishPreflightCluster,
   type PublishPreflightActionId,
+  type SyncDirection,
   type SyncWorkflowStage,
 } from '../shared/syncWorkflow';
 import { buildStylePublishTokens } from '../shared/stylePublish';
-import { resolveAllAliases } from '../../shared/resolveAlias';
 import { CheckboxRow } from '../primitives';
 import { getCollectionDisplayName } from '../shared/libraryCollections';
 
@@ -104,14 +102,6 @@ interface ResolverPublishMappingRow extends ResolverPublishMappingDraft {
   sourceCollectionName: string;
   sourceModeName: string;
   isDirty: boolean;
-}
-
-interface ResolverResolveResponse {
-  tokens: Record<string, {
-    $value: unknown;
-    $type?: string;
-    $extensions?: VariableSyncToken['$extensions'];
-  }>;
 }
 
 function buildResolverContextCombinations(
@@ -358,32 +348,10 @@ export function PublishPanel({
   const [resolverPublishDrafts, setResolverPublishDrafts] = useState<Record<string, ResolverPublishMappingDraft>>({});
   const [resolverPublishLoading, setResolverPublishLoading] = useState(false);
   const [resolverPublishSaving, setResolverPublishSaving] = useState(false);
-  const [resolverPublishSyncing, setResolverPublishSyncing] = useState(false);
   const [resolverPublishError, setResolverPublishError] = useState<string | null>(null);
   const [standardRoutingDraft, setStandardRoutingDraft] = useState<PublishRoutingDraft>({});
   const [standardRoutingSaving, setStandardRoutingSaving] = useState(false);
   const [standardRoutingError, setStandardRoutingError] = useState<string | null>(null);
-
-  const sendResolverVariableApply = useFigmaMessage<{
-    count: number;
-    total: number;
-    failures: { path: string; error: string }[];
-    skipped: Array<{ path: string; $type: string }>;
-    created?: number;
-    overwritten?: number;
-  }, VariablesAppliedMessage>({
-    responseType: 'variables-applied',
-    errorType: 'apply-variables-error',
-    timeout: 30000,
-    extractResponse: (msg: VariablesAppliedMessage) => ({
-      count: msg.count ?? 0,
-      total: msg.total ?? msg.count ?? 0,
-      failures: msg.failures ?? [],
-      skipped: msg.skipped ?? [],
-      created: msg.created,
-      overwritten: msg.overwritten,
-    }),
-  });
 
   const [preflightActionBusyId, setPreflightActionBusyId] = useState<PublishPreflightActionId | null>(null);
   const targetRef = useRef<HTMLDivElement | null>(null);
@@ -772,7 +740,6 @@ export function PublishPanel({
     preflightStage,
     readinessLoading,
     readinessError,
-    setChecksStale,
     runReadinessChecks,
     triggerReadinessAction,
     missingVariablesConfirm,
@@ -786,11 +753,16 @@ export function PublishPanel({
     !readinessLoading &&
     !isReadinessOutdated &&
     (preflightStage === 'advisory' || preflightStage === 'ready');
-  const canProceedToSync = canProceedToCompare && !standardRoutingDirty;
+  const activeTargetDirty = isResolverPublishCompareActive
+    ? resolverPublishDirtyCount > 0
+    : standardRoutingDirty;
+  const canProceedToSync = canProceedToCompare && !activeTargetDirty;
   const compareLockedMessage = !readinessChecks.length
     ? 'Compare with Figma to run readiness checks first.'
-    : standardRoutingDirty
-      ? 'Save the sync target before comparing or applying changes.'
+    : activeTargetDirty
+      ? isResolverPublishCompareActive
+        ? 'Save the generated-output Figma mode targets before comparing or applying changes.'
+        : 'Save the sync target before comparing or applying changes.'
     : isReadinessOutdated
       ? 'Token data changed. Re-sync to compare differences.'
       : readinessBlockingFails > 0
@@ -801,100 +773,22 @@ export function PublishPanel({
     [currentCollectionId, perCollectionFlat],
   );
 
-  const syncResolverPublishModes = useCallback(async () => {
-    if (!activeResolver || !resolverPublishFile) return;
-    if (resolverPublishDirtyCount > 0) {
-      setResolverPublishError('Save Figma mode targets before syncing.');
-      return;
-    }
-
-    const modeMappings = resolverPublishFile.$extensions?.tokenworkshop?.resolverPublish?.modeMappings ?? [];
-    if (modeMappings.length === 0) {
-      setResolverPublishError('Add at least one Figma mode target before syncing.');
-      return;
-    }
-
-    setResolverPublishSyncing(true);
-    setResolverPublishError(null);
-    try {
-      const resolvedTargets = await Promise.all(
-        modeMappings.map(async (mapping) => {
-          const result = await apiFetch<ResolverResolveResponse>(
-            `${serverUrl}/api/resolvers/${encodeURIComponent(activeResolver)}/resolve`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ input: mapping.contexts }),
-            },
-          );
-          return { mapping, result };
-        }),
-      );
-
-      const tokens: VariableSyncToken[] = [];
-      for (const { mapping, result } of resolvedTargets) {
-        const resolvedTokens = resolveAllAliases(
-          (result.tokens ?? {}) as Record<string, TokenMapEntry>,
-        );
-        for (const [path, token] of Object.entries(resolvedTokens)) {
-          tokens.push({
-            path,
-            $type: token.$type ?? 'string',
-            $value: token.$value as VariableSyncToken['$value'],
-            collectionId: activeResolver,
-            figmaCollection: mapping.collectionName,
-            figmaMode: mapping.modeName,
-            $extensions: token.$extensions,
-          });
-        }
-      }
-
-      if (tokens.length === 0) {
-        setResolverPublishError('No generated tokens were available to publish.');
-        return;
-      }
-
-      const result = await sendResolverVariableApply('apply-variables', {
-        tokens,
-        renames: renamesRef.current.length > 0 ? renamesRef.current : undefined,
-      });
-      const skippedCount = result.skipped.length;
-      const failureCount = result.failures.length;
-      dispatchToast(
-        `Published generated outputs — ${tokens.length} writes across ${modeMappings.length} mode${modeMappings.length === 1 ? '' : 's'}`
-        + (skippedCount > 0 ? ` · ${skippedCount} skipped` : '')
-        + (failureCount > 0 ? ` · ${failureCount} failed` : ''),
-        failureCount > 0 ? 'error' : 'success',
-        {
-          destination: { kind: "workspace", topTab: "publish", subTab: "publish-figma" },
-        },
-      );
-      setChecksStale(true);
-    } catch (error) {
-      setResolverPublishError(describeError(error));
-    } finally {
-      setResolverPublishSyncing(false);
-    }
-  }, [
-    activeResolver,
-    resolverPublishDirtyCount,
-    resolverPublishFile,
-    sendResolverVariableApply,
-    serverUrl,
-    setChecksStale,
-  ]);
-
-  const publishAllVarSync = useMemo(() => (
+  const publishAllStyleSync = useMemo(() => (
     isResolverPublishCompareActive
       ? {
-        ...varSync,
+        ...styleSync,
+        checked: true,
+        loading: false,
         syncCount: 0,
         pushCount: 0,
         pullCount: 0,
+        rows: [],
+        dirs: {},
+        computeDiff: async () => {},
         applyDiff: async () => {},
       }
-      : varSync
-  ), [isResolverPublishCompareActive, varSync]);
+      : styleSync
+  ), [isResolverPublishCompareActive, styleSync]);
 
   const [createStylesPref, setCreateStylesPref] = usePersistedJsonState<boolean>(
     STORAGE_KEYS.PUBLISH_CREATE_STYLES,
@@ -902,8 +796,8 @@ export function PublishPanel({
   );
 
   const publishAll = usePublishAll({
-    varSync: publishAllVarSync,
-    styleSync,
+    varSync,
+    styleSync: publishAllStyleSync,
     setConfirmAction,
     markChecksStale: stableMarkChecksStale,
     canProceed: canProceedToSync,
@@ -928,26 +822,55 @@ export function PublishPanel({
     compareAll,
     runPublishAll,
   } = publishAll;
-  const hasComparedAnything = varSync.checked || styleSync.checked;
+  const hasComparedAnything = varSync.checked || (!isResolverPublishCompareActive && styleSync.checked);
   const publishPreflightState = useMemo(() => ({
     stage: preflightStage,
     isOutdated: isReadinessOutdated,
     blockingCount: blockingReadinessChecks.length,
     advisoryCount: advisoryReadinessChecks.length,
     canProceed: canProceedToSync,
-    targetDirty: standardRoutingDirty,
+    targetDirty: activeTargetDirty,
   }), [
+    activeTargetDirty,
     advisoryReadinessChecks.length,
     blockingReadinessChecks.length,
     canProceedToSync,
     isReadinessOutdated,
     preflightStage,
-    standardRoutingDirty,
   ]);
-  const totalDiffCount = varSync.rows.length + styleSync.rows.length;
+  const visibleStyleDiff = useMemo(() => {
+    if (isResolverPublishCompareActive) {
+      return {
+        rows: [] as PreviewRow[],
+        dirs: {} as Record<string, SyncDirection>,
+        pushCount: 0,
+        pullCount: 0,
+      };
+    }
+
+    return {
+      rows: styleSync.rows,
+      dirs: styleSync.dirs,
+      pushCount: styleSync.pushCount,
+      pullCount: styleSync.pullCount,
+    };
+  }, [
+    isResolverPublishCompareActive,
+    styleSync.dirs,
+    styleSync.pullCount,
+    styleSync.pushCount,
+    styleSync.rows,
+  ]);
+  const {
+    rows: visibleStyleRows,
+    dirs: visibleStyleDirs,
+    pushCount: visibleStylePushCount,
+    pullCount: visibleStylePullCount,
+  } = visibleStyleDiff;
+  const totalDiffCount = varSync.rows.length + visibleStyleRows.length;
   const totalConflictCount =
     varSync.rows.filter((row) => row.cat === 'conflict').length +
-    styleSync.rows.filter((row) => row.cat === 'conflict').length;
+    visibleStyleRows.filter((row) => row.cat === 'conflict').length;
   const savedResolverPublishCount = useMemo(
     () => resolverPublishRows.filter((row) => row.sourceModeName.trim().length > 0).length,
     [resolverPublishRows],
@@ -957,6 +880,9 @@ export function PublishPanel({
     resolverPublishFile?.description?.trim() ||
     activeResolver ||
     '';
+  const publishPreviewTargetLabel = isResolverPublishCompareActive
+    ? `${savedResolverPublishCount} generated Figma mode target${savedResolverPublishCount === 1 ? '' : 's'}`
+    : `${resolvedCollectionName} / ${resolvedModeName}`;
   const standardRoutingShouldExpand =
     standardRoutingDirty ||
     standardRoutingSaving ||
@@ -973,7 +899,6 @@ export function PublishPanel({
   const resolverRoutingShouldExpand =
     (activeResolver !== null && savedResolverPublishCount > 0) ||
     resolverPublishDirtyCount > 0 ||
-    resolverPublishSyncing ||
     isResolverPublishCompareActive;
   const resolverRoutingStatusLabel =
     resolverPublishDirtyCount > 0
@@ -1018,12 +943,6 @@ export function PublishPanel({
   ) => {
     setPreflightActionBusyId(actionId);
     try {
-      if (isResolverPublishCompareActive && actionId === 'push-missing-variables') {
-        await syncResolverPublishModes();
-        focusStage('compare');
-        return;
-      }
-
       if (actionId === 'review-draft-tokens') {
         beginHandoff({
           reason:
@@ -1093,10 +1012,8 @@ export function PublishPanel({
   }, [
     focusStage,
     beginHandoff,
-    isResolverPublishCompareActive,
     navigateTo,
     onOpenGenerator,
-    syncResolverPublishModes,
     triggerReadinessAction,
     varSync,
   ]);
@@ -1117,11 +1034,39 @@ export function PublishPanel({
     await runReadinessChecks();
   }, [runReadinessChecks]);
 
+  const reviewResolverPublishChanges = useCallback(async () => {
+    setResolverPublishError(null);
+    if (resolverPublishDirtyCount > 0) {
+      setResolverPublishError('Save Figma mode targets before reviewing generated changes.');
+      return;
+    }
+    if (resolverPublishMappedCount === 0) {
+      setResolverPublishError('Add at least one Figma mode target before reviewing generated changes.');
+      return;
+    }
+    if (!canProceedToSync) {
+      await handleSync();
+      focusStage('preflight');
+      return;
+    }
+    await compareAll();
+    focusStage('compare');
+  }, [
+    canProceedToSync,
+    compareAll,
+    focusStage,
+    handleSync,
+    resolverPublishDirtyCount,
+    resolverPublishMappedCount,
+  ]);
+
   useEffect(() => {
-    if (canProceedToSync && !varSync.checked && !styleSync.checked && !varSync.loading && !styleSync.loading) {
+    const styleNeedsCompare = !isResolverPublishCompareActive && !styleSync.checked;
+    const styleAlreadyLoading = !isResolverPublishCompareActive && styleSync.loading;
+    if (canProceedToSync && !varSync.checked && (isResolverPublishCompareActive || styleNeedsCompare) && !varSync.loading && !styleAlreadyLoading) {
       void compareAll();
     }
-  }, [canProceedToSync, varSync.checked, styleSync.checked, varSync.loading, styleSync.loading, compareAll]);
+  }, [canProceedToSync, isResolverPublishCompareActive, varSync.checked, styleSync.checked, varSync.loading, styleSync.loading, compareAll]);
 
 
   useEffect(() => {
@@ -1140,8 +1085,8 @@ export function PublishPanel({
   // ── Broadcast pending count to Sync tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
   useEffect(() => {
-    const varCount = canProceedToSync && varSync.checked && !isResolverPublishCompareActive ? varSync.syncCount : 0;
-    const styleCount = canProceedToSync && styleSync.checked ? styleSync.syncCount : 0;
+    const varCount = canProceedToSync && varSync.checked ? varSync.syncCount : 0;
+    const styleCount = canProceedToSync && !isResolverPublishCompareActive && styleSync.checked ? styleSync.syncCount : 0;
     window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: varCount + styleCount } }));
     return () => {
       window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: 0 } }));
@@ -1166,7 +1111,7 @@ export function PublishPanel({
 
   /* ── Derived UI state ─────────────────────────────────────────────────── */
 
-  const isSyncing = readinessLoading || compareAllLoading || varSync.loading || styleSync.loading;
+  const isSyncing = readinessLoading || compareAllLoading || varSync.loading || (!isResolverPublishCompareActive && styleSync.loading);
   const isApplying = publishAllBusy;
   const isInSync = hasComparedAnything && totalDiffCount === 0 && !isSyncing;
   const hasBlockers = preflightStage === 'blocked';
@@ -1174,19 +1119,26 @@ export function PublishPanel({
   const showChanges = hasComparedAnything && totalDiffCount > 0 && !isSyncing;
   const allConflictRows = useMemo(() => [
     ...varSync.rows.filter(r => r.cat === 'conflict').map(r => ({ ...r, _source: 'variable' as const })),
-    ...styleSync.rows.filter(r => r.cat === 'conflict').map(r => ({ ...r, _source: 'style' as const })),
-  ], [varSync.rows, styleSync.rows]);
+    ...visibleStyleRows.filter(r => r.cat === 'conflict').map(r => ({ ...r, _source: 'style' as const })),
+  ], [varSync.rows, visibleStyleRows]);
   const nonConflictCount = totalDiffCount - allConflictRows.length;
+  const nonConflictApplyCount =
+    varSync.rows.filter((row) => row.cat !== 'conflict' && varSync.dirs[getDiffRowId(row)] !== 'skip').length +
+    visibleStyleRows.filter((row) => row.cat !== 'conflict' && visibleStyleDirs[getDiffRowId(row)] !== 'skip').length;
   const applyScopeLabel = (() => {
+    if (isResolverPublishCompareActive) {
+      if (totalConflictCount > 0) return 'Review generated conflicts';
+      return 'Publish generated variables';
+    }
     if (totalConflictCount > 0) return 'Review conflicts';
-    const writesToFigma = varSync.pushCount + styleSync.pushCount;
-    const pullsToLocal = varSync.pullCount + styleSync.pullCount;
+    const writesToFigma = varSync.pushCount + visibleStylePushCount;
+    const pullsToLocal = varSync.pullCount + visibleStylePullCount;
     if (writesToFigma > 0 && pullsToLocal > 0) return 'Review and apply';
     if (writesToFigma > 0) {
-      if (varSync.pushCount > 0 && styleSync.pushCount > 0) {
+      if (varSync.pushCount > 0 && visibleStylePushCount > 0) {
         return 'Update Figma variables + styles';
       }
-      if (styleSync.pushCount > 0) return 'Update Figma styles';
+      if (visibleStylePushCount > 0) return 'Update Figma styles';
       return 'Update Figma variables';
     }
     if (pullsToLocal > 0) return 'Use Figma values in Token Workshop';
@@ -1438,7 +1390,9 @@ export function PublishPanel({
                 {/* Non-conflict summary */}
                 {nonConflictCount > 0 && (
                   <div className="text-secondary text-[color:var(--color-figma-text-secondary)] px-1">
-                    {nonConflictCount} non-conflicting change{nonConflictCount !== 1 ? 's' : ''} will be applied automatically.
+                    {nonConflictApplyCount > 0
+                      ? `${nonConflictApplyCount} non-conflicting change${nonConflictApplyCount !== 1 ? 's' : ''} will be applied automatically.`
+                      : `${nonConflictCount} non-conflicting change${nonConflictCount !== 1 ? 's' : ''} will stay unchanged.`}
                   </div>
                 )}
               </div>
@@ -1460,7 +1414,7 @@ export function PublishPanel({
                 activeResolverLabel={activeResolverLabel}
                 loading={resolverPublishLoading}
                 saving={resolverPublishSaving}
-                syncing={resolverPublishSyncing}
+                syncing={compareAllLoading || varSync.loading}
                 error={resolverPublishError}
                 rows={resolverPublishRows}
                 dirtyCount={resolverPublishDirtyCount}
@@ -1470,7 +1424,7 @@ export function PublishPanel({
                 onFieldChange={updateResolverPublishDraft}
                 onReset={resetResolverPublishDrafts}
                 onSave={() => void saveResolverPublishMappings()}
-                onSync={() => void syncResolverPublishModes()}
+                onSync={() => void reviewResolverPublishChanges()}
               />
             </DisclosureSection>
           )}
@@ -1482,20 +1436,20 @@ export function PublishPanel({
     {confirmAction === 'publish-all' && (
       <PublishAllPreviewModal
         hasVarChanges={hasVarChanges}
-        hasStyleChanges={hasStyleChanges && createStylesPref}
+        hasStyleChanges={hasStyleChanges && createStylesPref && !isResolverPublishCompareActive}
         varRows={varSync.rows}
         varDirs={varSync.dirs}
         varPushCount={varSync.pushCount}
         varPullCount={varSync.pullCount}
-        styleRows={styleSync.rows}
-        styleDirs={styleSync.dirs}
-        stylePushCount={createStylesPref ? styleSync.pushCount : 0}
-        stylePullCount={createStylesPref ? styleSync.pullCount : 0}
-        publishTargetLabel={`${resolvedCollectionName} / ${resolvedModeName}`}
+        styleRows={visibleStyleRows}
+        styleDirs={visibleStyleDirs}
+        stylePushCount={createStylesPref ? visibleStylePushCount : 0}
+        stylePullCount={createStylesPref ? visibleStylePullCount : 0}
+        publishTargetLabel={publishPreviewTargetLabel}
         onCancel={() => setConfirmAction(null)}
         onConfirm={async () => {
           setConfirmAction(null);
-          await runPublishAll({ vars: true, styles: createStylesPref });
+          await runPublishAll({ vars: true, styles: createStylesPref && !isResolverPublishCompareActive });
         }}
       />
     )}
@@ -1794,7 +1748,7 @@ function ResolverModePublishCard({
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
               className="min-w-0 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
             >
-              {syncing ? 'Publishing…' : 'Publish generated outputs'}
+              {syncing ? 'Reviewing…' : 'Review generated changes'}
             </button>
           </div>
         ) : null}

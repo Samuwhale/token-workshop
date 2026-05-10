@@ -15,10 +15,6 @@ import { AppCommandPalette } from "./components/AppCommandPalette";
 import { CollectionCreateDialog } from "./components/CollectionCreateDialog";
 import type { CreateCollectionRequest } from "./components/CollectionCreateDialog";
 import { QuickApplyPicker } from "./components/QuickApplyPicker";
-import {
-  getBindingCollectionForProperty,
-  getBindingForProperty,
-} from "./components/selectionInspectorUtils";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Tooltip } from "./shared/Tooltip";
 import { UnsavedChangesDialog } from "./components/UnsavedChangesDialog";
@@ -112,7 +108,7 @@ function formatCount(
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-const RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH = 560;
+const RESPONSIVE_SIDEBAR_COLLAPSE_WIDTH = 480;
 const SIDEBAR_ICON_BUTTON_CLASS = "tm-sidebar-icon-button";
 
 const SYNC_ADORNMENT_DOT: Record<"accent" | "warning" | "error", string> = {
@@ -2423,22 +2419,18 @@ export function App() {
           collectionIds={collectionIds}
           collectionDisplayNames={collectionMap}
           onApply={(tokenPath, tokenType, targetProperty, resolvedValue, collectionId) => {
-            const previousBinding = getBindingForProperty(selectedNodes, targetProperty);
-            const previousBindingCollection =
-              getBindingCollectionForProperty(selectedNodes, targetProperty);
-            const previousCollectionId =
-              previousBindingCollection && previousBindingCollection !== "mixed"
-                ? previousBindingCollection
-                : currentCollectionId;
-            const previousTokenMap = perCollectionFlat[previousCollectionId] ?? {};
-            const previousEntry =
-              previousBinding && previousBinding !== "mixed"
-                ? previousTokenMap[previousBinding] ?? allTokensFlat[previousBinding]
-                : null;
+            const affectedNodeIds = selectedNodes.map((node) => node.id);
+            const previousBindings = selectedNodes.map((node) => ({
+              nodeId: node.id,
+              tokenPath: node.bindings[targetProperty] ?? null,
+              collectionId:
+                node.bindingCollections?.[targetProperty] ?? currentCollectionId,
+            }));
             parent.postMessage(
               {
                 pluginMessage: {
-                  type: "apply-to-selection",
+                  type: "apply-to-nodes",
+                  nodeIds: affectedNodeIds,
                   tokenPath,
                   collectionId,
                   tokenType,
@@ -2451,7 +2443,25 @@ export function App() {
             pushUndo({
               description: `Bound "${tokenPath}" to ${PROPERTY_LABELS[targetProperty]}`,
               restore: async () => {
-                if (previousBinding && previousBinding !== "mixed") {
+                for (const previousBinding of previousBindings) {
+                  if (!previousBinding.tokenPath) {
+                    parent.postMessage(
+                      {
+                        pluginMessage: {
+                          type: "remove-binding-from-node",
+                          nodeId: previousBinding.nodeId,
+                          property: targetProperty,
+                        },
+                      },
+                      "*",
+                    );
+                    continue;
+                  }
+                  const previousTokenMap =
+                    perCollectionFlat[previousBinding.collectionId] ?? {};
+                  const previousEntry =
+                    previousTokenMap[previousBinding.tokenPath] ??
+                    allTokensFlat[previousBinding.tokenPath];
                   const previousResolved = previousEntry
                     ? resolveTokenValue(
                         previousEntry.$value,
@@ -2462,9 +2472,10 @@ export function App() {
                   parent.postMessage(
                     {
                       pluginMessage: {
-                        type: "apply-to-selection",
-                        tokenPath: previousBinding,
-                        collectionId: previousCollectionId,
+                        type: "apply-to-nodes",
+                        nodeIds: [previousBinding.nodeId],
+                        tokenPath: previousBinding.tokenPath,
+                        collectionId: previousBinding.collectionId,
                         tokenType: previousEntry?.$type ?? tokenType,
                         targetProperty,
                         resolvedValue: previousResolved.value,
@@ -2472,13 +2483,19 @@ export function App() {
                     },
                     "*",
                   );
-                  return;
                 }
+              },
+              redo: async () => {
                 parent.postMessage(
                   {
                     pluginMessage: {
-                      type: "remove-binding",
-                      property: targetProperty,
+                      type: "apply-to-nodes",
+                      nodeIds: affectedNodeIds,
+                      tokenPath,
+                      collectionId,
+                      tokenType,
+                      targetProperty,
+                      resolvedValue,
                     },
                   },
                   "*",

@@ -24,7 +24,7 @@ export function createInitialCollectionAuthoringDraft(
         modeNames: reusableModeNames.length > 0 ? reusableModeNames : ["Default"],
       }
     : {
-        name: "colors",
+        name: "",
         modeNames: ["Light", "Dark"],
       };
 }

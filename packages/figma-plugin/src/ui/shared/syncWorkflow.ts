@@ -543,7 +543,7 @@ async function loadResolverVariablePublishSnapshot({
       targetCollectionName: targetCollectionByKey.get(key),
       targetModeName: targetModeByKey.get(key),
     }),
-    defaultDirection: () => 'skip',
+    defaultDirection: (row) => (row.cat === 'figma-only' ? 'skip' : 'push'),
     ...variablePublishDiffConfig,
   });
 
