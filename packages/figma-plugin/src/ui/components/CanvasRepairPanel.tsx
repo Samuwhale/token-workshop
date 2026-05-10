@@ -56,12 +56,12 @@ export function CanvasRepairPanel({
         </div>
         {hasRepairWork ? (
           <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {staleEntries.length} stale path{staleEntries.length === 1 ? "" : "s"} detected
+            {staleEntries.length} broken binding{staleEntries.length === 1 ? "" : "s"}
             {suggestedCount > 0 && ` · ${suggestedCount} suggested`}
           </div>
         ) : (
           <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Broken token paths will appear here when a selection or sync result needs repair.
+            Broken layer bindings appear here after selection inspection or sync.
           </div>
         )}
       </div>
@@ -83,7 +83,7 @@ export function CanvasRepairPanel({
                 Nothing to repair right now
               </div>
               <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                When a layer still points to a token path that no longer exists, you can remap it here instead of fixing bindings one by one.
+                When a layer points to a missing token, choose its replacement here.
               </p>
             </div>
           </div>

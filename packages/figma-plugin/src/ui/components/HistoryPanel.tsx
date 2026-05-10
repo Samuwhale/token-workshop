@@ -6,13 +6,18 @@ import { defaultSnapshotLabel } from "./history/types";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { HistoryRecentView } from "./history/HistoryRecentView";
 import { HistorySavedView } from "./history/HistorySavedView";
-import { Button, TextInput } from "../primitives";
+import { Button, SegmentedControl, TextInput } from "../primitives";
 import { getCollectionDisplayName } from "../shared/libraryCollections";
 
 const HISTORY_VIEWS: Array<{ id: HistoryView; label: string }> = [
   { id: "recent", label: "Recent" },
   { id: "saved", label: "Checkpoints" },
 ];
+
+const HISTORY_SCOPE_OPTIONS = [
+  { value: "current", label: "This collection" },
+  { value: "all", label: "All collections" },
+] as const;
 
 export function HistoryPanel({
   serverUrl,
@@ -108,6 +113,17 @@ export function HistoryPanel({
     },
     [onScopeChange, scope],
   );
+  const handleScopeModeChange = useCallback(
+    (mode: "current" | "all") => {
+      onScopeChange({
+        ...scope,
+        mode,
+        collectionId:
+          mode === "current" ? activeCollectionFilter || null : null,
+      });
+    },
+    [activeCollectionFilter, onScopeChange, scope],
+  );
 
   const handleSaveSnapshot = useCallback(async () => {
     const label = saveLabel.trim() || `Checkpoint ${new Date().toLocaleString()}`;
@@ -191,6 +207,17 @@ export function HistoryPanel({
                 </button>
               ))}
             </div>
+
+            {collectionIds.length > 1 ? (
+              <SegmentedControl
+                value={scope.mode}
+                options={[...HISTORY_SCOPE_OPTIONS]}
+                onChange={handleScopeModeChange}
+                ariaLabel="History scope"
+                allowWrap
+                size="compact"
+              />
+            ) : null}
 
             <div className="tm-responsive-toolbar__actions">
               {!showSaveInput ? (

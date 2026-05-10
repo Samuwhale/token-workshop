@@ -4,6 +4,7 @@ import type { TokenMapEntry } from "../../shared/types";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
 import { RemapAutocompleteInput } from "./RemapAutocompleteInput";
+import { SegmentedControl } from "../primitives";
 
 export interface RemapBindingsRow {
   id: string;
@@ -46,6 +47,11 @@ interface RemapPlanEntry {
   from: string;
   to: string;
 }
+
+const REMAP_SCOPE_OPTIONS = [
+  { value: "selection", label: "Selected layers" },
+  { value: "page", label: "Current page" },
+] as const;
 
 export function buildRemapRowsFromEntries(
   entries?: readonly RemapBindingsPrefillEntry[],
@@ -280,8 +286,7 @@ export function RemapBindingsPanel({
       )}
 
       <p className="mb-1.5 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-        Find and replace token paths. The left side can search both live tokens
-        and stale paths seen in the current bindings or the latest sync result.
+        Replace broken bindings with the token that should drive those layers now.
       </p>
 
       <div className="mb-1.5 flex flex-col gap-1">
@@ -296,7 +301,7 @@ export function RemapBindingsPanel({
                   ),
                 )
               }
-              placeholder="old.token.path"
+              placeholder="Broken binding"
               tokenMap={tokenMap}
               additionalPaths={fromAutocompletePaths}
             />
@@ -317,7 +322,7 @@ export function RemapBindingsPanel({
                   ),
                 )
               }
-              placeholder="new.token.path"
+              placeholder="Replacement token"
               tokenMap={tokenMap}
             />
             {row.suggested && row.to.trim().length > 0 && (
@@ -358,19 +363,17 @@ export function RemapBindingsPanel({
         </button>
 
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() =>
-              setRemapScope((currentScope) => {
-                setRemapResult(null);
-                return currentScope === "selection" ? "page" : "selection";
-              })
-            }
-            className="rounded bg-[var(--color-figma-bg-hover)] px-1.5 py-0.5 text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg)]"
-            title="Toggle scope between selection and entire page"
-          >
-            {remapScope === "selection" ? "Selection" : "Page"}
-          </button>
+          <SegmentedControl
+            value={remapScope}
+            options={[...REMAP_SCOPE_OPTIONS]}
+            onChange={(scope) => {
+              setRemapResult(null);
+              setRemapScope(scope);
+            }}
+            ariaLabel="Repair scope"
+            allowWrap
+            size="compact"
+          />
           <button
             type="button"
             onClick={handleRemap}
@@ -380,8 +383,8 @@ export function RemapBindingsPanel({
             {remapRunning
               ? "Remapping…"
               : remapScope === "selection"
-                ? "Remap selection"
-                : "Remap page"}
+                ? "Repair selected layers"
+                : "Repair page"}
           </button>
         </div>
       </div>

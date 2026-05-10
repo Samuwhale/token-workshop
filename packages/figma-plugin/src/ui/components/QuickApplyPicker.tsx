@@ -294,7 +294,7 @@ function QuickApplyCandidateRow({
           {statusLabel}
         </span>
       )}
-      {!disabled && showReason && (
+      {!disabled && showReason && isSelected && (
         <span className={`text-[var(--font-size-xs)] shrink-0 ${isSelected ? 'text-white/50' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
           {candidate.reason}
         </span>
@@ -645,7 +645,7 @@ export function QuickApplyPicker({
           </div>
           <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             <label className="flex min-w-0 items-center gap-1.5">
-              <span className="shrink-0">Search scope</span>
+              <span className="shrink-0">Search</span>
               {collectionScopeIds.length > 1 ? (
                 <select
                   value={activeCollectionId}
@@ -680,13 +680,6 @@ export function QuickApplyPicker({
             {!collectionHasTokens ? (
               <span className="text-[color:var(--color-figma-text-tertiary)]">
                 {searchAllCollections ? "No tokens in the library" : "No tokens in this collection"}
-              </span>
-            ) : collectionScopeIds.length > 1 ? (
-              <span
-                className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]"
-                title={activeCollectionLabel}
-              >
-                {activeCollectionLabel}
               </span>
             ) : null}
           </div>

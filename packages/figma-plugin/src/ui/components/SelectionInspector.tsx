@@ -856,6 +856,10 @@ export function SelectionInspector({
     }
     return Array.from(byFrom.values());
   }, [remapMissingTokens, selectionHealth.staleBindingEntries, tokenMap]);
+  const hasSelectionActions =
+    connected ||
+    totalBindings > 0 ||
+    (connected && currentCollectionId && unboundWithValueCount > 0 && !extractOpen);
 
   const openExtract = useCallback(() => {
     const unboundProperties = ALL_BINDABLE_PROPERTIES.filter((prop) => {
@@ -985,15 +989,6 @@ export function SelectionInspector({
               Apply token
             </button>
           ) : null}
-          {connected && currentCollectionId && unboundWithValueCount > 0 && !extractOpen ? (
-            <button
-              onClick={openExtract}
-              className="min-h-7 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)]"
-              title="Create tokens from unbound values on the current selection"
-            >
-              Extract tokens
-            </button>
-          ) : null}
           <SelectionSyncStatusPill
             syncing={syncing}
             syncProgress={syncProgress}
@@ -1003,17 +998,7 @@ export function SelectionInspector({
             connected={connected}
             totalBindings={totalBindings}
           />
-          {totalBindings > 0 && connected && (
-            <button
-              onClick={() => onSync("selection")}
-              disabled={syncing}
-              className="min-h-7 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
-              title="Update bound values on the current selection"
-            >
-              Update selection bindings
-            </button>
-          )}
-          {(connected || totalBindings > 0) && (
+          {hasSelectionActions && (
             <button
               onClick={() => setShowSelectionActions((open) => !open)}
               className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
@@ -1031,7 +1016,32 @@ export function SelectionInspector({
         </div>
 
         {showSelectionActions && (
-          <div className="absolute right-3 top-[calc(100%-2px)] z-20 flex min-w-[168px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]">
+          <div className="absolute right-3 top-[calc(100%-2px)] z-20 flex min-w-[190px] flex-col rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-1 shadow-[var(--shadow-popover)]">
+            {connected && currentCollectionId && unboundWithValueCount > 0 && !extractOpen ? (
+              <button
+                onClick={() => {
+                  setShowSelectionActions(false);
+                  openExtract();
+                }}
+                className="min-h-7 rounded px-2 py-1 text-left text-secondary font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                title="Create tokens from unbound values on the current selection"
+              >
+                Extract tokens from selection
+              </button>
+            ) : null}
+            {totalBindings > 0 && connected && (
+              <button
+                onClick={() => {
+                  setShowSelectionActions(false);
+                  onSync("selection");
+                }}
+                disabled={syncing}
+                className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
+                title="Update bound values on the current selection"
+              >
+                Update selected layers
+              </button>
+            )}
             {connected && (
               <button
                 onClick={() => {
@@ -1042,7 +1052,7 @@ export function SelectionInspector({
                 className="min-h-7 rounded px-2 py-1 text-left text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
                 title="Update bound values on every page layer"
               >
-                Update all page bindings
+                Update current page
               </button>
             )}
             {totalBindings > 0 && (

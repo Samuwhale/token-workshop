@@ -31,7 +31,7 @@ const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "This collection" },
-  { value: "all", label: "All collections" },
+  { value: "all", label: "Browse all" },
 ] as const;
 
 interface AllCollectionsScope {
@@ -131,17 +131,24 @@ export function CollectionTabs({
     (sum, collection) => sum + (collectionTokenCounts[collection.id] ?? 0),
     0,
   );
+  const currentCollectionMeta = currentCollection
+    ? formatCollectionMeta(
+        collectionTokenCounts[currentCollection.id] ?? 0,
+        currentCollection.modes.length,
+      )
+    : "";
+  const editingContext =
+    scopeValue === "all" && currentCollection
+      ? `Editing ${currentDisplayName}`
+      : null;
   const visibleTitle =
-    scopeValue === "all" ? "All collections" : currentDisplayName;
+    scopeValue === "all" ? "Browsing all collections" : currentDisplayName;
   const visibleMeta =
     scopeValue === "all"
-      ? formatAllCollectionsMeta(collections.length, allCollectionsTokenCount)
-      : currentCollection
-        ? formatCollectionMeta(
-            collectionTokenCounts[currentCollection.id] ?? 0,
-            currentCollection.modes.length,
-          )
-        : "";
+      ? [editingContext, formatAllCollectionsMeta(collections.length, allCollectionsTokenCount)]
+          .filter(Boolean)
+          .join(" · ")
+      : currentCollectionMeta;
 
   const filteredCollections = useMemo(
     () => filterCollections(collections, deferredQuery, collectionDisplayNames),
@@ -174,9 +181,11 @@ export function CollectionTabs({
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
-      ? `All collections view. Current collection: ${currentDisplayName}. Choose collection`
+      ? `All collections view. Editing ${currentDisplayName}. Choose collection`
       : `Current collection: ${currentDisplayName}. Choose collection`
-    : "Choose collection";
+    : scopeValue === "all"
+      ? "All collections view. Choose collection"
+      : "Choose collection";
   const triggerTitle =
     visibleMeta.length > 0 ? `${visibleTitle} · ${visibleMeta}` : visibleTitle;
   const triggerStateClass =
