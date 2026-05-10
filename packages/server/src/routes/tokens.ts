@@ -66,18 +66,31 @@ function getGeneratorManagedPaths(
   flatTokens: Record<string, Token>,
   paths: string[],
 ): string[] {
+  const selectedPaths = paths.map((path) => ({
+    exact: path,
+    descendantPrefix: `${path}.`,
+  }));
   const selected = new Set<string>();
-  for (const path of paths) {
-    for (const [leafPath, token] of Object.entries(flatTokens)) {
-      if (
-        (leafPath === path || leafPath.startsWith(`${path}.`)) &&
-        readGeneratorProvenance(token)
-      ) {
-        selected.add(leafPath);
-      }
+  for (const [leafPath, token] of Object.entries(flatTokens)) {
+    if (!readGeneratorProvenance(token)) {
+      continue;
+    }
+    if (
+      selectedPaths.some(
+        ({ exact, descendantPrefix }) =>
+          leafPath === exact || leafPath.startsWith(descendantPrefix),
+      )
+    ) {
+      selected.add(leafPath);
     }
   }
   return [...selected].sort();
+}
+
+function formatGeneratorManagedPathList(paths: string[]): string {
+  const preview = paths.slice(0, 5).map((path) => `"${path}"`).join(', ');
+  const more = paths.length > 5 ? ` and ${paths.length - 5} more` : '';
+  return `${preview}${more}`;
 }
 
 function assertNoGeneratorManagedTokenDelete(
@@ -86,10 +99,8 @@ function assertNoGeneratorManagedTokenDelete(
 ): void {
   const generatorManagedPaths = getGeneratorManagedPaths(flatTokens, paths);
   if (generatorManagedPaths.length === 0) return;
-  const preview = generatorManagedPaths.slice(0, 5).map((path) => `"${path}"`).join(', ');
-  const more = generatorManagedPaths.length > 5 ? ` and ${generatorManagedPaths.length - 5} more` : '';
   throw new ConflictError(
-    `Cannot delete generator-managed token${generatorManagedPaths.length === 1 ? '' : 's'} ${preview}${more}. Detach from the generator first.`,
+    `Cannot delete generator-managed token${generatorManagedPaths.length === 1 ? '' : 's'} ${formatGeneratorManagedPathList(generatorManagedPaths)}. Detach from the generator first.`,
   );
 }
 
@@ -100,10 +111,8 @@ function assertNoGeneratorManagedTokenMutation(
 ): void {
   const generatorManagedPaths = getGeneratorManagedPaths(flatTokens, paths);
   if (generatorManagedPaths.length === 0) return;
-  const preview = generatorManagedPaths.slice(0, 5).map((path) => `"${path}"`).join(', ');
-  const more = generatorManagedPaths.length > 5 ? ` and ${generatorManagedPaths.length - 5} more` : '';
   throw new ConflictError(
-    `Cannot ${action} generator-managed token${generatorManagedPaths.length === 1 ? '' : 's'} ${preview}${more}. Detach from the generator first.`,
+    `Cannot ${action} generator-managed token${generatorManagedPaths.length === 1 ? '' : 's'} ${formatGeneratorManagedPathList(generatorManagedPaths)}. Detach from the generator first.`,
   );
 }
 
@@ -336,7 +345,7 @@ function normalizeCreateRouteBody(
   body: TokenMutationRouteBody,
 ): Token {
   if (body.$value === undefined) {
-    throw new Error('Create route body must include $value');
+    throw new BadRequestError('Token must have a $value property');
   }
 
   const nextExtensions = normalizeRouteExtensions(body);
@@ -1520,13 +1529,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!validateTokenBody(rawTokenBody)) {
         return reply.status(400).send({ error: `Invalid token body for "${tokenPath}": $type must be a valid DTCG token type` });
       }
+      if (rawTokenBody.$value === undefined) {
+        return reply.status(400).send({ error: `Token "${tokenPath}" must have a $value` });
+      }
       const token = normalizeScopedVariableToken(
         normalizeCreateRouteBody(rawTokenBody),
       );
       assertNoGeneratorProvenanceWrite(token, `write "${tokenPath}"`);
-      if (token.$value === undefined) {
-        return reply.status(400).send({ error: `Token "${tokenPath}" must have a $value` });
-      }
       // Type-aware value validation when $type is explicitly provided
       if (token.$type) {
         const valueErr = validateTokenValue(token.$value, token.$type, tokenPath);

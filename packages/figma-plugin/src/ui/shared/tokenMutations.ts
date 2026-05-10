@@ -41,7 +41,6 @@ export interface TokenModeValueDraftInput extends TokenValueDraftInput {
 }
 
 export type TokenMutationBody = TokenMutationRequest;
-export type TokenMutationMode = 'create' | 'update' | 'upsert';
 
 export interface TokenMutationResult<T = unknown> {
   kind: 'created' | 'updated';

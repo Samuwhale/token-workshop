@@ -11,6 +11,14 @@ export const TOKEN_EDITOR_RESERVED_EXTENSION_KEYS = new Set([
   'tokenworkshop',
 ]);
 
+const TOKEN_WORKSHOP_MANAGED_EXTENSION_KEYS = new Set([
+  'derivation',
+  'modes',
+  'lifecycle',
+  'extends',
+  'generator',
+]);
+
 export interface TokenEditorTokenWorkshopExtension {
   derivation?: Derivation;
   modes?: TokenEditorModeValues;
@@ -46,13 +54,7 @@ export function splitTokenWorkshopExtension(
   const source = value as Record<string, unknown>;
   const passthrough: Record<string, unknown> = {};
   for (const [key, entryValue] of Object.entries(source)) {
-    if (
-	      key !== 'derivation' &&
-	      key !== 'modes' &&
-	      key !== 'lifecycle' &&
-	      key !== 'extends' &&
-	      key !== 'generator'
-	    ) {
+    if (!TOKEN_WORKSHOP_MANAGED_EXTENSION_KEYS.has(key)) {
       passthrough[key] = entryValue;
     }
   }
