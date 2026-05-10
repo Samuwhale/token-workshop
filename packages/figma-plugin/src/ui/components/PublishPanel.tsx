@@ -55,7 +55,7 @@ import {
   type SyncWorkflowStage,
 } from '../shared/syncWorkflow';
 import { buildStylePublishTokens } from '../shared/stylePublish';
-import { CheckboxRow } from '../primitives';
+import { Button, CheckboxRow } from '../primitives';
 import { getCollectionDisplayName } from '../shared/libraryCollections';
 
 // ── Static message configs (stable module-level refs required by useFigmaMessage) ──
@@ -1462,7 +1462,11 @@ export function PublishPanel({
       >
         <div className="mt-2 max-h-[160px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           {orphanConfirm.orphanPaths.map(p => (
-            <div key={p} className="px-3 py-1 text-secondary font-mono text-[color:var(--color-figma-text)] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={p}>
+            <div
+              key={p}
+              className="border-b border-[var(--color-figma-border)] px-3 py-1 text-secondary font-mono text-[color:var(--color-figma-text)] whitespace-normal break-all last:border-b-0"
+              title={p}
+            >
               {p}
             </div>
           ))}
@@ -1882,7 +1886,7 @@ function PublishAllPreviewModal({
       ? 'Update Figma and local tokens'
       : totalPush > 0
         ? 'Update Figma'
-        : 'Update Token Workshop';
+        : 'Update local tokens';
 
   const handleConfirm = async () => {
     setBusy(true);
@@ -1914,15 +1918,15 @@ function PublishAllPreviewModal({
             Review Figma sync changes
           </h3>
           {hasAnyChanges && (
-            <div className="flex flex-col gap-0.5">
-              <p className="text-secondary text-[color:var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
+            <div className="tm-publish-preview-summary">
+              <p className="tm-publish-preview-summary__copy">
                 {[
                   totalPush > 0 ? `${totalPush} will update Figma` : null,
-                  totalPull > 0 ? `${totalPull} will update Token Workshop` : null,
+                  totalPull > 0 ? `${totalPull} will update local tokens` : null,
                 ].filter(Boolean).join(' · ')}
               </p>
-              <p className="text-secondary text-[color:var(--color-figma-text-secondary)] [overflow-wrap:anywhere]">
-                Figma target: <span className="font-medium text-[color:var(--color-figma-text)]">{publishTargetLabel}</span>
+              <p className="tm-publish-preview-summary__meta">
+                Figma target <span className="font-medium text-[color:var(--color-figma-text)]">{publishTargetLabel}</span>
               </p>
             </div>
           )}
@@ -1946,7 +1950,7 @@ function PublishAllPreviewModal({
 
           {hasAnyChanges ? (
             <p className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-              You can undo the last sync from Publish after applying, or use History for older checkpoints.
+              Undo the last sync from Publish. Use History for older checkpoints.
             </p>
           ) : null}
         </div>
@@ -1955,29 +1959,31 @@ function PublishAllPreviewModal({
           <p className="px-4 pb-2 text-secondary text-[color:var(--color-figma-text-error)] break-words" role="alert">{confirmError}</p>
         )}
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)] pt-2">
-          <button
+          <Button
             onClick={onCancel}
             disabled={busy}
-            className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            variant="secondary"
           >
             Cancel
-          </button>
+          </Button>
           {hasAnyChanges ? (
-            <button
+            <Button
               onClick={handleConfirm}
               disabled={busy}
-              className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              variant="primary"
+              data-modal-primary="true"
+              wrap
             >
               {busy && <Spinner size="sm" className="text-white" />}
               {busy ? 'Applying\u2026' : confirmLabel}
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={onCancel}
-              className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              variant="secondary"
             >
               Close
-            </button>
+            </Button>
           )}
         </div>
       </div>

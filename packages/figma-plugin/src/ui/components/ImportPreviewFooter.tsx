@@ -4,6 +4,7 @@ import {
   useImportSourceContext,
 } from './ImportPanelContext';
 import { ImportConflictResolver } from './ImportConflictResolver';
+import { Button } from '../primitives';
 import { COLLECTION_NAME_RE } from '../shared/utils';
 
 function formatCollectionOptionLabel(collectionId: string): string {
@@ -45,22 +46,51 @@ export function ImportPreviewFooter() {
   const previewConflictCount = previewOverwriteCount ?? 0;
   const importWithoutConflictCheck = existingTokenMapError !== null;
   const importDisabled = selectedCount === 0 || importing || checkingConflicts;
+  const collectionFieldId = 'import-preview-target-collection';
+  const newCollectionFieldId = 'import-preview-new-collection';
+  const previewStatusTitle = existingPathsFetching
+    ? 'Checking current library'
+    : existingTokenMapError !== null
+      ? 'Could not compare with current tokens'
+      : previewNewCount !== null && previewOverwriteCount !== null
+        ? [
+            `${previewNewCount} new`,
+            previewOverwriteCount > 0
+              ? `${previewOverwriteCount} match${previewOverwriteCount === 1 ? '' : 'es'}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        : null;
+  const previewStatusDetail =
+    existingTokenMapError !== null
+      ? 'Import may replace tokens with the same path.'
+      : previewOverwriteCount && previewOverwriteCount > 0
+        ? 'Review matches before you import.'
+        : null;
 
   // Once conflicts have been fetched, swap the footer for the resolver flow.
   if (conflictPaths !== null && conflictPaths.length > 0) {
     return (
-      <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+      <div className="tm-import-preview-footer border-t border-[var(--color-figma-border)]">
         <ImportConflictResolver />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+    <div className="tm-import-preview-footer border-t border-[var(--color-figma-border)]">
       {newCollectionInputVisible ? (
         <div className="flex flex-col gap-1">
+          <label
+            htmlFor={newCollectionFieldId}
+            className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
+          >
+            New collection
+          </label>
           <div className="tm-panel-inline-form">
             <input
+              id={newCollectionFieldId}
               autoFocus
               type="text"
               value={newCollectionDraft}
@@ -71,7 +101,7 @@ export function ImportPreviewFooter() {
                 if (!trimmed) {
                   setNewCollectionError(null);
                 } else if (!COLLECTION_NAME_RE.test(trimmed)) {
-                  setNewCollectionError('Use letters, numbers, - _ (/ for folders)');
+                  setNewCollectionError('Use letters, numbers, -, _, and /.');
                 } else {
                   setNewCollectionError(null);
                 }
@@ -80,23 +110,22 @@ export function ImportPreviewFooter() {
                 if (e.key === 'Enter') commitNewCollection();
                 if (e.key === 'Escape') cancelNewCollection();
               }}
-              placeholder="New collection name…"
+              placeholder="Collection name"
               className={`tm-panel-inline-form__field rounded border bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] ${newCollectionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-accent)]'}`}
+              aria-invalid={newCollectionError ? 'true' : undefined}
             />
             <div className="tm-panel-inline-form__actions">
-              <button
+              <Button
                 onClick={commitNewCollection}
                 disabled={!newCollectionDraft.trim() || !!newCollectionError}
-                className="rounded bg-[var(--color-figma-action-bg)] px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 disabled:opacity-40"
+                variant="primary"
+                size="sm"
               >
                 Create
-              </button>
-              <button
-                onClick={cancelNewCollection}
-                className="rounded border border-[var(--color-figma-border)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-              >
+              </Button>
+              <Button onClick={cancelNewCollection} variant="secondary" size="sm">
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
           {newCollectionError && (
@@ -106,38 +135,46 @@ export function ImportPreviewFooter() {
           )}
           {!newCollectionError && (
             <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              Use <code className="font-mono">/</code> only when that name is already part of your system structure.
+              Use <code className="font-mono">/</code> only for an existing folder path.
             </p>
           )}
         </div>
       ) : (
-        <div className="tm-panel-inline-form">
-          <label className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Destination collection</label>
-          <select
-            value={targetCollectionId}
-            onChange={(e) => {
-              if (e.target.value === '__new__') {
-                setNewCollectionInputVisible(true);
-              } else {
-                clearConflictState();
-                setTargetCollectionIdAndPersist(e.target.value);
-              }
-            }}
-            className="tm-panel-inline-form__field rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor={collectionFieldId}
+            className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
           >
-            {collectionIds.map((id) => {
-              const label = formatCollectionOptionLabel(id);
-              return (
-                <option key={id} value={id}>
-                  {label === id ? id : `${label} (${id})`}
-                </option>
-              );
-            })}
-            {!collectionIds.includes(targetCollectionId) && targetCollectionId && (
-              <option value={targetCollectionId}>{targetCollectionId} (new)</option>
-            )}
-            <option value="__new__">+ New collection…</option>
-          </select>
+            Collection
+          </label>
+          <div className="tm-panel-inline-form">
+            <select
+              id={collectionFieldId}
+              value={targetCollectionId}
+              onChange={(e) => {
+                if (e.target.value === '__new__') {
+                  setNewCollectionInputVisible(true);
+                } else {
+                  clearConflictState();
+                  setTargetCollectionIdAndPersist(e.target.value);
+                }
+              }}
+              className="tm-panel-inline-form__field rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
+            >
+              {collectionIds.map((id) => {
+                const label = formatCollectionOptionLabel(id);
+                return (
+                  <option key={id} value={id}>
+                    {label === id ? id : `${label} (${id})`}
+                  </option>
+                );
+              })}
+              {!collectionIds.includes(targetCollectionId) && targetCollectionId && (
+                <option value={targetCollectionId}>{targetCollectionId} (new)</option>
+              )}
+              <option value="__new__">+ New collection…</option>
+            </select>
+          </div>
         </div>
       )}
 
@@ -149,60 +186,50 @@ export function ImportPreviewFooter() {
       )}
 
       {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null || existingTokenMapError !== null) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-secondary">
-          <div className="flex min-w-0 flex-[1_1_220px] flex-wrap items-center gap-2">
-            {existingPathsFetching ? (
-              <span className="text-[color:var(--color-figma-text-secondary)]">Checking current library...</span>
-            ) : existingTokenMapError !== null ? (
-              <span className="text-[color:var(--color-figma-text-warning)]">
-                Could not check current tokens. Importing may overwrite matching paths.
-              </span>
-            ) : previewNewCount !== null && previewOverwriteCount !== null && (
-              <>
-                {previewNewCount > 0 && (
-                  <span className="text-[color:var(--color-figma-text-success)]">
-                    {previewNewCount} will be added
-                  </span>
-                )}
-                {previewNewCount > 0 && previewOverwriteCount > 0 && (
-                  <span className="text-[color:var(--color-figma-border)]">&middot;</span>
-                )}
-                {previewOverwriteCount > 0 && (
-                  <span className="text-[color:var(--color-figma-text-warning)]">
-                    {previewOverwriteCount} would update existing token{previewOverwriteCount === 1 ? "" : "s"}
-                  </span>
-                )}
-              </>
-            )}
+        <div className="tm-import-preview-footer__status" aria-live="polite">
+          <div className="tm-import-preview-footer__status-copy">
+            <p className="tm-import-preview-footer__status-title">
+              {selectedCount} selected
+              {previewStatusTitle ? ` · ${previewStatusTitle}` : ''}
+            </p>
+            {previewStatusDetail ? (
+              <p className="tm-import-preview-footer__status-detail">
+                {previewStatusDetail}
+              </p>
+            ) : null}
           </div>
           {hasPreviewConflicts && (
-            <button
+            <Button
               onClick={handleImportStyles}
-              className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+              variant="ghost"
+              size="sm"
+              wrap
             >
-              Choose what to keep...
-            </button>
+              Review matches
+            </Button>
           )}
         </div>
       )}
 
-      <button
+      <Button
         onClick={handleImportStyles}
         disabled={importDisabled}
-        className="w-full rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-opacity hover:opacity-90 disabled:opacity-40 whitespace-normal leading-tight text-center"
+        variant="primary"
+        wrap
+        className="w-full"
       >
         {checkingConflicts
-          ? 'Checking for conflicts...'
+          ? 'Checking matches...'
           : importing
             ? importProgress
               ? `Importing ${importProgress.done}/${importProgress.total}...`
               : 'Importing...'
             : hasPreviewConflicts
-              ? `Choose what to keep for ${previewConflictCount} existing token${previewConflictCount === 1 ? "" : "s"}`
+              ? `Review ${previewConflictCount} matching token${previewConflictCount === 1 ? "" : "s"}`
               : importWithoutConflictCheck
-                ? `Import ${selectedCount} without conflict check`
+                ? `Import ${selectedCount} without compare`
               : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
-      </button>
+      </Button>
 
       {importing && importProgress && importProgress.total > 0 && (
         <div className="w-full h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden">

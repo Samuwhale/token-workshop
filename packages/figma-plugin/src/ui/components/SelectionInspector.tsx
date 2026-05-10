@@ -157,6 +157,7 @@ export function SelectionInspector({
 
   const [propTypeSuggestion, setPropTypeSuggestion] = useState<{
     tokenPath: string;
+    collectionId: string;
     tokenType: string;
     resolvedValue: unknown;
     targetProps: BindableProperty[];
@@ -584,22 +585,29 @@ export function SelectionInspector({
     setBindingFromProp(prop);
   };
 
-  const handleBindToken = (prop: BindableProperty, tokenPath: string) => {
-    const entry = activeCollectionTokenMap[tokenPath];
+  const handleBindToken = (
+    prop: BindableProperty,
+    tokenPath: string,
+    collectionId = currentCollectionId,
+  ) => {
+    const targetTokenMap =
+      tokenMapsByCollection[collectionId] ??
+      (collectionId === currentCollectionId ? activeCollectionTokenMap : tokenMap);
+    const entry = targetTokenMap[tokenPath];
     if (!entry) return;
     const oldBinding = getBindingForProperty(selectedNodes, prop);
     const oldBindingCollection = getBindingCollectionForProperty(selectedNodes, prop);
     const resolved = resolveTokenValue(
       entry.$value,
       entry.$type,
-      activeCollectionTokenMap,
+      targetTokenMap,
     );
     parent.postMessage(
       {
         pluginMessage: {
           type: "apply-to-selection",
           tokenPath,
-          collectionId: currentCollectionId,
+          collectionId,
           tokenType: entry.$type,
           targetProperty: prop,
           resolvedValue: resolved.value,
@@ -679,6 +687,7 @@ export function SelectionInspector({
       if (compatUnboundProps.length > 0) {
         setPropTypeSuggestion({
           tokenPath,
+          collectionId,
           tokenType: entry.$type,
           resolvedValue: resolved.value,
           targetProps: compatUnboundProps,
@@ -712,7 +721,7 @@ export function SelectionInspector({
           property: prop,
           peerIds,
           tokenPath,
-          collectionId: currentCollectionId,
+          collectionId,
           tokenType: entry.$type,
           resolvedValue: resolved.value,
         });
@@ -1210,6 +1219,8 @@ export function SelectionInspector({
                             rootNodes={rootNodes}
                             selectedNodes={selectedNodes}
                             tokenMap={activeCollectionTokenMap}
+                            allTokensFlat={tokenMap}
+                            tokenMapsByCollection={tokenMapsByCollection}
                             connected={connected}
                             currentCollectionId={currentCollectionId}
                             currentCollectionModeNames={currentCollectionModeNames}
@@ -1460,7 +1471,7 @@ export function SelectionInspector({
                 pluginMessage: {
                   type: "apply-to-selection",
                   tokenPath: propTypeSuggestion.tokenPath,
-                  collectionId: currentCollectionId,
+                  collectionId: propTypeSuggestion.collectionId,
                   tokenType: propTypeSuggestion.tokenType,
                   targetProperty: prop,
                   resolvedValue: propTypeSuggestion.resolvedValue,

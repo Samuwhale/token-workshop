@@ -17,10 +17,14 @@ import type {
   TokenMapEntry,
 } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
-import { resolveTokenValue } from '../../shared/resolveAlias';
 import { nodeParentPath } from './tokenListUtils';
 import { getErrorMessage } from '../shared/utils';
-import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
+import { addRecentToken } from '../shared/recentTokens';
+import {
+  buildScopedTokenCandidates,
+  getRecentScopedTokenCandidates,
+  type ScopedTokenCandidate,
+} from '../shared/scopedTokenCandidates';
 import {
   applyTokenMutationSuccess,
   createToken,
@@ -46,6 +50,7 @@ import {
   collectSiblingBindings,
   collectBoundPrefixes,
   getMixedBindingValues,
+  getBindingCollectionForProperty,
 } from './selectionInspectorUtils';
 import { ModeValueEditor } from './token-editor/ModeValueEditor';
 
@@ -54,6 +59,8 @@ interface PropertyRowProps {
   rootNodes: SelectionNodeInfo[];
   selectedNodes: SelectionNodeInfo[];
   tokenMap: Record<string, TokenMapEntry>;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  tokenMapsByCollection?: Record<string, Record<string, TokenMapEntry>>;
   connected: boolean;
   currentCollectionId: string;
   currentCollectionModeNames: string[];
@@ -67,7 +74,11 @@ interface PropertyRowProps {
   onOpenBind: (prop: BindableProperty) => void;
   onCancelCreate: () => void;
   onCancelBind: () => void;
-  onBindToken: (prop: BindableProperty, tokenPath: string) => void;
+  onBindToken: (
+    prop: BindableProperty,
+    tokenPath: string,
+    collectionId?: string,
+  ) => void;
   onTokenCreated: (
     tokenPath: string,
     prop: BindableProperty,
@@ -77,7 +88,7 @@ interface PropertyRowProps {
   onRemoveBinding: (prop: BindableProperty) => void;
   onDismissBindingError: (prop: BindableProperty) => void;
   bindingError: string | null;
-  onNavigateToToken?: (tokenPath: string) => void;
+  onNavigateToToken?: (tokenPath: string, collectionId?: string) => void;
   newTokenName: string;
   onNewTokenNameChange: (name: string) => void;
 }
@@ -123,18 +134,18 @@ function PropertyActionButton({
 }
 
 interface BindCandidateButtonProps {
-  path: string;
-  entry: TokenMapEntry;
-  tokenMap: Record<string, TokenMapEntry>;
+  candidate: ScopedTokenCandidate;
+  collectionLabel: string;
+  showCollection: boolean;
   isSelected: boolean;
   isCurrent: boolean;
-  onSelect: (path: string) => void;
+  onSelect: (candidate: ScopedTokenCandidate) => void;
 }
 
 function BindCandidateButton({
-  path,
-  entry,
-  tokenMap,
+  candidate,
+  collectionLabel,
+  showCollection,
   isSelected,
   isCurrent,
   onSelect,
@@ -142,16 +153,18 @@ function BindCandidateButton({
   const {
     resolvedColor: resolvedColorSwatch,
     resolvedDisplay: resolvedValueDisplay,
-  } = resolveTokenEntryDisplay(entry, tokenMap);
+  } = resolveTokenEntryDisplay(candidate.resolvedEntry, {
+    [candidate.path]: candidate.resolvedEntry,
+  });
 
   return (
     <button
-      id={`bind-option-${path}`}
+      id={`bind-option-${candidate.key}`}
       role="option"
       aria-selected={isSelected}
       aria-disabled={isCurrent}
       disabled={isCurrent}
-      onClick={isCurrent ? undefined : () => onSelect(path)}
+      onClick={isCurrent ? undefined : () => onSelect(candidate)}
       className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'cursor-default opacity-65' : ''}`}
     >
       {resolvedColorSwatch ? (
@@ -165,11 +178,19 @@ function BindCandidateButton({
         </div>
       )}
       <span className={`text-secondary font-mono truncate flex-1 ${isSelected ? 'text-[color:var(--color-figma-text-accent)]' : 'text-[color:var(--color-figma-text)] group-hover/item:text-[color:var(--color-figma-text-accent)]'}`}>
-        {path}
+        {candidate.path}
       </span>
       {isCurrent && (
         <span className="text-[var(--font-size-xs)] bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">
           current
+        </span>
+      )}
+      {showCollection && (
+        <span
+          className="max-w-[96px] truncate text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink"
+          title={collectionLabel}
+        >
+          {collectionLabel}
         </span>
       )}
       {resolvedValueDisplay && !isCurrent && (
@@ -178,7 +199,7 @@ function BindCandidateButton({
         </span>
       )}
       <span className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] shrink-0">
-        {entry.$type}
+        {candidate.entry.$type}
       </span>
     </button>
   );
@@ -244,6 +265,8 @@ export function PropertyRow({
   rootNodes,
   selectedNodes,
   tokenMap,
+  allTokensFlat,
+  tokenMapsByCollection = {},
   connected,
   currentCollectionId,
   currentCollectionModeNames,
@@ -278,6 +301,7 @@ export function PropertyRow({
     currentCollectionId,
     collectionDisplayNames,
   );
+  const allTokenMap = allTokensFlat ?? tokenMap;
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const createSessionKeyRef = useRef<string | null>(null);
@@ -304,7 +328,27 @@ export function PropertyRow({
   const isBound = binding && binding !== 'mixed';
   const isMixed = binding === 'mixed';
   const isUnbound = !binding || isMixed;
-  const isBroken = Boolean(isBound && !tokenMap[binding as string]);
+  const bindingCollection = isBound
+    ? getBindingCollectionForProperty(rootNodes, prop)
+    : null;
+  const boundCollectionId =
+    bindingCollection && bindingCollection !== 'mixed'
+      ? bindingCollection
+      : currentCollectionId;
+  const boundTokenMap =
+    tokenMapsByCollection[boundCollectionId] ?? tokenMap;
+  const boundEntry = isBound
+    ? boundTokenMap[binding as string] ?? allTokenMap[binding as string]
+    : undefined;
+  const isBroken = Boolean(isBound && !boundEntry);
+  const boundDisplayTokenMap =
+    isBound && boundEntry && !boundTokenMap[binding as string]
+      ? { ...boundTokenMap, [binding as string]: boundEntry }
+      : boundTokenMap;
+  const boundCollectionLabel = getCollectionDisplayName(
+    boundCollectionId,
+    collectionDisplayNames,
+  );
   const isThisPropActive = creatingFromProp === prop || bindingFromProp === prop;
   const hasExtractableValue = value !== undefined && value !== null && !isMixedLiteralValue && connected && isUnbound && currentCollectionId && !isThisPropActive;
   const canBind = !isBound && connected && hasAnyTokens && !isThisPropActive;
@@ -347,7 +391,7 @@ export function PropertyRow({
 
   // Resolve binding display
   const { resolvedDisplay, resolvedColor } = isBound
-    ? resolveBindingDisplay(binding as string, tokenMap)
+    ? resolveBindingDisplay(binding as string, boundDisplayTokenMap)
     : { resolvedDisplay: null, resolvedColor: null };
 
   const swatchColor = resolvedColor ?? ((prop === 'fill' || prop === 'stroke') && typeof value === 'string' && value.startsWith('#') ? value : null);
@@ -357,18 +401,44 @@ export function PropertyRow({
   const currentPropValue = bindingFromProp === prop ? getCurrentValue(rootNodes, prop) : undefined;
   const siblingBindings = bindingFromProp === prop ? collectSiblingBindings(rootNodes, prop) : new Set<string>();
   const nodeBoundPrefixes = bindingFromProp === prop ? collectBoundPrefixes(rootNodes) : new Set<string>();
+  const scopedCandidates = useMemo(
+    () =>
+      buildScopedTokenCandidates({
+        allTokensFlat: allTokenMap,
+        perCollectionFlat: tokenMapsByCollection,
+      }),
+    [allTokenMap, tokenMapsByCollection],
+  );
 
   const bindCandidatesAll = bindingFromProp === prop
-    ? Object.entries(tokenMap)
-        .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
-        .filter(([, entry]) => isTokenScopeCompatible(entry, prop))
-        .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
-        .map(([path, entry]) => {
-          const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
-          const score = scoreBindCandidate(path, entry, prop, currentPropValue, r.value, siblingBindings, nodeBoundPrefixes);
-          return [path, entry, score] as [string, TokenMapEntry, number];
+    ? scopedCandidates
+        .filter((candidate) => compatibleTypesForBind.includes(candidate.entry.$type))
+        .filter((candidate) => isTokenScopeCompatible(candidate.entry, prop))
+        .filter((candidate) => {
+          if (!bindQuery) return true;
+          const normalizedQuery = bindQuery.toLowerCase();
+          const collectionLabel = getCollectionDisplayName(
+            candidate.collectionId,
+            collectionDisplayNames,
+          ).toLowerCase();
+          return (
+            candidate.path.toLowerCase().includes(normalizedQuery) ||
+            collectionLabel.includes(normalizedQuery)
+          );
         })
-        .sort((a, b) => b[2] - a[2])
+        .map((candidate) => {
+          const score = scoreBindCandidate(
+            candidate.path,
+            candidate.entry,
+            prop,
+            currentPropValue,
+            candidate.resolvedEntry.$value,
+            siblingBindings,
+            nodeBoundPrefixes,
+          );
+          return [candidate, score] as [ScopedTokenCandidate, number];
+        })
+        .sort((a, b) => b[1] - a[1])
     : [];
   const BIND_PAGE_SIZE = 12;
   const bindTotalCount = bindCandidatesAll.length;
@@ -377,26 +447,35 @@ export function PropertyRow({
   // Recently-used section: filter global recents to compatible tokens visible in the bind panel
   const recentBindCandidates = (bindingFromProp === prop && !bindQuery)
     ? (() => {
-        const recentPaths = getRecentTokenPaths({ collectionId: currentCollectionId });
-        const allPaths = new Set(bindCandidatesAll.map(([p]) => p));
-        const allByPath = new Map(bindCandidatesAll.map(([p, e, s]) => [p, [p, e, s] as [string, TokenMapEntry, number]]));
-        return recentPaths
-          .filter(p => allPaths.has(p))
+        const allByKey = new Map(bindCandidatesAll.map(([candidate, score]) => [
+          candidate.key,
+          [candidate, score] as [ScopedTokenCandidate, number],
+        ]));
+        return getRecentScopedTokenCandidates(scopedCandidates, {
+          collectionId: boundCollectionId || currentCollectionId,
+        })
+          .map((candidate) => allByKey.get(candidate.key))
+          .filter((candidate): candidate is [ScopedTokenCandidate, number] => candidate !== undefined)
           .slice(0, 5)
-          .map(p => allByPath.get(p)!);
       })()
     : [];
-  const recentBindPathSet = new Set(recentBindCandidates.map(([p]) => p));
-  const mainBindCandidates = bindCandidates.filter(([p]) => !recentBindPathSet.has(p));
+  const recentBindKeySet = new Set(recentBindCandidates.map(([candidate]) => candidate.key));
+  const mainBindCandidates = bindCandidates.filter(([candidate]) => !recentBindKeySet.has(candidate.key));
 
   // Determine if we should show a "Suggested" divider — top candidates scored > 0
-  const suggestedCount = mainBindCandidates.filter(([, , s]) => s > 0).length;
+  const suggestedCount = mainBindCandidates.filter(([, score]) => score > 0).length;
   const showSuggestedDivider = suggestedCount > 0 && suggestedCount < mainBindCandidates.length && !bindQuery;
 
-  const handleBindToken = (p: string) => {
-    if (isBound && p === binding) return;
-    addRecentToken(p, currentCollectionId);
-    onBindToken(prop, p);
+  const handleBindToken = (candidate: ScopedTokenCandidate) => {
+    if (
+      isBound &&
+      candidate.path === binding &&
+      candidate.collectionId === boundCollectionId
+    ) {
+      return;
+    }
+    addRecentToken(candidate.path, candidate.collectionId);
+    onBindToken(prop, candidate.path, candidate.collectionId);
   };
 
   const prevBindingFromProp = useRef<BindableProperty | null>(null);
@@ -427,7 +506,14 @@ export function PropertyRow({
     if (bindingFromProp === prop && prevBindingFromProp.current !== prop) {
       const currentBinding = getBindingForProperty(rootNodes, prop);
       if (currentBinding && currentBinding !== 'mixed') {
-        const leafName = tokenMap[currentBinding]?.$name;
+        const currentBindingCollection = getBindingCollectionForProperty(rootNodes, prop);
+        const currentBindingCollectionId =
+          currentBindingCollection && currentBindingCollection !== 'mixed'
+            ? currentBindingCollection
+            : currentCollectionId;
+        const currentBindingMap =
+          tokenMapsByCollection[currentBindingCollectionId] ?? tokenMap;
+        const leafName = currentBindingMap[currentBinding]?.$name;
         setBindQuery(leafName ? nodeParentPath(currentBinding, leafName) : '');
       } else {
         setBindQuery('');
@@ -436,7 +522,7 @@ export function PropertyRow({
       setBindShowAll(false);
     }
     prevBindingFromProp.current = bindingFromProp;
-  }, [bindingFromProp, prop, rootNodes, tokenMap]);
+  }, [bindingFromProp, currentCollectionId, prop, rootNodes, tokenMap, tokenMapsByCollection]);
 
   const handleCreateToken = async () => {
     if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;
@@ -586,7 +672,7 @@ export function PropertyRow({
                 )}
                 {onNavigateToToken && !isBroken ? (
                   <button
-                    onClick={() => onNavigateToToken(binding as string)}
+                    onClick={() => onNavigateToToken(binding as string, boundCollectionId)}
                     className="text-secondary text-[color:var(--color-figma-text-accent)] font-mono truncate hover:underline text-left"
                     title={`Go to ${binding as string}`}
                   >
@@ -598,6 +684,14 @@ export function PropertyRow({
                     title={isBroken ? `Missing token: ${binding as string}` : (binding as string)}
                   >
                     {binding as string}
+                  </span>
+                )}
+                {boundCollectionId !== currentCollectionId && (
+                  <span
+                    className="max-w-[120px] truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
+                    title={boundCollectionLabel}
+                  >
+                    {boundCollectionLabel}
                   </span>
                 )}
               </div>
@@ -756,13 +850,13 @@ export function PropertyRow({
               placeholder="Search tokens\u2026"
               aria-autocomplete="list"
               aria-controls="bind-candidates-listbox"
-              aria-activedescendant={bindSelectedIndex >= 0 ? `bind-option-${[...recentBindCandidates, ...mainBindCandidates][bindSelectedIndex]?.[0]}` : undefined}
+              aria-activedescendant={bindSelectedIndex >= 0 ? `bind-option-${[...recentBindCandidates, ...mainBindCandidates][bindSelectedIndex]?.[0]?.key}` : undefined}
               aria-label="Search token candidates"
               className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
             />
             {bindCandidates.length === 0 && recentBindCandidates.length === 0 ? (
               <div className="text-secondary text-[color:var(--color-figma-text-secondary)] py-1 text-center">
-                {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in this collection`}
+                {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in this library`}
               </div>
             ) : (
               <div id="bind-candidates-listbox" role="listbox" aria-label="Token candidates" className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
@@ -772,15 +866,26 @@ export function PropertyRow({
                     <div className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-secondary)] font-medium px-1.5 pt-0.5 pb-0.5">
                       Recently used
                     </div>
-                    {recentBindCandidates.map(([path, entry], idx) => {
+                    {recentBindCandidates.map(([candidate], idx) => {
                       const isSelected = idx === bindSelectedIndex;
-                      const isCurrent = Boolean(isBound && path === binding);
+                      const isCurrent = Boolean(
+                        isBound &&
+                        candidate.path === binding &&
+                        candidate.collectionId === boundCollectionId,
+                      );
+                      const collectionLabel = getCollectionDisplayName(
+                        candidate.collectionId,
+                        collectionDisplayNames,
+                      );
                       return (
                         <BindCandidateButton
-                          key={path}
-                          path={path}
-                          entry={entry}
-                          tokenMap={tokenMap}
+                          key={candidate.key}
+                          candidate={candidate}
+                          collectionLabel={collectionLabel}
+                          showCollection={
+                            candidate.isAmbiguousPath ||
+                            candidate.collectionId !== currentCollectionId
+                          }
                           isSelected={isSelected}
                           isCurrent={isCurrent}
                           onSelect={handleBindToken}
@@ -796,14 +901,22 @@ export function PropertyRow({
                 )}
 
                 {/* Main candidates */}
-                {mainBindCandidates.map(([path, entry, score], idx) => {
+                {mainBindCandidates.map(([candidate, score], idx) => {
                   const globalIdx = recentBindCandidates.length + idx;
                   const isSelected = globalIdx === bindSelectedIndex;
-                  const isCurrent = Boolean(isBound && path === binding);
+                  const isCurrent = Boolean(
+                    isBound &&
+                    candidate.path === binding &&
+                    candidate.collectionId === boundCollectionId,
+                  );
+                  const collectionLabel = getCollectionDisplayName(
+                    candidate.collectionId,
+                    collectionDisplayNames,
+                  );
                   const showSuggestedHeader = showSuggestedDivider && idx === 0 && recentBindCandidates.length === 0;
-                  const showOthersHeader = showSuggestedDivider && score === 0 && (idx === 0 || mainBindCandidates[idx - 1][2] > 0);
+                  const showOthersHeader = showSuggestedDivider && score === 0 && (idx === 0 || mainBindCandidates[idx - 1][1] > 0);
                   return (
-                    <div key={path}>
+                    <div key={candidate.key}>
                       {showSuggestedHeader && (
                         <div className="text-[var(--font-size-xs)] text-[color:var(--color-figma-text-accent)] font-medium px-1.5 pt-0.5 pb-0.5">
                           Suggested
@@ -815,9 +928,12 @@ export function PropertyRow({
                         </div>
                       )}
                       <BindCandidateButton
-                        path={path}
-                        entry={entry}
-                        tokenMap={tokenMap}
+                        candidate={candidate}
+                        collectionLabel={collectionLabel}
+                        showCollection={
+                          candidate.isAmbiguousPath ||
+                          candidate.collectionId !== currentCollectionId
+                        }
                         isSelected={isSelected}
                         isCurrent={isCurrent}
                         onSelect={handleBindToken}

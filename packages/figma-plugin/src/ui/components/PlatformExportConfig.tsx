@@ -11,7 +11,7 @@ import type {
   ExportPreset,
 } from '../hooks/useExportPresets';
 import type { ExportResultFile } from '../hooks/useExportResults';
-import { CheckboxRow, DisclosureRow } from '../primitives';
+import { Button, CheckboxRow, DisclosureRow } from '../primitives';
 import { exportFileId, splitExportFilePath } from '../shared/exportFileHelpers';
 
 const textActionClass =
@@ -218,6 +218,37 @@ function ChangeScopeStatus({
   );
 }
 
+function formatExportPresetSummary(
+  preset: ExportPreset,
+  totalCollectionCount: number,
+): string {
+  const parts: string[] = [];
+
+  parts.push(`${preset.platforms.length} format${preset.platforms.length === 1 ? '' : 's'}`);
+
+  if (preset.selectedCollections !== null && totalCollectionCount > 0) {
+    parts.push(
+      `${preset.selectedCollections.length} collection${preset.selectedCollections.length === 1 ? '' : 's'}`,
+    );
+  }
+
+  if (preset.selectedTypes !== null && preset.selectedTypes.length > 0) {
+    parts.push(
+      `${preset.selectedTypes.length} type${preset.selectedTypes.length === 1 ? '' : 's'}`,
+    );
+  }
+
+  if (preset.pathPrefix) {
+    parts.push(`Path ${preset.pathPrefix}`);
+  }
+
+  if (preset.changesOnly) {
+    parts.push('Changed only');
+  }
+
+  return parts.join(' · ');
+}
+
 export function PlatformExportConfig({
   platformConfig,
   diffState,
@@ -392,8 +423,7 @@ export function PlatformExportConfig({
         ? 'All file formats'
         : selectedPlatformLabels.join(', ');
 
-  const intentButtonClass =
-    'rounded px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]';
+  const intentButtonClass = 'justify-start text-[color:var(--color-figma-text-secondary)]';
 
   return (
     <>
@@ -403,41 +433,44 @@ export function PlatformExportConfig({
             Export intent
           </div>
           <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            Start with the handoff you need, then refine the file settings
-            below.
+            Pick the handoff first. Refine the file settings after.
           </div>
         </div>
-        <div className="flex flex-wrap gap-1">
-          <button
-            type="button"
+        <div className="tm-export-intents">
+          <Button
             onClick={() =>
               applyPlatformIntent(['css', 'typescript', 'tailwind'])
             }
+            variant="secondary"
+            size="sm"
             className={intentButtonClass}
           >
             Web
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => applyPlatformIntent(['ios-swift'])}
+            variant="secondary"
+            size="sm"
             className={intentButtonClass}
           >
             iOS
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => applyPlatformIntent(['android'])}
+            variant="secondary"
+            size="sm"
             className={intentButtonClass}
           >
             Android
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => applyPlatformIntent(['json'])}
+            variant="secondary"
+            size="sm"
             className={intentButtonClass}
           >
             Token file
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -557,29 +590,29 @@ export function PlatformExportConfig({
       <div className="pt-1">
         <DisclosureRow
           title="Saved presets"
-          summary={presets.length > 0 ? `${presets.length}` : 'None yet'}
+          summary={presets.length > 0 ? `${presets.length} saved` : 'None yet'}
           open={presetsOpen}
           onToggle={() => setPresetsOpen((v) => !v)}
           action={
-            <button
-              type="button"
+            <Button
               onClick={() => {
                 setPresetsOpen(true);
                 setShowSavePreset((v) => !v);
                 setPresetName('');
                 setTimeout(() => savePresetInputRef.current?.focus(), 0);
               }}
-              className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+              variant="ghost"
+              size="sm"
             >
               Save current
-            </button>
+            </Button>
           }
         />
 
         {presetsOpen && (
           <div className="mt-2 flex flex-col gap-2">
             {showSavePreset && (
-              <div className="flex items-center gap-1.5">
+              <div className="tm-export-preset-save">
                 <input
                   ref={savePresetInputRef}
                   type="text"
@@ -590,30 +623,25 @@ export function PlatformExportConfig({
                     if (e.key === 'Escape') cancelPresetSave();
                   }}
                   placeholder="Preset name…"
-                  className="flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[color:var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]"
+                  className="tm-export-preset-save__field flex-1 px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[color:var(--color-figma-text)] font-mono focus:focus-visible:border-[var(--color-figma-accent)] placeholder:text-[color:var(--color-figma-text-tertiary)]"
                 />
-                <button
-                  type="button"
+                <Button
                   onClick={onSavePreset}
                   disabled={!presetName.trim()}
-                  className="px-2 py-1 rounded bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] text-secondary font-medium disabled:opacity-40 hover:bg-[var(--color-figma-action-bg-hover)] transition-colors"
+                  variant="primary"
+                  size="sm"
                 >
                   Save
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelPresetSave}
-                  className="px-1.5 py-1 rounded text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  aria-label="Cancel"
-                >
-                  <X size={10} strokeWidth={2} aria-hidden />
-                </button>
+                </Button>
+                <Button onClick={cancelPresetSave} variant="secondary" size="sm">
+                  Cancel
+                </Button>
               </div>
             )}
 
             {presets.length === 0 && !showSavePreset && (
               <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-relaxed">
-                Save the current setup when you have a repeat export.
+                Save a repeat export.
               </div>
             )}
 
@@ -622,34 +650,45 @@ export function PlatformExportConfig({
                 {presets.map((preset) => (
                   <div
                     key={preset.id}
-                    className="group flex items-center gap-1.5 rounded-md px-1 py-0.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    className="tm-export-preset-row group"
                   >
-                    <button
-                      type="button"
-                      onClick={() => onLoadPreset(preset)}
-                      title={`Load full preset "${preset.name}" — replaces current platform selection and all filters`}
-                      className="min-w-0 flex-1 truncate px-1 py-1 text-left text-secondary text-[color:var(--color-figma-text)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
-                    >
-                      {preset.name}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onLoadPresetFiltersOnly(preset)}
-                      title="Apply collections, types, and path prefix from this preset — keeps the current platform selection"
-                      className="px-1.5 py-1 text-secondary text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
-                      aria-label={`Apply filters only from preset ${preset.name}`}
-                    >
-                      Filters
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDeletePreset(preset.id)}
-                      title="Delete preset"
-                      className="px-1.5 py-1 text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-error)] transition-colors"
-                      aria-label={`Delete preset ${preset.name}`}
-                    >
-                      <X size={8} strokeWidth={2} aria-hidden />
-                    </button>
+                    <div className="tm-export-preset-row__copy">
+                      <p className="tm-export-preset-row__title" title={preset.name}>
+                        {preset.name}
+                      </p>
+                      <p className="tm-export-preset-row__meta">
+                        {formatExportPresetSummary(preset, collectionIds.length)}
+                      </p>
+                    </div>
+                    <div className="tm-export-preset-row__actions">
+                      <Button
+                        onClick={() => onLoadPreset(preset)}
+                        title={`Apply preset "${preset.name}"`}
+                        variant="secondary"
+                        size="sm"
+                      >
+                        Apply
+                      </Button>
+                      <Button
+                        onClick={() => onLoadPresetFiltersOnly(preset)}
+                        title={`Apply filters from preset "${preset.name}"`}
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Apply filters from preset ${preset.name}`}
+                      >
+                        Filters
+                      </Button>
+                      <Button
+                        onClick={() => onDeletePreset(preset.id)}
+                        title={`Delete preset "${preset.name}"`}
+                        variant="ghost"
+                        size="sm"
+                        className="text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-error)]"
+                        aria-label={`Delete preset ${preset.name}`}
+                      >
+                        <X size={10} strokeWidth={2} aria-hidden />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
