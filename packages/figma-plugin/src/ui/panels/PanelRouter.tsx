@@ -984,6 +984,14 @@ export function PanelRouter({
         path,
       });
     },
+    onManageCollectionModes: (collectionId: string) => {
+      controller.guardEditorAction(() => {
+        switchContextualSurface({
+          surface: "collection-details",
+          collection: { collectionId },
+        });
+      });
+    },
     onShowPasteModal: controller.onShowPasteModal,
     onOpenImportPanel: controller.onShowImportPanel,
     onExtractFromSelection: controller.triggerExtractFromSelection,

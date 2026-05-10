@@ -151,7 +151,7 @@ export function FilterMenu(
     label: string;
   }> = [
     { key: "all", label: "All values" },
-    { key: "aliases", label: "Alias references" },
+    { key: "aliases", label: "References" },
     { key: "direct", label: "Literal values" },
   ];
 

@@ -346,7 +346,7 @@ export function TokenDetailsModeRow({
             )}
           >
             <Copy size={12} strokeWidth={1.5} aria-hidden />
-            <span className="tm-token-mode-row__action-button-label">
+            <span className="tm-token-mode-row__action-button-label tm-token-mode-row__action-button-label--secondary">
               Copy
             </span>
             <ChevronDown size={11} strokeWidth={1.6} aria-hidden />
@@ -415,6 +415,7 @@ export function TokenDetailsModeRow({
           {controls}
         </div>
       )}
+      {!showHeader ? controls : null}
 
       <div className="tm-token-mode-row__body">
         <div className="tm-token-mode-row__value">

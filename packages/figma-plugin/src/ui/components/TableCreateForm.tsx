@@ -200,7 +200,7 @@ export function TableCreateForm({
                 disabled={busy}
                 className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
               >
-                Fill empty modes from {modeNames[0]}
+                Copy {modeNames[0]} to empty modes
               </button>
             </div>
           ) : null}
@@ -335,7 +335,7 @@ export function TableCreateForm({
             className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] text-secondary hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors inline-flex items-center justify-center gap-1"
           >
             <Plus size={12} aria-hidden="true" />
-            Add Row
+            Add row
           </button>
         </div>
         {createAllError && (
@@ -364,7 +364,7 @@ export function TableCreateForm({
           >
             {busy
               ? "Creating\u2026"
-              : `Create ${creatableRowCount > 0 ? `${creatableRowCount} ` : ""}Token${creatableRowCount !== 1 ? "s" : ""}`}
+              : `Create ${creatableRowCount > 0 ? `${creatableRowCount} ` : ""}token${creatableRowCount !== 1 ? "s" : ""}`}
           </button>
           <button
             onClick={onClose}

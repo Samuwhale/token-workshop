@@ -1951,12 +1951,12 @@ export function TokenDetails({
                 <button
                   type="button"
                   onClick={fillEmptyModesFromFirst}
-                  title={`Fill empty modes from ${firstMode.name}`}
-                  aria-label={`Fill empty modes from ${firstMode.name}`}
+                  title={`Copy ${firstMode.name} to empty modes`}
+                  aria-label={`Copy ${firstMode.name} to empty modes`}
                   className="tm-token-details__text-button"
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  Fill empty modes from {firstMode.name}
+                  Copy {firstMode.name} to empty modes
                 </button>
               ) : undefined
             ) : undefined
@@ -2069,7 +2069,7 @@ export function TokenDetails({
                   className="tm-token-details__text-button tm-token-details__mode-list-footer-action"
                 >
                   <Plus size={12} strokeWidth={1.5} aria-hidden />
-                  Edit collection modes
+                  Manage modes
                 </button>
               </div>
             ) : null}
@@ -2419,8 +2419,8 @@ export function TokenDetails({
           title={`Rename "${leafName}"?`}
           description={`${renameConfirm.aliasCount} ${
             renameConfirm.aliasCount === 1
-              ? "alias reference"
-              : "alias references"
+              ? "reference"
+              : "references"
           } will be updated to point to ${renameConfirm.newPath}.`}
           confirmLabel="Rename and update references"
           cancelLabel="Cancel"

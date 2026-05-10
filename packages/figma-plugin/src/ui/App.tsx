@@ -173,6 +173,13 @@ function getHistoryActionLabel(
   return description ? `${action}: ${description}` : action;
 }
 
+function modalDialogIsActive(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    document.querySelector('[aria-modal="true"]') !== null
+  );
+}
+
 export function App() {
   // Navigation and editor state from contexts (owned by NavigationProvider and EditorProvider)
   const {
@@ -255,15 +262,18 @@ export function App() {
   const {
     showPasteModal,
     setShowPasteModal,
+    openPasteTokens,
     showCommandPalette,
-    setShowCommandPalette,
+    openCommandPalette,
+    closeCommandPalette,
+    toggleCommandPalette,
     showQuickApply,
-    setShowQuickApply,
+    closeQuickApply,
+    toggleQuickApply,
     showCollectionCreateDialog,
     openCollectionCreateDialog,
     closeCollectionCreateDialog,
     commandPaletteInitialQuery,
-    setCommandPaletteInitialQuery,
     paletteDeleteConfirm,
     setPaletteDeleteConfirm,
     startHereState,
@@ -1090,19 +1100,20 @@ export function App() {
       (e.target as HTMLElement)?.isContentEditable
     )
       return;
+    if (modalDialogIsActive() && e.key !== "Escape") {
+      return;
+    }
     if (matchesShortcut(e, "PASTE_TOKENS")) {
       e.preventDefault();
-      setShowPasteModal(true);
+      openPasteTokens();
     }
     if (matchesShortcut(e, "OPEN_PALETTE")) {
       e.preventDefault();
-      setCommandPaletteInitialQuery("");
-      setShowCommandPalette((v) => !v);
+      toggleCommandPalette("");
     }
     if (matchesShortcut(e, "OPEN_TOKEN_SEARCH")) {
       e.preventDefault();
-      setCommandPaletteInitialQuery(">");
-      setShowCommandPalette((v) => !v);
+      toggleCommandPalette(">");
     }
     if (matchesShortcut(e, "CREATE_FROM_SELECTION")) {
       e.preventDefault();
@@ -1133,7 +1144,7 @@ export function App() {
     }
     if (matchesShortcut(e, "TOGGLE_QUICK_APPLY")) {
       e.preventDefault();
-      setShowQuickApply((v) => !v);
+      toggleQuickApply();
     }
     if (matchesShortcut(e, "QUICK_SWITCH_COLLECTION")) {
       e.preventDefault();
@@ -1169,8 +1180,7 @@ export function App() {
     if (matchesShortcut(e, "EXPORT_WITH_PRESET")) {
       e.preventDefault();
       // Open command palette pre-filtered to export preset commands
-      setCommandPaletteInitialQuery("Export with preset");
-      setShowCommandPalette(true);
+      openCommandPalette("Export with preset");
     }
   };
   useEffect(() => {
@@ -1429,7 +1439,7 @@ export function App() {
 
   const workspaceControllers = {
     shell: {
-      openPasteModal: () => setShowPasteModal(true),
+      openPasteModal: openPasteTokens,
       openImportPanel: () => {
         switchContextualSurface({ surface: null });
         navigateTo("library", "import");
@@ -1439,7 +1449,7 @@ export function App() {
         switchContextualSurface({ surface: null });
         navigateTo("library", "generators");
       },
-      toggleQuickApply: () => setShowQuickApply((visible) => !visible),
+      toggleQuickApply,
       triggerCreateFromSelection: () => {
         dismissEphemeralOverlays();
         navigateTo("canvas", "inspect");
@@ -2413,7 +2423,7 @@ export function App() {
         <WorkspaceControllerProvider value={workspaceControllers}>
           <AppCommandPalette
             initialQuery={commandPaletteInitialQuery}
-            onClose={() => setShowCommandPalette(false)}
+            onClose={closeCommandPalette}
           />
         </WorkspaceControllerProvider>
       )}
@@ -2510,10 +2520,10 @@ export function App() {
                 );
               },
             });
-            setShowQuickApply(false);
+            closeQuickApply();
             setSuccessToast(`Bound "${tokenPath}" to ${PROPERTY_LABELS[targetProperty]}`);
           }}
-          onClose={() => setShowQuickApply(false)}
+          onClose={closeQuickApply}
         />
       )}
 

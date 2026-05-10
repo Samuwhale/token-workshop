@@ -55,7 +55,7 @@ export function useToolbarStateChips(config: ToolbarStateChipsConfig) {
       chips.push({
         key: `refs:${refFilter}`,
         label:
-          refFilter === "aliases" ? "Alias references" : "Literal values",
+          refFilter === "aliases" ? "References" : "Literal values",
         onRemove: () => setRefFilter("all"),
       });
     }

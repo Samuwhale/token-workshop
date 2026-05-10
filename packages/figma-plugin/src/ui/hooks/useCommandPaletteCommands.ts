@@ -230,7 +230,7 @@ export function useCommandPaletteCommands(): {
           ? "Hide resolved token values"
           : "Show resolved token values",
         description: tokenResolvedValues
-          ? `Show alias references again in "${currentCollectionId}"`
+          ? `Show references again in "${currentCollectionId}"`
           : `Resolve aliases inline while browsing "${currentCollectionId}"`,
         category: "Views",
         handler: () =>
@@ -548,9 +548,9 @@ export function useCommandPaletteCommands(): {
             },
             {
               id: "extract-highlighted-token-to-alias",
-              label: `Extract to alias: ${currentHighlightedToken}`,
+              label: `Extract to reference: ${currentHighlightedToken}`,
               description:
-                "Create a primitive alias token and replace this value with a reference",
+                "Create a reusable token and replace this value with a reference",
               category: "Tokens" as const,
               handler: () => {
                 navigateTo("library", "tokens");

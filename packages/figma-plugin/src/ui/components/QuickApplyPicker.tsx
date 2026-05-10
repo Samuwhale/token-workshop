@@ -65,6 +65,7 @@ interface QuickApplyCandidate {
   score: number;
   rankScore: number;
   resolved: unknown;
+  resolutionError?: string;
   confidence: SuggestionConfidence;
   reason: string;
 }
@@ -187,6 +188,7 @@ function buildQuickApplyCandidates({
         score,
         rankScore: score,
         resolved: resolved.value,
+        resolutionError: resolved.error,
         confidence,
         reason,
       };
@@ -250,6 +252,12 @@ function QuickApplyCandidateRow({
   showCollection?: boolean;
 }) {
   const { colorSwatch, valueDisplay } = getCandidatePresentation(candidate);
+  const disabled = isCurrent || Boolean(candidate.resolutionError);
+  const statusLabel = candidate.resolutionError
+    ? "Reference not found"
+    : isCurrent
+      ? "current"
+      : null;
 
   return (
     <button
@@ -257,15 +265,16 @@ function QuickApplyCandidateRow({
       data-qa-item
       role="option"
       aria-selected={isSelected}
-      aria-disabled={isCurrent}
-      disabled={isCurrent}
+      aria-disabled={disabled}
+      disabled={disabled}
+      title={candidate.resolutionError}
       className={`w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors ${
         isSelected
           ? 'bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]'
           : 'text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
-      } ${isCurrent ? 'cursor-default opacity-65' : ''}`}
+      } ${disabled ? 'cursor-default opacity-65' : ''}`}
       onMouseEnter={onHover}
-      onClick={isCurrent ? undefined : onSelect}
+      onClick={disabled ? undefined : onSelect}
     >
       {colorSwatch ? (
         <div
@@ -280,17 +289,17 @@ function QuickApplyCandidateRow({
       <span className={`text-body font-mono truncate flex-1 ${isSelected ? 'text-white' : ''}`}>
         {candidate.path}
       </span>
-      {isCurrent && (
+      {statusLabel && (
         <span className={`text-[var(--font-size-xs)] px-1 py-0.5 rounded shrink-0 ${isSelected ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]'}`}>
-          current
+          {statusLabel}
         </span>
       )}
-      {!isCurrent && showReason && (
+      {!disabled && showReason && (
         <span className={`text-[var(--font-size-xs)] shrink-0 ${isSelected ? 'text-white/50' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
           {candidate.reason}
         </span>
       )}
-      {valueDisplay && !isCurrent && (
+      {valueDisplay && !disabled && (
         <span className={`text-secondary shrink-0 font-mono ${isSelected ? 'text-white/70' : 'text-[color:var(--color-figma-text-secondary)]'}`}>
           {valueDisplay}
         </span>
@@ -484,6 +493,7 @@ export function QuickApplyPicker({
 
   const handleSelect = (candidate: QuickApplyCandidate) => {
     if (isCurrentCandidate(candidate)) return;
+    if (candidate.resolutionError) return;
     addRecentToken(candidate.path, candidate.collectionId);
     onApply(
       candidate.path,

@@ -613,7 +613,7 @@ export function ExtractTokensPanel({
                   ? "Creating..."
                   : conflictCount > 0
                     ? `Create and update ${selectedCount}`
-                    : `Create ${selectedCount} Token${selectedCount !== 1 ? "s" : ""}`}
+                    : `Create ${selectedCount} token${selectedCount !== 1 ? "s" : ""}`}
               </button>
             </div>
           </div>

@@ -148,6 +148,8 @@ export interface TokenListActions {
   onOpenCompare?: (paths: Set<string>) => void;
   /** Open the unified compare view in cross-collection mode for a specific token path */
   onOpenCrossCollectionCompare?: (path: string) => void;
+  /** Open collection details focused on mode management */
+  onManageCollectionModes?: (collectionId: string) => void;
   /** Open the global paste tokens modal */
   onShowPasteModal?: () => void;
   /** Open the import surface from the Tokens workspace */

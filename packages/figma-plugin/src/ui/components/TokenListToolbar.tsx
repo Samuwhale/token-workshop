@@ -718,7 +718,7 @@ export function TokenListToolbar({
                       disabled={!connected}
                       className={FLOATING_MENU_ITEM_CLASS}
                     >
-                      Create multiple tokens
+                      New tokens
                     </button>
                     {onCreateGenerator ? (
                       <>

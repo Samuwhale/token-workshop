@@ -15,9 +15,50 @@ import {
   FeedbackPlaceholder,
   type FeedbackPlaceholderAction,
 } from "../FeedbackPlaceholder";
+import { ConfirmModal } from "../ConfirmModal";
 import { MenuRadioGroup } from "../../primitives";
 
 const ISSUES_PER_PAGE = 20;
+
+function issueFixNeedsConfirmation(issue: ValidationIssue): boolean {
+  return (
+    issue.suggestedFix === "delete-token" ||
+    issue.suggestedFix === "rename-token" ||
+    issue.suggestedFix === "fix-type"
+  );
+}
+
+function getIssueFixConfirmation(issue: ValidationIssue): {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  danger?: boolean;
+} {
+  if (issue.suggestedFix === "delete-token") {
+    return {
+      title: `Delete "${issue.path}"?`,
+      description: "This removes the token from the collection. Use History to recover if this was not intended.",
+      confirmLabel: "Delete token",
+      danger: true,
+    };
+  }
+  if (issue.suggestedFix === "rename-token") {
+    return {
+      title: `Rename "${issue.path}"?`,
+      description: issue.suggestion
+        ? `This renames the token to ${issue.suggestion} and updates references.`
+        : "This renames the token and updates references.",
+      confirmLabel: "Rename token",
+    };
+  }
+  return {
+    title: `Change type for "${issue.path}"?`,
+    description: issue.suggestion
+      ? `This changes the token type to ${issue.suggestion}. Check references after the fix runs.`
+      : "This changes the token type. Check references after the fix runs.",
+    confirmLabel: "Change type",
+  };
+}
 
 export interface HealthIssuesViewProps {
   validationIssues: ValidationIssue[];
@@ -58,6 +99,7 @@ export function HealthIssuesView({
   const [tokenPathFilter, setTokenPathFilter] = useState<string | null>(initialTokenPath);
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
   const [issueGroupVisibleCounts, setIssueGroupVisibleCounts] = useState<Record<string, number>>({});
+  const [pendingFixIssue, setPendingFixIssue] = useState<ValidationIssue | null>(null);
   const severityMenu = useDropdownMenu();
   const exportMenu = useDropdownMenu();
 
@@ -200,8 +242,12 @@ export function HealthIssuesView({
         } satisfies FeedbackPlaceholderAction]
       : []),
   ];
+  const pendingFixConfirmation = pendingFixIssue
+    ? getIssueFixConfirmation(pendingFixIssue)
+    : null;
 
   return (
+    <>
     <div className="flex flex-col h-full overflow-hidden">
       <HealthSubViewHeader
         title="Issues"
@@ -388,7 +434,13 @@ export function HealthIssuesView({
                         fixing={fixingKeys.has(suppressKey(issue))}
                         hasFix={hasFix(issue)}
                         fixLabel={fixLabel(issue.suggestedFix)}
-                        onFix={() => onFix(issue)}
+                        onFix={() => {
+                          if (issueFixNeedsConfirmation(issue)) {
+                            setPendingFixIssue(issue);
+                            return;
+                          }
+                          onFix(issue);
+                        }}
                         onIgnore={() => onIgnore(issue)}
                         onSelect={
                           onSelectIssue
@@ -430,6 +482,22 @@ export function HealthIssuesView({
         )}
       </div>
     </div>
+    {pendingFixIssue && pendingFixConfirmation ? (
+      <ConfirmModal
+        title={pendingFixConfirmation.title}
+        description={pendingFixConfirmation.description}
+        confirmLabel={pendingFixConfirmation.confirmLabel}
+        cancelLabel="Cancel"
+        danger={Boolean(pendingFixConfirmation.danger)}
+        onConfirm={() => {
+          const issue = pendingFixIssue;
+          setPendingFixIssue(null);
+          onFix(issue);
+        }}
+        onCancel={() => setPendingFixIssue(null)}
+      />
+    ) : null}
+    </>
   );
 }
 

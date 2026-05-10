@@ -29,7 +29,7 @@ export function getDeleteModalProps(
     const parts: string[] = [];
     if (orphanCount > 0)
       parts.push(
-        `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
+        `break ${orphanCount} reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
       );
     if (thmImpacts)
       parts.push(
@@ -55,7 +55,7 @@ export function getDeleteModalProps(
     ];
     if (orphanCount > 0)
       parts.push(
-        `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
+        `break ${orphanCount} reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
       );
     if (thmImpacts)
       parts.push(
@@ -75,7 +75,7 @@ export function getDeleteModalProps(
   const parts: string[] = [];
   if (orphanCount > 0)
     parts.push(
-      `break ${orphanCount} alias reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
+      `break ${orphanCount} reference${orphanCount !== 1 ? "s" : ""} in ${collectionCount} collection${collectionCount !== 1 ? "s" : ""}`,
     );
   if (thmImpacts)
     parts.push(

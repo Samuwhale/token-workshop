@@ -35,10 +35,20 @@ export function useDropdownMenu(options?: UseDropdownMenuOptions) {
 
   useEffect(() => {
     if (!open) return;
+    const closeWithoutFocusRestore = () => {
+      close({ restoreFocus: false });
+    };
     const onMouseDown = (e: MouseEvent) => {
       if (menuRef.current?.contains(e.target as Node)) return;
       if (triggerRef.current?.contains(e.target as Node)) return;
       close();
+    };
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (menuRef.current?.contains(target)) return;
+      if (triggerRef.current?.contains(target)) return;
+      closeWithoutFocusRestore();
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -46,9 +56,14 @@ export function useDropdownMenu(options?: UseDropdownMenuOptions) {
         close();
         return;
       }
+      if (e.key === "Tab") {
+        requestAnimationFrame(closeWithoutFocusRestore);
+        return;
+      }
       if (menuRef.current) handleMenuArrowKeys(e, menuRef.current);
     };
     document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("focusin", onFocusIn);
     document.addEventListener("keydown", onKeyDown);
     // Auto-focus first menu item
     focusFrameRef.current = requestAnimationFrame(() => {
@@ -61,6 +76,7 @@ export function useDropdownMenu(options?: UseDropdownMenuOptions) {
         focusFrameRef.current = null;
       }
       document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open, close]);

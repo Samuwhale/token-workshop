@@ -980,7 +980,7 @@ a[role="menuitem"] {
 
 .tm-secondary-panel__description {
   margin: 0;
-  max-inline-size: 34ch;
+  max-inline-size: 100%;
   font-size: var(--font-size-sm);
   line-height: var(--leading-body);
   color: var(--color-figma-text-secondary);
@@ -1043,6 +1043,18 @@ a[role="menuitem"] {
 
 .tm-section__actions > * {
   min-inline-size: 0;
+}
+
+.tm-section__description {
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+@container (min-width: 440px) {
+  .tm-secondary-panel__description,
+  .tm-section__description {
+    max-inline-size: 42ch;
+  }
 }
 
 .tm-status-banner {
@@ -2767,7 +2779,7 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
 }
 
-@container (max-width: 240px) {
+@container (max-width: 300px) {
   .tm-value-editor-row--reference {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2777,7 +2789,7 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
-@container (max-width: 280px) {
+@container (max-width: 360px) {
   .tm-value-editor-row--reference-unit {
     grid-template-columns: minmax(0, 1fr) minmax(72px, auto);
   }
@@ -4966,7 +4978,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 }
 
-@container authoring-surface (max-width: 520px) {
+@container (max-width: 620px) {
   .tm-token-mode-row__name {
     white-space: normal;
     text-overflow: clip;
@@ -5008,6 +5020,12 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-token-mode-row__action-button-label {
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+}
+
+@container (max-width: 420px) {
+  .tm-token-mode-row__action-button-label--secondary {
+    display: none;
   }
 }
 

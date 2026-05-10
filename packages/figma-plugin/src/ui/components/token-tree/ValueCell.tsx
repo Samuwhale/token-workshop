@@ -274,7 +274,7 @@ export function ValueCell({
                   onNavigateToAlias(resolvedAliasPath, sourceTokenPath);
                 }}
                 className="tm-value-cell__nav tm-value-cell__interactive-control cursor-pointer rounded text-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text-accent)]"
-                aria-label={`Go to alias target ${resolvedAliasPath}`}
+                aria-label={`Go to referenced token ${resolvedAliasPath}`}
                 title={`Go to ${resolvedAliasPath}`}
               >
                 <Link2 size={10} strokeWidth={2} aria-hidden />
@@ -282,7 +282,7 @@ export function ValueCell({
             ) : (
               <span
                 className="tm-value-cell__nav text-[color:var(--color-figma-text-tertiary)]"
-                aria-label="Aliased value"
+                aria-label="Referenced value"
               >
                 <Link2 size={10} strokeWidth={2} aria-hidden />
               </span>

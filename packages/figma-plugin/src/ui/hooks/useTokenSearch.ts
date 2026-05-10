@@ -54,7 +54,7 @@ function buildCrossCollectionTypes(
 function getHasFilterLabel(value: string): string {
   switch (value) {
     case 'alias':
-      return 'Alias references';
+      return 'References';
     case 'direct':
       return 'Literal values';
     case 'duplicate':

@@ -128,6 +128,7 @@ export interface TokenListZoomGroup {
 
 export interface TokenListNavigationGroup {
   onNavigateToCollection?: (collectionId: string, tokenPath: string) => void;
+  onManageCollectionModes?: (collectionId: string) => void;
   onCreateNew?: (initialPath?: string) => void;
   onCreateGroup?: () => void;
   onOpenImportPanel?: () => void;
@@ -601,8 +602,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             modeIndex={idx}
             allModeNames={modeNames}
             collectionId={multiModeData.collection.id}
-            serverUrl={serverUrl}
-            onMutated={onModeMutated}
+            onManageModes={props.navigation.onManageCollectionModes}
             connected={connected}
             width={modeColumnWidths[idx] ?? 0}
             onResize={(w) => setModeColumnWidth(idx, w)}

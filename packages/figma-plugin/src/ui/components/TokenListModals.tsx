@@ -113,7 +113,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpact
   const summary = (() => {
     if (!hasImpacts) return `No references found. The ${kind} will be renamed.`;
     const parts: string[] = [];
-    if (depCount > 0) parts.push(`${depCount} ${depCount === 1 ? 'alias reference' : 'alias references'}`);
+    if (depCount > 0) parts.push(`${depCount} ${depCount === 1 ? 'reference' : 'references'}`);
     if (modeCount > 0) parts.push(`${modeCount} ${modeCount === 1 ? 'mode value' : 'mode values'}`);
     const main = parts.length > 0
       ? `Updates ${parts.join(' and ')}.`
@@ -186,7 +186,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpact
               {deps.length > 0 ? (
                 <div>
                   <div className="mb-1 text-[color:var(--color-figma-text-secondary)]">
-                    Alias references
+                    References
                   </div>
                   <ul className="max-h-[120px] overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] p-2">
                     {deps.map((dep, index) => (
@@ -288,7 +288,7 @@ function ExtractToAliasModal() {
     <ModalFrame
       dialogRef={dialogRef}
       titleId="extract-to-alias-dialog-title"
-      title="Replace value with alias"
+      title="Replace value with reference"
       onClose={() => onSetExtractToken(null)}
       wide
       meta={<span className={LONG_TEXT_CLASSES.monoPrimary}>{extractToken.path}</span>}
@@ -329,7 +329,7 @@ function ExtractToAliasModal() {
             className="w-full rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
             disabled={extractMode === 'existing' && !existingAlias}
           >
-            Replace with alias
+            Replace with reference
           </button>
         </>
       }

@@ -160,6 +160,7 @@ export function TokenList({
     onSelectionChange,
     onOpenCompare,
     onOpenCrossCollectionCompare,
+    onManageCollectionModes,
     onOpenImportPanel,
     onExtractFromSelection,
   },
@@ -2079,6 +2080,7 @@ export function TokenList({
             }}
             navigation={{
               onNavigateToCollection,
+              onManageCollectionModes,
               onCreateNew,
               onCreateGroup: handleOpenNewGroupDialog,
               onOpenImportPanel,

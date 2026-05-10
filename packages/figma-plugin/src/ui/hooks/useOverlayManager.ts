@@ -32,6 +32,42 @@ export function useOverlayManager() {
     setShowQuickApply(false);
   }, []);
 
+  const openPasteTokens = useCallback(() => {
+    dismissEphemeralOverlays();
+    setShowPasteModal(true);
+  }, [dismissEphemeralOverlays]);
+
+  const closeCommandPalette = useCallback(() => {
+    setShowCommandPalette(false);
+  }, []);
+
+  const openCommandPalette = useCallback(
+    (initialQuery = "") => {
+      setShowQuickApply(false);
+      setCommandPaletteInitialQuery(initialQuery);
+      setShowCommandPalette(true);
+    },
+    [],
+  );
+
+  const toggleCommandPalette = useCallback(
+    (initialQuery = "") => {
+      setShowQuickApply(false);
+      setCommandPaletteInitialQuery(initialQuery);
+      setShowCommandPalette((open) => !open);
+    },
+    [],
+  );
+
+  const closeQuickApply = useCallback(() => {
+    setShowQuickApply(false);
+  }, []);
+
+  const toggleQuickApply = useCallback(() => {
+    setShowCommandPalette(false);
+    setShowQuickApply((open) => !open);
+  }, []);
+
   const openStartHere = useCallback(
     (initialBranch: StartHereBranch = "root") => {
       dismissEphemeralOverlays();
@@ -61,10 +97,16 @@ export function useOverlayManager() {
   return {
     showPasteModal,
     setShowPasteModal,
+    openPasteTokens,
     showCommandPalette,
     setShowCommandPalette,
+    openCommandPalette,
+    closeCommandPalette,
+    toggleCommandPalette,
     showQuickApply,
     setShowQuickApply,
+    closeQuickApply,
+    toggleQuickApply,
     showCollectionCreateDialog,
     openCollectionCreateDialog,
     closeCollectionCreateDialog,

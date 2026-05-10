@@ -520,7 +520,7 @@ export function useReadinessChecks({
           recommendedActionLabel: missingInFigma.length > 0
             ? compareMode === 'resolver-publish'
               ? `Sync ${missingInFigma.length} missing mapped variable${missingInFigma.length === 1 ? '' : 's'}`
-              : `Review ${missingInFigma.length} missing variable${missingInFigma.length === 1 ? '' : 's'}`
+              : `Review and create ${missingInFigma.length} variable${missingInFigma.length === 1 ? '' : 's'}`
             : undefined,
           recommendedActionId: missingInFigma.length > 0 ? 'push-missing-variables' : undefined,
         },

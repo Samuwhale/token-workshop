@@ -116,7 +116,7 @@ export function ImportSourceHome() {
             icon={<Upload size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleBrowseFile}
             label="Import from file"
-            description="Adds to the selected collection unless the file defines collections"
+            description="Choose the destination during review"
           />
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">

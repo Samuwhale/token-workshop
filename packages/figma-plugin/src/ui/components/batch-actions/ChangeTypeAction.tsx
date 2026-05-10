@@ -173,7 +173,7 @@ export function ChangeTypeAction({
               </div>
             ) : (
               <p className="text-secondary text-[color:var(--color-figma-text-secondary)] leading-snug">
-                May break alias references depending on the current type.
+                May break references depending on the current type.
               </p>
             )}
             <button
