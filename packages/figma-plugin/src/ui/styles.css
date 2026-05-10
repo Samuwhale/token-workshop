@@ -5065,12 +5065,13 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__action-button {
     min-inline-size: var(--control-size-compact);
-    justify-content: center;
+    justify-content: flex-start;
     padding-inline: 7px;
   }
 
   .tm-token-mode-row__action-button-label {
-    display: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .tm-token-mode-row__action-button--menu {
@@ -5092,12 +5093,6 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-token-mode-row__action-button-label {
     white-space: normal;
     overflow-wrap: anywhere;
-  }
-}
-
-@container (max-width: 420px) {
-  .tm-token-mode-row__action-button-label--secondary {
-    display: none;
   }
 }
 

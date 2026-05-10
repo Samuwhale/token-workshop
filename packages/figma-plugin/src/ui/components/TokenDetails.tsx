@@ -102,6 +102,7 @@ interface TokenDetailsProps {
   tokenPath: string;
   currentCollectionId: string;
   collectionId?: string;
+  mode?: "inspect" | "edit";
   serverUrl: string;
   onBack: () => void;
   backLabel?: string;
@@ -208,6 +209,7 @@ export function TokenDetails({
   tokenPath,
   currentCollectionId,
   collectionId: explicitCollectionId,
+  mode = "edit",
   serverUrl,
   onBack,
   backLabel,
@@ -496,7 +498,7 @@ export function TokenDetails({
   const [detachedFromGenerator, setDetachedFromGenerator] = useState(false);
   const activeGeneratorProvenance = detachedFromGenerator ? null : generatorProvenance;
   const isGeneratorLocked = !isCreateMode && Boolean(activeGeneratorProvenance);
-  const fieldEditable = !isGeneratorLocked;
+  const fieldEditable = mode === "edit" && !isGeneratorLocked;
   const [generatorName, setGeneratorName] = useState<string | null>(null);
   const [detachingGeneratorOutput, setDetachingGeneratorOutput] = useState(false);
   const [showDetachGeneratorConfirm, setShowDetachGeneratorConfirm] = useState(false);

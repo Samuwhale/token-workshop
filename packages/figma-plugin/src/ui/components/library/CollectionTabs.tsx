@@ -202,10 +202,13 @@ export function CollectionTabs({
   const handleSelectCollection = useCallback(
     (collectionId: string) => {
       onSelectCollection(collectionId);
+      if (scopeValue === "all") {
+        allCollectionsScope?.onChange("current");
+      }
       setQuery("");
       closeSwitcher();
     },
-    [closeSwitcher, onSelectCollection],
+    [allCollectionsScope, closeSwitcher, onSelectCollection, scopeValue],
   );
 
   useEffect(() => {

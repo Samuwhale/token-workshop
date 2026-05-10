@@ -13,7 +13,6 @@ import { getCollectionDisplayName } from '../../shared/libraryCollections';
 import { TokenChangeRow } from './PublishShared';
 import type { CommitEntry, UndoSlot } from '../history/types';
 import type { GitPreview, TokenChange } from '../../hooks/useGitDiff';
-import { useNavigationContext } from '../../contexts/NavigationContext';
 import { Button } from '../../primitives';
 
 type RepositoryConfirmAction = 'git-push' | 'git-pull' | 'git-commit' | 'apply-diff' | null;
@@ -35,7 +34,6 @@ export function GitRepositoryPanel({
   onRefreshTokens,
   embedded: _embedded = false,
 }: GitRepositoryPanelProps) {
-  const { navigateTo } = useNavigationContext();
   const git = useGitSync({ serverUrl, connected });
   const [confirmAction, setConfirmAction] = useState<RepositoryConfirmAction>(null);
 
@@ -119,15 +117,6 @@ export function GitRepositoryPanel({
   return (
     <>
       <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-        <div className="shrink-0 px-3 py-2">
-          <button
-            type="button"
-            onClick={() => navigateTo('library', 'history')}
-            className="text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)]"
-          >
-            Need undo or checkpoints? Open History
-          </button>
-        </div>
         {repositoryReady ? (
           <>
             <div className="flex-1 min-h-[200px]">

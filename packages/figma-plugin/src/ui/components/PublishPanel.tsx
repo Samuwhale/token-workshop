@@ -1397,10 +1397,10 @@ export function PublishPanel({
 
           {activeResolver && (
             <DisclosureSection
-              title="Generated outputs to Figma modes"
+              title="Generated output targets"
               summary={savedResolverPublishCount > 0
                 ? `${savedResolverPublishCount} Figma mode target${savedResolverPublishCount === 1 ? '' : 's'}`
-                : 'Map generated outputs to Figma modes'}
+                : 'Choose Figma mode targets'}
               expanded={resolverRoutingExpanded}
               onToggle={() => setResolverRoutingExpanded((current) => !current)}
               statusLabel={resolverRoutingStatusLabel}
@@ -1422,6 +1422,11 @@ export function PublishPanel({
                 onReset={resetResolverPublishDrafts}
                 onSave={() => void saveResolverPublishMappings()}
                 onSync={() => void reviewResolverPublishChanges()}
+                onOpenGenerator={
+                  onOpenGenerator && activeResolver
+                    ? () => onOpenGenerator(activeResolver)
+                    : undefined
+                }
               />
             </DisclosureSection>
           )}
@@ -1693,6 +1698,7 @@ function ResolverModePublishCard({
   onReset,
   onSave,
   onSync,
+  onOpenGenerator,
 }: {
   activeResolver: string | null;
   activeResolverLabel: string;
@@ -1713,6 +1719,7 @@ function ResolverModePublishCard({
   onReset: () => void;
   onSave: () => void;
   onSync: () => void;
+  onOpenGenerator?: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -1729,6 +1736,15 @@ function ResolverModePublishCard({
         </div>
         {activeResolver ? (
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+            {onOpenGenerator ? (
+              <button
+                onClick={onOpenGenerator}
+                disabled={saving || syncing}
+                className="rounded px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
+              >
+                Open generator
+              </button>
+            ) : null}
             <button
               onClick={onReset}
               disabled={loading || saving || syncing || dirtyCount === 0}

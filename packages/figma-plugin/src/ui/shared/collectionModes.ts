@@ -45,8 +45,8 @@ export function isModeNameTaken(
   });
 }
 
-export function getDefaultModeSourceName(_modeNames: readonly string[]): string {
-  return EMPTY_MODE_SOURCE;
+export function getDefaultModeSourceName(modeNames: readonly string[]): string {
+  return modeNames[0] ?? EMPTY_MODE_SOURCE;
 }
 
 export function getModeSourcePayloadValue(

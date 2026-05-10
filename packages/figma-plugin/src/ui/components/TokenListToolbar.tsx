@@ -1,4 +1,4 @@
-import { useCallback, useRef, type MutableRefObject } from "react";
+import { useCallback, type MutableRefObject } from "react";
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -20,7 +20,6 @@ import {
   FLOATING_MENU_CLASS,
   FLOATING_MENU_ITEM_CLASS,
 } from "../shared/menuClasses";
-import { useElementWidth } from "../hooks/useElementWidth";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import {
   Button,
@@ -146,8 +145,6 @@ export function TokenListToolbar({
   onFindReplace,
   overflowMenuProps,
 }: TokenListToolbarProps) {
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const toolbarWidth = useElementWidth(toolbarRef);
   const actionsMenu = useDropdownMenu();
   const viewMenu = useDropdownMenu();
   const createMenu = useDropdownMenu();
@@ -209,9 +206,7 @@ export function TokenListToolbar({
     viewMode === "tree" &&
     showSearch &&
     overflowMenuProps?.hasMultipleCollections === true;
-  const showInlineSearchScopeToggle =
-    showSearchScopeToggle &&
-    (!hasTokens || toolbarWidth === null || toolbarWidth >= 680);
+  const showInlineSearchScopeToggle = showSearchScopeToggle;
   const showResultPresentationToggle =
     viewMode === "tree" &&
     overflowMenuProps?.canToggleSearchResultPresentation === true;
@@ -241,10 +236,7 @@ export function TokenListToolbar({
       overflowMenuProps.searchResultPresentation === "flat");
   const viewMenuLabel = "View";
   return (
-    <div
-      ref={toolbarRef}
-      className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
-    >
+    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
       <div className="tm-responsive-toolbar tm-token-toolbar px-2 py-1">
         <div className="tm-responsive-toolbar__row tm-token-toolbar__row">
           <div className="tm-responsive-toolbar__leading">
@@ -475,11 +467,6 @@ export function TokenListToolbar({
                       <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
                         {viewMenuLabel}
                       </span>
-                      {overflowMenuProps && overflowMenuProps.activeCount > 0 ? (
-                        <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-action-bg)] px-1 text-[var(--font-size-xs)] font-semibold leading-none text-[color:var(--color-figma-text-onbrand)]">
-                          {overflowMenuProps.activeCount}
-                        </span>
-                      ) : null}
                     </Button>
 
                     {viewMenu.open ? (
@@ -523,23 +510,6 @@ export function TokenListToolbar({
                                 onChange={
                                   overflowMenuProps.onSearchResultPresentationChange
                                 }
-                                onSelect={closeViewMenu}
-                              />
-                            ) : null}
-                            {showSearchScopeToggle &&
-                            !showInlineSearchScopeToggle ? (
-                              <MenuRadioGroup
-                                label="Search scope"
-                                value={searchScope}
-                                options={SEARCH_SCOPE_OPTIONS}
-                                onChange={(value) => {
-                                  if (
-                                    (value === "all") !==
-                                    overflowMenuProps.crossCollectionSearch
-                                  ) {
-                                    overflowMenuProps.onToggleCrossCollectionSearch();
-                                  }
-                                }}
                                 onSelect={closeViewMenu}
                               />
                             ) : null}

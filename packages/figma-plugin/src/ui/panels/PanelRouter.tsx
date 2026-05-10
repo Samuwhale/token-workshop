@@ -1002,6 +1002,7 @@ export function PanelRouter({
         tokenPath: tokenDetails.path,
         currentCollectionId: currentCollectionId,
         collectionId: tokenDetails.collectionId,
+        mode: tokenDetails.mode,
         serverUrl,
         onBack: handleTokenDetailsBack,
         backLabel: tokenDetails.backLabel,

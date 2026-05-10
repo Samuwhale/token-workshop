@@ -112,7 +112,6 @@ function CollectionCreateDialogContent({
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-collection-dialog-title"
-        aria-describedby="new-collection-dialog-description"
         aria-busy={pending}
       >
         <div className="tm-modal-header border-b border-[var(--color-figma-border)]">
@@ -125,12 +124,6 @@ function CollectionCreateDialogContent({
         </div>
 
         <div className="tm-modal-body py-3">
-          <p
-            id="new-collection-dialog-description"
-            className="text-secondary text-[color:var(--color-figma-text-secondary)]"
-          >
-            Name the collection and add the modes it uses.
-          </p>
           <CollectionAuthoringFields
             draft={draft}
             pending={pending}

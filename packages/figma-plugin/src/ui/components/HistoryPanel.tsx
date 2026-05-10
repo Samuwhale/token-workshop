@@ -7,7 +7,6 @@ import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { HistoryRecentView } from "./history/HistoryRecentView";
 import { HistorySavedView } from "./history/HistorySavedView";
 import { Button, TextInput } from "../primitives";
-import { useNavigationContext } from "../contexts/NavigationContext";
 import { getCollectionDisplayName } from "../shared/libraryCollections";
 
 const HISTORY_VIEWS: Array<{ id: HistoryView; label: string }> = [
@@ -35,7 +34,6 @@ export function HistoryPanel({
   onServerRedo,
   executeUndo,
 }: HistoryPanelProps) {
-  const { navigateTo } = useNavigationContext();
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [saveLabel, setSaveLabel] = useState("");
   const [saving, setSaving] = useState(false);
@@ -323,15 +321,6 @@ export function HistoryPanel({
             refreshKey={savedViewRefreshKey}
           />
         )}
-      </div>
-      <div className="shrink-0 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => navigateTo("publish", "publish-repository")}
-          className="text-secondary text-[color:var(--color-figma-text-tertiary)] transition-colors hover:text-[color:var(--color-figma-text-accent)]"
-        >
-          Need team versions? Open Team versions
-        </button>
       </div>
     </div>
   );

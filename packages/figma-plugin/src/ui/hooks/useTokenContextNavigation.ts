@@ -41,7 +41,7 @@ export function buildTokenContextTarget(options: {
 }): TokenDetailsTarget {
   const {
     request,
-    mode: _mode,
+    mode,
     currentCollectionId,
     preserveHandoff,
     navigateTo,
@@ -59,7 +59,7 @@ export function buildTokenContextTarget(options: {
     path: request.path,
     name: resolvedName,
     collectionId: request.collectionId,
-    mode: "edit",
+    mode,
     origin: request.origin,
     backLabel: request.returnLabel,
     navigationHistory,
@@ -79,7 +79,7 @@ export function buildTokenContextTarget(options: {
               surface: "token-details",
               token: buildTokenContextTarget({
                 ...options,
-                mode: "edit",
+                mode,
                 currentCollectionId: request.collectionId,
               }),
             });
@@ -106,7 +106,7 @@ export function useTokenContextNavigation({
       runAction(() => {
         const isWorkingCollectionTarget =
           request.collectionId === currentCollectionId;
-        const resolvedMode = "edit";
+        const resolvedMode = request.mode;
         const preserveHandoff = Boolean(request.returnLabel);
 
         if (request.returnLabel && beginHandoff) {

@@ -529,7 +529,7 @@ export function HealthPanel({
       ([, summary]) => summary.errors > 0 || summary.actionable > 0,
     );
     const cleanupCollections = collectionSummaries.filter(
-      ([, summary]) => summary.errors === 0 && summary.reviewItems > 0,
+      ([, summary]) => summary.actionable === 0 && summary.reviewItems > 0,
     );
     const allScopeStatusTitle =
       libraryReviewErrors.length > 0
@@ -612,24 +612,23 @@ export function HealthPanel({
 
         {collectionSummaries.length > 0 ? (
           <div className="flex flex-col gap-3">
-            <section>
-              <div className="mb-1.5 px-1">
-                <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                  Fix next
-                </h3>
-                <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Collections with errors or actionable warnings.
-                </p>
-              </div>
-              <div>
-                {(fixNextCollections.length > 0
-                  ? fixNextCollections
-                  : collectionSummaries.slice(0, 3)
-                ).map(([collectionId, summary]) =>
-                  renderCollectionRow(collectionId, summary, "fix"),
-                )}
-              </div>
-            </section>
+            {fixNextCollections.length > 0 ? (
+              <section>
+                <div className="mb-1.5 px-1">
+                  <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
+                    Fix next
+                  </h3>
+                  <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                    Collections with errors or actionable warnings.
+                  </p>
+                </div>
+                <div>
+                  {fixNextCollections.map(([collectionId, summary]) =>
+                    renderCollectionRow(collectionId, summary, "fix"),
+                  )}
+                </div>
+              </section>
+            ) : null}
 
             {cleanupCollections.length > 0 ? (
               <section>

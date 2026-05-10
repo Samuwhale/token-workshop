@@ -122,7 +122,7 @@ export function CollectionAuthoringFields({
           className={COLLECTION_INPUT_CLASS}
         />
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          This is the collection designers will see in Figma Variables. Use `/` only if your library already groups collection names that way.
+          Figma shows this as the collection name.
         </span>
       </label>
 
@@ -203,7 +203,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token gets one value for each mode in this collection. The first mode appears first in Figma; it is still edited the same way as the others.
+          Each token has one value in each mode.
         </span>
       </div>
 

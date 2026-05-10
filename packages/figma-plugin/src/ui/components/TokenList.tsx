@@ -2084,6 +2084,7 @@ export function TokenList({
               onExtractFromSelection,
               hasSelection: selectedNodes.length > 0,
             }}
+            selectionActive={selectionActive}
             inspectMode={inspectMode}
             selectedNodes={selectedNodes}
             tokens={tokens}

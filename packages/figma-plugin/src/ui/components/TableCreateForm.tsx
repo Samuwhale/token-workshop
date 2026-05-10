@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Folder, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { NewTableRowFields, TableRow } from "../hooks/useTableCreate";
 import { inferTypeFromValue } from "./tokenListHelpers";
 import { InlineBanner } from "./InlineBanner";
@@ -107,7 +107,6 @@ export function TableCreateForm({
   return (
     <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
       <div className="flex flex-col gap-2">
-        {/* Draft recovery banner */}
         {hasDraft && (
           <InlineBanner
             variant="info"
@@ -129,17 +128,17 @@ export function TableCreateForm({
             </span>
           </InlineBanner>
         )}
-        {/* Collection indicator */}
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
-          <Folder aria-hidden="true" size={12} className="shrink-0 text-[color:var(--color-figma-text-secondary)]" />
-          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Bulk create in:
-          </span>
-          <span className="text-secondary font-medium text-[color:var(--color-figma-text)] truncate">
+        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-1.5">
+          <div className="text-body font-medium text-[color:var(--color-figma-text)]">
+            New tokens
+          </div>
+          <div
+            className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
+            title={displayCollectionName}
+          >
             {displayCollectionName}
-          </span>
+          </div>
         </div>
-        {/* Group picker */}
         <div>
           <label
             className="block text-secondary text-[color:var(--color-figma-text-tertiary)] mb-0.5"
@@ -163,11 +162,10 @@ export function TableCreateForm({
             ))}
           </datalist>
         </div>
-        {/* Smart name suggestions for table create */}
         {tableSuggestions.length > 0 && (
           <div className="flex flex-wrap gap-1">
             <span className="text-secondary text-[color:var(--color-figma-text-tertiary)] self-center mr-0.5">
-              Suggest:
+              Names from selection
             </span>
             {tableSuggestions.map((s) => {
               const leafName = s.value.includes(".")
@@ -187,25 +185,23 @@ export function TableCreateForm({
             })}
           </div>
         )}
-        {/* Token rows */}
         <div>
           {multiMode ? (
             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 px-0.5">
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Fill each mode value. Use copy when the starting values should match.
+                Each mode needs a value.
               </p>
               <button
                 type="button"
                 onClick={onCopyFirstModeToEmptyModes}
                 disabled={busy}
-                title={`Use ${modeNames[0]} values for empty modes`}
+                title={`Copy ${modeNames[0]} values to empty modes`}
                 className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
               >
-                Fill empty modes
+                Copy first mode
               </button>
             </div>
           ) : null}
-          {/* Column headers */}
           <div className="overflow-x-auto">
             <div
               className="grid gap-1 mb-1 min-w-full px-0.5"

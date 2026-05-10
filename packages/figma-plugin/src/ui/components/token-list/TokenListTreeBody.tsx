@@ -147,6 +147,7 @@ interface TokenListTreeBodyProps {
   zoom: TokenListZoomGroup;
   navigation: TokenListNavigationGroup;
 
+  selectionActive: boolean;
   inspectMode: boolean;
   selectedNodes: { id: string }[];
   tokens: TokenNode[];
@@ -171,6 +172,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const {
     viewMode,
     jsonEditorProps,
+    selectionActive,
     inspectMode,
     selectedNodes,
     tokens,
@@ -455,23 +457,25 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           ref={addModeMenuContainerRef}
           className="tm-token-table__token-header sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-2 bg-[var(--color-figma-bg-secondary)]"
         >
-          <input
-            type="checkbox"
-            checked={allDisplayedSelected}
-            disabled={displayedLeafPaths.size === 0}
-            ref={(element) => {
-              if (element) {
-                element.indeterminate = partiallyDisplayedSelected;
+          {!selectionActive ? (
+            <input
+              type="checkbox"
+              checked={allDisplayedSelected}
+              disabled={displayedLeafPaths.size === 0}
+              ref={(element) => {
+                if (element) {
+                  element.indeterminate = partiallyDisplayedSelected;
+                }
+              }}
+              onChange={onSelectAll}
+              aria-label={
+                allDisplayedSelected
+                  ? "Clear visible token selection"
+                  : "Select all visible tokens"
               }
-            }}
-            onChange={onSelectAll}
-            aria-label={
-              allDisplayedSelected
-                ? "Clear visible token selection"
-                : "Select all visible tokens"
-            }
-            className="tm-token-selection-checkbox shrink-0"
-          />
+              className="tm-token-selection-checkbox shrink-0"
+            />
+          ) : null}
           <span className="min-w-0 flex-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
             Token
           </span>
