@@ -777,8 +777,6 @@ export function SelectionInspector({
   }, []);
 
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
-  const activeCollectionHasTokens =
-    Object.keys(activeCollectionTokenMap).length > 0;
 
   const suggestions = useMemo(
     () =>
@@ -1226,7 +1224,7 @@ export function SelectionInspector({
                             currentCollectionModeNames={currentCollectionModeNames}
                             collectionDisplayNames={collectionDisplayNames}
                             serverUrl={serverUrl}
-                            hasAnyTokens={activeCollectionHasTokens}
+                            hasAnyTokens={hasAnyTokens}
                             creatingFromProp={creatingFromProp}
                             bindingFromProp={bindingFromProp}
                             lastBoundProp={lastBoundProp}

@@ -260,6 +260,26 @@ function buildCreateValueBodyForModeDrafts({
   });
 }
 
+function buildPathToCollectionId(
+  tokenMapsByCollection: Record<string, Record<string, TokenMapEntry>>,
+  fallbackCollectionId: string,
+  fallbackTokenMap: Record<string, TokenMapEntry>,
+): Record<string, string> {
+  const pathToCollectionId: Record<string, string> = {};
+
+  for (const [collectionId, collectionTokenMap] of Object.entries(tokenMapsByCollection)) {
+    for (const path of Object.keys(collectionTokenMap)) {
+      pathToCollectionId[path] ??= collectionId;
+    }
+  }
+
+  for (const path of Object.keys(fallbackTokenMap)) {
+    pathToCollectionId[path] ??= fallbackCollectionId;
+  }
+
+  return pathToCollectionId;
+}
+
 export function PropertyRow({
   prop,
   rootNodes,
@@ -302,6 +322,15 @@ export function PropertyRow({
     collectionDisplayNames,
   );
   const allTokenMap = allTokensFlat ?? tokenMap;
+  const pathToCollectionId = useMemo(
+    () =>
+      buildPathToCollectionId(
+        tokenMapsByCollection,
+        currentCollectionId,
+        tokenMap,
+      ),
+    [currentCollectionId, tokenMap, tokenMapsByCollection],
+  );
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const createSessionKeyRef = useRef<string | null>(null);
@@ -451,9 +480,7 @@ export function PropertyRow({
           candidate.key,
           [candidate, score] as [ScopedTokenCandidate, number],
         ]));
-        return getRecentScopedTokenCandidates(scopedCandidates, {
-          collectionId: boundCollectionId || currentCollectionId,
-        })
+        return getRecentScopedTokenCandidates(scopedCandidates)
           .map((candidate) => allByKey.get(candidate.key))
           .filter((candidate): candidate is [ScopedTokenCandidate, number] => candidate !== undefined)
           .slice(0, 5)
@@ -524,7 +551,7 @@ export function PropertyRow({
     prevBindingFromProp.current = bindingFromProp;
   }, [bindingFromProp, currentCollectionId, prop, rootNodes, tokenMap, tokenMapsByCollection]);
 
-  const handleCreateToken = async () => {
+  const saveCreatedToken = async (mode: 'create' | 'overwrite') => {
     if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;
     const pathTrimmed = newTokenName.trim();
     if (!/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$/.test(pathTrimmed)) {
@@ -543,66 +570,53 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      await createToken(serverUrl, currentCollectionId, tokenPath, buildCreateValueBodyForModeDrafts({
+      const body = buildCreateValueBodyForModeDrafts({
         tokenType,
         modeValues: modeValuesForCreate,
         defaultValue: tokenValue,
         defaultScopes: getDefaultScopesForProperty(prop),
         collectionId: currentCollectionId,
         modeNames: modeNamesForCreate,
-      }));
+      });
+
+      if (mode === 'create') {
+        await createToken(serverUrl, currentCollectionId, tokenPath, body);
+      } else {
+        await updateToken(serverUrl, currentCollectionId, tokenPath, body);
+      }
+
       await applyTokenMutationSuccess({
         onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, modeValuesForCreate[0] ?? tokenValue),
-        successMessage: `Token "${tokenPath}" created`,
+        successMessage: `Token "${tokenPath}" ${mode === 'create' ? 'created' : 'updated'}`,
       });
       setCreateError('');
       setConflictExists(false);
     } catch (err) {
-      if (isTokenMutationConflictError(err)) {
+      if (mode === 'create' && isTokenMutationConflictError(err)) {
         setConflictExists(true);
         setCreateError('');
       } else {
         setConflictExists(false);
-        setCreateError(getErrorMessage(err, 'Network request failed'));
+        setCreateError(
+          getErrorMessage(
+            err,
+            mode === 'create'
+              ? 'Network request failed'
+              : 'Failed to update token',
+          ),
+        );
       }
     } finally {
       setCreating(false);
     }
   };
 
-  const handleOverwriteToken = async () => {
-    if (creatingFromProp !== prop || !newTokenName.trim() || !connected || !currentCollectionId) return;
-    const currentValue = getCurrentValue(selectedNodes, prop);
-    const tokenType = createTokenType;
-    const tokenValue = getTokenValueFromProp(prop, currentValue);
-    const tokenPath = newTokenName.trim();
-    const modeValuesForCreate =
-      createModeValues.length === modeNamesForCreate.length
-        ? createModeValues
-        : modeNamesForCreate.map(() => cloneModeDraftValue(tokenValue));
+  const handleCreateToken = () => {
+    void saveCreatedToken('create');
+  };
 
-    setCreating(true);
-    try {
-      await updateToken(serverUrl, currentCollectionId, tokenPath, buildCreateValueBodyForModeDrafts({
-        tokenType,
-        modeValues: modeValuesForCreate,
-        defaultValue: tokenValue,
-        defaultScopes: getDefaultScopesForProperty(prop),
-        collectionId: currentCollectionId,
-        modeNames: modeNamesForCreate,
-      }));
-      await applyTokenMutationSuccess({
-        onAfterSave: () => onTokenCreated(tokenPath, prop, tokenType, modeValuesForCreate[0] ?? tokenValue),
-        successMessage: `Token "${tokenPath}" overwritten`,
-      });
-      setCreateError('');
-      setConflictExists(false);
-    } catch (err) {
-      setConflictExists(false);
-      setCreateError(getErrorMessage(err, 'Failed to overwrite token'));
-    } finally {
-      setCreating(false);
-    }
+  const handleOverwriteToken = () => {
+    void saveCreatedToken('overwrite');
   };
 
   return (
@@ -1001,13 +1015,8 @@ export function PropertyRow({
                           setCreateError('');
                           setConflictExists(false);
                         }}
-                        allTokensFlat={tokenMap}
-                        pathToCollectionId={Object.fromEntries(
-                          Object.keys(tokenMap).map((path) => [
-                            path,
-                            currentCollectionId,
-                          ]),
-                        )}
+                        allTokensFlat={allTokenMap}
+                        pathToCollectionId={pathToCollectionId}
                       />
                     </div>
                   ))}
