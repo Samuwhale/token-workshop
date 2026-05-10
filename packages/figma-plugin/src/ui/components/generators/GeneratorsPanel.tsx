@@ -3161,15 +3161,15 @@ export function GeneratorsPanel({
   const canApplyReviewedGenerator =
     canOpenGeneratorOutputReview && previewReviewed && !previewHasOutputIssues;
   const generatorPrimaryActionLabel = previewHasOutputIssues
-    ? "Review issues"
+    ? "Resolve conflicts"
     : canApplyReviewedGenerator
-      ? "Apply"
-      : "Review outputs";
+      ? "Apply to collection"
+      : "Preview outputs";
   const generatorPrimaryActionTitle = previewHasOutputIssues
-    ? "Review generator output issues"
+    ? "Resolve generated-token conflicts"
     : canApplyReviewedGenerator
-      ? "Apply reviewed generator outputs"
-      : "Review generator outputs before applying";
+      ? "Apply to collection"
+      : "Preview outputs before applying";
 
   const renderGeneratorActions = (compact = false) => (
     <div
@@ -3211,14 +3211,14 @@ export function GeneratorsPanel({
       previewReviewed &&
       !compact ? (
         <Button
-          title="Review generator outputs"
-          aria-label="Review generator outputs"
+          title="Preview outputs"
+          aria-label="Preview outputs"
           onClick={openOutputReview}
           variant="secondary"
           size="sm"
         >
           <PanelRight size={14} />
-          <span>Review</span>
+          <span>Preview</span>
         </Button>
       ) : null}
       <Button

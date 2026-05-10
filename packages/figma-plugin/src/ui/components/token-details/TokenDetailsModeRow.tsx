@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, Rows3 } from "lucide-react";
+import { ChevronDown, Copy, Link2 } from "lucide-react";
 import { resolveCollectionIdForPath } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import {
@@ -23,6 +23,12 @@ import {
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
   CONTROL_INPUT_INVALID_STATE_CLASSES,
 } from "../../shared/controlClasses";
+import { useDropdownMenu } from "../../hooks/useDropdownMenu";
+import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
+import {
+  FLOATING_MENU_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+} from "../../shared/menuClasses";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -156,6 +162,7 @@ export function TokenDetailsModeRow({
       : "",
   );
   const [autocompleteOpen, setAutocompleteOpen] = useState(false);
+  const copyMenu = useDropdownMenu();
 
   useEffect(() => {
     if (typeof value === "string" && isAlias(value)) {
@@ -195,6 +202,13 @@ export function TokenDetailsModeRow({
     editable && aliasMode && aliasQueryTrimmed.length > 0 && aliasTargetAmbiguous;
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
+  const copyMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: copyMenu.triggerRef,
+    open: copyMenu.open,
+    preferredWidth: 220,
+    preferredHeight: 180,
+    align: "end",
+  });
 
   const readOnly = useMemo(
     () =>
@@ -246,6 +260,25 @@ export function TokenDetailsModeRow({
     setAutocompleteOpen(false);
   };
 
+  const copyActions = [
+    allowCopyFromPrevious && onCopyFromPrevious
+      ? {
+          key: "from-previous",
+          label: previousModeName
+            ? `Copy from ${previousModeName}`
+            : "Copy from previous mode",
+          onClick: onCopyFromPrevious,
+        }
+      : null,
+    allowCopyToAll && onCopyToAll
+      ? {
+          key: "to-all",
+          label: `Copy from ${modeName} to all modes`,
+          onClick: onCopyToAll,
+        }
+      : null,
+  ].filter((action): action is { key: string; label: string; onClick: () => void } => Boolean(action));
+
   const commitAliasQuery = () => {
     if (!onChange) return;
     const path = aliasQuery.trim();
@@ -291,43 +324,55 @@ export function TokenDetailsModeRow({
           Reference
         </span>
       </button>
-      {allowCopyFromPrevious && onCopyFromPrevious ? (
-        <button
-          type="button"
-          onClick={onCopyFromPrevious}
-          className="tm-token-mode-row__action-button"
-          title={
-            previousModeName
-              ? `Copy the ${previousModeName} value to ${modeName}`
-              : `Copy the previous mode value to ${modeName}`
-          }
-          aria-label={
-            previousModeName
-              ? `Copy the ${previousModeName} value to ${modeName}`
-              : `Copy the previous mode value to ${modeName}`
-          }
-        >
-          <Copy size={12} strokeWidth={1.5} aria-hidden />
-          <span className="tm-token-mode-row__action-button-label">
-            {previousModeName
-              ? `Copy from ${previousModeName}`
-              : "Copy from another mode"}
-          </span>
-        </button>
-      ) : null}
-      {allowCopyToAll && onCopyToAll ? (
-        <button
-          type="button"
-          onClick={onCopyToAll}
-          className="tm-token-mode-row__action-button"
-          title={`Copy the ${modeName} value to every mode`}
-          aria-label={`Copy the ${modeName} value to every mode`}
-        >
-          <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-          <span className="tm-token-mode-row__action-button-label">
-            Copy to all
-          </span>
-        </button>
+      {copyActions.length > 0 ? (
+        <div className="relative">
+          <button
+            ref={copyMenu.triggerRef}
+            type="button"
+            onClick={copyMenu.toggle}
+            aria-expanded={copyMenu.open}
+            aria-haspopup="menu"
+            aria-label={`Copy value actions for ${modeName}`}
+            title={`Copy value actions for ${modeName}`}
+            className={joinClasses(
+              "tm-token-mode-row__action-button",
+              copyMenu.open && "tm-token-mode-row__action-button--active",
+            )}
+          >
+            <Copy size={12} strokeWidth={1.5} aria-hidden />
+            <span className="tm-token-mode-row__action-button-label">
+              Copy
+            </span>
+            <ChevronDown size={11} strokeWidth={1.6} aria-hidden />
+          </button>
+
+          {copyMenu.open ? (
+            <div
+              ref={copyMenu.menuRef}
+              style={copyMenuStyle ?? { visibility: "hidden" }}
+              className={FLOATING_MENU_CLASS}
+              role="menu"
+            >
+              {copyActions.map((action) => (
+                <button
+                  key={action.key}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    action.onClick();
+                    copyMenu.close({ restoreFocus: false });
+                  }}
+                  className={FLOATING_MENU_ITEM_CLASS}
+                >
+                  <span className="w-3 shrink-0" aria-hidden />
+                  <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
+                    {action.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
   ) : null;
@@ -423,14 +468,14 @@ export function TokenDetailsModeRow({
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  No token matches this reference yet. Create the target token first, or choose another token.
+                  No token matches this path. Pick another token or create it first.
                 </p>
               ) : showAliasAmbiguousState ? (
                 <p
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. References need one unique target path.
+                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. References need one unique token path.
                 </p>
               ) : null}
             </div>

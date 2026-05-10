@@ -200,7 +200,7 @@ export function TableCreateForm({
                 disabled={busy}
                 className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
               >
-                Copy {modeNames[0]} to empty modes
+                Fill empty modes from {modeNames[0]}
               </button>
             </div>
           ) : null}

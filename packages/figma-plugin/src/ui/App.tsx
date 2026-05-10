@@ -1903,12 +1903,10 @@ export function App() {
                   disabled: requiresSetup,
                   idle: publishIsIdle,
                 });
-
-                if (sidebarCollapsed) {
-                  const tooltipLabel = requiresSetup
-                    ? `${item.label} · set up a collection first`
-                    : responsiveSidebarCollapsed && hasSections
-                      ? `Open ${item.label} sections`
+                const workspaceButtonLabel = requiresSetup
+                  ? `${item.label} · set up a collection first`
+                  : responsiveSidebarCollapsed && hasSections
+                    ? `Open ${item.label} sections`
                     : showCanvasSelectionAdornment
                       ? canvasHasBrokenBindings
                         ? `${item.label} · ${selectionHealth.selectionCount} selected · ${selectionHealth.staleBindingCount} broken`
@@ -1916,10 +1914,12 @@ export function App() {
                       : syncAdornment
                         ? `${item.label} · ${syncAdornment.label}`
                         : item.label;
+
+                if (sidebarCollapsed) {
                   return (
                     <Tooltip
                       key={item.id}
-                      label={tooltipLabel}
+                      label={workspaceButtonLabel}
                       position="right"
                     >
                       <button
@@ -1941,7 +1941,7 @@ export function App() {
                             ? "dialog"
                             : undefined
                         }
-                        aria-label={tooltipLabel}
+                        aria-label={workspaceButtonLabel}
                         data-workspace={item.id}
                         className={`tm-sidebar-workspace-button relative flex h-8 ${sidebarCollapsed ? 'w-8' : 'w-full'} items-center justify-center rounded-md ${workspaceStateClass}`}
                       >
@@ -1975,7 +1975,8 @@ export function App() {
                       aria-current={isWorkspaceActive ? "page" : undefined}
                       aria-expanded={sections.length > 0 ? expandedWorkspaces.has(item.workspaceId) : undefined}
                       aria-controls={sections.length > 0 ? sectionListId : undefined}
-                      title={requiresSetup ? "Set up a collection first" : undefined}
+                      aria-label={workspaceButtonLabel}
+                      title={workspaceButtonLabel}
                       data-workspace={item.id}
                       className={`tm-sidebar-workspace-button relative flex min-h-7 w-full items-center gap-1.5 rounded-md px-2.5 py-1 text-left text-body ${workspaceStateClass}`}
                     >
@@ -2047,6 +2048,11 @@ export function App() {
                                   activeSubTab === section.subTab && isWorkspaceActive
                                     ? "page"
                                     : undefined
+                                }
+                                title={
+                                  showReviewBadge
+                                    ? `${section.label} · ${reviewBadgeCount} review item${reviewBadgeCount === 1 ? "" : "s"}`
+                                    : section.label
                                 }
                                 data-workspace={item.id}
                                 className={`tm-sidebar-section-button flex min-h-7 w-full items-center gap-1.5 rounded px-2 py-0.5 text-left text-secondary ${

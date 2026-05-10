@@ -1,11 +1,27 @@
 import { useState, useRef, useMemo } from "react";
+import type { TokenCollection } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
-import { useTokenFlatMapContext } from "../../contexts/TokenDataContext";
+import {
+  useCollectionStateContext,
+  useTokenFlatMapContext,
+} from "../../contexts/TokenDataContext";
 import {
   buildScopedTokenCandidates,
   type ScopedTokenCandidate,
 } from "../../shared/scopedTokenCandidates";
+
+function readCollectionLabel(
+  collections: TokenCollection[],
+  collectionId?: string,
+): string {
+  const collection = collections.find((item) => item.id === collectionId);
+  return (
+    collection?.publishRouting?.collectionName?.trim() ||
+    collectionId ||
+    "Unknown collection"
+  );
+}
 
 /** Compact picker for selecting a token whose composite properties should be reused. */
 export function ExtendsTokenPicker({
@@ -24,6 +40,7 @@ export function ExtendsTokenPicker({
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
 }) {
   const { perCollectionFlat, collectionIdsByPath } = useTokenFlatMapContext();
+  const { collections } = useCollectionStateContext();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -119,10 +136,15 @@ export function ExtendsTokenPicker({
               setOpen(false);
               setSearch("");
             }}
-            className={`${LONG_TEXT_CLASSES.monoPrimary} w-full px-2 py-1 text-left text-body hover:bg-[var(--color-figma-bg-hover)]`}
+            className="w-full px-2 py-1 text-left hover:bg-[var(--color-figma-bg-hover)]"
             title={candidate.path}
           >
-            <span>{candidate.path}</span>
+            <span className={`${LONG_TEXT_CLASSES.monoPrimary} block text-body`}>
+              {candidate.path}
+            </span>
+            <span className={`${LONG_TEXT_CLASSES.textTertiary} block text-secondary`}>
+              {readCollectionLabel(collections, candidate.collectionId)}
+            </span>
           </button>
         ))}
       </div>

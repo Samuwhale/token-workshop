@@ -963,7 +963,7 @@ export function PublishPanel({
       if (actionId === 'review-generator-issues') {
         beginHandoff({
           reason:
-            'Review the generator outputs behind these blockers, then return to Sync.',
+            'Preview outputs and resolve generated-token blockers, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
         if (cluster?.recommendedGeneratorId && onOpenGenerator) {
@@ -1034,11 +1034,11 @@ export function PublishPanel({
   const reviewResolverPublishChanges = useCallback(async () => {
     setResolverPublishError(null);
     if (resolverPublishDirtyCount > 0) {
-      setResolverPublishError('Save Figma mode targets before reviewing generated changes.');
+      setResolverPublishError('Save Figma mode targets before previewing generated outputs.');
       return;
     }
     if (resolverPublishMappedCount === 0) {
-      setResolverPublishError('Add at least one Figma mode target before reviewing generated changes.');
+      setResolverPublishError('Add at least one Figma mode target before previewing generated outputs.');
       return;
     }
     if (!canProceedToSync) {
@@ -1749,7 +1749,7 @@ function ResolverModePublishCard({
               disabled={loading || saving || syncing || dirtyCount > 0 || mappedCount === 0}
               className="min-w-0 rounded bg-[var(--color-figma-action-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
             >
-              {syncing ? 'Reviewing…' : 'Review generated changes'}
+              {syncing ? 'Previewing…' : 'Preview outputs'}
             </button>
           </div>
         ) : null}

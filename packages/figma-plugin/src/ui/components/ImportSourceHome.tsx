@@ -116,12 +116,12 @@ export function ImportSourceHome() {
             icon={<Upload size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleBrowseFile}
             label="Import from file"
-            description="JSON, CSS, Tailwind, or Tokens Studio"
+            description="Adds to the selected collection unless the file defines collections"
           />
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Files import into the selected collection unless they already define
-          collections. The importer detects the file type automatically.
+          Supports JSON, CSS, Tailwind, and Tokens Studio. The importer detects
+          the file type automatically.
         </div>
         <button
           type="button"

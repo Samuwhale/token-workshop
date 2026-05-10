@@ -159,10 +159,10 @@ export function HealthDashboard({
     },
     {
       id: "generators",
-      label: "Generator updates",
+      label: "Generated-token updates",
       description:
         highestPriorityGeneratorIssue?.message ??
-        "Save, preview, or apply generated outputs.",
+        "Preview outputs, resolve conflicts, then apply to a collection.",
       count: generatorIssueCount,
       severity: generatorStatus,
       disabled: !onNavigateToGenerators && !onViewGeneratorIssue,

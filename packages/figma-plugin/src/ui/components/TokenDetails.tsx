@@ -82,6 +82,7 @@ import type { LintViolation } from "../hooks/useLint";
 import { TokenDetailsAdvancedSection } from "./token-details/TokenDetailsAdvancedSection";
 import { TokenDetailsModeRow } from "./token-details/TokenDetailsModeRow";
 import { TokenDetailsStatusBanners } from "./token-details/TokenDetailsStatusBanners";
+import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import {
   Field,
   IconButton,
@@ -1270,13 +1271,11 @@ export function TokenDetails({
         backTitle={backLabel}
         surface="authoring"
       >
-        <div
-          role="status"
-          className="flex min-h-full flex-col items-center justify-center gap-2 px-4 py-6 text-body text-[color:var(--color-figma-text-secondary)]"
-        >
-          <Spinner size="md" className="text-[color:var(--color-figma-text-accent)]" />
-          Loading token...
-        </div>
+        <FeedbackPlaceholder
+          variant="empty"
+          title="Loading token"
+          icon={<Spinner size="md" className="text-[color:var(--color-figma-text-accent)]" />}
+        />
       </EditorShell>
     );
   }
@@ -1791,35 +1790,6 @@ export function TokenDetails({
             {isCreateMode ? (
               <div className="relative tm-token-details__identity-path" ref={pathInputWrapperRef}>
                 <div className="tm-token-details__create-name-grid">
-                  <Field label="Group" error={createPathError}>
-                    <input
-                      type="text"
-                      value={createPathParts.group}
-                      onChange={(e) =>
-                        updateCreatePath(e.target.value, createPathParts.name)
-                      }
-                      onFocus={() => {
-                        if (trimmedEditPath) setShowPathAutocomplete(true);
-                      }}
-                      onBlur={(e) => {
-                        if (
-                          !pathInputWrapperRef.current?.contains(
-                            e.relatedTarget as Node,
-                          )
-                        ) {
-                          setShowPathAutocomplete(false);
-                        }
-                      }}
-                      placeholder="color.brand"
-                      autoFocus
-                      autoComplete="off"
-                      className={`${AUTHORING.inputMono} ${
-                        duplicatePath
-                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
-                          : ""
-                      }`}
-                    />
-                  </Field>
                   <Field label="Name">
                     <input
                       type="text"
@@ -1840,6 +1810,35 @@ export function TokenDetails({
                         }
                       }}
                       placeholder="primary"
+                      autoFocus
+                      autoComplete="off"
+                      className={`${AUTHORING.inputMono} ${
+                        duplicatePath
+                          ? "border-[var(--color-figma-error)] focus-visible:border-[var(--color-figma-error)]"
+                          : ""
+                      }`}
+                    />
+                  </Field>
+                  <Field label="Group" error={createPathError}>
+                    <input
+                      type="text"
+                      value={createPathParts.group}
+                      onChange={(e) =>
+                        updateCreatePath(e.target.value, createPathParts.name)
+                      }
+                      onFocus={() => {
+                        if (trimmedEditPath) setShowPathAutocomplete(true);
+                      }}
+                      onBlur={(e) => {
+                        if (
+                          !pathInputWrapperRef.current?.contains(
+                            e.relatedTarget as Node,
+                          )
+                        ) {
+                          setShowPathAutocomplete(false);
+                        }
+                      }}
+                      placeholder="color.brand"
                       autoComplete="off"
                       className={`${AUTHORING.inputMono} ${
                         duplicatePath
@@ -1850,7 +1849,7 @@ export function TokenDetails({
                   </Field>
                 </div>
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  Token path:{" "}
+                  Path:{" "}
                   <span className="font-mono text-[color:var(--color-figma-text-secondary)]">
                     {trimmedEditPath || "group.name"}
                   </span>
@@ -1971,12 +1970,12 @@ export function TokenDetails({
                 <button
                   type="button"
                   onClick={fillEmptyModesFromFirst}
-                  title={`Copy the ${firstMode.name} value to empty modes`}
-                  aria-label={`Copy the ${firstMode.name} value to empty modes`}
+                  title={`Fill empty modes from ${firstMode.name}`}
+                  aria-label={`Fill empty modes from ${firstMode.name}`}
                   className="tm-token-details__text-button"
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  Copy {firstMode.name} to empty modes
+                  Fill empty modes from {firstMode.name}
                 </button>
               ) : undefined
             ) : undefined

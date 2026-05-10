@@ -353,11 +353,22 @@ export function QuickApplyPicker({
       : ids;
   }, [activeCollectionId, collectionIds, tokenMapsByCollection]);
   const collectionScopeIds = useMemo(
-    () =>
-      availableCollectionIds.length > 1
-        ? [ALL_COLLECTIONS_ID, ...availableCollectionIds]
-        : availableCollectionIds,
-    [availableCollectionIds],
+    () => {
+      if (availableCollectionIds.length <= 1) {
+        return availableCollectionIds;
+      }
+      const orderedCollectionIds = [
+        ...(currentCollectionId &&
+        availableCollectionIds.includes(currentCollectionId)
+          ? [currentCollectionId]
+          : []),
+        ...availableCollectionIds.filter(
+          (collectionId) => collectionId !== currentCollectionId,
+        ),
+      ];
+      return [...orderedCollectionIds, ALL_COLLECTIONS_ID];
+    },
+    [availableCollectionIds, currentCollectionId],
   );
   const searchAllCollections = activeCollectionId === ALL_COLLECTIONS_ID;
   const tokenMap = useMemo(

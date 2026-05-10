@@ -220,6 +220,9 @@ export function TokenListToolbar({
   const showOverflow = hasOverflowActions;
   const showCreate = viewMode === "tree";
   const showPrimaryCreateAction = onCreateToken !== undefined;
+  const showViewMenu = hasTokens;
+  const showSecondaryCluster =
+    (overflowMenuProps && viewMode === "tree") || showViewMenu || showOverflow;
   const sortOrder: SortOrder = overflowMenuProps?.sortOrder ?? "default";
   const viewMenuActive =
     overflowMenuProps !== null &&
@@ -228,7 +231,6 @@ export function TokenListToolbar({
       groupBy !== "path" ||
       overflowMenuProps.searchResultPresentation === "flat");
   const viewMenuLabel = "View";
-  const showViewMenu = hasTokens;
   const showInlineSearchScopeToggle = showSearchScopeToggle;
 
   return (
@@ -429,101 +431,199 @@ export function TokenListToolbar({
           </div>
 
           <div className="tm-responsive-toolbar__actions">
-            {overflowMenuProps && viewMode === "tree" ? (
-              <div className="tm-token-toolbar__filter">
-                <FilterMenu
-                  {...overflowMenuProps}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                />
-              </div>
-            ) : null}
-
-            {showViewMenu ? (
-              <div className="tm-token-toolbar__sort relative shrink-0">
-                <Button
-                  ref={viewMenu.triggerRef}
-                  onClick={viewMenu.toggle}
-                  aria-expanded={viewMenu.open}
-                  aria-haspopup="menu"
-                  aria-label="View options"
-                  title="View options"
-                  variant="ghost"
-                  size="sm"
-                  wrap
-                  className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
-                    viewMenu.open || viewMenuActive || viewMode === "json"
-                      ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
-                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                  }`}
-                >
-                  <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
-                  <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
-                    {viewMenuLabel}
-                  </span>
-                </Button>
-
-                {viewMenu.open ? (
-                  <div
-                    ref={viewMenu.menuRef}
-                    style={viewMenuStyle ?? { visibility: "hidden" }}
-                    className={FLOATING_MENU_CLASS}
-                    role="menu"
-                  >
-                    <MenuRadioGroup
-                      label="View as"
-                      value={viewMode}
-                      options={VIEW_OPTIONS}
-                      onChange={(value) => setViewMode(value)}
-                      onSelect={closeViewMenu}
+            {showSecondaryCluster ? (
+              <div className="tm-token-toolbar__secondary">
+                {overflowMenuProps && viewMode === "tree" ? (
+                  <div className="tm-token-toolbar__filter">
+                    <FilterMenu
+                      {...overflowMenuProps}
+                      searchQuery={searchQuery}
+                      setSearchQuery={setSearchQuery}
                     />
+                  </div>
+                ) : null}
 
-                    {overflowMenuProps && viewMode === "tree" ? (
-                      <>
+                {showViewMenu ? (
+                  <div className="tm-token-toolbar__sort relative shrink-0">
+                    <Button
+                      ref={viewMenu.triggerRef}
+                      onClick={viewMenu.toggle}
+                      aria-expanded={viewMenu.open}
+                      aria-haspopup="menu"
+                      aria-label="View options"
+                      title="View options"
+                      variant="ghost"
+                      size="sm"
+                      wrap
+                      className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
+                        viewMenu.open || viewMenuActive || viewMode === "json"
+                          ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
+                          : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                      }`}
+                    >
+                      <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
+                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
+                        {viewMenuLabel}
+                      </span>
+                      {overflowMenuProps && overflowMenuProps.activeCount > 0 ? (
+                        <span className="ml-0.5 inline-flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[var(--color-figma-action-bg)] px-1 text-[var(--font-size-xs)] font-semibold leading-none text-[color:var(--color-figma-text-onbrand)]">
+                          {overflowMenuProps.activeCount}
+                        </span>
+                      ) : null}
+                    </Button>
+
+                    {viewMenu.open ? (
+                      <div
+                        ref={viewMenu.menuRef}
+                        style={viewMenuStyle ?? { visibility: "hidden" }}
+                        className={FLOATING_MENU_CLASS}
+                        role="menu"
+                      >
                         <MenuRadioGroup
-                          label="Group by"
-                          value={groupBy}
-                          options={GROUP_OPTIONS}
-                          onChange={(value) => setGroupBy(value)}
+                          label="View as"
+                          value={viewMode}
+                          options={VIEW_OPTIONS}
+                          onChange={(value) => setViewMode(value)}
                           onSelect={closeViewMenu}
                         />
-                        <MenuRadioGroup
-                          label="Sort"
-                          value={sortOrder}
-                          options={SORT_OPTIONS}
-                          onChange={(value) =>
-                            overflowMenuProps.onSortOrderChange(value)
-                          }
-                          onSelect={closeViewMenu}
-                        />
-                        {showResultPresentationToggle ? (
-                          <MenuRadioGroup
-                            label="Search results"
-                            value={overflowMenuProps.searchResultPresentation}
-                            options={RESULT_OPTIONS}
-                            onChange={
-                              overflowMenuProps.onSearchResultPresentationChange
-                            }
-                            onSelect={closeViewMenu}
-                          />
-                        ) : null}
-                        {showSearchScopeToggle && !showInlineSearchScopeToggle ? (
-                          <MenuRadioGroup
-                            label="Search scope"
-                            value={searchScope}
-                            options={SEARCH_SCOPE_OPTIONS}
-                            onChange={(value) => {
-                              if (
-                                (value === "all") !==
-                                overflowMenuProps.crossCollectionSearch
-                              ) {
-                                overflowMenuProps.onToggleCrossCollectionSearch();
+
+                        {overflowMenuProps && viewMode === "tree" ? (
+                          <>
+                            <MenuRadioGroup
+                              label="Group by"
+                              value={groupBy}
+                              options={GROUP_OPTIONS}
+                              onChange={(value) => setGroupBy(value)}
+                              onSelect={closeViewMenu}
+                            />
+                            <MenuRadioGroup
+                              label="Sort"
+                              value={sortOrder}
+                              options={SORT_OPTIONS}
+                              onChange={(value) =>
+                                overflowMenuProps.onSortOrderChange(value)
                               }
-                            }}
-                            onSelect={closeViewMenu}
-                          />
+                              onSelect={closeViewMenu}
+                            />
+                            {showResultPresentationToggle ? (
+                              <MenuRadioGroup
+                                label="Search results"
+                                value={overflowMenuProps.searchResultPresentation}
+                                options={RESULT_OPTIONS}
+                                onChange={
+                                  overflowMenuProps.onSearchResultPresentationChange
+                                }
+                                onSelect={closeViewMenu}
+                              />
+                            ) : null}
+                            {showSearchScopeToggle &&
+                            !showInlineSearchScopeToggle ? (
+                              <MenuRadioGroup
+                                label="Search scope"
+                                value={searchScope}
+                                options={SEARCH_SCOPE_OPTIONS}
+                                onChange={(value) => {
+                                  if (
+                                    (value === "all") !==
+                                    overflowMenuProps.crossCollectionSearch
+                                  ) {
+                                    overflowMenuProps.onToggleCrossCollectionSearch();
+                                  }
+                                }}
+                                onSelect={closeViewMenu}
+                              />
+                            ) : null}
+                          </>
                         ) : null}
-                      </>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {showOverflow ? (
+                  <div className="tm-token-toolbar__overflow relative shrink-0">
+                    <Button
+                      ref={actionsMenu.triggerRef}
+                      type="button"
+                      onClick={actionsMenu.toggle}
+                      aria-expanded={actionsMenu.open}
+                      aria-haspopup="menu"
+                      aria-label="More actions"
+                      title="More actions"
+                      variant="ghost"
+                      size="sm"
+                      wrap
+                      className={`tm-token-toolbar__overflow-button justify-start ${
+                        actionsMenu.open
+                          ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
+                          : ""
+                      } disabled:opacity-40`}
+                    >
+                      <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
+                      <span className="tm-toolbar-action__label tm-token-toolbar__overflow-label">
+                        More
+                      </span>
+                    </Button>
+
+                    {actionsMenu.open ? (
+                      <div
+                        ref={actionsMenu.menuRef}
+                        style={actionsMenuStyle ?? { visibility: "hidden" }}
+                        className={FLOATING_MENU_CLASS}
+                        role="menu"
+                      >
+                        {hasGroupOps ? (
+                          <>
+                            <MenuSectionLabel>Groups</MenuSectionLabel>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() =>
+                                runMenuAction(
+                                  overflowMenuProps!.allGroupsExpanded
+                                    ? overflowMenuProps!.onCollapseAll
+                                    : overflowMenuProps!.onExpandAll,
+                                )
+                              }
+                              className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                            >
+                              {overflowMenuProps!.allGroupsExpanded
+                                ? "Collapse all groups"
+                                : "Expand all groups"}
+                            </button>
+                          </>
+                        ) : null}
+
+                        {hasEditActions ? (
+                          <>
+                            {hasGroupOps ? (
+                              <div className="h-1.5" aria-hidden />
+                            ) : null}
+                            <MenuSectionLabel>Edit</MenuSectionLabel>
+                            {onBulkEdit ? (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => runMenuAction(onBulkEdit)}
+                                className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                              >
+                                Bulk edit
+                              </button>
+                            ) : null}
+                            {onFindReplace ? (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => runMenuAction(onFindReplace)}
+                                disabled={!connected}
+                                className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                              >
+                                Find and replace
+                              </button>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 ) : null}
@@ -640,93 +740,6 @@ export function TokenListToolbar({
               </div>
             ) : null}
 
-            {showOverflow ? (
-              <div className="relative shrink-0">
-                <Button
-                  ref={actionsMenu.triggerRef}
-                  type="button"
-                  onClick={actionsMenu.toggle}
-                  aria-expanded={actionsMenu.open}
-                  aria-haspopup="menu"
-                  aria-label="More actions"
-                  title="More actions"
-                  variant="ghost"
-                  size="sm"
-                  wrap
-                  className={`tm-token-toolbar__overflow-button justify-start ${
-                    actionsMenu.open
-                      ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                      : ""
-                  } disabled:opacity-40`}
-                >
-                  <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
-                  <span className="tm-toolbar-action__label tm-token-toolbar__overflow-label">
-                    More
-                  </span>
-                </Button>
-
-                {actionsMenu.open ? (
-                  <div
-                    ref={actionsMenu.menuRef}
-                    style={actionsMenuStyle ?? { visibility: "hidden" }}
-                    className={FLOATING_MENU_CLASS}
-                    role="menu"
-                  >
-                    {hasGroupOps ? (
-                      <>
-                        <MenuSectionLabel>Groups</MenuSectionLabel>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() =>
-                            runMenuAction(
-                              overflowMenuProps!.allGroupsExpanded
-                                ? overflowMenuProps!.onCollapseAll
-                                : overflowMenuProps!.onExpandAll,
-                            )
-                          }
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                        >
-                          {overflowMenuProps!.allGroupsExpanded
-                            ? "Collapse all groups"
-                            : "Expand all groups"}
-                        </button>
-                      </>
-                    ) : null}
-
-                    {hasEditActions ? (
-                      <>
-                        {hasGroupOps ? (
-                          <div className="h-1.5" aria-hidden />
-                        ) : null}
-                        <MenuSectionLabel>Edit</MenuSectionLabel>
-                        {onBulkEdit ? (
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => runMenuAction(onBulkEdit)}
-                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
-                          >
-                            Bulk edit
-                          </button>
-                        ) : null}
-                        {onFindReplace ? (
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => runMenuAction(onFindReplace)}
-                            disabled={!connected}
-                            className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                          >
-                            Find and replace
-                          </button>
-                        ) : null}
-                      </>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         </div>
 

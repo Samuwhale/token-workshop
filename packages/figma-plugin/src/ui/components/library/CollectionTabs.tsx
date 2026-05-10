@@ -439,13 +439,13 @@ export function CollectionTabs({
                 aria-pressed={activeCollectionSettings?.open === true}
                 aria-label={
                   activeCollectionSettings?.open === true
-                    ? "Hide collection modes"
-                    : "Edit collection modes"
+                    ? "Hide collection details"
+                    : "Open collection details"
                 }
                 title={
                   activeCollectionSettings?.open === true
-                    ? "Hide collection modes"
-                    : "Edit collection modes"
+                    ? "Hide collection details"
+                    : "Open collection details"
                 }
                 variant="ghost"
                 size="sm"
@@ -453,7 +453,7 @@ export function CollectionTabs({
               >
                 <Settings2 size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  Edit modes
+                  Collection details
                 </span>
               </Button>
             ) : null}

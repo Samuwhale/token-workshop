@@ -22,12 +22,12 @@ type StartHereBranchCopy = {
 
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
-    title: "Start with a collection",
-    description: "Collections match Figma variable collections: tokens live inside them, and modes define their value contexts.",
+    title: "Start your token library",
+    description: "Create a collection, import Figma variables, or extract values from selected layers.",
   },
   "start-new": {
     title: "Create your first collection",
-    description: "Name the collection, then add modes like Light and Dark. Every token gets one value for each mode.",
+    description: "Name the collection, then add modes like Light and Dark. Every token gets one value in each mode.",
   },
 };
 
@@ -184,7 +184,7 @@ export function WelcomePrompt({
     <div>
       <ActionRow
         title="Create your first collection"
-        description="Create the Figma-style home for related tokens and their modes."
+        description="Create a collection for related tokens and modes."
         onClick={() => setBranch("start-new")}
         emphasized
         icon={<Plus size={14} strokeWidth={1.75} aria-hidden />}
@@ -271,7 +271,7 @@ export function WelcomePrompt({
           {branchCopy.description ? (
             <p
               id="welcome-dialog-description"
-            className="mt-1 max-w-[28ch] text-secondary leading-[1.45] text-[color:var(--color-figma-text-secondary)]"
+              className="mt-1 max-w-[28ch] text-secondary leading-[1.45] text-[color:var(--color-figma-text-secondary)]"
             >
               {branchCopy.description}
             </p>

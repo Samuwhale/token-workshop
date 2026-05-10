@@ -40,7 +40,7 @@ type VisibleTokenRow = {
   ancestorPathLabel?: string;
 };
 
-interface CrossSetResult {
+interface CrossCollectionResult {
   path: string;
   collectionId: string;
   entry: { $type: string; $value: unknown };
@@ -92,7 +92,7 @@ export interface CrossCollectionSearchGroup {
   hasCriteria: boolean;
   loading: boolean;
   error: string | null;
-  results: CrossSetResult[] | null;
+  results: CrossCollectionResult[] | null;
   total: number;
   setOffset: (v: number) => void;
   retry: () => void;
@@ -360,7 +360,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     if (!crossCollectionResults) {
       return [];
     }
-    const sections = new Map<string, CrossSetResult[]>();
+    const sections = new Map<string, CrossCollectionResult[]>();
     for (const result of crossCollectionResults) {
       const existing = sections.get(result.collectionId);
       if (existing) {
@@ -635,7 +635,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         variant="empty"
         size="section"
         title="Search across all collections"
-        description="Type a name, value, type, or filter to find tokens outside the current collection."
+        description="Search by name, value, type, or filter."
       />
     );
   }
@@ -647,7 +647,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         size="section"
         icon={<Spinner size="sm" />}
         title="Searching all collections"
-        description="Matching tokens will appear here."
+        description="Results will appear here."
       />
     );
   }
@@ -672,7 +672,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             variant="no-results"
             size="section"
             title="No tokens found across all collections"
-            description="Try a broader search or switch to a specific collection."
+            description="Try a broader search or search one collection."
           />
           {searchQuery &&
             (() => {
@@ -810,7 +810,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         <FeedbackPlaceholder
           variant="empty"
           title="Select a layer to inspect"
-          description="Bound tokens will appear here."
+          description="Bound tokens appear here."
           icon={<MousePointer2 size={18} strokeWidth={1.5} aria-hidden />}
         />
       </div>
@@ -892,8 +892,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             title="This collection is empty"
             description={
               hasSelection
-                ? "Modes are ready above. Create a token, import an existing system, or extract values from the selected Figma layer."
-                : "Modes are ready above. Create the first token, import an existing system, or add groups when the structure is clear."
+                ? "Create a token, import tokens, or extract values from the selected layer."
+                : "Create the first token, import tokens, or add a group."
             }
             actions={emptyCollectionActions}
           />

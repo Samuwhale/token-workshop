@@ -545,7 +545,7 @@ function GitPreviewModal({
   onConfirm: () => void | Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
-  const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set());
+  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
   const canCancel = !busy;
@@ -562,7 +562,7 @@ function GitPreviewModal({
     return () => document.removeEventListener('keydown', handler);
   }, [canCancel, onCancel]);
 
-  const bySet = useMemo(() => {
+  const changesByCollection = useMemo(() => {
     if (!preview?.changes) return [] as Array<{ collectionId: string; added: TokenChange[]; modified: TokenChange[]; removed: TokenChange[] }>;
     const map = new Map<string, { added: TokenChange[]; modified: TokenChange[]; removed: TokenChange[] }>();
     for (const change of preview.changes) {
@@ -575,16 +575,16 @@ function GitPreviewModal({
     return [...map.entries()].map(([collectionId, value]) => ({ collectionId, ...value }));
   }, [preview?.changes]);
 
-  const totalAdded = bySet.reduce((c, s) => c + s.added.length, 0);
-  const totalModified = bySet.reduce((c, s) => c + s.modified.length, 0);
-  const totalRemoved = bySet.reduce((c, s) => c + s.removed.length, 0);
+  const totalAdded = changesByCollection.reduce((c, s) => c + s.added.length, 0);
+  const totalModified = changesByCollection.reduce((c, s) => c + s.modified.length, 0);
+  const totalRemoved = changesByCollection.reduce((c, s) => c + s.removed.length, 0);
   const hasPreviewChanges =
-    preview !== null && (preview.commits.length > 0 || bySet.length > 0);
+    preview !== null && (preview.commits.length > 0 || changesByCollection.length > 0);
 
-  const toggleSet = (set: string) => {
-    setExpandedSets(prev => {
+  const toggleCollection = (collectionId: string) => {
+    setExpandedCollections(prev => {
       const next = new Set(prev);
-      if (next.has(set)) next.delete(set); else next.add(set);
+      if (next.has(collectionId)) next.delete(collectionId); else next.add(collectionId);
       return next;
     });
   };
@@ -627,9 +627,9 @@ function GitPreviewModal({
                   </div>
                 </div>
               )}
-              {bySet.length === 0 && preview.commits.length === 0 ? (
+              {changesByCollection.length === 0 && preview.commits.length === 0 ? (
                 <p className="py-3 text-secondary text-[color:var(--color-figma-text-secondary)]">No changes to {confirmLabel.toLowerCase()}.</p>
-              ) : bySet.length === 0 ? (
+              ) : changesByCollection.length === 0 ? (
                 <p className="py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">No token changes.</p>
               ) : (
                 <>
@@ -637,11 +637,11 @@ function GitPreviewModal({
                     {totalAdded > 0 && <span className="text-[color:var(--color-figma-text-success)]">+{totalAdded} added</span>}
                     {totalModified > 0 && <span className="text-[color:var(--color-figma-text-warning)]">~{totalModified} modified</span>}
                     {totalRemoved > 0 && <span className="text-[color:var(--color-figma-text-error)]">−{totalRemoved} removed</span>}
-                    <span className="text-[color:var(--color-figma-text-secondary)] ml-auto">{bySet.length} collection{bySet.length !== 1 ? 's' : ''}</span>
+                    <span className="text-[color:var(--color-figma-text-secondary)] ml-auto">{changesByCollection.length} collection{changesByCollection.length !== 1 ? 's' : ''}</span>
                   </div>
                   <div className="space-y-px">
-                    {bySet.map(({ collectionId, added, modified, removed }) => {
-                      const isExpanded = expandedSets.has(collectionId);
+                    {changesByCollection.map(({ collectionId, added, modified, removed }) => {
+                      const isExpanded = expandedCollections.has(collectionId);
                       const allChanges = [...added, ...modified, ...removed];
                       const collectionLabel = getCollectionDisplayName(
                         collectionId,
@@ -649,7 +649,7 @@ function GitPreviewModal({
                       );
                       return (
                         <div key={collectionId} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                          <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors" onClick={() => toggleSet(collectionId)}>
+                          <button className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors" onClick={() => toggleCollection(collectionId)}>
                             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[color:var(--color-figma-text-tertiary)] shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`}><path d="M2 1l4 3-4 3V1z" /></svg>
                             <span className="min-w-0 flex-1">
                               <span className={`block text-secondary font-medium text-[color:var(--color-figma-text)] ${LONG_TEXT_CLASSES.text}`}>
