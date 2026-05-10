@@ -56,6 +56,7 @@ import {
 import { STORAGE_KEYS, lsGet, lsSet } from "../shared/storage";
 import { dispatchToast } from "../shared/toastBus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
+import { createEditorModeValuesForCollection } from "../shared/collectionModeUtils";
 import { normalizeTokenType } from "../shared/tokenTypeCategories";
 import {
   hasSyncSnapshotChange,
@@ -337,7 +338,17 @@ export function TokenDetails({
   } = fields;
 
   const valueIsAlias = typeof value === "string" && isAlias(value);
-  const buildDefaultModeValues = useCallback((_nextValue: TokenEditorValue) => ({}), []);
+  const activeCollection = useMemo(
+    () =>
+      collections.find((collection) => collection.id === ownerCollectionId) ??
+      null,
+    [collections, ownerCollectionId],
+  );
+  const buildDefaultModeValues = useCallback(
+    (nextValue: TokenEditorValue) =>
+      createEditorModeValuesForCollection(activeCollection, nextValue),
+    [activeCollection],
+  );
 
   const modeValue = useTokenEditorModeValue({
     collectionId: ownerCollectionId,
@@ -1047,9 +1058,6 @@ export function TokenDetails({
   }, []);
 
   const rawJsonPreview = useMemo(() => {
-    const editorCollection =
-      collections.find((collection) => collection.id === ownerCollectionId) ??
-      null;
     return JSON.stringify(
       buildTokenEditorValueBody({
         tokenType,
@@ -1058,7 +1066,7 @@ export function TokenDetails({
         scopes,
         derivationOps,
         modeValues,
-        collection: editorCollection,
+        collection: activeCollection,
         passthroughTokenWorkshop: passthroughTokenWorkshopRef.current,
         lifecycle,
         extendsPath,
@@ -1080,9 +1088,8 @@ export function TokenDetails({
     scopes,
     tokenType,
     value,
-    collections,
+    activeCollection,
     isCreateMode,
-    ownerCollectionId,
     passthroughTokenWorkshopRef,
   ]);
 

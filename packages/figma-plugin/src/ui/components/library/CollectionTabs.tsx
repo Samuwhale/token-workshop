@@ -24,6 +24,7 @@ import {
   filterCollections,
   getCollectionDisplayName,
 } from "../../shared/libraryCollections";
+import { CONTROL_FOCUS_ACCENT } from "../../shared/controlClasses";
 import { Button, SearchField, SegmentedControl } from "../../primitives";
 
 const COLLECTION_ACTION_BUTTON_CLASS =
@@ -260,7 +261,7 @@ export function CollectionTabs({
               aria-expanded={switcherOpen}
               aria-label={triggerAriaLabel}
               title={currentCollection ? triggerTitle : "Choose collection"}
-              className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${triggerStateClass}`}
+              className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${CONTROL_FOCUS_ACCENT} ${triggerStateClass}`}
             >
               <span className="tm-collection-toolbar__summary min-w-0 flex-1">
                 <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
@@ -398,7 +399,7 @@ export function CollectionTabs({
                           role="radio"
                           aria-checked={isCurrent}
                           onClick={() => handleSelectCollection(collectionId)}
-                          className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
+                          className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${CONTROL_FOCUS_ACCENT} ${
                             isCurrent
                               ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
                               : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"

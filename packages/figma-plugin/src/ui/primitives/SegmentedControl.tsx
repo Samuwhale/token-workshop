@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from "react";
+import { CONTROL_FOCUS_ACCENT } from "../shared/controlClasses";
 
 export interface SegmentedOption<T extends string> {
   value: T;
@@ -92,14 +93,14 @@ export function SegmentedControl<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             title={option.label}
-            className={`tm-segmented-control__button inline-flex flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] text-center font-medium leading-tight transition-colors ${
+            className={`tm-segmented-control__button inline-flex flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] text-center font-medium leading-tight transition-colors ${CONTROL_FOCUS_ACCENT} ${
               compact
                 ? "min-h-6 min-w-[2.25rem] px-1.5 py-0.5 text-[10px]"
                 : "min-h-7 min-w-[3rem] px-2 py-1 text-secondary"
             } ${
               selected
                 ? "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text)]"
-                : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+                : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
             }`}
           >
             <span className="tm-segmented-control__label block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">

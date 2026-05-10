@@ -159,10 +159,12 @@ function MessageRow({
   const timeout = toast.action || toast.secondaryAction
     ? null
     : toast.variant === "error"
-      ? 8000
+      ? null
       : toast.variant === "warning"
-        ? 5000
+        ? 8000
         : 4500;
+  const liveRole = toast.variant === "error" ? "alert" : "status";
+  const livePriority = toast.variant === "error" ? "assertive" : "polite";
 
   useEffect(() => {
     if (timeout === null) return;
@@ -191,8 +193,8 @@ function MessageRow({
 
   return (
     <div
-      role="status"
-      aria-live="polite"
+      role={liveRole}
+      aria-live={livePriority}
       className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[color:var(--color-figma-bg)] shadow-[var(--shadow-popover)] animate-toast-in"
     >
       {iconEl}

@@ -9,6 +9,12 @@ import { resolveAllAliases } from "../../shared/resolveAlias";
 
 type ModeSelections = Record<string, string>;
 
+function cloneModeValue<T>(value: T): T {
+  return typeof value === "object" && value !== null
+    ? structuredClone(value)
+    : value;
+}
+
 function readTokenModes(
   entry: TokenMapEntry | undefined,
 ): ReturnType<typeof readTokenCollectionModeValues> | null {
@@ -58,6 +64,29 @@ export function sanitizeEditorCollectionModeValues(
   return Object.keys(filteredModes).length > 0
     ? { [collection.id]: filteredModes }
     : {};
+}
+
+export function createEditorModeValuesForCollection(
+  collection: TokenCollection | null | undefined,
+  firstModeValue: unknown,
+): TokenEditorModeValues {
+  if (!collection || collection.modes.length <= 1) {
+    return {};
+  }
+
+  const [, ...additionalModes] = collection.modes;
+  if (additionalModes.length === 0) {
+    return {};
+  }
+
+  return {
+    [collection.id]: Object.fromEntries(
+      additionalModes.map((mode) => [
+        mode.name,
+        cloneModeValue(firstModeValue),
+      ]),
+    ),
+  };
 }
 
 export function applyModeSelectionsToTokens(

@@ -14,6 +14,7 @@ import { TokenChangeRow } from './PublishShared';
 import type { CommitEntry, UndoSlot } from '../history/types';
 import type { GitPreview, TokenChange } from '../../hooks/useGitDiff';
 import { useNavigationContext } from '../../contexts/NavigationContext';
+import { Button } from '../../primitives';
 
 type RepositoryConfirmAction = 'git-push' | 'git-pull' | 'git-commit' | 'apply-diff' | null;
 
@@ -547,6 +548,7 @@ function GitPreviewModal({
   const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set());
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
+  const canCancel = !busy;
 
   useEffect(() => {
     fetchPreview();
@@ -554,11 +556,11 @@ function GitPreviewModal({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape' && canCancel) onCancel();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  }, [canCancel, onCancel]);
 
   const bySet = useMemo(() => {
     if (!preview?.changes) return [] as Array<{ collectionId: string; added: TokenChange[]; modified: TokenChange[]; removed: TokenChange[] }>;
@@ -593,7 +595,7 @@ function GitPreviewModal({
   };
 
   return (
-    <div className="tm-modal-shell" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+    <div className="tm-modal-shell" onMouseDown={e => { if (canCancel && e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="tm-modal-panel tm-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="git-preview-dialog-title">
         <div className="tm-modal-header">
           <h3 id="git-preview-dialog-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">{title}</h3>
@@ -680,14 +682,24 @@ function GitPreviewModal({
           )}
         </div>
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
-          <button onClick={onCancel} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+          <Button
+            onClick={onCancel}
+            disabled={!canCancel}
+            variant="secondary"
+            className="flex-1 bg-[var(--color-figma-bg-secondary)]"
+          >
             {hasPreviewChanges ? 'Cancel' : 'Close'}
-          </button>
+          </Button>
           {hasPreviewChanges ? (
-            <button onClick={handleConfirm} disabled={loading || busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+            <Button
+              onClick={handleConfirm}
+              disabled={loading || busy}
+              variant="primary"
+              className="flex-1 gap-1.5"
+            >
               {busy && <Spinner size="sm" className="text-white" />}
               {busy ? `${confirmLabel}…` : confirmLabel}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -711,16 +723,17 @@ function CommitPreviewModal({
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
+  const canCancel = !busy;
 
   useEffect(() => {
     if (tokenPreview === null && !tokenPreviewLoading) fetchTokenPreview();
   }, [tokenPreview, tokenPreviewLoading, fetchTokenPreview]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && canCancel) onCancel(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  }, [canCancel, onCancel]);
 
   const selectedSet = new Set(selectedFiles);
   const stagedChanges = allChanges.filter(c => selectedSet.has(c.file));
@@ -756,7 +769,7 @@ function CommitPreviewModal({
   };
 
   return (
-    <div className="tm-modal-shell" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+    <div className="tm-modal-shell" onMouseDown={e => { if (canCancel && e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="tm-modal-panel tm-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="git-commit-dialog-title">
         <div className="tm-modal-header">
           <h3 id="git-commit-dialog-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">Save version</h3>
@@ -837,11 +850,23 @@ function CommitPreviewModal({
           )}
         </div>
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
-          <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
-          <button onClick={handleConfirm} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+          <Button
+            onClick={onCancel}
+            disabled={!canCancel}
+            variant="secondary"
+            className="flex-1 bg-[var(--color-figma-bg-secondary)]"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={busy}
+            variant="primary"
+            className="flex-1 gap-1.5"
+          >
             {busy && <Spinner size="sm" className="text-white" />}
             {busy ? 'Saving…' : `Save ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -856,6 +881,7 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
   const [busy, setBusy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef);
+  const canCancel = !busy;
 
   const pushFiles = Object.entries(diffChoices).filter(([, c]) => c === 'push').map(([f]) => f);
   const pullFiles = Object.entries(diffChoices).filter(([, c]) => c === 'pull').map(([f]) => f);
@@ -863,10 +889,10 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
   const hasChanges = pushFiles.length > 0 || pullFiles.length > 0;
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && canCancel) onCancel(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onCancel]);
+  }, [canCancel, onCancel]);
 
   const handleConfirm = async () => {
     setBusy(true);
@@ -878,7 +904,7 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
   if (pullFiles.length > 0) sections.push({ label: 'Update local', arrow: '↓', files: pullFiles });
 
   return (
-    <div className="tm-modal-shell" onMouseDown={e => { if (e.target === e.currentTarget) onCancel(); }}>
+    <div className="tm-modal-shell" onMouseDown={e => { if (canCancel && e.target === e.currentTarget) onCancel(); }}>
       <div ref={dialogRef} className="tm-modal-panel tm-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="git-apply-dialog-title">
         <div className="tm-modal-header">
           <h3 id="git-apply-dialog-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">Apply changes</h3>
@@ -910,11 +936,23 @@ function ApplyRepositoryDiffModal({ diffChoices, onCancel, onConfirm }: {
           )}
         </div>
         <div className="tm-modal-footer border-t border-[var(--color-figma-border)]">
-          <button onClick={onCancel} disabled={busy} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Cancel</button>
-          <button onClick={handleConfirm} disabled={busy || !hasChanges} className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)] hover:bg-[var(--color-figma-action-bg-hover)] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+          <Button
+            onClick={onCancel}
+            disabled={!canCancel}
+            variant="secondary"
+            className="flex-1 bg-[var(--color-figma-bg-secondary)]"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={busy || !hasChanges}
+            variant="primary"
+            className="flex-1 gap-1.5"
+          >
             {busy && <Spinner size="sm" className="text-white" />}
             {busy ? 'Applying…' : 'Apply changes'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -126,6 +126,8 @@ export function TokenSelectionToolbar({
     [...displayedLeafPaths].every((path) => selectedPaths.has(path));
   const partiallySelected =
     selectedPaths.size > 0 && !allDisplayedSelected;
+  const totalSelectedLabel = `${selectedPaths.size} selected total`;
+  const visibleSelectedLabel = `${visibleSelectedCount} selected in these results`;
   const selectionSummary =
     displayedSelectionCount === 0
       ? "No visible tokens"
@@ -134,9 +136,10 @@ export function TokenSelectionToolbar({
             displayedSelectionCount === 1 ? "" : "s"
           }`
         : hiddenSelectionCount > 0
-          ? `${visibleSelectedCount} selected in these results`
+          ? totalSelectedLabel
           : `${visibleSelectedCount} selected`;
   const selectionMetaParts = [
+    hiddenSelectionCount > 0 ? visibleSelectedLabel : null,
     hiddenSelectionCount > 0
       ? `${hiddenSelectionCount} selected outside these results`
       : null,
@@ -216,6 +219,14 @@ export function TokenSelectionToolbar({
             ) : null}
           </div>
         </div>
+
+        {hiddenSelectionCount > 0 ? (
+          <div className="tm-responsive-toolbar__row">
+            <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-warning)] px-2.5 py-1.5 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-warning)]">
+              Bulk actions apply to all {selectedPaths.size} selected tokens, not just the {visibleSelectedCount} visible here.
+            </div>
+          </div>
+        ) : null}
 
         {hasSelection ? (
           <div className="tm-responsive-toolbar__row">
