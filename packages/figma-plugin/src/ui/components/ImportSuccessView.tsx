@@ -75,11 +75,11 @@ export function ImportSuccessView() {
       {nextStepRecommendations.length > 0 ? (
         <div className="flex flex-col items-center gap-1 text-center">
           <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
-            {hasFailedWrites ? "After retrying" : "Next step"}
+            {hasFailedWrites ? "Recover failed batches" : "Next step"}
           </div>
           <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {hasFailedWrites
-              ? "Keep this result open until failed batches are recovered or copied for follow-up."
+              ? "Retry the failed writes or copy the details for follow-up."
               : nextStepRecommendations[0]?.rationale}
           </div>
         </div>
@@ -92,23 +92,13 @@ export function ImportSuccessView() {
               <span className="text-[color:var(--color-figma-text-success)] font-medium">{succeededImportCount} ok</span>
               <span className="text-[color:var(--color-figma-text-error)] font-medium">{failedImportPaths.length} failed</span>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowFailedDetails((open) => !open)}
-                className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
-                aria-expanded={showFailedDetails}
-              >
-                {showFailedDetails ? "Hide details" : "Show details"}
-              </button>
-              <button onClick={handleCopyFailedPaths} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">
-                {copyFeedback ? "Copied" : "Copy details"}
-              </button>
-              {failedImportBatches.length > 0 && (
-                <button onClick={handleRetryFailed} disabled={retrying} className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50">
-                  {retrying ? "Retrying..." : "Retry"}
-                </button>
-              )}
-            </div>
+            <button
+              onClick={() => setShowFailedDetails((open) => !open)}
+              className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+              aria-expanded={showFailedDetails}
+            >
+              {showFailedDetails ? "Hide details" : "Show details"}
+            </button>
           </div>
           <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
             Retry failed imports first. Copy details if the same paths fail again.
@@ -151,18 +141,29 @@ export function ImportSuccessView() {
             {retrying ? "Retrying..." : "Retry failed batches"}
           </button>
         ) : null}
+        {hasFailedWrites ? (
+          <button
+            onClick={handleCopyFailedPaths}
+            className="rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+          >
+            {copyFeedback ? "Copied" : "Copy details"}
+          </button>
+        ) : null}
         {nextStepRecommendations.map((recommendation, index) => (
           <button
             key={`${recommendation.label}:${index}`}
             onClick={() => openImportNextStep(recommendation)}
+            disabled={hasFailedWrites}
             className={
               index === 0 && !hasFailedWrites
                 ? "rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] hover:opacity-90"
-                : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
             }
-            title={recommendation.rationale}
+            title={hasFailedWrites ? "Retry failed batches first" : recommendation.rationale}
           >
-            {getRecommendationButtonLabel(recommendation.label, index)}
+            {hasFailedWrites
+              ? `${getRecommendationButtonLabel(recommendation.label, index)} after retry`
+              : getRecommendationButtonLabel(recommendation.label, index)}
           </button>
         ))}
         <button onClick={clearSuccessState} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">

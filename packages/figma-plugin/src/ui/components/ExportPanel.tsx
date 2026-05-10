@@ -171,7 +171,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     <>
       <SecondaryPanel
         title="Export files"
-        description="Generate platform files for apps, web, and handoff."
+        description="Generate platform files from this library."
         className="h-full"
         bodyClassName="gap-3"
         actions={
@@ -185,7 +185,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           help.expanded ? (
             <PanelHelpBanner
               title="Export"
-              description="Generate platform token files — CSS, Dart, Swift, Android, JSON."
+              description="Choose file formats and scope."
               onDismiss={help.dismiss}
             />
           ) : null

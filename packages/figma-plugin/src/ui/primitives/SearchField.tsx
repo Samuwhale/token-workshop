@@ -4,10 +4,11 @@ import type { InputHTMLAttributes } from "react";
 
 import { cx } from "./classes";
 import {
-  CONTROL_DISABLED_CLASSES,
+  CONTROL_CHROMELESS_DISABLED_CLASSES,
   CONTROL_FOCUS_ACCENT,
   CONTROL_INPUT_BASE_CLASSES,
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
+  CONTROL_INPUT_DISABLED_CLASSES,
 } from "../shared/controlClasses";
 
 export interface SearchFieldProps
@@ -67,7 +68,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
           disabled={disabled}
           {...rest}
           className={cx(
-            `w-full ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--color-figma-bg)] ${CONTROL_DISABLED_CLASSES}`,
+            `w-full ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--color-figma-bg)] ${CONTROL_INPUT_DISABLED_CLASSES}`,
             SIZE_CLASS[size],
             className,
           )}
@@ -78,7 +79,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
             aria-label="Clear search"
             onClick={onClear}
             disabled={disabled}
-            className={`absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] ${CONTROL_FOCUS_ACCENT} disabled:cursor-not-allowed disabled:text-[color:var(--color-figma-text-tertiary)] disabled:hover:bg-transparent disabled:hover:text-[color:var(--color-figma-text-tertiary)]`}
+            className={`absolute right-1 inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] text-[color:var(--color-figma-text-tertiary)] outline-none transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] ${CONTROL_CHROMELESS_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT}`}
           >
             <X size={12} strokeWidth={1.5} aria-hidden="true" />
           </button>

@@ -158,7 +158,7 @@ export function CollectionTabs({
     showCreateButton
       ? {
           icon: <Plus size={12} strokeWidth={1.5} aria-hidden />,
-          label: "New collection",
+          label: "New",
           title: "Create a collection",
           onClick: () => onOpenCreateCollection?.(),
         }
@@ -449,11 +449,11 @@ export function CollectionTabs({
                 }
                 variant="ghost"
                 size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
               >
                 <Settings2 size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  Collection details
+                  Details
                 </span>
               </Button>
             ) : null}
@@ -479,7 +479,7 @@ export function CollectionTabs({
                 title="Import into library"
                 variant="ghost"
                 size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]`}
               >
                 <Upload size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">

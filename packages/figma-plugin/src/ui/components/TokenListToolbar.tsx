@@ -1,4 +1,4 @@
-import { useCallback, type MutableRefObject } from "react";
+import { useCallback, useRef, type MutableRefObject } from "react";
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -20,6 +20,7 @@ import {
   FLOATING_MENU_CLASS,
   FLOATING_MENU_ITEM_CLASS,
 } from "../shared/menuClasses";
+import { useElementWidth } from "../hooks/useElementWidth";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import {
   Button,
@@ -145,6 +146,8 @@ export function TokenListToolbar({
   onFindReplace,
   overflowMenuProps,
 }: TokenListToolbarProps) {
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const toolbarWidth = useElementWidth(toolbarRef);
   const actionsMenu = useDropdownMenu();
   const viewMenu = useDropdownMenu();
   const createMenu = useDropdownMenu();
@@ -206,6 +209,9 @@ export function TokenListToolbar({
     viewMode === "tree" &&
     showSearch &&
     overflowMenuProps?.hasMultipleCollections === true;
+  const showInlineSearchScopeToggle =
+    showSearchScopeToggle &&
+    (!hasTokens || toolbarWidth === null || toolbarWidth >= 680);
   const showResultPresentationToggle =
     viewMode === "tree" &&
     overflowMenuProps?.canToggleSearchResultPresentation === true;
@@ -234,10 +240,11 @@ export function TokenListToolbar({
       groupBy !== "path" ||
       overflowMenuProps.searchResultPresentation === "flat");
   const viewMenuLabel = "View";
-  const showInlineSearchScopeToggle = showSearchScopeToggle;
-
   return (
-    <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+    <div
+      ref={toolbarRef}
+      className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]"
+    >
       <div className="tm-responsive-toolbar tm-token-toolbar px-2 py-1">
         <div className="tm-responsive-toolbar__row tm-token-toolbar__row">
           <div className="tm-responsive-toolbar__leading">

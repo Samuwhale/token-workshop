@@ -1,10 +1,12 @@
 import { severityStyles } from './noticeSystem';
 import { LONG_TEXT_CLASSES } from './longTextStyles';
 import {
-  CONTROL_DISABLED_CLASSES,
+  CONTROL_BUTTON_DISABLED_CLASSES,
+  CONTROL_CHROMELESS_DISABLED_CLASSES,
   CONTROL_FOCUS_ACCENT,
   CONTROL_INPUT_BASE_CLASSES,
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
+  CONTROL_INPUT_DISABLED_CLASSES,
 } from './controlClasses';
 
 /**
@@ -15,16 +17,16 @@ export const AUTHORING = {
   // --- Controls ---
   /** Width-free input base — use when the parent controls width (e.g. flex-1, w-16) */
   inputBase:
-    `min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
+    `min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES}`,
   input:
-    `w-full min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
+    `w-full min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES}`,
   inputMono:
-    `w-full min-h-[28px] px-2 py-1.5 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
+    `w-full min-h-[28px] px-2 py-1.5 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES}`,
   /** Width-free mono input base — use when the parent controls width */
   inputMonoBase:
-    `min-h-[28px] px-2 py-1.5 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
+    `min-h-[28px] px-2 py-1.5 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES}`,
   select:
-    `w-full min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_DISABLED_CLASSES}`,
+    `w-full min-h-[28px] px-2 py-1.5 ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES}`,
 
   // --- Labels ---
   label: 'text-secondary font-medium text-[color:var(--color-figma-text-secondary)]',
@@ -52,9 +54,9 @@ export const AUTHORING = {
 
   // --- Footer buttons ---
   footerBtnSecondary:
-    `inline-flex min-h-8 min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] disabled:border-transparent disabled:bg-transparent ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT}`,
+    `inline-flex min-h-8 min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] ${CONTROL_CHROMELESS_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT}`,
   footerBtnPrimary:
-    `inline-flex min-h-8 w-full min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:border-transparent disabled:bg-[var(--surface-group-quiet)] disabled:text-[color:var(--color-figma-text-tertiary)] ${CONTROL_FOCUS_ACCENT}`,
+    `inline-flex min-h-8 w-full min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-transparent bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] ${CONTROL_BUTTON_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT}`,
 
   // --- Feedback ---
   error: 'text-secondary text-[color:var(--color-figma-text-error)] break-words',

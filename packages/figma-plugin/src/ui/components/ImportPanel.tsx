@@ -73,7 +73,7 @@ function ImportPanelRoot({
     return (
       <SecondaryPanel
         title="Import tokens"
-        description="Bring in variables, styles, or token files."
+        description="Import from Figma or a token file."
         className="relative h-full"
         bodyClassName="items-center justify-center"
         actions={
@@ -104,7 +104,7 @@ function ImportPanelRoot({
   return (
     <SecondaryPanel
       title="Import tokens"
-      description={showHome ? "Bring in variables, styles, or token files." : undefined}
+      description={showHome ? "Import from Figma or a token file." : undefined}
       className="relative h-full"
       footer={showTokenList ? <ImportPreviewFooter /> : undefined}
       actions={

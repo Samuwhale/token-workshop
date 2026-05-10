@@ -1,7 +1,8 @@
 import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import {
-  CONTROL_DISABLED_CLASSES,
+  CONTROL_BUTTON_DISABLED_CLASSES,
+  CONTROL_CHROMELESS_DISABLED_CLASSES,
   CONTROL_FOCUS_ACCENT,
 } from "../shared/controlClasses";
 
@@ -18,7 +19,7 @@ const VARIANT_CLASS: Record<NonNullable<ButtonProps["variant"]>, string> = {
   secondary:
     "border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text)] hover:bg-[var(--surface-hover)] hover:border-[color:var(--color-figma-text-tertiary)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:border-[color:var(--color-figma-accent)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:border-[color:var(--color-figma-text-tertiary)]",
   ghost:
-    "border border-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:text-[color:var(--color-figma-text)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:text-[color:var(--color-figma-text)] disabled:border-transparent disabled:bg-transparent",
+    "border border-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] aria-pressed:bg-[var(--surface-selected)] aria-pressed:text-[color:var(--color-figma-text)] aria-expanded:bg-[var(--surface-hover)] aria-expanded:text-[color:var(--color-figma-text)]",
   danger:
     "border border-transparent bg-[var(--workspace-danger)] text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 aria-expanded:opacity-90",
 };
@@ -40,6 +41,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) {
+    const disabledClass =
+      variant === "ghost"
+        ? CONTROL_CHROMELESS_DISABLED_CLASSES
+        : CONTROL_BUTTON_DISABLED_CLASSES;
     return (
       <button
         ref={ref}
@@ -47,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...rest}
         className={`inline-flex min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-[var(--radius-md)] leading-tight font-medium outline-none transition-colors [&>svg]:shrink-0 ${
           wrap ? "whitespace-normal text-left" : "whitespace-nowrap text-center"
-        } ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
+        } ${disabledClass} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
       >
         {children}
       </button>

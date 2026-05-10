@@ -18,7 +18,7 @@ import {
 } from "../token-editor/tokenEditorHelpers";
 import { formatCollectionDisplayNameList } from "../../shared/libraryCollections";
 import {
-  CONTROL_DISABLED_CLASSES,
+  CONTROL_INPUT_DISABLED_CLASSES,
   CONTROL_INPUT_BASE_CLASSES,
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
   CONTROL_INPUT_INVALID_STATE_CLASSES,
@@ -342,6 +342,7 @@ export function TokenDetailsModeRow({
             title={`Copy value actions for ${modeName}`}
             className={joinClasses(
               "tm-token-mode-row__action-button",
+              "tm-token-mode-row__action-button--menu",
               copyMenu.open && "tm-token-mode-row__action-button--active",
             )}
           >
@@ -451,7 +452,7 @@ export function TokenDetailsModeRow({
                     : undefined
                 }
                 className={joinClasses(
-                  `tm-token-mode-row__alias-input min-h-8 w-full px-2 py-1 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_DISABLED_CLASSES} ${
+                  `tm-token-mode-row__alias-input min-h-8 w-full px-2 py-1 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${
                     showAliasMissingState || showAliasAmbiguousState
                       ? CONTROL_INPUT_INVALID_STATE_CLASSES
                       : CONTROL_INPUT_DEFAULT_STATE_CLASSES

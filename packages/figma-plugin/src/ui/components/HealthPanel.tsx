@@ -34,12 +34,17 @@ import {
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 import type { CollectionReviewSummary } from "../shared/reviewSummary";
 import { isAbortError } from "../shared/utils";
+import { SegmentedControl, type SegmentedOption } from "../primitives";
 
 const GENERATOR_ISSUE_SEVERITY_RANK = {
   error: 0,
   warning: 1,
   info: 2,
 } as const;
+const REVIEW_SCOPE_OPTIONS: SegmentedOption<"current" | "all">[] = [
+  { value: "current", label: "Current collection" },
+  { value: "all", label: "All collections" },
+];
 
 function getHighestPriorityGeneratorIssue(
   issues: ValidationIssue[],
@@ -798,5 +803,36 @@ export function HealthPanel({
     }
   }
 
-  return <div className="h-full min-h-0 overflow-hidden">{content}</div>;
+  const scopeControl =
+    activeView !== "rules" && collectionIds.length > 1 ? (
+      <div className="shrink-0 border-b border-[var(--color-figma-border)] px-2.5 py-1.5">
+        <SegmentedControl
+          value={scope.mode}
+          options={REVIEW_SCOPE_OPTIONS}
+          ariaLabel="Review scope"
+          allowWrap
+          size="compact"
+          onChange={(mode) =>
+            onScopeChange({
+              ...scope,
+              mode,
+              collectionId:
+                mode === "current"
+                  ? scopedCollectionId || validWorkingCollectionId
+                  : null,
+              tokenPath: null,
+              issueKey: null,
+              nonce: Date.now(),
+            })
+          }
+        />
+      </div>
+    ) : null;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      {scopeControl}
+      <div className="min-h-0 flex-1 overflow-hidden">{content}</div>
+    </div>
+  );
 }

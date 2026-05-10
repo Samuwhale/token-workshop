@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import type { InputHTMLAttributes } from "react";
 import {
-  CONTROL_DISABLED_CLASSES,
+  CONTROL_INPUT_DISABLED_CLASSES,
   CONTROL_INPUT_BASE_CLASSES,
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
   CONTROL_INPUT_INVALID_STATE_CLASSES,
@@ -30,7 +30,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
       type={rest.type ?? "text"}
       aria-invalid={invalid || undefined}
       {...rest}
-      className={`w-full ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_DISABLED_CLASSES} ${sizeClass} ${stateClass} ${className}`}
+      className={`w-full ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${sizeClass} ${stateClass} ${className}`}
     />
   );
   if (!invalid) return input;

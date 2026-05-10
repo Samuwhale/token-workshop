@@ -1821,6 +1821,10 @@ button.tm-status-row:not(:disabled):hover {
   max-inline-size: 100%;
 }
 
+.tm-collection-toolbar__action--secondary {
+  flex: 0 0 auto;
+}
+
 .tm-collection-toolbar__actions {
   flex: 0 1 auto;
   flex-wrap: nowrap;
@@ -1918,6 +1922,21 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 520px) {
+  .tm-collection-toolbar__row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .tm-collection-toolbar__scope,
+  .tm-collection-toolbar__leading {
+    flex-basis: 100%;
+  }
+
+  .tm-collection-toolbar__scope > * {
+    inline-size: 100%;
+  }
+
   .tm-collection-toolbar__trigger {
     align-items: flex-start;
   }
@@ -1951,6 +1970,10 @@ button.tm-status-row:not(:disabled):hover {
     align-items: center;
     padding-block: 4px;
     padding-inline: 7px;
+  }
+
+  .tm-collection-toolbar__action--secondary .tm-collection-toolbar__action-label {
+    display: none;
   }
 }
 
@@ -3237,14 +3260,13 @@ button.tm-status-row:not(:disabled):hover {
   background: transparent;
 }
 
-.tm-token-details__mode-list-footer {
+.tm-token-details__mode-section-actions {
   display: flex;
   min-inline-size: 0;
-  justify-content: flex-start;
-}
-
-.tm-token-details__mode-list-footer-action {
-  max-inline-size: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .tm-token-details__section {
@@ -4685,6 +4707,10 @@ button.tm-token-details__text-button:disabled:hover {
   display: block;
 }
 
+.tm-token-mode-row__action-button--menu {
+  gap: 2px;
+}
+
 .tm-token-mode-row__body {
   display: flex;
   flex-wrap: wrap;
@@ -4986,6 +5012,10 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-token-details__section-actions {
     justify-content: flex-start;
   }
+
+  .tm-token-details__mode-section-actions {
+    justify-content: flex-start;
+  }
 }
 
 @container authoring-surface (max-width: 560px) {
@@ -5031,6 +5061,20 @@ button.tm-token-details__text-button:disabled:hover {
   .tm-token-mode-row__inline-controls {
     margin-left: 0;
     flex-wrap: wrap;
+  }
+
+  .tm-token-mode-row__action-button {
+    min-inline-size: var(--control-size-compact);
+    justify-content: center;
+    padding-inline: 7px;
+  }
+
+  .tm-token-mode-row__action-button-label {
+    display: none;
+  }
+
+  .tm-token-mode-row__action-button--menu {
+    gap: 2px;
   }
 }
 

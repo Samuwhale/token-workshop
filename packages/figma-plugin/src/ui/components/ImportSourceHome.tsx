@@ -73,16 +73,6 @@ export function ImportSourceHome() {
   return (
     <div className="tm-import-home">
       <div className="tm-import-home__section">
-        <div className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Bring tokens into this library
-        </div>
-        <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Start with the variables or styles already in this Figma file, or
-          import token files when you need a handoff format.
-        </div>
-      </div>
-
-      <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
           From this Figma file
         </div>

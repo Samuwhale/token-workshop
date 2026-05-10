@@ -1656,6 +1656,33 @@ export function TokenDetails({
       mode.setValue(cloneValue(firstMode.value));
     });
   };
+  const modeSectionActions =
+    fieldEditable && (canFillEmptyModes || onManageCollectionModes) ? (
+      <div className="tm-token-details__mode-section-actions">
+        {canFillEmptyModes && firstMode ? (
+          <button
+            type="button"
+            onClick={fillEmptyModesFromFirst}
+            title={`Copy ${firstMode.name} value to empty modes`}
+            aria-label={`Copy ${firstMode.name} value to empty modes`}
+            className="tm-token-details__text-button"
+          >
+            <Copy size={12} strokeWidth={1.5} aria-hidden />
+            Copy {firstMode.name} to empty modes
+          </button>
+        ) : null}
+        {onManageCollectionModes ? (
+          <button
+            type="button"
+            onClick={() => onManageCollectionModes(ownerCollectionId)}
+            className="tm-token-details__text-button"
+          >
+            <Plus size={12} strokeWidth={1.5} aria-hidden />
+            Manage modes
+          </button>
+        ) : null}
+      </div>
+    ) : undefined;
   const referenceCount =
     (ancestors.isEmpty ? 0 : ancestors.chains.length) + dependents.length;
   const referencesLabel =
@@ -1947,22 +1974,7 @@ export function TokenDetails({
         <Section
           title={valueSectionTitle}
           emphasis="primary"
-          actions={
-            fieldEditable ? (
-              canFillEmptyModes ? (
-                <button
-                  type="button"
-                  onClick={fillEmptyModesFromFirst}
-                  title={`Use ${firstMode.name} value for empty modes`}
-                  aria-label={`Use ${firstMode.name} value for empty modes`}
-                  className="tm-token-details__text-button"
-                >
-                  <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  Fill empty modes
-                </button>
-              ) : undefined
-            ) : undefined
-          }
+          actions={modeSectionActions}
         >
           <Stack
             gap={3}
@@ -2062,19 +2074,6 @@ export function TokenDetails({
                 })}
               </Stack>
             </div>
-
-            {fieldEditable && onManageCollectionModes ? (
-              <div className="tm-token-details__mode-list-footer">
-                <button
-                  type="button"
-                  onClick={() => onManageCollectionModes(ownerCollectionId)}
-                  className="tm-token-details__text-button tm-token-details__mode-list-footer-action"
-                >
-                  <Plus size={12} strokeWidth={1.5} aria-hidden />
-                  Manage modes
-                </button>
-              </div>
-            ) : null}
 
             {fieldEditable && valueIsAlias ? (
               <DerivationEditor

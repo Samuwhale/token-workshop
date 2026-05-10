@@ -645,7 +645,7 @@ export function QuickApplyPicker({
           </div>
           <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             <label className="flex min-w-0 items-center gap-1.5">
-              <span className="shrink-0">Apply from</span>
+              <span className="shrink-0">Search scope</span>
               {collectionScopeIds.length > 1 ? (
                 <select
                   value={activeCollectionId}
@@ -656,12 +656,14 @@ export function QuickApplyPicker({
                     window.setTimeout(() => inputRef.current?.focus(), 0);
                   }}
                   className="min-w-0 max-w-[180px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]"
-                  title="Choose collection to search"
+                  title="Choose where Quick Apply searches"
                 >
                   {collectionScopeIds.map((collectionId) => (
                     <option key={collectionId} value={collectionId}>
                       {collectionId === ALL_COLLECTIONS_ID
                         ? "All collections"
+                        : collectionId === currentCollectionId
+                          ? "This collection"
                         : getCollectionDisplayName(collectionId, collectionDisplayNames)}
                     </option>
                   ))}
@@ -678,6 +680,13 @@ export function QuickApplyPicker({
             {!collectionHasTokens ? (
               <span className="text-[color:var(--color-figma-text-tertiary)]">
                 {searchAllCollections ? "No tokens in the library" : "No tokens in this collection"}
+              </span>
+            ) : collectionScopeIds.length > 1 ? (
+              <span
+                className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]"
+                title={activeCollectionLabel}
+              >
+                {activeCollectionLabel}
               </span>
             ) : null}
           </div>

@@ -89,8 +89,8 @@ const SOURCE_MODE_OPTIONS: Array<{ value: GeneratorSourceMode; label: string }> 
   { value: "token", label: "Token" },
 ];
 const INITIAL_VIEW_OPTIONS: Array<{ value: GeneratorEditorMode; label: string }> = [
-  { value: "overview", label: "Overview" },
-  { value: "graph", label: "Graph" },
+  { value: "overview", label: "Start in Overview" },
+  { value: "graph", label: "Start in Graph" },
 ];
 const TEMPLATE_GROUPS: Array<{
   label: string;
@@ -517,7 +517,7 @@ export function GeneratorCreatePanel({
                 Choose what to generate
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Start from a common design-system pattern or an empty graph.
+                Start from a template or build the flow yourself.
               </p>
             </div>
             <div className="space-y-3">
@@ -537,10 +537,10 @@ export function GeneratorCreatePanel({
               >
                 <span className="min-w-0">
                   <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
-                    Blank
+                    Build graph
                   </span>
                   <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                    Start with nodes and connections.
+                    Create an empty generator and add nodes yourself.
                   </span>
                 </span>
                 <Workflow
@@ -634,7 +634,7 @@ export function GeneratorCreatePanel({
 
             <div className="space-y-1">
               <span className="block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                Open after create
+                Start view
               </span>
               <SegmentedControl
                 value={initialView}
@@ -646,8 +646,8 @@ export function GeneratorCreatePanel({
 
             {templateSelection === "blank" ? (
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                The generator will open with no nodes. Add source, transform,
-                and output nodes in the view you choose.
+                Overview and Graph are both permanent ways into this generator.
+                Choose where you want to start.
               </p>
             ) : (
               <div className="space-y-3">

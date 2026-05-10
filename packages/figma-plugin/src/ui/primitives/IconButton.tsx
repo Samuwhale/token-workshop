@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import {
-  CONTROL_DISABLED_CLASSES,
+  CONTROL_CHROMELESS_DISABLED_CLASSES,
   CONTROL_FOCUS_ACCENT,
 } from "../shared/controlClasses";
 
@@ -30,7 +30,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       ref={ref}
       type={rest.type ?? "button"}
       {...rest}
-      className={`inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-transparent bg-transparent transition-colors ${CONTROL_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${SIZE_CLASS[size]} ${toneClass} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-transparent bg-transparent transition-colors ${CONTROL_CHROMELESS_DISABLED_CLASSES} ${CONTROL_FOCUS_ACCENT} ${SIZE_CLASS[size]} ${toneClass} ${className}`}
     >
       {children}
     </button>
