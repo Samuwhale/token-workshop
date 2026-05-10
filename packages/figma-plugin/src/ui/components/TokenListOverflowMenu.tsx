@@ -4,7 +4,11 @@ import type { SortOrder } from "./tokenListTypes";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { TOKEN_TYPE_CATEGORIES } from "../shared/tokenTypeCategories";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
-import { FLOATING_MENU_WIDE_CLASS } from "../shared/menuClasses";
+import {
+  FLOATING_MENU_DANGER_ITEM_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+  FLOATING_MENU_WIDE_CLASS,
+} from "../shared/menuClasses";
 import {
   getQueryQualifierValues,
   setQueryQualifierValues,
@@ -81,11 +85,9 @@ function MenuItem({
       aria-checked={checked}
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary transition-colors disabled:opacity-40 ${
-        danger
-          ? "text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10"
-          : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-      }`}
+      className={
+        danger ? FLOATING_MENU_DANGER_ITEM_CLASS : FLOATING_MENU_ITEM_CLASS
+      }
     >
       <span className="w-3 shrink-0 text-center">
         {checked ? <CheckIcon /> : null}

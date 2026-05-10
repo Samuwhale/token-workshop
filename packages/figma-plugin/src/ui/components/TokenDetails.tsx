@@ -63,7 +63,11 @@ import {
 } from "../shared/tokenSync";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
-import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
+import {
+  FLOATING_MENU_CLASS,
+  FLOATING_MENU_DANGER_ITEM_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+} from "../shared/menuClasses";
 
 import {
   detectAliasCycle,
@@ -202,9 +206,6 @@ function getModeValueSectionDescription(params: {
   return `${collectionName} has ${modeNames.length} mode values: ${formatNameList(modeNames)}.`;
 }
 
-const TOKEN_DETAILS_MENU_ITEM_CLASS =
-  "flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40";
-
 type ModeAliasReferenceIssue =
   | {
       kind: "ambiguous";
@@ -298,6 +299,8 @@ export function TokenDetails({
     preferredHeight: 180,
     align: "end",
   });
+  const closeDetailsMenu = detailsMenu.close;
+  const copyPathResetTimerRef = useRef<number | null>(null);
 
   const fields = useTokenEditorFields({
     isCreateMode,
@@ -394,6 +397,34 @@ export function TokenDetails({
   });
   const { loading, pendingDraft, setPendingDraft, initialServerSnapshotRef } =
     loadResult;
+
+  useEffect(() => {
+    return () => {
+      if (copyPathResetTimerRef.current !== null) {
+        window.clearTimeout(copyPathResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyPath = useCallback(() => {
+    navigator.clipboard.writeText(tokenPath);
+    setCopied(true);
+    if (copyPathResetTimerRef.current !== null) {
+      window.clearTimeout(copyPathResetTimerRef.current);
+    }
+    copyPathResetTimerRef.current = window.setTimeout(() => {
+      setCopied(false);
+      copyPathResetTimerRef.current = null;
+    }, 1500);
+  }, [setCopied, tokenPath]);
+
+  const runDetailsMenuAction = useCallback(
+    (action: () => void) => {
+      action();
+      closeDetailsMenu({ restoreFocus: false });
+    },
+    [closeDetailsMenu],
+  );
 
   const { dependents } = useTokenDependents({
     serverUrl,
@@ -1263,19 +1294,6 @@ export function TokenDetails({
     ? `A token with this path already exists in ${ownerCollectionName}.`
     : null;
 
-  const handleCopyPath = () => {
-    navigator.clipboard.writeText(tokenPath);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-  const runDetailsMenuAction = useCallback(
-    (action: () => void) => {
-      action();
-      detailsMenu.close({ restoreFocus: false });
-    },
-    [detailsMenu],
-  );
-
   const headerStatus = isGeneratorLocked
     ? "Managed by generator"
     : isDirty
@@ -1369,7 +1387,7 @@ export function TokenDetails({
                 type="button"
                 role="menuitem"
                 onClick={() => runDetailsMenuAction(handleCopyPath)}
-                className={TOKEN_DETAILS_MENU_ITEM_CLASS}
+                className={FLOATING_MENU_ITEM_CLASS}
               >
                 {copied ? "Path copied" : "Copy token path"}
               </button>
@@ -1378,7 +1396,7 @@ export function TokenDetails({
                   type="button"
                   role="menuitem"
                   onClick={() => runDetailsMenuAction(onDuplicate)}
-                  className={TOKEN_DETAILS_MENU_ITEM_CLASS}
+                  className={FLOATING_MENU_ITEM_CLASS}
                 >
                   Duplicate token
                 </button>
@@ -1390,7 +1408,7 @@ export function TokenDetails({
                   onClick={() =>
                     runDetailsMenuAction(() => setShowDeleteConfirm(true))
                   }
-                  className={`${TOKEN_DETAILS_MENU_ITEM_CLASS} text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10`}
+                  className={FLOATING_MENU_DANGER_ITEM_CLASS}
                 >
                   Delete token
                 </button>

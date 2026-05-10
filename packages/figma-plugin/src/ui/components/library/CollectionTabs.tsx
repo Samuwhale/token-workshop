@@ -20,6 +20,7 @@ import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import {
   FLOATING_MENU_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
   FLOATING_MENU_WIDE_CLASS,
 } from "../../shared/menuClasses";
 import { LONG_TEXT_CLASSES } from "../../shared/longTextStyles";
@@ -32,8 +33,6 @@ import { Button, IconButton, SearchField, SegmentedControl } from "../../primiti
 
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
-const COLLECTION_MENU_ITEM_CLASS =
-  "flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]";
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "This collection" },
   { value: "all", label: "All collections" },
@@ -505,7 +504,7 @@ export function CollectionTabs({
                           onOpenImport?.();
                           actionsMenu.close({ restoreFocus: false });
                         }}
-                        className={COLLECTION_MENU_ITEM_CLASS}
+                        className={FLOATING_MENU_ITEM_CLASS}
                       >
                         <Upload size={12} strokeWidth={1.5} aria-hidden />
                         Import into library

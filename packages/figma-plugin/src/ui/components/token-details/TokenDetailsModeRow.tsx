@@ -26,7 +26,10 @@ import {
 import { IconButton } from "../../primitives";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
-import { FLOATING_MENU_CLASS } from "../../shared/menuClasses";
+import {
+  FLOATING_MENU_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+} from "../../shared/menuClasses";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -210,6 +213,7 @@ export function TokenDetailsModeRow({
     preferredHeight: 180,
     align: "end",
   });
+  const closeSecondaryActionsMenu = secondaryActionsMenu.close;
 
   const readOnly = useMemo(
     () =>
@@ -235,9 +239,9 @@ export function TokenDetailsModeRow({
   const runSecondaryAction = useCallback(
     (action: () => void) => {
       action();
-      secondaryActionsMenu.close({ restoreFocus: false });
+      closeSecondaryActionsMenu({ restoreFocus: false });
     },
-    [secondaryActionsMenu],
+    [closeSecondaryActionsMenu],
   );
   const handleAliasToggle = () => {
     if (!editable || !onChange) return;
@@ -333,7 +337,7 @@ export function TokenDetailsModeRow({
                   type="button"
                   role="menuitem"
                   onClick={() => runSecondaryAction(onCopyFromPrevious)}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                  className={FLOATING_MENU_ITEM_CLASS}
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
                   {previousModeName
@@ -346,7 +350,7 @@ export function TokenDetailsModeRow({
                   type="button"
                   role="menuitem"
                   onClick={() => runSecondaryAction(onCopyToAll)}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                  className={FLOATING_MENU_ITEM_CLASS}
                 >
                   <Rows3 size={12} strokeWidth={1.5} aria-hidden />
                   Apply to all modes

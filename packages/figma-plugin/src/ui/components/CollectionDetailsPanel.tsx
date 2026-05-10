@@ -20,7 +20,11 @@ import { getErrorMessage } from "../shared/utils";
 import { AUTHORING } from "../shared/editorClasses";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
-import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
+import {
+  FLOATING_MENU_CLASS,
+  FLOATING_MENU_DANGER_ITEM_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+} from "../shared/menuClasses";
 import { ActionRow, Button, IconButton, TextInput } from "../primitives";
 import {
   CollectionMergeInline,
@@ -336,7 +340,7 @@ function ModeRow({
                     actionsMenu.close({ restoreFocus: false });
                   }}
                   disabled={!canMoveUp || saving}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  className={FLOATING_MENU_ITEM_CLASS}
                 >
                   <ArrowUp size={10} strokeWidth={2} aria-hidden />
                   Move up
@@ -349,7 +353,7 @@ function ModeRow({
                     actionsMenu.close({ restoreFocus: false });
                   }}
                   disabled={!canMoveDown || saving}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  className={FLOATING_MENU_ITEM_CLASS}
                 >
                   <ArrowDown size={10} strokeWidth={2} aria-hidden />
                   Move down
@@ -362,7 +366,7 @@ function ModeRow({
                     actionsMenu.close({ restoreFocus: false });
                   }}
                   disabled={allModeNames.length <= 1 || saving}
-                  className="flex w-full items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40"
+                  className={FLOATING_MENU_DANGER_ITEM_CLASS}
                 >
                   <X size={10} strokeWidth={2} aria-hidden />
                   Delete mode
