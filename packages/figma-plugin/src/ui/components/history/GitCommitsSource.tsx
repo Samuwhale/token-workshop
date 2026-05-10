@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Spinner } from '../Spinner';
-import { apiFetch } from '../../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../../shared/apiFetch';
 import { rollbackOperation } from '../../shared/tokenMutations';
 import { isAbortError } from '../../shared/utils';
 import { summarizeChanges, statusColor, formatRelativeTime } from '../../shared/changeHelpers';
 import { ChangesByCollectionList } from './ChangesByCollectionList';
 import type { CommitEntry, CommitDetail, UndoSlot, TokenChange } from './types';
+
+const COMMITS_PAGE_SIZE = 50;
 
 export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filterTokenPath, initialSelectedHash, initialSelectedCommit, onBack, skipListFetch }: {
   serverUrl: string;
@@ -32,7 +34,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
     label: string;
     summary: { added: number; modified: number; removed: number; total: number };
   } | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const listAbortRef = useRef<AbortController | null>(null);
+  const loadMoreAbortRef = useRef<AbortController | null>(null);
+  const filterAbortRef = useRef<AbortController | null>(null);
+  const detailAbortRef = useRef<AbortController | null>(null);
   const [tokenFilterMap, setTokenFilterMap] = useState<Map<string, TokenChange> | null>(null);
   const [filterLoading, setFilterLoading] = useState(false);
   const [commitSearch, setCommitSearch] = useState('');
@@ -40,6 +45,13 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
   const [hasMore, setHasMore] = useState(false);
   const [commitOffset, setCommitOffset] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => () => {
+    listAbortRef.current?.abort();
+    loadMoreAbortRef.current?.abort();
+    filterAbortRef.current?.abort();
+    detailAbortRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedCommitSearch(commitSearch), 300);
@@ -53,15 +65,20 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
   }, [filterTokenPath]);
 
   const fetchCommits = useCallback(async (search = '') => {
-    abortRef.current?.abort();
+    listAbortRef.current?.abort();
+    loadMoreAbortRef.current?.abort();
     const controller = new AbortController();
-    abortRef.current = controller;
+    listAbortRef.current = controller;
     setLoading(true);
     setError(null);
     setCommitOffset(0);
     try {
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
-      const data = await apiFetch<{ data?: CommitEntry[]; hasMore?: boolean }>(`${serverUrl}/api/sync/log?limit=50${searchParam}`, { signal: controller.signal });
+      const data = await apiFetch<{ data?: CommitEntry[]; hasMore?: boolean }>(
+        `${serverUrl}/api/sync/log?limit=${COMMITS_PAGE_SIZE}${searchParam}`,
+        { signal: createFetchSignal(controller.signal, 8000) },
+      );
+      if (controller.signal.aborted) return;
       setCommits(data.data || []);
       setHasMore(data.hasMore ?? false);
     } catch (err) {
@@ -75,41 +92,53 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
   useEffect(() => {
     if (skipListFetch) return;
     fetchCommits(debouncedCommitSearch);
-    return () => { abortRef.current?.abort(); };
   }, [fetchCommits, skipListFetch, debouncedCommitSearch]);
 
   const handleLoadMoreCommits = useCallback(async () => {
     if (loadingMore) return;
+    loadMoreAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadMoreAbortRef.current = controller;
     setLoadingMore(true);
     setError(null);
-    const nextOffset = commitOffset + 50;
+    const nextOffset = commitOffset + COMMITS_PAGE_SIZE;
     try {
       const searchParam = debouncedCommitSearch ? `&search=${encodeURIComponent(debouncedCommitSearch)}` : '';
       const data = await apiFetch<{ data?: CommitEntry[]; hasMore?: boolean }>(
-        `${serverUrl}/api/sync/log?limit=50&offset=${nextOffset}${searchParam}`
+        `${serverUrl}/api/sync/log?limit=${COMMITS_PAGE_SIZE}&offset=${nextOffset}${searchParam}`,
+        { signal: createFetchSignal(controller.signal, 8000) },
       );
+      if (controller.signal.aborted) return;
       setCommits(prev => [...prev, ...(data.data ?? [])]);
       setHasMore(data.hasMore ?? false);
       setCommitOffset(nextOffset);
     } catch (err) {
+      if (isAbortError(err)) return;
       console.warn('[GitCommitsSource] load more commits failed:', err);
       setError(String((err as Error).message || err));
     } finally {
-      setLoadingMore(false);
+      if (!controller.signal.aborted) setLoadingMore(false);
     }
   }, [serverUrl, loadingMore, commitOffset, debouncedCommitSearch]);
 
   useEffect(() => {
     if (!debouncedFilterPath || commits.length === 0) {
+      filterAbortRef.current?.abort();
       setTokenFilterMap(null);
+      setFilterLoading(false);
       return;
     }
-    let cancelled = false;
+    filterAbortRef.current?.abort();
+    const controller = new AbortController();
+    filterAbortRef.current = controller;
     setFilterLoading(true);
     Promise.all(
       commits.map(async (commit) => {
         try {
-          const data = await apiFetch<{ changes?: TokenChange[] }>(`${serverUrl}/api/sync/log/${commit.hash}/tokens`);
+          const data = await apiFetch<{ changes?: TokenChange[] }>(
+            `${serverUrl}/api/sync/log/${commit.hash}/tokens`,
+            { signal: createFetchSignal(controller.signal, 8000) },
+          );
           const match = (data.changes ?? []).find(c => c.path === debouncedFilterPath);
           return { hash: commit.hash, change: match ?? null };
         } catch {
@@ -117,7 +146,7 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
         }
       })
     ).then(results => {
-      if (cancelled) return;
+      if (controller.signal.aborted) return;
       const map = new Map<string, TokenChange>();
       for (const { hash, change } of results) {
         if (change) map.set(hash, change);
@@ -125,14 +154,22 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       setTokenFilterMap(map);
       setFilterLoading(false);
     });
-    return () => { cancelled = true; };
+    return () => { controller.abort(); };
   }, [debouncedFilterPath, commits, serverUrl]);
 
   const fetchDetail = useCallback(async (hash: string) => {
+    detailAbortRef.current?.abort();
+    const controller = new AbortController();
+    detailAbortRef.current = controller;
     setDetailLoading(true);
     setDetailError(null);
+    setDetail(null);
     try {
-      const data = await apiFetch<{ hash?: string; changes?: TokenChange[]; fileCount?: number }>(`${serverUrl}/api/sync/log/${hash}/tokens`);
+      const data = await apiFetch<{ hash?: string; changes?: TokenChange[]; fileCount?: number }>(
+        `${serverUrl}/api/sync/log/${hash}/tokens`,
+        { signal: createFetchSignal(controller.signal, 8000) },
+      );
+      if (controller.signal.aborted) return;
       if (!data || !Array.isArray(data.changes)) {
         throw new Error('Invalid response: expected an object with a "changes" array');
       }
@@ -149,9 +186,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       for (const collectionId of collectionIds) sections[collectionId] = true;
       setOpenSections(sections);
     } catch (err) {
+      if (isAbortError(err)) return;
       setDetailError(String((err as Error).message || err));
     } finally {
-      setDetailLoading(false);
+      if (!controller.signal.aborted) setDetailLoading(false);
     }
   }, [serverUrl]);
 
@@ -171,8 +209,10 @@ export function GitCommitsSource({ serverUrl, onPushUndo, onRefreshTokens, filte
       onBack();
       return;
     }
+    detailAbortRef.current?.abort();
     setSelectedHash(null);
     setDetail(null);
+    setDetailLoading(false);
     setDetailError(null);
   }, [onBack]);
 

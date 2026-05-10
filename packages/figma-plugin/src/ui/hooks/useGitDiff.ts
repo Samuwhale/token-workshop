@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { describeError, isAbortError } from '../shared/utils';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 
 interface UseGitDiffOptions {
   serverUrl: string;
@@ -137,7 +137,10 @@ export function useGitDiff({
     setDiffLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<DiffView>(`${serverUrl}/api/sync/diff`, { signal });
+      const data = await apiFetch<DiffView>(
+        `${serverUrl}/api/sync/diff`,
+        { signal: createFetchSignal(signal, 10000) },
+      );
       if (signal.aborted) return;
       setDiffView(data);
       const choices: Record<string, DiffChoice> = {};
@@ -165,7 +168,7 @@ export function useGitDiff({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choices: diffChoices }),
-        signal,
+        signal: createFetchSignal(signal, 30000),
       });
       if (signal.aborted) return;
       const errors: string[] = [];
@@ -207,7 +210,10 @@ export function useGitDiff({
     setTokenPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<{ changes: ServerTokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`, { signal });
+      const data = await apiFetch<{ changes: ServerTokenChange[]; fileCount: number }>(
+        `${serverUrl}/api/sync/diff/tokens`,
+        { signal: createFetchSignal(signal, 10000) },
+      );
       if (signal.aborted) return;
       setTokenPreview((data.changes ?? []).map(mapServerChange));
     } catch (err) {
@@ -230,7 +236,10 @@ export function useGitDiff({
     setPushPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/push/preview`, { signal });
+      const data = await apiFetch<ServerGitPreview>(
+        `${serverUrl}/api/sync/push/preview`,
+        { signal: createFetchSignal(signal, 10000) },
+      );
       if (signal.aborted) return;
       setPushPreview({
         ...data,
@@ -256,7 +265,10 @@ export function useGitDiff({
     setPullPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<ServerGitPreview>(`${serverUrl}/api/sync/pull/preview`, { signal });
+      const data = await apiFetch<ServerGitPreview>(
+        `${serverUrl}/api/sync/pull/preview`,
+        { signal: createFetchSignal(signal, 10000) },
+      );
       if (signal.aborted) return;
       setPullPreview({
         ...data,

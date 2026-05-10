@@ -51,8 +51,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   const [reverting, setReverting] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
-  // Bug fix: split the shared error state into three isolated pieces to prevent
-  // cross-contamination between list, single-compare, and pair-compare views.
   const [listError, setListError] = useState<string | null>(null);
   const [singleCompareError, setSingleCompareError] = useState<string | null>(null);
   const [pairCompareError, setPairCompareError] = useState<string | null>(null);
@@ -75,7 +73,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  // Bug fix: AbortControllers to prevent races when the user rapidly switches comparisons.
   const singleCompareAbortRef = useRef<AbortController | null>(null);
   const pairCompareAbortRef = useRef<AbortController | null>(null);
 
@@ -109,8 +106,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  // Bug fix: abort previous in-flight compare request before starting a new one,
-  // preventing races where a slower earlier request overwrites a newer one.
   const handleCompare = useCallback(async (id: string) => {
     singleCompareAbortRef.current?.abort();
     const controller = new AbortController();
@@ -151,7 +146,6 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
     return () => { singleCompareAbortRef.current?.abort(); };
   }, [handleCompare, initialComparingId]);
 
-  // Bug fix: abort previous pair compare before starting a new one.
   const handlePairCompare = useCallback(async (a: SnapshotSummary, b: SnapshotSummary) => {
     pairCompareAbortRef.current?.abort();
     const controller = new AbortController();
