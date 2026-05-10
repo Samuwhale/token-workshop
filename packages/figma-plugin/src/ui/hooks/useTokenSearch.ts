@@ -2,7 +2,14 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { CROSS_COLLECTION_SEARCH_HAS_CANONICAL_SET } from '@token-workshop/core';
 import type { TokenNode } from './useTokens';
 import type { TokenMapEntry } from '../../shared/types';
-import { STORAGE_KEY_BUILDERS, lsGet, lsSet, ssGet, ssSet } from '../shared/storage';
+import {
+  SESSION_STORAGE_KEYS,
+  STORAGE_KEY_BUILDERS,
+  lsGet,
+  lsSet,
+  ssGet,
+  ssSet,
+} from '../shared/storage';
 import { ALL_TOKEN_TYPES, getTokenTypeLabel } from '../shared/tokenTypeCategories';
 import {
   flattenLeafNodes, filterTokenNodes, filterByDuplicatePaths,
@@ -125,7 +132,7 @@ export function useTokenSearch({
   });
   const [typeFilter, setTypeFilterState] = useState<string>('');
   const [refFilter, setRefFilterState] = useState<'all' | 'aliases' | 'direct'>(() => {
-    const stored = ssGet('token-ref-filter');
+    const stored = ssGet(SESSION_STORAGE_KEYS.TOKEN_REF_FILTER);
     return stored === 'aliases' || stored === 'direct' || stored === 'all' ? stored : 'all';
   });
 
@@ -161,16 +168,16 @@ export function useTokenSearch({
   const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
     saveScrollAnchor();
     setRefFilterState(v);
-    ssSet('token-ref-filter', v);
+    ssSet(SESSION_STORAGE_KEYS.TOKEN_REF_FILTER, v);
   }, [saveScrollAnchor]);
 
   const [showDuplicates, setShowDuplicatesState] = useState(() => {
-    return ssGet('token-duplicates') === '1';
+    return ssGet(SESSION_STORAGE_KEYS.TOKEN_DUPLICATES) === '1';
   });
   const setShowDuplicates = useCallback((v: boolean) => {
     saveScrollAnchor();
     setShowDuplicatesState(v);
-    ssSet('token-duplicates', v ? '1' : '0');
+    ssSet(SESSION_STORAGE_KEYS.TOKEN_DUPLICATES, v ? '1' : '0');
   }, [saveScrollAnchor]);
 
   const setCrossCollectionSearch = useCallback((v: boolean) => {

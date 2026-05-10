@@ -196,19 +196,16 @@ type ImportDiffEntry = {
   status: "added" | "changed";
 };
 
-const IMPORTABLE_PREFIXES = [
-  STORAGE_PREFIXES.TOKEN_SORT,
-  STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
-  STORAGE_PREFIXES.TOKEN_VIEW_MODE,
-  STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES,
-] as const;
-
-const PREFIX_LABELS: Array<{ prefix: string; label: string }> = [
+const IMPORTABLE_PREFIX_LABELS = [
   { prefix: STORAGE_PREFIXES.TOKEN_SORT, label: "Sort" },
   { prefix: STORAGE_PREFIXES.TOKEN_TYPE_FILTER, label: "Filter" },
   { prefix: STORAGE_PREFIXES.TOKEN_VIEW_MODE, label: "View mode" },
+  { prefix: STORAGE_PREFIXES.TOKEN_GROUP_BY, label: "Group by" },
   { prefix: STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES, label: "Resolved values" },
+  { prefix: STORAGE_PREFIXES.MODE_COLUMN_WIDTH, label: "Mode column width" },
 ];
+
+const IMPORTABLE_PREFIXES = IMPORTABLE_PREFIX_LABELS.map(({ prefix }) => prefix);
 
 function matchesAnyPrefix(key: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => key.startsWith(prefix));
@@ -220,7 +217,9 @@ function labelForImportKey(key: string): string {
     return staticLabel;
   }
 
-  const prefixLabel = PREFIX_LABELS.find(({ prefix }) => key.startsWith(prefix));
+  const prefixLabel = IMPORTABLE_PREFIX_LABELS.find(({ prefix }) =>
+    key.startsWith(prefix),
+  );
   if (prefixLabel) {
     return `${prefixLabel.label}: ${key.slice(prefixLabel.prefix.length)}`;
   }

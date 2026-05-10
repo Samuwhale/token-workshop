@@ -219,24 +219,15 @@ export const STORAGE_KEYS = {
   PUBLISH_CREATE_STYLES:    'tw_publish_create_styles',
 } as const;
 
-/** Dynamic key builders for collection-scoped client view state. */
-export const STORAGE_KEY_BUILDERS = {
-  tokenSort:       (collectionId: string) => `token-sort:${collectionId}`,
-  tokenSearchQuery: (collectionId: string) => `token-search:${collectionId}`,
-  tokenTypeFilter: (collectionId: string) => `token-type-filter:${collectionId}`,
-  tokenViewMode:   (collectionId: string) => `tw_view-mode:${collectionId}`,
-  tokenGroupBy: (collectionId: string) => `tw_group-by:${collectionId}`,
-  tokenShowResolvedValues: (collectionId: string) => `tw_show_resolved_values:${collectionId}`,
-  staleGeneratedBannerDismissed: (collectionId: string) => `tw_stale_generated_banner_dismissed:${collectionId}`,
-  tokenExpansion: (collectionId: string) => `token-expand:${collectionId}`,
-  editorDraft: (collectionId: string, tokenPath: string) => `tw_editor_draft:${collectionId}:${tokenPath}`,
-  tableCreateDraft: (collectionId: string) => `tokenworkshop:table-create-draft:${collectionId || '__default__'}`,
-  modeColumnWidth: (collectionId: string, modeName: string) => `tw_mode_col_width:${collectionId}:${modeName}`,
-};
+export const SESSION_STORAGE_KEYS = {
+  TOKEN_REF_FILTER: 'token-ref-filter',
+  TOKEN_DUPLICATES: 'token-duplicates',
+} as const;
 
 /** Key prefix strings used for bulk-delete operations */
 export const STORAGE_PREFIXES = {
   TOKEN_SORT:        'token-sort:',
+  TOKEN_SEARCH_QUERY: 'token-search:',
   TOKEN_TYPE_FILTER: 'token-type-filter:',
   TOKEN_VIEW_MODE: 'tw_view-mode:',
   TOKEN_GROUP_BY: 'tw_group-by:',
@@ -245,7 +236,33 @@ export const STORAGE_PREFIXES = {
   TOKEN_EXPANSION: 'token-expand:',
   EDITOR_DRAFT: 'tw_editor_draft:',
   TABLE_CREATE_DRAFT: 'tokenworkshop:table-create-draft:',
+  MODE_COLUMN_WIDTH: 'tw_mode_col_width:',
 } as const;
+
+/** Dynamic key builders for collection-scoped client view state. */
+export const STORAGE_KEY_BUILDERS = {
+  tokenSort: (collectionId: string) => `${STORAGE_PREFIXES.TOKEN_SORT}${collectionId}`,
+  tokenSearchQuery: (collectionId: string) =>
+    `${STORAGE_PREFIXES.TOKEN_SEARCH_QUERY}${collectionId}`,
+  tokenTypeFilter: (collectionId: string) =>
+    `${STORAGE_PREFIXES.TOKEN_TYPE_FILTER}${collectionId}`,
+  tokenViewMode: (collectionId: string) =>
+    `${STORAGE_PREFIXES.TOKEN_VIEW_MODE}${collectionId}`,
+  tokenGroupBy: (collectionId: string) =>
+    `${STORAGE_PREFIXES.TOKEN_GROUP_BY}${collectionId}`,
+  tokenShowResolvedValues: (collectionId: string) =>
+    `${STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES}${collectionId}`,
+  staleGeneratedBannerDismissed: (collectionId: string) =>
+    `${STORAGE_PREFIXES.STALE_GENERATED_BANNER_DISMISSED}${collectionId}`,
+  tokenExpansion: (collectionId: string) =>
+    `${STORAGE_PREFIXES.TOKEN_EXPANSION}${collectionId}`,
+  editorDraft: (collectionId: string, tokenPath: string) =>
+    `${STORAGE_PREFIXES.EDITOR_DRAFT}${collectionId}:${tokenPath}`,
+  tableCreateDraft: (collectionId: string) =>
+    `${STORAGE_PREFIXES.TABLE_CREATE_DRAFT}${collectionId || '__default__'}`,
+  modeColumnWidth: (collectionId: string, modeName: string) =>
+    `${STORAGE_PREFIXES.MODE_COLUMN_WIDTH}${collectionId}:${modeName}`,
+};
 
 const WORKSPACE_RECOVERY_RESET_KEYS = [
   STORAGE_KEYS.WORKING_COLLECTION_ID,
@@ -348,6 +365,12 @@ function clearStorageByPrefix(kind: BrowserStorageKind, ...prefixes: string[]): 
   }
 }
 
+function clearStorageKeys(kind: BrowserStorageKind, ...keys: string[]): void {
+  for (const key of keys) {
+    storageRemove(kind, key);
+  }
+}
+
 /**
  * Clear persisted workspace-selection state so a full data wipe can relaunch
  * the explicit recovery / Start here flow without stale onboarding flags.
@@ -362,14 +385,23 @@ export function resetWorkspaceStateForRecovery(): void {
     STORAGE_PREFIXES.TOKEN_SORT,
     STORAGE_PREFIXES.TOKEN_TYPE_FILTER,
     STORAGE_PREFIXES.TOKEN_VIEW_MODE,
+    STORAGE_PREFIXES.TOKEN_GROUP_BY,
     STORAGE_PREFIXES.TOKEN_SHOW_RESOLVED_VALUES,
     STORAGE_PREFIXES.STALE_GENERATED_BANNER_DISMISSED,
     STORAGE_PREFIXES.TOKEN_EXPANSION,
-    STORAGE_PREFIXES.TABLE_CREATE_DRAFT,
+    STORAGE_PREFIXES.MODE_COLUMN_WIDTH,
   );
 
   clearStorageByPrefix(
     "session",
+    STORAGE_PREFIXES.TOKEN_SEARCH_QUERY,
     STORAGE_PREFIXES.EDITOR_DRAFT,
+    STORAGE_PREFIXES.TABLE_CREATE_DRAFT,
+  );
+
+  clearStorageKeys(
+    "session",
+    SESSION_STORAGE_KEYS.TOKEN_REF_FILTER,
+    SESSION_STORAGE_KEYS.TOKEN_DUPLICATES,
   );
 }
