@@ -8,9 +8,9 @@ const DEFAULT_CONFLICT_DECISION: ConflictDecision = 'reject';
 const CONFLICT_DECISIONS: readonly ConflictDecision[] = ['reject', 'merge', 'accept'];
 
 function getDecisionLabel(decision: ConflictDecision): string {
-  if (decision === 'accept') return 'Replace';
-  if (decision === 'merge') return 'Merge';
-  return 'Keep';
+  if (decision === 'accept') return 'Use imported value';
+  if (decision === 'merge') return 'Merge mode values';
+  return 'Keep current';
 }
 
 function getDecisionTone(decision: ConflictDecision): string {
@@ -124,14 +124,14 @@ export function ImportConflictResolver() {
           {newCount > 0 && <span className="text-[color:var(--color-figma-text-secondary)]"> and {newCount} new token{newCount === 1 ? '' : 's'}</span>}
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Current library values are kept unless you choose Merge or Replace.
+          Current library values are kept unless you choose to merge mode values or use the imported value.
         </div>
       </div>
 
       {/* Summary + bulk actions */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          {keepExistingCount} keep, {mergeCount} merge, {overwriteCount} replace{newCount > 0 ? ` + ${newCount} new` : ''}
+          {keepExistingCount} kept, {mergeCount} merged, {overwriteCount} replaced{newCount > 0 ? ` + ${newCount} new` : ''}
         </div>
         <div className="flex flex-wrap items-center gap-0.5">
           {CONFLICT_DECISIONS.map(d => (
@@ -178,9 +178,9 @@ export function ImportConflictResolver() {
             className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-secondary text-[color:var(--color-figma-text)] focus:border-[var(--color-figma-accent)] focus:outline-none"
           >
             <option value="all">All status</option>
-            <option value="reject">Keep</option>
-            <option value="merge">Merge</option>
-            <option value="accept">Replace</option>
+            <option value="reject">Keep current</option>
+            <option value="merge">Merge mode values</option>
+            <option value="accept">Use imported value</option>
           </select>
           {sortedConflictTypes.length > 1 && (
             <select

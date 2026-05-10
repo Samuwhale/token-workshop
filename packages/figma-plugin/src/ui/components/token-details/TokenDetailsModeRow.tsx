@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, MoreHorizontal, Rows3 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Copy, Link2, Rows3 } from "lucide-react";
 import { resolveCollectionIdForPath } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import {
@@ -23,13 +23,6 @@ import {
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
   CONTROL_INPUT_INVALID_STATE_CLASSES,
 } from "../../shared/controlClasses";
-import { IconButton } from "../../primitives";
-import { useDropdownMenu } from "../../hooks/useDropdownMenu";
-import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
-import {
-  FLOATING_MENU_CLASS,
-  FLOATING_MENU_ITEM_CLASS,
-} from "../../shared/menuClasses";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -202,18 +195,6 @@ export function TokenDetailsModeRow({
     editable && aliasMode && aliasQueryTrimmed.length > 0 && aliasTargetAmbiguous;
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
-  const hasSecondaryActions =
-    (allowCopyFromPrevious && onCopyFromPrevious) ||
-    (allowCopyToAll && onCopyToAll);
-  const secondaryActionsMenu = useDropdownMenu();
-  const secondaryActionsMenuStyle = useAnchoredFloatingStyle({
-    triggerRef: secondaryActionsMenu.triggerRef,
-    open: secondaryActionsMenu.open,
-    preferredWidth: 220,
-    preferredHeight: 180,
-    align: "end",
-  });
-  const closeSecondaryActionsMenu = secondaryActionsMenu.close;
 
   const readOnly = useMemo(
     () =>
@@ -235,13 +216,6 @@ export function TokenDetailsModeRow({
       tokenType,
       value,
     ],
-  );
-  const runSecondaryAction = useCallback(
-    (action: () => void) => {
-      action();
-      closeSecondaryActionsMenu({ restoreFocus: false });
-    },
-    [closeSecondaryActionsMenu],
   );
   const handleAliasToggle = () => {
     if (!editable || !onChange) return;
@@ -309,56 +283,44 @@ export function TokenDetailsModeRow({
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
         <span className="tm-token-mode-row__action-button-label">
-          {aliasMode ? "Aliased" : "Alias"}
+          Reference
         </span>
       </button>
-      {hasSecondaryActions ? (
-        <div className="relative">
-          <IconButton
-            ref={secondaryActionsMenu.triggerRef}
-            size="sm"
-            onClick={secondaryActionsMenu.toggle}
-            aria-label={`${modeName} actions`}
-            title={`${modeName} actions`}
-            aria-haspopup="menu"
-            aria-expanded={secondaryActionsMenu.open}
-          >
-            <MoreHorizontal size={12} strokeWidth={1.8} aria-hidden />
-          </IconButton>
-          {secondaryActionsMenu.open ? (
-            <div
-              ref={secondaryActionsMenu.menuRef}
-              style={secondaryActionsMenuStyle ?? { visibility: "hidden" }}
-              className={FLOATING_MENU_CLASS}
-              role="menu"
-            >
-              {allowCopyFromPrevious && onCopyFromPrevious ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => runSecondaryAction(onCopyFromPrevious)}
-                  className={FLOATING_MENU_ITEM_CLASS}
-                >
-                  <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  {previousModeName
-                    ? `Use ${previousModeName}`
-                    : "Use previous"}
-                </button>
-              ) : null}
-              {allowCopyToAll && onCopyToAll ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => runSecondaryAction(onCopyToAll)}
-                  className={FLOATING_MENU_ITEM_CLASS}
-                >
-                  <Rows3 size={12} strokeWidth={1.5} aria-hidden />
-                  Apply to all modes
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+      {allowCopyFromPrevious && onCopyFromPrevious ? (
+        <button
+          type="button"
+          onClick={onCopyFromPrevious}
+          className="tm-token-mode-row__action-button"
+          title={
+            previousModeName
+              ? `Use the ${previousModeName} value for ${modeName}`
+              : `Use the previous mode value for ${modeName}`
+          }
+          aria-label={
+            previousModeName
+              ? `Use the ${previousModeName} value for ${modeName}`
+              : `Use the previous mode value for ${modeName}`
+          }
+        >
+          <Copy size={12} strokeWidth={1.5} aria-hidden />
+          <span className="tm-token-mode-row__action-button-label">
+            Use previous
+          </span>
+        </button>
+      ) : null}
+      {allowCopyToAll && onCopyToAll ? (
+        <button
+          type="button"
+          onClick={onCopyToAll}
+          className="tm-token-mode-row__action-button"
+          title={`Apply the ${modeName} value to every mode`}
+          aria-label={`Apply the ${modeName} value to every mode`}
+        >
+          <Rows3 size={12} strokeWidth={1.5} aria-hidden />
+          <span className="tm-token-mode-row__action-button-label">
+            Apply to all
+          </span>
+        </button>
       ) : null}
     </div>
   ) : null;

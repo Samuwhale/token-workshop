@@ -868,7 +868,7 @@ export function CollectionDetailsPanel({
                       htmlFor="collection-id-input"
                       className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
                     >
-                      Collection ID
+                      Collection name
                     </label>
                     <TextInput
                       id="collection-id-input"
@@ -886,7 +886,7 @@ export function CollectionDetailsPanel({
                       className="w-full text-[17px] font-semibold tracking-tight"
                     />
                     <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      This changes the stored collection ID used by tokens and files.
+                      This renames the collection designers see in Token Workshop and in token files.
                     </p>
                     {renameError ? (
                       <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{renameError}</p>
@@ -903,10 +903,10 @@ export function CollectionDetailsPanel({
                           variant="ghost"
                           size="sm"
                           className="shrink-0"
-                          title="Change the stored collection ID"
+                          title="Rename collection"
                         >
                           <Pencil size={11} strokeWidth={1.75} aria-hidden />
-                          Change ID
+                          Rename
                         </Button>
                       ) : null}
                     </div>

@@ -484,7 +484,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
             <ConfirmModal
               title={`Restore to "${label}"?`}
               description={`${summaryText}.${workspaceText}${filterText} This replaces your current workspace state.${undoText}`}
-              confirmLabel="Restore"
+              confirmLabel="Restore checkpoint"
               danger
               onConfirm={async () => {
                 setShowRestoreConfirm(false);

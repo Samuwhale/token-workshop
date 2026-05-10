@@ -1261,7 +1261,9 @@ export const TokenLeafNode = memo(
                         className={MENU_ITEM_CLASS}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M3 5h18M3 12h18M3 19h18" /></svg>
-                        <span className="flex-1">Copy value to all modes</span>
+                        <span className="flex-1">
+                          Copy {multiModeValues[0]?.optionName ?? "first mode"} value to all modes
+                        </span>
                       </button>
                     )}
                   {!isAlias(node.$value) && onExtractToAlias && (

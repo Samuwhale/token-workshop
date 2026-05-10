@@ -1776,7 +1776,7 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
-@container (max-width: 400px) {
+@container (max-width: 320px) {
   .tm-collection-toolbar__action {
     min-inline-size: 28px;
     justify-content: center;
@@ -2182,13 +2182,13 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
-@container (max-width: 420px) {
+@container (max-width: 320px) {
   .tm-token-toolbar__secondary-label {
     display: none;
   }
 }
 
-@container (max-width: 420px) {
+@container (max-width: 320px) {
   .tm-token-table__add-mode-label {
     display: none;
   }
@@ -4181,8 +4181,8 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-token-mode-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 0;
+  gap: 4px;
+  padding: 6px 0;
   border-radius: 0;
   transition:
     background-color var(--motion-base) var(--ease-standard),
@@ -4209,10 +4209,10 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row__header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 8px;
   min-inline-size: 0;
 }
 
@@ -4256,7 +4256,7 @@ button.tm-token-details__text-button:disabled:hover {
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 4px 6px;
   margin-left: auto;
 }
 
@@ -4323,8 +4323,8 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: 8px;
   min-inline-size: 0;
@@ -4332,7 +4332,7 @@ button.tm-token-details__text-button:disabled:hover {
 
 .tm-token-mode-row__value {
   min-inline-size: 0;
-  flex: 1 1 auto;
+  flex: 1 1 220px;
 }
 
 .tm-token-mode-row__value > * {
@@ -4341,9 +4341,9 @@ button.tm-token-details__text-button:disabled:hover {
 
 .tm-token-mode-row__inline-controls {
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   align-self: start;
-  justify-self: end;
+  margin-left: auto;
   min-inline-size: 0;
   flex-wrap: nowrap;
   align-items: center;
@@ -4593,38 +4593,12 @@ button.tm-token-details__text-button:disabled:hover {
     text-overflow: clip;
   }
 
-  .tm-token-mode-row__header {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .tm-token-mode-row__controls {
-    justify-content: flex-start;
-    gap: 4px 6px;
-    margin-left: 0;
-  }
-
   .tm-token-mode-row__action-button {
-    padding-inline: 5px;
+    padding-inline: 6px;
   }
-
-  .tm-token-mode-row__body {
-    align-items: start;
-  }
-
 }
 
 @container authoring-surface (max-width: 520px) {
-  .tm-token-mode-row__header,
-  .tm-token-mode-row__body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .tm-token-mode-row__header-main {
-    flex-basis: 100%;
-  }
-
   .tm-token-mode-row__name {
     white-space: normal;
     text-overflow: clip;
@@ -4632,20 +4606,23 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__controls {
+    flex-basis: 100%;
     justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 4px 6px;
     margin-left: 0;
   }
 
   .tm-token-mode-row__action-button {
-    inline-size: auto;
-    min-inline-size: 28px;
+    flex: 1 1 auto;
+    justify-content: flex-start;
     padding-inline: 6px;
   }
 
+  .tm-token-mode-row__body {
+    flex-direction: column;
+  }
+
   .tm-token-mode-row__inline-controls {
-    justify-self: start;
+    margin-left: 0;
     flex-wrap: wrap;
   }
 }
@@ -4661,17 +4638,10 @@ button.tm-token-details__text-button:disabled:hover {
     flex-direction: column;
   }
 
-  .tm-token-mode-row__controls {
-    flex-basis: 100%;
-    justify-content: flex-start;
-    margin-left: 0;
-  }
-
   .tm-token-mode-row__action-button-label {
     white-space: normal;
     overflow-wrap: anywhere;
   }
-
 }
 
 @container authoring-surface (max-width: 400px) {
@@ -4680,7 +4650,7 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__action-button {
-    flex: 0 0 auto;
+    flex: 1 1 100%;
   }
 }
 

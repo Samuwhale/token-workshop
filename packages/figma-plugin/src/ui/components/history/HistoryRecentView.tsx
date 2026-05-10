@@ -302,7 +302,7 @@ export function HistoryRecentView({
                           <span className="text-secondary font-medium text-[color:var(--color-figma-text-warning)]">Failed</span>
                         ) : op.rolledBack ? (
                           <>
-                            <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Restored</span>
+                            <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Undone</span>
                             {redoableOpIds?.has(op.id) && onServerRedo ? (
                               <button onClick={() => handleRedo(op.id)} disabled={redoing !== null || restoring !== null} className={quietActionClass}>
                                 {isRedoingThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Redoing…</span> : "Redo"}
@@ -311,7 +311,7 @@ export function HistoryRecentView({
                           </>
                         ) : (
                           <button onClick={() => setConfirmOp(op)} disabled={restoring !== null} className={quietActionClass}>
-                            {isRestoringThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Restoring…</span> : "Restore"}
+                            {isRestoringThis ? <span className="flex items-center gap-1"><Spinner size="xs" />Undoing…</span> : "Undo edit"}
                           </button>
                         )}
                       </div>

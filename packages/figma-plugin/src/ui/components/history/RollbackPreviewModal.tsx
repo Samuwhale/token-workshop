@@ -82,7 +82,7 @@ export function RollbackPreviewModal({
       await onConfirm();
     } catch (err) {
       if (mountedRef.current) {
-        setConfirmError((err as Error).message || 'Restore failed');
+        setConfirmError((err as Error).message || 'Undo failed');
         setConfirming(false);
       }
     }
@@ -117,7 +117,7 @@ export function RollbackPreviewModal({
       >
         <div className="tm-modal-header border-b border-[var(--color-figma-border)]">
           <h3 id="rollback-preview-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">
-            Preview restore
+            Preview undo
           </h3>
           <p className="m-0 text-body text-[color:var(--color-figma-text-secondary)] leading-relaxed break-words" title={opDescription}>
             {opDescription}
@@ -153,7 +153,7 @@ export function RollbackPreviewModal({
           {!diffLoading && diffError && (
             <div className="flex flex-col items-center justify-center h-20 gap-1 px-3 text-center">
               <p className="text-body text-[color:var(--color-figma-text-error)]">{diffError}</p>
-              <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Restore is unavailable until Token Workshop can show the affected tokens.</p>
+              <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">Undo is unavailable until Token Workshop can show the affected tokens.</p>
             </div>
           )}
 
@@ -216,7 +216,7 @@ export function RollbackPreviewModal({
             className="flex-1 px-3 py-1.5 rounded text-body font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {confirming && <Spinner size="sm" className="text-white" />}
-            {confirming ? 'Restoring…' : 'Restore'}
+            {confirming ? 'Undoing…' : 'Undo edit'}
           </button>
         </div>
       </div>

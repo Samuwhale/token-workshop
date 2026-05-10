@@ -352,7 +352,11 @@ export function TableCreateForm({
               !hasNamedRows
             }
             title={
-              !hasNamedRows
+              !connected
+                ? "Connect to the token library before creating tokens"
+                : busy
+                  ? "Creating tokens"
+                  : !hasNamedRows
                 ? "Enter at least one token name"
                 : "Create all tokens (Ctrl+Enter)"
             }

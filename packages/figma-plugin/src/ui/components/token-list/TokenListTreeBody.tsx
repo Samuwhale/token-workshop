@@ -480,8 +480,12 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             variant="ghost"
             size="sm"
             className="tm-token-table__add-mode shrink-0 px-2 text-[color:var(--color-figma-text-secondary)]"
-            title="Add mode"
-            aria-label="Add mode"
+            title={
+              connected
+                ? "Add a mode to this collection"
+                : "Connect to the token library before adding modes"
+            }
+            aria-label="Add mode to this collection"
             aria-controls="token-table-add-mode-dialog"
             aria-haspopup="dialog"
             aria-expanded={addModeMenuOpen}

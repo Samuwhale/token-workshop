@@ -66,8 +66,8 @@ const VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
 ];
 
 const SEARCH_SCOPE_OPTIONS: SegmentedOption<"collection" | "all">[] = [
-  { value: "collection", label: "This collection" },
-  { value: "all", label: "All collections" },
+  { value: "collection", label: "Current" },
+  { value: "all", label: "Library" },
 ];
 
 const TOOLBAR_BUTTON_CLASS =
@@ -226,11 +226,10 @@ export function TokenListToolbar({
     overflowMenuProps !== undefined &&
     (sortOrder !== "default" ||
       groupBy !== "path" ||
-      overflowMenuProps.crossCollectionSearch ||
       overflowMenuProps.searchResultPresentation === "flat");
   const viewMenuLabel = "View";
   const showViewMenu = hasTokens;
-  const showInlineSearchScopeToggle = showSearchScopeToggle && !showViewMenu;
+  const showInlineSearchScopeToggle = showSearchScopeToggle;
 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">

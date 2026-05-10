@@ -489,7 +489,7 @@ export function PlatformExportConfig({
       <div>
         <DisclosureRow
           title="Scope"
-          summary={changesOnly ? 'Changed tokens only' : 'All tokens'}
+          summary={changesOnly ? 'Changed since last shared version' : 'All tokens'}
           open={scopeOpen}
           onToggle={() => setScopeOpen((v) => !v)}
           className="mb-1"
@@ -499,7 +499,7 @@ export function PlatformExportConfig({
             <CheckboxRow
               checked={changesOnly}
               onChange={toggleChangesOnly}
-              title="Changed tokens only"
+              title="Only changed since last shared version"
               description={
                 isGitRepo === false
                   ? 'Export tokens changed since the current baseline. Each successful export resets the baseline to now.'

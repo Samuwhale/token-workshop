@@ -143,6 +143,8 @@ export function SelectionInspector({
   const [bindingErrors, setBindingErrors] = useState<
     Partial<Record<BindableProperty, string>>
   >({});
+  const activeCollectionTokenMap =
+    tokenMapsByCollection[currentCollectionId] ?? tokenMap;
 
   const [peerSuggestion, setPeerSuggestion] = useState<{
     property: BindableProperty;
@@ -583,11 +585,15 @@ export function SelectionInspector({
   };
 
   const handleBindToken = (prop: BindableProperty, tokenPath: string) => {
-    const entry = tokenMap[tokenPath];
+    const entry = activeCollectionTokenMap[tokenPath];
     if (!entry) return;
     const oldBinding = getBindingForProperty(selectedNodes, prop);
     const oldBindingCollection = getBindingCollectionForProperty(selectedNodes, prop);
-    const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+    const resolved = resolveTokenValue(
+      entry.$value,
+      entry.$type,
+      activeCollectionTokenMap,
+    );
     parent.postMessage(
       {
         pluginMessage: {
@@ -606,19 +612,27 @@ export function SelectionInspector({
         description: `Bound "${tokenPath}" to ${PROPERTY_LABELS[prop]}`,
         restore: async () => {
           if (oldBinding && oldBinding !== "mixed") {
-            const prevEntry = tokenMap[oldBinding];
+            const previousCollectionId =
+              oldBindingCollection && oldBindingCollection !== "mixed"
+                ? oldBindingCollection
+                : currentCollectionId;
+            const previousTokenMap =
+              tokenMapsByCollection[previousCollectionId] ??
+              activeCollectionTokenMap;
+            const prevEntry = previousTokenMap[oldBinding];
             const prevResolved = prevEntry
-              ? resolveTokenValue(prevEntry.$value, prevEntry.$type, tokenMap)
+              ? resolveTokenValue(
+                  prevEntry.$value,
+                  prevEntry.$type,
+                  previousTokenMap,
+                )
               : { value: null };
             parent.postMessage(
               {
                 pluginMessage: {
                   type: "apply-to-selection",
                   tokenPath: oldBinding,
-                  collectionId:
-                    oldBindingCollection && oldBindingCollection !== "mixed"
-                      ? oldBindingCollection
-                      : currentCollectionId,
+                  collectionId: previousCollectionId,
                   tokenType: prevEntry?.$type ?? entry.$type,
                   targetProperty: prop,
                   resolvedValue: prevResolved.value,
@@ -754,6 +768,8 @@ export function SelectionInspector({
   }, []);
 
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
+  const activeCollectionHasTokens =
+    Object.keys(activeCollectionTokenMap).length > 0;
 
   const suggestions = useMemo(
     () =>
@@ -1193,12 +1209,12 @@ export function SelectionInspector({
                             prop={prop}
                             rootNodes={rootNodes}
                             selectedNodes={selectedNodes}
-                            tokenMap={tokenMap}
+                            tokenMap={activeCollectionTokenMap}
                             connected={connected}
                             currentCollectionId={currentCollectionId}
                             currentCollectionModeNames={currentCollectionModeNames}
                             serverUrl={serverUrl}
-                            hasAnyTokens={hasAnyTokens}
+                            hasAnyTokens={activeCollectionHasTokens}
                             creatingFromProp={creatingFromProp}
                             bindingFromProp={bindingFromProp}
                             lastBoundProp={lastBoundProp}

@@ -544,7 +544,7 @@ export function HealthPanel({
         : collectionSummariesPending
           ? "Checking library"
           : collectionSummaries.length > 0
-            ? "Review needs attention"
+            ? "Review items found"
             : "Review is clear";
     const allScopeStatusDetail =
       libraryReviewErrors.length > 0
@@ -552,7 +552,7 @@ export function HealthPanel({
         : collectionSummariesPending
           ? "Scanning collections, token usage, and generator outputs."
           : collectionSummaries.length > 0
-            ? `${collectionSummaries.length} collection${collectionSummaries.length === 1 ? "" : "s"} have review items. Start with Fix next.`
+            ? `${collectionSummaries.length} collection${collectionSummaries.length === 1 ? "" : "s"} have review items. Resolve blockers first; cleanup can wait.`
             : "Every collection is clear.";
     const renderCollectionRow = (
       collectionId: string,

@@ -231,14 +231,14 @@ export function HealthDashboard({
       ? "Checking library"
       : totalIssueCount === 0
         ? "Review is clear"
-        : "Review needs attention";
+        : "Review items found";
   const statusDetail = validationError
     ? validationError
     : !unusedReady
       ? `${scopeLabel} Checking Figma usage before marking unused tokens clear.`
     : totalIssueCount === 0
       ? `${scopeLabel} No blocking review items found.`
-      : `${totalIssueCount} item${totalIssueCount === 1 ? "" : "s"} need attention. Start with Fix next, then clean up library hygiene.`;
+      : `${totalIssueCount} review item${totalIssueCount === 1 ? "" : "s"} found. Resolve blockers first; cleanup can wait until the library is stable.`;
 
   return (
     <div className="tm-health-dashboard" style={{ scrollbarWidth: "thin" }}>
