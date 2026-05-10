@@ -91,7 +91,18 @@ export type GeneratorUpdateInput = Partial<
 type GeneratorDocumentInput = Pick<
   TokenGeneratorDocument,
   "name" | "targetCollectionId" | "nodes" | "edges" | "viewport"
->;
+> &
+  Partial<
+    Pick<
+      TokenGeneratorDocument,
+      | "id"
+      | "createdAt"
+      | "updatedAt"
+      | "lastAppliedAt"
+      | "lastApplyDiagnostics"
+      | "outputHashes"
+    >
+  >;
 
 export interface GeneratorApplyResult {
   preview: TokenGeneratorPreviewResult;
@@ -206,7 +217,7 @@ export class TokenGeneratorService {
         );
       }
       const generator = hasDocumentPayload
-        ? buildGeneratorFromDocumentInput({
+        ? readGeneratorDocumentInput({
             name: input.name ?? generatorTemplateLabel(input.template),
             targetCollectionId: input.targetCollectionId,
             nodes: input.nodes ?? [],
@@ -240,7 +251,7 @@ export class TokenGeneratorService {
           );
         }
       }
-      const updated = normalizeGeneratorDocument({
+      const updated = readGeneratorDocumentInput({
         ...existing,
         ...input,
         id: existing.id,
@@ -287,20 +298,13 @@ export class TokenGeneratorService {
   ): Promise<TokenGeneratorPreviewResult> {
     const existing = this.generators.get(id);
     if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
-    let generator: TokenGeneratorDocument;
-    try {
-      generator = normalizeGeneratorDocument({
-        ...existing,
-        ...input,
-        id: existing.id,
-        createdAt: existing.createdAt,
-        updatedAt: existing.updatedAt,
-      });
-    } catch (error) {
-      throw new BadRequestError(
-        error instanceof Error ? error.message : String(error),
-      );
-    }
+    const generator = readGeneratorDocumentInput({
+      ...existing,
+      ...input,
+      id: existing.id,
+      createdAt: existing.createdAt,
+      updatedAt: existing.updatedAt,
+    });
     return this.buildPreview(generator, collectionService, tokenStore);
   }
 
@@ -909,20 +913,29 @@ function buildTemplateGenerator(
   return normalizeGeneratorDocument(base);
 }
 
-function buildGeneratorFromDocumentInput(
+function readGeneratorDocumentInput(
   input: GeneratorDocumentInput,
 ): TokenGeneratorDocument {
   const now = new Date().toISOString();
-  return normalizeGeneratorDocument({
-    id: randomUUID(),
-    name: input.name,
-    targetCollectionId: input.targetCollectionId,
-    nodes: input.nodes,
-    edges: input.edges,
-    viewport: input.viewport,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    return normalizeGeneratorDocument({
+      id: input.id ?? randomUUID(),
+      name: input.name,
+      targetCollectionId: input.targetCollectionId,
+      nodes: input.nodes,
+      edges: input.edges,
+      viewport: input.viewport,
+      createdAt: input.createdAt ?? now,
+      updatedAt: input.updatedAt ?? now,
+      lastAppliedAt: input.lastAppliedAt,
+      lastApplyDiagnostics: input.lastApplyDiagnostics,
+      outputHashes: input.outputHashes,
+    });
+  } catch (error) {
+    throw new BadRequestError(
+      error instanceof Error ? error.message : String(error),
+    );
+  }
 }
 
 function generatedTemplate(

@@ -35,6 +35,26 @@ const VALID_GENERATOR_TEMPLATES = new Set<string>([
   "blank",
   ...GENERATOR_TEMPLATE_OPTIONS.map((option) => option.id),
 ]);
+const GENERATOR_CREATE_BODY_KEYS = new Set([
+  "name",
+  "targetCollectionId",
+  "template",
+  "nodes",
+  "edges",
+  "viewport",
+  "recordHistory",
+]);
+const GENERATOR_UPDATE_BODY_KEYS = new Set([
+  "name",
+  "targetCollectionId",
+  "nodes",
+  "edges",
+  "viewport",
+]);
+const GENERATOR_UPDATE_WITH_HISTORY_BODY_KEYS = new Set([
+  ...GENERATOR_UPDATE_BODY_KEYS,
+  "recordHistory",
+]);
 
 async function restoreGeneratorsAfterHistoryFailure(
   generatorService: TokenGeneratorService,
@@ -125,7 +145,9 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     "/generators/:id",
     async (request, reply) => {
       try {
-        const body = readGeneratorUpdateBody(request.body, "Generator update body");
+        const body = readGeneratorUpdateBody(request.body, "Generator update body", {
+          allowRecordHistory: true,
+        });
         if (body.targetCollectionId) {
           await fastify.collectionService.requireCollectionsExist([
             body.targetCollectionId,
@@ -315,7 +337,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
 function readGeneratorCreateBody(body: unknown): GeneratorCreateInput & GeneratorHistoryBody {
   const record = readGeneratorRouteRecord(body, "Generator create body");
-  rejectRemovedGeneratorFields(record);
+  rejectUnsupportedGeneratorFields(record, GENERATOR_CREATE_BODY_KEYS);
   const input: GeneratorCreateInput & GeneratorHistoryBody = {
     targetCollectionId: readRequiredGeneratorString(
       record.targetCollectionId,
@@ -330,13 +352,16 @@ function readGeneratorCreateBody(body: unknown): GeneratorCreateInput & Generato
 function readGeneratorUpdateBody(
   body: unknown,
   bodyName: string,
+  options: { allowRecordHistory?: boolean } = {},
 ): GeneratorUpdateInput & GeneratorHistoryBody {
   const record = readGeneratorRouteRecord(body, bodyName);
-  rejectRemovedGeneratorFields(record);
+  rejectUnsupportedGeneratorFields(
+    record,
+    options.allowRecordHistory
+      ? GENERATOR_UPDATE_WITH_HISTORY_BODY_KEYS
+      : GENERATOR_UPDATE_BODY_KEYS,
+  );
   const input: GeneratorUpdateInput & GeneratorHistoryBody = {};
-  if (Object.prototype.hasOwnProperty.call(record, "template")) {
-    throw new BadRequestError("template is only allowed when creating a generator.");
-  }
   if (Object.prototype.hasOwnProperty.call(record, "targetCollectionId")) {
     input.targetCollectionId = readRequiredGeneratorString(
       record.targetCollectionId,
@@ -358,9 +383,17 @@ function readGeneratorRouteRecord(
   return body as Record<string, unknown>;
 }
 
-function rejectRemovedGeneratorFields(record: Record<string, unknown>): void {
-  if (Object.prototype.hasOwnProperty.call(record, "authoringMode")) {
-    throw new BadRequestError("authoringMode has been removed from generators.");
+function rejectUnsupportedGeneratorFields(
+  record: Record<string, unknown>,
+  supportedFields: ReadonlySet<string>,
+): void {
+  const unsupportedFields = Object.keys(record).filter(
+    (field) => !supportedFields.has(field),
+  );
+  if (unsupportedFields.length > 0) {
+    throw new BadRequestError(
+      `Unsupported generator field${unsupportedFields.length === 1 ? "" : "s"}: ${unsupportedFields.join(", ")}.`,
+    );
   }
 }
 
