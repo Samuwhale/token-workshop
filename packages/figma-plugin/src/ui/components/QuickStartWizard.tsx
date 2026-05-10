@@ -48,7 +48,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
           Connect to your token library
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Open the shared token library for this file, then retry the connection here.
+          Ask the library owner to start the shared token server for this file, then retry here.
         </p>
       </div>
 

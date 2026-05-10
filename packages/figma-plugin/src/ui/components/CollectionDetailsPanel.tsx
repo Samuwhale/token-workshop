@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowUp, ArrowDown, X, Plus, Pencil, MoreHorizontal } from "lucide-react";
-import type { ReactNode } from "react";
 import type { TokenCollection } from "@token-workshop/core";
 import {
   addCollectionMode,
@@ -101,17 +100,8 @@ function SectionHeader({ children }: { children: string }) {
   );
 }
 
-function Stat({ value, label }: { value: ReactNode; label: string }) {
-  return (
-    <div className="flex min-w-0 flex-col">
-      <span className="text-[18px] font-semibold leading-none tabular-nums text-[color:var(--color-figma-text)]">
-        {value}
-      </span>
-      <span className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-        {label}
-      </span>
-    </div>
-  );
+function formatCount(value: number, singular: string): string {
+  return `${value} ${value === 1 ? singular : `${singular}s`}`;
 }
 
 function ModeRow({
@@ -660,12 +650,14 @@ export function CollectionDetailsPanel({
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState("");
   const [metadataSaving, setMetadataSaving] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
   const [advancedStructureOpen, setAdvancedStructureOpen] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setRenaming(false);
     setRenameError("");
+    setEditingDescription(false);
     setMetadataSaving(false);
     setAdvancedStructureOpen(false);
   }, [collection?.id]);
@@ -709,6 +701,8 @@ export function CollectionDetailsPanel({
     !!collection &&
     editingMetadataCollectionId === collection.id &&
     metadataDescription !== savedDescription;
+  const hasDescription = savedDescription.trim().length > 0;
+  const collectionMeta = `${formatCount(tokenCount, "token")} · ${formatCount(modeCount, "mode")}`;
 
   const startRename = useCallback(() => {
     if (!collection) return;
@@ -786,6 +780,7 @@ export function CollectionDetailsPanel({
     setMetadataSaving(true);
     try {
       await onMetadataSave();
+      setEditingDescription(false);
     } finally {
       setMetadataSaving(false);
     }
@@ -917,42 +912,67 @@ export function CollectionDetailsPanel({
                         </Button>
                       ) : null}
                     </div>
-
-                    <textarea
-                      value={currentDescription}
-                      onChange={(e) => setMetadataDescription?.(e.target.value)}
-                      rows={2}
-                      placeholder="Add a description…"
-                      aria-label="Collection description"
-                      className="w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-body leading-[1.5] text-[color:var(--color-figma-text-secondary)] outline-none placeholder:text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
-                    />
-                    {descriptionDirty || metadataSaving ? (
-                      <div className="flex flex-wrap items-center gap-2">
+                    <div className="tm-collection-details__meta">
+                      {collectionMeta}
+                    </div>
+                    {editingDescription ? (
+                      <>
+                        <textarea
+                          value={currentDescription}
+                          onChange={(e) => setMetadataDescription?.(e.target.value)}
+                          rows={2}
+                          placeholder="Add a description"
+                          aria-label="Collection description"
+                          className="w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-body leading-[1.5] text-[color:var(--color-figma-text-secondary)] outline-none placeholder:text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => void saveDescription()}
+                            variant="primary"
+                            size="sm"
+                            disabled={metadataSaving || !descriptionDirty}
+                          >
+                            {metadataSaving ? "Saving…" : "Save"}
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setMetadataDescription?.(savedDescription);
+                              setEditingDescription(false);
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            disabled={metadataSaving}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    ) : hasDescription ? (
+                      <div className="tm-collection-details__description-block">
+                        <p className="tm-collection-details__description">{savedDescription}</p>
                         <Button
                           type="button"
-                          onClick={() => void saveDescription()}
-                          variant="primary"
-                          size="sm"
-                          disabled={metadataSaving}
-                        >
-                          {metadataSaving ? "Saving…" : "Save description"}
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => setMetadataDescription?.(savedDescription)}
+                          onClick={() => setEditingDescription(true)}
                           variant="ghost"
                           size="sm"
-                          disabled={metadataSaving || !descriptionDirty}
+                          className="self-start"
                         >
-                          Revert
+                          Edit description
                         </Button>
                       </div>
-                    ) : null}
-
-                    <div className="tm-collection-details__stats">
-                      <Stat value={tokenCount} label={tokenCount === 1 ? "token" : "tokens"} />
-                      <Stat value={modeCount} label={modeCount === 1 ? "mode" : "modes"} />
-                    </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={() => setEditingDescription(true)}
+                        variant="ghost"
+                        size="sm"
+                        className="self-start"
+                      >
+                        Add description
+                      </Button>
+                    )}
                   </div>
                 )}
                 {showCloseButton && !returnLabel ? (

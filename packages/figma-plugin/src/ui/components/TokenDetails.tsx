@@ -1935,6 +1935,13 @@ export function TokenDetails({
               ))}
             </div>
           ) : null}
+
+          <div
+            className="tm-token-details__identity-context"
+            title={ownerCollectionName}
+          >
+            Collection: <span>{ownerCollectionName}</span>
+          </div>
         </Section>
 
         <Section
@@ -1946,12 +1953,12 @@ export function TokenDetails({
                 <button
                   type="button"
                   onClick={fillEmptyModesFromFirst}
-                  title={`Copy ${firstMode.name} to empty modes`}
-                  aria-label={`Copy ${firstMode.name} to empty modes`}
+                  title={`Use ${firstMode.name} value for empty modes`}
+                  aria-label={`Use ${firstMode.name} value for empty modes`}
                   className="tm-token-details__text-button"
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
-                  Copy {firstMode.name} to empty modes
+                  Fill empty modes
                 </button>
               ) : undefined
             ) : undefined

@@ -69,8 +69,8 @@ const VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
 ];
 
 const SEARCH_SCOPE_OPTIONS: SegmentedOption<"collection" | "all">[] = [
-  { value: "collection", label: "Search here" },
-  { value: "all", label: "Search library" },
+  { value: "collection", label: "This collection" },
+  { value: "all", label: "All collections" },
 ];
 
 const TOOLBAR_BUTTON_CLASS =

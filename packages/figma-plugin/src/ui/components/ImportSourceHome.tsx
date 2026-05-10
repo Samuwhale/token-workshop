@@ -111,14 +111,6 @@ export function ImportSourceHome() {
         <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
           From a file
         </div>
-        <div className="tm-import-home__actions">
-          <SourceButton
-            icon={<Upload size={14} strokeWidth={1.75} aria-hidden />}
-            onClick={handleBrowseFile}
-            label="Import from file"
-            description="Choose the destination during review"
-          />
-        </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
           Supports JSON, CSS, Tailwind, and Tokens Studio. The importer detects
           the file type automatically.
@@ -136,6 +128,7 @@ export function ImportSourceHome() {
           }`}
           onClick={handleBrowseFile}
           aria-describedby="import-source-file-types"
+          aria-label="Import token file"
         >
           {isDragging ? (
             <Upload

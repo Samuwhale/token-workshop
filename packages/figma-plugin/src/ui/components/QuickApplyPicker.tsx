@@ -506,15 +506,6 @@ export function QuickApplyPicker({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const idx = eligibleProps.indexOf(activeProp);
-      const next = e.shiftKey
-        ? eligibleProps[(idx - 1 + eligibleProps.length) % eligibleProps.length]
-        : eligibleProps[(idx + 1) % eligibleProps.length];
-      setActiveProp(next);
-      return;
-    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveIdx(i => visibleCandidates.length === 0 ? 0 : Math.min(i + 1, visibleCandidates.length - 1));
@@ -526,6 +517,29 @@ export function QuickApplyPicker({
       const target = visibleCandidates[activeIdx];
       if (target) handleSelect(target);
     }
+  };
+
+  const handlePropertyTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    prop: BindableProperty,
+  ) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
+      return;
+    }
+    event.preventDefault();
+    const idx = eligibleProps.indexOf(prop);
+    const nextIndex =
+      event.key === 'ArrowLeft'
+        ? (idx - 1 + eligibleProps.length) % eligibleProps.length
+        : (idx + 1) % eligibleProps.length;
+    const nextProp = eligibleProps[nextIndex];
+    setActiveProp(nextProp);
+    requestAnimationFrame(() => {
+      const tab = dialogRef.current?.querySelector<HTMLButtonElement>(
+        `[data-quick-apply-property="${nextProp}"]`,
+      );
+      tab?.focus();
+    });
   };
 
   // Scroll active item into view
@@ -675,8 +689,11 @@ export function QuickApplyPicker({
               const isBound = binding && binding !== 'mixed';
               return (
                 <button
+                  type="button"
                   key={prop}
+                  data-quick-apply-property={prop}
                   onClick={() => setActiveProp(prop)}
+                  onKeyDown={(event) => handlePropertyTabKeyDown(event, prop)}
                   className={`px-2 py-1 text-secondary font-medium rounded transition-colors whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 font-semibold'

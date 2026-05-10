@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useImportResultContext } from "./ImportPanelContext";
 
 function getRecommendationButtonLabel(label: string, index: number): string {
@@ -7,6 +8,7 @@ function getRecommendationButtonLabel(label: string, index: number): string {
 }
 
 export function ImportSuccessView() {
+  const [showFailedDetails, setShowFailedDetails] = useState(false);
   const {
     successMessage,
     failedImportPaths,
@@ -91,8 +93,15 @@ export function ImportSuccessView() {
               <span className="text-[color:var(--color-figma-text-error)] font-medium">{failedImportPaths.length} failed</span>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFailedDetails((open) => !open)}
+                className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+                aria-expanded={showFailedDetails}
+              >
+                {showFailedDetails ? "Hide details" : "Show details"}
+              </button>
               <button onClick={handleCopyFailedPaths} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">
-                {copyFeedback ? "Copied" : "Copy"}
+                {copyFeedback ? "Copied" : "Copy details"}
               </button>
               {failedImportBatches.length > 0 && (
                 <button onClick={handleRetryFailed} disabled={retrying} className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50">
@@ -101,29 +110,34 @@ export function ImportSuccessView() {
               )}
             </div>
           </div>
-          {failedImportGroups.length > 0 ? (
-            failedImportGroups.map(group => (
-              <div key={group.collectionId} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">{group.collectionId}</span>
-                  <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">{group.paths.length}</span>
+          <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            Retry failed imports first. Copy details if the same paths fail again.
+          </p>
+          {showFailedDetails ? (
+            failedImportGroups.length > 0 ? (
+              failedImportGroups.map(group => (
+                <div key={group.collectionId} className="mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">{group.collectionId}</span>
+                    <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">{group.paths.length}</span>
+                  </div>
+                  <ul className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] space-y-0.5">
+                    {group.paths.slice(0, 3).map(path => (
+                      <li key={`${group.collectionId}:${path}`} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
+                    ))}
+                    {group.paths.length > 3 && <li className="italic">...{group.paths.length - 3} more</li>}
+                  </ul>
                 </div>
-                <ul className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)] space-y-0.5">
-                  {group.paths.slice(0, 3).map(path => (
-                    <li key={`${group.collectionId}:${path}`} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
-                  ))}
-                  {group.paths.length > 3 && <li className="italic">...{group.paths.length - 3} more</li>}
-                </ul>
-              </div>
-            ))
-          ) : (
-            <ul className="text-secondary text-[color:var(--color-figma-text-secondary)] space-y-0.5">
-              {failedImportPaths.slice(0, 5).map(path => (
-                <li key={path} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
-              ))}
-              {failedImportPaths.length > 5 && <li className="italic">...{failedImportPaths.length - 5} more</li>}
-            </ul>
-          )}
+              ))
+            ) : (
+              <ul className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)] space-y-0.5">
+                {failedImportPaths.slice(0, 5).map(path => (
+                  <li key={path} className="font-mono [overflow-wrap:anywhere]" title={path}>{path}</li>
+                ))}
+                {failedImportPaths.length > 5 && <li className="italic">...{failedImportPaths.length - 5} more</li>}
+              </ul>
+            )
+          ) : null}
         </div>
       )}
 

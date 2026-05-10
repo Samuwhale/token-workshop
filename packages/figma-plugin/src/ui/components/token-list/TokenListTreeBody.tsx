@@ -20,6 +20,7 @@ import { ModeColumnHeader } from "./ModeColumnHeader";
 import { getGridMinWidth, getGridTemplate } from "../tokenListTypes";
 import { useModeColumnWidths } from "../../hooks/useModeColumnWidths";
 import { Button, TextInput } from "../../primitives";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import {
   addCollectionMode,
   DUPLICATE_MODE_NAME_MESSAGE,
@@ -250,6 +251,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const [addingModeSaving, setAddingModeSaving] = useState(false);
   const [addModeMenuOpen, setAddModeMenuOpen] = useState(false);
   const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
+  const addModeTriggerRef = useRef<HTMLButtonElement>(null);
+  const addModeInputRef = useRef<HTMLInputElement>(null);
   const tableHeaderRef = useRef<HTMLDivElement>(null);
   const [tableHeaderHeight, setTableHeaderHeight] = useState(0);
 
@@ -392,6 +395,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     setNewModeSourceName(defaultModeSourceName);
     setAddModeError("");
   }, [defaultModeSourceName]);
+  useFocusTrap(addModeMenuContainerRef, {
+    enabled: addModeMenuOpen,
+    initialFocusRef: addModeInputRef,
+  });
 
   const scrollModeColumns = useCallback(() => {
     const viewport = tableContentRef.current?.parentElement;
@@ -469,6 +476,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             Token
           </span>
           <Button
+            ref={addModeTriggerRef}
             onClick={() => {
               if (addModeMenuOpen) {
                 closeAddModeMenu();
@@ -501,6 +509,14 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               onMouseDown={(e) => e.stopPropagation()}
               role="dialog"
               aria-label="Add mode"
+              onKeyDown={(event) => {
+                if (event.key !== "Escape") {
+                  return;
+                }
+                event.preventDefault();
+                closeAddModeMenu();
+                requestAnimationFrame(() => addModeTriggerRef.current?.focus());
+              }}
             >
               <div className="flex flex-col gap-2 px-2 py-2">
                 <label
@@ -511,6 +527,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 </label>
                 <TextInput
                   id="token-table-new-mode-name"
+                  ref={addModeInputRef}
                   size="sm"
                   value={newModeName}
                   onChange={(e) => {
@@ -929,6 +946,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       ref={setTableContentRef}
       className="min-w-full"
       style={populatedTreeTableStyle}
+      role="tree"
+      aria-label="Token tree"
+      aria-multiselectable="true"
     >
       {tableHeader}
       <div className="py-1">

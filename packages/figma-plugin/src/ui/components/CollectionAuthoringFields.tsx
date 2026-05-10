@@ -30,7 +30,7 @@ export function createInitialCollectionAuthoringDraft(
 }
 
 const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
-  { label: "Single mode", modes: ["Default"] },
+  { label: "Default only", modes: ["Default"] },
   { label: "Light / Dark", modes: ["Light", "Dark"] },
   { label: "Mobile / Desktop", modes: ["Mobile", "Desktop"] },
 ];
