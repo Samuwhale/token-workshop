@@ -19,7 +19,11 @@ import type {
 import type { ValidationSnapshot } from './useValidationCache';
 import type { OrphanConfirmState } from './useOrphanCleanup';
 import { FIGMA_SCOPE_OPTIONS } from '../shared/tokenMetadata';
-import { apiFetch } from '../shared/apiFetch';
+import {
+  fetchGeneratorStatuses,
+  generatorStatusHasReviewIssue,
+  type GeneratorStatusItem,
+} from '../shared/generatorStatus';
 
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
@@ -98,26 +102,6 @@ export interface MissingVariablesConfirmState {
     targetLabel: string;
   }>;
   targetSummary: string;
-}
-
-interface GeneratorStatusItem {
-  generator: {
-    id: string;
-    name: string;
-    targetCollectionId: string;
-  };
-  preview: {
-    diagnostics: Array<{
-      id: string;
-      severity: 'error' | 'warning' | 'info';
-      nodeId?: string;
-      edgeId?: string;
-    }>;
-    outputs: Array<{ collision?: boolean; nodeId?: string }>;
-  };
-  stale: boolean;
-  unapplied: boolean;
-  blocking: boolean;
 }
 
 interface ResolverOrphanCleanupPlan {
@@ -461,10 +445,7 @@ export function useReadinessChecks({
       let generatorStatuses: GeneratorStatusItem[] = [];
       let generatorStatusError: string | null = null;
       try {
-        const generatorStatusResponse = await apiFetch<{ generators: GeneratorStatusItem[] }>(
-          `${serverUrl}/api/generators/status`,
-        );
-        generatorStatuses = generatorStatusResponse.generators;
+        generatorStatuses = await fetchGeneratorStatuses(serverUrl);
       } catch (error) {
         generatorStatuses = [];
         generatorStatusError = describeError(error);
@@ -473,11 +454,7 @@ export function useReadinessChecks({
         validationSnapshot?.issues.filter((issue) => issue.collectionId === currentCollectionId && issue.severity === 'error') ?? [];
       const generatorIssues = generatorStatuses.filter((item) =>
         item.generator.targetCollectionId === currentCollectionId &&
-        (item.blocking ||
-          item.stale ||
-          item.unapplied ||
-          item.preview.diagnostics.length > 0 ||
-          item.preview.outputs.some((output) => output.collision))
+        generatorStatusHasReviewIssue(item)
       );
       const recommendedGeneratorIssue = selectRecommendedGeneratorIssue(generatorIssues);
       const recommendedGeneratorDiagnostic = recommendedGeneratorIssue

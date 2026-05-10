@@ -6,7 +6,7 @@ import type { HealthSignalsResult, HealthStatus } from "../hooks/useHealthSignal
 import { statusFromIssueSeverities } from "../hooks/useHealthSignals";
 import type { ValidationIssue } from "../hooks/useValidationCache";
 import type { UseIssueActionsResult } from "../hooks/useIssueActions";
-import { apiFetch } from "../shared/apiFetch";
+import { createFetchSignal } from "../shared/apiFetch";
 import { rollbackOperation } from "../shared/tokenMutations";
 import { dispatchToast } from "../shared/toastBus";
 import { promoteTokensToSharedAlias } from "../hooks/useExtractToAlias";
@@ -27,29 +27,13 @@ import {
   type DeprecatedReplacementSelection,
   type DeprecatedUsageEntry,
 } from "../shared/deprecatedUsage";
+import {
+  fetchGeneratorStatuses,
+  type GeneratorStatusItem,
+} from "../shared/generatorStatus";
 import { LONG_TEXT_CLASSES } from "../shared/longTextStyles";
 import type { CollectionReviewSummary } from "../shared/reviewSummary";
-
-interface GeneratorStatusItem {
-  generator: {
-    id: string;
-    name: string;
-    targetCollectionId: string;
-  };
-  preview: {
-    diagnostics: Array<{
-      id: string;
-      severity: "error" | "warning" | "info";
-      message: string;
-      nodeId?: string;
-      edgeId?: string;
-    }>;
-    outputs: Array<{ collision?: boolean }>;
-  };
-  stale: boolean;
-  unapplied: boolean;
-  blocking: boolean;
-}
+import { isAbortError } from "../shared/utils";
 
 const GENERATOR_ISSUE_SEVERITY_RANK = {
   error: 0,
@@ -176,22 +160,29 @@ export function HealthPanel({
       setGeneratorStatusError(null);
       return;
     }
-    let cancelled = false;
-    apiFetch<{ generators: GeneratorStatusItem[] }>(`${serverUrl}/api/generators/status`)
-      .then((response) => {
-        if (!cancelled) {
-          setGeneratorStatuses(response.generators);
-          setGeneratorStatusError(null);
+
+    const controller = new AbortController();
+
+    fetchGeneratorStatuses(serverUrl, {
+      signal: createFetchSignal(controller.signal, 8000),
+    })
+      .then((statuses) => {
+        if (controller.signal.aborted) {
+          return;
         }
+        setGeneratorStatuses(statuses);
+        setGeneratorStatusError(null);
       })
       .catch((error) => {
-        if (!cancelled) {
-          setGeneratorStatuses([]);
-          setGeneratorStatusError(error instanceof Error ? error.message : String(error));
+        if (controller.signal.aborted || isAbortError(error)) {
+          return;
         }
+        setGeneratorStatuses([]);
+        setGeneratorStatusError(error instanceof Error ? error.message : String(error));
       });
+
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [connected, serverUrl, validationLastRefreshed]);
 
@@ -231,24 +222,24 @@ export function HealthPanel({
         path: item.generator.name,
         collectionId: item.generator.targetCollectionId,
         severity: diagnostic.severity,
-	        message: diagnostic.message,
-	        generatorId: item.generator.id,
-	        generatorDiagnosticId: diagnostic.id,
-	        generatorNodeId: diagnostic.nodeId,
-	        generatorEdgeId: diagnostic.edgeId,
-	      }));
+        message: diagnostic.message,
+        generatorId: item.generator.id,
+        generatorDiagnosticId: diagnostic.id,
+        generatorNodeId: diagnostic.nodeId,
+        generatorEdgeId: diagnostic.edgeId,
+      }));
       if (item.stale || item.unapplied) {
         diagnostics.unshift({
           rule: "generator-diagnostic",
           path: item.generator.name,
           collectionId: item.generator.targetCollectionId,
           severity: item.blocking ? "error" : "warning",
-	          message: item.stale
-	            ? "Generator outputs are stale. Preview and apply the generator before publishing."
-	            : "Generator outputs have not been applied yet.",
-	          generatorId: item.generator.id,
-	          generatorDiagnosticId: item.stale ? `${item.generator.id}-stale` : `${item.generator.id}-unapplied`,
-	        });
+          message: item.stale
+            ? "Generator outputs are stale. Preview and apply the generator before publishing."
+            : "Generator outputs have not been applied yet.",
+          generatorId: item.generator.id,
+          generatorDiagnosticId: item.stale ? `${item.generator.id}-stale` : `${item.generator.id}-unapplied`,
+        });
       }
       if (item.preview.outputs.some((output) => output.collision)) {
         diagnostics.unshift({
@@ -256,10 +247,10 @@ export function HealthPanel({
           path: item.generator.name,
           collectionId: item.generator.targetCollectionId,
           severity: "error",
-	          message: "A generated output collides with a manually edited token. Open the generator to resolve or detach the token.",
-	          generatorId: item.generator.id,
-	          generatorDiagnosticId: `${item.generator.id}-collision`,
-	        });
+          message: "A generated output collides with a manually edited token. Open the generator to resolve or detach the token.",
+          generatorId: item.generator.id,
+          generatorDiagnosticId: `${item.generator.id}-collision`,
+        });
       }
       return diagnostics;
     });

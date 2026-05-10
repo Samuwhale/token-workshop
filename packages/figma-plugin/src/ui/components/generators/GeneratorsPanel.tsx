@@ -67,6 +67,10 @@ import type { TokenMapEntry } from "../../../shared/types";
 import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import { apiFetch } from "../../shared/apiFetch";
+import {
+  fetchGeneratorStatuses,
+  type FullGeneratorStatusItem,
+} from "../../shared/generatorStatus";
 import { ActionRow, Button, IconButton, SegmentedControl } from "../../primitives";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
@@ -161,19 +165,6 @@ interface GeneratorResponse {
 
 interface GeneratorPreviewResponse {
   preview: TokenGeneratorPreviewResult;
-}
-
-interface GeneratorStatusItem {
-  generator: TokenGeneratorDocument;
-  preview: TokenGeneratorPreviewResult;
-  stale: boolean;
-  unapplied: boolean;
-  blocking: boolean;
-  managedTokenCount: number;
-}
-
-interface GeneratorStatusResponse {
-  generators: GeneratorStatusItem[];
 }
 
 interface GeneratorApplyResponse {
@@ -472,7 +463,7 @@ export function GeneratorsPanel({
     null,
   );
   const [generatorStatusesById, setGeneratorStatusesById] = useState<
-    Record<string, GeneratorStatusItem>
+    Record<string, FullGeneratorStatusItem>
   >({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -750,12 +741,10 @@ export function GeneratorsPanel({
   }, []);
 
   const loadGeneratorStatuses = useCallback(async () => {
-    const data = await apiFetch<GeneratorStatusResponse>(
-      `${serverUrl}/api/generators/status`,
-    );
+    const statuses = await fetchGeneratorStatuses<TokenGeneratorDocument>(serverUrl);
     setGeneratorStatusesById(
       Object.fromEntries(
-        data.generators.map((status) => [status.generator.id, status]),
+        statuses.map((status) => [status.generator.id, status]),
       ),
     );
   }, [serverUrl]);
