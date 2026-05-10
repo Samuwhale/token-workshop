@@ -932,14 +932,11 @@ export function PublishPanel({
     });
   }, []);
 
+  const computeVariableDiff = varSync.computeDiff;
+
   const handlePreflightAction = useCallback(async (
     actionId: PublishPreflightActionId,
-	    cluster?: {
-	      recommendedGeneratorId?: string;
-	      recommendedGeneratorDiagnosticId?: string;
-	      recommendedGeneratorNodeId?: string;
-	      recommendedGeneratorEdgeId?: string;
-	    },
+    cluster?: PublishPreflightCluster,
   ) => {
     setPreflightActionBusyId(actionId);
     try {
@@ -969,24 +966,24 @@ export function PublishPanel({
             'Review the generator outputs behind these blockers, then return to Sync.',
           onReturn: () => focusStage('preflight'),
         });
-	        if (cluster?.recommendedGeneratorId && onOpenGenerator) {
-	          onOpenGenerator(cluster.recommendedGeneratorId, {
-	            preserveHandoff: true,
-	            focus: {
-	              diagnosticId: cluster.recommendedGeneratorDiagnosticId,
-	              nodeId: cluster.recommendedGeneratorNodeId,
-	              edgeId: cluster.recommendedGeneratorEdgeId,
-	            },
-	          });
-	          return;
-	        }
+        if (cluster?.recommendedGeneratorId && onOpenGenerator) {
+          onOpenGenerator(cluster.recommendedGeneratorId, {
+            preserveHandoff: true,
+            focus: {
+              diagnosticId: cluster.recommendedGeneratorDiagnosticId,
+              nodeId: cluster.recommendedGeneratorNodeId,
+              edgeId: cluster.recommendedGeneratorEdgeId,
+            },
+          });
+          return;
+        }
         navigateTo('library', 'generators', { preserveHandoff: true });
         return;
       }
 
       if (actionId === 'review-variable-scopes') {
         setActiveCompareTarget('variables');
-        await varSync.computeDiff();
+        await computeVariableDiff();
         focusStage('compare');
         return;
       }
@@ -1015,7 +1012,7 @@ export function PublishPanel({
     navigateTo,
     onOpenGenerator,
     triggerReadinessAction,
-    varSync,
+    computeVariableDiff,
   ]);
 
   const preflightActionHandlers = useMemo<
