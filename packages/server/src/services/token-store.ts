@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { watch } from "chokidar";
 import {
   SEARCH_SCOPE_CATEGORIES,
@@ -798,12 +799,7 @@ export class TokenStore {
     name: string,
     tokens: TokenGroup = {},
   ): Promise<StoredCollection> {
-    const filePath = this.collectionFilePath(name);
-    const tmpPath = filePath + ".tmp";
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(tmpPath, JSON.stringify(tokens, null, 2));
-    this._startWriteGuard(filePath);
-    await fs.rename(tmpPath, filePath);
+    const filePath = await this.writeCollectionTokensFile(name, tokens);
     const collection: StoredCollection = { name, tokens, filePath };
     this.collections.set(name, collection);
     return collection;
@@ -880,9 +876,7 @@ export class TokenStore {
         if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
           throw err;
         }
-        const tmpPath = `${newFilePath}.tmp`;
-        await fs.writeFile(tmpPath, JSON.stringify(collection.tokens, null, 2));
-        await fs.rename(tmpPath, newFilePath);
+        await this.writeCollectionTokensFile(newCollectionId, collection.tokens);
       }
       const renamed: StoredCollection = {
         name: newCollectionId,
@@ -2637,24 +2631,41 @@ export class TokenStore {
     const next = prev.then(async () => {
       const collection = this.collections.get(name);
       if (!collection) return;
-      const filePath = this.collectionFilePath(name);
-      const tmpPath = filePath + ".tmp";
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(tmpPath, JSON.stringify(collection.tokens, null, 2));
-      this._startWriteGuard(filePath);
-      try {
-        await fs.rename(tmpPath, filePath);
-      } catch (err) {
-        await fs.unlink(tmpPath).catch(() => {});
-        throw err;
-      }
+      await this.writeCollectionTokensFile(name, collection.tokens);
     });
     // Advance the chain regardless of success/failure (mirrors PromiseChainLock behaviour).
-    this._saveChains.set(
-      name,
-      next.catch(() => {}),
-    );
+    const chain = next.catch(() => {});
+    this._saveChains.set(name, chain);
+    void chain.then(() => {
+      if (this._saveChains.get(name) === chain) {
+        this._saveChains.delete(name);
+      }
+    });
     return next;
+  }
+
+  private async writeCollectionTokensFile(
+    collectionId: string,
+    tokens: TokenGroup,
+  ): Promise<string> {
+    const filePath = this.collectionFilePath(collectionId);
+    const tmpPath = `${filePath}.${randomUUID()}.tmp`;
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(tmpPath, JSON.stringify(tokens, null, 2));
+
+    this._startWriteGuard(filePath);
+    try {
+      await fs.rename(tmpPath, filePath);
+    } catch (err) {
+      this._clearWriteGuard(filePath);
+      await fs.unlink(tmpPath).catch(() => {});
+      throw err;
+    }
+
+    if (!this.watcher) {
+      this._clearWriteGuard(filePath);
+    }
+    return filePath;
   }
 
   // ----- SSE support -----

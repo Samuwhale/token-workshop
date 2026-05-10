@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { apiFetch, createFetchSignal, type PaginatedResponse } from '../shared/apiFetch';
+import { apiFetch, combineAbortSignals, createFetchSignal, type PaginatedResponse } from '../shared/apiFetch';
 import { rollbackOperation } from '../shared/tokenMutations';
 import { getErrorMessage, isAbortError } from '../shared/utils';
 import type { OperationEntry } from '../components/history/types';
@@ -43,30 +43,50 @@ export function useRecentOperations({
   const hasMore = total > recentOperations.length;
 
   const unmountRef = useRef(new AbortController());
+  const fetchControllerRef = useRef<AbortController | null>(null);
+  const fetchGenerationRef = useRef(0);
   // Abort any in-flight fetch on unmount
   useEffect(() => {
     const controller = unmountRef.current;
-    return () => controller.abort();
+    return () => {
+      fetchControllerRef.current?.abort();
+      controller.abort();
+    };
   }, []);
 
   const fetchRecentOps = useCallback(async (limit?: number) => {
     if (!connected || !serverUrl) return;
     const effectiveLimit = limit ?? loadedCount;
+    fetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    const generation = ++fetchGenerationRef.current;
+    fetchControllerRef.current = controller;
+    const signal = createFetchSignal(
+      combineAbortSignals([unmountRef.current.signal, controller.signal]),
+    );
+
     try {
       const data = await apiFetch<PaginatedResponse<OperationEntry>>(
         `${serverUrl}/api/operations?limit=${effectiveLimit}`,
-        { signal: createFetchSignal(unmountRef.current.signal) },
+        { signal },
       );
+      if (generation !== fetchGenerationRef.current || signal.aborted) return;
       setRecentOperations(data.data ?? []);
       setTotal(data.total ?? 0);
     } catch (err) {
-      if (isAbortError(err)) return;
+      if (generation !== fetchGenerationRef.current || signal.aborted || isAbortError(err)) return;
       console.warn('[useRecentOperations] fetch failed:', err);
+    } finally {
+      if (fetchControllerRef.current === controller) {
+        fetchControllerRef.current = null;
+      }
     }
   }, [serverUrl, connected, loadedCount]);
 
   useEffect(() => {
     if (connected && serverUrl) return;
+    fetchControllerRef.current?.abort();
+    fetchGenerationRef.current++;
     setRecentOperations([]);
     setTotal(0);
     setLoadedCount(INITIAL_LIMIT);
