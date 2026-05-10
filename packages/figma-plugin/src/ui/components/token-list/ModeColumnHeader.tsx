@@ -8,6 +8,10 @@ import {
   reorderCollectionModes,
 } from "../../shared/collectionModes";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
+import {
+  FLOATING_MENU_DANGER_ITEM_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+} from "../../shared/menuClasses";
 import { getErrorMessage } from "../../shared/utils";
 import { ConfirmModal } from "../ConfirmModal";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
@@ -347,7 +351,7 @@ export function ModeColumnHeader({
           ref={menuRef}
           role="menu"
           aria-label={`${modeName} mode actions`}
-          className="z-50 overflow-y-auto rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-1 text-body"
+          className="z-50 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 text-body shadow-[var(--shadow-popover)]"
           style={menuStyle ?? { visibility: "hidden" }}
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={handleMenuKeyDown}
@@ -359,7 +363,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               setRenaming(true);
             }}
-            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+            className={FLOATING_MENU_ITEM_CLASS}
           >
             Rename
           </button>
@@ -371,7 +375,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               void handleReorder(-1);
             }}
-            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
+            className={FLOATING_MENU_ITEM_CLASS}
           >
             Move left
           </button>
@@ -383,7 +387,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               void handleReorder(1);
             }}
-            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent"
+            className={FLOATING_MENU_ITEM_CLASS}
           >
             Move right
           </button>
@@ -396,7 +400,7 @@ export function ModeColumnHeader({
               setMenuOpen(false);
               setConfirmDelete(true);
             }}
-            className="block w-full px-3 py-1 text-left text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 disabled:hover:bg-transparent"
+            className={FLOATING_MENU_DANGER_ITEM_CLASS}
           >
             Delete mode
           </button>

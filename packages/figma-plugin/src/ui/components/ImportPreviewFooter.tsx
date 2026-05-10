@@ -38,6 +38,7 @@ export function ImportPreviewFooter() {
     importProgress,
     checkingConflicts,
     handleImportStyles,
+    executeImport,
     clearConflictState,
   } = useImportReviewContext();
 
@@ -64,10 +65,17 @@ export function ImportPreviewFooter() {
         : null;
   const previewStatusDetail =
     existingTokenMapError !== null
-      ? 'Import may replace tokens with the same path.'
+      ? 'Compare failed. Importing can replace tokens with the same path.'
       : previewOverwriteCount && previewOverwriteCount > 0
         ? 'Review matches before you import.'
         : null;
+  const handlePrimaryImport = () => {
+    if (importWithoutConflictCheck) {
+      void executeImport('overwrite');
+      return;
+    }
+    void handleImportStyles();
+  };
 
   // Once conflicts have been fetched, swap the footer for the resolver flow.
   if (conflictPaths !== null && conflictPaths.length > 0) {
@@ -198,7 +206,17 @@ export function ImportPreviewFooter() {
               </p>
             ) : null}
           </div>
-          {hasPreviewConflicts && (
+          {existingTokenMapError !== null ? (
+            <Button
+              onClick={handleImportStyles}
+              variant="ghost"
+              size="sm"
+              wrap
+              disabled={checkingConflicts}
+            >
+              Retry compare
+            </Button>
+          ) : hasPreviewConflicts ? (
             <Button
               onClick={handleImportStyles}
               variant="ghost"
@@ -207,12 +225,12 @@ export function ImportPreviewFooter() {
             >
               Review matches
             </Button>
-          )}
+          ) : null}
         </div>
       )}
 
       <Button
-        onClick={handleImportStyles}
+        onClick={handlePrimaryImport}
         disabled={importDisabled}
         variant="primary"
         wrap
@@ -227,7 +245,7 @@ export function ImportPreviewFooter() {
             : hasPreviewConflicts
               ? `Review ${previewConflictCount} matching token${previewConflictCount === 1 ? "" : "s"}`
               : importWithoutConflictCheck
-                ? `Import ${selectedCount} without compare`
+                ? `Import ${selectedCount} without review`
               : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
       </Button>
 

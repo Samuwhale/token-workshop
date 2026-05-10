@@ -2,7 +2,10 @@ import { useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useDropdownMenu } from '../hooks/useDropdownMenu';
 import { useAnchoredFloatingStyle } from '../shared/floatingPosition';
-import { FLOATING_MENU_WIDE_CLASS } from '../shared/menuClasses';
+import {
+  FLOATING_MENU_ITEM_CLASS,
+  FLOATING_MENU_WIDE_CLASS,
+} from '../shared/menuClasses';
 import type { BatchActionType } from './batch-actions/types';
 import { Button } from '../primitives';
 
@@ -32,8 +35,6 @@ export interface TokenSelectionToolbarProps {
   onLinkToTokens: () => void;
 }
 
-const menuItemClass =
-  'w-full flex items-center gap-2 px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40';
 const menuSeparator = 'border-t border-[var(--color-figma-border)] my-1';
 const menuPanel = FLOATING_MENU_WIDE_CLASS;
 
@@ -223,7 +224,7 @@ export function TokenSelectionToolbar({
         {hiddenSelectionCount > 0 ? (
           <div className="tm-responsive-toolbar__row">
             <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-warning)] px-2.5 py-1.5 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-warning)]">
-              Bulk actions apply to all {selectedPaths.size} selected tokens, not just the {visibleSelectedCount} visible here.
+              Actions apply to all {selectedPaths.size} selected tokens, including {hiddenSelectionCount} outside these results.
             </div>
           </div>
         ) : null}
@@ -234,49 +235,49 @@ export function TokenSelectionToolbar({
               <ToolbarDropdown label="Edit" disabled={!!operationLoading}>
                 {(close) => (
                   <>
-                    <button type="button" role="menuitem" onClick={() => openAction('set-description', close)} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => openAction('set-description', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Set description
                     </button>
-                    <button type="button" role="menuitem" onClick={() => openAction('change-type', close)} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => openAction('change-type', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Change type
                     </button>
                     <div className={menuSeparator} />
                     {hasColors && (
-                      <button type="button" role="menuitem" onClick={() => openAction('adjust-colors', close)} className={menuItemClass}>
+                      <button type="button" role="menuitem" onClick={() => openAction('adjust-colors', close)} className={FLOATING_MENU_ITEM_CLASS}>
                         Adjust colors
                       </button>
                     )}
                     {hasNumeric && (
-                      <button type="button" role="menuitem" onClick={() => openAction('scale-numbers', close)} className={menuItemClass}>
+                      <button type="button" role="menuitem" onClick={() => openAction('scale-numbers', close)} className={FLOATING_MENU_ITEM_CLASS}>
                         Scale numbers
                       </button>
                     )}
-                    <button type="button" role="menuitem" onClick={() => openAction('set-value', close)} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => openAction('set-value', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Set value
                     </button>
-                    <button type="button" role="menuitem" onClick={() => openAction('set-alias', close)} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => openAction('set-alias', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Set alias
                     </button>
                     <div className={menuSeparator} />
-                    <button type="button" role="menuitem" onClick={() => openAction('find-replace', close)} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => openAction('find-replace', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Find & replace
                     </button>
-                    <button type="button" role="menuitem" onClick={() => openAction('rewrite-aliases', close)} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => openAction('rewrite-aliases', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Rewrite aliases
                     </button>
                     <div className={menuSeparator} />
                     {hasScopableTypes && (
-                      <button type="button" role="menuitem" onClick={() => openAction('figma-scopes', close)} className={menuItemClass}>
+                      <button type="button" role="menuitem" onClick={() => openAction('figma-scopes', close)} className={FLOATING_MENU_ITEM_CLASS}>
                         Can apply to
                       </button>
                     )}
-                    <button type="button" role="menuitem" onClick={() => openAction('set-extensions', close)} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => openAction('set-extensions', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Set extensions
                     </button>
                     {onCompare && (
                       <>
                         <div className={menuSeparator} />
-                        <button type="button" role="menuitem" onClick={() => { close(); onCompare(); }} className={menuItemClass}>
+                        <button type="button" role="menuitem" onClick={() => { close(); onCompare(); }} className={FLOATING_MENU_ITEM_CLASS}>
                           Compare {selectedPaths.size}
                         </button>
                       </>
@@ -288,13 +289,13 @@ export function TokenSelectionToolbar({
               <ToolbarDropdown label="Copy" disabled={!!operationLoading}>
                 {(close) => (
                   <>
-                    <button type="button" role="menuitem" onClick={() => { close(); onCopyJson(); }} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => { close(); onCopyJson(); }} className={FLOATING_MENU_ITEM_CLASS}>
                       <span aria-live="polite">{copyFeedback ? 'Copied!' : 'JSON'}</span>
                     </button>
-                    <button type="button" role="menuitem" onClick={() => { close(); onCopyCssVar(); }} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => { close(); onCopyCssVar(); }} className={FLOATING_MENU_ITEM_CLASS}>
                       <span aria-live="polite">{copyCssFeedback ? 'Copied!' : 'CSS variables'}</span>
                     </button>
-                    <button type="button" role="menuitem" onClick={() => { close(); onCopyDtcgRef(); }} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => { close(); onCopyDtcgRef(); }} className={FLOATING_MENU_ITEM_CLASS}>
                       <span aria-live="polite" className="font-mono">{copyAliasFeedback ? 'Copied!' : '{alias}'}</span>
                     </button>
                   </>
@@ -304,21 +305,21 @@ export function TokenSelectionToolbar({
               <ToolbarDropdown label="Move" disabled={!!operationLoading}>
                 {(close) => (
                   <>
-                    <button type="button" role="menuitem" onClick={() => { close(); onMoveToGroup(); }} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => { close(); onMoveToGroup(); }} className={FLOATING_MENU_ITEM_CLASS}>
                       Move to group…
                     </button>
                     {collectionIds.length > 1 && (
                       <>
-                        <button type="button" role="menuitem" onClick={() => { close(); onMoveToCollection(); }} className={menuItemClass}>
+                        <button type="button" role="menuitem" onClick={() => { close(); onMoveToCollection(); }} className={FLOATING_MENU_ITEM_CLASS}>
                           Move to collection…
                         </button>
-                        <button type="button" role="menuitem" onClick={() => { close(); onCopyToCollection(); }} className={menuItemClass}>
+                        <button type="button" role="menuitem" onClick={() => { close(); onCopyToCollection(); }} className={FLOATING_MENU_ITEM_CLASS}>
                           Copy to collection…
                         </button>
                       </>
                     )}
                     <div className={menuSeparator} />
-                    <button type="button" role="menuitem" onClick={() => { close(); onLinkToTokens(); }} className={menuItemClass}>
+                    <button type="button" role="menuitem" onClick={() => { close(); onLinkToTokens(); }} className={FLOATING_MENU_ITEM_CLASS}>
                       Promote to alias
                     </button>
                   </>

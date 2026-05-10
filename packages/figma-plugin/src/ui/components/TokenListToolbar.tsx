@@ -16,7 +16,10 @@ import type { ToolbarStateChip } from "./token-list/useToolbarStateChips";
 import { replaceQueryToken } from "./tokenListUtils";
 import { useDropdownMenu } from "../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../shared/floatingPosition";
-import { FLOATING_MENU_CLASS } from "../shared/menuClasses";
+import {
+  FLOATING_MENU_CLASS,
+  FLOATING_MENU_ITEM_CLASS,
+} from "../shared/menuClasses";
 import type { SortOrder, TokenGroupBy } from "./tokenListTypes";
 import {
   Button,
@@ -585,7 +588,7 @@ export function TokenListToolbar({
                                     : overflowMenuProps!.onExpandAll,
                                 )
                               }
-                              className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                              className={FLOATING_MENU_ITEM_CLASS}
                             >
                               {overflowMenuProps!.allGroupsExpanded
                                 ? "Collapse all groups"
@@ -605,7 +608,7 @@ export function TokenListToolbar({
                                 type="button"
                                 role="menuitem"
                                 onClick={() => runMenuAction(onBulkEdit)}
-                                className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                                className={FLOATING_MENU_ITEM_CLASS}
                               >
                                 Bulk edit
                               </button>
@@ -616,7 +619,7 @@ export function TokenListToolbar({
                                 role="menuitem"
                                 onClick={() => runMenuAction(onFindReplace)}
                                 disabled={!connected}
-                                className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                                className={FLOATING_MENU_ITEM_CLASS}
                               >
                                 Find and replace
                               </button>
@@ -704,7 +707,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateAction(handleOpenNewGroupDialog)}
                       disabled={!connected}
-                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                      className={FLOATING_MENU_ITEM_CLASS}
                     >
                       New group
                     </button>
@@ -713,7 +716,7 @@ export function TokenListToolbar({
                       role="menuitem"
                       onClick={() => runCreateAction(openTableCreate)}
                       disabled={!connected}
-                      className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                      className={FLOATING_MENU_ITEM_CLASS}
                     >
                       Create multiple tokens
                     </button>
@@ -729,7 +732,7 @@ export function TokenListToolbar({
                             )
                           }
                           disabled={!connected}
-                          className="flex w-full items-center px-2.5 py-1 text-left text-secondary text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                          className={FLOATING_MENU_ITEM_CLASS}
                         >
                           Create generator
                         </button>

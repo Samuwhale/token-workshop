@@ -1,10 +1,7 @@
 import { Check, X } from "lucide-react";
 import type { KeyboardEvent, MutableRefObject } from "react";
 import { IconButton } from "./IconButton";
-
-function joinClasses(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
-}
+import { TextInput } from "./TextInput";
 
 export interface InlineRenameRowProps {
   inputRef: MutableRefObject<HTMLInputElement | null>;
@@ -51,21 +48,19 @@ export function InlineRenameRow({
   return (
     <div className="tm-inline-rename-row" onClick={(event) => event.stopPropagation()}>
       <div className="tm-inline-rename-row__field">
-        <input
-          ref={inputRef}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={handleKeyDown}
-          aria-label={ariaLabel}
-          title={inputTitle}
-          className={joinClasses(
-            "tm-inline-rename-row__input rounded border bg-[var(--color-figma-bg)] px-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)]",
-            error
-              ? "border-[var(--color-figma-error)]"
-              : "border-[var(--color-figma-border)]",
-            inputClassName,
-          )}
-        />
+        <div className="tm-inline-rename-row__input">
+          <TextInput
+            ref={inputRef}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+            aria-label={ariaLabel}
+            title={inputTitle}
+            size="sm"
+            invalid={Boolean(error)}
+            className={inputClassName}
+          />
+        </div>
         {showActions ? (
           <div className="tm-inline-rename-row__actions">
             <IconButton

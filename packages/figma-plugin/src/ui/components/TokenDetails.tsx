@@ -727,11 +727,12 @@ export function TokenDetails({
   useEffect(() => {
     if (!isCreateMode) return;
     const resolvedType = normalizeTokenType(initialType);
-    const initialCreateValue = getInitialCreateValue(
-      resolvedType,
-      initialValue,
-    );
-    const initialModeValues = buildDefaultModeValues(initialCreateValue);
+    const hasSeedValue =
+      typeof initialValue === "string" && initialValue.trim().length > 0;
+    const initialCreateValue = hasSeedValue
+      ? getInitialCreateValue(resolvedType, initialValue)
+      : undefined;
+    const initialModeValues = {};
     initialRef.current = {
       value: initialCreateValue,
       description: "",
@@ -757,13 +758,10 @@ export function TokenDetails({
     setShowPathAutocomplete(tokenPath.trim().endsWith("."));
     setDisplayError(null);
   }, [
-    collections,
     initialRef,
     initialType,
     initialValue,
     isCreateMode,
-    buildDefaultModeValues,
-    ownerCollectionId,
     setDerivationOps,
     setDescription,
     setEditPath,

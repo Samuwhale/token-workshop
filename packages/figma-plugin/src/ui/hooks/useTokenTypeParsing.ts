@@ -93,6 +93,22 @@ function modeValuesDifferFromTypeDefault(
   return false;
 }
 
+function isEmptyEditorValue(value: unknown): boolean {
+  return value === undefined || value === null || value === '';
+}
+
+function modeValuesHaveContent(modeValues: TokenEditorModeValues): boolean {
+  for (const collectionModes of Object.values(modeValues)) {
+    if (!collectionModes || typeof collectionModes !== 'object') continue;
+    for (const modeValue of Object.values(collectionModes)) {
+      if (!isEmptyEditorValue(modeValue)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 interface UseTokenTypeParsingParams {
   tokenType: string;
   setTokenType: (v: string) => void;
@@ -195,14 +211,16 @@ export function useTokenTypeParsing({
     return null;
   }, [aliasCycleError, duplicatePath, extensionsJsonError, tokenType, value, valueIsAlias, isCreateMode, editPath]);
 
-  const applyTypeChange = (newType: string) => {
+  const applyTypeChange = (newType: string, fillDefaults = true) => {
     const validScopes = new Set(
       (FIGMA_SCOPE_OPTIONS[newType] ?? []).map((option) => option.value),
     );
     const nextValue = DEFAULT_VALUE_FOR_TYPE[newType] ?? '';
     setTokenType(newType);
-    setValue(nextValue);
-    setModeValues(getModeValuesForDefaultValue?.(nextValue) ?? {});
+    setValue(fillDefaults ? nextValue : undefined);
+    setModeValues(
+      fillDefaults ? getModeValuesForDefaultValue?.(nextValue) ?? {} : {},
+    );
     setScopes(
       validScopes.size === 0
         ? []
@@ -213,6 +231,15 @@ export function useTokenTypeParsing({
   };
 
   const handleTypeChange = (newType: string) => {
+    if (
+      isCreateMode &&
+      isEmptyEditorValue(value) &&
+      !modeValuesHaveContent(modeValues)
+    ) {
+      applyTypeChange(newType, false);
+      return;
+    }
+
     const hasCustomModeValues = modeValuesDifferFromTypeDefault(
       tokenType,
       modeValues,

@@ -2300,13 +2300,13 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
-@container (max-width: 360px) {
+@container (max-width: 480px) {
   .tm-token-toolbar__secondary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
     min-inline-size: 0;
     align-items: stretch;
-    gap: 2px;
+    gap: 4px;
   }
 
   .tm-token-toolbar__secondary > * {
@@ -2323,27 +2323,28 @@ button.tm-status-row:not(:disabled):hover {
   .tm-token-toolbar__sort > button,
   .tm-token-toolbar__overflow > button {
     inline-size: 100%;
-    justify-content: center;
+    justify-content: space-between;
   }
 
   .tm-token-toolbar__overflow-button {
-    justify-content: center;
+    justify-content: space-between;
   }
 
   .tm-toolbar-action__label,
   .tm-token-toolbar__button-label {
-    white-space: nowrap;
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
   }
 
   .tm-token-toolbar__overflow-label {
     display: block;
   }
-}
 
-@container (max-width: 480px) {
-  .tm-token-toolbar__sort > *,
-  .tm-token-toolbar__overflow-button {
-    justify-content: center;
+  .tm-token-toolbar__scope-text {
+    white-space: normal;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
   }
 
   .tm-token-table__add-mode {
@@ -2398,7 +2399,7 @@ button.tm-status-row:not(:disabled):hover {
 .tm-inline-rename-row__field {
   display: flex;
   min-inline-size: 0;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   flex-wrap: wrap;
 }
@@ -2452,9 +2453,9 @@ button.tm-status-row:not(:disabled):hover {
 .tm-mode-column-header__resize-handle {
   position: absolute;
   inset-block: 0;
-  inset-inline-end: -4px;
+  inset-inline-end: -6px;
   z-index: 10;
-  inline-size: 8px;
+  inline-size: 12px;
   cursor: col-resize;
   border-radius: 0;
   background: transparent;
@@ -2504,8 +2505,8 @@ button.tm-status-row:not(:disabled):hover {
     transform var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-fast) var(--ease-standard);
-  opacity: 0;
-  transform: translateX(-50%) scaleY(0.72);
+  opacity: 0.42;
+  transform: translateX(-50%) scaleY(0.82);
 }
 
 .tm-mode-column-header__resize-handle:hover .tm-mode-column-header__resize-grip,
@@ -4993,93 +4994,6 @@ button.tm-token-details__text-button:disabled:hover {
 @container authoring-surface (max-width: 320px) {
   .tm-token-mode-row__action-button-label {
     font-size: var(--font-size-xs);
-  }
-}
-
-@container (max-width: 480px) {
-  .tm-token-toolbar__row {
-    flex-wrap: wrap;
-    align-items: stretch;
-    gap: 4px;
-  }
-
-  .tm-token-toolbar .tm-responsive-toolbar__leading {
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .tm-token-toolbar__scope {
-    order: 1;
-    flex: 1 1 100%;
-  }
-
-  .tm-token-toolbar .tm-responsive-toolbar__search {
-    order: 2;
-    flex-basis: 100%;
-    min-inline-size: 0;
-  }
-
-  .tm-token-toolbar__search-control {
-    flex-wrap: wrap;
-  }
-
-  .tm-token-toolbar__search-control [role="radiogroup"] {
-    inline-size: 100%;
-  }
-
-  .tm-token-toolbar .tm-responsive-toolbar__actions {
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 4px;
-  }
-
-  .tm-token-toolbar__filter,
-  .tm-token-toolbar__sort {
-    flex: 1 1 calc(50% - 2px);
-    min-inline-size: 0;
-  }
-
-  .tm-token-toolbar__filter > .relative,
-  .tm-token-toolbar__create > :first-child {
-    inline-size: 100%;
-  }
-
-  .tm-token-toolbar__filter > .relative > button,
-  .tm-token-toolbar__sort > button {
-    inline-size: 100%;
-    justify-content: space-between;
-  }
-
-  .tm-token-toolbar__create {
-    flex: 1 1 100%;
-    min-inline-size: 0;
-  }
-
-  .tm-token-toolbar__overflow-button {
-    inline-size: 100%;
-    justify-content: center;
-  }
-
-  .tm-token-toolbar__split-button {
-    inline-size: 100%;
-  }
-
-  .tm-token-toolbar__split-button-primary {
-    justify-content: center;
-  }
-
-  .tm-token-toolbar__secondary-label,
-  .tm-token-toolbar__primary-label,
-  .tm-token-toolbar__button-label {
-    white-space: normal;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-  }
-
-  .tm-token-toolbar__overflow-label {
-    display: block;
   }
 }
 

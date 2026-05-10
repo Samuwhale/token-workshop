@@ -26,6 +26,8 @@ export function ExportFooter({
 }: ExportFooterProps) {
   const hasResolvedZeroChanges = changesOnly && diffPaths !== null && !diffLoading && diffPaths.length === 0;
   const changesOnlyNeedsBaseline = changesOnly && isGitRepo === false && lastExportTimestamp === null;
+  const exportResetsTimestampBaseline =
+    changesOnly && isGitRepo === false && diffPaths !== null && diffPaths.length > 0;
   const exportDisabled = selected.size === 0
     || (selectedCollections !== null && selectedCollections.size === 0)
     || !connected
@@ -81,7 +83,9 @@ export function ExportFooter({
               ? 'Connect to export'
               : hasResolvedZeroChanges
               ? 'Re-export 0 Changed Tokens'
-              : 'Re-export'}
+              : exportResetsTimestampBaseline
+                ? 'Re-export and reset baseline'
+                : 'Re-export'}
           </button>
           <div className="flex flex-wrap gap-1.5">
             <button
@@ -154,6 +158,8 @@ export function ExportFooter({
               ? 'Changes only — set baseline'
               : hasResolvedZeroChanges
               ? 'No changed tokens to export'
+              : exportResetsTimestampBaseline
+              ? `Export ${diffPaths.length} changed token${diffPaths.length !== 1 ? 's' : ''} and reset baseline`
               : changesOnly && diffPaths !== null && diffPaths.length > 0
               ? `Export ${diffPaths.length} changed token${diffPaths.length !== 1 ? 's' : ''}`
               : selectedCollections !== null
