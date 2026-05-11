@@ -581,7 +581,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                               {formatModeCopyOption(modeName)}
                             </option>
                           ))}
-                          <option value={EMPTY_MODE_SOURCE}>Leave empty</option>
+                          <option value={EMPTY_MODE_SOURCE}>Empty values</option>
                         </select>
                       </label>
                     ) : null}
@@ -620,10 +620,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           <ModeColumnHeader
             key={r.optionName}
             modeName={r.optionName}
-            modeIndex={idx}
-            allModeNames={modeNames}
             collectionId={multiModeData.collection.id}
-            onManageModes={props.navigation.onManageCollectionModes}
+            onManageModes={
+              idx === 0 ? props.navigation.onManageCollectionModes : undefined
+            }
             connected={connected}
             width={modeColumnWidths[idx] ?? 0}
             onResize={(w) => setModeColumnWidth(idx, w)}

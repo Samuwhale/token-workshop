@@ -126,7 +126,7 @@ export function CanvasRouter({
         {deliveryStrip}
         <ErrorBoundary
           panelName="Canvas selection"
-          onReset={() => navigateTo("library", "tokens")}
+          onReset={() => navigateTo("canvas", "inspect")}
         >
           <SelectionInspector
             selectedNodes={selectedNodes}

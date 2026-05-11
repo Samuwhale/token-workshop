@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
 import { useImportSourceContext } from './ImportPanelContext';
 import { type ImportToken } from './importPanelTypes';
 import { tokenTypeBadgeClass } from '../../shared/types';
 import { SearchField } from '../primitives';
+import { SecondaryTakeoverHeader } from './SecondaryTakeoverHeader';
 
 const ALIAS_VALUE_PATTERN = /^\{(.+)\}$/;
 const COLOR_HEX_PATTERN = /^#[0-9a-fA-F]{3,8}$/;
@@ -24,7 +24,17 @@ function resolveAlias(token: ImportToken, tokensByPath: Map<string, ImportToken>
   return String(target.$value);
 }
 
-function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: Map<string, ImportToken> }) {
+function TokenRow({
+  token,
+  tokensByPath,
+  selected,
+  onToggle,
+}: {
+  token: ImportToken;
+  tokensByPath: Map<string, ImportToken>;
+  selected: boolean;
+  onToggle: (path: string) => void;
+}) {
   const tokenValue = token.$value;
   const isAlias = isAliasValue(tokenValue);
   const aliasTarget = isAlias ? tokenValue.slice(1, -1) : null;
@@ -37,6 +47,13 @@ function TokenRow({ token, tokensByPath }: { token: ImportToken; tokensByPath: M
 
   return (
     <div className="flex items-start gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => onToggle(token.path)}
+        aria-label={`Include ${token.path}`}
+        className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[var(--color-figma-accent)]"
+      />
       {token.$type === 'color' && typeof tokenValue === 'string' && !isAlias && (
         <div
           className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
@@ -87,6 +104,8 @@ export function ImportTokenListView() {
     source,
     handleBack,
     setTypeFilter,
+    toggleAll,
+    toggleToken,
   } = useImportSourceContext();
 
   const [searchText, setSearchText] = useState('');
@@ -134,16 +153,14 @@ export function ImportTokenListView() {
     }
     return countByType;
   }, [tokens]);
+  const allTokensSelected = selectedTokens.size === tokens.length && tokens.length > 0;
 
   return (
     <>
-      <button
-        onClick={handleBack}
-        className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors self-start"
-      >
-        <ChevronLeft size={12} strokeWidth={1.75} aria-hidden />
-        Back
-      </button>
+      <SecondaryTakeoverHeader
+        title="Review tokens"
+        onClose={handleBack}
+      />
 
       {skippedCount > 0 && (
         <details className="rounded bg-[var(--color-figma-warning)]/8 px-2.5 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
@@ -183,8 +200,15 @@ export function ImportTokenListView() {
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          {selectedTokens.size} token{selectedTokens.size !== 1 ? 's' : ''}
+          {selectedTokens.size} of {tokens.length} included
         </span>
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          {allTokensSelected ? 'Include none' : 'Include all'}
+        </button>
 
         {types.length > 1 && (
           <select
@@ -221,7 +245,13 @@ export function ImportTokenListView() {
           </div>
         ) : (
           filteredTokens.map(token => (
-            <TokenRow key={token.path} token={token} tokensByPath={tokensByPath} />
+            <TokenRow
+              key={token.path}
+              token={token}
+              tokensByPath={tokensByPath}
+              selected={selectedTokens.has(token.path)}
+              onToggle={toggleToken}
+            />
           ))
         )}
       </div>

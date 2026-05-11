@@ -104,7 +104,6 @@ function ImportPanelRoot({
   return (
     <SecondaryPanel
       title="Import tokens"
-      description={showHome ? "Import from Figma or a token file." : undefined}
       className="relative h-full"
       footer={showTokenList ? <ImportPreviewFooter /> : undefined}
       actions={

@@ -4,8 +4,6 @@ import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
   modeName: string;
-  modeIndex: number;
-  allModeNames: string[];
   collectionId: string;
   onManageModes?: (collectionId: string) => void;
   connected: boolean;
@@ -109,11 +107,11 @@ export function ModeColumnHeader({
             type="button"
             onClick={handleManageModes}
             disabled={!connected}
-            aria-label={`Manage modes for ${modeName}`}
+            aria-label="Manage collection modes"
             className="tm-mode-column-header__button-icon tm-mode-column-header__manage-button"
             title={
               connected
-                ? `Manage modes for ${modeName}`
+                ? "Manage collection modes"
                 : "Connect to the token library before managing modes"
             }
           >

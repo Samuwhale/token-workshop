@@ -3,7 +3,7 @@ import { apiFetch } from "./apiFetch";
 
 export const DUPLICATE_MODE_NAME_MESSAGE = "Mode names must be different.";
 export const EMPTY_MODE_SOURCE = "__token-workshop-empty-mode-source__";
-export const MODE_STARTING_VALUES_LABEL = "Initial values";
+export const MODE_STARTING_VALUES_LABEL = "Start with";
 
 interface CollectionModeRequest {
   serverUrl: string;
@@ -45,8 +45,8 @@ export function isModeNameTaken(
   });
 }
 
-export function getDefaultModeSourceName(_modeNames: readonly string[]): string {
-  return EMPTY_MODE_SOURCE;
+export function getDefaultModeSourceName(modeNames: readonly string[]): string {
+  return modeNames[0] ?? EMPTY_MODE_SOURCE;
 }
 
 export function getModeSourcePayloadValue(

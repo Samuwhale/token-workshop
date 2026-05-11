@@ -212,7 +212,7 @@ export function HealthDashboard({
       severity: sevFromCount(duplicateCount),
       onOpen: openView("duplicates"),
     },
-  ];
+  ].filter((row) => row.count > 0 || row.pending);
 
   if (hiddenCount > 0) {
     cleanupRows.push({
@@ -267,11 +267,13 @@ export function HealthDashboard({
           description="Items that can block confident handoff or publish."
           rows={fixNextRows}
         />
-        <ReviewSection
-          title="Clean up"
-          description="Helpful library maintenance after blockers are clear."
-          rows={cleanupRows}
-        />
+        {cleanupRows.length > 0 ? (
+          <ReviewSection
+            title="Clean up"
+            description="Helpful library maintenance after blockers are clear."
+            rows={cleanupRows}
+          />
+        ) : null}
       </div>
 
       <div className="tm-health-rules">

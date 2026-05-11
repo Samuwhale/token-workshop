@@ -56,11 +56,11 @@ export interface TokenDetailsModeRowProps {
   fontSizeRef?: React.RefObject<HTMLInputElement>;
   modified?: boolean;
   onNavigateToToken?: (path: string, collectionId?: string) => void;
-  allowCopyFromPrevious?: boolean;
-  previousModeName?: string;
-  onCopyFromPrevious?: () => void;
-  allowCopyToAll?: boolean;
-  onCopyToAll?: () => void;
+  copyActions?: Array<{
+    key: string;
+    label: string;
+    onClick: () => void;
+  }>;
 }
 
 function resolveReadOnlyPresentation(
@@ -147,11 +147,7 @@ export function TokenDetailsModeRow({
   fontSizeRef,
   modified = false,
   onNavigateToToken,
-  allowCopyFromPrevious = false,
-  previousModeName,
-  onCopyFromPrevious,
-  allowCopyToAll = false,
-  onCopyToAll,
+  copyActions = [],
 }: TokenDetailsModeRowProps) {
   const previousLiteralValueRef = useRef<unknown>(value);
   const [aliasMode, setAliasMode] = useState(
@@ -274,25 +270,6 @@ export function TokenDetailsModeRow({
     setAutocompleteOpen(false);
   };
 
-  const copyActions = [
-    allowCopyFromPrevious && onCopyFromPrevious
-      ? {
-          key: "from-previous",
-          label: previousModeName
-            ? `Copy from ${previousModeName}`
-            : "Copy from previous mode",
-          onClick: onCopyFromPrevious,
-        }
-      : null,
-    allowCopyToAll && onCopyToAll
-      ? {
-          key: "to-all",
-          label: `Copy from ${modeName} to all modes`,
-          onClick: onCopyToAll,
-        }
-      : null,
-  ].filter((action): action is { key: string; label: string; onClick: () => void } => Boolean(action));
-
   const commitAliasQuery = () => {
     if (!onChange) return;
     const path = aliasQuery.trim();
@@ -307,6 +284,7 @@ export function TokenDetailsModeRow({
   };
 
   const showHeader = showModeLabel;
+  const showInlineModified = modified && !showHeader;
   const controls = editable ? (
     <div
       className={joinClasses(
@@ -610,9 +588,9 @@ export function TokenDetailsModeRow({
           )}
         </div>
 
-        {(controls || modified) ? (
+        {(controls || showInlineModified) ? (
           <div className="tm-token-mode-row__inline-controls">
-            {modified ? (
+            {showInlineModified ? (
               <span
                 className="tm-token-mode-row__inline-status"
                 title="Modified"

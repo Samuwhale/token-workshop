@@ -4,7 +4,6 @@ import {
   stableStringify,
 } from "../shared/utils";
 import {
-  Copy,
   Clock,
   Link2,
   MoreHorizontal,
@@ -1647,36 +1646,9 @@ export function TokenDetails({
 
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Mode value";
-  const firstMode = modeValue.modes[0] ?? null;
-  const emptyModeRows = modeValue.modes
-    .slice(1)
-    .filter((mode) => isEmptyModeValue(mode.value));
-  const canFillEmptyModes =
-    fieldEditable &&
-    firstMode !== null &&
-    !isEmptyModeValue(firstMode.value) &&
-    emptyModeRows.length > 0;
-  const fillEmptyModesFromFirst = () => {
-    if (!firstMode || !canFillEmptyModes) return;
-    emptyModeRows.forEach((mode) => {
-      mode.setValue(cloneValue(firstMode.value));
-    });
-  };
   const modeSectionActions =
-    fieldEditable && (canFillEmptyModes || onManageCollectionModes) ? (
+    fieldEditable && onManageCollectionModes ? (
       <div className="tm-token-details__mode-section-actions">
-        {canFillEmptyModes && firstMode ? (
-          <button
-            type="button"
-            onClick={fillEmptyModesFromFirst}
-            title={`Copy ${firstMode.name} value to empty modes`}
-            aria-label={`Copy ${firstMode.name} value to empty modes`}
-            className="tm-token-details__text-button"
-          >
-            <Copy size={12} strokeWidth={1.5} aria-hidden />
-            Fill empty modes
-          </button>
-        ) : null}
         {onManageCollectionModes ? (
           <button
             type="button"
@@ -2015,6 +1987,44 @@ export function TokenDetails({
                     initialModeVal !== undefined &&
                     stableStringify(modeVal) !==
                       stableStringify(initialModeVal);
+                  const copyActions =
+                    fieldEditable && modeValue.modes.length > 1
+                      ? [
+                          ...modeValue.modes.flatMap((sourceMode, sourceIdx) => {
+                            if (sourceIdx === modeIdx) {
+                              return [];
+                            }
+                            if (isEmptyModeValue(sourceMode.value)) {
+                              return [];
+                            }
+                            return [
+                              {
+                                key: `from-${sourceMode.name}`,
+                                label: `Copy from ${sourceMode.name}`,
+                                onClick: () => {
+                                  mode.setValue(cloneValue(sourceMode.value));
+                                },
+                              },
+                            ];
+                          }),
+                          ...(!isEmptyModeValue(modeVal)
+                            ? [
+                                {
+                                  key: "to-others",
+                                  label: `Copy ${mode.name} to other modes`,
+                                  onClick: () => {
+                                    const sourceValue = mode.value;
+                                    if (sourceValue == null) return;
+                                    modeValue.modes.forEach((destMode, destIdx) => {
+                                      if (destIdx === modeIdx) return;
+                                      destMode.setValue(cloneValue(sourceValue));
+                                    });
+                                  },
+                                },
+                              ]
+                            : []),
+                        ]
+                      : [];
                   return (
                     <TokenDetailsModeRow
                       key={`${ownerCollectionId}:${tokenPath}:${mode.name}`}
@@ -2040,41 +2050,7 @@ export function TokenDetails({
                       onNavigateToToken={(path, collectionId) =>
                         onNavigateToToken?.(path, collectionId)
                       }
-                      allowCopyFromPrevious={
-                        fieldEditable && modeValue.modes.length > 1 && modeIdx > 0
-                      }
-                      previousModeName={modeValue.modes[modeIdx - 1]?.name}
-                      onCopyFromPrevious={
-                        fieldEditable && modeValue.modes.length > 1 && modeIdx > 0
-                          ? () => {
-                              const sourceIdx = modeIdx - 1;
-                              const sourceValue =
-                                modeValue.modes[sourceIdx].value;
-                              if (sourceValue != null) {
-                                mode.setValue(cloneValue(sourceValue));
-                              }
-                            }
-                          : undefined
-                      }
-                      allowCopyToAll={
-                        fieldEditable &&
-                        modeValue.modes.length > 1 &&
-                        modeVal != null
-                      }
-                      onCopyToAll={
-                        fieldEditable &&
-                        modeValue.modes.length > 1 &&
-                        modeVal != null
-                          ? () => {
-                              const sourceValue = mode.value;
-                              if (sourceValue == null) return;
-                              modeValue.modes.forEach((destMode, destIdx) => {
-                                if (destIdx === modeIdx) return;
-                                destMode.setValue(cloneValue(sourceValue));
-                              });
-                            }
-                          : undefined
-                      }
+                      copyActions={copyActions}
                     />
                   );
                 })}

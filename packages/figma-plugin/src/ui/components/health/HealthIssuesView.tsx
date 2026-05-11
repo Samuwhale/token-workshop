@@ -323,7 +323,7 @@ export function HealthIssuesView({
                   aria-expanded={exportMenu.open}
                 >
                   <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-                  <span>Report</span>
+                  <span>Export report</span>
                 </button>
                 {exportMenu.open ? (
                   <div

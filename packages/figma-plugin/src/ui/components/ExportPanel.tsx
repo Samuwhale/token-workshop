@@ -171,7 +171,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     <>
       <SecondaryPanel
         title="Export files"
-        description="Generate platform files from this library."
         className="h-full"
         bodyClassName="gap-3"
         actions={

@@ -73,6 +73,9 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
  * Returns null if the value is invalid for the given type. */
 export function parseInlineValue(type: string, str: string): unknown | null {
   const trimmed = str.trim();
+  if (isAlias(trimmed)) {
+    return trimmed;
+  }
   if (type === 'boolean') {
     const lower = trimmed.toLowerCase();
     if (lower !== 'true' && lower !== 'false') return null;

@@ -111,6 +111,7 @@ export const TokenGroupNode = memo(
       onRequestMoveGroup,
       onRequestCopyGroup,
       onDuplicateGroup,
+      onCreateGenerator,
       onPublishGroup,
       onSetGroupScopes,
       onZoomIntoGroup,
@@ -723,9 +724,21 @@ export const TokenGroupNode = memo(
                   className={MENU_ITEM_CLASS}
                 >
                   <CopyPlus {...MENU_ICON_PROPS} />
-                  <span className="flex-1">Create from this group</span>
+                  <span className="flex-1">Duplicate group</span>
                   <span className={MENU_SHORTCUT_CLASS}>D</span>
                 </button>
+                {onCreateGenerator ? (
+                  <button
+                    role="menuitem"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { closeGroupMenus(); onCreateGenerator(node.path); }}
+                    className={MENU_ITEM_CLASS}
+                  >
+                    <Plus {...MENU_ICON_PROPS} />
+                    <span className="flex-1">Create generator for group</span>
+                  </button>
+                ) : null}
                 {onMoveUp && (
                   <button
                     role="menuitem"

@@ -724,7 +724,7 @@ export function QuickApplyPicker({
           </div>
           <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             <label className="flex min-w-0 items-center gap-1.5">
-              <span className="shrink-0">Search</span>
+              <span className="shrink-0">Collection</span>
               {collectionScopeIds.length > 1 ? (
                 <select
                   value={activeCollectionId}

@@ -189,7 +189,7 @@ export function TableCreateForm({
           {multiMode ? (
             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 px-0.5">
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Each mode needs a value.
+                Each mode needs a value. Use {"{token.path}"} for references.
               </p>
               <button
                 type="button"
@@ -198,7 +198,7 @@ export function TableCreateForm({
                 title={`Copy ${modeNames[0]} values to empty modes`}
                 className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
               >
-                Fill empty modes
+                Copy {modeNames[0]} to empty modes
               </button>
             </div>
           ) : null}
@@ -271,6 +271,7 @@ export function TableCreateForm({
                             : "value"
                       }
                       value={modeValue}
+                      title="Use a literal value or {token.path}"
                       onChange={(e) => {
                         const val = e.target.value;
                         onUpdateModeValue(row.id, modeName, val);

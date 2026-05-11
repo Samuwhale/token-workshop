@@ -1753,7 +1753,7 @@ export function TokenList({
     handleToggleExpand, requestDeleteGroup, handleOpenCreateSibling,
     setNewGroupDialogParent, handleRenameGroup, handleUpdateGroupMeta,
     handleRequestMoveGroup, handleRequestCopyGroup, handleDuplicateGroup,
-    onPublishGroup, onSetGroupScopes: handleSetGroupScopes,
+    onCreateGenerator, onPublishGroup, onSetGroupScopes: handleSetGroupScopes,
     handleZoomIntoGroup, handleDragOverGroup, handleDropOnGroup,
     onNavigateToAlias, handleToggleGroupSelection: handleToggleGroupChildren,
     setRovingFocusPath,

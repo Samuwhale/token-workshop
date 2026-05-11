@@ -98,6 +98,7 @@ interface GroupActionsDeps {
   handleRequestMoveGroup: (groupPath: string) => void;
   handleRequestCopyGroup: (groupPath: string) => void;
   handleDuplicateGroup: (groupPath: string) => void;
+  onCreateGenerator?: (initialOutputPrefix?: string) => void;
   onPublishGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   handleZoomIntoGroup: (groupPath: string) => void;
@@ -120,6 +121,7 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       onRequestMoveGroup: deps.handleRequestMoveGroup,
       onRequestCopyGroup: deps.handleRequestCopyGroup,
       onDuplicateGroup: deps.handleDuplicateGroup,
+      onCreateGenerator: deps.onCreateGenerator,
       onPublishGroup: deps.onPublishGroup,
       onSetGroupScopes: deps.onSetGroupScopes,
       onZoomIntoGroup: deps.handleZoomIntoGroup,
@@ -138,6 +140,7 @@ export function useTokenTreeGroupActions(deps: GroupActionsDeps): TokenTreeGroup
       deps.handleRequestMoveGroup,
       deps.handleRequestCopyGroup,
       deps.handleDuplicateGroup,
+      deps.onCreateGenerator,
       deps.onPublishGroup,
       deps.onSetGroupScopes,
       deps.handleZoomIntoGroup,

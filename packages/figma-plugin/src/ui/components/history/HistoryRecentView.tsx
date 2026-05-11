@@ -187,12 +187,19 @@ export function HistoryRecentView({
         />
         {filterTokenPath && onClearFilter ? (
           <div
-            className="min-w-0 max-w-full text-secondary text-[color:var(--color-figma-text-tertiary)]"
+            className="flex min-w-0 max-w-full items-center gap-1 rounded bg-[var(--color-figma-bg-secondary)] px-1.5 py-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]"
             title={filterTokenPath}
           >
             <span className={LONG_TEXT_CLASSES.pathSecondary}>
-              Token filter active
+              {filterTokenPath}
             </span>
+            <button
+              type="button"
+              onClick={onClearFilter}
+              className="shrink-0 text-[color:var(--color-figma-text-accent)] hover:underline"
+            >
+              Clear
+            </button>
           </div>
         ) : null}
       </div>

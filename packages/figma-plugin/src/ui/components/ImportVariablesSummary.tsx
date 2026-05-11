@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, ChevronLeft } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import {
   useImportDestinationContext,
   useImportReviewContext,
@@ -8,6 +8,7 @@ import {
 import { renderConflictValue } from './importPanelHelpers';
 import { defaultCollectionName, modeKey } from './importPanelTypes';
 import { Spinner } from './Spinner';
+import { SecondaryTakeoverHeader } from './SecondaryTakeoverHeader';
 
 type Strategy = 'merge' | 'overwrite' | 'skip';
 
@@ -84,22 +85,19 @@ export function ImportVariablesSummary() {
 
   return (
     <div className="flex flex-col gap-3">
-      <button
-        onClick={handleBack}
-        className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] transition-colors self-start"
-      >
-        <ChevronLeft size={12} strokeWidth={1.75} aria-hidden />
-        Back
-      </button>
+      <SecondaryTakeoverHeader
+        title="Review collections"
+        onClose={handleBack}
+      />
 
       <div>
         <div className="text-body font-medium text-[color:var(--color-figma-text)]">
-          {isTokensStudioImport ? 'Review Tokens Studio collections' : 'Review Figma variable collections'}
+          {isTokensStudioImport ? 'Tokens Studio groups' : 'Figma collections'}
         </div>
         <div className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {isTokensStudioImport
-            ? 'Each Tokens Studio group imports as a Token Workshop collection.'
-            : 'Each Figma collection stays a Token Workshop collection. Its modes import as mode values on the same tokens.'}
+            ? 'Each group imports as one collection.'
+            : 'Each collection stays a collection. Modes stay on the same tokens.'}
         </div>
       </div>
 

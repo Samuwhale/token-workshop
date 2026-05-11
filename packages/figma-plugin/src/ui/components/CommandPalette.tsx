@@ -157,7 +157,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
   const [query, setQuery] = useState(initialQuery);
   const [activeIdx, setActiveIdx] = useState(0);
   const [visibleCount, setVisibleCount] = useState(100);
-  const [searchAllCollections, setSearchAllSets] = useState(false);
+  const [searchAllCollections, setSearchAllCollections] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -477,11 +477,6 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
             className="min-w-0 flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-subheading text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {isTokenMode && (
-            <span className="text-secondary font-medium text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
-              TOKENS
-            </span>
-          )}
-          {isTokenMode && (
             <button
               className={`text-secondary w-5 h-5 flex items-center justify-center rounded-full border transition-colors shrink-0 font-medium ${showHelp ? 'border-[var(--color-figma-accent)] text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)]'}`}
               onClick={() => setShowHelp(v => !v)}
@@ -499,7 +494,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                   ? 'bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]'
                   : 'text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]'
               }`}
-              onClick={() => { setSearchAllSets(v => !v); setVisibleCount(100); }}
+              onClick={() => { setSearchAllCollections(v => !v); setVisibleCount(100); }}
               title={searchAllCollections ? 'Searching across all collections' : 'Search only the working collection'}
             >
               {searchAllCollections ? 'All collections' : 'This collection'}
@@ -615,7 +610,7 @@ export function CommandPalette({ commands, tokens = [], allCollectionTokens, sta
                     <div className="mt-1.5">
                       <button
                         className="text-secondary text-[color:var(--color-figma-text-accent)] hover:underline"
-                        onClick={() => { setSearchAllSets(true); setVisibleCount(100); }}
+                        onClick={() => { setSearchAllCollections(true); setVisibleCount(100); }}
                       >
                         Search all collections
                       </button>

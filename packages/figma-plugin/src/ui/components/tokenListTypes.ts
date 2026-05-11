@@ -338,6 +338,7 @@ export interface TokenTreeGroupActionsContextType {
   onRequestMoveGroup?: (groupPath: string) => void;
   onRequestCopyGroup?: (groupPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
+  onCreateGenerator?: (initialOutputPrefix?: string) => void;
   onPublishGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   onZoomIntoGroup?: (groupPath: string) => void;
