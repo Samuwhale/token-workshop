@@ -12,6 +12,26 @@ import {
   useMemo,
   memo,
 } from "react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Clock,
+  Columns2,
+  Copy,
+  CopyPlus,
+  Filter,
+  FolderInput,
+  Link2,
+  MoreHorizontal,
+  Pencil,
+  Rows3,
+  Search,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import { dispatchToast } from "../../shared/toastBus";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
@@ -84,6 +104,13 @@ import { ValueCell } from "./ValueCell";
 function getTokenMenuAccelerator(event: KeyboardEvent): string {
   return event.key === "Backspace" ? "delete" : event.key.toLowerCase();
 }
+
+const MENU_ICON_PROPS = {
+  size: 12,
+  strokeWidth: 1.5,
+  "aria-hidden": true,
+  className: "shrink-0 opacity-60",
+} as const;
 
 export const TokenLeafNode = memo(
   function TokenLeafNode(props: TokenTreeNodeProps) {
@@ -898,9 +925,7 @@ export const TokenLeafNode = memo(
               aria-hidden="true"
             >
               {isSelected ? (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2.5 5L4.5 7L7.5 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Check size={10} strokeWidth={2} className="text-white" />
               ) : null}
             </span>
           </button>
@@ -988,19 +1013,7 @@ export const TokenLeafNode = memo(
                   title="Favorited"
                   aria-label="Favorited"
                 >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
+                  <Star size={12} strokeWidth={1.5} fill="currentColor" aria-hidden="true" />
                 </span>
               )}
               {tokenStatus && (tokenStatus.kind === "lint" ? (
@@ -1017,19 +1030,7 @@ export const TokenLeafNode = memo(
                   aria-label={`${tokenStatus.title}. Open review issues`}
                   className={`tm-token-tree-row__status-button ${tokenStatus.toneClass}`}
                 >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
-                  </svg>
+                  <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />
                 </button>
               ) : (
                 <span
@@ -1038,16 +1039,11 @@ export const TokenLeafNode = memo(
                   aria-label={tokenStatus.title}
                 >
                   {tokenStatus.kind === "applied" ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <Check size={12} strokeWidth={1.5} aria-hidden="true" />
                   ) : tokenStatus.kind === "sync" ? (
                     <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
                   ) : (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="9" y="9" width="10" height="10" rx="2" />
-                      <path d="M5 15V7a2 2 0 0 1 2-2h8" />
-                    </svg>
+                    <Copy size={12} strokeWidth={1.5} aria-hidden="true" />
                   )}
                 </span>
               ))}
@@ -1065,11 +1061,7 @@ export const TokenLeafNode = memo(
                   aria-expanded={!!contextMenuPos}
                   className="tm-token-tree-row__icon-button"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <circle cx="5" cy="12" r="2" />
-                    <circle cx="12" cy="12" r="2" />
-                    <circle cx="19" cy="12" r="2" />
-                  </svg>
+                  <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -1111,7 +1103,7 @@ export const TokenLeafNode = memo(
                     onClick={() => { closeTokenMenus(); onEdit(node.path, node.name); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    <Pencil {...MENU_ICON_PROPS} />
                     <span className="flex-1">Edit</span>
                   </button>
                   {structuralActionsEnabled && (
@@ -1123,7 +1115,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); setRenameTokenVal(node.name); setRenamingToken(true); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+                      <Pencil {...MENU_ICON_PROPS} />
                       <span className="flex-1">Rename</span>
                       <span className={MENU_SHORTCUT_CLASS}>F2</span>
                     </button>
@@ -1137,7 +1129,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onDuplicateToken(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                      <CopyPlus {...MENU_ICON_PROPS} />
                       <span className="flex-1">Create from this token</span>
                       <span className={MENU_SHORTCUT_CLASS}>D</span>
                     </button>
@@ -1152,7 +1144,7 @@ export const TokenLeafNode = memo(
                     onClick={() => { handleCopyPath(); closeTokenMenus(); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                    <Copy {...MENU_ICON_PROPS} />
                     <span className="flex-1">Copy path</span>
                     <span className={MENU_SHORTCUT_CLASS}>C</span>
                   </button>
@@ -1169,7 +1161,7 @@ export const TokenLeafNode = memo(
                         onClick={handleContextMenuApply}
                         className={MENU_ITEM_CLASS}
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                        <ArrowRight {...MENU_ICON_PROPS} />
                         <span className="flex-1">Bind to selection</span>
                         {quickBindTargets?.length === 1 && (
                           <span className={MENU_SHORTCUT_CLASS}>{PROPERTY_LABELS[quickBindTargets[0]]}</span>
@@ -1186,7 +1178,7 @@ export const TokenLeafNode = memo(
                     onClick={() => { closeTokenMenus(); onDelete(node.path); }}
                     className={MENU_DANGER_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                    <Trash2 {...MENU_ICON_PROPS} />
                     <span className="flex-1">Delete</span>
                     <span className={MENU_SHORTCUT_CLASS}>⌫</span>
                   </button>
@@ -1199,7 +1191,7 @@ export const TokenLeafNode = memo(
                     onClick={() => setTokenMenuAdvanced(true)}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
+                    <MoreHorizontal {...MENU_ICON_PROPS} />
                     <span className="flex-1">More...</span>
                   </button>
                 </>
@@ -1213,7 +1205,7 @@ export const TokenLeafNode = memo(
                     onClick={() => setTokenMenuAdvanced(false)}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                    <ArrowLeft {...MENU_ICON_PROPS} />
                     <span className="flex-1">Back</span>
                   </button>
                   <div role="separator" className={MENU_SEPARATOR_CLASS} />
@@ -1224,7 +1216,7 @@ export const TokenLeafNode = memo(
                     onClick={() => { handleCopyValue(); closeTokenMenus(); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M20 6L9 17l-5-5" /></svg>
+                    <Check {...MENU_ICON_PROPS} />
                     <span className="flex-1">Copy value</span>
                   </button>
                   {structuralActionsEnabled && onRequestMoveToken && (
@@ -1236,7 +1228,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onRequestMoveToken(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
+                      <FolderInput {...MENU_ICON_PROPS} />
                       <span className="flex-1">Move to collection</span>
                       <span className={MENU_SHORTCUT_CLASS}>M</span>
                     </button>
@@ -1249,7 +1241,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onRequestCopyToken(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
+                      <Copy {...MENU_ICON_PROPS} />
                       <span className="flex-1">Copy to collection</span>
                     </button>
                   )}
@@ -1268,7 +1260,7 @@ export const TokenLeafNode = memo(
                         }}
                         className={MENU_ITEM_CLASS}
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M3 5h18M3 12h18M3 19h18" /></svg>
+                        <Rows3 {...MENU_ICON_PROPS} />
                         <span className="flex-1">
                           Copy {multiModeValues[0]?.optionName ?? "this mode"} to all modes
                         </span>
@@ -1283,7 +1275,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onExtractToAlias(node.path, node.$type, node.$value); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                      <Link2 {...MENU_ICON_PROPS} />
                       <span className="flex-1">Extract to reference</span>
                       <span className={MENU_SHORTCUT_CLASS}>E</span>
                     </button>
@@ -1298,7 +1290,7 @@ export const TokenLeafNode = memo(
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+                    <Search {...MENU_ICON_PROPS} />
                     <span className="flex-1">Find references</span>
                   </button>
                   {onCompareAcrossCollections && (
@@ -1312,7 +1304,7 @@ export const TokenLeafNode = memo(
                       }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="3" y="3" width="7" height="18" rx="1" /><rect x="14" y="3" width="7" height="18" rx="1" /></svg>
+                      <Columns2 {...MENU_ICON_PROPS} />
                       <span className="flex-1">Compare across collections</span>
                     </button>
                   )}
@@ -1324,7 +1316,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onViewTokenHistory(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                      <Clock {...MENU_ICON_PROPS} />
                       <span className="flex-1">View history</span>
                     </button>
                   )}
@@ -1336,7 +1328,7 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onFilterByType(node.$type!); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+                      <Filter {...MENU_ICON_PROPS} />
                       <span className="flex-1">Filter by type: {node.$type}</span>
                     </button>
                   )}
@@ -1348,7 +1340,13 @@ export const TokenLeafNode = memo(
                       onClick={() => { closeTokenMenus(); onToggleStar(node.path); }}
                       className={MENU_ITEM_CLASS}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${isFavorite ? "text-[color:var(--color-figma-text-warning)]" : "opacity-60"}`}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      <Star
+                        size={12}
+                        strokeWidth={1.5}
+                        aria-hidden="true"
+                        fill={isFavorite ? "currentColor" : "none"}
+                        className={`shrink-0 ${isFavorite ? "text-[color:var(--color-figma-text-warning)]" : "opacity-60"}`}
+                      />
                       <span className="flex-1">{isFavorite ? "Remove favorite" : "Add to favorites"}</span>
                     </button>
                   )}
@@ -1376,18 +1374,7 @@ export const TokenLeafNode = memo(
                   className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-tertiary)]"
                   aria-label="Close"
                 >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  <X size={10} strokeWidth={1.5} aria-hidden="true" />
                 </button>
               </div>
               {refsPopover.refs.length === 0 ? (

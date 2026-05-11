@@ -11,6 +11,24 @@ import {
   useMemo,
   memo,
 } from "react";
+import {
+  ArrowLeft,
+  Box,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Copy,
+  CopyPlus,
+  FolderInput,
+  FolderPlus,
+  Maximize2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Repeat2,
+  Trash2,
+} from "lucide-react";
 import type { TokenTreeNodeProps } from "../tokenListTypes";
 import {
   countTokensInGroup,
@@ -47,6 +65,13 @@ import type { RowMetadataSegment } from "./tokenTreeNodeUtils";
 import { renderRowMetadataSegments } from "./tokenTreeNodeUtils";
 import { TokenTreeNode } from "../TokenTreeNode";
 import { aggregateGroupByModes, GroupModePreview } from "./GroupModePreview";
+
+const MENU_ICON_PROPS = {
+  size: 12,
+  strokeWidth: 1.5,
+  "aria-hidden": true,
+  className: "shrink-0 opacity-60",
+} as const;
 
 export const TokenGroupNode = memo(
   function TokenGroupNode(props: TokenTreeNodeProps) {
@@ -400,16 +425,12 @@ export const TokenGroupNode = memo(
             }}
           >
             <DepthBar depth={depth} />
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 8 8"
+            <ChevronRight
+              size={10}
+              strokeWidth={2}
               className={`transition-transform shrink-0 ${isExpanded ? "rotate-90" : ""}`}
-              fill="currentColor"
               aria-hidden="true"
-            >
-              <path d="M2 1l4 3-4 3V1z" />
-            </svg>
+            />
             {renamingGroup ? (
               <InlineRenameRow
                 inputRef={renameGroupInputRef}
@@ -520,22 +541,7 @@ export const TokenGroupNode = memo(
                         aria-label={`Focus on ${node.name}`}
                         className="tm-token-tree-row__icon-button"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M15 3h6v6" />
-                          <path d="M9 21H3v-6" />
-                          <path d="M21 3l-7 7" />
-                          <path d="M3 21l7-7" />
-                        </svg>
+                        <Maximize2 size={12} strokeWidth={1.5} aria-hidden="true" />
                       </button>
                     ) : null}
                     <button
@@ -550,7 +556,7 @@ export const TokenGroupNode = memo(
                       aria-expanded={!!groupMenuPos}
                       className="tm-token-tree-row__icon-button"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+                      <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -595,7 +601,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); onZoomIntoGroup(node.path); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" /></svg>
+                    <Maximize2 {...MENU_ICON_PROPS} />
                     <span className="flex-1">Focus on group</span>
                     <span className={MENU_SHORTCUT_CLASS}>Z</span>
                   </button>
@@ -609,7 +615,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); onCreateSibling(node.path, inferGroupTokenType(node.children)); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    <Plus {...MENU_ICON_PROPS} />
                     <span className="flex-1">Add token</span>
                     <span className={MENU_SHORTCUT_CLASS}>N</span>
                   </button>
@@ -622,7 +628,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); onCreateGroup(node.path); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg>
+                    <FolderPlus {...MENU_ICON_PROPS} />
                     <span className="flex-1">New subgroup</span>
                   </button>
                 )}
@@ -634,7 +640,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); onToggleGroupSelection(node); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                    <CheckSquare {...MENU_ICON_PROPS} />
                     <span className="flex-1">
                       {groupAllSelected ? "Clear token selection" : "Select all tokens"}
                     </span>
@@ -649,7 +655,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); onSetGroupScopes(node.path); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" /><path d="M9 12h6" /></svg>
+                    <Box {...MENU_ICON_PROPS} />
                     <span className="flex-1">Edit applicability</span>
                     <span className={MENU_SHORTCUT_CLASS}>S</span>
                   </button>
@@ -662,7 +668,7 @@ export const TokenGroupNode = memo(
                   onClick={() => { closeGroupMenus(); setRenameGroupVal(node.name); setRenamingGroup(true); }}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
+                  <Pencil {...MENU_ICON_PROPS} />
                   <span className="flex-1">Rename</span>
                   <span className={MENU_SHORTCUT_CLASS}>R</span>
                 </button>
@@ -676,7 +682,7 @@ export const TokenGroupNode = memo(
                   onClick={() => { closeGroupMenus(); onDeleteGroup(node.path, node.name, leafCount); }}
                   className={MENU_DANGER_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                  <Trash2 {...MENU_ICON_PROPS} />
                   <span className="flex-1">Delete</span>
                   <span className={MENU_SHORTCUT_CLASS}>X</span>
                 </button>
@@ -689,7 +695,7 @@ export const TokenGroupNode = memo(
                   onClick={() => setGroupMenuAdvanced(true)}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
+                  <MoreHorizontal {...MENU_ICON_PROPS} />
                   <span className="flex-1">More...</span>
                 </button>
               </>
@@ -703,7 +709,7 @@ export const TokenGroupNode = memo(
                   onClick={() => setGroupMenuAdvanced(false)}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                  <ArrowLeft {...MENU_ICON_PROPS} />
                   <span className="flex-1">Back</span>
                 </button>
                 <div role="separator" className={MENU_SEPARATOR_CLASS} />
@@ -716,7 +722,7 @@ export const TokenGroupNode = memo(
                   onClick={() => { closeGroupMenus(); onDuplicateGroup?.(node.path); }}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                  <CopyPlus {...MENU_ICON_PROPS} />
                   <span className="flex-1">Create from this group</span>
                   <span className={MENU_SHORTCUT_CLASS}>D</span>
                 </button>
@@ -728,7 +734,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); onMoveUp(); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M18 15l-6-6-6 6" /></svg>
+                    <ChevronUp {...MENU_ICON_PROPS} />
                     <span className="flex-1">Move group up</span>
                   </button>
                 )}
@@ -740,7 +746,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); onMoveDown(); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M6 9l6 6 6-6" /></svg>
+                    <ChevronDown {...MENU_ICON_PROPS} />
                     <span className="flex-1">Move group down</span>
                   </button>
                 )}
@@ -752,7 +758,7 @@ export const TokenGroupNode = memo(
                   onClick={() => { closeGroupMenus(); setGroupMetaType(node.$type ?? ""); setGroupMetaDescription(node.$description ?? ""); setEditingGroupMeta(true); }}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  <Pencil {...MENU_ICON_PROPS} />
                   <span className="flex-1">Edit type &amp; description</span>
                   <span className={MENU_SHORTCUT_CLASS}>E</span>
                 </button>
@@ -764,7 +770,7 @@ export const TokenGroupNode = memo(
                   onClick={() => { closeGroupMenus(); onRequestMoveGroup?.(node.path); }}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 14l3-3 3 3" /></svg>
+                  <FolderInput {...MENU_ICON_PROPS} />
                   <span className="flex-1">Move to collection</span>
                   <span className={MENU_SHORTCUT_CLASS}>M</span>
                 </button>
@@ -775,7 +781,7 @@ export const TokenGroupNode = memo(
                   onClick={() => { closeGroupMenus(); onRequestCopyGroup?.(node.path); }}
                   className={MENU_ITEM_CLASS}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><path d="M12 11v6M9 17h6" /></svg>
+                  <Copy {...MENU_ICON_PROPS} />
                   <span className="flex-1">Copy to collection</span>
                 </button>
                 {onPublishGroup && (
@@ -787,7 +793,7 @@ export const TokenGroupNode = memo(
                     onClick={() => { closeGroupMenus(); const count = node.children ? countTokensInGroup(node) : 0; onPublishGroup(node.path, count); }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-60"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
+                    <Repeat2 {...MENU_ICON_PROPS} />
                     <span className="flex-1">Apply group to Figma</span>
                     <span className={MENU_SHORTCUT_CLASS}>P</span>
                   </button>

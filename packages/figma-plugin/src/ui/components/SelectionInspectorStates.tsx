@@ -1,3 +1,4 @@
+import { LayoutPanelTop } from "lucide-react";
 import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { LayerSearchPanel } from "./LayerSearchPanel";
 
@@ -35,20 +36,7 @@ export function SelectionInspectorEmptyState({
         variant="empty"
         size="section"
         icon={
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M3 9h18M9 21V9" />
-          </svg>
+          <LayoutPanelTop size={20} strokeWidth={1.5} aria-hidden="true" />
         }
         title={title}
         description={description}

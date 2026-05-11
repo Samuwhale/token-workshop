@@ -82,7 +82,6 @@ export function useOverlayManager() {
   }, []);
 
   const finishStartHere = useCallback(() => {
-    lsSet(STORAGE_KEYS.FIRST_RUN_DONE, "1");
     closeStartHere();
   }, [closeStartHere]);
 
