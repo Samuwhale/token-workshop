@@ -513,6 +513,12 @@ export function HealthPanel({
   const libraryReviewErrors = [validationError, deprecatedUsageError, generatorStatusError].filter(
     (message): message is string => Boolean(message),
   );
+  const clearCollectionCount =
+    scope.mode === "all" &&
+    !collectionSummariesPending &&
+    libraryReviewErrors.length === 0
+      ? Math.max(collectionIds.length - collectionSummaries.length, 0)
+      : 0;
 
   let content: JSX.Element;
   if (activeView === "rules") {
@@ -590,6 +596,11 @@ export function HealthPanel({
           <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {allScopeStatusDetail}
           </p>
+          {clearCollectionCount > 0 ? (
+            <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+              {clearCollectionCount} collection{clearCollectionCount === 1 ? "" : "s"} clear.
+            </p>
+          ) : null}
         </div>
 
         {libraryReviewErrors.length > 0 ? (

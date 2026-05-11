@@ -3207,12 +3207,12 @@ export function GeneratorsPanel({
     ? "Resolve conflicts"
     : canApplyReviewedGenerator
       ? "Apply to collection"
-      : "Preview outputs";
+      : "Review outputs";
   const generatorPrimaryActionTitle = previewHasOutputIssues
     ? "Resolve generated-token conflicts"
     : canApplyReviewedGenerator
       ? "Apply to collection"
-      : "Preview outputs before applying";
+      : "Review outputs before applying";
 
   const renderGeneratorActions = (compact = false) => (
     <div
@@ -3254,14 +3254,14 @@ export function GeneratorsPanel({
       previewReviewed &&
       !compact ? (
         <Button
-          title="Preview outputs"
-          aria-label="Preview outputs"
+          title="Review outputs"
+          aria-label="Review outputs"
           onClick={openOutputReview}
           variant="secondary"
           size="sm"
         >
           <PanelRight size={14} />
-          <span>Preview</span>
+          <span>Outputs</span>
         </Button>
       ) : null}
       <Button
@@ -3350,7 +3350,7 @@ export function GeneratorsPanel({
                 variant="secondary"
                 onClick={markCurrentPreviewReviewed}
               >
-                Mark reviewed
+                Confirm review
               </Button>
             ) : null}
             {outputDockOpen &&

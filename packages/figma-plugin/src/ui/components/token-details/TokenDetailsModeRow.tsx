@@ -175,12 +175,19 @@ export function TokenDetailsModeRow({
   }, [value]);
 
   const isEmpty = value === undefined || value === null || value === "";
+  const hasInheritedValue =
+    inheritedValue !== undefined && inheritedValue !== null && inheritedValue !== "";
   const defaultModeValue = getInitialModeValue(tokenType);
   const defaultModeValueLabel = formatTokenValueForDisplay(
     tokenType,
     defaultModeValue,
     { emptyPlaceholder: "default" },
   );
+  const inheritedPreviewLabel = hasInheritedValue
+    ? formatTokenValueForDisplay(tokenType, inheritedValue, {
+        emptyPlaceholder: "",
+      })
+    : "";
   const aliasStatusId = `mode-alias-status-${modeName
     .trim()
     .toLowerCase()
@@ -490,6 +497,19 @@ export function TokenDetailsModeRow({
             </div>
           ) : editable && isEmpty ? (
             <div className="tm-token-mode-row__empty-actions">
+              {hasInheritedValue ? (
+                <div className="tm-token-mode-row__inherited-preview">
+                  <span className="tm-token-mode-row__inherited-label">
+                    Inherited
+                  </span>
+                  <span
+                    className="tm-token-mode-row__inherited-value"
+                    title={inheritedPreviewLabel}
+                  >
+                    {inheritedPreviewLabel}
+                  </span>
+                </div>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onChange?.(defaultModeValue)}
@@ -497,7 +517,7 @@ export function TokenDetailsModeRow({
                 title={`Add ${defaultModeValueLabel} for ${modeName}`}
                 className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
               >
-                Add value
+                {hasInheritedValue ? "Override value" : "Add value"}
               </button>
               <button
                 type="button"
@@ -553,10 +573,12 @@ export function TokenDetailsModeRow({
                       title={`Open ${readOnly.aliasTargetPath}`}
                     >
                       <Link2 size={10} strokeWidth={1.5} aria-hidden />
-                      <span className="min-w-0 break-all">{readOnly.aliasTargetPath}</span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">
+                        {readOnly.aliasTargetPath}
+                      </span>
                     </button>
                   ) : (
-                    <span className="break-all font-mono text-body text-[color:var(--color-figma-text-accent)]">
+                    <span className="font-mono text-body text-[color:var(--color-figma-text-accent)] [overflow-wrap:anywhere]">
                       {readOnly.aliasTargetPath}
                     </span>
                   )}

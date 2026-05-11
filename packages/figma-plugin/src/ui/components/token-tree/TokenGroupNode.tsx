@@ -510,6 +510,34 @@ export const TokenGroupNode = memo(
                         : "opacity-95 group-hover/group:opacity-100 group-focus-within/group:opacity-100"
                     }`}
                   >
+                    {onZoomIntoGroup ? (
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onZoomIntoGroup(node.path);
+                        }}
+                        title={`Focus on ${node.name}`}
+                        aria-label={`Focus on ${node.name}`}
+                        className="tm-token-tree-row__icon-button"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M15 3h6v6" />
+                          <path d="M9 21H3v-6" />
+                          <path d="M21 3l-7 7" />
+                          <path d="M3 21l7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

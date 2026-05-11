@@ -239,7 +239,7 @@ export function ValueCell({
               title={`Add ${optionName} value`}
             >
               <Plus size={10} strokeWidth={2} aria-hidden />
-              <span className="tm-value-cell__create-button-label">Add</span>
+              <span className="tm-value-cell__create-button-label">Add value</span>
             </button>
           </div>
         ) : (

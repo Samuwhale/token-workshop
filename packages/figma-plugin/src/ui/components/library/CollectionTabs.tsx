@@ -178,7 +178,7 @@ export function CollectionTabs({
     showCreateButton
       ? {
           icon: <Plus size={12} strokeWidth={1.5} aria-hidden />,
-          label: "New",
+          label: "New collection",
           title: "Create a collection",
           onClick: () => onOpenCreateCollection?.(),
         }
@@ -222,6 +222,9 @@ export function CollectionTabs({
       onClick: () => void;
     } => action !== null,
   );
+  const inlineSecondaryAction =
+    secondaryActions.length === 1 ? secondaryActions[0] : null;
+  const hasSecondaryOverflow = secondaryActions.length > 1;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
@@ -504,7 +507,22 @@ export function CollectionTabs({
                 </span>
               </Button>
             ) : null}
-            {secondaryActions.length > 0 ? (
+            {inlineSecondaryAction ? (
+              <Button
+                onClick={inlineSecondaryAction.onClick}
+                aria-label={inlineSecondaryAction.label}
+                title={inlineSecondaryAction.label}
+                variant="secondary"
+                size="sm"
+                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start`}
+              >
+                {inlineSecondaryAction.icon}
+                <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
+                  {inlineSecondaryAction.label}
+                </span>
+              </Button>
+            ) : null}
+            {hasSecondaryOverflow ? (
               <Button
                 ref={actionsMenu.triggerRef}
                 onClick={actionsMenu.toggle}
@@ -522,7 +540,7 @@ export function CollectionTabs({
                 </span>
               </Button>
             ) : null}
-            {actionsMenu.open ? (
+            {hasSecondaryOverflow && actionsMenu.open ? (
               <div
                 ref={actionsMenu.menuRef}
                 style={actionsMenuStyle ?? { visibility: "hidden" }}

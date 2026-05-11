@@ -2731,16 +2731,16 @@ button.tm-status-row:not(:disabled):hover {
   gap: 4px;
   min-block-size: var(--control-size-compact);
   min-inline-size: 0;
-  border: 1px dashed color-mix(in srgb, var(--border-muted) 78%, transparent);
-  border-radius: var(--radius-sm);
-  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--workspace-library) 34%, var(--border-muted));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--workspace-library) 8%, transparent);
   padding: 0 6px;
   font-size: var(--font-size-sm);
   font-weight: 500;
   line-height: 1.15;
   text-align: left;
   white-space: nowrap;
-  color: var(--color-figma-text-secondary);
+  color: var(--color-figma-text-accent);
   transition:
     background-color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
@@ -2748,8 +2748,8 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-value-cell__create-button:hover {
-  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
-  border-color: color-mix(in srgb, var(--workspace-library) 42%, transparent);
+  background: color-mix(in srgb, var(--workspace-library) 14%, transparent);
+  border-color: color-mix(in srgb, var(--workspace-library) 54%, transparent);
   color: var(--color-figma-text);
 }
 
@@ -2797,6 +2797,7 @@ button.tm-status-row:not(:disabled):hover {
   .tm-value-cell__create-button {
     justify-content: flex-start;
     padding-inline: 8px;
+    white-space: normal;
   }
 }
 
@@ -4805,6 +4806,32 @@ button.tm-token-details__text-button:disabled:hover {
   gap: 6px;
 }
 
+.tm-token-mode-row__inherited-preview {
+  display: flex;
+  min-inline-size: 0;
+  flex: 1 1 100%;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--workspace-library) 7%, transparent);
+}
+
+.tm-token-mode-row__inherited-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-figma-text-secondary);
+}
+
+.tm-token-mode-row__inherited-value {
+  min-inline-size: 0;
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--font-size-sm);
+  line-height: var(--leading-body);
+  color: var(--color-figma-text);
+  overflow-wrap: anywhere;
+}
+
 .tm-token-mode-row__empty-action {
   display: inline-flex;
   min-inline-size: 0;
@@ -4837,6 +4864,8 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row__empty-action--primary {
+  border-color: color-mix(in srgb, var(--workspace-library) 38%, var(--color-figma-border));
+  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
   color: var(--color-figma-text-accent);
 }
 

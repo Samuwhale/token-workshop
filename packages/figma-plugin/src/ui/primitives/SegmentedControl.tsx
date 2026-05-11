@@ -95,7 +95,7 @@ export function SegmentedControl<T extends string>({
             title={option.label}
             className={`tm-segmented-control__button inline-flex flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] text-center font-medium leading-tight transition-colors ${CONTROL_FOCUS_ACCENT} ${
               compact
-                ? "min-h-6 min-w-[2.25rem] px-1.5 py-0.5 text-[10px]"
+                ? "min-h-7 min-w-[2.5rem] px-1.5 py-0.5 text-secondary"
                 : "min-h-7 min-w-[3rem] px-2 py-1 text-secondary"
             } ${
               selected

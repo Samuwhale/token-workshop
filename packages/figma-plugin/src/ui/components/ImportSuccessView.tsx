@@ -79,7 +79,7 @@ export function ImportSuccessView() {
           </div>
           <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {hasFailedWrites
-              ? "Retry the failed writes or copy the details for follow-up."
+              ? "Retry failed writes, or review the tokens that imported."
               : nextStepRecommendations[0]?.rationale}
           </div>
         </div>
@@ -153,17 +153,14 @@ export function ImportSuccessView() {
           <button
             key={`${recommendation.label}:${index}`}
             onClick={() => openImportNextStep(recommendation)}
-            disabled={hasFailedWrites}
             className={
               index === 0 && !hasFailedWrites
                 ? "rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] hover:opacity-90"
-                : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                : "rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
             }
-            title={hasFailedWrites ? "Retry failed batches first" : recommendation.rationale}
+            title={recommendation.rationale}
           >
-            {hasFailedWrites
-              ? `${getRecommendationButtonLabel(recommendation.label, index)} after retry`
-              : getRecommendationButtonLabel(recommendation.label, index)}
+            {getRecommendationButtonLabel(recommendation.label, index)}
           </button>
         ))}
         <button onClick={clearSuccessState} className="text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]">

@@ -663,7 +663,7 @@ export function QuickApplyPicker({
                       {collectionId === ALL_COLLECTIONS_ID
                         ? "All collections"
                         : collectionId === currentCollectionId
-                          ? "This collection"
+                          ? `Current: ${getCollectionDisplayName(collectionId, collectionDisplayNames)}`
                         : getCollectionDisplayName(collectionId, collectionDisplayNames)}
                     </option>
                   ))}
