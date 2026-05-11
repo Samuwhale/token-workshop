@@ -198,7 +198,7 @@ export function TableCreateForm({
                 title={`Copy ${modeNames[0]} values to empty modes`}
                 className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
               >
-                Copy first mode
+                Fill empty modes
               </button>
             </div>
           ) : null}

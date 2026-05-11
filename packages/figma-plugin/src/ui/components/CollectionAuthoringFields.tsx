@@ -30,7 +30,7 @@ export function createInitialCollectionAuthoringDraft(
 }
 
 const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
-  { label: "Default only", modes: ["Default"] },
+  { label: "Single mode", modes: ["Default"] },
   { label: "Light / Dark", modes: ["Light", "Dark"] },
   { label: "Mobile / Desktop", modes: ["Mobile", "Desktop"] },
 ];
@@ -121,9 +121,6 @@ export function CollectionAuthoringFields({
           disabled={pending}
           className={COLLECTION_INPUT_CLASS}
         />
-        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Figma shows this as the collection name.
-        </span>
       </label>
 
       <div className="flex flex-col gap-2">
@@ -203,7 +200,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Each token has one value in each mode.
+          Tokens in this collection get one value for each mode.
         </span>
       </div>
 

@@ -717,7 +717,10 @@ export function TokenDetails({
     const initialCreateValue = hasSeedValue
       ? getInitialCreateValue(resolvedType, initialValue)
       : undefined;
-    const initialModeValues = {};
+    const initialModeValues =
+      initialCreateValue === undefined
+        ? {}
+        : buildDefaultModeValues(initialCreateValue);
     initialRef.current = {
       value: initialCreateValue,
       description: "",
@@ -761,6 +764,7 @@ export function TokenDetails({
     setTokenType,
     setValue,
     tokenPath,
+    buildDefaultModeValues,
   ]);
 
   useEffect(() => {
@@ -1670,7 +1674,7 @@ export function TokenDetails({
             className="tm-token-details__text-button"
           >
             <Copy size={12} strokeWidth={1.5} aria-hidden />
-            Copy {firstMode.name} to empty modes
+            Fill empty modes
           </button>
         ) : null}
         {onManageCollectionModes ? (

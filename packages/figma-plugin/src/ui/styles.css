@@ -2652,24 +2652,44 @@ button.tm-status-row:not(:disabled):hover {
 .tm-value-cell__wrapper {
   min-inline-size: 0;
   min-block-size: var(--control-size-compact);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   padding-block: 2px;
   transition:
     background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
 }
 
 .tm-value-cell__wrapper--interactive {
   cursor: pointer;
+  border-color: color-mix(in srgb, var(--workspace-library) 16%, transparent);
+}
+
+.tm-value-cell__wrapper[data-empty="true"][data-interactive="true"] {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--workspace-library) 8%, transparent);
+}
+
+.tm-value-cell__wrapper[data-broken="true"] {
+  border-color: color-mix(in srgb, var(--color-figma-warning) 44%, transparent);
+  background: color-mix(in srgb, var(--color-figma-warning) 10%, transparent);
+}
+
+.tm-value-cell__wrapper[data-unavailable="true"] {
+  border-color: color-mix(in srgb, var(--color-figma-warning) 20%, transparent);
+  background: color-mix(in srgb, var(--color-figma-warning) 5%, transparent);
 }
 
 .tm-value-cell__wrapper--interactive:hover {
-  background: color-mix(in srgb, var(--workspace-library) 7%, transparent);
+  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
+  border-color: color-mix(in srgb, var(--workspace-library) 36%, transparent);
 }
 
 .tm-value-cell__wrapper--interactive:focus-within {
   background: var(--surface-accent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--workspace-library) 28%, transparent);
+  border-color: color-mix(in srgb, var(--workspace-library) 44%, transparent);
 }
 
 .tm-value-cell__prefix,
@@ -2751,6 +2771,11 @@ button.tm-status-row:not(:disabled):hover {
   background: color-mix(in srgb, var(--workspace-library) 14%, transparent);
   border-color: color-mix(in srgb, var(--workspace-library) 54%, transparent);
   color: var(--color-figma-text);
+}
+
+.tm-value-cell__wrapper[data-broken="true"] .tm-value-cell__status,
+.tm-value-cell__wrapper[data-broken="true"] .tm-value-cell__line:last-child {
+  color: var(--color-figma-text-warning);
 }
 
 .tm-value-cell__create-button-label {

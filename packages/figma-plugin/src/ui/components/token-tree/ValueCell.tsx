@@ -225,6 +225,10 @@ export function ValueCell({
     <div
       ref={cellRef}
       data-token-mode-cell={optionName}
+      data-interactive={canActivateValue || canAddValue ? "true" : undefined}
+      data-empty={!value ? "true" : undefined}
+      data-broken={isBrokenAlias ? "true" : undefined}
+      data-unavailable={!value && !canAddValue ? "true" : undefined}
       className={`tm-value-cell ${wrapperClass}`}
       title={titleLines.join("\n")}
     >

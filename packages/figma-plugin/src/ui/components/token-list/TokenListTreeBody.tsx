@@ -914,7 +914,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             description={
               hasSelection
                 ? "Create a token, import tokens, or extract values from the selected layer."
-                : "Create the first token, import tokens, or add a group."
+                : "Create the first token, import tokens, or set up a group."
             }
             actions={emptyCollectionActions}
           />

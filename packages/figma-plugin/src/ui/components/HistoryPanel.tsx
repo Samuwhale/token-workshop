@@ -220,7 +220,47 @@ export function HistoryPanel({
             ) : null}
 
             <div className="tm-responsive-toolbar__actions">
-              {!showSaveInput ? (
+              {showSaveInput ? (
+                <div className="tm-panel-inline-form">
+                  <TextInput
+                    className="tm-panel-inline-form__field"
+                    placeholder="Checkpoint name"
+                    value={saveLabel}
+                    onChange={(event) => setSaveLabel(event.target.value)}
+                    aria-label="Checkpoint name"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        void handleSaveSnapshot();
+                      }
+                      if (event.key === "Escape") {
+                        setShowSaveInput(false);
+                        setSaveLabel("");
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="tm-panel-inline-form__actions">
+                    <Button
+                      onClick={() => void handleSaveSnapshot()}
+                      disabled={saving}
+                      variant="primary"
+                      size="sm"
+                    >
+                      {saving ? "Saving…" : "Save"}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowSaveInput(false);
+                        setSaveLabel("");
+                      }}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
                 <Button
                   onClick={() => {
                     const lastOp = recentOperations?.[0];
@@ -234,53 +274,11 @@ export function HistoryPanel({
                 >
                   Save checkpoint
                 </Button>
-              ) : null}
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      {showSaveInput ? (
-        <div className="tm-panel-inline-form shrink-0 px-3 pb-2">
-          <TextInput
-            className="tm-panel-inline-form__field"
-            placeholder="Checkpoint label"
-            value={saveLabel}
-            onChange={(event) => setSaveLabel(event.target.value)}
-            aria-label="Checkpoint label"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                void handleSaveSnapshot();
-              }
-              if (event.key === "Escape") {
-                setShowSaveInput(false);
-                setSaveLabel("");
-              }
-            }}
-            autoFocus
-          />
-          <div className="tm-panel-inline-form__actions">
-            <Button
-              onClick={() => void handleSaveSnapshot()}
-              disabled={saving}
-              variant="primary"
-              size="md"
-            >
-              {saving ? "Saving…" : "Save"}
-            </Button>
-            <Button
-              onClick={() => {
-                setShowSaveInput(false);
-                setSaveLabel("");
-              }}
-              variant="ghost"
-              size="md"
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : null}
 
       <div className="shrink-0 px-3 pb-2">
         <div className="tm-panel-filter-summary">

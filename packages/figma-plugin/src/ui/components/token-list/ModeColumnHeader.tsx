@@ -1,9 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ChevronDown } from "lucide-react";
-import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
-import {
-  FLOATING_MENU_ITEM_CLASS,
-} from "../../shared/menuClasses";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
@@ -25,43 +20,15 @@ export function ModeColumnHeader({
   width,
   onResize,
 }: ModeColumnHeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuStyle = useAnchoredFloatingStyle({
-    triggerRef,
-    open: menuOpen,
-    preferredWidth: 180,
-    preferredHeight: 220,
-    align: "start",
-  });
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = (e: MouseEvent) => {
-      if (!cellRef.current?.contains(e.target as Node)) setMenuOpen(false);
-    };
-    window.addEventListener("mousedown", close);
-    return () => window.removeEventListener("mousedown", close);
-  }, [menuOpen]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const firstItem = menuRef.current?.querySelector<HTMLElement>(
-      '[role="menuitem"]:not([disabled])',
-    );
-    firstItem?.focus();
-  }, [menuOpen]);
-
-  const openMenu = useCallback(
+  const handleManageModes = useCallback(
     (e: React.MouseEvent) => {
       if (!connected || !onManageModes) return;
       e.preventDefault();
-      setMenuOpen(true);
+      onManageModes(collectionId);
     },
-    [connected, onManageModes],
+    [collectionId, connected, onManageModes],
   );
 
   const widthRef = useRef(width);
@@ -110,56 +77,6 @@ export function ModeColumnHeader({
     ((width - MIN_MODE_COL_PX) / (MAX_MODE_COL_PX - MIN_MODE_COL_PX)) * 100,
   );
 
-  const handleMenuKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      const items = Array.from(
-        menuRef.current?.querySelectorAll<HTMLElement>(
-          '[role="menuitem"]:not([disabled])',
-        ) ?? [],
-      );
-      if (items.length === 0) {
-        return;
-      }
-
-      const currentIndex = items.findIndex((item) => item === document.activeElement);
-
-      const focusItem = (index: number) => {
-        items[(index + items.length) % items.length]?.focus();
-      };
-
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setMenuOpen(false);
-        triggerRef.current?.focus();
-        return;
-      }
-
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        focusItem(currentIndex >= 0 ? currentIndex + 1 : 0);
-        return;
-      }
-
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        focusItem(currentIndex >= 0 ? currentIndex - 1 : items.length - 1);
-        return;
-      }
-
-      if (event.key === "Home") {
-        event.preventDefault();
-        focusItem(0);
-        return;
-      }
-
-      if (event.key === "End") {
-        event.preventDefault();
-        focusItem(items.length - 1);
-      }
-    },
-    [],
-  );
-
   return (
     <div
       ref={cellRef}
@@ -183,49 +100,17 @@ export function ModeColumnHeader({
         />
       </div>
       <button
-        ref={triggerRef}
         type="button"
-        onClick={openMenu}
+        onClick={handleManageModes}
         disabled={!connected || !onManageModes}
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        aria-label={`Manage ${modeName} mode`}
+        aria-label={`Manage collection modes from ${modeName}`}
         className="tm-mode-column-header__button w-full rounded-sm py-1 text-body font-medium text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[color:var(--color-figma-text-secondary)]"
-        title={`Manage ${modeName} mode`}
+        title="Manage collection modes"
       >
         <span className="tm-mode-column-header__label min-w-0">
           {modeName}
         </span>
-        <ChevronDown
-          size={10}
-          strokeWidth={1.5}
-          aria-hidden
-          className="tm-mode-column-header__button-icon shrink-0 text-[color:var(--color-figma-text-tertiary)]"
-        />
       </button>
-      {menuOpen && (
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label={`${modeName} mode actions`}
-          className="z-50 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] py-1 text-body shadow-[var(--shadow-popover)]"
-          style={menuStyle ?? { visibility: "hidden" }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onKeyDown={handleMenuKeyDown}
-        >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setMenuOpen(false);
-              onManageModes?.(collectionId);
-            }}
-            className={FLOATING_MENU_ITEM_CLASS}
-          >
-            Manage modes
-          </button>
-        </div>
-      )}
     </div>
   );
 }

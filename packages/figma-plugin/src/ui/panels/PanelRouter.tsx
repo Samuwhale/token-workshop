@@ -1724,10 +1724,6 @@ export function PanelRouter({
     const tokensEmpty =
       collections.length === 0 && !createFromEmpty && !tokenDetails;
     const openFirstCollectionCreate = () => {
-      if (connected) {
-        controller.onOpenCollectionCreateDialog();
-        return;
-      }
       controller.onOpenStartHere("start-new");
     };
 

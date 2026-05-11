@@ -80,20 +80,16 @@ export function ImportSourceHome() {
           <SourceButton
             icon={<Table2 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadVariables}
-            label="Figma variables"
-            description="Collections and modes stay intact"
+            label="Variables"
+            description="Keep collections and modes"
             variant="primary"
           />
           <SourceButton
             icon={<Layers3 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadStyles}
-            label="Figma styles"
-            description="Convert local styles into tokens"
+            label="Styles"
+            description="Import color, text, effect styles"
           />
-        </div>
-        <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Variables preserve the collection and mode structure designers already
-          use in Figma.
         </div>
       </div>
 
@@ -102,8 +98,7 @@ export function ImportSourceHome() {
           From a file
         </div>
         <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Supports JSON, CSS, Tailwind, and Tokens Studio. The importer detects
-          the file type automatically.
+          Drop JSON, CSS, Tailwind, or Tokens Studio files.
         </div>
         <button
           type="button"

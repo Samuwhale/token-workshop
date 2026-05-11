@@ -139,7 +139,7 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
           Create your first collection
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Add modes like Light and Dark now. Every token in this collection will get one value for each mode.
+          Add modes like Light and Dark now. Tokens in this collection get one value for each mode.
         </p>
       </div>
 
@@ -385,17 +385,17 @@ export function QuickStartWizard({
             {wizardCreatedCollection
               ? `"${wizardCreatedCollectionLabel ?? wizardCreatedCollection}" is ready with ${createdModeCount} mode${createdModeCount === 1 ? "" : "s"}.`
               : effectiveCollectionId
-                ? "Choose the next library step."
-                : "Choose the next library step."}
+                ? "Choose what to add next."
+                : "Choose what to add next."}
           </p>
           <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Create tokens, import an existing library, or extract values from the canvas.
+            Create a token, import a library, or extract values from the canvas.
           </p>
         </div>
         <div className="px-2 pb-2">
           <NextStepButton
             title="Create token"
-            description="Author the first real token in this collection."
+            description="Add the first token to this collection."
             onClick={() => {
               if (effectiveCollectionId) {
                 onAuthorFirstToken?.(effectiveCollectionId);

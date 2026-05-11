@@ -150,17 +150,11 @@ export function CollectionTabs({
         currentCollection.modes.length,
       )
     : "";
-  const editingContext =
-    scopeValue === "all" && currentCollection
-      ? `Editing ${currentDisplayName}`
-      : null;
   const visibleTitle =
     scopeValue === "all" ? "All collections" : currentDisplayName;
   const visibleMeta =
     scopeValue === "all"
-      ? [editingContext, formatAllCollectionsMeta(collections.length, allCollectionsTokenCount)]
-          .filter(Boolean)
-          .join(" · ")
+      ? formatAllCollectionsMeta(collections.length, allCollectionsTokenCount)
       : currentCollectionMeta;
 
   const filteredCollections = useMemo(
@@ -228,7 +222,7 @@ export function CollectionTabs({
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
-      ? `All collections. Editing ${currentDisplayName}. Choose collection`
+      ? "All collections. Choose collection"
       : `Collection: ${currentDisplayName}. Choose collection`
     : scopeValue === "all"
       ? "All collections. Choose collection"

@@ -423,8 +423,6 @@ export function TokenDetailsModeRow({
           {controls}
         </div>
       )}
-      {!showHeader ? controls : null}
-
       <div className="tm-token-mode-row__body">
         <div className="tm-token-mode-row__value">
           {editable && aliasMode ? (
@@ -450,7 +448,7 @@ export function TokenDetailsModeRow({
                   }
                 }}
                 autoFocus={autoFocus}
-                placeholder="Choose a token to reference"
+                placeholder="Reference a token"
                 aria-label={`${modeName} reference`}
                 aria-invalid={showAliasMissingState || showAliasAmbiguousState}
                 aria-describedby={
@@ -484,14 +482,14 @@ export function TokenDetailsModeRow({
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  No token matches this path. Pick another token or create it first.
+                  No token at this path. Pick another token or create it first.
                 </p>
               ) : showAliasAmbiguousState ? (
                 <p
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Use a unique token path.
+                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Use a unique path.
                 </p>
               ) : null}
             </div>
