@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Check, CircleAlert, Info, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './Spinner';
 
 export type InlineBannerVariant = 'loading' | 'error' | 'warning' | 'info' | 'success';
@@ -82,45 +83,19 @@ function bannerIcon(variant: InlineBannerVariant): ReactNode {
     case 'loading':
       return <Spinner size="sm" />;
     case 'error':
-      return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 8v4" />
-          <path d="M12 16h.01" />
-        </svg>
-      );
+      return <CircleAlert size={12} strokeWidth={2} aria-hidden="true" />;
     case 'warning':
-      return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <path d="M12 9v4" />
-          <path d="M12 17h.01" />
-        </svg>
-      );
+      return <TriangleAlert size={12} strokeWidth={2} aria-hidden="true" />;
     case 'success':
-      return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M20 6L9 17l-5-5" />
-        </svg>
-      );
+      return <Check size={12} strokeWidth={2.25} aria-hidden="true" />;
     case 'info':
     default:
-      return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 12v4" />
-          <path d="M12 8h.01" />
-        </svg>
-      );
+      return <Info size={12} strokeWidth={2} aria-hidden="true" />;
   }
 }
 
 function DismissIcon() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-      <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  );
+  return <X size={8} strokeWidth={2.5} aria-hidden="true" />;
 }
 
 export function InlineBanner({

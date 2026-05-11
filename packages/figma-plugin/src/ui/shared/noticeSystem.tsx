@@ -1,4 +1,10 @@
 import type { ReactNode } from 'react';
+import {
+  CircleAlert,
+  TriangleAlert,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Severity                                                          */
@@ -69,61 +75,22 @@ export function severityStyles(severity: NoticeSeverity) {
 /*  Shared warning icon                                               */
 /* ------------------------------------------------------------------ */
 
-function WarningIcon({ size = 10, className }: { size?: number; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className ?? 'shrink-0'}
-      aria-hidden="true"
-    >
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
-function ErrorIcon({ size = 10, className }: { size?: number; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className ?? 'shrink-0 mt-px'}
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 8v4M12 16h.01" />
-    </svg>
-  );
-}
-
-function DismissIcon({ size = 8 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-      <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  );
-}
+const SEVERITY_ICON: Partial<Record<NoticeSeverity, LucideIcon>> = {
+  error: CircleAlert,
+  warning: TriangleAlert,
+  stale: TriangleAlert,
+};
 
 function severityIcon(severity: NoticeSeverity, size?: number) {
-  if (severity === 'error') return <ErrorIcon size={size} />;
-  if (severity === 'warning' || severity === 'stale') {
-    return <WarningIcon size={size} />;
-  }
-  return null;
+  const Icon = SEVERITY_ICON[severity];
+  return Icon ? (
+    <Icon
+      size={size ?? 10}
+      strokeWidth={2}
+      className="shrink-0 mt-px"
+      aria-hidden="true"
+    />
+  ) : null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -274,6 +241,12 @@ export function NoticeInlineAlert({ severity, children, onDismiss, className }: 
     : severity === 'warning'
     ? 'text-[color:var(--color-figma-text-warning)]'
     : 'text-[color:var(--color-figma-text-secondary)]';
+  const dismissHoverTone =
+    severity === 'error'
+      ? 'hover:bg-[var(--color-figma-error)]/20'
+      : severity === 'warning' || severity === 'stale'
+      ? 'hover:bg-[var(--color-figma-warning)]/20'
+      : 'hover:bg-[var(--color-figma-bg-hover)]';
 
   return (
     <div
@@ -285,11 +258,11 @@ export function NoticeInlineAlert({ severity, children, onDismiss, className }: 
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className={`p-0.5 rounded ${textTone} hover:bg-${severity === 'error' ? '[var(--color-figma-error)]' : '[var(--color-figma-warning)]'}/20 transition-colors shrink-0`}
+          className={`p-0.5 rounded ${textTone} ${dismissHoverTone} transition-colors shrink-0`}
           title="Dismiss"
-          aria-label="Dismiss error"
+          aria-label="Dismiss"
         >
-          <DismissIcon />
+          <X size={8} strokeWidth={2.5} aria-hidden="true" />
         </button>
       )}
     </div>

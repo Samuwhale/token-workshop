@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { ConfirmModal } from './ConfirmModal';
 import { ValuePreview } from './ValuePreview';
@@ -109,6 +110,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpact
 
   const modeCount = modeImpacts?.length ?? 0;
   const hasImpacts = depCount > 0 || modeCount > 0;
+  const impactedModes = modeImpacts ?? [];
 
   const summary = (() => {
     if (!hasImpacts) return `No references found. The ${kind} will be renamed.`;
@@ -206,7 +208,7 @@ function RenameConfirmModal({ kind, oldPath, newPath, depCount, deps, modeImpact
                     Mode values
                   </div>
                   <ul className="max-h-[96px] overflow-y-auto rounded bg-[var(--color-figma-bg-secondary)] p-2">
-                    {modeImpacts!.map((impact, index) => (
+                    {impactedModes.map((impact, index) => (
                       <li key={index} className={LONG_TEXT_CLASSES.monoSecondary}>
                         <span className="text-[color:var(--color-figma-text-tertiary)]">
                           {impact.collectionName} /{' '}
@@ -447,6 +449,9 @@ function DeleteImpactDetails({
   const tokenCount = pathList?.length ?? 0;
   const refCount = affectedRefs?.length ?? 0;
   const modeImpactCount = modeImpacts?.length ?? 0;
+  const tokenPaths = pathList ?? [];
+  const brokenRefs = affectedRefs ?? [];
+  const impactedModes = modeImpacts ?? [];
 
   const hasSideEffects = refCount > 0 || modeImpactCount > 0;
 
@@ -480,7 +485,7 @@ function DeleteImpactDetails({
           label={`Tokens (${tokenCount})`}
         >
           <div className="max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {pathList!.slice(0, 20).map(p => (
+            {tokenPaths.slice(0, 20).map(p => (
               <div key={p} className={`px-2 py-0.5 text-secondary ${LONG_TEXT_CLASSES.monoSecondary}`} title={p}>{p}</div>
             ))}
             {tokenCount > 20 && (
@@ -498,7 +503,7 @@ function DeleteImpactDetails({
           label={`Broken references (${refCount})`}
         >
           <div className="max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {affectedRefs!.slice(0, 20).map((ref, i) => (
+            {brokenRefs.slice(0, 20).map((ref, i) => (
               <div key={i} className={`px-2 py-0.5 text-secondary ${LONG_TEXT_CLASSES.monoSecondary}`} title={`${ref.collectionId}/${ref.path}`}>
                 <span className="text-[color:var(--color-figma-text-tertiary)]">{ref.collectionId}/</span>{ref.path}
               </div>
@@ -518,7 +523,7 @@ function DeleteImpactDetails({
           label={`Affected mode values (${modeImpactCount})`}
         >
           <div className="max-h-[100px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            {modeImpacts!.map((impact, i) => (
+            {impactedModes.map((impact, i) => (
               <div key={i} className={`px-2 py-0.5 text-secondary border-b border-[var(--color-figma-border)] last:border-b-0 ${LONG_TEXT_CLASSES.monoSecondary}`}>
                 <span className="text-[color:var(--color-figma-text-tertiary)]">{impact.collectionName} / </span>
                 <span className="text-[color:var(--color-figma-text)]">{impact.optionName}</span>
@@ -550,9 +555,12 @@ function CollapsibleSection({
           onClick={onToggle}
           className="flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] mb-1"
         >
-          <svg width="10" height="10" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">
-            <path d="M2 1l4 3-4 3" />
-          </svg>
+          <ChevronRight
+            size={10}
+            strokeWidth={1.8}
+            className={`transition-transform ${open ? 'rotate-90' : ''}`}
+            aria-hidden="true"
+          />
           {label}
         </button>
       ) : (

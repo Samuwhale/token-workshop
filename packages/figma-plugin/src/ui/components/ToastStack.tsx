@@ -1,4 +1,12 @@
 import { useEffect, useRef } from "react";
+import {
+  Check,
+  CircleAlert,
+  Info,
+  TriangleAlert,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import type { ToastItem } from "../hooks/useToastStack";
 import { modKey, shiftKey } from "../shared/utils";
 
@@ -111,17 +119,7 @@ function UndoRow({
           aria-label="Dismiss"
           className="shrink-0 rounded p-0.5 text-white/60 transition-colors hover:bg-white/20 hover:text-white"
         >
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 8 8"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          >
-            <path d="M1 1l6 6M7 1L1 7" />
-          </svg>
+          <X size={10} strokeWidth={1.8} aria-hidden />
         </button>
       </div>
     </div>
@@ -130,20 +128,25 @@ function UndoRow({
 
 /* ---- Message row (supports all toast variants) ---- */
 
-const TOAST_ICON: Record<string, { cls: string; d: string; extra?: string }> = {
-  success: { cls: "text-[color:var(--color-figma-text-success)]", d: "M20 6L9 17l-5-5" },
+const TOAST_ICON: Record<
+  ToastItem["variant"],
+  { Icon: LucideIcon; cls: string }
+> = {
+  success: {
+    Icon: Check,
+    cls: "text-[color:var(--color-figma-text-success)]",
+  },
   error: {
+    Icon: CircleAlert,
     cls: "text-[color:var(--color-figma-text-error)]",
-    d: "M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z",
   },
   warning: {
+    Icon: TriangleAlert,
     cls: "text-[color:var(--color-figma-text-warning)]",
-    d: "M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z",
   },
   info: {
+    Icon: Info,
     cls: "text-[color:var(--color-figma-text-accent)]",
-    d: "M12 16v-4M12 8h.01",
-    extra: "M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0z",
   },
 };
 
@@ -173,23 +176,9 @@ function MessageRow({
   }, [toast.id, toast.message, timeout, onDismiss]);
 
   const iconCfg = TOAST_ICON[toast.variant] ?? TOAST_ICON.info;
-  const iconEl = (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={`shrink-0 ${iconCfg.cls}`}
-    >
-      {iconCfg.extra && <path d={iconCfg.extra} />}
-      <path d={iconCfg.d} />
-    </svg>
-  );
+  const ToastIcon = iconCfg.Icon;
+  const secondaryAction = toast.secondaryAction;
+  const primaryAction = toast.action;
 
   return (
     <div
@@ -197,49 +186,44 @@ function MessageRow({
       aria-live={livePriority}
       className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-text)] px-3 py-2 text-body text-[color:var(--color-figma-bg)] shadow-[var(--shadow-popover)] animate-toast-in"
     >
-      {iconEl}
+      <ToastIcon
+        size={12}
+        strokeWidth={2.5}
+        aria-hidden="true"
+        className={`shrink-0 ${iconCfg.cls}`}
+      />
       <span className="min-w-0 flex-1 break-words">
         {toast.message}
       </span>
       <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-        {toast.secondaryAction && (
+        {secondaryAction ? (
           <button
             onClick={() => {
-              toast.secondaryAction!.onClick();
+              secondaryAction.onClick();
               onDismiss(toast.id);
             }}
             className="shrink-0 rounded px-2 py-0.5 text-secondary text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
-            {toast.secondaryAction.label}
+            {secondaryAction.label}
           </button>
-        )}
-        {toast.action && (
+        ) : null}
+        {primaryAction ? (
           <button
             onClick={() => {
-              toast.action!.onClick();
+              primaryAction.onClick();
               onDismiss(toast.id);
             }}
             className="shrink-0 rounded bg-[var(--color-figma-action-bg)] px-2 py-0.5 font-medium text-secondary text-[color:var(--color-figma-text-onbrand)] transition-colors hover:brightness-110"
           >
-            {toast.action.label}
+            {primaryAction.label}
           </button>
-        )}
+        ) : null}
         <button
           onClick={() => onDismiss(toast.id)}
           aria-label="Dismiss"
           className="shrink-0 rounded p-0.5 text-white/60 transition-colors hover:bg-white/20 hover:text-white"
         >
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 8 8"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          >
-            <path d="M1 1l6 6M7 1L1 7" />
-          </svg>
+          <X size={10} strokeWidth={1.8} aria-hidden />
         </button>
       </div>
     </div>

@@ -225,6 +225,14 @@ export function TokenListToolbar({
   const showCreate = viewMode === "tree";
   const showPrimaryCreateAction = onCreateToken !== undefined;
   const showViewMenu = hasTokens;
+  const groupToggleAction =
+    overflowMenuProps?.allGroupsExpanded === true
+      ? overflowMenuProps.onCollapseAll
+      : overflowMenuProps?.onExpandAll;
+  const groupToggleLabel =
+    overflowMenuProps?.allGroupsExpanded === true
+      ? "Collapse all groups"
+      : "Expand all groups";
   const showSecondaryCluster =
     (overflowMenuProps && viewMode === "tree") || showViewMenu || showOverflow;
   const sortOrder: SortOrder = overflowMenuProps?.sortOrder ?? "default";
@@ -558,18 +566,14 @@ export function TokenListToolbar({
                             <button
                               type="button"
                               role="menuitem"
-                              onClick={() =>
-                                runMenuAction(
-                                  overflowMenuProps!.allGroupsExpanded
-                                    ? overflowMenuProps!.onCollapseAll
-                                    : overflowMenuProps!.onExpandAll,
-                                )
-                              }
+                              onClick={() => {
+                                if (groupToggleAction) {
+                                  runMenuAction(groupToggleAction);
+                                }
+                              }}
                               className={FLOATING_MENU_ITEM_CLASS}
                             >
-                              {overflowMenuProps!.allGroupsExpanded
-                                ? "Collapse all groups"
-                                : "Expand all groups"}
+                              {groupToggleLabel}
                             </button>
                           </>
                         ) : null}
