@@ -72,7 +72,12 @@ import {
   fetchGeneratorStatuses,
   type FullGeneratorStatusItem,
 } from "../../shared/generatorStatus";
-import { ActionRow, Button, IconButton, SegmentedControl } from "../../primitives";
+import {
+  ActionRow,
+  Button,
+  IconButton,
+  SegmentedControl,
+} from "../../primitives";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 import { GeneratorCreatePanel } from "../GeneratorCreatePanel";
@@ -80,6 +85,11 @@ import {
   NodeLibraryPanel,
   type GeneratorPaletteItem,
 } from "./GeneratorWorkspacePanels";
+import {
+  GeneratorGraphContextMenu,
+  type GraphMenuPoint,
+  type GraphMenuState,
+} from "./GeneratorGraphContextMenu";
 import type { GeneratorEditorMode } from "./generatorEditorTypes";
 import {
   PreviewPanel,
@@ -105,7 +115,10 @@ import {
   ReferenceableField,
   ShadowStepTable,
 } from "./GeneratorFieldControls";
-import { collectGraphIssues, type GraphIssue } from "./generatorGraphValidation";
+import {
+  collectGraphIssues,
+  type GraphIssue,
+} from "./generatorGraphValidation";
 import {
   addSingleInputEdge,
   changesOnlyCommitNodePositions,
@@ -113,7 +126,6 @@ import {
   createFlowEdgeFromConnection,
   deleteNodeAndPreserveFlow,
   firstCompatibleEdge,
-  flowNodeFromPaletteItem,
   generatorWithInferredTokenInputTypes,
   getNodeInputPorts,
   getNodeOutputPorts,
@@ -185,30 +197,6 @@ interface GeneratorApplyResponse {
   deleted: string[];
 }
 
-interface GraphMenuPoint {
-  x: number;
-  y: number;
-  flowPosition: TokenGeneratorDocumentNode["position"];
-}
-
-type GraphMenuState =
-  | ({ kind: "pane-add" } & GraphMenuPoint)
-  | ({
-      kind: "connect-from-output";
-      sourceNodeId: string;
-      sourcePort: string;
-      replaceEdgeId?: string;
-    } & GraphMenuPoint)
-  | ({
-      kind: "connect-to-input";
-      targetNodeId: string;
-      targetPort: string;
-      replaceEdgeId?: string;
-    } & GraphMenuPoint)
-  | ({ kind: "node"; nodeId: string } & GraphMenuPoint)
-  | ({ kind: "edge"; edgeId: string } & GraphMenuPoint)
-  | ({ kind: "edge-insert"; edgeId: string } & GraphMenuPoint);
-
 type PendingConnectionStart = {
   nodeId: string;
   port: string;
@@ -239,7 +227,10 @@ const COMPACT_GENERATORS_WIDTH = 560;
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-const GENERATOR_EDITOR_TABS: Array<{ value: GeneratorEditorMode; label: string }> = [
+const GENERATOR_EDITOR_TABS: Array<{
+  value: GeneratorEditorMode;
+  label: string;
+}> = [
   { value: "overview", label: "Overview" },
   { value: "graph", label: "Graph" },
 ];
@@ -281,8 +272,9 @@ const GENERATOR_LIST_SCOPE_OPTIONS: Array<{
 ];
 
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    .filter((element) => element.tabIndex >= 0 && !element.hidden);
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+  ).filter((element) => element.tabIndex >= 0 && !element.hidden);
 }
 
 function readCollectionLabel(collection: TokenCollection | undefined): string {
@@ -495,7 +487,9 @@ export function GeneratorsPanel({
   const [inspectorMinimized, setInspectorMinimized] = useState(false);
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
-  const [createOutputPrefix, setCreateOutputPrefix] = useState<string | null>(null);
+  const [createOutputPrefix, setCreateOutputPrefix] = useState<string | null>(
+    null,
+  );
   const [generatorListOpen, setGeneratorListOpen] = useState(false);
   const [generatorListQuery, setGeneratorListQuery] = useState("");
   const [generatorListScope, setGeneratorListScope] =
@@ -505,9 +499,8 @@ export function GeneratorsPanel({
     null,
   );
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<PendingDeleteAction | null>(
-    null,
-  );
+  const [pendingDelete, setPendingDelete] =
+    useState<PendingDeleteAction | null>(null);
   const [editorMode, setEditorMode] = useState<GeneratorEditorMode>("overview");
   const [activeInitialFocus, setActiveInitialFocus] =
     useState<GeneratorPanelFocus | null>(null);
@@ -639,7 +632,8 @@ export function GeneratorsPanel({
     const query = generatorListQuery.trim().toLowerCase();
     if (!query) return visibleGenerators;
     return visibleGenerators.filter((generator) => {
-      const outputLabel = readGeneratorDestinationSearchLabel(generator).toLowerCase();
+      const outputLabel =
+        readGeneratorDestinationSearchLabel(generator).toLowerCase();
       const status = readGeneratorStatusLabel(generator).toLowerCase();
       const collectionLabel = (
         collectionLabelById.get(generator.targetCollectionId) ??
@@ -709,8 +703,7 @@ export function GeneratorsPanel({
     (issue) => issue.severity === "error",
   );
   const canRepairGraph = graphIssues.some(
-    (issue) =>
-      Boolean(issue.edgeId) || issue.id.endsWith("-multiple-inputs"),
+    (issue) => Boolean(issue.edgeId) || issue.id.endsWith("-multiple-inputs"),
   );
   const activeGeneratorSignature = useMemo(
     () =>
@@ -751,7 +744,8 @@ export function GeneratorsPanel({
   }, []);
 
   const loadGeneratorStatuses = useCallback(async () => {
-    const statuses = await fetchGeneratorStatuses<TokenGeneratorDocument>(serverUrl);
+    const statuses =
+      await fetchGeneratorStatuses<TokenGeneratorDocument>(serverUrl);
     setGeneratorStatusesById(
       Object.fromEntries(
         statuses.map((status) => [status.generator.id, status]),
@@ -762,7 +756,9 @@ export function GeneratorsPanel({
   const refreshGeneratorStatuses = useCallback(() => {
     void loadGeneratorStatuses().catch((statusError) => {
       setError(
-        statusError instanceof Error ? statusError.message : String(statusError),
+        statusError instanceof Error
+          ? statusError.message
+          : String(statusError),
       );
     });
   }, [loadGeneratorStatuses]);
@@ -867,7 +863,8 @@ export function GeneratorsPanel({
       clearGeneratorDirty();
       setExternalPreviewInvalidated(false);
     }
-    const opensGraph = initialView === "graph" || focus?.nodeId || focus?.edgeId;
+    const opensGraph =
+      initialView === "graph" || focus?.nodeId || focus?.edgeId;
     const opensOutputs = Boolean(focus?.diagnosticId);
     if (opensGraph) {
       setEditorMode("graph");
@@ -1018,9 +1015,7 @@ export function GeneratorsPanel({
         data: {
           ...node.data,
           preview: preview ?? undefined,
-          issues: graphIssues.filter(
-            (issue) => issue.nodeId === node.id,
-          ),
+          issues: graphIssues.filter((issue) => issue.nodeId === node.id),
           detailsExpanded: expandedGraphNodeIds.has(node.id),
           onToggleDetailsExpanded: toggleGraphNodeDetailsExpanded,
         },
@@ -1081,7 +1076,11 @@ export function GeneratorsPanel({
       if (!activeGenerator) return;
       localGraphEditRef.current = true;
       graphRevisionRef.current += 1;
-      const nextGenerator = graphWithFlowState(activeGenerator, nextNodes, nextEdges);
+      const nextGenerator = graphWithFlowState(
+        activeGenerator,
+        nextNodes,
+        nextEdges,
+      );
       setGenerators((current) =>
         current.map((graph) =>
           graph.id === activeGenerator.id
@@ -1138,12 +1137,7 @@ export function GeneratorsPanel({
       applyGraphStructureUiState(options.afterCommit);
       return true;
     },
-    [
-      applyGraphStructureUiState,
-      commitFlowState,
-      setEdges,
-      setNodes,
-    ],
+    [applyGraphStructureUiState, commitFlowState, setEdges, setNodes],
   );
 
   const commitViewport = useCallback(
@@ -1313,7 +1307,8 @@ export function GeneratorsPanel({
   ]);
 
   useEffect(() => {
-    if (!activeGenerator || createPanelOpen || !activeGeneratorSignature) return;
+    if (!activeGenerator || createPanelOpen || !activeGeneratorSignature)
+      return;
     if (
       preview &&
       !externalPreviewInvalidated &&
@@ -1326,59 +1321,62 @@ export function GeneratorsPanel({
     autoPreviewRunRef.current = runId;
     setExternalPreviewInvalidated(true);
 
-    const timeout = window.setTimeout(async () => {
-      const previewGenerator = dirty
-        ? graphWithFlowState(
-            activeGenerator,
-            nodesRef.current,
-            edgesRef.current,
-          )
-        : activeGenerator;
-      const previewGeneratorId = previewGenerator.id;
-      if (autoPreviewRunRef.current !== runId) return;
-      setBusy("preview");
-      setError(null);
-      try {
-        const data = await apiFetch<GeneratorPreviewResponse>(
-          dirty
-            ? `${serverUrl}/api/generators/${encodeURIComponent(previewGeneratorId)}/preview-draft`
-            : `${serverUrl}/api/generators/${encodeURIComponent(previewGeneratorId)}/preview`,
-          dirty
-            ? {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  name: previewGenerator.name,
-                  targetCollectionId: previewGenerator.targetCollectionId,
-                  nodes: previewGenerator.nodes,
-                  edges: previewGenerator.edges,
-                  viewport: previewGenerator.viewport,
-                }),
-              }
-            : { method: "POST" },
-        );
-        if (
-          autoPreviewRunRef.current !== runId ||
-          activeGeneratorIdRef.current !== previewGeneratorId ||
-          data.preview.generatorId !== previewGeneratorId
-        ) {
-          return;
-        }
-        setPreview(data.preview);
-        latestPreviewSignatureRef.current = activeGeneratorSignature;
-        setExternalPreviewInvalidated(false);
-        setActiveInitialFocus(null);
-      } catch (previewError) {
+    const timeout = window.setTimeout(
+      async () => {
+        const previewGenerator = dirty
+          ? graphWithFlowState(
+              activeGenerator,
+              nodesRef.current,
+              edgesRef.current,
+            )
+          : activeGenerator;
+        const previewGeneratorId = previewGenerator.id;
         if (autoPreviewRunRef.current !== runId) return;
-        setError(
-          previewError instanceof Error
-            ? previewError.message
-            : String(previewError),
-        );
-      } finally {
-        if (autoPreviewRunRef.current === runId) setBusy(null);
-      }
-    }, dirty ? 500 : 0);
+        setBusy("preview");
+        setError(null);
+        try {
+          const data = await apiFetch<GeneratorPreviewResponse>(
+            dirty
+              ? `${serverUrl}/api/generators/${encodeURIComponent(previewGeneratorId)}/preview-draft`
+              : `${serverUrl}/api/generators/${encodeURIComponent(previewGeneratorId)}/preview`,
+            dirty
+              ? {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    name: previewGenerator.name,
+                    targetCollectionId: previewGenerator.targetCollectionId,
+                    nodes: previewGenerator.nodes,
+                    edges: previewGenerator.edges,
+                    viewport: previewGenerator.viewport,
+                  }),
+                }
+              : { method: "POST" },
+          );
+          if (
+            autoPreviewRunRef.current !== runId ||
+            activeGeneratorIdRef.current !== previewGeneratorId ||
+            data.preview.generatorId !== previewGeneratorId
+          ) {
+            return;
+          }
+          setPreview(data.preview);
+          latestPreviewSignatureRef.current = activeGeneratorSignature;
+          setExternalPreviewInvalidated(false);
+          setActiveInitialFocus(null);
+        } catch (previewError) {
+          if (autoPreviewRunRef.current !== runId) return;
+          setError(
+            previewError instanceof Error
+              ? previewError.message
+              : String(previewError),
+          );
+        } finally {
+          if (autoPreviewRunRef.current === runId) setBusy(null);
+        }
+      },
+      dirty ? 500 : 0,
+    );
 
     return () => window.clearTimeout(timeout);
   }, [
@@ -1417,7 +1415,9 @@ export function GeneratorsPanel({
     }
     if (reviewedPreviewHash !== preview.hash) {
       setOutputDockOpen(true);
-      setError("Review the current outputs and mark them reviewed before applying.");
+      setError(
+        "Review the current outputs and mark them reviewed before applying.",
+      );
       return;
     }
     if (!saved) return;
@@ -1554,8 +1554,9 @@ export function GeneratorsPanel({
       if (collectionId === workingCollectionId) return;
       onWorkingCollectionChange?.(collectionId);
       const nextGeneratorId =
-        generators.find((generator) => generator.targetCollectionId === collectionId)
-          ?.id ?? null;
+        generators.find(
+          (generator) => generator.targetCollectionId === collectionId,
+        )?.id ?? null;
       setActiveGeneratorSelection(nextGeneratorId);
       clearGeneratorSelectionState();
       setGeneratorListScope("collection");
@@ -1582,7 +1583,9 @@ export function GeneratorsPanel({
         setError("Save the current generator before switching to another one.");
         return;
       }
-      const nextGenerator = generators.find((generator) => generator.id === generatorId);
+      const nextGenerator = generators.find(
+        (generator) => generator.id === generatorId,
+      );
       if (
         nextGenerator &&
         nextGenerator.targetCollectionId !== workingCollectionId
@@ -1733,7 +1736,9 @@ export function GeneratorsPanel({
       );
       let nextEdges = edges.filter((edge) => edge.id !== options.replaceEdgeId);
       if (options.insertEdgeId) {
-        const edgeToInsert = edges.find((edge) => edge.id === options.insertEdgeId);
+        const edgeToInsert = edges.find(
+          (edge) => edge.id === options.insertEdgeId,
+        );
         if (!edgeToInsert) return;
         const firstEdge = firstCompatibleEdge(
           activeGenerator,
@@ -1767,11 +1772,16 @@ export function GeneratorsPanel({
           secondEdge,
         );
       } else if (options.connectFrom) {
-        const flowEdge = firstCompatibleEdge(activeGenerator, validationNextNodes, nextEdges, {
-          sourceNodeId: options.connectFrom.nodeId,
-          sourcePort: options.connectFrom.port,
-          targetNodeId: id,
-        });
+        const flowEdge = firstCompatibleEdge(
+          activeGenerator,
+          validationNextNodes,
+          nextEdges,
+          {
+            sourceNodeId: options.connectFrom.nodeId,
+            sourcePort: options.connectFrom.port,
+            targetNodeId: id,
+          },
+        );
         if (!flowEdge) {
           setError("That node cannot receive this connection.");
           return;
@@ -1786,17 +1796,27 @@ export function GeneratorsPanel({
                 (edge.targetHandle ?? "value") === options.connectTo.port,
             );
         if (existingInputEdge) {
-          const firstEdge = firstCompatibleEdge(activeGenerator, validationNextNodes, nextEdges, {
-            sourceNodeId: existingInputEdge.source,
-            sourcePort: String(existingInputEdge.sourceHandle ?? "value"),
-            targetNodeId: id,
-          });
-          const secondEdge = firstCompatibleEdge(activeGenerator, validationNextNodes, nextEdges, {
-            sourceNodeId: id,
-            targetNodeId: options.connectTo.nodeId,
-            targetPort: options.connectTo.port,
-            replaceEdgeId: existingInputEdge.id,
-          });
+          const firstEdge = firstCompatibleEdge(
+            activeGenerator,
+            validationNextNodes,
+            nextEdges,
+            {
+              sourceNodeId: existingInputEdge.source,
+              sourcePort: String(existingInputEdge.sourceHandle ?? "value"),
+              targetNodeId: id,
+            },
+          );
+          const secondEdge = firstCompatibleEdge(
+            activeGenerator,
+            validationNextNodes,
+            nextEdges,
+            {
+              sourceNodeId: id,
+              targetNodeId: options.connectTo.nodeId,
+              targetPort: options.connectTo.port,
+              replaceEdgeId: existingInputEdge.id,
+            },
+          );
           if (!firstEdge || !secondEdge) {
             setError("That node cannot be inserted before this input.");
             return;
@@ -1809,11 +1829,16 @@ export function GeneratorsPanel({
             secondEdge,
           );
         } else {
-          const flowEdge = firstCompatibleEdge(activeGenerator, validationNextNodes, nextEdges, {
-            sourceNodeId: id,
-            targetNodeId: options.connectTo.nodeId,
-            targetPort: options.connectTo.port,
-          });
+          const flowEdge = firstCompatibleEdge(
+            activeGenerator,
+            validationNextNodes,
+            nextEdges,
+            {
+              sourceNodeId: id,
+              targetNodeId: options.connectTo.nodeId,
+              targetPort: options.connectTo.port,
+            },
+          );
           if (!flowEdge) {
             setError("That node cannot connect to this input.");
             return;
@@ -1863,11 +1888,13 @@ export function GeneratorsPanel({
     (clientX: number, clientY: number): GraphMenuPoint => ({
       x: clientX,
       y: clientY,
-      flowPosition:
-        flowInstance?.screenToFlowPosition({ x: clientX, y: clientY }) ?? {
-          x: clientX,
-          y: clientY,
-        },
+      flowPosition: flowInstance?.screenToFlowPosition({
+        x: clientX,
+        y: clientY,
+      }) ?? {
+        x: clientX,
+        y: clientY,
+      },
     }),
     [flowInstance],
   );
@@ -1875,17 +1902,16 @@ export function GeneratorsPanel({
   const graphMenuPointFromNode = useCallback(
     (node: TokenGeneratorDocumentNode): GraphMenuPoint => {
       const position = { x: node.position.x + 210, y: node.position.y + 40 };
-      const screenPosition =
-        (
-          flowInstance as
-            | (ReactFlowInstance<GraphFlowNode, GraphFlowEdge> & {
-                flowToScreenPosition?: (position: { x: number; y: number }) => {
-                  x: number;
-                  y: number;
-                };
-              })
-            | null
-        )?.flowToScreenPosition?.(position);
+      const screenPosition = (
+        flowInstance as
+          | (ReactFlowInstance<GraphFlowNode, GraphFlowEdge> & {
+              flowToScreenPosition?: (position: { x: number; y: number }) => {
+                x: number;
+                y: number;
+              };
+            })
+          | null
+      )?.flowToScreenPosition?.(position);
       const fallback = panelRef.current?.getBoundingClientRect();
       return {
         x: screenPosition?.x ?? (fallback ? fallback.left + 240 : 240),
@@ -1899,7 +1925,8 @@ export function GeneratorsPanel({
   const deleteSelectedNode = useCallback(() => {
     if (!activeGenerator || !selectedNode) return;
     const connectedEdgeCount = edges.filter(
-      (edge) => edge.source === selectedNode.id || edge.target === selectedNode.id,
+      (edge) =>
+        edge.source === selectedNode.id || edge.target === selectedNode.id,
     ).length;
     const deletion = deleteNodeAndPreserveFlow(
       activeGenerator,
@@ -1942,13 +1969,7 @@ export function GeneratorsPanel({
       setSelectedEdgeId(null);
       setGraphMenu(null);
     },
-    [
-      activeGenerator,
-      commitGraphStructure,
-      edges,
-      nodes,
-      perCollectionFlat,
-    ],
+    [activeGenerator, commitGraphStructure, edges, nodes, perCollectionFlat],
   );
 
   const requestDeleteNodeById = useCallback(
@@ -2039,13 +2060,7 @@ export function GeneratorsPanel({
     setSelectedEdgeId(null);
     setGraphMenu(null);
     setError(null);
-  }, [
-    activeGenerator,
-    commitGraphStructure,
-    edges,
-    nodes,
-    perCollectionFlat,
-  ]);
+  }, [activeGenerator, commitGraphStructure, edges, nodes, perCollectionFlat]);
 
   const confirmPendingDelete = useCallback(() => {
     if (!pendingDelete) return;
@@ -2102,14 +2117,20 @@ export function GeneratorsPanel({
       setGraphPanelState(inspectorMinimized ? "none" : "inspector");
       setGraphMenu(null);
     },
-    [activeGenerator, commitGraphStructure, edges, inspectorMinimized, nodes, preview],
+    [
+      activeGenerator,
+      commitGraphStructure,
+      edges,
+      inspectorMinimized,
+      nodes,
+      preview,
+    ],
   );
 
   const addOutputStep = useCallback(() => {
     if (!activeGenerator) return;
     const sourceNode =
-      (selectedNode &&
-      !["output", "groupOutput"].includes(selectedNode.kind)
+      (selectedNode && !["output", "groupOutput"].includes(selectedNode.kind)
         ? selectedNode
         : null) ??
       [...nodes]
@@ -2126,8 +2147,7 @@ export function GeneratorsPanel({
     const position = sourceNode
       ? { x: sourceNode.position.x + 280, y: sourceNode.position.y + 10 }
       : {
-          x:
-            Math.max(180, ...nodes.map((node) => node.position.x)) + 260,
+          x: Math.max(180, ...nodes.map((node) => node.position.x)) + 260,
           y: 160,
         };
     const graphNode: TokenGeneratorDocumentNode = {
@@ -2195,7 +2215,9 @@ export function GeneratorsPanel({
         );
         setSelectedNodeId(issue.nodeId);
         setSelectedEdgeId(null);
-        setExpandedGraphNodeIds((current) => new Set(current).add(issue.nodeId!));
+        setExpandedGraphNodeIds((current) =>
+          new Set(current).add(issue.nodeId!),
+        );
         setGraphPanelState(inspectorMinimized ? "none" : "inspector");
         if (
           issueNode &&
@@ -2242,7 +2264,9 @@ export function GeneratorsPanel({
       if (target.nodeId) {
         setSelectedNodeId(target.nodeId);
         setSelectedEdgeId(null);
-        setExpandedGraphNodeIds((current) => new Set(current).add(target.nodeId!));
+        setExpandedGraphNodeIds((current) =>
+          new Set(current).add(target.nodeId!),
+        );
         setGraphPanelState(inspectorMinimized ? "none" : "inspector");
         setGraphMenu(null);
         return;
@@ -2280,8 +2304,7 @@ export function GeneratorsPanel({
 
   const focusFirstGraphIssue = useCallback(() => {
     const issue =
-      graphIssues.find((item) => item.severity === "error") ??
-      graphIssues[0];
+      graphIssues.find((item) => item.severity === "error") ?? graphIssues[0];
     if (issue) {
       focusGraphIssue(issue);
     } else {
@@ -2340,7 +2363,7 @@ export function GeneratorsPanel({
               : "No generator";
   const activeGeneratorCollectionLabel = activeGenerator
     ? (collectionLabelById.get(activeGenerator.targetCollectionId) ??
-        "Unknown collection")
+      "Unknown collection")
     : "No collection";
   const activeGeneratorDestinationLabel = activeGenerator
     ? readGeneratorOutputLabel(activeGenerator)
@@ -2415,12 +2438,7 @@ export function GeneratorsPanel({
       window.cancelAnimationFrame(animationFrameId);
       window.clearTimeout(resetTimeoutId);
     };
-  }, [
-    activeGenerator,
-    compactGenerators,
-    editorMode,
-    flowInstance,
-  ]);
+  }, [activeGenerator, compactGenerators, editorMode, flowInstance]);
 
   const renderGraphWorkspace = () => {
     if (!activeGenerator) return null;
@@ -2451,7 +2469,10 @@ export function GeneratorsPanel({
             <div className="tm-graph-empty-state">
               <div className="tm-graph-empty-state__content">
                 <h2>Add your first nodes</h2>
-                <p>Start with a source, transform it, then send the result to tokens.</p>
+                <p>
+                  Start with a source, transform it, then send the result to
+                  tokens.
+                </p>
                 <div className="tm-graph-empty-state__actions">
                   <Button
                     type="button"
@@ -2468,9 +2489,11 @@ export function GeneratorsPanel({
                     variant="secondary"
                     onClick={() => {
                       const colorItem = PALETTE.find(
-                        (item) => item.kind === "literal" && item.label === "Color",
+                        (item) =>
+                          item.kind === "literal" && item.label === "Color",
                       );
-                      if (colorItem) addPaletteNode(colorItem, visibleGraphPosition(-90));
+                      if (colorItem)
+                        addPaletteNode(colorItem, visibleGraphPosition(-90));
                     }}
                   >
                     Add color source
@@ -2483,7 +2506,8 @@ export function GeneratorsPanel({
                       const outputItem = PALETTE.find(
                         (item) => item.kind === "groupOutput",
                       );
-                      if (outputItem) addPaletteNode(outputItem, visibleGraphPosition(90));
+                      if (outputItem)
+                        addPaletteNode(outputItem, visibleGraphPosition(90));
                     }}
                   >
                     Add output
@@ -2506,7 +2530,10 @@ export function GeneratorsPanel({
               }
               if (safeChanges.length === 0) return;
               if (hasStructuralNodeChange(safeChanges)) {
-                const nextNodes = applyNodeChanges(safeChanges, nodesRef.current);
+                const nextNodes = applyNodeChanges(
+                  safeChanges,
+                  nodesRef.current,
+                );
                 commitGraphStructure(nextNodes, edgesRef.current, {
                   preservePreview: changesOnlyCommitNodePositions(safeChanges),
                 });
@@ -2523,7 +2550,10 @@ export function GeneratorsPanel({
               }
               if (safeChanges.length === 0) return;
               if (hasStructuralEdgeChange(safeChanges)) {
-                const nextEdges = applyEdgeChanges(safeChanges, edgesRef.current);
+                const nextEdges = applyEdgeChanges(
+                  safeChanges,
+                  edgesRef.current,
+                );
                 commitGraphStructure(nodesRef.current, nextEdges);
                 return;
               }
@@ -2580,11 +2610,11 @@ export function GeneratorsPanel({
               const clientX =
                 "clientX" in event
                   ? event.clientX
-                  : connectionState.pointer?.x ?? 0;
+                  : (connectionState.pointer?.x ?? 0);
               const clientY =
                 "clientY" in event
                   ? event.clientY
-                  : connectionState.pointer?.y ?? 0;
+                  : (connectionState.pointer?.y ?? 0);
               const point = graphMenuPointFromClient(clientX, clientY);
               suppressNextPaneClickRef.current = true;
               window.setTimeout(() => {
@@ -2733,7 +2763,7 @@ export function GeneratorsPanel({
             </Button>
           </div>
           {graphMenu ? (
-            <GraphContextMenu
+            <GeneratorGraphContextMenu
               menu={graphMenu}
               generator={activeGenerator}
               nodes={validationNodes}
@@ -2776,7 +2806,9 @@ export function GeneratorsPanel({
             />
           </GraphFloatingPanel>
         ) : null}
-        {graphPanelState === "inspector" && selectedNode && !inspectorMinimized ? (
+        {graphPanelState === "inspector" &&
+        selectedNode &&
+        !inspectorMinimized ? (
           <GraphFloatingPanel
             title="Node settings"
             subtitle={`${selectedNode.label} · ${formatNodeKind(selectedNode.kind)}`}
@@ -2797,8 +2829,7 @@ export function GeneratorsPanel({
             </section>
           </GraphFloatingPanel>
         ) : null}
-        {selectedNode &&
-        inspectorMinimized ? (
+        {selectedNode && inspectorMinimized ? (
           <GraphInspectorMinimizedTab
             node={selectedNode}
             placement={graphPanelState === "nodeLibrary" ? "bottom" : "top"}
@@ -2842,10 +2873,7 @@ export function GeneratorsPanel({
         deletedOutputPaths={deletedPreviewOutputPaths}
         compact={compactGenerators}
         onNavigateToToken={(path) =>
-          onNavigateToToken(
-            path,
-            activeGenerator.targetCollectionId,
-          )
+          onNavigateToToken(path, activeGenerator.targetCollectionId)
         }
         onViewInGraph={focusPreviewGraphTarget}
       />
@@ -2981,7 +3009,9 @@ export function GeneratorsPanel({
               <span>Collection</span>
               <select
                 value={workingCollectionId}
-                onChange={(event) => changeWorkingCollection(event.target.value)}
+                onChange={(event) =>
+                  changeWorkingCollection(event.target.value)
+                }
                 disabled={busy !== null || dirty}
               >
                 {collectionOptions.map((collection) => (
@@ -3006,9 +3036,11 @@ export function GeneratorsPanel({
                 const currentPreview =
                   preview?.generatorId === generator.id ? preview : null;
                 const producedTokenCount =
-                  currentPreview?.outputs.length ?? status?.preview.outputs.length;
+                  currentPreview?.outputs.length ??
+                  status?.preview.outputs.length;
                 const destinationLabel = readGeneratorOutputLabel(generator);
-                const destinationTitle = readGeneratorDestinationSearchLabel(generator);
+                const destinationTitle =
+                  readGeneratorDestinationSearchLabel(generator);
                 const metadataLabel = formatGeneratorListMetadata(
                   generator,
                   producedTokenCount,
@@ -3030,11 +3062,15 @@ export function GeneratorsPanel({
                         return;
                       }
                       if (busy) {
-                        setError("Wait for the current generator action to finish.");
+                        setError(
+                          "Wait for the current generator action to finish.",
+                        );
                         return;
                       }
                       if (dirty && generator.id !== activeGeneratorId) {
-                        setError("Save the current generator before switching to another one.");
+                        setError(
+                          "Save the current generator before switching to another one.",
+                        );
                         return;
                       }
                       selectGenerator(generator.id);
@@ -3112,7 +3148,10 @@ export function GeneratorsPanel({
         </button>
       );
     }
-    if (preview && (preview.blocking || previewHasCollisions || previewHasNoOutputs)) {
+    if (
+      preview &&
+      (preview.blocking || previewHasCollisions || previewHasNoOutputs)
+    ) {
       return (
         <button
           id={includeId ? "generator-status-label" : undefined}
@@ -3206,9 +3245,7 @@ export function GeneratorsPanel({
     Boolean(preview) &&
     (Boolean(preview?.blocking) || previewHasCollisions || previewHasNoOutputs);
   const canOpenGeneratorOutputReview =
-    busy === null &&
-    !graphHasErrors &&
-    Boolean(preview);
+    busy === null && !graphHasErrors && Boolean(preview);
   const previewReviewed =
     Boolean(preview) && reviewedPreviewHash === preview?.hash;
   const canApplyReviewedGenerator =
@@ -3283,7 +3320,11 @@ export function GeneratorsPanel({
         variant="primary"
         size="sm"
       >
-        {canApplyReviewedGenerator ? <Sparkles size={14} /> : <PanelRight size={14} />}
+        {canApplyReviewedGenerator ? (
+          <Sparkles size={14} />
+        ) : (
+          <PanelRight size={14} />
+        )}
         <span>{generatorPrimaryActionLabel}</span>
       </Button>
       <div className="relative">
@@ -3318,7 +3359,9 @@ export function GeneratorsPanel({
       : preview.outputs.length === 1
         ? "1 output"
         : `${preview.outputs.length} outputs`;
-    const outputChangeSummary = counts ? formatOutputChangeSummary(counts) : null;
+    const outputChangeSummary = counts
+      ? formatOutputChangeSummary(counts)
+      : null;
     return (
       <section
         className={`tm-generator-output-dock ${
@@ -3367,14 +3410,18 @@ export function GeneratorsPanel({
             preview &&
             !previewHasOutputIssues &&
             reviewedPreviewHash === preview.hash ? (
-              <span className="tm-generator-output-dock__reviewed">Reviewed</span>
+              <span className="tm-generator-output-dock__reviewed">
+                Reviewed
+              </span>
             ) : null}
           </div>
           {graphIssues.length > 0 || previewIssueCount > 0 ? (
             <button
               type="button"
               className="tm-generator-output-dock__issue"
-              onClick={graphIssues.length > 0 ? focusFirstGraphIssue : openOutputReview}
+              onClick={
+                graphIssues.length > 0 ? focusFirstGraphIssue : openOutputReview
+              }
             >
               <AlertTriangle size={13} />
               {graphIssues.length + previewIssueCount}
@@ -3451,7 +3498,9 @@ export function GeneratorsPanel({
                   label: "Create generator",
                   onClick: () => {
                     if (busy) {
-                      setError("Wait for the current generator action to finish.");
+                      setError(
+                        "Wait for the current generator action to finish.",
+                      );
                       return;
                     }
                     setCreatePanelOpen(true);
@@ -3464,7 +3513,9 @@ export function GeneratorsPanel({
                   label: "Create generator",
                   onClick: () => {
                     if (busy) {
-                      setError("Wait for the current generator action to finish.");
+                      setError(
+                        "Wait for the current generator action to finish.",
+                      );
                       return;
                     }
                     setCreatePanelOpen(true);
@@ -3520,7 +3571,9 @@ export function GeneratorsPanel({
             ) : null}
 
             <div className="min-h-0 flex-1">
-              {editorMode === "graph" ? renderGraphWorkspace() : renderOverviewWorkspace()}
+              {editorMode === "graph"
+                ? renderGraphWorkspace()
+                : renderOverviewWorkspace()}
             </div>
             {renderOutputDock()}
           </>
@@ -3557,7 +3610,9 @@ export function GeneratorsPanel({
                     dirtyGeneratorIdRef.current &&
                     dirtyGeneratorIdRef.current !== generatorId
                   ) {
-                    setError("Save the current generator before opening another one.");
+                    setError(
+                      "Save the current generator before opening another one.",
+                    );
                     closeCreatePanel();
                     return;
                   }
@@ -3611,7 +3666,9 @@ function GraphIssueCallout({
 }) {
   const primaryIssue =
     issues.find((issue) => issue.severity === "error") ?? issues[0];
-  const errorCount = issues.filter((issue) => issue.severity === "error").length;
+  const errorCount = issues.filter(
+    (issue) => issue.severity === "error",
+  ).length;
   const issueCountLabel =
     issues.length === 1
       ? primaryIssue.severity === "error"
@@ -3738,452 +3795,6 @@ function GeneratorDeleteDialog({
       </section>
     </div>
   );
-}
-
-function GraphContextMenu({
-  menu,
-  generator,
-  nodes,
-  edges,
-  paletteItems,
-  onClose,
-  onAddNode,
-  onConnectEdge,
-  onOpenSettings,
-  onDeleteNode,
-  onDeleteEdge,
-  onDuplicateNode,
-  onOpenMenu,
-}: {
-  menu: GraphMenuState;
-  generator: TokenGeneratorDocument;
-  nodes: GraphFlowNode[];
-  edges: GraphFlowEdge[];
-  paletteItems: GeneratorPaletteItem[];
-  onClose: () => void;
-  onAddNode: (
-    item: GeneratorPaletteItem,
-    position?: TokenGeneratorDocumentNode["position"],
-    options?: {
-      connectFrom?: { nodeId: string; port: string };
-      connectTo?: { nodeId: string; port: string };
-      insertEdgeId?: string;
-      replaceEdgeId?: string;
-    },
-  ) => void;
-  onConnectEdge: (
-    edge: GraphFlowEdge,
-    options?: {
-      baseNodes?: GraphFlowNode[];
-      baseEdges?: GraphFlowEdge[];
-      replaceEdgeId?: string;
-    },
-  ) => boolean;
-  onOpenSettings: (nodeId: string) => void;
-  onDeleteNode: (nodeId: string) => void;
-  onDeleteEdge: (edgeId: string) => void;
-  onDuplicateNode: (nodeId: string) => void;
-  onOpenMenu: (menu: GraphMenuState) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const normalizedQuery = query.trim().toLowerCase();
-  const edge = "edgeId" in menu ? edges.find((item) => item.id === menu.edgeId) : null;
-  const node =
-    menu.kind === "node"
-      ? nodes.find((item) => item.id === menu.nodeId)?.data.graphNode ?? null
-      : null;
-  const existingCandidates = existingConnectionCandidates(generator, nodes, edges, menu);
-  const addCandidates = paletteItems
-    .filter((item) => paletteItemFitsMenu(generator, nodes, edges, item, menu))
-    .filter(
-      (item) =>
-        !normalizedQuery ||
-        item.label.toLowerCase().includes(normalizedQuery) ||
-        item.category.toLowerCase().includes(normalizedQuery),
-    );
-  const showAddSearch =
-    menu.kind === "pane-add" ||
-    menu.kind === "connect-from-output" ||
-    menu.kind === "connect-to-input" ||
-    menu.kind === "edge-insert";
-  const menuLeft =
-    typeof window === "undefined"
-      ? menu.x
-      : Math.min(Math.max(8, menu.x), Math.max(8, window.innerWidth - 268));
-  const menuTop =
-    typeof window === "undefined"
-      ? menu.y
-      : Math.min(Math.max(8, menu.y), Math.max(8, window.innerHeight - 320));
-
-  return (
-    <>
-      <button
-        type="button"
-        className="fixed inset-0 z-20 cursor-default"
-        aria-label="Close graph menu"
-        onClick={onClose}
-      />
-      <div
-        className="fixed z-30 w-[260px] max-w-[calc(100vw_-_16px)] overflow-hidden rounded-md border border-[var(--border-muted)] bg-[var(--surface-panel-header)] p-1 shadow-[var(--shadow-popover)]"
-        style={{ left: menuLeft, top: menuTop }}
-        onClick={(event) => event.stopPropagation()}
-        onContextMenu={(event) => event.preventDefault()}
-      >
-        {showAddSearch ? (
-          <div className="tm-generator-field mb-1">
-            <Search size={13} className="text-[color:var(--color-figma-text-secondary)]" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search nodes"
-              className="min-w-0 flex-1 bg-transparent text-secondary outline-none"
-              autoFocus
-            />
-          </div>
-        ) : null}
-
-        {menu.kind === "node" && node ? (
-          <>
-            <GraphMenuAction onClick={() => onOpenSettings(node.id)}>
-              Settings
-            </GraphMenuAction>
-            <GraphMenuAction
-              disabled={getNodeInputPorts(node).length === 0}
-              onClick={() => {
-                const inputPort = getNodeInputPorts(node)[0];
-                if (!inputPort) return;
-                onOpenMenu({
-                  ...menu,
-                  kind: "connect-to-input",
-                  targetNodeId: node.id,
-                  targetPort: inputPort.id,
-                });
-              }}
-            >
-              Insert before this node
-            </GraphMenuAction>
-            <GraphMenuAction
-              disabled={getNodeOutputPorts(node).length === 0}
-              onClick={() => {
-                const outputPort = getNodeOutputPorts(node)[0];
-                if (!outputPort) return;
-                onOpenMenu({
-                  ...menu,
-                  kind: "connect-from-output",
-                  sourceNodeId: node.id,
-                  sourcePort: outputPort.id,
-                });
-              }}
-            >
-              Add after this node
-            </GraphMenuAction>
-            <GraphMenuAction onClick={() => onDuplicateNode(node.id)}>
-              Duplicate
-            </GraphMenuAction>
-            <GraphMenuAction tone="danger" onClick={() => onDeleteNode(node.id)}>
-              Delete
-            </GraphMenuAction>
-          </>
-        ) : null}
-
-        {menu.kind === "edge" && edge ? (
-          <>
-            <GraphMenuAction
-              onClick={() =>
-                onOpenMenu({
-                  ...menu,
-                  kind: "edge-insert",
-                  edgeId: edge.id,
-                })
-              }
-            >
-              Insert node
-            </GraphMenuAction>
-            <GraphMenuAction
-              onClick={() =>
-                onOpenMenu({
-                  ...menu,
-                  kind: "connect-to-input",
-                  targetNodeId: edge.target,
-                  targetPort: String(edge.targetHandle ?? "value"),
-                  replaceEdgeId: edge.id,
-                })
-              }
-            >
-              Change incoming connection
-            </GraphMenuAction>
-            <GraphMenuAction
-              onClick={() =>
-                onOpenMenu({
-                  ...menu,
-                  kind: "connect-from-output",
-                  sourceNodeId: edge.source,
-                  sourcePort: String(edge.sourceHandle ?? "value"),
-                  replaceEdgeId: edge.id,
-                })
-              }
-            >
-              Change outgoing connection
-            </GraphMenuAction>
-            <GraphMenuAction tone="danger" onClick={() => onDeleteEdge(edge.id)}>
-              Delete connection
-            </GraphMenuAction>
-          </>
-        ) : null}
-
-        {existingCandidates.length > 0 ? (
-          <GraphMenuGroup title="Existing nodes">
-            {existingCandidates.map((candidate) => (
-              <GraphMenuAction
-                key={`${candidate.edge.source}-${candidate.edge.sourceHandle}-${candidate.edge.target}-${candidate.edge.targetHandle}`}
-                onClick={() =>
-                  onConnectEdge(candidate.edge, {
-                    replaceEdgeId:
-                      menu.kind === "connect-from-output" ||
-                      menu.kind === "connect-to-input"
-                        ? menu.replaceEdgeId
-                        : undefined,
-                  })
-                }
-              >
-                {candidate.label}
-              </GraphMenuAction>
-            ))}
-          </GraphMenuGroup>
-        ) : null}
-
-        {showAddSearch ? (
-          <GraphMenuGroup title={existingCandidates.length > 0 ? "New nodes" : "Nodes"}>
-            {addCandidates.map((item) => (
-              <GraphMenuAction
-                key={`${item.kind}-${item.label}`}
-                onClick={() => {
-                  if (menu.kind === "connect-from-output") {
-                    onAddNode(item, menu.flowPosition, {
-                      connectFrom: {
-                        nodeId: menu.sourceNodeId,
-                        port: menu.sourcePort,
-                      },
-                      replaceEdgeId: menu.replaceEdgeId,
-                    });
-                    return;
-                  }
-                  if (menu.kind === "connect-to-input") {
-                    onAddNode(item, menu.flowPosition, {
-                      connectTo: {
-                        nodeId: menu.targetNodeId,
-                        port: menu.targetPort,
-                      },
-                      replaceEdgeId: menu.replaceEdgeId,
-                    });
-                    return;
-                  }
-                  if (menu.kind === "edge-insert") {
-                    onAddNode(item, menu.flowPosition, {
-                      insertEdgeId: menu.edgeId,
-                    });
-                    return;
-                  }
-                  onAddNode(item, menu.flowPosition);
-                }}
-              >
-                {item.label}
-              </GraphMenuAction>
-            ))}
-            {addCandidates.length === 0 ? (
-              <div className="px-2 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                <div>
-                  {normalizedQuery
-                    ? "No nodes match this search."
-                    : "No compatible nodes."}
-                </div>
-                {normalizedQuery ? (
-                  <button
-                    type="button"
-                    className="mt-1 text-[color:var(--color-figma-text-accent)] hover:underline"
-                    onClick={() => setQuery("")}
-                  >
-                    Clear search
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </GraphMenuGroup>
-        ) : null}
-      </div>
-    </>
-  );
-}
-
-function GraphMenuGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="py-1">
-      <div className="px-2 py-1 text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function GraphMenuAction({
-  children,
-  disabled,
-  tone,
-  onClick,
-}: {
-  children: ReactNode;
-  disabled?: boolean;
-  tone?: "danger";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`block w-full rounded px-2 py-1.5 text-left text-secondary disabled:pointer-events-none disabled:opacity-40 ${
-        tone === "danger"
-          ? "text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-bg-hover)]"
-          : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function existingConnectionCandidates(
-  generator: TokenGeneratorDocument,
-  nodes: GraphFlowNode[],
-  edges: GraphFlowEdge[],
-  menu: GraphMenuState,
-): Array<{ label: string; edge: GraphFlowEdge }> {
-  if (menu.kind !== "connect-from-output" && menu.kind !== "connect-to-input") {
-    return [];
-  }
-  if (
-    menu.kind === "connect-to-input" &&
-    !menu.replaceEdgeId &&
-    edges.some(
-      (edge) =>
-        edge.target === menu.targetNodeId &&
-        (edge.targetHandle ?? "value") === menu.targetPort,
-    )
-  ) {
-    return [];
-  }
-  return nodes
-    .map((node) => {
-      const edge =
-        menu.kind === "connect-from-output"
-          ? firstCompatibleEdge(generator, nodes, edges, {
-              sourceNodeId: menu.sourceNodeId,
-              sourcePort: menu.sourcePort,
-              targetNodeId: node.id,
-              replaceEdgeId: menu.replaceEdgeId,
-            })
-          : firstCompatibleEdge(generator, nodes, edges, {
-              sourceNodeId: node.id,
-              targetNodeId: menu.targetNodeId,
-              targetPort: menu.targetPort,
-              replaceEdgeId: menu.replaceEdgeId,
-            });
-      if (!edge) return null;
-      const graphNode = node.data.graphNode;
-      const portLabel =
-        menu.kind === "connect-from-output"
-          ? getNodeInputPorts(graphNode).find(
-              (port) => port.id === edge.targetHandle,
-            )?.label
-          : getNodeOutputPorts(graphNode).find(
-              (port) => port.id === edge.sourceHandle,
-            )?.label;
-      return {
-        label: `${graphNode.label}${portLabel ? `: ${portLabel}` : ""}`,
-        edge,
-      };
-    })
-    .filter((candidate): candidate is { label: string; edge: GraphFlowEdge } =>
-      Boolean(candidate),
-    );
-}
-
-function paletteItemFitsMenu(
-  generator: TokenGeneratorDocument,
-  nodes: GraphFlowNode[],
-  edges: GraphFlowEdge[],
-  item: GeneratorPaletteItem,
-  menu: GraphMenuState,
-): boolean {
-  if (menu.kind === "pane-add") return true;
-  if (menu.kind !== "connect-from-output" && menu.kind !== "connect-to-input" && menu.kind !== "edge-insert") {
-    return false;
-  }
-  const candidateId = `candidate_${item.kind}`;
-  const candidateNode = flowNodeFromPaletteItem(item, candidateId, menu.flowPosition);
-  const candidateNodes = [...nodes, candidateNode];
-  if (menu.kind === "connect-from-output") {
-    return Boolean(
-      firstCompatibleEdge(generator, candidateNodes, edges, {
-        sourceNodeId: menu.sourceNodeId,
-        sourcePort: menu.sourcePort,
-        targetNodeId: candidateId,
-        replaceEdgeId: menu.replaceEdgeId,
-      }),
-    );
-  }
-  if (menu.kind === "connect-to-input") {
-    const existingInputEdge = menu.replaceEdgeId
-      ? null
-      : edges.find(
-          (edge) =>
-            edge.target === menu.targetNodeId &&
-            (edge.targetHandle ?? "value") === menu.targetPort,
-        );
-    if (existingInputEdge) {
-      const first = firstCompatibleEdge(generator, candidateNodes, edges, {
-        sourceNodeId: existingInputEdge.source,
-        sourcePort: String(existingInputEdge.sourceHandle ?? "value"),
-        targetNodeId: candidateId,
-      });
-      const second = firstCompatibleEdge(generator, candidateNodes, edges, {
-        sourceNodeId: candidateId,
-        targetNodeId: menu.targetNodeId,
-        targetPort: menu.targetPort,
-        replaceEdgeId: existingInputEdge.id,
-      });
-      return Boolean(first && second);
-    }
-    return Boolean(
-      firstCompatibleEdge(generator, candidateNodes, edges, {
-        sourceNodeId: candidateId,
-        targetNodeId: menu.targetNodeId,
-        targetPort: menu.targetPort,
-        replaceEdgeId: menu.replaceEdgeId,
-      }),
-    );
-  }
-  const edge = edges.find((candidate) => candidate.id === menu.edgeId);
-  if (!edge) return false;
-  const baseEdges = edges.filter((candidate) => candidate.id !== edge.id);
-  const first = firstCompatibleEdge(generator, candidateNodes, baseEdges, {
-    sourceNodeId: edge.source,
-    sourcePort: String(edge.sourceHandle ?? "value"),
-    targetNodeId: candidateId,
-  });
-  const second = firstCompatibleEdge(generator, candidateNodes, baseEdges, {
-    sourceNodeId: candidateId,
-    targetNodeId: edge.target,
-    targetPort: String(edge.targetHandle ?? "value"),
-  });
-  return Boolean(first && second);
 }
 
 function GraphFloatingPanel({
@@ -4344,7 +3955,11 @@ function formatGeneratorListMetadata(
 }
 
 function isGeneratorInputNode(node: TokenGeneratorDocumentNode): boolean {
-  return node.kind === "tokenInput" || node.kind === "literal" || node.kind === "alias";
+  return (
+    node.kind === "tokenInput" ||
+    node.kind === "literal" ||
+    node.kind === "alias"
+  );
 }
 
 function isGeneratorOutputNode(node: TokenGeneratorDocumentNode): boolean {
@@ -4386,13 +4001,14 @@ function GeneratorOverviewPanel({
   const sourceNodes = generator.nodes.filter(isGeneratorInputNode);
   const outputNodes = generator.nodes.filter(isGeneratorOutputNode);
   const nodeGroups = overviewNodeGroups(generator.nodes);
-  const hasGraphErrors = graphIssues.some((issue) => issue.severity === "error");
+  const hasGraphErrors = graphIssues.some(
+    (issue) => issue.severity === "error",
+  );
   const destinationLabel =
     outputNodes
       .map((node) => String(node.data.pathPrefix ?? node.data.path ?? ""))
       .filter(Boolean)
-      .join(", ") ||
-    "No output";
+      .join(", ") || "No output";
   const sourceLabel =
     sourceNodes
       .map((node) =>
@@ -4401,15 +4017,13 @@ function GeneratorOverviewPanel({
           : formatValue(node.data.value) || node.label,
       )
       .filter(Boolean)
-      .join(", ") ||
-    (generator.nodes.length === 0 ? "No nodes" : "Generated");
+      .join(", ") || (generator.nodes.length === 0 ? "No nodes" : "Generated");
   const outputCount = preview?.outputs.length ?? 0;
-  const outputSummary =
-    hasGraphErrors
-      ? "Fix settings to preview output"
-      : outputCount > 0
-        ? `${outputCount} ${outputCount === 1 ? "output" : "outputs"} ready to review`
-        : "No generated output yet";
+  const outputSummary = hasGraphErrors
+    ? "Fix settings to preview output"
+    : outputCount > 0
+      ? `${outputCount} ${outputCount === 1 ? "output" : "outputs"} ready to review`
+      : "No generated output yet";
   return (
     <div className="min-w-0 shrink-0">
       <div className="space-y-3">
@@ -4428,19 +4042,28 @@ function GeneratorOverviewPanel({
             <span className="text-[color:var(--color-figma-text-secondary)]">
               Source
             </span>
-            <span className="min-w-0 truncate font-medium text-[color:var(--color-figma-text)]" title={sourceLabel}>
+            <span
+              className="min-w-0 truncate font-medium text-[color:var(--color-figma-text)]"
+              title={sourceLabel}
+            >
               {sourceLabel}
             </span>
             <span className="text-[color:var(--color-figma-text-secondary)]">
               Output
             </span>
-            <span className="min-w-0 truncate font-medium text-[color:var(--color-figma-text)]" title={destinationLabel}>
+            <span
+              className="min-w-0 truncate font-medium text-[color:var(--color-figma-text)]"
+              title={destinationLabel}
+            >
               {destinationLabel}
             </span>
           </div>
         </section>
 
-        <ReviewIssueList issues={graphIssues} onFocusIssue={onFocusGraphIssue} />
+        <ReviewIssueList
+          issues={graphIssues}
+          onFocusIssue={onFocusGraphIssue}
+        />
 
         <section className="space-y-3">
           <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
@@ -4452,7 +4075,12 @@ function GeneratorOverviewPanel({
             onChange={onRename}
           />
           {generator.nodes.length > 0 ? (
-            <Button type="button" size="sm" variant="secondary" onClick={onAddNode}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={onAddNode}
+            >
               <Plus size={14} />
               Open Graph
             </Button>
@@ -4462,7 +4090,12 @@ function GeneratorOverviewPanel({
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 Add nodes to define what this generator creates.
               </p>
-              <Button type="button" size="sm" variant="secondary" onClick={onAddNode}>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={onAddNode}
+              >
                 <Plus size={14} />
                 Add node
               </Button>
@@ -4574,7 +4207,11 @@ function OverviewNodeGroup({
                   showDelete={false}
                   showIdentity={false}
                   showHelp={false}
-                  outputPathPrefix={readConnectedGroupOutputPrefix(node, allNodes, edges)}
+                  outputPathPrefix={readConnectedGroupOutputPrefix(
+                    node,
+                    allNodes,
+                    edges,
+                  )}
                 />
               </div>
             </details>
@@ -4608,7 +4245,9 @@ function readConnectedGroupOutputPrefix(
 ): string | undefined {
   const edge = edges.find((candidate) => {
     if (candidate.from.nodeId !== node.id) return false;
-    const target = nodes.find((nodeCandidate) => nodeCandidate.id === candidate.to.nodeId);
+    const target = nodes.find(
+      (nodeCandidate) => nodeCandidate.id === candidate.to.nodeId,
+    );
     return target?.kind === "groupOutput";
   });
   if (!edge) return undefined;
@@ -4656,10 +4295,9 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
     data.preview?.outputs.filter((output) => output.nodeId === graphNode.id) ??
     [];
   const nodePreview = data.preview?.nodePreviews[graphNode.id];
-  const diagnostics =
-    (data.preview?.nodePreviewDiagnostics ?? []).filter(
-      (diagnostic) => diagnostic.nodeId === graphNode.id,
-    );
+  const diagnostics = (data.preview?.nodePreviewDiagnostics ?? []).filter(
+    (diagnostic) => diagnostic.nodeId === graphNode.id,
+  );
   const issues = data.issues ?? [];
   const issueMessages = uniqueStrings([
     ...issues.map((issue) => issue.message),
@@ -4670,7 +4308,8 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
   const hasErrors =
     issues.some((issue) => issue.severity === "error") ||
     diagnostics.some((diagnostic) => diagnostic.severity === "error");
-  const hasWarnings = !hasErrors && (issues.length > 0 || diagnostics.length > 0);
+  const hasWarnings =
+    !hasErrors && (issues.length > 0 || diagnostics.length > 0);
   const nodeStateClass = selected
     ? "tm-graph-node--selected"
     : hasErrors
@@ -4703,10 +4342,7 @@ function GeneratorDocumentNode({ data, selected }: NodeProps<GraphFlowNode>) {
       : "preview";
 
   return (
-    <div
-      className={`tm-graph-node ${nodeStateClass}`.trim()}
-      style={nodeStyle}
-    >
+    <div className={`tm-graph-node ${nodeStateClass}`.trim()} style={nodeStyle}>
       {inputPorts.map((port, index) => (
         <Handle
           key={`in-${port.id}`}
@@ -4827,10 +4463,11 @@ function OutputNodeResults({
     0,
     sortedOutputs.length - visibleOutputs.length,
   );
-  const issueCount = [
-    ...issues.filter((issue) => issue.severity === "error"),
-    ...diagnostics.filter((diagnostic) => diagnostic.severity === "error"),
-  ].length + outputs.filter((output) => output.collision).length;
+  const issueCount =
+    [
+      ...issues.filter((issue) => issue.severity === "error"),
+      ...diagnostics.filter((diagnostic) => diagnostic.severity === "error"),
+    ].length + outputs.filter((output) => output.collision).length;
   const hasBlockingIssues = issueCount > 0;
 
   return (
@@ -4840,14 +4477,12 @@ function OutputNodeResults({
           {!previewReady
             ? "Output preview"
             : outputs.length === 0
-            ? "No generated tokens"
-            : `${outputs.length} generated ${outputs.length === 1 ? "token" : "tokens"}`}
+              ? "No generated tokens"
+              : `${outputs.length} generated ${outputs.length === 1 ? "token" : "tokens"}`}
         </span>
       </div>
       {!previewReady ? (
-        <div className="tm-graph-node__result-empty">
-          Preparing preview.
-        </div>
+        <div className="tm-graph-node__result-empty">Preparing preview.</div>
       ) : outputs.length === 0 ? (
         <div className="tm-graph-node__result-empty">
           {hasBlockingIssues
@@ -4895,7 +4530,10 @@ function CompactNodePreview({
         ? "No generated tokens"
         : `${outputs.length} ${outputs.length === 1 ? "token" : "tokens"}`;
     return (
-      <div className="tm-graph-node__compact-preview" title={firstOutput?.path ?? label}>
+      <div
+        className="tm-graph-node__compact-preview"
+        title={firstOutput?.path ?? label}
+      >
         <div className="tm-graph-node__compact-preview-row">
           <span className="tm-graph-node__mode-name">Output</span>
           <span className="tm-graph-node__compact-output-value">
@@ -4917,7 +4555,8 @@ function CompactNodePreview({
       </div>
     );
   }
-  const modes = modeNames.length > 0 ? modeNames : Object.keys(nodePreview.modeValues);
+  const modes =
+    modeNames.length > 0 ? modeNames : Object.keys(nodePreview.modeValues);
   return (
     <div className="tm-graph-node__compact-preview">
       {modes.length > 0 ? (
@@ -4937,7 +4576,7 @@ function CompactNodePreview({
 function CompactRuntimeValue({
   value,
 }: {
-  value: TokenGeneratorNodePreviewValue | undefined,
+  value: TokenGeneratorNodePreviewValue | undefined;
 }) {
   if (!value) return <ModeValueLine value={undefined} />;
   if (value.kind === "scalar") {
@@ -4957,7 +4596,11 @@ function CompactRuntimeValue({
     return (
       <span className="tm-graph-node__mode-value" title={title}>
         {previewIsValueBearing(first.type ?? value.type) ? (
-          <ValuePreview type={first.type ?? value.type} value={first.value} size={16} />
+          <ValuePreview
+            type={first.type ?? value.type}
+            value={first.value}
+            size={16}
+          />
         ) : null}
         <span className="tm-graph-node__mode-value-text">{label}</span>
       </span>
@@ -4997,7 +4640,8 @@ function OutputPreviewRow({
   output: TokenGeneratorPreviewOutput;
   modeNames: string[];
 }) {
-  const modes = modeNames.length > 0 ? modeNames : Object.keys(output.modeValues);
+  const modes =
+    modeNames.length > 0 ? modeNames : Object.keys(output.modeValues);
   return (
     <div
       className={`tm-graph-node__result-row ${
@@ -5026,9 +4670,7 @@ function OutputPreviewRow({
 function NodePreviewPending() {
   return (
     <div className="tm-graph-node__result tm-graph-node__result--intermediate nowheel nodrag nopan">
-      <div className="tm-graph-node__result-empty">
-        Preparing preview.
-      </div>
+      <div className="tm-graph-node__result-empty">Preparing preview.</div>
     </div>
   );
 }
@@ -5052,16 +4694,11 @@ function NodeRuntimePreview({
           const value = preview.modeValues[modeName];
           return (
             <div key={modeName} className="tm-graph-node__runtime-mode">
-              <div className="tm-graph-node__runtime-mode-name">
-                {modeName}
-              </div>
+              <div className="tm-graph-node__runtime-mode-name">{modeName}</div>
               {!value ? (
                 <ModeValueLine value={undefined} />
               ) : value.kind === "scalar" ? (
-                <ModeValueLine
-                  type={value.type}
-                  value={value.value}
-                />
+                <ModeValueLine type={value.type} value={value.value} />
               ) : (
                 <div className="tm-graph-node__runtime-list">
                   {value.values.slice(0, 3).map((item) => (
@@ -5114,19 +4751,16 @@ function ModeValueStack({
   );
 }
 
-function ModeValueLine({
-  type,
-  value,
-}: {
-  type?: string;
-  value: unknown;
-}) {
+function ModeValueLine({ type, value }: { type?: string; value: unknown }) {
   return (
     <span className="tm-graph-node__mode-value">
       {previewIsValueBearing(type) ? (
         <ValuePreview type={type} value={value} size={16} />
       ) : null}
-      <span className="tm-graph-node__mode-value-text" title={formatValue(value)}>
+      <span
+        className="tm-graph-node__mode-value-text"
+        title={formatValue(value)}
+      >
         {formatValue(value) || "No value"}
       </span>
     </span>
@@ -5189,7 +4823,10 @@ function PortLabelColumn({
   );
 }
 
-function graphNodeMinBlockSize(inputCount: number, outputCount: number): number {
+function graphNodeMinBlockSize(
+  inputCount: number,
+  outputCount: number,
+): number {
   const portCount = Math.max(inputCount, outputCount, 1);
   return Math.max(92, 54 + portCount * 26);
 }
@@ -5271,9 +4908,12 @@ function NodeInspector({
       ? defaultCollectionId
       : String(node.data.collectionId ?? defaultCollectionId);
   const nodeRefs = readGeneratorTokenRefs(node.data.$tokenRefs);
-  const allTokensFlat = allTokensForCollection(perCollectionFlat, defaultCollectionId);
+  const allTokensFlat = allTokensForCollection(
+    perCollectionFlat,
+    defaultCollectionId,
+  );
   const pathToCollectionId = pathToCollectionIdMap(perCollectionFlat);
-  const field = (key: string, label: string, type = "text") => (
+  const field = (key: string, label: string, type = "text") =>
     type === "number" ? (
       <GeneratorNumberField
         label={label}
@@ -5286,8 +4926,7 @@ function NodeInspector({
         value={node.data[key]}
         onChange={(value) => onChange({ [key]: value })}
       />
-    )
-  );
+    );
 
   return (
     <div className="space-y-3">
@@ -5398,7 +5037,9 @@ function NodeInspector({
                 unit={node.data.unit}
                 allTokensFlat={allTokensFlat}
                 pathToCollectionId={pathToCollectionId}
-                onChange={(dimension) => onChange({ value: dimension.value, unit: dimension.unit })}
+                onChange={(dimension) =>
+                  onChange({ value: dimension.value, unit: dimension.unit })
+                }
               />
             ) : node.data.type === "number" ? (
               <GeneratorNumberField
@@ -5691,15 +5332,18 @@ function NodeInspector({
           onChange={(items) => onChange({ items })}
         />
       )}
-      {(node.kind === "output" || node.kind === "groupOutput") &&
+      {(node.kind === "output" || node.kind === "groupOutput") && (
         <GeneratorPathField
           label={node.kind === "output" ? "Token path" : "Series path"}
           value={node.kind === "output" ? node.data.path : node.data.pathPrefix}
           series={node.kind === "groupOutput"}
           onChange={(value) =>
-            onChange({ [node.kind === "output" ? "path" : "pathPrefix"]: value })
+            onChange({
+              [node.kind === "output" ? "path" : "pathPrefix"]: value,
+            })
           }
-        />}
+        />
+      )}
       {showDelete ? (
         <button
           type="button"
