@@ -1139,7 +1139,7 @@ export function PublishPanel({
       return 'Update Figma variables';
     }
     if (pullsToLocal > 0) return 'Use Figma values in Token Workshop';
-    return 'Apply changes';
+    return 'Apply to Figma';
   })();
   const hasVariableSnapshot = Boolean(varSync.snapshot);
   const hasStyleSnapshot = Boolean(styleSync.snapshot);
@@ -1187,50 +1187,6 @@ export function PublishPanel({
     <div className="flex h-full flex-col bg-[var(--color-figma-bg)]">
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="flex min-w-0 flex-col gap-3">
-
-          {/* ── Publish target ──────────────────────────────────────── */}
-          <div ref={targetRef} className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-start gap-1.5">
-              <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">Figma target</span>
-              <span className="min-w-0 flex-[1_1_220px] text-secondary font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]">
-                {resolvedCollectionName} / {resolvedModeName}
-              </span>
-              <button
-                type="button"
-                onClick={() => setStandardRoutingExpanded((c) => !c)}
-                className="rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-accent)]/10"
-                aria-expanded={standardRoutingExpanded}
-              >
-                {standardRoutingExpanded ? 'Hide Figma target' : 'Change Figma target'}
-              </button>
-            </div>
-            <CheckboxRow
-              checked={createStylesPref}
-              onChange={setCreateStylesPref}
-              title="Also create Figma styles"
-              description="Variables are always updated. Enable styles for colors, typography, shadows, and gradients that designers should find in Figma style pickers."
-              className="px-0"
-            />
-            {standardRoutingExpanded && (
-              <div className="flex flex-col gap-3 px-1 py-2">
-                <StandardPublishRoutingCard
-                  currentCollectionId={currentCollectionId}
-                  currentCollectionLabel={currentCollectionLabel}
-                  draft={standardRoutingDraft}
-                  dirty={standardRoutingDirty}
-                  saving={standardRoutingSaving}
-                  error={standardRoutingError}
-                  collectionSuggestions={standardCollectionSuggestions}
-                  modeSuggestions={standardModeSuggestions}
-                  collectionModeNames={currentCollectionModeNames}
-                  usesAllModes={standardPublishUsesAllModes}
-                  onFieldChange={updateStandardRoutingDraft}
-                  onReset={resetStandardRoutingDraft}
-                  onSave={() => void saveStandardRouting()}
-                />
-              </div>
-            )}
-          </div>
 
           {/* ── Progress indicator ────────────────────────────────────── */}
           {(isSyncing || isApplying) && (
@@ -1295,13 +1251,55 @@ export function PublishPanel({
                 {standardRoutingSaving
                   ? 'Saving…'
                   : standardRoutingDirty
-                  ? 'Save target'
+                  ? 'Save destination'
                   : canProceedToSync
                     ? 'Review changes'
                     : 'Compare with Figma'}
               </button>
             </div>
           )}
+
+          <CheckboxRow
+            checked={createStylesPref}
+            onChange={setCreateStylesPref}
+            title="Create Figma styles too"
+            description="Variables always update. Add styles for colors, typography, shadows, and gradients designers use from Figma pickers."
+            className="px-0"
+          />
+
+          {/* ── Publish destination ──────────────────────────────────── */}
+          <div ref={targetRef}>
+            <DisclosureSection
+              title="Destination"
+              summary={`${resolvedCollectionName} / ${resolvedModeName}`}
+              statusLabel={
+                standardRoutingDirty
+                  ? 'Needs save'
+                  : standardRoutingSaving
+                    ? 'Saving'
+                    : 'Figma'
+              }
+              statusSeverity={standardRoutingDirty ? 'warning' : 'info'}
+              expanded={standardRoutingExpanded}
+              onToggle={() => setStandardRoutingExpanded((current) => !current)}
+            >
+              <StandardPublishRoutingCard
+                currentCollectionId={currentCollectionId}
+                currentCollectionLabel={currentCollectionLabel}
+                draft={standardRoutingDraft}
+                dirty={standardRoutingDirty}
+                saving={standardRoutingSaving}
+                error={standardRoutingError}
+                collectionSuggestions={standardCollectionSuggestions}
+                modeSuggestions={standardModeSuggestions}
+                collectionModeNames={currentCollectionModeNames}
+                usesAllModes={standardPublishUsesAllModes}
+                onFieldChange={updateStandardRoutingDraft}
+                onReset={resetStandardRoutingDraft}
+                onSave={() => void saveStandardRouting()}
+              />
+            </DisclosureSection>
+          </div>
 
           {/*── Issues section (from preflight) ───────────────────────── */}
           {hasIssues && !isSyncing && (
@@ -1576,7 +1574,7 @@ function StandardPublishRoutingCard({
             disabled={saving || !dirty}
             className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1 text-secondary font-medium text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
           >
-            {saving ? 'Saving…' : dirty ? 'Save target' : 'Saved'}
+            {saving ? 'Saving…' : dirty ? 'Save destination' : 'Saved'}
           </button>
         </div>
       </div>
@@ -1624,7 +1622,7 @@ function StandardPublishRoutingCard({
 
       {dirty ? (
         <NoticeBanner severity="warning">
-          Save this Figma target before comparing or applying variable changes.
+          Save this destination before comparing or applying variable changes.
         </NoticeBanner>
       ) : null}
       {error ? <NoticeBanner severity="error">{error}</NoticeBanner> : null}

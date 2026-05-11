@@ -53,7 +53,7 @@ import { ExtractTokensPanel } from "./ExtractTokensPanel";
 import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
 import { useSelectionHealth } from "../hooks/useSelectionHealth";
-import { SearchField } from "../primitives";
+import { Button, SearchField } from "../primitives";
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -819,6 +819,40 @@ export function SelectionInspector({
       tokenMapsByCollection,
     ],
   );
+  const suggestedBindPlan = useMemo(() => {
+    const plan: Array<{
+      tokenPath: string;
+      property: BindableProperty;
+      collectionId?: string;
+    }> = [];
+    const plannedProperties = new Set<BindableProperty>();
+
+    for (const suggestion of suggestions) {
+      if (suggestion.confidence !== "strong") continue;
+      if (suggestion.scopeHidden) continue;
+      if (plannedProperties.has(suggestion.bestProperty)) continue;
+      if (getBindingForProperty(rootNodes, suggestion.bestProperty)) continue;
+
+      plannedProperties.add(suggestion.bestProperty);
+      plan.push({
+        tokenPath: suggestion.path,
+        property: suggestion.bestProperty,
+        collectionId: suggestion.collectionId,
+      });
+    }
+
+    return plan;
+  }, [rootNodes, suggestions]);
+  const suggestedBindLabel =
+    suggestedBindPlan.length === 1
+      ? `Bind ${PROPERTY_LABELS[suggestedBindPlan[0].property]}`
+      : `Bind ${suggestedBindPlan.length} matches`;
+  const suggestedBindTitle =
+    suggestedBindPlan.length === 1
+      ? `Bind ${suggestedBindPlan[0].tokenPath} to ${PROPERTY_LABELS[suggestedBindPlan[0].property]}`
+      : suggestedBindPlan
+          .map((item) => `${PROPERTY_LABELS[item.property]}: ${item.tokenPath}`)
+          .join(", ");
 
   const allPropertiesBound =
     hasSelection &&
@@ -1012,6 +1046,27 @@ export function SelectionInspector({
           )}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+          {connected && currentCollectionId && suggestedBindPlan.length > 0 ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                for (const item of suggestedBindPlan) {
+                  handleBindToken(
+                    item.property,
+                    item.tokenPath,
+                    item.collectionId,
+                  );
+                }
+              }}
+              title={suggestedBindTitle}
+              aria-label={suggestedBindTitle}
+              className="shrink-0"
+            >
+              {suggestedBindLabel}
+            </Button>
+          ) : null}
           {connected && hasSelection && hasAnyTokens && onQuickApply ? (
             <button
               type="button"

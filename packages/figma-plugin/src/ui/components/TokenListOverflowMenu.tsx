@@ -13,6 +13,7 @@ import {
   getQueryQualifierValues,
   setQueryQualifierValues,
 } from "./tokenListUtils";
+import { Button } from "../primitives";
 
 export interface ViewMenuProps {
   sortOrder: SortOrder;
@@ -157,15 +158,17 @@ export function FilterMenu(
 
   return (
     <div className="relative shrink-0">
-      <button
+      <Button
         ref={triggerRef}
-        type="button"
         onClick={toggle}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Filter options"
         aria-pressed={props.activeCount > 0}
-        className={`inline-flex min-h-[24px] items-center gap-1 rounded px-2 text-secondary font-medium transition-colors ${
+        variant="ghost"
+        size="sm"
+        wrap
+        className={`tm-token-toolbar__filter-button justify-start ${
           open || props.activeCount > 0
             ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
             : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
@@ -179,7 +182,7 @@ export function FilterMenu(
             {props.activeCount}
           </span>
         )}
-      </button>
+      </Button>
 
       {open && (
         <div

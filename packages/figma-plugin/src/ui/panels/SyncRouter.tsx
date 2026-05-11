@@ -52,17 +52,17 @@ export function SyncRouter({
     };
   } else if (publishPreflightState.targetDirty) {
     publishAction = {
-      label: "Review target",
+      label: "Save destination",
       onClick: () => publishPanelHandleRef.current?.focusPublishTarget(),
     };
   } else if (pendingPublishCount > 0) {
     publishAction = {
-      label: "Apply changes",
+      label: "Apply to Figma",
       onClick: () => publishPanelHandleRef.current?.focusStage("compare"),
     };
   } else {
     publishAction = {
-      label: "Check for changes",
+      label: "Check readiness",
       onClick: () => publishPanelHandleRef.current?.runReadinessChecks(),
     };
   }

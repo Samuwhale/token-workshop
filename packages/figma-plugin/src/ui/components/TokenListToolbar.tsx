@@ -451,7 +451,7 @@ export function TokenListToolbar({
                       variant="ghost"
                       size="sm"
                       wrap
-                      className={`${TOOLBAR_BUTTON_CLASS} justify-start ${
+                      className={`tm-token-toolbar__view-button ${TOOLBAR_BUTTON_CLASS} justify-start ${
                         viewMenu.open || viewMenuActive || viewMode === "json"
                           ? "bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
                           : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
@@ -618,7 +618,7 @@ export function TokenListToolbar({
 
             {showCreate ? (
               <div className="tm-token-toolbar__create relative shrink-0">
-                <div className="flex items-center gap-1">
+                <div className="tm-token-toolbar__create-group">
                   {showPrimaryCreateAction ? (
                     <>
                       <Button
