@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Settings2 } from "lucide-react";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
@@ -99,18 +100,27 @@ export function ModeColumnHeader({
           className="tm-mode-column-header__resize-grip"
         />
       </div>
-      <button
-        type="button"
-        onClick={handleManageModes}
-        disabled={!connected || !onManageModes}
-        aria-label={`Manage collection modes from ${modeName}`}
-        className="tm-mode-column-header__button w-full rounded-sm py-1 text-body font-medium text-[color:var(--color-figma-text-secondary)] outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] disabled:cursor-default disabled:hover:text-[color:var(--color-figma-text-secondary)]"
-        title="Manage collection modes"
-      >
-        <span className="tm-mode-column-header__label min-w-0">
+      <div className="tm-mode-column-header__button">
+        <span className="tm-mode-column-header__label min-w-0" title={modeName}>
           {modeName}
         </span>
-      </button>
+        {onManageModes ? (
+          <button
+            type="button"
+            onClick={handleManageModes}
+            disabled={!connected}
+            aria-label={`Manage modes for ${modeName}`}
+            className="tm-mode-column-header__button-icon tm-mode-column-header__manage-button"
+            title={
+              connected
+                ? `Manage modes for ${modeName}`
+                : "Connect to the token library before managing modes"
+            }
+          >
+            <Settings2 size={12} strokeWidth={1.5} aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

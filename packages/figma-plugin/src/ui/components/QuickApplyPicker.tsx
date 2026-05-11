@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Clock, Search, X, Zap } from 'lucide-react';
+import { Clock, X, Zap } from 'lucide-react';
 import type { BindableProperty, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { PROPERTY_LABELS, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
@@ -25,6 +25,7 @@ import { getRecentTokenPaths, addRecentToken } from '../shared/recentTokens';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { getCollectionDisplayName } from '../shared/libraryCollections';
+import { Button, SearchField } from '../primitives';
 
 function isDimensionLike(value: unknown): value is { value: number; unit: string } {
   return (
@@ -319,6 +320,61 @@ function QuickApplyCandidateRow({
   );
 }
 
+function QuickApplyEmptyResults({
+  activeCollectionLabel,
+  activePropLabel,
+  canSearchAllCollections,
+  query,
+  onClearSearch,
+  onSearchAllCollections,
+}: {
+  activeCollectionLabel: string;
+  activePropLabel: string;
+  canSearchAllCollections: boolean;
+  query: string;
+  onClearSearch: () => void;
+  onSearchAllCollections: () => void;
+}) {
+  const hasQuery = query.trim().length > 0;
+
+  return (
+    <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+      <div>
+        <p className="m-0 text-body font-medium text-[color:var(--color-figma-text)]">
+          No matching tokens
+        </p>
+        <p className="m-0 mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+          {hasQuery
+            ? `No result for "${query.trim()}" in ${activeCollectionLabel}.`
+            : `No ${activePropLabel.toLowerCase()} tokens in ${activeCollectionLabel}.`}
+        </p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {canSearchAllCollections ? (
+          <Button
+            type="button"
+            onClick={onSearchAllCollections}
+            variant="secondary"
+            size="sm"
+          >
+            Search all collections
+          </Button>
+        ) : null}
+        {hasQuery ? (
+          <Button
+            type="button"
+            onClick={onClearSearch}
+            variant={canSearchAllCollections ? "ghost" : "secondary"}
+            size="sm"
+          >
+            Clear search
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -334,10 +390,16 @@ export function QuickApplyPicker({
 }: QuickApplyPickerProps) {
   const rootNodes = useMemo(() => selectedNodes.filter(n => n.depth === 0), [selectedNodes]);
   const eligibleProps = useMemo(() => getEligibleProperties(rootNodes), [rootNodes]);
-  const [activeCollectionId, setActiveCollectionId] = useState(
-    currentCollectionId || collectionIds[0] || "",
-  );
   const [activeProp, setActiveProp] = useState<BindableProperty>(() => inferPrimaryProperty(eligibleProps, rootNodes) ?? 'fill');
+  const currentBinding = getBindingForProperty(rootNodes, activeProp);
+  const currentBindingCollection = getBindingCollectionForProperty(rootNodes, activeProp);
+  const initialCollectionScope =
+    currentBindingCollection && currentBindingCollection !== 'mixed'
+      ? currentBindingCollection
+      : currentCollectionId || collectionIds[0] || "";
+  const [activeCollectionId, setActiveCollectionId] = useState(
+    initialCollectionScope,
+  );
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -347,8 +409,26 @@ export function QuickApplyPicker({
   useFocusTrap(dialogRef, { initialFocusRef: inputRef });
 
   useEffect(() => {
-    setActiveCollectionId(currentCollectionId || collectionIds[0] || "");
-  }, [collectionIds, currentCollectionId]);
+    const preferredCollectionId =
+      currentBindingCollection && currentBindingCollection !== 'mixed'
+        ? currentBindingCollection
+        : currentCollectionId || collectionIds[0] || "";
+    setActiveCollectionId((current) => {
+      if (current === ALL_COLLECTIONS_ID || current === preferredCollectionId) {
+        return current;
+      }
+      if (
+        !current ||
+        !collectionIds.includes(current) ||
+        (currentBindingCollection &&
+          currentBindingCollection !== 'mixed' &&
+          current !== currentBindingCollection)
+      ) {
+        return preferredCollectionId;
+      }
+      return current;
+    });
+  }, [collectionIds, currentBindingCollection, currentCollectionId]);
 
   const availableCollectionIds = useMemo(() => {
     const ids = collectionIds.filter((collectionId) =>
@@ -395,6 +475,7 @@ export function QuickApplyPicker({
       )
     : Object.keys(tokenMap).length;
   const collectionHasTokens = collectionTokenCount > 0;
+  const activePropLabel = PROPERTY_LABELS[activeProp];
 
   useEffect(() => {
     if (eligibleProps.includes(activeProp)) {
@@ -482,8 +563,6 @@ export function QuickApplyPicker({
   }, [visibleCandidates.length]);
 
   // Current binding for this property
-  const currentBinding = getBindingForProperty(rootNodes, activeProp);
-  const currentBindingCollection = getBindingCollectionForProperty(rootNodes, activeProp);
   const hasSingleCurrentBinding = currentBinding !== null && currentBinding !== 'mixed';
   const isCurrentCandidate = (candidate: QuickApplyCandidate): boolean =>
     currentBinding === candidate.path &&
@@ -520,7 +599,7 @@ export function QuickApplyPicker({
   };
 
   const handlePropertyTabKeyDown = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
+    event: React.KeyboardEvent<HTMLElement>,
     prop: BindableProperty,
   ) => {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
@@ -683,8 +762,11 @@ export function QuickApplyPicker({
               </span>
             ) : null}
           </div>
-          {/* Property tab pills */}
-          <div className="flex gap-0.5 overflow-x-auto">
+          <div
+            role="tablist"
+            aria-label="Apply property"
+            className="flex gap-0.5 overflow-x-auto"
+          >
             {eligibleProps.map(prop => {
               const isActive = prop === activeProp;
               const binding = getBindingForProperty(rootNodes, prop);
@@ -693,6 +775,10 @@ export function QuickApplyPicker({
                 <button
                   type="button"
                   key={prop}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls="quick-apply-token-candidates"
+                  tabIndex={isActive ? 0 : -1}
                   data-quick-apply-property={prop}
                   onClick={() => setActiveProp(prop)}
                   onKeyDown={(event) => handlePropertyTabKeyDown(event, prop)}
@@ -712,40 +798,60 @@ export function QuickApplyPicker({
           </div>
         </div>
 
-        {/* Search input */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)]">
-          <Search
-            size={12}
-            strokeWidth={1.5}
-            className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
-            aria-hidden
-          />
-          <input
+        <div className="flex flex-col gap-1.5 border-b border-[var(--color-figma-border)] px-3 py-2">
+          <SearchField
             ref={inputRef}
-            type="text"
+            size="sm"
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Search ${getTokenTypeForProperty(activeProp)} tokens…`}
-            aria-label={`Search tokens for ${PROPERTY_LABELS[activeProp]}`}
+            aria-label={`Search tokens for ${activePropLabel}`}
             aria-autocomplete="list"
-            className="flex-1 bg-transparent outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] text-body text-[color:var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
+            aria-controls="quick-apply-token-candidates"
+            onClear={() => {
+              setQuery("");
+              window.setTimeout(() => inputRef.current?.focus(), 0);
+            }}
+            className="bg-[var(--color-figma-bg)]"
           />
           {hasSingleCurrentBinding && (
-            <span className="text-secondary text-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0 font-mono truncate max-w-[120px]" title={currentBinding}>
-              {currentBinding}
-            </span>
+            <div
+              className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]"
+              title={currentBinding}
+            >
+              Current {activePropLabel.toLowerCase()}:{" "}
+              <span className="font-mono text-[color:var(--color-figma-text-accent)]">
+                {currentBinding}
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Token candidates */}
-        <div ref={listRef} className="overflow-y-auto flex-1" role="listbox" aria-label="Token candidates">
+        <div
+          id="quick-apply-token-candidates"
+          ref={listRef}
+          className="overflow-y-auto flex-1"
+          role="listbox"
+          aria-label="Token candidates"
+        >
           {candidates.length === 0 ? (
-            <div className="px-3 py-6 text-center text-body text-[color:var(--color-figma-text-secondary)]">
-              {query
-                ? `No matching tokens in ${activeCollectionLabel}`
-                : `No matching ${getTokenTypeForProperty(activeProp)} tokens in ${activeCollectionLabel}`}
-            </div>
+            <QuickApplyEmptyResults
+              activeCollectionLabel={activeCollectionLabel}
+              activePropLabel={activePropLabel}
+              canSearchAllCollections={
+                !searchAllCollections && availableCollectionIds.length > 1
+              }
+              query={query}
+              onClearSearch={() => {
+                setQuery("");
+                window.setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+              onSearchAllCollections={() => {
+                setActiveCollectionId(ALL_COLLECTIONS_ID);
+                window.setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+            />
           ) : (
             <>
               {/* Recently used section */}

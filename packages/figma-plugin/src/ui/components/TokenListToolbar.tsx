@@ -197,6 +197,12 @@ export function TokenListToolbar({
         : "Search tokens";
   const effectiveSearchTooltip =
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
+  const searchAriaLabel =
+    viewMode === "json"
+      ? "Search JSON"
+      : searchScope === "all"
+        ? "Search all collections"
+        : "Search tokens";
 
   const showSelectionChip = selectedNodeCount > 0 && boundTokenCount > 0;
   const showSearch =
@@ -353,6 +359,7 @@ export function TokenListToolbar({
                       }
                     }}
                     placeholder={searchPlaceholder}
+                    aria-label={searchAriaLabel}
                     title={effectiveSearchTooltip}
                     onClear={() => {
                       setSearchQuery("");
@@ -395,11 +402,12 @@ export function TokenListToolbar({
                     className="absolute left-0 top-full z-50 mt-0.5 max-h-48 w-full overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-[var(--shadow-popover)]"
                   >
                     {qualifierHints.map((hint, index) => (
-                      <button
+                      <div
                         key={hint.id}
                         id={`qualifier-hint-${hint.id}`}
                         role="option"
                         aria-selected={index === hintIndex}
+                        aria-disabled={hint.kind !== "replacement"}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
                           if (
@@ -430,7 +438,7 @@ export function TokenListToolbar({
                         <span className="min-w-0 flex-1 whitespace-normal break-words leading-tight">
                           {hint.desc}
                         </span>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 ) : null}

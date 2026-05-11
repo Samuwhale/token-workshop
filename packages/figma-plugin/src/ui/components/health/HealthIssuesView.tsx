@@ -188,7 +188,7 @@ export function HealthIssuesView({
       }
       lines.push("");
     }
-    navigator.clipboard.writeText(lines.join("\n")).then(() => dispatchToast("Copied as Markdown", "success"));
+    navigator.clipboard.writeText(lines.join("\n")).then(() => dispatchToast("Copied visible issues as Markdown", "success"));
     exportMenu.close();
   };
 
@@ -209,7 +209,7 @@ export function HealthIssuesView({
       new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
       "review-report.json",
     );
-    dispatchToast("Exported JSON", "success");
+    dispatchToast("Exported visible issues as JSON", "success");
     exportMenu.close();
   };
 
@@ -223,7 +223,7 @@ export function HealthIssuesView({
       new Blob([[header, ...rows].join("\n")], { type: "text/csv" }),
       "review-report.csv",
     );
-    dispatchToast("Exported CSV", "success");
+    dispatchToast("Exported visible issues as CSV", "success");
     exportMenu.close();
   };
 
@@ -332,13 +332,13 @@ export function HealthIssuesView({
                     role="menu"
                   >
                     <button role="menuitem" onClick={copyMarkdown} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                      Copy as Markdown
+                      Copy visible as Markdown
                     </button>
                     <button role="menuitem" onClick={exportJson} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                      Export JSON
+                      Export visible JSON
                     </button>
                     <button role="menuitem" onClick={exportCsv} className="w-full text-left px-3 py-1.5 text-secondary text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                      Export CSV
+                      Export visible CSV
                     </button>
                   </div>
                 ) : null}

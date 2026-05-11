@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import {
   useImportDestinationContext,
   useImportReviewContext,
   useImportSourceContext,
 } from './ImportPanelContext';
 import { ImportConflictResolver } from './ImportConflictResolver';
+import { ConfirmModal } from './ConfirmModal';
 import { Button } from '../primitives';
 import { COLLECTION_NAME_RE } from '../shared/utils';
 
@@ -12,6 +14,7 @@ function formatCollectionOptionLabel(collectionId: string): string {
 }
 
 export function ImportPreviewFooter() {
+  const [confirmImportWithoutReview, setConfirmImportWithoutReview] = useState(false);
   const { tokens, selectedTokens } = useImportSourceContext();
   const {
     targetCollectionId,
@@ -65,13 +68,13 @@ export function ImportPreviewFooter() {
         : null;
   const previewStatusDetail =
     existingTokenMapError !== null
-      ? 'Compare failed. Importing can replace tokens with the same path.'
+      ? 'Compare failed. Retry before importing so matching paths can be reviewed.'
       : previewOverwriteCount && previewOverwriteCount > 0
         ? 'Review matches before you import.'
         : null;
   const handlePrimaryImport = () => {
     if (importWithoutConflictCheck) {
-      void executeImport('overwrite');
+      void handleImportStyles();
       return;
     }
     void handleImportStyles();
@@ -88,6 +91,21 @@ export function ImportPreviewFooter() {
 
   return (
     <div className="tm-import-preview-footer border-t border-[var(--color-figma-border)]">
+      {confirmImportWithoutReview ? (
+        <ConfirmModal
+          title="Import without review?"
+          description="Token paths that already exist may be replaced. Retry compare if you need to review matches first."
+          confirmLabel="Import without review"
+          onCancel={() => {
+            setConfirmImportWithoutReview(false);
+          }}
+          onConfirm={async () => {
+            setConfirmImportWithoutReview(false);
+            await executeImport('overwrite');
+          }}
+        />
+      ) : null}
+
       {newCollectionInputVisible ? (
         <div className="flex flex-col gap-1">
           <label
@@ -209,7 +227,7 @@ export function ImportPreviewFooter() {
           {existingTokenMapError !== null ? (
             <Button
               onClick={handleImportStyles}
-              variant="ghost"
+              variant="secondary"
               size="sm"
               wrap
               disabled={checkingConflicts}
@@ -245,9 +263,21 @@ export function ImportPreviewFooter() {
             : hasPreviewConflicts
               ? `Review ${previewConflictCount} matching token${previewConflictCount === 1 ? "" : "s"}`
               : importWithoutConflictCheck
-                ? `Import ${selectedCount} without review`
+                ? 'Retry compare'
               : `Import ${selectedCount} token${selectedCount !== 1 ? 's' : ''}`}
       </Button>
+
+      {importWithoutConflictCheck ? (
+        <Button
+          onClick={() => setConfirmImportWithoutReview(true)}
+          disabled={importDisabled}
+          variant="ghost"
+          wrap
+          className="w-full"
+        >
+          Import without review
+        </Button>
+      ) : null}
 
       {importing && importProgress && importProgress.total > 0 && (
         <div className="w-full h-1 rounded-full bg-[var(--color-figma-border)] overflow-hidden">

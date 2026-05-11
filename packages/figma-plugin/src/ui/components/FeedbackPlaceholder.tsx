@@ -147,10 +147,9 @@ export function FeedbackPlaceholder({
   const iconColor = VARIANT_ICON_COLOR[variant];
   const iconNode = icon === undefined ? defaultIcon(variant) : icon;
   const resolvedActions = actions ?? [
-    secondaryAction,
     primaryAction,
+    secondaryAction,
   ].filter((action): action is FeedbackPlaceholderAction => action !== undefined);
-  const usingActionList = actions !== undefined;
 
   return (
     <div
@@ -199,13 +198,7 @@ export function FeedbackPlaceholder({
                 action={action}
                 defaultTone={
                   action.tone ??
-                  (usingActionList
-                    ? index === 0
-                      ? 'primary'
-                      : 'secondary'
-                    : index === resolvedActions.length - 1
-                      ? 'primary'
-                      : 'secondary')
+                  (index === 0 ? 'primary' : 'secondary')
                 }
                 align={align}
               />

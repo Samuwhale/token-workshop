@@ -6,6 +6,7 @@ import {
   type RemapBindingsPrefillEntry,
   type RemapBindingsRow,
 } from "./RemapBindingsPanel";
+import { Button } from "../primitives";
 
 interface CanvasRepairPanelProps {
   tokenMap: Record<string, TokenMapEntry>;
@@ -85,6 +86,15 @@ export function CanvasRepairPanel({
               <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 When a layer points to a missing token, choose its replacement here.
               </p>
+              <Button
+                type="button"
+                onClick={onClose}
+                variant="secondary"
+                size="sm"
+                className="mt-3"
+              >
+                Back to Selection
+              </Button>
             </div>
           </div>
         )}

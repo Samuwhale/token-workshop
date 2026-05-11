@@ -208,7 +208,7 @@ export function HistoryPanel({
               ))}
             </div>
 
-            {collectionIds.length > 1 ? (
+            {scope.view === "recent" && collectionIds.length > 1 ? (
               <SegmentedControl
                 value={scope.mode}
                 options={[...HISTORY_SCOPE_OPTIONS]}
