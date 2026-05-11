@@ -14,6 +14,42 @@ export function setSelectionDeepInspectEnabled(enabled: boolean): void {
   selectionDeepInspectEnabled = enabled;
 }
 
+type DynamicSceneNode = SceneNode & Record<string, unknown>;
+
+function getNodeProperty<T>(node: SceneNode, property: string): T | undefined {
+  return (node as DynamicSceneNode)[property] as T | undefined;
+}
+
+function setNodeProperty(
+  node: SceneNode,
+  property: string,
+  value: unknown,
+): void {
+  (node as DynamicSceneNode)[property] = value;
+}
+
+function setDimensionProperty(
+  node: SceneNode,
+  property: string,
+  value: string | number | DimensionValue | null | undefined,
+): void {
+  if (property in node) {
+    setNodeProperty(node, property, parseRequiredDimensionValue(value, property));
+  }
+}
+
+function getFirstSolidPaint(
+  node: SceneNode,
+  property: 'fills' | 'strokes',
+): SolidPaint | null {
+  const paints = getNodeProperty<readonly Paint[]>(node, property);
+  if (!Array.isArray(paints) || paints.length === 0) {
+    return null;
+  }
+  const firstPaint = paints[0];
+  return firstPaint.type === 'SOLID' ? firstPaint : null;
+}
+
 function hasStoredBinding(node: SceneNode, property: string): boolean {
   return Boolean(node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property));
 }
@@ -81,11 +117,11 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
             throw new Error('Invalid border color value');
           }
           strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
-          if ('strokeWeight' in node && borderVal.width != null) {
-            (node as unknown as Record<string, unknown>)['strokeWeight'] = parseRequiredDimensionValue(borderVal.width, 'strokeWeight');
+          if (borderVal.width != null) {
+            setDimensionProperty(node, 'strokeWeight', borderVal.width);
           }
           if ('dashPattern' in node) {
-            (node as unknown as Record<string, unknown>)['dashPattern'] = borderVal.style === 'dashed' ? [8, 8] : [];
+            setNodeProperty(node, 'dashPattern', borderVal.style === 'dashed' ? [8, 8] : []);
           }
         } else {
           const colorVal = value as (Record<string, unknown> | string | null);
@@ -115,28 +151,28 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
       break;
 
     case 'paddingTop':
-      if ('paddingTop' in node) (node as unknown as Record<string, unknown>)['paddingTop'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingTop');
+      setDimensionProperty(node, 'paddingTop', value as string | number | DimensionValue | null);
       break;
     case 'paddingRight':
-      if ('paddingRight' in node) (node as unknown as Record<string, unknown>)['paddingRight'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingRight');
+      setDimensionProperty(node, 'paddingRight', value as string | number | DimensionValue | null);
       break;
     case 'paddingBottom':
-      if ('paddingBottom' in node) (node as unknown as Record<string, unknown>)['paddingBottom'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingBottom');
+      setDimensionProperty(node, 'paddingBottom', value as string | number | DimensionValue | null);
       break;
     case 'paddingLeft':
-      if ('paddingLeft' in node) (node as unknown as Record<string, unknown>)['paddingLeft'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'paddingLeft');
+      setDimensionProperty(node, 'paddingLeft', value as string | number | DimensionValue | null);
       break;
 
     case 'itemSpacing':
-      if ('itemSpacing' in node) (node as unknown as Record<string, unknown>)['itemSpacing'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'itemSpacing');
+      setDimensionProperty(node, 'itemSpacing', value as string | number | DimensionValue | null);
       break;
 
     case 'cornerRadius':
-      if ('cornerRadius' in node) (node as unknown as Record<string, unknown>)['cornerRadius'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'cornerRadius');
+      setDimensionProperty(node, 'cornerRadius', value as string | number | DimensionValue | null);
       break;
 
     case 'strokeWeight':
-      if ('strokeWeight' in node) (node as unknown as Record<string, unknown>)['strokeWeight'] = parseRequiredDimensionValue(value as string | number | DimensionValue | null, 'strokeWeight');
+      setDimensionProperty(node, 'strokeWeight', value as string | number | DimensionValue | null);
       break;
 
     case 'opacity':
@@ -146,7 +182,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
         // a percentage (0–100) — normalize to 0–1 to avoid silent clamping.
         if (!isNaN(num)) {
           if (num > 1) num = num / 100;
-          (node as unknown as Record<string, unknown>)['opacity'] = Math.max(0, Math.min(1, num));
+          setNodeProperty(node, 'opacity', Math.max(0, Math.min(1, num)));
         }
       }
       break;
@@ -186,7 +222,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'shadow':
       if ('effects' in node) {
-        (node as unknown as Record<string, unknown>)['effects'] = shadowTokenToEffects(value as ShadowTokenValue | ShadowTokenValue[]);
+        setNodeProperty(node, 'effects', shadowTokenToEffects(value as ShadowTokenValue | ShadowTokenValue[]));
       }
       break;
 
@@ -365,31 +401,30 @@ function readShadowCurrentValue(
 function readCurrentValues(node: SceneNode): NodeCurrentValues {
   const values: NodeCurrentValues = {};
 
-  const n = node as unknown as Record<string, unknown>;
   if ('fills' in node) {
-    const fills = n['fills'];
-    if (Array.isArray(fills) && fills.length > 0 && fills[0].type === 'SOLID') {
-      values.fill = rgbToHex(fills[0].color, fills[0].opacity ?? 1);
+    const fill = getFirstSolidPaint(node, 'fills');
+    if (fill) {
+      values.fill = rgbToHex(fill.color, fill.opacity ?? 1);
     }
   }
   if ('strokes' in node) {
-    const strokes = n['strokes'];
-    if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID') {
-      values.stroke = rgbToHex(strokes[0].color, strokes[0].opacity ?? 1);
+    const stroke = getFirstSolidPaint(node, 'strokes');
+    if (stroke) {
+      values.stroke = rgbToHex(stroke.color, stroke.opacity ?? 1);
     }
   }
-  if ('width' in node) values.width = n['width'] as number;
-  if ('height' in node) values.height = n['height'] as number;
-  if ('opacity' in node) values.opacity = n['opacity'] as number;
-  if ('cornerRadius' in node) values.cornerRadius = n['cornerRadius'] as number;
-  if ('strokeWeight' in node) values.strokeWeight = n['strokeWeight'] as number;
+  if ('width' in node) values.width = getNodeProperty<number>(node, 'width');
+  if ('height' in node) values.height = getNodeProperty<number>(node, 'height');
+  if ('opacity' in node) values.opacity = getNodeProperty<number>(node, 'opacity');
+  if ('cornerRadius' in node) values.cornerRadius = getNodeProperty<number>(node, 'cornerRadius');
+  if ('strokeWeight' in node) values.strokeWeight = getNodeProperty<number>(node, 'strokeWeight');
   if ('paddingTop' in node) {
-    values.paddingTop = n['paddingTop'] as number;
-    values.paddingRight = n['paddingRight'] as number;
-    values.paddingBottom = n['paddingBottom'] as number;
-    values.paddingLeft = n['paddingLeft'] as number;
+    values.paddingTop = getNodeProperty<number>(node, 'paddingTop');
+    values.paddingRight = getNodeProperty<number>(node, 'paddingRight');
+    values.paddingBottom = getNodeProperty<number>(node, 'paddingBottom');
+    values.paddingLeft = getNodeProperty<number>(node, 'paddingLeft');
   }
-  if ('itemSpacing' in node) values.itemSpacing = n['itemSpacing'] as number;
+  if ('itemSpacing' in node) values.itemSpacing = getNodeProperty<number>(node, 'itemSpacing');
   values.typography = readTypographyCurrentValue(node);
   values.shadow = readShadowCurrentValue(node);
   if ('visible' in node) values.visible = node.visible;
@@ -476,13 +511,12 @@ export async function extractTokensFromSelection() {
 
   for (const node of selection) {
     const slug = slugify(node.name);
-    const n = node as unknown as Record<string, unknown>;
 
     // Fill color
     if ('fills' in node) {
-      const fills = n['fills'];
-      if (Array.isArray(fills) && fills.length > 0 && fills[0].type === 'SOLID') {
-        const hex = rgbToHex(fills[0].color, fills[0].opacity ?? 1);
+      const fill = getFirstSolidPaint(node, 'fills');
+      if (fill) {
+        const hex = rgbToHex(fill.color, fill.opacity ?? 1);
         entries.push({
           property: 'fill',
           tokenType: 'color',
@@ -496,9 +530,9 @@ export async function extractTokensFromSelection() {
 
     // Stroke color
     if ('strokes' in node) {
-      const strokes = n['strokes'];
-      if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID') {
-        const hex = rgbToHex(strokes[0].color, strokes[0].opacity ?? 1);
+      const stroke = getFirstSolidPaint(node, 'strokes');
+      if (stroke) {
+        const hex = rgbToHex(stroke.color, stroke.opacity ?? 1);
         entries.push({
           property: 'stroke',
           tokenType: 'color',
@@ -511,46 +545,50 @@ export async function extractTokensFromSelection() {
     }
 
     // Dimensions: width, height
-    if ('width' in node && typeof n['width'] === 'number') {
+    const width = getNodeProperty<number>(node, 'width');
+    if ('width' in node && typeof width === 'number') {
       entries.push({
         property: 'width',
         tokenType: 'dimension',
         suggestedName: `size.${slug}.width`,
-        value: { value: Math.round((n['width'] as number) * 100) / 100, unit: 'px' },
+        value: { value: Math.round(width * 100) / 100, unit: 'px' },
         layerName: node.name,
         layerId: node.id,
       });
     }
-    if ('height' in node && typeof n['height'] === 'number') {
+    const height = getNodeProperty<number>(node, 'height');
+    if ('height' in node && typeof height === 'number') {
       entries.push({
         property: 'height',
         tokenType: 'dimension',
         suggestedName: `size.${slug}.height`,
-        value: { value: Math.round((n['height'] as number) * 100) / 100, unit: 'px' },
+        value: { value: Math.round(height * 100) / 100, unit: 'px' },
         layerName: node.name,
         layerId: node.id,
       });
     }
 
     // Corner radius
-    if ('cornerRadius' in node && typeof n['cornerRadius'] === 'number' && (n['cornerRadius'] as number) > 0) {
+    const cornerRadius = getNodeProperty<number>(node, 'cornerRadius');
+    if ('cornerRadius' in node && typeof cornerRadius === 'number' && cornerRadius > 0) {
       entries.push({
         property: 'cornerRadius',
         tokenType: 'dimension',
         suggestedName: `radius.${slug}`,
-        value: { value: n['cornerRadius'] as number, unit: 'px' },
+        value: { value: cornerRadius, unit: 'px' },
         layerName: node.name,
         layerId: node.id,
       });
     }
 
     // Stroke weight
-    if ('strokeWeight' in node && typeof n['strokeWeight'] === 'number' && (n['strokeWeight'] as number) > 0) {
+    const strokeWeight = getNodeProperty<number>(node, 'strokeWeight');
+    if ('strokeWeight' in node && typeof strokeWeight === 'number' && strokeWeight > 0) {
       entries.push({
         property: 'strokeWeight',
         tokenType: 'dimension',
         suggestedName: `border.${slug}.stroke-weight`,
-        value: { value: n['strokeWeight'] as number, unit: 'px' },
+        value: { value: strokeWeight, unit: 'px' },
         layerName: node.name,
         layerId: node.id,
       });
@@ -558,21 +596,22 @@ export async function extractTokensFromSelection() {
 
     // Padding / spacing (auto-layout frames)
     if ('paddingTop' in node) {
-      const pt = n['paddingTop'] as number;
-      const pr = n['paddingRight'] as number;
-      const pb = n['paddingBottom'] as number;
-      const pl = n['paddingLeft'] as number;
+      const pt = getNodeProperty<number>(node, 'paddingTop') ?? 0;
+      const pr = getNodeProperty<number>(node, 'paddingRight') ?? 0;
+      const pb = getNodeProperty<number>(node, 'paddingBottom') ?? 0;
+      const pl = getNodeProperty<number>(node, 'paddingLeft') ?? 0;
       if (pt > 0) entries.push({ property: 'paddingTop', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-top`, value: { value: pt, unit: 'px' }, layerName: node.name, layerId: node.id });
       if (pr > 0) entries.push({ property: 'paddingRight', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-right`, value: { value: pr, unit: 'px' }, layerName: node.name, layerId: node.id });
       if (pb > 0) entries.push({ property: 'paddingBottom', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-bottom`, value: { value: pb, unit: 'px' }, layerName: node.name, layerId: node.id });
       if (pl > 0) entries.push({ property: 'paddingLeft', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-left`, value: { value: pl, unit: 'px' }, layerName: node.name, layerId: node.id });
     }
-    if ('itemSpacing' in node && typeof n['itemSpacing'] === 'number' && (n['itemSpacing'] as number) > 0) {
+    const itemSpacing = getNodeProperty<number>(node, 'itemSpacing');
+    if ('itemSpacing' in node && typeof itemSpacing === 'number' && itemSpacing > 0) {
       entries.push({
         property: 'itemSpacing',
         tokenType: 'dimension',
         suggestedName: `spacing.${slug}.gap`,
-        value: { value: n['itemSpacing'] as number, unit: 'px' },
+        value: { value: itemSpacing, unit: 'px' },
         layerName: node.name,
         layerId: node.id,
       });
@@ -580,10 +619,10 @@ export async function extractTokensFromSelection() {
 
     // Border (stroke + strokeWeight combined)
     if ('strokes' in node && 'strokeWeight' in node) {
-      const strokes = n['strokes'];
-      const sw = n['strokeWeight'];
-      if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID' && typeof sw === 'number' && sw > 0) {
-        const hex = rgbToHex(strokes[0].color, strokes[0].opacity ?? 1);
+      const stroke = getFirstSolidPaint(node, 'strokes');
+      const sw = getNodeProperty<number>(node, 'strokeWeight');
+      if (stroke && typeof sw === 'number' && sw > 0) {
+        const hex = rgbToHex(stroke.color, stroke.opacity ?? 1);
         entries.push({
           property: 'border',
           tokenType: 'border',
@@ -620,12 +659,13 @@ export async function extractTokensFromSelection() {
     }
 
     // Opacity (only if non-default)
-    if ('opacity' in node && typeof n['opacity'] === 'number' && (n['opacity'] as number) < 1) {
+    const opacity = getNodeProperty<number>(node, 'opacity');
+    if ('opacity' in node && typeof opacity === 'number' && opacity < 1) {
       entries.push({
         property: 'opacity',
         tokenType: 'number',
         suggestedName: `opacity.${slug}`,
-        value: Math.round((n['opacity'] as number) * 100) / 100,
+        value: Math.round(opacity * 100) / 100,
         layerName: node.name,
         layerId: node.id,
       });
@@ -811,7 +851,7 @@ function captureNodeProps(node: SceneNode, bindingProps: string[]): Record<strin
     const figmaProps = BINDING_TO_FIGMA_PROPS[bindingProp] ?? [bindingProp];
     for (const prop of figmaProps) {
       try {
-        const val = (node as unknown as Record<string, unknown>)[prop];
+        const val = getNodeProperty(node, prop);
         if (val === undefined) continue;
         // figma.mixed is a Symbol — JSON.stringify silently drops Symbols, losing the value.
         // Store the reference directly so restoreNodeProps can assign it back.
@@ -835,7 +875,7 @@ async function restoreNodeProps(node: SceneNode, snap: Record<string, unknown>):
         if (prop === 'width') rn.resize(val as number, rn.height);
         else rn.resize(rn.width, val as number);
       } else {
-        (node as unknown as Record<string, unknown>)[prop] = val;
+        setNodeProperty(node, prop, val);
       }
     } catch (e) { console.debug('[selectionHandling] restoreNodeProps: failed to restore property:', prop, e); }
   }

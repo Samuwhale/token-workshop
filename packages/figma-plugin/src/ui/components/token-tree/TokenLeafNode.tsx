@@ -112,6 +112,105 @@ const MENU_ICON_PROPS = {
   className: "shrink-0 opacity-60",
 } as const;
 
+function AliasResolutionChain({
+  depth,
+  sourceTokenPath,
+  steps,
+  onNavigateToAlias,
+}: {
+  depth: number;
+  sourceTokenPath: string;
+  steps: ResolutionStep[];
+  onNavigateToAlias?: (path: string, fromPath?: string) => void;
+}) {
+  if (steps.length < 2) {
+    return null;
+  }
+
+  return (
+    <div
+      className="flex flex-col bg-[var(--color-figma-bg-secondary)]"
+      style={{
+        paddingLeft: `${computePaddingLeft(depth, 12)}px`,
+      }}
+    >
+      {steps.map((step, index) => {
+        const isFirst = index === 0;
+        const isLast = index === steps.length - 1;
+        const isConcrete = isLast && !step.isError;
+        return (
+          <div
+            key={step.path + index}
+            className="flex items-center gap-1 py-0.5 px-2 min-h-[18px]"
+          >
+            <div className="flex items-center gap-0.5 shrink-0 w-3 justify-center">
+              {isFirst ? (
+                <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" />
+              ) : (
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 8 8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  className="text-[color:var(--color-figma-text-tertiary)]"
+                  aria-hidden="true"
+                >
+                  <path d="M4 0v4M1 4l3 4 3-4" />
+                </svg>
+              )}
+            </div>
+
+            {!isFirst ? (
+              <button
+                type="button"
+                className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[color:var(--color-figma-text-error)]" : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:underline"}`}
+                onClick={() =>
+                  !step.isError && onNavigateToAlias?.(step.path, sourceTokenPath)
+                }
+                title={step.isError ? step.errorMsg : `Navigate to ${step.path}`}
+              >
+                {step.path}
+              </button>
+            ) : (
+              <span className="text-secondary font-mono text-[color:var(--color-figma-text-accent)] shrink-0">
+                {step.path}
+              </span>
+            )}
+
+            {step.collectionId ? (
+              <span
+                className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-tertiary)] shrink-0`}
+              >
+                {step.collectionId}
+              </span>
+            ) : null}
+
+            {isConcrete && step.value != null && !isAlias(step.value) ? (
+              <span className="flex items-center gap-1 ml-auto shrink-0">
+                <ValuePreview type={step.$type} value={step.value} size={12} />
+                <span className="text-secondary font-mono text-[color:var(--color-figma-text)] font-medium">
+                  {formatValue(step.$type, step.value)}
+                </span>
+              </span>
+            ) : null}
+
+            {step.isError ? (
+              <span
+                className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-error)] italic`}
+              >
+                {step.errorMsg}
+              </span>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export const TokenLeafNode = memo(
   function TokenLeafNode(props: TokenTreeNodeProps) {
     const {
@@ -1518,102 +1617,14 @@ export const TokenLeafNode = memo(
           </div>
         )}
 
-        {/* Resolution chain debugger — shows full alias/mode resolution pipeline */}
-        {resolutionSteps && resolutionSteps.length >= 2 && chainExpanded && (
-          <div
-            className="flex flex-col bg-[var(--color-figma-bg-secondary)]"
-            style={{
-              paddingLeft: `${computePaddingLeft(depth, 12)}px`,
-            }}
-          >
-            {resolutionSteps.map((step, i) => {
-              const isFirst = i === 0;
-              const isLast = i === resolutionSteps.length - 1;
-              const isConcrete = isLast && !step.isError;
-              return (
-                <div
-                  key={step.path + i}
-                  className="flex items-center gap-1 py-0.5 px-2 min-h-[18px]"
-                >
-                  {/* Step connector */}
-                  <div className="flex items-center gap-0.5 shrink-0 w-3 justify-center">
-                    {isFirst ? (
-                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" />
-                    ) : (
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 8 8"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        className="text-[color:var(--color-figma-text-tertiary)]"
-                        aria-hidden="true"
-                      >
-                        <path d="M4 0v4M1 4l3 4 3-4" />
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* Token path — clickable to navigate */}
-                  {!isFirst ? (
-                    <button
-                      className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[color:var(--color-figma-text-error)]" : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:underline"}`}
-                      onClick={() =>
-                        !step.isError &&
-                        onNavigateToAlias?.(step.path, node.path)
-                      }
-                      title={
-                        step.isError
-                          ? step.errorMsg
-                          : `Navigate to ${step.path}`
-                      }
-                    >
-                      {step.path}
-                    </button>
-                  ) : (
-                    <span className="text-secondary font-mono text-[color:var(--color-figma-text-accent)] shrink-0">
-                      {step.path}
-                    </span>
-                  )}
-
-                  {/* Collection context */}
-                  {step.collectionId && (
-                    <span
-                      className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-tertiary)] shrink-0`}
-                    >
-                      {step.collectionId}
-                    </span>
-                  )}
-
-                  {/* Concrete resolved value on the last step */}
-                  {isConcrete && step.value != null && !isAlias(step.value) && (
-                    <span className="flex items-center gap-1 ml-auto shrink-0">
-                      <ValuePreview
-                        type={step.$type}
-                        value={step.value}
-                        size={12}
-                      />
-                      <span className="text-secondary font-mono text-[color:var(--color-figma-text)] font-medium">
-                        {formatValue(step.$type, step.value)}
-                      </span>
-                    </span>
-                  )}
-
-                  {/* Error indicator */}
-                  {step.isError && (
-                    <span
-                      className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-error)] italic`}
-                    >
-                      {step.errorMsg}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {resolutionSteps && chainExpanded ? (
+          <AliasResolutionChain
+            depth={depth}
+            sourceTokenPath={node.path}
+            steps={resolutionSteps}
+            onNavigateToAlias={onNavigateToAlias}
+          />
+        ) : null}
       </div>
     );
   },
