@@ -16,6 +16,7 @@ import type {
 import { Collapsible } from './Collapsible';
 import type { TokenMapEntry } from '../../shared/types';
 import { extractAliasPath, isAlias, resolveAliasEntry } from '../../shared/resolveAlias';
+import { createUiId } from '../shared/ids';
 
 interface DerivationEditorProps {
   /** Fallback type when the referenced source token cannot be resolved from the flat map. */
@@ -34,7 +35,7 @@ const COLOR_OP_KINDS: OpKind[] = ['alpha', 'lighten', 'darken', 'mix', 'invertLi
 const NUMERIC_OP_KINDS: OpKind[] = ['scaleBy', 'add'];
 
 function newRowId(): string {
-  return Math.random().toString(36).slice(2);
+  return createUiId('derivation-op');
 }
 
 function isDimensionValue(value: unknown): value is DimensionValue {

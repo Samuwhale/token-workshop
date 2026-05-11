@@ -522,12 +522,19 @@ function connectionWouldCycle(
   return false;
 }
 
+let generatorDocumentIdCounter = 0;
+
+function createGeneratorDocumentId(): string {
+  generatorDocumentIdCounter = (generatorDocumentIdCounter + 1) % Number.MAX_SAFE_INTEGER;
+  return `generator_${Date.now().toString(36)}_${generatorDocumentIdCounter.toString(36)}`;
+}
+
 export function createDefaultTokenGeneratorDocument(
   targetCollectionId: string,
   name = 'New generator',
 ): TokenGeneratorDocument {
   const now = new Date().toISOString();
-  const id = `generator_${Math.random().toString(36).slice(2, 10)}`;
+  const id = createGeneratorDocumentId();
   return {
     id,
     name,

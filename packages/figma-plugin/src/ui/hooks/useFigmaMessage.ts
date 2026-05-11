@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { getPluginMessageFromEvent, getPluginMessageHost } from '../../shared/utils';
+import { createUiId } from '../shared/ids';
 
 /**
  * Shared hook for roundtrip plugin communication via correlationId tracking.
@@ -88,7 +89,7 @@ export function useFigmaMessage<
           reject(new Error('Plugin host is unavailable'));
           return;
         }
-        const cid = `${sendType}-${Date.now()}-${Math.random()}`;
+        const cid = createUiId(sendType);
         const timer = setTimeout(() => {
           pendingRef.current.delete(cid);
           reject(new Error('Figma message timed out \u2014 is the plugin running?'));

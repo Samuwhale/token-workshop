@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { flattenTokenGroup } from '@token-workshop/core';
 import { getErrorMessage } from '../shared/utils';
+import { createUiId } from '../shared/ids';
 import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import {
   parseCSSCustomProperties,
@@ -366,7 +367,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const handleReadVariables = useCallback(() => {
     clearFileImportValidation();
     pendingSourceRef.current = 'variables';
-    const cid = `import-${Date.now()}-${Math.random()}`;
+    const cid = createUiId('import-variables');
     correlationIdRef.current = cid;
     setSourceFamily('figma');
     setSource('variables');
@@ -389,7 +390,7 @@ export function useImportSource({ onClearConflictState, onResetExistingPathsCach
   const handleReadStyles = useCallback(() => {
     clearFileImportValidation();
     pendingSourceRef.current = 'styles';
-    const cid = `import-${Date.now()}-${Math.random()}`;
+    const cid = createUiId('import-styles');
     correlationIdRef.current = cid;
     setSourceFamily('figma');
     setSource('styles');

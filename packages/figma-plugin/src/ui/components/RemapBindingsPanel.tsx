@@ -5,6 +5,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { InlineBanner } from "./InlineBanner";
 import { RemapAutocompleteInput } from "./RemapAutocompleteInput";
 import { SegmentedControl } from "../primitives";
+import { createUiId } from "../shared/ids";
 
 export interface RemapBindingsRow {
   id: string;
@@ -14,7 +15,7 @@ export interface RemapBindingsRow {
 }
 
 function newRemapRowId(): string {
-  return Math.random().toString(36).slice(2);
+  return createUiId("remap-row");
 }
 
 function createEmptyRemapRow(): RemapBindingsRow {

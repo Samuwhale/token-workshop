@@ -12,6 +12,7 @@ import { ExportFooter } from './ExportFooter';
 import { ExportPreviewModal } from './ExportPreviewModal';
 import { InlineBanner } from './InlineBanner';
 import { SecondaryPanel } from './SecondaryPanel';
+import { createUiId } from '../shared/ids';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -68,7 +69,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     const name = presetsState.presetName.trim();
     if (!name) return;
     const preset: ExportPreset = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: createUiId('export-preset'),
       name,
       platforms: [...platformConfig.selected],
       cssSelector: platformConfig.cssSelector,

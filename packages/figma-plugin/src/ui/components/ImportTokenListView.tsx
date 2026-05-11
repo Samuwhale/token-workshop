@@ -8,20 +8,49 @@ import { SecondaryTakeoverHeader } from './SecondaryTakeoverHeader';
 const ALIAS_VALUE_PATTERN = /^\{(.+)\}$/;
 const COLOR_HEX_PATTERN = /^#[0-9a-fA-F]{3,8}$/;
 
+interface AliasResolution {
+  value: string | null;
+  hasCycle: boolean;
+}
+
 function isAliasValue(value: unknown): value is string {
   return typeof value === 'string' && ALIAS_VALUE_PATTERN.test(value);
 }
 
-function resolveAlias(token: ImportToken, tokensByPath: Map<string, ImportToken>, depth = 0): string | null {
-  if (depth > 10 || typeof token.$value !== 'string') return null;
-  const match = token.$value.match(ALIAS_VALUE_PATTERN);
-  if (!match) return null;
-  const target = tokensByPath.get(match[1]);
-  if (!target) return match[1];
-  if (isAliasValue(target.$value)) {
-    return resolveAlias(target, tokensByPath, depth + 1) ?? String(target.$value);
+function formatResolvedAliasValue(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value == null) return null;
+
+  try {
+    return JSON.stringify(value);
+  } catch (_error) {
+    return null;
   }
-  return String(target.$value);
+}
+
+function resolveAliasValue(
+  aliasValue: string,
+  tokensByPath: Map<string, ImportToken>,
+  seenPaths: Set<string>,
+): AliasResolution {
+  const match = aliasValue.match(ALIAS_VALUE_PATTERN);
+  if (!match) return { value: null, hasCycle: false };
+
+  const targetPath = match[1];
+  if (seenPaths.has(targetPath)) {
+    return { value: null, hasCycle: true };
+  }
+
+  const target = tokensByPath.get(targetPath);
+  if (!target) return { value: targetPath, hasCycle: false };
+
+  if (isAliasValue(target.$value)) {
+    seenPaths.add(targetPath);
+    return resolveAliasValue(target.$value, tokensByPath, seenPaths);
+  }
+
+  return { value: formatResolvedAliasValue(target.$value), hasCycle: false };
 }
 
 function TokenRow({
@@ -38,7 +67,10 @@ function TokenRow({
   const tokenValue = token.$value;
   const isAlias = isAliasValue(tokenValue);
   const aliasTarget = isAlias ? tokenValue.slice(1, -1) : null;
-  const resolvedValue = isAlias ? resolveAlias(token, tokensByPath) : null;
+  const aliasResolution = isAlias
+    ? resolveAliasValue(tokenValue, tokensByPath, new Set([token.path]))
+    : null;
+  const resolvedValue = aliasResolution?.value ?? null;
   const isChained = resolvedValue !== null && resolvedValue !== aliasTarget;
   const resolvedColor =
     resolvedValue !== null && COLOR_HEX_PATTERN.test(resolvedValue)
@@ -77,6 +109,11 @@ function TokenRow({
                 → <span className="font-mono">{resolvedValue}</span>
               </span>
             )}
+            {aliasResolution?.hasCycle && (
+              <span className="ml-1 text-[color:var(--color-figma-text-warning)]">
+                Circular alias
+              </span>
+            )}
           </div>
         )}
         {token._warning && (
@@ -91,8 +128,6 @@ function TokenRow({
     </div>
   );
 }
-
-export { TokenRow };
 
 export function ImportTokenListView() {
   const {
@@ -244,9 +279,9 @@ export function ImportTokenListView() {
             No tokens match "{searchText}"
           </div>
         ) : (
-          filteredTokens.map(token => (
+          filteredTokens.map((token, index) => (
             <TokenRow
-              key={token.path}
+              key={`${token.path}-${index}`}
               token={token}
               tokensByPath={tokensByPath}
               selected={selectedTokens.has(token.path)}

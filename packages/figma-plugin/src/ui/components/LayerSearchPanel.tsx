@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { LayerSearchResult, LayerSearchResultMessage } from "../../shared/types";
 import { getPluginMessageFromEvent, postPluginMessage } from "../../shared/utils";
+import { createUiId } from "../shared/ids";
 
 const nodeTypeIcons: Record<string, string> = {
   FRAME: "▢",
@@ -67,7 +68,7 @@ export function LayerSearchPanel({
     }
     setSearching(true);
     debounceRef.current = setTimeout(() => {
-      const correlationId = `search-layers-${Date.now()}-${Math.random()}`;
+      const correlationId = createUiId("search-layers");
       requestIdRef.current = correlationId;
       postPluginMessage({ type: "search-layers", query: value, correlationId });
     }, 200);

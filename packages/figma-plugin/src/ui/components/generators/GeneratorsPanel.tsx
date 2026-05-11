@@ -67,6 +67,7 @@ import type { TokenMapEntry } from "../../../shared/types";
 import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import { apiFetch } from "../../shared/apiFetch";
+import { createUiId } from "../../shared/ids";
 import {
   fetchGeneratorStatuses,
   type FullGeneratorStatusItem,
@@ -152,6 +153,10 @@ interface GeneratorsPanelProps {
   editorSessionHost?: {
     registerSession: (session: EditorSessionRegistration | null) => void;
   };
+}
+
+function createGraphNodeId(kind: TokenGeneratorDocumentNode["kind"]): string {
+  return createUiId(kind).replaceAll("-", "_");
 }
 
 export interface GeneratorPanelFocus {
@@ -1706,7 +1711,7 @@ export function GeneratorsPanel({
         x: 220 + nodes.length * 28,
         y: 120 + nodes.length * 18,
       };
-      const id = `${item.kind}_${Math.random().toString(36).slice(2, 8)}`;
+      const id = createGraphNodeId(item.kind);
       const graphNode: TokenGeneratorDocumentNode = {
         id,
         kind: item.kind,
@@ -2062,7 +2067,7 @@ export function GeneratorsPanel({
       if (!activeGenerator) return;
       const sourceNode = nodes.find((node) => node.id === nodeId);
       if (!sourceNode) return;
-      const id = `${sourceNode.data.graphNode.kind}_${Math.random().toString(36).slice(2, 8)}`;
+      const id = createGraphNodeId(sourceNode.data.graphNode.kind);
       const position = {
         x: sourceNode.position.x + 36,
         y: sourceNode.position.y + 36,
@@ -2117,7 +2122,7 @@ export function GeneratorsPanel({
     const outputKind = listSourcePort ? "groupOutput" : "output";
     const paletteItem = PALETTE.find((item) => item.kind === outputKind);
     if (!paletteItem) return;
-    const id = `${paletteItem.kind}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = createGraphNodeId(paletteItem.kind);
     const position = sourceNode
       ? { x: sourceNode.position.x + 280, y: sourceNode.position.y + 10 }
       : {

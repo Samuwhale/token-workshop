@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { OrphanVariableDeleteTarget } from '../../shared/types';
 import { getPluginMessageFromEvent, postPluginMessage } from '../../shared/utils';
 import { describeError } from '../shared/utils';
+import { createUiId } from '../shared/ids';
 
 interface UseOrphanCleanupParams {
   collectionMap: Record<string, string>;
@@ -92,7 +93,7 @@ export function useOrphanCleanup({
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         deleteResult = await new Promise<OrphanDeletionResult>((resolve, reject) => {
-          const cid = `orphans-${Date.now()}-${Math.random()}`;
+          const cid = createUiId('orphans');
           const timeoutId = setTimeout(() => {
             orphansPendingRef.current.delete(cid);
             reject(new Error('Timeout'));

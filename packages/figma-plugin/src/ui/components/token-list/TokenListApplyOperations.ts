@@ -28,6 +28,7 @@ import {
 import { buildStylePublishTokens } from "../../shared/stylePublish";
 import { getErrorMessage } from "../../shared/utils";
 import { dispatchToast } from "../../shared/toastBus";
+import { createUiId } from "../../shared/ids";
 import {
   getPluginMessageFromEvent,
   postPluginMessage,
@@ -318,7 +319,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
   const doApplyVariables = useCallback(
     (flat: VariableDiffPendingState["flat"]) => {
       void (async () => {
-        const correlationId = `tl-apply-vars-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const correlationId = createUiId("tl-apply-vars");
         setApplying(true);
 
         try {
@@ -427,7 +428,7 @@ export function useTokenListApplyOperations(config: ApplyOperationsConfig) {
     try {
       const figmaCollections = await new Promise<VariablesReadMessage["collections"]>(
         (resolve, reject) => {
-          const cid = `tl-vars-${Date.now()}-${Math.random()}`;
+          const cid = createUiId("tl-vars");
           const timeout = setTimeout(() => {
             varReadPendingRef.current.delete(cid);
             reject(new Error("Timed out reading Figma variables"));

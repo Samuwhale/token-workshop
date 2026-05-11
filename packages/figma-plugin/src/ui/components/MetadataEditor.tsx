@@ -1,12 +1,13 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { TOKEN_EDITOR_RESERVED_EXTENSION_KEYS } from '../shared/tokenEditorTypes';
+import { createUiId } from '../shared/ids';
 
 /* ── Structured key-value extensions editor ── */
 
 interface ExtEntry { id: string; key: string; value: string }
 
 function newEntryId(): string {
-  return Math.random().toString(36).slice(2);
+  return createUiId('metadata-entry');
 }
 
 function findReservedExtensionKey(keys: Iterable<string>): string | null {
