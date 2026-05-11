@@ -7,7 +7,7 @@ import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { formatTokenValueForDisplay } from '../shared/tokenFormatting';
 import { swatchBgColor } from '../shared/colorUtils';
-import { resolveModeOption, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
+import { resolveModeComparisonTarget, exportCsvFile, copyToClipboard } from '../shared/comparisonUtils';
 import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
 import { apiFetch, createFetchSignal } from '../shared/apiFetch';
 import { useTransientValue } from '../hooks/useTransientValue';
@@ -74,16 +74,16 @@ function fmtProp(value: unknown, key: string): string {
   return String(v);
 }
 
-/** Flat list of all options across collections, used by ModePairsMode. */
-type FlatOption = {
+/** Flat list of all modes across collections, used by ModePairsMode. */
+type FlatModeTarget = {
   label: string;
   key: string;
   collectionId: string;
-  optionName: string;
+  modeName: string;
 };
 
-function buildFlatOptions(collections: TokenCollection[]): FlatOption[] {
-  const result: FlatOption[] = [];
+function buildFlatModeTargets(collections: TokenCollection[]): FlatModeTarget[] {
+  const result: FlatModeTarget[] = [];
   for (const collection of collections) {
     for (const opt of collection.modes) {
       result.push({
@@ -93,7 +93,7 @@ function buildFlatOptions(collections: TokenCollection[]): FlatOption[] {
             : opt.name,
         key: `${collection.id}:${opt.name}`,
         collectionId: collection.id,
-        optionName: opt.name,
+        modeName: opt.name,
       });
     }
   }
@@ -433,12 +433,12 @@ function TokenValuesMode({ selectedPaths, allTokensFlat, onClose }: TokenValuesM
   );
 }
 
-// Mode 2 – Token × collection modes (one token, value for every mode option)
+// Mode 2 - Token x collection modes (one token, value for every mode)
 
 interface OptionResult {
   collectionId: string;
   collectionName: string;
-  optionName: string;
+  modeName: string;
   entry: TokenMapEntry | undefined;
   resolvedValue: unknown;
   isAliasToken: boolean;
@@ -469,8 +469,8 @@ function CrossCollectionMode({
     const out: OptionResult[] = [];
     for (const collection of collections) {
       for (const option of collection.modes) {
-        const resolved = resolveModeOption(
-          { collectionId: collection.id, optionName: option.name },
+        const resolved = resolveModeComparisonTarget(
+          { collectionId: collection.id, modeName: option.name },
           collections,
           allTokensFlat,
           pathToCollectionId,
@@ -487,7 +487,7 @@ function CrossCollectionMode({
         out.push({
           collectionId: collection.id,
           collectionName: collection.id,
-          optionName: option.name,
+          modeName: option.name,
           entry,
           resolvedValue: entry?.$value,
           isAliasToken: aliasCheck,
@@ -524,7 +524,7 @@ function CrossCollectionMode({
     for (const r of results) {
       rows.push([
         r.collectionName,
-        r.optionName,
+        r.modeName,
         r.missing
           ? "(not set)"
           : formatTokenValueForDisplay(tokenType, r.resolvedValue),
@@ -603,9 +603,9 @@ function CrossCollectionMode({
                   const formatted = r.missing ? '(not set)' : formatTokenValueForDisplay(tokenType, r.resolvedValue);
                   const isColor = tokenType === 'color' && typeof r.resolvedValue === 'string';
                   return (
-                    <tr key={r.optionName} className="border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]">
+                    <tr key={r.modeName} className="border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]">
                       <td className="px-3 py-1.5 text-[color:var(--color-figma-text-secondary)] w-1/3 max-w-[120px]">
-                        {r.optionName}
+                        {r.modeName}
                       </td>
                       <td className="px-3 py-1.5 font-mono text-[color:var(--color-figma-text)]">
                         {r.missing ? (
@@ -642,8 +642,8 @@ interface ModePairsModeProps {
   pathToCollectionId: Record<string, string>;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onEditToken?: (collectionId: string, path: string) => void;
-  initialOptionKeyA?: string;
-  initialOptionKeyB?: string;
+  initialModeKeyA?: string;
+  initialModeKeyB?: string;
 }
 
 function ModePairsMode({
@@ -652,22 +652,25 @@ function ModePairsMode({
   pathToCollectionId,
   perCollectionFlat,
   onEditToken,
-  initialOptionKeyA,
-  initialOptionKeyB,
+  initialModeKeyA,
+  initialModeKeyB,
 }: ModePairsModeProps) {
-  const [optionKeyA, setOptionKeyA] = useState<string>(initialOptionKeyA ?? '');
-  const [optionKeyB, setOptionKeyB] = useState<string>(initialOptionKeyB ?? '');
+  const [modeKeyA, setModeKeyA] = useState<string>(initialModeKeyA ?? '');
+  const [modeKeyB, setModeKeyB] = useState<string>(initialModeKeyB ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const flatOptions = useMemo(() => buildFlatOptions(collections), [collections]);
+  const flatModeTargets = useMemo(
+    () => buildFlatModeTargets(collections),
+    [collections],
+  );
 
   const resolvedA = useMemo(() => {
-    if (!optionKeyA) return null;
-    const opt = flatOptions.find(o => o.key === optionKeyA) ?? null;
-    return resolveModeOption(
-      opt
-        ? { collectionId: opt.collectionId, optionName: opt.optionName }
+    if (!modeKeyA) return null;
+    const target = flatModeTargets.find((mode) => mode.key === modeKeyA) ?? null;
+    return resolveModeComparisonTarget(
+      target
+        ? { collectionId: target.collectionId, modeName: target.modeName }
         : null,
       collections,
       allTokensFlat,
@@ -675,8 +678,8 @@ function ModePairsMode({
       perCollectionFlat,
     );
   }, [
-    optionKeyA,
-    flatOptions,
+    modeKeyA,
+    flatModeTargets,
     collections,
     allTokensFlat,
     pathToCollectionId,
@@ -684,11 +687,11 @@ function ModePairsMode({
   ]);
 
   const resolvedB = useMemo(() => {
-    if (!optionKeyB) return null;
-    const opt = flatOptions.find(o => o.key === optionKeyB) ?? null;
-    return resolveModeOption(
-      opt
-        ? { collectionId: opt.collectionId, optionName: opt.optionName }
+    if (!modeKeyB) return null;
+    const target = flatModeTargets.find((mode) => mode.key === modeKeyB) ?? null;
+    return resolveModeComparisonTarget(
+      target
+        ? { collectionId: target.collectionId, modeName: target.modeName }
         : null,
       collections,
       allTokensFlat,
@@ -696,25 +699,25 @@ function ModePairsMode({
       perCollectionFlat,
     );
   }, [
-    optionKeyB,
-    flatOptions,
+    modeKeyB,
+    flatModeTargets,
     collections,
     allTokensFlat,
     pathToCollectionId,
     perCollectionFlat,
   ]);
 
-  const selectedOptionA = useMemo(
-    () => flatOptions.find((option) => option.key === optionKeyA) ?? null,
-    [flatOptions, optionKeyA],
+  const selectedModeA = useMemo(
+    () => flatModeTargets.find((mode) => mode.key === modeKeyA) ?? null,
+    [flatModeTargets, modeKeyA],
   );
-  const selectedOptionB = useMemo(
-    () => flatOptions.find((option) => option.key === optionKeyB) ?? null,
-    [flatOptions, optionKeyB],
+  const selectedModeB = useMemo(
+    () => flatModeTargets.find((mode) => mode.key === modeKeyB) ?? null,
+    [flatModeTargets, modeKeyB],
   );
 
   const diffs = useMemo(() => {
-    if (!resolvedA || !resolvedB || !selectedOptionA || !selectedOptionB) {
+    if (!resolvedA || !resolvedB || !selectedModeA || !selectedModeB) {
       return [];
     }
     const allPaths = new Set([...Object.keys(resolvedA), ...Object.keys(resolvedB)]);
@@ -739,13 +742,13 @@ function ModePairsMode({
           type: entA?.$type ?? entB?.$type ?? 'unknown',
           valueA: valA,
           valueB: valB,
-          collectionA: entA ? selectedOptionA.collectionId : null,
-          collectionB: entB ? selectedOptionB.collectionId : null,
+          collectionA: entA ? selectedModeA.collectionId : null,
+          collectionB: entB ? selectedModeB.collectionId : null,
         });
       }
     }
     return result.sort((a, b) => a.path.localeCompare(b.path));
-  }, [resolvedA, resolvedB, selectedOptionA, selectedOptionB]);
+  }, [resolvedA, resolvedB, selectedModeA, selectedModeB]);
 
   const availableTypes = useMemo(() => {
     const types = new Set(diffs.map(d => d.type));
@@ -761,10 +764,10 @@ function ModePairsMode({
     return result;
   }, [diffs, typeFilter, searchQuery]);
 
-  const canCompare = optionKeyA && optionKeyB && optionKeyA !== optionKeyB;
+  const canCompare = modeKeyA && modeKeyB && modeKeyA !== modeKeyB;
 
-  const labelA = flatOptions.find(o => o.key === optionKeyA)?.label ?? 'A';
-  const labelB = flatOptions.find(o => o.key === optionKeyB)?.label ?? 'B';
+  const labelA = flatModeTargets.find((mode) => mode.key === modeKeyA)?.label ?? 'A';
+  const labelB = flatModeTargets.find((mode) => mode.key === modeKeyB)?.label ?? 'B';
 
   const handleCopyError = useCallback(() => {
     dispatchToast('Clipboard access denied', 'error');
@@ -813,13 +816,13 @@ function ModePairsMode({
         <div className="flex items-center gap-2">
           <span className="text-secondary text-[color:var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
           <select
-            value={optionKeyA}
-            onChange={e => setOptionKeyA(e.target.value)}
-            aria-label="Compare option A"
+            value={modeKeyA}
+            onChange={e => setModeKeyA(e.target.value)}
+            aria-label="Compare mode A"
             className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
-            <option value="">Select an option…</option>
-            {flatOptions.map(o => (
+            <option value="">Select a mode...</option>
+            {flatModeTargets.map(o => (
               <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </select>
@@ -827,13 +830,13 @@ function ModePairsMode({
         <div className="flex items-center gap-2">
           <span className="text-secondary text-[color:var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
           <select
-            value={optionKeyB}
-            onChange={e => setOptionKeyB(e.target.value)}
-            aria-label="Compare option B"
+            value={modeKeyB}
+            onChange={e => setModeKeyB(e.target.value)}
+            aria-label="Compare mode B"
             className="flex-1 px-1.5 py-0.5 rounded text-secondary bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] cursor-pointer"
           >
-            <option value="">Select an option…</option>
-            {flatOptions.map(o => (
+            <option value="">Select a mode...</option>
+            {flatModeTargets.map(o => (
               <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </select>
@@ -844,9 +847,9 @@ function ModePairsMode({
       {!canCompare ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center px-4">
-            {flatOptions.length < 2
-              ? 'You need at least two options to compare.'
-              : 'Select two different options above to see how they differ.'}
+            {flatModeTargets.length < 2
+              ? 'You need at least two modes to compare.'
+              : 'Select two different modes above to see how they differ.'}
           </p>
         </div>
       ) : diffs.length === 0 ? (
@@ -1460,7 +1463,7 @@ function CollectionDiffMode({ collectionIds, serverUrl, onEditToken, onCreateTok
 
 // CompareView – main export (mode selector + routing)
 
-export type CompareMode = 'tokens' | 'cross-collection' | 'mode-options' | 'collection-diff';
+export type CompareMode = 'tokens' | 'cross-collection' | 'mode-pairs' | 'collection-diff';
 
 interface CompareViewProps {
   mode: CompareMode;
@@ -1478,9 +1481,9 @@ interface CompareViewProps {
   collections: TokenCollection[];
   collectionIds: string[];
 
-  modeOptionsKey: number;
-  modeOptionsDefaultA: string;
-  modeOptionsDefaultB: string;
+  modePairsKey: number;
+  modePairsDefaultA: string;
+  modePairsDefaultB: string;
 
   onEditToken: (collectionId: string, path: string) => void;
   onCreateToken: (path: string, collectionId: string, type: string, value?: string) => void;
@@ -1494,7 +1497,7 @@ interface CompareViewProps {
 const MODES: { id: CompareMode; label: string }[] = [
   { id: 'tokens', label: 'Token values' },
   { id: 'cross-collection', label: 'Token × modes' },
-  { id: 'mode-options', label: 'Mode pairs' },
+  { id: 'mode-pairs', label: 'Mode pairs' },
   { id: 'collection-diff', label: 'Collection diff' },
 ];
 
@@ -1510,9 +1513,9 @@ export function CompareView({
   perCollectionFlat,
   collections,
   collectionIds,
-  modeOptionsKey,
-  modeOptionsDefaultA,
-  modeOptionsDefaultB,
+  modePairsKey,
+  modePairsDefaultA,
+  modePairsDefaultB,
   onEditToken,
   onCreateToken,
   onGoToTokens,
@@ -1594,15 +1597,15 @@ export function CompareView({
           )
         )}
 
-        {mode === 'mode-options' && (
+        {mode === 'mode-pairs' && (
           <ModePairsMode
-            key={modeOptionsKey}
+            key={modePairsKey}
             collections={collections}
             allTokensFlat={allTokensFlat}
             pathToCollectionId={pathToCollectionId}
             perCollectionFlat={perCollectionFlat}
-            initialOptionKeyA={modeOptionsDefaultA}
-            initialOptionKeyB={modeOptionsDefaultB}
+            initialModeKeyA={modePairsDefaultA}
+            initialModeKeyB={modePairsDefaultB}
             onEditToken={onEditToken}
           />
         )}

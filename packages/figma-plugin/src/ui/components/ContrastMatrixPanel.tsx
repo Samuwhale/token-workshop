@@ -3,7 +3,7 @@ import type { TokenMapEntry } from "../../shared/types";
 import type { TokenCollection } from "@token-workshop/core";
 import { hexToLuminance, wcagContrast } from "../shared/colorUtils";
 import { normalizeHex, hexToLab } from "@token-workshop/core";
-import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
+import { resolveTokensForModeProjection } from "../shared/collectionModeUtils";
 import { isHexColorLiteral } from "../shared/colorAnalysis";
 import { useTransientValue } from "../hooks/useTransientValue";
 
@@ -62,7 +62,7 @@ export function ContrastMatrixPanel({
         if (!activeContrastModeKeys.has(key)) continue;
         result.set(
           key,
-          applyModeSelectionsToTokens(
+          resolveTokensForModeProjection(
             collectionFlat,
             [collection],
             { [collection.id]: opt.name },

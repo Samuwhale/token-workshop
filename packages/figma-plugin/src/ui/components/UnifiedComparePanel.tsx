@@ -25,9 +25,9 @@ export interface UnifiedComparePanelProps {
   collections: TokenCollection[];
   collectionIds: string[];
 
-  modeOptionsKey: number;
-  modeOptionsDefaultA: string;
-  modeOptionsDefaultB: string;
+  modePairsKey: number;
+  modePairsDefaultA: string;
+  modePairsDefaultB: string;
 
   onEditToken: (collectionId: string, path: string) => void;
   onCreateToken: (path: string, collectionId: string, type: string, value?: string) => void;

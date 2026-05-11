@@ -1,15 +1,15 @@
 import type { TokenCollection } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
-import { applyModeSelectionsToTokens } from "./collectionModeUtils";
+import { resolveTokensForModeProjection } from "./collectionModeUtils";
 import { downloadBlob } from "./utils";
 
-export interface ModeComparisonOption {
+export interface ModeComparisonTarget {
   collectionId: string;
-  optionName: string;
+  modeName: string;
 }
 
-export function resolveModeOption(
-  option: ModeComparisonOption | null,
+export function resolveModeComparisonTarget(
+  target: ModeComparisonTarget | null,
   collections: TokenCollection[],
   allTokensFlat: Record<string, TokenMapEntry>,
   pathToCollectionId: Record<string, string>,
@@ -38,8 +38,8 @@ export function resolveModeOption(
     };
   };
 
-  if (!option) {
-    return applyModeSelectionsToTokens(
+  if (!target) {
+    return resolveTokensForModeProjection(
       allTokensFlat,
       collections,
       {},
@@ -47,14 +47,14 @@ export function resolveModeOption(
     );
   }
   const { flatTokens, flatPathToCollectionId } = getScopedTokens(
-    option.collectionId,
+    target.collectionId,
   );
 
-  return applyModeSelectionsToTokens(
+  return resolveTokensForModeProjection(
     flatTokens,
     collections,
     {
-      [option.collectionId]: option.optionName,
+      [target.collectionId]: target.modeName,
     },
     flatPathToCollectionId,
   );

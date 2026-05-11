@@ -2,48 +2,42 @@ import type { TokenCollection } from "@token-workshop/core";
 import type { TokenEditorModeValues } from "./tokenEditorTypes";
 import { cloneValue } from "../../shared/clone";
 import {
-  readTokenCollectionModeValues,
+  readTokenModeValuesForCollection,
   sanitizeModeValuesForCollection,
 } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
 import { resolveAllAliases } from "../../shared/resolveAlias";
 
-type SelectedModeNamesByCollection = Record<string, string>;
+type ModeProjectionByCollection = Record<string, string>;
 
-interface ApplyModeSelectionOptions {
+interface ResolveTokensForModeProjectionOptions {
   missingModeValue?: "fallback-to-first" | "omit";
 }
 
-function readTokenModes(
-  entry: TokenMapEntry | undefined,
-): ReturnType<typeof readTokenCollectionModeValues> | null {
-  const modes = readTokenCollectionModeValues(entry);
-  return Object.keys(modes).length > 0 ? modes : null;
-}
-
-function getSelectedModeValue(
+function readProjectedModeValue(
   entry: TokenMapEntry,
   collection: TokenCollection,
-  selectedModeName: string | undefined,
-  options: ApplyModeSelectionOptions = {},
+  modeName: string | undefined,
+  options: ResolveTokensForModeProjectionOptions = {},
 ): TokenMapEntry["$value"] | undefined {
-  if (!selectedModeName) {
+  if (!modeName) {
     return entry.$value;
   }
 
-  const selectedModeIndex = collection.modes.findIndex(
-    (mode) => mode.name === selectedModeName,
-  );
-  if (selectedModeIndex <= 0) {
-    return entry.$value;
-  }
-
-  const tokenModes = readTokenModes(entry);
-  const selectedModeValue = tokenModes?.[collection.id]?.[selectedModeName];
-  if (selectedModeValue === undefined) {
+  const modeIndex = collection.modes.findIndex((mode) => mode.name === modeName);
+  if (modeIndex < 0) {
     return options.missingModeValue === "omit" ? undefined : entry.$value;
   }
-  return selectedModeValue as TokenMapEntry["$value"];
+  if (modeIndex === 0) {
+    return entry.$value;
+  }
+
+  const modeValues = readTokenModeValuesForCollection(entry, collection);
+  const projectedValue = modeValues[modeName];
+  if (projectedValue === undefined) {
+    return options.missingModeValue === "omit" ? undefined : entry.$value;
+  }
+  return projectedValue as TokenMapEntry["$value"];
 }
 
 export function readEditorCollectionModeValues(
@@ -113,14 +107,14 @@ export function createEditorModeValuesForCollection(
   };
 }
 
-export function applyModeSelectionsToTokens(
+export function resolveTokensForModeProjection(
   allTokensFlat: Record<string, TokenMapEntry>,
   collections: TokenCollection[],
-  selections: SelectedModeNamesByCollection,
+  modeProjection: ModeProjectionByCollection,
   pathToCollectionId?: Record<string, string>,
-  options: ApplyModeSelectionOptions = {},
+  options: ResolveTokensForModeProjectionOptions = {},
 ): Record<string, TokenMapEntry> {
-  if (collections.length === 0 || Object.keys(selections).length === 0) {
+  if (collections.length === 0 || Object.keys(modeProjection).length === 0) {
     return resolveAllAliases(allTokensFlat);
   }
 
@@ -139,10 +133,10 @@ export function applyModeSelectionsToTokens(
       continue;
     }
 
-    const nextValue = getSelectedModeValue(
+    const nextValue = readProjectedModeValue(
       entry,
       collection,
-      selections[collectionId],
+      modeProjection[collectionId],
       options,
     );
 

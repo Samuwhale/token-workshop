@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { CompareMode } from '../components/UnifiedComparePanel';
 
 export function useCompareState() {
-  const [compareMode, setCompareMode] = useState<CompareMode>('mode-options');
+  const [compareMode, setCompareMode] = useState<CompareMode>('mode-pairs');
   const [compareTokenPaths, setCompareTokenPaths] = useState<Set<string>>(new Set());
   const [compareTokenPath, setCompareTokenPath] = useState('');
   const [compareModeKey, setCompareModeKey] = useState(0);

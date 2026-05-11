@@ -467,7 +467,7 @@ export function useCommandPaletteCommands(): {
   }, [navigateTo, setCurrentCollectionId, setTokenDetails, collectionTokenCounts, collectionIds]);
 
   const openCompareInTokens = useCallback(
-    (mode: "mode-options" | "cross-collection", path?: string) => {
+    (mode: "mode-pairs" | "cross-collection", path?: string) => {
       setTokenDetails(null);
       setTokensCompareMode(mode);
       setTokensComparePath(path ?? "");
@@ -484,11 +484,11 @@ export function useCommandPaletteCommands(): {
       ...(collections.length > 0
         ? [
             {
-              id: "compare-mode-options",
+              id: "compare-mode-pairs",
               label: "Compare collection modes…",
               description: "Open a side-by-side diff across collection modes",
               category: "Modes" as const,
-              handler: () => openCompareInTokens("mode-options"),
+              handler: () => openCompareInTokens("mode-pairs"),
             },
           ]
         : []),
@@ -499,7 +499,7 @@ export function useCommandPaletteCommands(): {
           label: `Compare ${collection.id} modes: ${collection.modes[0].name} vs ${collection.modes[1].name}`,
           description: `See token differences across ${collection.id} modes`,
           category: "Modes" as const,
-          handler: () => openCompareInTokens("mode-options"),
+          handler: () => openCompareInTokens("mode-pairs"),
         })),
     ];
   }, [collections, openCompareInTokens]);

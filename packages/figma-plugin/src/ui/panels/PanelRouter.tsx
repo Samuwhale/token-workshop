@@ -1082,9 +1082,9 @@ export function PanelRouter({
       perCollectionFlat={perCollectionFlat}
       collections={collections}
       collectionIds={collectionIds}
-      modeOptionsKey={tokensCompareModeKey}
-      modeOptionsDefaultA={tokensCompareDefaultA}
-      modeOptionsDefaultB={tokensCompareDefaultB}
+      modePairsKey={tokensCompareModeKey}
+      modePairsDefaultA={tokensCompareDefaultA}
+      modePairsDefaultB={tokensCompareDefaultB}
       onEditToken={(collectionId, path) => {
         controller.guardEditorAction(() => {
           openTokenDetailsEditor({ path, collectionId, origin: "compare" });

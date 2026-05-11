@@ -48,7 +48,7 @@ import { useTokenSelection } from "../hooks/useTokenSelection";
 import { useJsonEditor } from "../hooks/useJsonEditor";
 import { useTokenListViewState } from "../hooks/useTokenListViewState";
 import { useBoundTokenPaths } from "../hooks/useBoundTokenPaths";
-import { applyModeSelectionsToTokens } from "../shared/collectionModeUtils";
+import { resolveTokensForModeProjection } from "../shared/collectionModeUtils";
 import { getCollectionDisplayName } from "../shared/libraryCollections";
 import { dispatchToast } from "../shared/toastBus";
 import {
@@ -406,7 +406,7 @@ export function TokenList({
       results.push({
         optionName: option.name,
         collectionId: currentCollection.id,
-        resolved: applyModeSelectionsToTokens(
+        resolved: resolveTokensForModeProjection(
           currentCollectionFlat,
           [currentCollection],
           { [currentCollection.id]: option.name },
