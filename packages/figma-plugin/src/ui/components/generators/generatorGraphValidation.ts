@@ -10,6 +10,11 @@ import {
   getTokenGeneratorOutputPorts,
 } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
+import {
+  asRecordArray,
+  isPlainRecord,
+  readGeneratorTokenRefs,
+} from "./generatorDataUtils";
 import { validateGeneratorTokenPath } from "./generatorValidation";
 
 export interface GraphIssue {
@@ -419,16 +424,6 @@ function readNodeTokenRefs(node: TokenGeneratorDocumentNode): Record<string, str
   return readGeneratorTokenRefs(node.data.$tokenRefs);
 }
 
-function readGeneratorTokenRefs(value: unknown): Record<string, string> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? Object.fromEntries(
-        Object.entries(value as Record<string, unknown>).filter(
-          (entry): entry is [string, string] => typeof entry[1] === "string",
-        ),
-      )
-    : {};
-}
-
 function validateNumberStepRows(
   node: TokenGeneratorDocumentNode,
   issues: GraphIssue[],
@@ -531,16 +526,6 @@ function duplicateStrings(values: string[]): Set<string> {
 function isFiniteNumberLike(value: unknown): boolean {
   const numeric = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numeric);
-}
-
-function asRecordArray(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value) && value.every(isPlainRecord)
-    ? value
-    : [];
-}
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function listItemKey(item: unknown, index: number): string {

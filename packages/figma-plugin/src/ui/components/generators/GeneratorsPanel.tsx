@@ -103,7 +103,6 @@ import {
   NumberStepTable,
   ReferenceableField,
   ShadowStepTable,
-  type GeneratorTokenRefs,
 } from "./GeneratorFieldControls";
 import { collectGraphIssues, type GraphIssue } from "./generatorGraphValidation";
 import {
@@ -128,6 +127,12 @@ import {
   type GraphFlowEdge,
   type GraphFlowNode,
 } from "./generatorGraphFlow";
+import {
+  asNamedNumberSteps,
+  asNumberArray,
+  asRecordArray,
+  readGeneratorTokenRefs,
+} from "./generatorDataUtils";
 import "@xyflow/react/dist/style.css";
 
 interface GeneratorsPanelProps {
@@ -4619,39 +4624,6 @@ function overviewNodeDescription(node: TokenGeneratorDocumentNode): string {
     return String(node.data.path ?? "").trim();
   }
   return nodeSummary(node);
-}
-
-function asNumberArray(value: unknown): number[] {
-  return Array.isArray(value)
-    ? value.map((item) => Number(item)).filter(Number.isFinite)
-    : [];
-}
-
-function asRecordArray(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value) && value.every((item) => item && typeof item === "object")
-    ? (value as Record<string, unknown>[])
-    : [];
-}
-
-function asNamedNumberSteps(
-  value: unknown,
-  valueKey: string,
-): Record<string, unknown>[] {
-  return asRecordArray(value).map((item) => ({
-    ...item,
-    name: String(item.name ?? ""),
-    [valueKey]: Number(item[valueKey] ?? 0),
-  }));
-}
-
-function readGeneratorTokenRefs(value: unknown): GeneratorTokenRefs {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? Object.fromEntries(
-        Object.entries(value as Record<string, unknown>).filter(
-          (entry): entry is [string, string] => typeof entry[1] === "string",
-        ),
-      )
-    : {};
 }
 
 function allTokensForCollection(
