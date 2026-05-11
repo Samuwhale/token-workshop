@@ -399,6 +399,7 @@ export function TokenDetailsModeRow({
               ) : null}
             </div>
           </div>
+          {controls}
         </div>
       )}
       <div className="tm-token-mode-row__body">
@@ -588,7 +589,7 @@ export function TokenDetailsModeRow({
           )}
         </div>
 
-        {(controls || showInlineModified) ? (
+        {(!showHeader && (controls || showInlineModified)) ? (
           <div className="tm-token-mode-row__inline-controls">
             {showInlineModified ? (
               <span

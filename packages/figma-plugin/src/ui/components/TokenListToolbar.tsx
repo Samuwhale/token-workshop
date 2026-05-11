@@ -27,7 +27,6 @@ import {
   IconButton,
   MenuRadioGroup,
   SearchField,
-  SegmentedControl,
   type SegmentedOption,
 } from "../primitives";
 
@@ -212,7 +211,6 @@ export function TokenListToolbar({
     viewMode === "tree" &&
     showSearch &&
     overflowMenuProps?.hasMultipleCollections === true;
-  const showInlineSearchScopeToggle = showSearchScopeToggle;
   const showResultPresentationToggle =
     viewMode === "tree" &&
     overflowMenuProps?.canToggleSearchResultPresentation === true;
@@ -245,7 +243,8 @@ export function TokenListToolbar({
   const viewMenuActive =
     overflowMenuProps !== null &&
     overflowMenuProps !== undefined &&
-    (sortOrder !== "default" ||
+    (searchScope === "all" ||
+      sortOrder !== "default" ||
       groupBy !== "path" ||
       overflowMenuProps.searchResultPresentation === "flat");
   const viewMenuLabel = "View";
@@ -368,27 +367,6 @@ export function TokenListToolbar({
                     }}
                     containerClassName="min-w-0 flex-1"
                   />
-                  {showInlineSearchScopeToggle && overflowMenuProps ? (
-                    <SegmentedControl
-                      value={
-                        overflowMenuProps.crossCollectionSearch
-                          ? "all"
-                          : "collection"
-                      }
-                      options={SEARCH_SCOPE_OPTIONS}
-                      onChange={(value) => {
-                        if (
-                          (value === "all") !==
-                          overflowMenuProps.crossCollectionSearch
-                        ) {
-                          overflowMenuProps.onToggleCrossCollectionSearch();
-                        }
-                      }}
-                      ariaLabel="Search scope"
-                      allowWrap
-                      size="compact"
-                    />
-                  ) : null}
                 </div>
 
                 {showQualifierHints &&
@@ -502,6 +480,22 @@ export function TokenListToolbar({
 
                         {overflowMenuProps && viewMode === "tree" ? (
                           <>
+                            {showSearchScopeToggle ? (
+                              <MenuRadioGroup
+                                label="Search"
+                                value={searchScope}
+                                options={SEARCH_SCOPE_OPTIONS}
+                                onChange={(value) => {
+                                  if (
+                                    (value === "all") !==
+                                    overflowMenuProps.crossCollectionSearch
+                                  ) {
+                                    overflowMenuProps.onToggleCrossCollectionSearch();
+                                  }
+                                }}
+                                onSelect={closeViewMenu}
+                              />
+                            ) : null}
                             <MenuRadioGroup
                               label="Group by"
                               value={groupBy}
@@ -626,39 +620,56 @@ export function TokenListToolbar({
               <div className="tm-token-toolbar__create relative shrink-0">
                 <div className="flex items-center gap-1">
                   {showPrimaryCreateAction ? (
-                    <div className="tm-token-toolbar__split-button">
+                    <>
                       <Button
                         type="button"
-                        onClick={() => onCreateToken?.()}
+                        onClick={handleOpenNewGroupDialog}
                         disabled={!connected}
-                        title="New token"
-                        aria-label="New token"
-                        variant="primary"
+                        title="New group"
+                        aria-label="New group"
+                        variant="secondary"
                         size="sm"
                         wrap
-                        className="tm-token-toolbar__split-button-primary rounded-r-none border-r border-white/15 pr-2"
+                        className="tm-token-toolbar__group-button justify-start"
                       >
-                        <Plus size={12} strokeWidth={2} aria-hidden />
-                        <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
-                          New token
+                        <span className="tm-toolbar-action__label tm-token-toolbar__button-label">
+                          New group
                         </span>
                       </Button>
-                      <Button
-                        ref={createMenu.triggerRef}
-                        type="button"
-                        onClick={createMenu.toggle}
-                        disabled={!connected}
-                        aria-expanded={createMenu.open}
-                        aria-haspopup="menu"
-                        aria-label="More create actions"
-                        title="More create actions"
-                        variant="primary"
-                        size="sm"
-                        className="tm-token-toolbar__split-button-toggle rounded-l-none px-0"
-                      >
-                        <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
-                      </Button>
-                    </div>
+                      <div className="tm-token-toolbar__split-button">
+                        <Button
+                          type="button"
+                          onClick={() => onCreateToken?.()}
+                          disabled={!connected}
+                          title="New token"
+                          aria-label="New token"
+                          variant="primary"
+                          size="sm"
+                          wrap
+                          className="tm-token-toolbar__split-button-primary rounded-r-none border-r border-white/15 pr-2"
+                        >
+                          <Plus size={12} strokeWidth={2} aria-hidden />
+                          <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
+                            New token
+                          </span>
+                        </Button>
+                        <Button
+                          ref={createMenu.triggerRef}
+                          type="button"
+                          onClick={createMenu.toggle}
+                          disabled={!connected}
+                          aria-expanded={createMenu.open}
+                          aria-haspopup="menu"
+                          aria-label="More create actions"
+                          title="More create actions"
+                          variant="primary"
+                          size="sm"
+                          className="tm-token-toolbar__split-button-toggle rounded-l-none px-0"
+                        >
+                          <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
+                        </Button>
+                      </div>
+                    </>
                   ) : (
                     <Button
                       ref={createMenu.triggerRef}
@@ -691,15 +702,17 @@ export function TokenListToolbar({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => runCreateAction(handleOpenNewGroupDialog)}
-                      disabled={!connected}
-                      className={FLOATING_MENU_ITEM_CLASS}
-                    >
-                      New group
-                    </button>
+                    {!showPrimaryCreateAction ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => runCreateAction(handleOpenNewGroupDialog)}
+                        disabled={!connected}
+                        className={FLOATING_MENU_ITEM_CLASS}
+                      >
+                        New group
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       role="menuitem"

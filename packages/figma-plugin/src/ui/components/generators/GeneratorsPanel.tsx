@@ -4454,7 +4454,7 @@ function GeneratorOverviewPanel({
           {generator.nodes.length > 0 ? (
             <Button type="button" size="sm" variant="secondary" onClick={onAddNode}>
               <Plus size={14} />
-              Add node in Graph
+              Open Graph
             </Button>
           ) : null}
           {generator.nodes.length === 0 ? (

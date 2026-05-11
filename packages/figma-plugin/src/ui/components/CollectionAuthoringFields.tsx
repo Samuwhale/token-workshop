@@ -87,10 +87,6 @@ export function buildCollectionModeNames(
   return draft.modeNames.map((modeName) => modeName.trim()).filter(Boolean);
 }
 
-function getModeFieldLabel(index: number): string {
-  return `Mode ${index + 1}`;
-}
-
 export function CollectionAuthoringFields({
   draft,
   pending = false,
@@ -172,7 +168,7 @@ export function CollectionAuthoringFields({
           {draft.modeNames.map((modeName, index) => (
             <label key={index} className="flex flex-col gap-1">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {getModeFieldLabel(index)}
+                Mode name
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -181,6 +177,7 @@ export function CollectionAuthoringFields({
                   onChange={(event) => onModeNameChange(index, event.target.value)}
                   placeholder={index === 0 ? "Default" : index === 1 ? "Dark" : "Mode name"}
                   disabled={pending}
+                  aria-label={`Mode ${index + 1} name`}
                   className={`${COLLECTION_INPUT_CLASS} flex-1`}
                 />
                 {draft.modeNames.length > 1 ? (
@@ -188,7 +185,7 @@ export function CollectionAuthoringFields({
                     type="button"
                     onClick={() => onRemoveMode(index)}
                     disabled={pending}
-                    aria-label={`Remove ${modeName.trim() || getModeFieldLabel(index)}`}
+                    aria-label={`Remove ${modeName.trim() || `mode ${index + 1}`}`}
                     className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
                   >
                     <X size={12} strokeWidth={1.5} aria-hidden />
@@ -200,7 +197,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Tokens in this collection get one value for each mode.
+          Each token has one value in every mode.
         </span>
       </div>
 

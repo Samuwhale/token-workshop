@@ -94,7 +94,7 @@ import {
 import { matchesShortcut } from "./shared/shortcutRegistry";
 import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { getCollectionDisplayName } from "./shared/libraryCollections";
-import { STORAGE_KEYS, lsGet, lsGetJson } from "./shared/storage";
+import { STORAGE_KEYS, lsGetJson } from "./shared/storage";
 import {
   Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
@@ -222,9 +222,7 @@ export function App() {
     workingCollectionId: currentCollectionId,
     setWorkingCollectionId: setCurrentCollectionId,
     collectionDescriptions,
-    collectionsError,
     refreshCollections: refreshTokens,
-    collectionsLoaded,
     syncCollectionSummariesToState,
     removeCollectionFromState,
     renameCollectionInState,
@@ -243,7 +241,6 @@ export function App() {
     [collections, currentCollectionId],
   );
   const librarySetupRequired = collections.length === 0;
-  const autoStartHereOpenedRef = useRef(false);
   const {
     allTokensFlat,
     pathToCollectionId,
@@ -1064,32 +1061,6 @@ export function App() {
     }
     navigateTo("library", "tokens");
   }, [activeTopTab, librarySetupRequired, navigateTo]);
-
-  useEffect(() => {
-    if (
-      autoStartHereOpenedRef.current ||
-      !connected ||
-      checking ||
-      !collectionsLoaded ||
-      collectionsError ||
-      !librarySetupRequired ||
-      startHereState.open ||
-      lsGet(STORAGE_KEYS.FIRST_RUN_DONE) === "1"
-    ) {
-      return;
-    }
-
-    autoStartHereOpenedRef.current = true;
-    openStartHere("root");
-  }, [
-    checking,
-    collectionsError,
-    collectionsLoaded,
-    connected,
-    librarySetupRequired,
-    openStartHere,
-    startHereState.open,
-  ]);
 
   const openSecondaryPanel = useCallback(
     (panel: SecondarySurfaceId) => {

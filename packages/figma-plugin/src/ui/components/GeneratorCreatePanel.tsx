@@ -603,7 +603,7 @@ export function GeneratorCreatePanel({
               </h4>
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {templateSelection === "blank"
-                  ? "Choose the collection before opening Graph."
+                  ? "Choose the collection before starting in Graph."
                   : "Fill in the values this generator needs."}
               </p>
             </div>
@@ -649,7 +649,7 @@ export function GeneratorCreatePanel({
 
             {templateSelection === "blank" ? (
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Open Graph to build the first nodes.
+                Start in Graph to build the first nodes.
               </p>
             ) : (
               <div className="space-y-3">

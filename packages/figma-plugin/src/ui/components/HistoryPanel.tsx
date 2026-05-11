@@ -155,7 +155,7 @@ export function HistoryPanel({
       <FeedbackPlaceholder
         variant="disconnected"
         title="Not connected"
-        description="Connect to the token server to view history."
+        description="Connect to the token server to view activity."
         align="start"
       />
     );
@@ -168,7 +168,7 @@ export function HistoryPanel({
           <div className="tm-responsive-toolbar__row">
             <div
               role="tablist"
-              aria-label="History views"
+              aria-label="Activity views"
               className="tm-responsive-toolbar__leading inline-flex min-w-0 max-w-full flex-wrap items-center rounded bg-[var(--color-figma-bg-secondary)] p-0.5"
               onKeyDown={(event) => {
                 const currentIndex = HISTORY_VIEWS.findIndex((view) => view.id === scope.view);
@@ -213,7 +213,7 @@ export function HistoryPanel({
                 value={scope.mode}
                 options={[...HISTORY_SCOPE_OPTIONS]}
                 onChange={handleScopeModeChange}
-                ariaLabel="History scope"
+                ariaLabel="Activity scope"
                 allowWrap
                 size="compact"
               />
@@ -305,7 +305,7 @@ export function HistoryPanel({
               size="sm"
               className="tm-panel-filter-summary__action"
             >
-              Show all history
+              Show all activity
             </Button>
           ) : null}
         </div>

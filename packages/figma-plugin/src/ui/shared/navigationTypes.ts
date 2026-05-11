@@ -72,7 +72,7 @@ export const TOP_TABS: {
       { id: "import", label: "Import" },
       { id: "generators", label: "Generators" },
       { id: "health", label: "Review" },
-      { id: "history", label: "History" },
+      { id: "history", label: "Activity" },
     ],
   },
   {
@@ -297,7 +297,7 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       { id: "import", label: "Import", topTab: "library", subTab: "import" },
       { id: "generators", label: "Generators", topTab: "library", subTab: "generators" },
       { id: "health",  label: "Review",  topTab: "library", subTab: "health" },
-      { id: "history", label: "History", topTab: "library", subTab: "history" },
+      { id: "history", label: "Activity", topTab: "library", subTab: "history" },
     ],
     matchRoutes: [
       route("library", "tokens"),

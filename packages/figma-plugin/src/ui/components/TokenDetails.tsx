@@ -1772,31 +1772,6 @@ export function TokenDetails({
             {isCreateMode ? (
               <div className="relative tm-token-details__identity-path" ref={pathInputWrapperRef}>
                 <div className="tm-token-details__create-name-grid">
-                  <Field label="Name">
-                    <input
-                      type="text"
-                      value={createPathParts.name}
-                      onChange={(e) =>
-                        updateCreatePath(createPathParts.group, e.target.value)
-                      }
-                      onFocus={() => {
-                        if (trimmedEditPath) setShowPathAutocomplete(true);
-                      }}
-                      onBlur={(e) => {
-                        if (
-                          !pathInputWrapperRef.current?.contains(
-                            e.relatedTarget as Node,
-                          )
-                        ) {
-                          setShowPathAutocomplete(false);
-                        }
-                      }}
-                      placeholder="primary"
-                      autoFocus
-                      autoComplete="off"
-                      className={AUTHORING.inputMono}
-                    />
-                  </Field>
                   <Field label="Group">
                     <input
                       type="text"
@@ -1817,6 +1792,32 @@ export function TokenDetails({
                         }
                       }}
                       placeholder="color.brand"
+                      autoFocus={!createPathParts.group}
+                      autoComplete="off"
+                      className={AUTHORING.inputMono}
+                    />
+                  </Field>
+                  <Field label="Name">
+                    <input
+                      type="text"
+                      value={createPathParts.name}
+                      onChange={(e) =>
+                        updateCreatePath(createPathParts.group, e.target.value)
+                      }
+                      onFocus={() => {
+                        if (trimmedEditPath) setShowPathAutocomplete(true);
+                      }}
+                      onBlur={(e) => {
+                        if (
+                          !pathInputWrapperRef.current?.contains(
+                            e.relatedTarget as Node,
+                          )
+                        ) {
+                          setShowPathAutocomplete(false);
+                        }
+                      }}
+                      placeholder="primary"
+                      autoFocus={Boolean(createPathParts.group)}
                       autoComplete="off"
                       className={AUTHORING.inputMono}
                     />
@@ -1825,7 +1826,7 @@ export function TokenDetails({
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   Path:{" "}
                   <span className="font-mono text-[color:var(--color-figma-text-secondary)]">
-                    {trimmedEditPath || "group.name"}
+                    {trimmedEditPath || "color.brand.primary"}
                   </span>
                 </p>
                 {createPathError ? (

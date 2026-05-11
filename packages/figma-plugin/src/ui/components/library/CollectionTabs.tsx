@@ -185,19 +185,7 @@ export function CollectionTabs({
           }
         : null;
   const showImportAction = showCreateButton && showImportButton;
-  const secondaryActions = [
-    showManageButton
-      ? {
-          key: "details",
-          label:
-            activeCollectionSettings?.open === true
-              ? "Hide details"
-              : "Show details",
-          icon: <Settings2 size={12} strokeWidth={1.5} aria-hidden />,
-          onClick: () =>
-            activeCollectionSettings?.onToggle(currentCollectionId!),
-        }
-      : null,
+  const overflowActions = [
     showImportAction
       ? {
           key: "import",
@@ -216,9 +204,7 @@ export function CollectionTabs({
       onClick: () => void;
     } => action !== null,
   );
-  const inlineSecondaryAction =
-    secondaryActions.length === 1 ? secondaryActions[0] : null;
-  const hasSecondaryOverflow = secondaryActions.length > 1;
+  const hasSecondaryOverflow = overflowActions.length > 0;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerAriaLabel = currentCollection
     ? scopeValue === "all"
@@ -501,18 +487,29 @@ export function CollectionTabs({
                 </span>
               </Button>
             ) : null}
-            {inlineSecondaryAction ? (
+            {showManageButton ? (
               <Button
-                onClick={inlineSecondaryAction.onClick}
-                aria-label={inlineSecondaryAction.label}
-                title={inlineSecondaryAction.label}
+                onClick={() =>
+                  activeCollectionSettings?.onToggle(currentCollectionId!)
+                }
+                aria-label={
+                  activeCollectionSettings?.open === true
+                    ? "Hide collection details"
+                    : "Show collection details"
+                }
+                aria-pressed={activeCollectionSettings?.open === true}
+                title={
+                  activeCollectionSettings?.open === true
+                    ? "Hide collection details"
+                    : "Show collection details"
+                }
                 variant="secondary"
                 size="sm"
                 className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start`}
               >
-                {inlineSecondaryAction.icon}
+                <Settings2 size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  {inlineSecondaryAction.label}
+                  Details
                 </span>
               </Button>
             ) : null}
@@ -541,7 +538,7 @@ export function CollectionTabs({
                 className={FLOATING_MENU_CLASS}
                 role="menu"
               >
-                {secondaryActions.map((action) => (
+                {overflowActions.map((action) => (
                   <button
                     key={action.key}
                     type="button"

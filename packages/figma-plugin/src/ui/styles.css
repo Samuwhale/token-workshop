@@ -2337,6 +2337,17 @@ button.tm-status-row:not(:disabled):hover {
   .tm-token-toolbar__split-button-primary {
     justify-content: flex-start;
   }
+
+  .tm-token-toolbar__secondary-label,
+  .tm-token-toolbar__filter .tm-token-toolbar__button-label {
+    display: none;
+  }
+
+  .tm-token-toolbar__filter > .relative > button,
+  .tm-token-toolbar__sort > button {
+    min-inline-size: var(--control-size-compact);
+    padding-inline: 7px;
+  }
 }
 
 @container (max-width: 480px) {
