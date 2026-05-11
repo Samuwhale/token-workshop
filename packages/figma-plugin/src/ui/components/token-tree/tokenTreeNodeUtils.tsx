@@ -51,6 +51,7 @@ export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
   return allOrdered.map((segment, index) => {
     const isResting = hasPriorities ? restingSet.has(segment) : !segment.hoverOnly;
     const isStatus = segment === statusSegment;
+    const priority = segment.priority ?? (isResting ? "identity" : "detail");
     const hoverClass = isResting
       ? ""
       : "opacity-70 group-hover:opacity-100 group-focus-within:opacity-100";
@@ -58,12 +59,14 @@ export function renderRowMetadataSegments(segments: RowMetadataSegment[]) {
     return (
       <span
         key={`${segment.label}-${index}`}
-        className={`inline-flex min-w-0 items-center gap-1 ${hoverClass}`}
+        data-priority={priority}
+        data-resting={isResting ? "true" : "false"}
+        className={`tm-token-tree-row__meta-segment inline-flex min-w-0 items-center gap-1 ${hoverClass}`}
       >
         {index > 0 && (
           <span
             aria-hidden="true"
-            className="text-[color:var(--color-figma-text-tertiary)]/60"
+            className="tm-token-tree-row__meta-separator text-[color:var(--color-figma-text-tertiary)]/60"
           >
             ·
           </span>

@@ -7,6 +7,7 @@ import {
   isAlias,
   resolveAliasEntry,
 } from "../../../shared/resolveAlias";
+import { cloneValue } from "../../../shared/clone";
 import { AliasAutocomplete } from "../AliasAutocomplete";
 import { ValuePreview } from "../ValuePreview";
 import { ModeValueEditor } from "../token-editor/ModeValueEditor";
@@ -420,7 +421,6 @@ export function TokenDetailsModeRow({
               ) : null}
             </div>
           </div>
-          {controls}
         </div>
       )}
       <div className="tm-token-mode-row__body">
@@ -498,7 +498,7 @@ export function TokenDetailsModeRow({
               {hasInheritedValue ? (
                 <div className="tm-token-mode-row__inherited-preview">
                   <span className="tm-token-mode-row__inherited-label">
-                    Inherited
+                    Source value
                   </span>
                   <span
                     className="tm-token-mode-row__inherited-value"
@@ -510,12 +510,22 @@ export function TokenDetailsModeRow({
               ) : null}
               <button
                 type="button"
-                onClick={() => onChange?.(defaultModeValue)}
+                onClick={() =>
+                  onChange?.(
+                    hasInheritedValue
+                      ? cloneValue(inheritedValue)
+                      : defaultModeValue,
+                  )
+                }
                 aria-label={`Add ${modeName} value`}
-                title={`Add ${defaultModeValueLabel} for ${modeName}`}
+                title={
+                  hasInheritedValue
+                    ? `Use source value for ${modeName}`
+                    : `Add ${defaultModeValueLabel} for ${modeName}`
+                }
                 className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
               >
-                {hasInheritedValue ? "Override value" : "Add value"}
+                {hasInheritedValue ? "Use source value" : "Add value"}
               </button>
               <button
                 type="button"
@@ -600,7 +610,7 @@ export function TokenDetailsModeRow({
           )}
         </div>
 
-        {!showHeader && (controls || modified) ? (
+        {(controls || modified) ? (
           <div className="tm-token-mode-row__inline-controls">
             {modified ? (
               <span

@@ -3850,7 +3850,7 @@ function GraphContextMenu({
                 });
               }}
             >
-              Add before
+              Insert before this node
             </GraphMenuAction>
             <GraphMenuAction
               disabled={getNodeOutputPorts(node).length === 0}
@@ -3865,7 +3865,7 @@ function GraphContextMenu({
                 });
               }}
             >
-              Add after
+              Add after this node
             </GraphMenuAction>
             <GraphMenuAction onClick={() => onDuplicateNode(node.id)}>
               Duplicate
@@ -3900,7 +3900,7 @@ function GraphContextMenu({
                 })
               }
             >
-              Replace source
+              Change incoming connection
             </GraphMenuAction>
             <GraphMenuAction
               onClick={() =>
@@ -3913,7 +3913,7 @@ function GraphContextMenu({
                 })
               }
             >
-              Replace target
+              Change outgoing connection
             </GraphMenuAction>
             <GraphMenuAction tone="danger" onClick={() => onDeleteEdge(edge.id)}>
               Delete connection
@@ -4285,7 +4285,7 @@ function ReviewIssueList({
               : "text-[color:var(--color-figma-text-warning)] hover:bg-[var(--surface-warning)]"
           }`}
         >
-          {issue.message}
+          Fix in Graph: {issue.message}
         </button>
       ))}
     </section>

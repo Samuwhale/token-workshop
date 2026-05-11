@@ -1539,7 +1539,7 @@ export function PanelRouter({
         allCollectionsScope={allCollectionsScope}
         onSelectCollection={handleLibraryCollectionSelect}
         onOpenCreateCollection={controller.onOpenCollectionCreateDialog}
-        onOpenImport={controller.onShowImportPanel}
+        onOpenImport={section === "tokens" ? controller.onShowImportPanel : undefined}
         activeCollectionSettings={{
           open:
             activeEditorSurface === "collection-details" &&

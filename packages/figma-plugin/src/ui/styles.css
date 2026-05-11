@@ -1780,7 +1780,7 @@ button.tm-status-row:not(:disabled):hover {
   }
 }
 
-@container (max-width: 720px) {
+@container (max-width: 780px) {
   .tm-collection-toolbar__row {
     flex-wrap: wrap;
     align-items: stretch;
@@ -2960,6 +2960,10 @@ button.tm-status-row:not(:disabled):hover {
   overflow: hidden;
 }
 
+.tm-token-tree-row__meta-segment {
+  min-inline-size: 0;
+}
+
 .tm-token-tree-row__selection-control,
 .tm-token-tree-row__overflow-control {
   transition:
@@ -3082,7 +3086,21 @@ button.tm-status-row:not(:disabled):hover {
     overflow-wrap: anywhere;
     line-height: 1.15;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
+  }
+
+  .tm-token-tree-row__meta .tm-token-tree-row__meta-segment[data-priority="detail"] {
+    display: none;
+  }
+
+  .token-row-hover:hover .tm-token-tree-row__meta .tm-token-tree-row__meta-segment[data-priority="detail"],
+  [data-token-path]:focus-within .tm-token-tree-row__meta .tm-token-tree-row__meta-segment[data-priority="detail"] {
+    display: inline-flex;
+  }
+
+  .tm-token-tree-row__meta .tm-token-tree-row__meta-segment[data-priority="detail"] .tm-token-tree-row__meta-separator,
+  .tm-token-tree-row__meta .tm-token-tree-row__meta-segment[data-priority="detail"] + .tm-token-tree-row__meta-segment .tm-token-tree-row__meta-separator {
+    display: none;
   }
 }
 
@@ -4807,13 +4825,13 @@ button.tm-token-details__text-button:disabled:hover {
 
 .tm-token-mode-row__inline-controls {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 100%;
   align-self: start;
-  margin-left: auto;
   min-inline-size: 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  justify-content: flex-end;
 }
 
 .tm-export-preview__viewport {
@@ -5156,12 +5174,6 @@ button.tm-token-details__text-button:disabled:hover {
     flex: 1 1 140px;
   }
 
-  .tm-token-mode-row__controls {
-    flex-basis: 100%;
-    justify-content: flex-start;
-    margin-left: 0;
-  }
-
   .tm-token-mode-row__action-button {
     padding-inline: 6px;
   }
@@ -5180,8 +5192,8 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__inline-controls {
     flex-basis: 100%;
-    margin-left: 0;
     flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }
 

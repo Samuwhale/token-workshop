@@ -71,7 +71,7 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-t border-[var(--border-muted)]">
+    <div className="pt-1.5 first:pt-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -156,14 +156,16 @@ function SettingRow({
 }) {
   return (
     <div
-      className={`flex flex-wrap justify-between gap-x-3 gap-y-1 py-1 ${
-        align === "start" ? "items-start" : "items-center"
+      className={`grid min-w-0 gap-x-3 gap-y-2 py-1 max-[380px]:grid-cols-1 ${
+        align === "start"
+          ? "grid-cols-[minmax(0,1fr)_minmax(9rem,max-content)] items-start"
+          : "grid-cols-[minmax(0,1fr)_minmax(8rem,max-content)] items-center"
       }`}
     >
-      <span className="min-w-[8rem] flex-1 text-body text-[color:var(--color-figma-text)]">
+      <span className="min-w-0 text-body text-[color:var(--color-figma-text)]">
         {label}
       </span>
-      <div className="min-w-0 shrink-0 max-[380px]:w-full max-[380px]:shrink">
+      <div className="min-w-0 justify-self-end max-[380px]:justify-self-stretch">
         {children}
       </div>
     </div>

@@ -89,8 +89,8 @@ const SOURCE_MODE_OPTIONS: Array<{ value: GeneratorSourceMode; label: string }> 
   { value: "token", label: "Token" },
 ];
 const INITIAL_VIEW_OPTIONS: Array<{ value: GeneratorEditorMode; label: string }> = [
-  { value: "overview", label: "Start in Overview" },
-  { value: "graph", label: "Start in Graph" },
+  { value: "overview", label: "Overview" },
+  { value: "graph", label: "Graph" },
 ];
 const TEMPLATE_GROUPS: Array<{
   label: string;
@@ -634,7 +634,7 @@ export function GeneratorCreatePanel({
 
             <div className="space-y-1">
               <span className="block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                Start view
+                Open after create
               </span>
               <SegmentedControl
                 value={initialView}
@@ -642,12 +642,14 @@ export function GeneratorCreatePanel({
                 ariaLabel="Open generator after create"
                 onChange={setInitialView}
               />
+              <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                Overview and Graph stay available after creation.
+              </p>
             </div>
 
             {templateSelection === "blank" ? (
               <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Overview and Graph are both permanent ways into this generator.
-                Choose where you want to start.
+                Open Graph to build the first nodes.
               </p>
             ) : (
               <div className="space-y-3">
