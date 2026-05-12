@@ -40,6 +40,7 @@ Implemented:
 - Initial SVG viewBox origin and dimension metadata with inspector visibility and source-frame warnings when an icon's SVG viewBox differs from the configured library frame size.
 - Core SVG import validation that rejects active content, event handlers, external references, and style imports before icons enter the registry.
 - Initial Icons workspace health summary and filtering for publish drift, non-standard frames, and unknown color behavior, with selected-icon guidance in the inspector.
+- Registry-level icon quality metadata with ready, review, and blocked states for reliable SVG checks, including frame origin/size, color ambiguity, inline styles, paint servers, opacity, strokes, masks, clipping, filters, and raster images; blocked icons are excluded from publish and canvas placement.
 - Initial icon usage audit from the Icons workspace for current selection or current page, grouped by repair action and covering managed usage counts, missing linked components, duplicate managed components, stale component hashes, renamed icon components, deprecated icon usage, unmanaged icon-like components, raw icon-layer candidates, and unknown managed component metadata.
 - Initial component icon slot setup from the Icons workspace: selected raw or unmanaged icon-like layers inside main components can be replaced with a managed icon instance and exposed as an instance-swap component property, with collision-safe property names and audit visibility for unpromoted icon slots.
 
@@ -50,7 +51,7 @@ Missing:
 - Public source browsing, license review, attribution, and source update checks.
 - Near-duplicate geometry review beyond exact SVG hash matches.
 - Token color guidance, canvas color audits, and guided hardcoded fill repair beyond initial publish normalization.
-- Bounding-box, keyline, and stroke behavior checks beyond initial SVG viewBox frame mismatch detection.
+- True geometry bounding-box and keyline checks beyond reliable SVG feature and viewBox quality metadata.
 - Richer replacement previews and multi-slot selection controls from the Icons workspace.
 - Richer component icon slot setup with boolean visibility, curated preferred values, component set support, exposed nested instances, and multi-slot previews.
 - Richer icon usage audit, guided repair, cross-page/file usage analytics, batch finding navigation, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page audit and unpromoted-slot detection.

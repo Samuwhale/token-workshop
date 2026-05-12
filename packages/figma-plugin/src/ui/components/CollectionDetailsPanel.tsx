@@ -24,7 +24,7 @@ import {
   FLOATING_MENU_DANGER_ITEM_CLASS,
   FLOATING_MENU_ITEM_CLASS,
 } from "../shared/menuClasses";
-import { ActionRow, Button, IconButton, TextInput } from "../primitives";
+import { ActionRow, Button, IconButton, TextArea, TextInput } from "../primitives";
 import {
   CollectionMergeInline,
   CollectionDeleteDialog,
@@ -473,8 +473,7 @@ function ModesSection({
       <SectionHeader>Modes</SectionHeader>
       <div className="px-3">
         <p className="px-1 pb-2 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token in this collection uses these modes. New modes{" "}
-          become value columns for every token in the collection.
+          Every token in this collection has one value per mode.
         </p>
         {collection.modes.map((mode, index) => (
           <ModeRow
@@ -887,9 +886,6 @@ export function CollectionDetailsPanel({
                       onBlur={() => void confirmRename()}
                       className="w-full text-[17px] font-semibold tracking-tight"
                     />
-                    <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      This renames the collection designers see throughout Token Workshop.
-                    </p>
                     {renameError ? (
                       <p className="mt-1 text-secondary text-[color:var(--color-figma-text-error)]">{renameError}</p>
                     ) : null}
@@ -917,13 +913,12 @@ export function CollectionDetailsPanel({
                     </div>
                     {editingDescription ? (
                       <>
-                        <textarea
+                        <TextArea
                           value={currentDescription}
                           onChange={(e) => setMetadataDescription?.(e.target.value)}
-                          rows={2}
                           placeholder="Add a description"
                           aria-label="Collection description"
-                          className="w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2 text-body leading-[1.5] text-[color:var(--color-figma-text-secondary)] outline-none placeholder:text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+                          className="leading-[1.5] text-[color:var(--color-figma-text-secondary)]"
                         />
                         <div className="flex flex-wrap items-center gap-2">
                           <Button

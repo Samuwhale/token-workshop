@@ -3,10 +3,13 @@ import type {
   IconColorMetadata,
   IconCodeMetadata,
   IconFigmaLink,
+  IconQualityIssue,
+  IconQualityMetadata,
   IconRegistryFile,
   IconRegistrySettings,
   IconSource,
   IconStatus,
+  IconSvgFeatureMetadata,
   IconSvgMetadata,
   ManagedIcon,
 } from './icon-types.js';
@@ -39,6 +42,7 @@ const ICON_STATUSES = new Set<IconStatus>([
   'draft',
   'published',
   'deprecated',
+  'blocked',
 ]);
 
 export function createDefaultIconRegistry(): IconRegistryFile {
@@ -67,6 +71,7 @@ export interface ParsedIconSvg {
   hash: string;
   contentHash: string;
   color: IconColorMetadata;
+  features: IconSvgFeatureMetadata;
 }
 
 export function parseIconSvg(input: string): ParsedIconSvg {
@@ -74,6 +79,7 @@ export function parseIconSvg(input: string): ParsedIconSvg {
   const viewBox = extractIconSvgViewBox(content);
   const hash = hashIconSvgContent(content);
   const color = analyzeIconSvgColor(content);
+  const features = analyzeIconSvgFeatures(content);
   return {
     content,
     viewBox: viewBox.value,
@@ -84,6 +90,7 @@ export function parseIconSvg(input: string): ParsedIconSvg {
     hash,
     contentHash: hash,
     color,
+    features,
   };
 }
 
@@ -234,6 +241,244 @@ export function analyzeIconSvgColor(svg: string): IconColorMetadata {
   }
 }
 
+export function analyzeIconSvgFeatures(svg: string): IconSvgFeatureMetadata {
+  const content = normalizeIconSvgText(svg);
+  let hasStrokes = false;
+  let hasNonScalingStrokes = false;
+  let hasMasks = false;
+  let hasClipPaths = false;
+  let hasFilters = false;
+  let hasRasterImages = false;
+
+  for (const tag of readSvgTags(content)) {
+    const tagName = readTagName(tag);
+    if (!tagName || isIgnoredSvgTag(tagName)) {
+      continue;
+    }
+
+    if (tagName === 'mask') {
+      hasMasks = true;
+    }
+    if (tagName === 'clippath') {
+      hasClipPaths = true;
+    }
+    if (tagName === 'filter') {
+      hasFilters = true;
+    }
+    if (tagName === 'image') {
+      hasRasterImages = true;
+    }
+
+    for (const [name, rawValue] of readSvgAttributes(tag)) {
+      const normalizedName = name.toLowerCase();
+      const value = rawValue.trim();
+      if (!value) {
+        continue;
+      }
+      if (normalizedName === 'stroke' && normalizePaintValue(value) !== 'none') {
+        hasStrokes = true;
+      }
+      if (normalizedName === 'stroke-width' && value !== '0') {
+        hasStrokes = true;
+      }
+      if (
+        normalizedName === 'vector-effect' &&
+        value.toLowerCase() === 'non-scaling-stroke'
+      ) {
+        hasNonScalingStrokes = true;
+      }
+      if (normalizedName === 'mask') {
+        hasMasks = true;
+      }
+      if (normalizedName === 'clip-path') {
+        hasClipPaths = true;
+      }
+      if (normalizedName === 'filter') {
+        hasFilters = true;
+      }
+      if (normalizedName === 'style') {
+        for (const declaration of readStyleDeclarations(value)) {
+          if (
+            declaration.name === 'stroke' &&
+            normalizePaintValue(declaration.value) !== 'none'
+          ) {
+            hasStrokes = true;
+          }
+          if (
+            declaration.name === 'stroke-width' &&
+            declaration.value.trim() !== '0'
+          ) {
+            hasStrokes = true;
+          }
+          if (
+            declaration.name === 'vector-effect' &&
+            declaration.value.trim().toLowerCase() === 'non-scaling-stroke'
+          ) {
+            hasNonScalingStrokes = true;
+          }
+        }
+      }
+    }
+  }
+
+  for (const styleContent of readSvgStyleBlocks(content)) {
+    for (const declaration of readStyleDeclarations(styleContent)) {
+      if (
+        declaration.name === 'stroke' &&
+        normalizePaintValue(declaration.value) !== 'none'
+      ) {
+        hasStrokes = true;
+      }
+      if (
+        declaration.name === 'stroke-width' &&
+        declaration.value.trim() !== '0'
+      ) {
+        hasStrokes = true;
+      }
+      if (
+        declaration.name === 'vector-effect' &&
+        declaration.value.trim().toLowerCase() === 'non-scaling-stroke'
+      ) {
+        hasNonScalingStrokes = true;
+      }
+    }
+  }
+
+  return {
+    hasStyleBlocks: readSvgStyleBlocks(content).length > 0,
+    hasStrokes,
+    hasNonScalingStrokes,
+    hasMasks,
+    hasClipPaths,
+    hasFilters,
+    hasRasterImages,
+  };
+}
+
+export function analyzeIconQuality(
+  svg: IconSvgMetadata,
+  settings: IconRegistrySettings,
+): IconQualityMetadata {
+  const issues: IconQualityIssue[] = [];
+  const defaultSize = settings.defaultSize;
+
+  if (
+    !numbersAlmostEqual(svg.viewBoxMinX, 0) ||
+    !numbersAlmostEqual(svg.viewBoxMinY, 0)
+  ) {
+    issues.push({
+      kind: 'frame-origin',
+      severity: 'warning',
+      message: `The SVG viewBox starts at ${formatSvgNumber(svg.viewBoxMinX)}, ${formatSvgNumber(svg.viewBoxMinY)} instead of 0, 0.`,
+    });
+  }
+
+  if (
+    !numbersAlmostEqual(svg.viewBoxWidth, defaultSize) ||
+    !numbersAlmostEqual(svg.viewBoxHeight, defaultSize)
+  ) {
+    issues.push({
+      kind: 'frame-size',
+      severity: 'warning',
+      message: `The SVG viewBox is ${formatSvgNumber(svg.viewBoxWidth)}x${formatSvgNumber(svg.viewBoxHeight)}; this library publishes ${formatSvgNumber(defaultSize)}x${formatSvgNumber(defaultSize)} icons.`,
+    });
+  }
+
+  if (svg.color.behavior === 'unknown') {
+    issues.push({
+      kind: 'unknown-color',
+      severity: 'warning',
+      message: 'Color behavior is unknown, so token-aligned color audits cannot trust this icon yet.',
+    });
+  }
+  if (svg.color.behavior === 'multicolor') {
+    issues.push({
+      kind: 'multicolor',
+      severity: 'warning',
+      message: 'Multicolor artwork is allowed, but should be intentional for this icon library.',
+    });
+  }
+  if (svg.color.hasInlineStyles) {
+    issues.push({
+      kind: 'inline-style',
+      severity: 'warning',
+      message: 'Inline styles make paint behavior harder to review and repair.',
+    });
+  }
+  if (svg.features.hasStyleBlocks) {
+    issues.push({
+      kind: 'style-block',
+      severity: 'warning',
+      message: 'Style blocks can hide paint and stroke behavior from quick review.',
+    });
+  }
+  if (svg.color.hasPaintServers) {
+    issues.push({
+      kind: 'paint-server',
+      severity: 'warning',
+      message: 'Paint servers such as gradients or patterns need manual review before normal UI icon use.',
+    });
+  }
+  if (svg.color.hasOpacity) {
+    issues.push({
+      kind: 'opacity',
+      severity: 'warning',
+      message: 'Opacity can make icon color audits and token mapping ambiguous.',
+    });
+  }
+  if (svg.features.hasStrokes) {
+    issues.push({
+      kind: 'stroke',
+      severity: 'warning',
+      message: 'Strokes can change perceived weight when icons are swapped or resized.',
+    });
+  }
+  if (svg.features.hasNonScalingStrokes) {
+    issues.push({
+      kind: 'non-scaling-stroke',
+      severity: 'warning',
+      message: 'Non-scaling strokes need review because swaps may not preserve expected stroke behavior.',
+    });
+  }
+  if (svg.features.hasMasks) {
+    issues.push({
+      kind: 'mask',
+      severity: 'warning',
+      message: 'Masks preserve appearance but make icon repair and auditing harder.',
+    });
+  }
+  if (svg.features.hasClipPaths) {
+    issues.push({
+      kind: 'clip-path',
+      severity: 'warning',
+      message: 'Clipping paths need review because they can hide artwork outside the icon keyline.',
+    });
+  }
+  if (svg.features.hasFilters) {
+    issues.push({
+      kind: 'filter',
+      severity: 'error',
+      message: 'Filters bake visual effects into the icon and are blocked for governed UI icon publishing.',
+    });
+  }
+  if (svg.features.hasRasterImages) {
+    issues.push({
+      kind: 'raster-image',
+      severity: 'error',
+      message: 'Raster images are blocked for governed UI icon publishing; use vector artwork instead.',
+    });
+  }
+
+  return {
+    state: issues.some((issue) => issue.severity === 'error')
+      ? 'blocked'
+      : issues.length > 0
+        ? 'review'
+        : 'ready',
+    issues,
+  };
+}
+
 export function normalizeIconRegistryFile(input: unknown): IconRegistryFile {
   if (!isRecord(input)) {
     throw new Error('Icon registry must be a JSON object.');
@@ -334,6 +579,7 @@ function normalizeManagedIcon(
   const svg = normalizeIconSvgMetadata(input.svg, index);
   const figma = normalizeIconFigmaLink(input.figma, index);
   const code = normalizeIconCodeMetadata(input.code, path, index);
+  const quality = analyzeIconQuality(svg, settings);
   const status = normalizeIconStatus(input.status, index);
   const tags = normalizeIconTags(input.tags, index);
 
@@ -346,6 +592,7 @@ function normalizeManagedIcon(
     svg,
     figma,
     code,
+    quality,
     status,
     ...(tags.length > 0 ? { tags } : {}),
   };
@@ -413,6 +660,10 @@ function normalizeIconSvgMetadata(input: unknown, index: number): IconSvgMetadat
     input.color === undefined && content
       ? analyzeIconSvgColor(content)
       : normalizeIconColorMetadata(input.color, index);
+  const features =
+    input.features === undefined && content
+      ? analyzeIconSvgFeatures(content)
+      : normalizeIconSvgFeatures(input.features, index);
   const viewBox = readRequiredString(
     input.viewBox,
     `icons[${index}].svg.viewBox`,
@@ -459,7 +710,51 @@ function normalizeIconSvgMetadata(input: unknown, index: number): IconSvgMetadat
       `icons[${index}].svg.contentHash`,
     ),
     color,
+    features,
     ...(content ? { content } : {}),
+  };
+}
+
+function normalizeIconSvgFeatures(
+  input: unknown,
+  index: number,
+): IconSvgFeatureMetadata {
+  if (input === undefined) {
+    return createEmptyIconSvgFeatureMetadata();
+  }
+  if (!isRecord(input)) {
+    throw new Error(`icons[${index}].svg.features must be an object.`);
+  }
+
+  return {
+    hasStyleBlocks: readBoolean(
+      input.hasStyleBlocks,
+      `icons[${index}].svg.features.hasStyleBlocks`,
+    ),
+    hasStrokes: readBoolean(
+      input.hasStrokes,
+      `icons[${index}].svg.features.hasStrokes`,
+    ),
+    hasNonScalingStrokes: readBoolean(
+      input.hasNonScalingStrokes,
+      `icons[${index}].svg.features.hasNonScalingStrokes`,
+    ),
+    hasMasks: readBoolean(
+      input.hasMasks,
+      `icons[${index}].svg.features.hasMasks`,
+    ),
+    hasClipPaths: readBoolean(
+      input.hasClipPaths,
+      `icons[${index}].svg.features.hasClipPaths`,
+    ),
+    hasFilters: readBoolean(
+      input.hasFilters,
+      `icons[${index}].svg.features.hasFilters`,
+    ),
+    hasRasterImages: readBoolean(
+      input.hasRasterImages,
+      `icons[${index}].svg.features.hasRasterImages`,
+    ),
   };
 }
 
@@ -559,7 +854,7 @@ function normalizeIconStatus(input: unknown, index: number): IconStatus {
   }
   if (typeof input !== 'string' || !ICON_STATUSES.has(input as IconStatus)) {
     throw new Error(
-      `icons[${index}].status must be one of draft, published, or deprecated.`,
+      `icons[${index}].status must be one of draft, published, deprecated, or blocked.`,
     );
   }
   return input as IconStatus;
@@ -589,6 +884,18 @@ function createUnknownIconColorMetadata(): IconColorMetadata {
     hasInlineStyles: false,
     hasPaintServers: false,
     hasOpacity: false,
+  };
+}
+
+function createEmptyIconSvgFeatureMetadata(): IconSvgFeatureMetadata {
+  return {
+    hasStyleBlocks: false,
+    hasStrokes: false,
+    hasNonScalingStrokes: false,
+    hasMasks: false,
+    hasClipPaths: false,
+    hasFilters: false,
+    hasRasterImages: false,
   };
 }
 

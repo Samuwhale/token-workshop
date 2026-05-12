@@ -89,6 +89,7 @@ import {
   ListItem,
   Section,
   Stack,
+  TextArea,
 } from "../primitives";
 import { Collapsible } from "./Collapsible";
 import type { TokenEditorValue } from "../shared/tokenEditorTypes";
@@ -2074,13 +2075,13 @@ export function TokenDetails({
         <Section title="Details" emphasis="secondary">
           <Stack gap={4}>
             <Field label="Description">
-              <textarea
+              <TextArea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={!fieldEditable}
                 placeholder="Optional description"
-                rows={2}
-                className="min-h-[56px] w-full resize-none rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-secondary)]/50 focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+                size="sm"
+                className="min-h-[56px] text-body text-[color:var(--color-figma-text)] placeholder:text-[color:var(--color-figma-text-secondary)]/50"
               />
             </Field>
 

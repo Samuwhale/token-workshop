@@ -25,4 +25,5 @@ export { SegmentedControl, type SegmentedOption } from "./SegmentedControl";
 export { Section } from "./Section";
 export { Stack } from "./Stack";
 export { StatusBanner, StatusRow, type StatusBannerProps, type StatusRowProps } from "./Status";
+export { TextArea } from "./TextArea";
 export { TextInput } from "./TextInput";

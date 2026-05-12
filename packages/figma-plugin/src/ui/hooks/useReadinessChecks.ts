@@ -28,6 +28,18 @@ import {
 const READINESS_TIMEOUT_MS = 15_000;
 const BLOCKING_VALIDATION_RULES = new Set(['broken-alias', 'circular-reference']);
 const DEFAULT_VARIABLE_COLLECTION_NAME = 'Token Workshop';
+const FIGMA_VARIABLE_TOKEN_TYPES = new Set([
+  'boolean',
+  'color',
+  'dimension',
+  'fontFamily',
+  'fontWeight',
+  'letterSpacing',
+  'lineHeight',
+  'number',
+  'percentage',
+  'string',
+]);
 
 function formatCount(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -59,6 +71,19 @@ function summarizeValidationIssues(
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(' · ') : 'No active error-level health findings.';
+}
+
+function summarizeTokenTypes(tokens: Array<{ $type?: string }>): string {
+  const counts = new Map<string, number>();
+  for (const token of tokens) {
+    const type = token.$type?.trim() || 'unknown';
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([type, count]) => `${type} (${count})`)
+    .join(', ');
 }
 
 interface UseReadinessChecksParams {
@@ -473,6 +498,9 @@ export function useReadinessChecks({
       );
       const missingDescriptions = Array.from(snapshot.figmaMap.values()).filter((token) => !token.description);
       const draftTokens = Array.from(snapshot.localTokens.values()).filter((token) => getTokenLifecycle(token) === 'draft');
+      const unsupportedVariableTokens = Array.from(snapshot.localTokens.values()).filter(
+        (token) => !FIGMA_VARIABLE_TOKEN_TYPES.has(String(token.$type ?? '')),
+      );
       const typeIncompatibleScopes = Array.from(snapshot.localTokens.values()).filter((token) => {
         const scopes = (token.$extensions as Record<string, unknown> | undefined)?.['com.figma.scopes'];
         if (!Array.isArray(scopes) || scopes.length === 0) return false;
@@ -536,6 +564,15 @@ export function useReadinessChecks({
           affectedCount: typeIncompatibleScopes.length || undefined,
           detail: typeIncompatibleScopes.length > 0
             ? "Some tokens carry applicability that doesn't fit their current type (usually a leftover from a type change). Select the tokens and use the \"Can apply to\" batch action to clean them up."
+            : undefined,
+        },
+        {
+          id: 'unsupported-variable-types',
+          label: 'Not supported as Figma variables',
+          severity: 'advisory',
+          affectedCount: unsupportedVariableTokens.length || undefined,
+          detail: unsupportedVariableTokens.length > 0
+            ? `${summarizeTokenTypes(unsupportedVariableTokens)} will be skipped by Figma variable sync. Keep them for file export, or publish supported styles where available.`
             : undefined,
         },
         {

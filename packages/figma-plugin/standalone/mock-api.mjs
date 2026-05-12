@@ -60,6 +60,61 @@ function formatSvgNumber(value) {
   return Object.is(value, -0) ? '0' : String(value);
 }
 
+function readSvgFeatureMetadata(svg) {
+  const content = svg.toLowerCase();
+  return {
+    hasStyleBlocks: /<style\b/.test(content),
+    hasStrokes: /\sstroke\s*=/.test(content) || /\sstroke-width\s*=/.test(content),
+    hasNonScalingStrokes: /vector-effect\s*=\s*["']?non-scaling-stroke/i.test(svg),
+    hasMasks: /<mask\b/.test(content) || /\smask\s*=/.test(content),
+    hasClipPaths: /<clippath\b/.test(content) || /\sclip-path\s*=/.test(content),
+    hasFilters: /<filter\b/.test(content) || /\sfilter\s*=/.test(content),
+    hasRasterImages: /<image\b/.test(content),
+  };
+}
+
+function readIconQuality(svg, defaultSize = 24) {
+  const viewBox = readSvgViewBoxMetadata(svg);
+  const features = readSvgFeatureMetadata(svg);
+  const issues = [];
+  if (viewBox.viewBoxMinX !== 0 || viewBox.viewBoxMinY !== 0) {
+    issues.push({
+      kind: 'frame-origin',
+      severity: 'warning',
+      message: `The SVG viewBox starts at ${formatSvgNumber(viewBox.viewBoxMinX)}, ${formatSvgNumber(viewBox.viewBoxMinY)} instead of 0, 0.`,
+    });
+  }
+  if (viewBox.viewBoxWidth !== defaultSize || viewBox.viewBoxHeight !== defaultSize) {
+    issues.push({
+      kind: 'frame-size',
+      severity: 'warning',
+      message: `The SVG viewBox is ${formatSvgNumber(viewBox.viewBoxWidth)}x${formatSvgNumber(viewBox.viewBoxHeight)}; this library publishes ${formatSvgNumber(defaultSize)}x${formatSvgNumber(defaultSize)} icons.`,
+    });
+  }
+  if (features.hasFilters) {
+    issues.push({
+      kind: 'filter',
+      severity: 'error',
+      message: 'Filters bake visual effects into the icon and are blocked for governed UI icon publishing.',
+    });
+  }
+  if (features.hasRasterImages) {
+    issues.push({
+      kind: 'raster-image',
+      severity: 'error',
+      message: 'Raster images are blocked for governed UI icon publishing; use vector artwork instead.',
+    });
+  }
+  return {
+    state: issues.some((issue) => issue.severity === 'error')
+      ? 'blocked'
+      : issues.length > 0
+        ? 'review'
+        : 'ready',
+    issues,
+  };
+}
+
 const mockIconRegistry = {
   $schema: 'https://tokenworkshop.local/schemas/icons.json',
   icons: [
@@ -83,6 +138,7 @@ const mockIconRegistry = {
           hasPaintServers: false,
           hasOpacity: false,
         },
+        features: readSvgFeatureMetadata(MOCK_ICON_SVG),
         content: MOCK_ICON_SVG,
       },
       figma: {
@@ -93,6 +149,7 @@ const mockIconRegistry = {
       code: {
         exportName: 'NavigationHomeIcon',
       },
+      quality: readIconQuality(MOCK_ICON_SVG),
       status: 'published',
       tags: ['navigation'],
     },
@@ -522,6 +579,7 @@ export async function handleMockApiRequest(req, res, url) {
           svg: {
             ...mockIconRegistry.icons[0].svg,
             ...readSvgViewBoxMetadata(icon.svg || MOCK_ICON_SVG),
+            features: readSvgFeatureMetadata(icon.svg || MOCK_ICON_SVG),
             content: icon.svg || MOCK_ICON_SVG,
           },
           figma: {
@@ -529,6 +587,10 @@ export async function handleMockApiRequest(req, res, url) {
             componentKey: icon.componentKey || null,
             lastSyncedHash: null,
           },
+          quality: readIconQuality(
+            icon.svg || MOCK_ICON_SVG,
+            mockIconRegistry.settings.defaultSize,
+          ),
           status: 'draft',
         }))
       : [];

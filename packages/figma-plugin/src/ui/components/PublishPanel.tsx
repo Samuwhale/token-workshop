@@ -1553,10 +1553,10 @@ function StandardPublishRoutingCard({
             {currentCollectionLabel}
           </div>
           <p className="mt-1 max-w-[520px] text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-            Choose the Figma variable collection for this authored collection.
+            Choose where this collection publishes in Figma variables.
             {usesAllModes
-              ? ' Each authored mode syncs to the Figma mode with the same name.'
-              : ' This only changes the Figma destination, not the authored value.'}
+              ? ' Each mode updates the Figma mode with the same name.'
+              : ' This changes the destination only; the token value stays the same.'}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -1616,7 +1616,7 @@ function StandardPublishRoutingCard({
           {DEFAULT_VARIABLE_COLLECTION_NAME}
         </span>
         {usesAllModes
-          ? '. Mode names come from this Token Workshop collection.'
+          ? '. Mode names come from this collection.'
           : '. Leave the mode blank to target the first mode in that Figma collection.'}
       </div>
 

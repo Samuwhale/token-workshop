@@ -821,7 +821,8 @@ export interface IconUsageAuditInput {
   name: string;
   path: string;
   componentName: string;
-  status: 'draft' | 'published' | 'deprecated';
+  status: 'draft' | 'published' | 'deprecated' | 'blocked';
+  qualityState: 'ready' | 'review' | 'blocked';
   svgHash: string;
   componentId?: string | null;
   componentKey?: string | null;
@@ -851,6 +852,7 @@ export type IconUsageAuditFindingType =
   | 'stale-component'
   | 'renamed-component'
   | 'deprecated-usage'
+  | 'blocked-icon-usage'
   | 'unmanaged-icon-component'
   | 'unpromoted-icon-slot'
   | 'raw-icon-layer'
@@ -877,6 +879,7 @@ export interface IconUsageAuditSummary {
   unpromotedIconSlots: number;
   rawIconLayers: number;
   deprecatedUsages: number;
+  blockedUsages: number;
   staleComponents: number;
   missingComponents: number;
 }

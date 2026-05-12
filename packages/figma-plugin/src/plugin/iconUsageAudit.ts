@@ -279,6 +279,22 @@ async function collectInstanceFindings(
       message: `${instance.name} uses deprecated icon ${icon.name}.`,
     });
   }
+  if (icon.status === 'blocked' || icon.qualityState === 'blocked') {
+    findings.push({
+      id: findingId('blocked-icon-usage', instance.id, icon.id),
+      type: 'blocked-icon-usage',
+      action: 'replace',
+      severity: 'error',
+      iconId: icon.id,
+      iconName: icon.name,
+      iconPath: icon.path,
+      nodeId: instance.id,
+      nodeName: instance.name,
+      nodeType: instance.type,
+      pageName: pageNameForNode(instance),
+      message: `${instance.name} uses blocked icon ${icon.name}.`,
+    });
+  }
 
   collectUnpromotedIconSlotFinding(instance, findings, icon);
 
@@ -407,6 +423,7 @@ function summarizeIconUsageFindings(
     unpromotedIconSlots: countFindings(findings, 'unpromoted-icon-slot'),
     rawIconLayers: countFindings(findings, 'raw-icon-layer'),
     deprecatedUsages: countFindings(findings, 'deprecated-usage'),
+    blockedUsages: countFindings(findings, 'blocked-icon-usage'),
     staleComponents: countFindings(findings, 'stale-component'),
     missingComponents: countFindings(findings, 'missing-component'),
   };
@@ -419,6 +436,7 @@ function emptyIconUsageSummary(): IconUsageAuditSummary {
     unpromotedIconSlots: 0,
     rawIconLayers: 0,
     deprecatedUsages: 0,
+    blockedUsages: 0,
     staleComponents: 0,
     missingComponents: 0,
   };

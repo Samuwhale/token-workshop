@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {
   createDefaultIconRegistry,
+  analyzeIconQuality,
   iconComponentNameFromPath,
   iconExportNameFromPath,
   iconIdFromPath,
@@ -172,6 +173,7 @@ export class IconStore {
           existing?.code ?? {
             exportName: iconExportNameFromPath(request.path),
           },
+        quality: analyzeIconQuality(request.svg, registry.settings),
         status: statusForImportRequest(request, existing),
         ...(request.tags
           ? { tags: request.tags }
@@ -404,6 +406,11 @@ export class IconStore {
       }
 
       const icon = registry.icons[index];
+      if (icon.status === "blocked" || icon.quality.state === "blocked") {
+        throw new ConflictError(
+          `Icon "${request.id}" has blocked quality issues and cannot be marked as published.`,
+        );
+      }
       if (request.lastSyncedHash !== icon.svg.hash) {
         throw new ConflictError(
           `Icon "${request.id}" cannot be marked synced to a different SVG hash.`,
@@ -724,6 +731,7 @@ function parseSvgMetadata(
     hash: parsed.hash,
     contentHash: parsed.contentHash,
     color: parsed.color,
+    features: parsed.features,
     ...(keepContent ? { content: parsed.content } : {}),
   };
 }
@@ -738,6 +746,7 @@ function parseSvgContent(svgText: string): {
   hash: string;
   contentHash: string;
   color: ManagedIcon["svg"]["color"];
+  features: ManagedIcon["svg"]["features"];
 } {
   try {
     return parseIconSvg(svgText);

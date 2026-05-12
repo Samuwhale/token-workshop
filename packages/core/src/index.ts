@@ -39,10 +39,16 @@ export type {
   IconColorMetadata,
   IconCodeMetadata,
   IconFigmaLink,
+  IconQualityIssue,
+  IconQualityIssueKind,
+  IconQualityIssueSeverity,
+  IconQualityMetadata,
+  IconQualityState,
   IconRegistryFile,
   IconRegistrySettings,
   IconSource,
   IconStatus,
+  IconSvgFeatureMetadata,
   IconSvgMetadata,
   ManagedIcon,
 } from './icon-types.js';
@@ -59,6 +65,8 @@ export {
 } from './icon-naming.js';
 export {
   analyzeIconSvgColor,
+  analyzeIconSvgFeatures,
+  analyzeIconQuality,
   createDefaultIconRegistry,
   createDefaultIconRegistrySettings,
   extractIconSvgViewBox,

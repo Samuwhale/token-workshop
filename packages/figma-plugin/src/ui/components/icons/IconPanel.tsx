@@ -40,7 +40,7 @@ import { getErrorMessage, isAbortError } from "../../shared/utils";
 import { IconImportDialog } from "./IconImportDialog";
 
 type IconStatusFilter = "all" | IconStatus;
-type IconHealthFilter = "all" | "publish" | "frame" | "color";
+type IconHealthFilter = "all" | "publish" | "blocked" | "quality" | "frame" | "color";
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
   | Omit<ReplaceSelectionWithIconMessage, "correlationId">
@@ -79,6 +79,8 @@ interface IconContentCacheItem {
 
 interface IconHealthSummary {
   needsPublish: number;
+  blocked: number;
+  qualityReview: number;
   frameIssues: number;
   colorReview: number;
 }
@@ -100,12 +102,14 @@ const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
   { value: "draft", label: "Draft" },
   { value: "published", label: "Published" },
   { value: "deprecated", label: "Deprecated" },
+  { value: "blocked", label: "Blocked" },
 ];
 
 const STATUS_CLASS: Record<IconStatus, string> = {
   draft: "bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]",
   published: "bg-[var(--color-figma-success)]/10 text-[color:var(--color-figma-text-success)]",
   deprecated: "bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-text-warning)]",
+  blocked: "bg-[var(--workspace-danger)]/10 text-[color:var(--workspace-danger)]",
 };
 
 const AUDIT_SCOPE_OPTIONS: Array<{ value: IconUsageAuditScope; label: string }> = [
@@ -207,6 +211,17 @@ function colorDetails(icon: ManagedIcon): string {
   return details.length > 0 ? details.join(" / ") : "No explicit paint";
 }
 
+function qualityStateLabel(icon: ManagedIcon): string {
+  switch (icon.quality.state) {
+    case "ready":
+      return "Ready";
+    case "review":
+      return "Needs review";
+    case "blocked":
+      return "Blocked";
+  }
+}
+
 function iconFrameLabel(icon: ManagedIcon): string {
   const width = formatIconDimension(icon.svg.viewBoxWidth);
   const height = formatIconDimension(icon.svg.viewBoxHeight);
@@ -253,12 +268,36 @@ function iconFrameDimensionMatches(left: number, right: number): boolean {
 function iconNeedsPublish(icon: ManagedIcon): boolean {
   return (
     icon.status !== "deprecated" &&
+    icon.status !== "blocked" &&
+    icon.quality.state !== "blocked" &&
     (!icon.figma.componentId || icon.figma.lastSyncedHash !== icon.svg.hash)
   );
 }
 
 function iconNeedsColorReview(icon: ManagedIcon): boolean {
-  return icon.svg.color.behavior === "unknown";
+  return icon.quality.issues.some((issue) =>
+    issue.kind === "unknown-color" ||
+    issue.kind === "multicolor" ||
+    issue.kind === "inline-style" ||
+    issue.kind === "style-block" ||
+    issue.kind === "paint-server" ||
+    issue.kind === "opacity",
+  );
+}
+
+function iconNeedsQualityReview(icon: ManagedIcon): boolean {
+  return icon.quality.state === "review";
+}
+
+function iconIsBlocked(icon: ManagedIcon): boolean {
+  return icon.status === "blocked" || icon.quality.state === "blocked";
+}
+
+function iconCanUseOnCanvas(icon: ManagedIcon): boolean {
+  return (
+    !iconIsBlocked(icon) &&
+    Boolean(icon.figma.componentId || icon.figma.componentKey)
+  );
 }
 
 function getIconHealthSummary(
@@ -268,11 +307,14 @@ function getIconHealthSummary(
   return icons.reduce<IconHealthSummary>(
     (summary, icon) => ({
       needsPublish: summary.needsPublish + (iconNeedsPublish(icon) ? 1 : 0),
+      blocked: summary.blocked + (iconIsBlocked(icon) ? 1 : 0),
+      qualityReview:
+        summary.qualityReview + (iconNeedsQualityReview(icon) ? 1 : 0),
       frameIssues:
         summary.frameIssues + (iconHasFrameIssue(icon, defaultIconSize) ? 1 : 0),
       colorReview: summary.colorReview + (iconNeedsColorReview(icon) ? 1 : 0),
     }),
-    { needsPublish: 0, frameIssues: 0, colorReview: 0 },
+    { needsPublish: 0, blocked: 0, qualityReview: 0, frameIssues: 0, colorReview: 0 },
   );
 }
 
@@ -290,6 +332,10 @@ function iconMatchesHealthFilter(
       return true;
     case "publish":
       return iconNeedsPublish(icon);
+    case "blocked":
+      return iconIsBlocked(icon);
+    case "quality":
+      return iconNeedsQualityReview(icon);
     case "frame":
       return iconHasFrameIssue(icon, defaultIconSize);
     case "color":
@@ -446,6 +492,7 @@ function iconUsageAuditInput(icon: ManagedIcon): ScanIconUsageMessage["icons"][n
     path: icon.path,
     componentName: icon.componentName,
     status: icon.status,
+    qualityState: icon.quality.state,
     svgHash: icon.svg.hash,
     componentId: icon.figma.componentId,
     componentKey: icon.figma.componentKey,
@@ -550,6 +597,25 @@ function IconStatusPill({ status }: { status: IconStatus }) {
   );
 }
 
+function IconQualityPill({ icon }: { icon: ManagedIcon }) {
+  if (icon.quality.state === "ready" || icon.status === "blocked") {
+    return null;
+  }
+
+  const blocked = icon.quality.state === "blocked";
+  return (
+    <span
+      className={`inline-flex min-h-5 max-w-full items-center rounded px-1.5 text-[11px] font-medium leading-none ${
+        blocked
+          ? "bg-[var(--workspace-danger)]/10 text-[color:var(--workspace-danger)]"
+          : "bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-text-warning)]"
+      }`}
+    >
+      {blocked ? "blocked" : "review"}
+    </span>
+  );
+}
+
 function IconGrid({
   icons,
   iconContent,
@@ -588,7 +654,10 @@ function IconGrid({
                 {icon.path}
               </span>
             </span>
-            <IconStatusPill status={icon.status} />
+            <span className="flex max-w-full flex-wrap gap-1">
+              <IconStatusPill status={icon.status} />
+              <IconQualityPill icon={icon} />
+            </span>
           </button>
         );
       })}
@@ -606,7 +675,11 @@ function IconHealthStrip({
   onFilterChange: (filter: IconHealthFilter) => void;
 }) {
   const issueCount =
-    summary.needsPublish + summary.frameIssues + summary.colorReview;
+    summary.needsPublish +
+    summary.blocked +
+    summary.qualityReview +
+    summary.frameIssues +
+    summary.colorReview;
 
   if (issueCount === 0) {
     return (
@@ -623,6 +696,8 @@ function IconHealthStrip({
     label: string;
   }> = [
     { filter: "publish", count: summary.needsPublish, label: "to publish" },
+    { filter: "blocked", count: summary.blocked, label: "blocked" },
+    { filter: "quality", count: summary.qualityReview, label: "to review" },
     { filter: "frame", count: summary.frameIssues, label: "frame issue" },
     { filter: "color", count: summary.colorReview, label: "color review" },
   ];
@@ -748,6 +823,7 @@ function IconUsageAuditPanel({
             <span>{formatHealthCount(result.summary.unmanagedComponents, "unmanaged component")}</span>
             <span>{formatHealthCount(result.summary.unpromotedIconSlots, "slot to set up")}</span>
             <span>{formatHealthCount(result.summary.rawIconLayers, "raw layer")}</span>
+            <span>{formatHealthCount(result.summary.blockedUsages, "blocked use")}</span>
             <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
           </div>
           {visibleFindings.map((finding) => (
@@ -804,16 +880,19 @@ function IconInspector({
     ["Frame", iconFrameLabel(icon)],
     ["Color", colorBehaviorLabel(icon)],
     ["Paint", colorDetails(icon)],
+    ["Readiness", qualityStateLabel(icon)],
     ["Hash", shortHash(icon.svg.hash)],
   ];
   const colorNote = colorBehaviorNote(icon);
   const frameMismatchNote = iconFrameMismatchNote(icon, defaultIconSize);
-  const canUseOnCanvas = Boolean(icon.figma.componentId || icon.figma.componentKey);
-  const publishNote = iconNeedsPublish(icon)
-    ? icon.figma.componentId
-      ? "The registry source changed since this component was last published."
-      : "Publish this icon before designers use it from Figma assets."
-    : null;
+  const canUseOnCanvas = iconCanUseOnCanvas(icon);
+  const publishNote = iconIsBlocked(icon)
+    ? "Resolve blocked icon quality issues before publishing or placing this icon."
+    : iconNeedsPublish(icon)
+      ? icon.figma.componentId
+        ? "The registry source changed since this component was last published."
+        : "Publish this icon before designers use it from Figma assets."
+      : null;
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-3 overflow-auto border-l border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3 min-[560px]:flex">
@@ -955,6 +1034,31 @@ function IconInspector({
         <p className="m-0 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
           {frameMismatchNote}
         </p>
+      ) : null}
+
+      {icon.quality.issues.length > 0 ? (
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+            Quality
+          </div>
+          {icon.quality.issues.slice(0, 5).map((issue) => (
+            <p
+              key={`${issue.kind}:${issue.message}`}
+              className={`m-0 rounded px-2 py-1.5 text-secondary ${
+                issue.severity === "error"
+                  ? "bg-[var(--workspace-danger)]/10 text-[color:var(--workspace-danger)]"
+                  : "bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-text-warning)]"
+              }`}
+            >
+              {issue.message}
+            </p>
+          ))}
+          {icon.quality.issues.length > 5 ? (
+            <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+              {icon.quality.issues.length - 5} more issues.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {icon.tags && icon.tags.length > 0 ? (
@@ -1123,9 +1227,9 @@ export function IconPanel() {
       null,
     [filteredIcons, selectedIconId],
   );
-  const selectedIconCanUseOnCanvas = Boolean(
-    selectedIcon?.figma.componentId || selectedIcon?.figma.componentKey,
-  );
+  const selectedIconCanUseOnCanvas = selectedIcon
+    ? iconCanUseOnCanvas(selectedIcon)
+    : false;
   const iconSlotActions = useMemo(
     () => getIconSlotActions(selectedNodes),
     [selectedNodes],
@@ -1251,7 +1355,7 @@ export function IconPanel() {
   }, [iconsToPublish, publishing, registry, serverUrl]);
 
   const handleInsert = useCallback(async () => {
-    if (!selectedIcon || canvasActionBusy) {
+    if (!selectedIcon || canvasActionBusy || !iconCanUseOnCanvas(selectedIcon)) {
       return;
     }
 
@@ -1273,7 +1377,12 @@ export function IconPanel() {
   }, [canvasActionBusy, selectedIcon]);
 
   const handleReplaceSelection = useCallback(async () => {
-    if (!selectedIcon || selectedNodes.length === 0 || canvasActionBusy) {
+    if (
+      !selectedIcon ||
+      selectedNodes.length === 0 ||
+      canvasActionBusy ||
+      !iconCanUseOnCanvas(selectedIcon)
+    ) {
       return;
     }
 
@@ -1299,7 +1408,12 @@ export function IconPanel() {
   }, [canvasActionBusy, selectedIcon, selectedNodes.length]);
 
   const handleSetIconSlot = useCallback(async (action: IconSlotAction) => {
-    if (!selectedIcon || action.targetNodeIds.length === 0 || canvasActionBusy) {
+    if (
+      !selectedIcon ||
+      action.targetNodeIds.length === 0 ||
+      canvasActionBusy ||
+      !iconCanUseOnCanvas(selectedIcon)
+    ) {
       return;
     }
 
@@ -1327,7 +1441,12 @@ export function IconPanel() {
   }, [canvasActionBusy, selectedIcon]);
 
   const handleCreateIconSlot = useCallback(async (action: IconSlotSetupAction) => {
-    if (!selectedIcon || action.targetNodeIds.length === 0 || canvasActionBusy) {
+    if (
+      !selectedIcon ||
+      action.targetNodeIds.length === 0 ||
+      canvasActionBusy ||
+      !iconCanUseOnCanvas(selectedIcon)
+    ) {
       return;
     }
 
@@ -1387,6 +1506,7 @@ export function IconPanel() {
           unpromotedIconSlots: 0,
           rawIconLayers: 0,
           deprecatedUsages: 0,
+          blockedUsages: 0,
           staleComponents: 0,
           missingComponents: 0,
         },

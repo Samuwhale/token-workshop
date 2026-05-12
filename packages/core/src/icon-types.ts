@@ -1,4 +1,4 @@
-export type IconStatus = 'draft' | 'published' | 'deprecated';
+export type IconStatus = 'draft' | 'published' | 'deprecated' | 'blocked';
 
 export type IconColorBehavior =
   | 'inheritable'
@@ -35,6 +35,7 @@ export interface IconSvgMetadata {
   hash: string;
   contentHash: string;
   color: IconColorMetadata;
+  features: IconSvgFeatureMetadata;
   content?: string;
 }
 
@@ -45,6 +46,47 @@ export interface IconColorMetadata {
   hasInlineStyles: boolean;
   hasPaintServers: boolean;
   hasOpacity: boolean;
+}
+
+export interface IconSvgFeatureMetadata {
+  hasStyleBlocks: boolean;
+  hasStrokes: boolean;
+  hasNonScalingStrokes: boolean;
+  hasMasks: boolean;
+  hasClipPaths: boolean;
+  hasFilters: boolean;
+  hasRasterImages: boolean;
+}
+
+export type IconQualityState = 'ready' | 'review' | 'blocked';
+
+export type IconQualityIssueSeverity = 'warning' | 'error';
+
+export type IconQualityIssueKind =
+  | 'frame-origin'
+  | 'frame-size'
+  | 'unknown-color'
+  | 'multicolor'
+  | 'inline-style'
+  | 'style-block'
+  | 'paint-server'
+  | 'opacity'
+  | 'stroke'
+  | 'non-scaling-stroke'
+  | 'mask'
+  | 'clip-path'
+  | 'filter'
+  | 'raster-image';
+
+export interface IconQualityIssue {
+  kind: IconQualityIssueKind;
+  severity: IconQualityIssueSeverity;
+  message: string;
+}
+
+export interface IconQualityMetadata {
+  state: IconQualityState;
+  issues: IconQualityIssue[];
 }
 
 export interface IconFigmaLink {
@@ -66,6 +108,7 @@ export interface ManagedIcon {
   svg: IconSvgMetadata;
   figma: IconFigmaLink;
   code: IconCodeMetadata;
+  quality: IconQualityMetadata;
   status: IconStatus;
   tags?: string[];
 }

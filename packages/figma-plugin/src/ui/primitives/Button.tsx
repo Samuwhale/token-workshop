@@ -50,7 +50,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={rest.type ?? "button"}
         {...rest}
-        className={`inline-flex min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-[var(--radius-md)] leading-tight font-medium outline-none transition-colors [&>svg]:shrink-0 ${
+        className={`inline-flex min-w-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] leading-tight font-medium outline-none transition-colors [&>svg]:shrink-0 ${
+          wrap ? "overflow-visible" : "overflow-hidden"
+        } ${
           wrap ? "whitespace-normal text-left" : "whitespace-nowrap text-center"
         } ${disabledClass} ${CONTROL_FOCUS_ACCENT} ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className}`}
       >
