@@ -572,7 +572,7 @@ export function useReadinessChecks({
           severity: 'advisory',
           affectedCount: unsupportedVariableTokens.length || undefined,
           detail: unsupportedVariableTokens.length > 0
-            ? `${summarizeTokenTypes(unsupportedVariableTokens)} will be skipped by Figma variable sync. Keep them for file export, or publish supported styles where available.`
+            ? `${summarizeTokenTypes(unsupportedVariableTokens)} tokens are not supported as variables and will be skipped. They stay available for file export and Figma style sync.`
             : undefined,
         },
         {

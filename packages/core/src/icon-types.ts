@@ -24,7 +24,24 @@ export type IconSource =
   | {
       kind: 'generated';
       description?: string;
+    }
+  | {
+      kind: 'public-library';
+      provider: string;
+      providerName: string;
+      collectionId: string;
+      collectionName: string;
+      iconId: string;
+      iconName: string;
+      sourceUrl: string;
+      license: IconLicenseMetadata;
     };
+
+export interface IconLicenseMetadata {
+  name: string;
+  url: string;
+  attributionRequired: boolean;
+}
 
 export interface IconSvgMetadata {
   viewBox: string;

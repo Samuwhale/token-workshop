@@ -1555,7 +1555,7 @@ function StandardPublishRoutingCard({
           <p className="mt-1 max-w-[520px] text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
             Choose where this collection publishes in Figma variables.
             {usesAllModes
-              ? ' Each mode updates the Figma mode with the same name.'
+              ? ' Each mode syncs to a Figma mode with the matching name.'
               : ' This changes the destination only; the token value stays the same.'}
           </p>
         </div>

@@ -16,6 +16,7 @@ import {
   type ManagedIcon,
 } from "@token-workshop/core";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
+import { readPublicIconImportData } from "./icon-public-sources.js";
 import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
@@ -121,6 +122,21 @@ export class IconStore {
   ): Promise<IconFigmaSelectionImportBatchResult> {
     return this.lock.withLock(async () => {
       const requests = this.readImportFigmaSelectionRequest(input);
+      await this.reloadFromDiskUnlocked();
+      return this.importSvgRequestsUnlocked(requests);
+    });
+  }
+
+  async importPublicIcons(input: unknown): Promise<IconSvgImportBatchResult> {
+    return this.lock.withLock(async () => {
+      const publicIcons = await readPublicIconImportData(input);
+      const requests = publicIcons.map((icon) => ({
+        source: icon.source,
+        svg: parseSvgMetadata(icon.svg, true),
+        path: normalizeImportIconPath(icon.path),
+        name: icon.name,
+        ...(icon.tags ? { tags: icon.tags } : {}),
+      }));
       await this.reloadFromDiskUnlocked();
       return this.importSvgRequestsUnlocked(requests);
     });

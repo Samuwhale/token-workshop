@@ -1,5 +1,9 @@
 import type { FastifyPluginAsync } from "fastify";
 import { handleRouteError } from "../errors.js";
+import {
+  listPublicIconProviders,
+  searchPublicIcons,
+} from "../services/icon-public-sources.js";
 
 export const iconRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/icons", async (_request, reply) => {
@@ -64,6 +68,37 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ ok: true, ...result });
       } catch (err) {
         return handleRouteError(reply, err, "Failed to import Figma icons");
+      }
+    },
+  );
+
+  fastify.get("/icons/public/providers", async (_request, reply) => {
+    try {
+      return { providers: listPublicIconProviders() };
+    } catch (err) {
+      return handleRouteError(reply, err, "Failed to load public icon providers");
+    }
+  });
+
+  fastify.get<{ Querystring: Record<string, unknown> }>(
+    "/icons/public/search",
+    async (request, reply) => {
+      try {
+        return await searchPublicIcons(request.query);
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to search public icons");
+      }
+    },
+  );
+
+  fastify.post<{ Body: unknown }>(
+    "/icons/import/public",
+    async (request, reply) => {
+      try {
+        const result = await fastify.iconStore.importPublicIcons(request.body);
+        return reply.send({ ok: true, ...result });
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to import public icons");
       }
     },
   );

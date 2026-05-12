@@ -38,6 +38,14 @@ export class ConflictError extends HttpError {
   }
 }
 
+/** 503 Service Unavailable — an upstream dependency cannot currently satisfy the request */
+export class ServiceUnavailableError extends HttpError {
+  constructor(message: string) {
+    super(503, message);
+    this.name = 'ServiceUnavailableError';
+  }
+}
+
 /** 408 Request Timeout — a git network operation (fetch/pull/push) exceeded the configured timeout */
 export class GitTimeoutError extends HttpError {
   constructor(operation: string, timeoutMs: number) {

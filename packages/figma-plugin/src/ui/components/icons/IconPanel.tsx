@@ -143,6 +143,8 @@ function iconMatchesQuery(icon: ManagedIcon, query: string): boolean {
     icon.path,
     icon.componentName,
     icon.code.exportName,
+    icon.source.kind === "public-library" ? icon.source.collectionName : "",
+    icon.source.kind === "public-library" ? icon.source.providerName : "",
     ...(icon.tags ?? []),
   ].join(" ").toLowerCase();
   return searchable.includes(normalizedQuery);
@@ -157,6 +159,9 @@ function sourceLabel(icon: ManagedIcon): string {
   }
   if (icon.source.kind === "generated") {
     return "Generated";
+  }
+  if (icon.source.kind === "public-library") {
+    return `${icon.source.collectionName} via ${icon.source.providerName}`;
   }
   return "Pasted SVG";
 }
@@ -872,10 +877,22 @@ function IconInspector({
   onSetIconSlot: (action: IconSlotAction) => void;
   onCreateIconSlot: (action: IconSlotSetupAction) => void;
 }) {
-  const rows = [
+  const publicSource = icon.source.kind === "public-library" ? icon.source : null;
+  const rows: Array<[string, string]> = [
     ["Component", icon.componentName],
     ["Export", icon.code.exportName],
     ["Source", sourceLabel(icon)],
+    ...(publicSource
+      ? [
+          ["License", publicSource.license.name] as [string, string],
+          [
+            "Attribution",
+            publicSource.license.attributionRequired
+              ? "Required"
+              : "Not required by license metadata",
+          ] as [string, string],
+        ]
+      : []),
     ["ViewBox", icon.svg.viewBox],
     ["Frame", iconFrameLabel(icon)],
     ["Color", colorBehaviorLabel(icon)],
@@ -1022,6 +1039,32 @@ function IconInspector({
         <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {colorNote}
         </p>
+      ) : null}
+
+      {publicSource ? (
+        <div className="flex min-w-0 flex-col gap-1 text-secondary">
+          {publicSource.license.attributionRequired ? (
+            <p className="m-0 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-[color:var(--color-figma-text-warning)]">
+              This source requires attribution. Keep it visible in handoff and export review.
+            </p>
+          ) : null}
+          <a
+            href={publicSource.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="break-words text-[color:var(--color-figma-text-accent)] underline"
+          >
+            View source
+          </a>
+          <a
+            href={publicSource.license.url}
+            target="_blank"
+            rel="noreferrer"
+            className="break-words text-[color:var(--color-figma-text-accent)] underline"
+          >
+            View license
+          </a>
+        </div>
       ) : null}
 
       {publishNote ? (

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
 import {
   normalizeIconPath,
   type IconRegistryFile,
@@ -20,7 +20,7 @@ import { CONTROL_INPUT_BASE_CLASSES, CONTROL_INPUT_DEFAULT_STATE_CLASSES, CONTRO
 import { apiFetch } from "../../shared/apiFetch";
 import { getErrorMessage } from "../../shared/utils";
 
-type ImportMode = "files" | "selection" | "paste" | "workspace";
+type ImportMode = "library" | "files" | "selection" | "paste" | "workspace";
 
 interface IconImportResponse {
   ok: true;
@@ -34,6 +34,39 @@ interface IconImportBatchResponse {
   icons: ManagedIcon[];
   registry: IconRegistryFile;
   created: boolean[];
+}
+
+interface PublicIconCollection {
+  id: string;
+  name: string;
+  total: number;
+  category?: string;
+  tags: string[];
+  license: {
+    name: string;
+    url: string;
+    attributionRequired: boolean;
+  };
+}
+
+interface PublicIconSearchResult {
+  id: string;
+  provider: string;
+  providerName: string;
+  collection: PublicIconCollection;
+  name: string;
+  path: string;
+  svgUrl: string;
+  sourceUrl: string;
+}
+
+interface PublicIconSearchResponse {
+  query: string;
+  total: number;
+  limit: number;
+  start: number;
+  icons: PublicIconSearchResult[];
+  collections: PublicIconCollection[];
 }
 
 interface EditableSelectionIcon extends IconSelectionImportItem {
@@ -58,6 +91,7 @@ interface IconImportDialogProps {
 }
 
 const IMPORT_MODES: Array<{ value: ImportMode; label: string }> = [
+  { value: "library", label: "Library" },
   { value: "files", label: "Files" },
   { value: "selection", label: "Selection" },
   { value: "paste", label: "Paste" },
@@ -181,6 +215,14 @@ export function IconImportDialog({
   const workspacePathRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<ImportMode>("files");
   const [files, setFiles] = useState<File[]>([]);
+  const [libraryQuery, setLibraryQuery] = useState("home");
+  const [libraryCollection, setLibraryCollection] = useState("lucide");
+  const [libraryResults, setLibraryResults] =
+    useState<PublicIconSearchResponse | null>(null);
+  const [selectedPublicIconIds, setSelectedPublicIconIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [libraryLoading, setLibraryLoading] = useState(false);
   const [pastedSvg, setPastedSvg] = useState("");
   const [pastedPath, setPastedPath] = useState("");
   const [workspaceFilePath, setWorkspaceFilePath] = useState("");
@@ -307,9 +349,26 @@ export function IconImportDialog({
     [selectionIssues],
   );
 
+  const selectedPublicIcons = useMemo(
+    () =>
+      (libraryResults?.icons ?? []).filter((icon) =>
+        selectedPublicIconIds.has(icon.id),
+      ),
+    [libraryResults, selectedPublicIconIds],
+  );
+
+  const selectedPublicIconUpdateCount = useMemo(
+    () =>
+      selectedPublicIcons.filter((icon) =>
+        existingIconPaths.has(iconPathKey(icon.path)),
+      ).length,
+    [existingIconPaths, selectedPublicIcons],
+  );
+
   const confirmDisabled =
     busy ||
     (mode === "files" && files.length === 0) ||
+    (mode === "library" && selectedPublicIconIds.size === 0) ||
     (mode === "selection" &&
       (selectionIcons.length === 0 ||
         selectionHasErrors)) ||
@@ -377,6 +436,72 @@ export function IconImportDialog({
     ];
   };
 
+  const searchPublicLibrary = async () => {
+    if (!libraryQuery.trim() || libraryLoading || busy) {
+      return;
+    }
+    setLibraryLoading(true);
+    setError("");
+    setLibraryResults(null);
+    setSelectedPublicIconIds(new Set());
+    try {
+      const params = new URLSearchParams({
+        query: libraryQuery.trim(),
+        limit: "48",
+      });
+      if (libraryCollection.trim()) {
+        params.set("collection", libraryCollection.trim());
+      }
+      const result = await apiFetch<PublicIconSearchResponse>(
+        `${serverUrl}/api/icons/public/search?${params.toString()}`,
+      );
+      setLibraryResults(result);
+      if (result.icons.length === 0) {
+        setError("No public icons matched this search.");
+      }
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to search public icons."));
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const handleLibrarySearchKeyDown = (
+    event: KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    event.preventDefault();
+    void searchPublicLibrary();
+  };
+
+  const handleLibraryQueryChange = (value: string) => {
+    setLibraryQuery(value);
+    setLibraryResults(null);
+    setSelectedPublicIconIds(new Set());
+    setError("");
+  };
+
+  const handleLibraryCollectionChange = (value: string) => {
+    setLibraryCollection(value);
+    setLibraryResults(null);
+    setSelectedPublicIconIds(new Set());
+    setError("");
+  };
+
+  const togglePublicIcon = (iconId: string) => {
+    setSelectedPublicIconIds((current) => {
+      const next = new Set(current);
+      if (next.has(iconId)) {
+        next.delete(iconId);
+      } else {
+        next.add(iconId);
+      }
+      return next;
+    });
+  };
+
   const handleReadSelection = async () => {
     if (selectionLoading || busy) {
       return;
@@ -420,37 +545,57 @@ export function IconImportDialog({
     setBusy(true);
     setError("");
     try {
-      const bodies = await importBody();
-      if (mode === "selection") {
+      if (mode === "library") {
+        const tags = parseTags(tagInput);
         const result = await apiFetch<IconImportBatchResponse>(
-          `${serverUrl}/api/icons/import/figma`,
+          `${serverUrl}/api/icons/import/public`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ icons: bodies }),
+            body: JSON.stringify({
+              icons: selectedPublicIcons.map((icon) => ({
+                id: icon.id,
+                path: icon.path,
+                name: icon.name,
+              })),
+              ...(tags ? { tags } : {}),
+            }),
           },
         );
         onImported(result.registry, result.icons);
-      } else if (bodies.length === 1) {
-        const result = await apiFetch<IconImportResponse>(
-          `${serverUrl}/api/icons/import/svg`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(bodies[0]),
-          },
-        );
-        onImported(result.registry, [result.icon]);
       } else {
-        const result = await apiFetch<IconImportBatchResponse>(
-          `${serverUrl}/api/icons/import/svgs`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ icons: bodies }),
-          },
-        );
-        onImported(result.registry, result.icons);
+        const bodies = await importBody();
+        if (mode === "selection") {
+          const result = await apiFetch<IconImportBatchResponse>(
+            `${serverUrl}/api/icons/import/figma`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ icons: bodies }),
+            },
+          );
+          onImported(result.registry, result.icons);
+        } else if (bodies.length === 1) {
+          const result = await apiFetch<IconImportResponse>(
+            `${serverUrl}/api/icons/import/svg`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(bodies[0]),
+            },
+          );
+          onImported(result.registry, [result.icon]);
+        } else {
+          const result = await apiFetch<IconImportBatchResponse>(
+            `${serverUrl}/api/icons/import/svgs`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ icons: bodies }),
+            },
+          );
+          onImported(result.registry, result.icons);
+        }
       }
       onClose();
     } catch (err) {
@@ -497,6 +642,108 @@ export function IconImportDialog({
             ariaLabel="Icon import source"
             size="compact"
           />
+
+          {mode === "library" ? (
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_116px_auto] gap-2">
+                <Field label="Search">
+                  <TextInput
+                    value={libraryQuery}
+                    onChange={(event) => handleLibraryQueryChange(event.target.value)}
+                    onKeyDown={handleLibrarySearchKeyDown}
+                    placeholder="home, arrow, menu"
+                    size="sm"
+                  />
+                </Field>
+                <Field label="Collection">
+                  <TextInput
+                    value={libraryCollection}
+                    onChange={(event) =>
+                      handleLibraryCollectionChange(event.target.value)
+                    }
+                    onKeyDown={handleLibrarySearchKeyDown}
+                    placeholder="lucide"
+                    size="sm"
+                  />
+                </Field>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void searchPublicLibrary()}
+                  disabled={busy || libraryLoading || !libraryQuery.trim()}
+                  className="self-end bg-[var(--color-figma-bg-secondary)]"
+                >
+                  {libraryLoading ? "Searching" : "Search"}
+                </Button>
+              </div>
+
+              {libraryResults ? (
+                <div className="flex min-w-0 flex-col gap-2">
+                  <div className="flex min-w-0 items-center justify-between gap-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                    <span>
+                      {libraryResults.icons.length} of {libraryResults.total} results
+                    </span>
+                    {selectedPublicIconIds.size > 0 ? (
+                      <span>{selectedPublicIconIds.size} selected</span>
+                    ) : null}
+                  </div>
+                  {selectedPublicIconUpdateCount > 0 ? (
+                    <p className="m-0 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+                      {selectedPublicIconUpdateCount} selected icon{selectedPublicIconUpdateCount === 1 ? "" : "s"} will update an existing managed icon.
+                    </p>
+                  ) : null}
+                  <div className="grid max-h-72 min-w-0 grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2 overflow-auto pr-1">
+                    {libraryResults.icons.map((icon) => {
+                      const selected = selectedPublicIconIds.has(icon.id);
+                      const updatesExisting = existingIconPaths.has(iconPathKey(icon.path));
+                      return (
+                        <button
+                          key={icon.id}
+                          type="button"
+                          onClick={() => togglePublicIcon(icon.id)}
+                          className={`flex min-w-0 flex-col gap-2 rounded border p-2 text-left transition-colors ${
+                            selected
+                              ? "border-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-bg-selected)]"
+                              : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--surface-hover)]"
+                          }`}
+                        >
+                          <span className="flex h-12 w-full items-center justify-center rounded bg-[var(--color-figma-bg)]">
+                            <img
+                              src={icon.svgUrl}
+                              alt=""
+                              className="h-7 w-7 object-contain"
+                              draggable={false}
+                            />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-body font-medium text-[color:var(--color-figma-text)]">
+                              {icon.name}
+                            </span>
+                            <span className="block truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+                              {icon.collection.name}
+                            </span>
+                          </span>
+                          <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                            {icon.collection.license.name}
+                            {icon.collection.license.attributionRequired ? " - attribution" : ""}
+                          </span>
+                          {updatesExisting ? (
+                            <span className="text-secondary text-[color:var(--color-figma-text-warning)]">
+                              Updates existing icon
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Search Iconify collections before importing. Icons with missing license metadata are not shown.
+                </p>
+              )}
+            </div>
+          ) : null}
 
           {mode === "files" ? (
             <div className="flex min-w-0 flex-col gap-2">
@@ -659,7 +906,7 @@ export function IconImportDialog({
             </>
           ) : null}
 
-          {mode !== "selection" ? (
+          {mode !== "selection" && mode !== "library" ? (
             <Field label="Display name" help="Optional. Best for single-icon imports.">
               <TextInput
                 value={name}

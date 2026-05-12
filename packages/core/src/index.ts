@@ -39,6 +39,7 @@ export type {
   IconColorMetadata,
   IconCodeMetadata,
   IconFigmaLink,
+  IconLicenseMetadata,
   IconQualityIssue,
   IconQualityIssueKind,
   IconQualityIssueSeverity,

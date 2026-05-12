@@ -3,6 +3,7 @@ import type {
   IconColorMetadata,
   IconCodeMetadata,
   IconFigmaLink,
+  IconLicenseMetadata,
   IconQualityIssue,
   IconQualityMetadata,
   IconRegistryFile,
@@ -644,8 +645,56 @@ function normalizeIconSource(input: unknown, index: number): IconSource {
       ...(description ? { description } : {}),
     };
   }
+  if (kind === 'public-library') {
+    return {
+      kind,
+      provider: readRequiredString(
+        input.provider,
+        `icons[${index}].source.provider`,
+      ),
+      providerName: readRequiredString(
+        input.providerName,
+        `icons[${index}].source.providerName`,
+      ),
+      collectionId: readRequiredString(
+        input.collectionId,
+        `icons[${index}].source.collectionId`,
+      ),
+      collectionName: readRequiredString(
+        input.collectionName,
+        `icons[${index}].source.collectionName`,
+      ),
+      iconId: readRequiredString(input.iconId, `icons[${index}].source.iconId`),
+      iconName: readRequiredString(
+        input.iconName,
+        `icons[${index}].source.iconName`,
+      ),
+      sourceUrl: readRequiredString(
+        input.sourceUrl,
+        `icons[${index}].source.sourceUrl`,
+      ),
+      license: normalizeIconLicenseMetadata(input.license, index),
+    };
+  }
 
   throw new Error(`icons[${index}].source.kind "${kind}" is not supported.`);
+}
+
+function normalizeIconLicenseMetadata(
+  input: unknown,
+  index: number,
+): IconLicenseMetadata {
+  if (!isRecord(input)) {
+    throw new Error(`icons[${index}].source.license must be an object.`);
+  }
+  return {
+    name: readRequiredString(input.name, `icons[${index}].source.license.name`),
+    url: readRequiredString(input.url, `icons[${index}].source.license.url`),
+    attributionRequired: readBoolean(
+      input.attributionRequired,
+      `icons[${index}].source.license.attributionRequired`,
+    ),
+  };
 }
 
 function normalizeIconSvgMetadata(input: unknown, index: number): IconSvgMetadata {
