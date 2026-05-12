@@ -56,6 +56,18 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  fastify.post<{ Body: unknown }>(
+    "/icons/import/figma",
+    async (request, reply) => {
+      try {
+        const result = await fastify.iconStore.importFigmaSelection(request.body);
+        return reply.send({ ok: true, ...result });
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to import Figma icons");
+      }
+    },
+  );
+
   fastify.patch<{ Params: { iconId: string }; Body: unknown }>(
     "/icons/:iconId/figma",
     async (request, reply) => {

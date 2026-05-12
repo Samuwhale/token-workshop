@@ -4,6 +4,7 @@ import type {
   TokenGeneratorNodeKind,
 } from "@token-workshop/core";
 import { Button, SearchField } from "../../primitives";
+import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 
 export interface GeneratorPaletteItem {
   kind: TokenGeneratorNodeKind;
@@ -70,18 +71,17 @@ export function NodeLibraryPanel({
       />
       <div className="space-y-2">
         {groupedItems.length === 0 ? (
-          <div className="rounded bg-[var(--color-figma-bg-secondary)] px-2 py-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            <div className="font-medium text-[color:var(--color-figma-text)]">
-              No matching nodes
-            </div>
-            <button
-              type="button"
-              className="mt-1 text-left text-[color:var(--color-figma-text-accent)] hover:underline"
-              onClick={() => onPaletteQueryChange("")}
-            >
-              Clear search
-            </button>
-          </div>
+          <FeedbackPlaceholder
+            variant="no-results"
+            size="section"
+            align="start"
+            className="rounded-[var(--radius-md)] bg-[var(--surface-group-quiet)] px-2 py-3"
+            title="No matching nodes"
+            secondaryAction={{
+              label: "Clear search",
+              onClick: () => onPaletteQueryChange(""),
+            }}
+          />
         ) : null}
         {groupedItems.map(([category, items]) => (
           <div key={category}>
@@ -102,7 +102,10 @@ export function NodeLibraryPanel({
                     event.dataTransfer.effectAllowed = "copy";
                   }}
                   onClick={() => onAddNode(item)}
-                  className="flex w-full items-start gap-2 rounded px-1.5 py-1 text-left text-secondary hover:bg-[var(--color-figma-bg-hover)]"
+                  title={`Add ${item.label}`}
+                  aria-label={`Add ${item.label}. Click to add or drag to the graph.`}
+                  aria-description="Press Enter to add this node. You can also drag it to the graph."
+                  className="flex w-full cursor-grab items-start gap-2 rounded-[var(--radius-md)] border border-transparent px-1.5 py-1 text-left text-secondary transition-colors hover:border-[var(--border-muted)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:border-[var(--color-figma-accent)] focus-visible:bg-[var(--surface-accent)] focus-visible:outline-none active:cursor-grabbing"
                 >
                   <Plus
                     size={12}

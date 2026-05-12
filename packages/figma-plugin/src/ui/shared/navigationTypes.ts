@@ -98,9 +98,9 @@ export const TOP_TABS: {
     id: "publish",
     label: "Publish",
     subTabs: [
-      { id: "publish-figma", label: "Figma" },
+      { id: "publish-figma", label: "Figma variables" },
       { id: "publish-code", label: "Export files" },
-      { id: "publish-repository", label: "Team versions" },
+      { id: "publish-repository", label: "Repository" },
     ],
   },
 ];
@@ -354,9 +354,9 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
     topTab: "publish",
     subTab: "publish-figma",
     sections: [
-      { id: "publish-figma", label: "Figma", topTab: "publish", subTab: "publish-figma" },
+      { id: "publish-figma", label: "Figma variables", topTab: "publish", subTab: "publish-figma" },
       { id: "publish-code",  label: "Export files",  topTab: "publish", subTab: "publish-code" },
-      { id: "publish-repository",  label: "Team versions",  topTab: "publish", subTab: "publish-repository" },
+      { id: "publish-repository",  label: "Repository",  topTab: "publish", subTab: "publish-repository" },
     ],
     matchRoutes: [
       route("publish", "publish-figma"),

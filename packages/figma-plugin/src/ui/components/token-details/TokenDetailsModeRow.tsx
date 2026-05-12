@@ -210,6 +210,48 @@ export function TokenDetailsModeRow({
     editable && aliasMode && aliasQueryTrimmed.length > 0 && !aliasTargetExists;
   const showAliasAmbiguousState =
     editable && aliasMode && aliasQueryTrimmed.length > 0 && aliasTargetAmbiguous;
+  const aliasPreview = useMemo(() => {
+    if (
+      aliasQueryTrimmed.length === 0 ||
+      aliasTargetAmbiguous ||
+      aliasResolution?.reason === "missing"
+    ) {
+      return null;
+    }
+    return resolveReadOnlyPresentation(
+      `{${aliasQueryTrimmed}}`,
+      tokenType,
+      allTokensFlat,
+      pathToCollectionId,
+      collectionIdsByPath,
+      perCollectionFlat,
+      preferredCollectionId,
+    );
+  }, [
+    aliasQueryTrimmed,
+    aliasResolution?.reason,
+    aliasTargetAmbiguous,
+    allTokensFlat,
+    collectionIdsByPath,
+    pathToCollectionId,
+    perCollectionFlat,
+    preferredCollectionId,
+    tokenType,
+  ]);
+  const aliasPreviewCollectionLabel =
+    aliasPreview?.aliasTargetCollectionId &&
+    aliasPreview.aliasTargetCollectionId !== preferredCollectionId
+      ? formatCollectionDisplayNameList(
+          [aliasPreview.aliasTargetCollectionId],
+          collectionDisplayNames,
+        )
+      : "";
+  const showAliasResolvedState =
+    editable &&
+    aliasMode &&
+    aliasPreview !== null &&
+    !aliasPreview.isUnresolvedAlias &&
+    aliasPreview.displayValue.length > 0;
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
   const copyMenuStyle = useAnchoredFloatingStyle({
@@ -461,15 +503,39 @@ export function TokenDetailsModeRow({
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  No token at this path. Pick another token or create it first.
+                  No token at this path.
                 </p>
               ) : showAliasAmbiguousState ? (
                 <p
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
                 >
-                  This path exists in {formatCollectionDisplayNameList(ambiguousAliasCollectionIds, collectionDisplayNames)}. Use a unique path.
+                  Path exists in{" "}
+                  {formatCollectionDisplayNameList(
+                    ambiguousAliasCollectionIds,
+                    collectionDisplayNames,
+                  )}
+                  . Use a unique path.
                 </p>
+              ) : showAliasResolvedState && aliasPreview ? (
+                <div className="tm-token-mode-row__helper tm-token-mode-row__helper--resolved">
+                  <ValuePreview
+                    type={aliasPreview.resolvedType}
+                    value={aliasPreview.resolvedValue}
+                    size={12}
+                  />
+                  <span
+                    className="tm-token-mode-row__helper-copy"
+                    title={aliasPreview.displayValue}
+                  >
+                    {aliasPreview.displayValue}
+                  </span>
+                  {aliasPreviewCollectionLabel ? (
+                    <span className="tm-token-mode-row__helper-detail">
+                      {aliasPreviewCollectionLabel}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ) : editable && isEmpty ? (

@@ -7,7 +7,10 @@ import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
 import { selectNode, selectNextSibling, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
+import { insertIconInstance, replaceSelectionWithIcon, setSelectionIconSwapProperty } from './iconCanvas.js';
+import { readSelectedIconsForImport } from './iconSelectionImport.js';
 import { publishIcons } from './iconSync.js';
+import { scanIconUsage } from './iconUsageAudit.js';
 
 figma.showUI(__html__, { width: 680, height: 720, themeColors: true });
 
@@ -152,6 +155,11 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'revert-variables':           [['varSnapshot', 'object']],
   'revert-styles':              [['styleSnapshot', 'object']],
   'publish-icons':              [['pageName', 'string'], ['icons', 'array']],
+  'read-icon-selection':        [],
+  'insert-icon':                [['icon', 'object']],
+  'replace-selection-with-icon': [['icon', 'object']],
+  'set-icon-swap-property':     [['icon', 'object'], ['propertyName', 'string'], ['targetNodeIds', 'array']],
+  'scan-icon-usage':            [['scope', 'string'], ['icons', 'array']],
   'cancel-scan':                [],
 };
 
@@ -504,6 +512,104 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           correlationId: msg.correlationId,
         });
       }
+      break;
+    case 'read-icon-selection':
+      try {
+        const icons = await readSelectedIconsForImport();
+        figma.ui.postMessage({
+          type: 'icon-selection-read',
+          icons,
+          correlationId: msg.correlationId,
+        });
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'icon-selection-read',
+          icons: [],
+          error: getErrorMessage(e, 'Failed to read selected icons.'),
+          correlationId: msg.correlationId,
+        });
+      }
+      break;
+    case 'insert-icon':
+      try {
+        const count = await insertIconInstance(msg.icon);
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'insert',
+          iconId: msg.icon.id,
+          count,
+          skipped: 0,
+          correlationId: msg.correlationId,
+        });
+        await getSelection();
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'insert',
+          iconId: msg.icon.id,
+          count: 0,
+          skipped: 0,
+          error: getErrorMessage(e, 'Failed to insert icon.'),
+          correlationId: msg.correlationId,
+        });
+      }
+      break;
+    case 'replace-selection-with-icon':
+      try {
+        const result = await replaceSelectionWithIcon(msg.icon);
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'replace',
+          iconId: msg.icon.id,
+          ...result,
+          correlationId: msg.correlationId,
+        });
+        await getSelection();
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'replace',
+          iconId: msg.icon.id,
+          count: 0,
+          skipped: 0,
+          error: getErrorMessage(e, 'Failed to replace selection.'),
+          correlationId: msg.correlationId,
+        });
+      }
+      break;
+    case 'set-icon-swap-property':
+      try {
+        const result = await setSelectionIconSwapProperty(
+          msg.icon,
+          msg.propertyName,
+          msg.targetNodeIds,
+        );
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'set-slot',
+          iconId: msg.icon.id,
+          ...result,
+          correlationId: msg.correlationId,
+        });
+        await getSelection();
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'set-slot',
+          iconId: msg.icon.id,
+          count: 0,
+          skipped: 0,
+          error: getErrorMessage(e, 'Failed to set icon slot.'),
+          correlationId: msg.correlationId,
+        });
+      }
+      break;
+    case 'scan-icon-usage':
+      await scanIconUsage({
+        scope: msg.scope,
+        icons: msg.icons,
+        correlationId: msg.correlationId,
+      });
       break;
     case 'cancel-scan':
       cancelActiveScan(msg.requestId);

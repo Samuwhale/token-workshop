@@ -168,14 +168,14 @@ export function CollectionAuthoringFields({
           {draft.modeNames.map((modeName, index) => (
             <label key={index} className="flex flex-col gap-1">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Mode name
+                Mode {index + 1}
               </span>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={modeName}
                   onChange={(event) => onModeNameChange(index, event.target.value)}
-                  placeholder={index === 0 ? "Default" : index === 1 ? "Dark" : "Mode name"}
+                  placeholder={index === 0 ? "Light" : index === 1 ? "Dark" : "Mode name"}
                   disabled={pending}
                   aria-label={`Mode ${index + 1} name`}
                   className={`${COLLECTION_INPUT_CLASS} flex-1`}
@@ -197,7 +197,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Each token has one value in every mode.
+          Each token gets one value per mode.
         </span>
       </div>
 

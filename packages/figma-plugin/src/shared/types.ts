@@ -214,6 +214,18 @@ export interface SelectionNodeInfo {
   depth?: number;
   /** ID of the parent node; only set for depth > 0. */
   parentId?: string;
+  /** Instance-swap properties exposed by a selected component instance. */
+  iconSwapProperties?: IconInstanceSwapProperty[];
+}
+
+export interface IconInstanceSwapProperty {
+  propertyName: string;
+  label: string;
+  value: string;
+  preferredValues?: {
+    type: 'COMPONENT' | 'COMPONENT_SET';
+    key: string;
+  }[];
 }
 
 export interface SetDeepInspectMessage {
@@ -711,6 +723,154 @@ export interface IconsPublishedMessage {
   correlationId?: string;
 }
 
+export interface IconSelectionImportItem {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  fileKey?: string | null;
+  pageId: string;
+  pageName: string;
+  svg: string;
+  viewBox: string;
+  viewBoxMinX: number;
+  viewBoxMinY: number;
+  viewBoxWidth: number;
+  viewBoxHeight: number;
+  suggestedPath: string;
+  suggestedName: string;
+  width: number;
+  height: number;
+  warnings: string[];
+  componentId?: string | null;
+  componentKey?: string | null;
+}
+
+export interface ReadIconSelectionMessage {
+  type: 'read-icon-selection';
+  correlationId?: string;
+}
+
+export interface IconSelectionReadMessage {
+  type: 'icon-selection-read';
+  icons: IconSelectionImportItem[];
+  error?: string;
+  correlationId?: string;
+}
+
+export interface IconCanvasItem {
+  id: string;
+  path: string;
+  componentName: string;
+  componentId?: string | null;
+  componentKey?: string | null;
+}
+
+export interface InsertIconMessage {
+  type: 'insert-icon';
+  icon: IconCanvasItem;
+  correlationId?: string;
+}
+
+export interface ReplaceSelectionWithIconMessage {
+  type: 'replace-selection-with-icon';
+  icon: IconCanvasItem;
+  correlationId?: string;
+}
+
+export interface SetIconSwapPropertyMessage {
+  type: 'set-icon-swap-property';
+  icon: IconCanvasItem;
+  propertyName: string;
+  targetNodeIds: string[];
+  correlationId?: string;
+}
+
+export interface IconCanvasActionResultMessage {
+  type: 'icon-canvas-action-result';
+  action: 'insert' | 'replace' | 'set-slot';
+  iconId: string;
+  count: number;
+  skipped: number;
+  skippedReason?: string;
+  error?: string;
+  correlationId?: string;
+}
+
+export type IconUsageAuditScope = 'selection' | 'page';
+
+export interface IconUsageAuditInput {
+  id: string;
+  name: string;
+  path: string;
+  componentName: string;
+  status: 'draft' | 'published' | 'deprecated';
+  svgHash: string;
+  componentId?: string | null;
+  componentKey?: string | null;
+  lastSyncedHash?: string | null;
+}
+
+export interface ScanIconUsageMessage {
+  type: 'scan-icon-usage';
+  scope: IconUsageAuditScope;
+  icons: IconUsageAuditInput[];
+  correlationId?: string;
+}
+
+export type IconUsageAuditAction =
+  | 'publish'
+  | 'sync'
+  | 'replace'
+  | 'repair'
+  | 'deprecate'
+  | 'review';
+
+export type IconUsageAuditSeverity = 'info' | 'warning' | 'error';
+
+export type IconUsageAuditFindingType =
+  | 'missing-component'
+  | 'duplicate-component'
+  | 'stale-component'
+  | 'renamed-component'
+  | 'deprecated-usage'
+  | 'unmanaged-icon-component'
+  | 'raw-icon-layer'
+  | 'unknown-managed-component';
+
+export interface IconUsageAuditFinding {
+  id: string;
+  type: IconUsageAuditFindingType;
+  action: IconUsageAuditAction;
+  severity: IconUsageAuditSeverity;
+  message: string;
+  iconId?: string;
+  iconName?: string;
+  iconPath?: string;
+  nodeId?: string;
+  nodeName?: string;
+  nodeType?: string;
+  pageName?: string;
+}
+
+export interface IconUsageAuditSummary {
+  managedInstances: number;
+  unmanagedComponents: number;
+  rawIconLayers: number;
+  deprecatedUsages: number;
+  staleComponents: number;
+  missingComponents: number;
+}
+
+export interface IconUsageAuditResultMessage {
+  type: 'icon-usage-audit-result';
+  scope: IconUsageAuditScope;
+  findings: IconUsageAuditFinding[];
+  summary: IconUsageAuditSummary;
+  scannedNodes: number;
+  error?: string;
+  correlationId?: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Revert snapshot shapes — shared between plugin sandbox and UI
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1042,7 +1202,10 @@ export type ControllerMessage =
   | VariablesRevertedMessage
   | StylesRevertedMessage
   | IconPublishProgressMessage
-  | IconsPublishedMessage;
+  | IconsPublishedMessage
+  | IconSelectionReadMessage
+  | IconCanvasActionResultMessage
+  | IconUsageAuditResultMessage;
 
 /** Runtime set of all known Controller→UI message type strings.
  *  Keep in sync with the `ControllerMessage` union above. */
@@ -1083,6 +1246,9 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'styles-reverted',
   'icons-publish-progress',
   'icons-published',
+  'icon-selection-read',
+  'icon-canvas-action-result',
+  'icon-usage-audit-result',
 ]);
 
 /** Discriminated union of all UI→Controller messages */
@@ -1117,5 +1283,10 @@ export type PluginMessage =
   | SearchLayersMessage
   | CancelScanMessage
   | PublishIconsMessage
+  | ReadIconSelectionMessage
+  | InsertIconMessage
+  | ReplaceSelectionWithIconMessage
+  | SetIconSwapPropertyMessage
+  | ScanIconUsageMessage
   | RevertVariablesMessage
   | RevertStylesMessage;

@@ -33,7 +33,7 @@
     <span style="flex:1"></span>
     <span style="font-size:11px;color:#888" id="msg-count">0 messages</span>
   </div>
-  <iframe id="plugin-frame" src="/dist/ui.html" sandbox="allow-scripts allow-same-origin"></iframe>
+  <iframe id="plugin-frame" src="/dist/ui.html" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
   <div id="resize-bar">⋯</div>
   <div id="log"></div>
 
@@ -187,6 +187,71 @@
         type: 'eyedropper-result',
         hex: '#3B82F6',
       }),
+
+      'read-icon-selection': (msg) => ({
+        type: 'icon-selection-read',
+        correlationId: msg.correlationId,
+        icons: [{
+          nodeId: '1:2',
+          nodeName: 'Icon/Navigation/Home',
+          nodeType: 'COMPONENT',
+          fileKey: 'mock-file-key',
+          pageId: '0:1',
+          pageName: 'Icons',
+          svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3.6 4 10v10h5v-6h6v6h5V10l-8-6.4Z"/></svg>',
+          viewBox: '0 0 24 24',
+          viewBoxMinX: 0,
+          viewBoxMinY: 0,
+          viewBoxWidth: 24,
+          viewBoxHeight: 24,
+          suggestedPath: 'navigation.home',
+          suggestedName: 'Home',
+          width: 24,
+          height: 24,
+          warnings: [],
+          componentId: 'mock-icon-navigation-home',
+          componentKey: 'mock-icon-navigation-home-key',
+        }],
+      }),
+
+      'publish-icons': (msg) => ({
+        type: 'icons-published',
+        correlationId: msg.correlationId,
+        results: (msg.icons || []).map((icon) => ({
+          id: icon.id,
+          componentId: icon.componentId || `mock-${icon.id}`,
+          componentKey: `mock-${icon.id}-key`,
+          lastSyncedHash: icon.svgHash,
+          action: icon.componentId ? 'updated' : 'created',
+        })),
+      }),
+
+      'insert-icon': (msg) => ({
+        type: 'icon-canvas-action-result',
+        action: 'insert',
+        iconId: msg.icon?.id || 'unknown',
+        count: 1,
+        skipped: 0,
+        correlationId: msg.correlationId,
+      }),
+
+      'replace-selection-with-icon': (msg) => ({
+        type: 'icon-canvas-action-result',
+        action: 'replace',
+        iconId: msg.icon?.id || 'unknown',
+        count: 1,
+        skipped: 0,
+        correlationId: msg.correlationId,
+      }),
+
+      'set-icon-swap-property': (msg) => ({
+        type: 'icon-canvas-action-result',
+        action: 'set-slot',
+        iconId: msg.icon?.id || 'unknown',
+        count: msg.targetNodeIds?.length || 1,
+        skipped: 0,
+        correlationId: msg.correlationId,
+      }),
     };
 
     function respondToUI(responseMsg) {
@@ -221,8 +286,8 @@
         type: 'selection',
         nodes: [{
           id: '1:2',
-          name: 'Mock Rectangle',
-          type: 'RECTANGLE',
+          name: 'Button / Primary',
+          type: 'INSTANCE',
           bindings: {},
           capabilities: {
             hasFills: true,
@@ -238,6 +303,16 @@
             cornerRadius: 8,
             strokeWeight: 1,
           },
+          depth: 0,
+          iconSwapProperties: [{
+            propertyName: 'Leading icon#1:4',
+            label: 'Leading icon',
+            value: 'mock-icon-navigation-home-key',
+            preferredValues: [{
+              type: 'COMPONENT',
+              key: 'mock-icon-navigation-home-key',
+            }],
+          }],
         }],
       });
     }

@@ -26,6 +26,7 @@ import {
   Chip,
   IconButton,
   MenuRadioGroup,
+  SegmentedControl,
   SearchField,
   type SegmentedOption,
 } from "../primitives";
@@ -365,8 +366,24 @@ export function TokenListToolbar({
                       setHintIndex(0);
                       searchRef.current?.focus();
                     }}
-                    containerClassName="min-w-0 flex-1"
+                    containerClassName="min-w-[148px] flex-1"
                   />
+                  {showSearchScopeToggle && overflowMenuProps ? (
+                    <SegmentedControl
+                      value={searchScope}
+                      options={SEARCH_SCOPE_OPTIONS}
+                      onChange={(value) => {
+                        if (
+                          (value === "all") !==
+                          overflowMenuProps.crossCollectionSearch
+                        ) {
+                          overflowMenuProps.onToggleCrossCollectionSearch();
+                        }
+                      }}
+                      ariaLabel="Search scope"
+                      size="compact"
+                    />
+                  ) : null}
                 </div>
 
                 {showQualifierHints &&
@@ -480,7 +497,7 @@ export function TokenListToolbar({
 
                         {overflowMenuProps && viewMode === "tree" ? (
                           <>
-                            {showSearchScopeToggle ? (
+                            {showSearchScopeToggle ? null : (
                               <MenuRadioGroup
                                 label="Search"
                                 value={searchScope}
@@ -495,7 +512,7 @@ export function TokenListToolbar({
                                 }}
                                 onSelect={closeViewMenu}
                               />
-                            ) : null}
+                            )}
                             <MenuRadioGroup
                               label="Group by"
                               value={groupBy}

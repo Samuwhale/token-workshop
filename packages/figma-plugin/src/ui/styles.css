@@ -4581,6 +4581,7 @@ select.tm-generator-field {
   }
 
   .tm-generator-workbench-header__primary {
+    flex-wrap: wrap;
     gap: 6px;
   }
 
@@ -4625,9 +4626,20 @@ select.tm-generator-field {
     font-size: var(--font-size-xs);
   }
 
-  .tm-generator-active-meta,
-  .tm-generator-header__state {
+  .tm-generator-active-meta {
     display: none;
+  }
+
+  .tm-generator-header__state {
+    display: block;
+    inline-size: 100%;
+    flex-basis: 100%;
+    order: 3;
+    overflow: hidden;
+    color: var(--color-figma-text-tertiary);
+    text-align: start;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .tm-generator-selector__header {
@@ -4998,6 +5010,27 @@ button.tm-token-details__text-button:disabled:hover {
   color: var(--color-figma-text-error);
 }
 
+.tm-token-mode-row__helper--resolved {
+  display: flex;
+  max-inline-size: none;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-figma-text-secondary);
+}
+
+.tm-token-mode-row__helper-copy {
+  min-inline-size: 0;
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--color-figma-text);
+  overflow-wrap: anywhere;
+}
+
+.tm-token-mode-row__helper-detail {
+  color: var(--color-figma-text-tertiary);
+  overflow-wrap: anywhere;
+}
+
 .tm-token-mode-row__inline-status {
   flex: 0 0 auto;
   inline-size: 6px;
@@ -5334,14 +5367,12 @@ button.tm-token-details__text-button:disabled:hover {
 
   .tm-token-mode-row__action-button {
     min-inline-size: var(--control-size-compact);
-    justify-content: flex-start;
-    padding-inline: 7px;
+    justify-content: center;
+    padding-inline: 6px;
   }
 
   .tm-token-mode-row__action-button-label {
-    display: block;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    display: none;
   }
 
   .tm-token-mode-row__action-button--menu {

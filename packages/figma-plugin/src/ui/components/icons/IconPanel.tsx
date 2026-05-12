@@ -1,16 +1,35 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { IconRegistryFile, IconStatus, ManagedIcon } from "@token-workshop/core";
 import type {
+  IconCanvasActionResultMessage,
+  IconCanvasItem,
   IconPublishProgressMessage,
+  IconUsageAuditFinding,
+  IconUsageAuditResultMessage,
+  IconUsageAuditScope,
   IconsPublishedMessage,
+  InsertIconMessage,
   PublishIconsMessage,
+  ReplaceSelectionWithIconMessage,
+  ScanIconUsageMessage,
+  SelectionNodeInfo,
+  SetIconSwapPropertyMessage,
 } from "../../../shared/types";
 import {
   getPluginMessageFromEvent,
   postPluginMessage,
 } from "../../../shared/utils";
-import { RefreshCw, Shapes, UploadCloud } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  MousePointer2,
+  RefreshCw,
+  Replace,
+  Shapes,
+  UploadCloud,
+} from "lucide-react";
 import { useConnectionContext } from "../../contexts/ConnectionContext";
+import { useSelectionContext } from "../../contexts/InspectContext";
 import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 import { PanelContentHeader } from "../PanelContentHeader";
 import { Button, SearchField, SegmentedControl } from "../../primitives";
@@ -20,6 +39,18 @@ import { getErrorMessage, isAbortError } from "../../shared/utils";
 import { IconImportDialog } from "./IconImportDialog";
 
 type IconStatusFilter = "all" | IconStatus;
+type IconHealthFilter = "all" | "publish" | "frame" | "color";
+type IconCanvasActionRequest =
+  | Omit<InsertIconMessage, "correlationId">
+  | Omit<ReplaceSelectionWithIconMessage, "correlationId">
+  | Omit<SetIconSwapPropertyMessage, "correlationId">;
+type IconUsageAuditRequest = Omit<ScanIconUsageMessage, "correlationId">;
+
+interface IconSlotAction {
+  propertyName: string;
+  label: string;
+  targetNodeIds: string[];
+}
 
 interface IconsResponse {
   registry: IconRegistryFile;
@@ -32,6 +63,17 @@ interface IconContentBatchItem {
   error?: string;
 }
 
+interface IconContentCacheItem {
+  content: string;
+  hash: string;
+}
+
+interface IconHealthSummary {
+  needsPublish: number;
+  frameIssues: number;
+  colorReview: number;
+}
+
 interface IconContentsResponse {
   contents: IconContentBatchItem[];
 }
@@ -41,6 +83,8 @@ interface IconFigmaLinksResponse {
   icons: ManagedIcon[];
   registry: IconRegistryFile;
 }
+
+const SVG_FRAME_EPSILON = 1e-6;
 
 const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
   { value: "all", label: "All" },
@@ -55,8 +99,24 @@ const STATUS_CLASS: Record<IconStatus, string> = {
   deprecated: "bg-[var(--color-figma-warning)]/10 text-[color:var(--color-figma-text-warning)]",
 };
 
+const AUDIT_SCOPE_OPTIONS: Array<{ value: IconUsageAuditScope; label: string }> = [
+  { value: "selection", label: "Selection" },
+  { value: "page", label: "Page" },
+];
+
 function formatIconCount(count: number): string {
   return `${count} ${count === 1 ? "icon" : "icons"}`;
+}
+
+function formatSkippedSuffix(
+  result: Pick<IconCanvasActionResultMessage, "skipped" | "skippedReason">,
+): string {
+  if (result.skipped === 0) {
+    return "";
+  }
+  return result.skippedReason
+    ? ` ${result.skipped} skipped: ${result.skippedReason}`
+    : ` ${result.skipped} skipped.`;
 }
 
 function iconMatchesQuery(icon: ManagedIcon, query: string): boolean {
@@ -138,6 +198,96 @@ function colorDetails(icon: ManagedIcon): string {
   return details.length > 0 ? details.join(" / ") : "No explicit paint";
 }
 
+function iconFrameLabel(icon: ManagedIcon): string {
+  const width = formatIconDimension(icon.svg.viewBoxWidth);
+  const height = formatIconDimension(icon.svg.viewBoxHeight);
+  return `${width}x${height}`;
+}
+
+function formatIconDimension(value: number): string {
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function iconFrameMismatchNote(
+  icon: ManagedIcon,
+  defaultIconSize: number,
+): string | null {
+  if (
+    iconFrameDimensionMatches(icon.svg.viewBoxWidth, defaultIconSize) &&
+    iconFrameDimensionMatches(icon.svg.viewBoxHeight, defaultIconSize)
+  ) {
+    return null;
+  }
+  const libraryFrame = formatIconDimension(defaultIconSize);
+  return [
+    `The SVG viewBox is ${iconFrameLabel(icon)}; this library publishes icons`,
+    `into a ${libraryFrame}x${libraryFrame} component frame.`,
+    "Re-import a matching source if this is unintentional.",
+  ].join(" ");
+}
+
+function iconHasFrameIssue(icon: ManagedIcon, defaultIconSize: number): boolean {
+  return (
+    !iconFrameDimensionMatches(icon.svg.viewBoxMinX, 0) ||
+    !iconFrameDimensionMatches(icon.svg.viewBoxMinY, 0) ||
+    !iconFrameDimensionMatches(icon.svg.viewBoxWidth, defaultIconSize) ||
+    !iconFrameDimensionMatches(icon.svg.viewBoxHeight, defaultIconSize)
+  );
+}
+
+function iconFrameDimensionMatches(left: number, right: number): boolean {
+  return Math.abs(left - right) <= SVG_FRAME_EPSILON;
+}
+
+function iconNeedsPublish(icon: ManagedIcon): boolean {
+  return (
+    icon.status !== "deprecated" &&
+    (!icon.figma.componentId || icon.figma.lastSyncedHash !== icon.svg.hash)
+  );
+}
+
+function iconNeedsColorReview(icon: ManagedIcon): boolean {
+  return icon.svg.color.behavior === "unknown";
+}
+
+function getIconHealthSummary(
+  icons: ManagedIcon[],
+  defaultIconSize: number,
+): IconHealthSummary {
+  return icons.reduce<IconHealthSummary>(
+    (summary, icon) => ({
+      needsPublish: summary.needsPublish + (iconNeedsPublish(icon) ? 1 : 0),
+      frameIssues:
+        summary.frameIssues + (iconHasFrameIssue(icon, defaultIconSize) ? 1 : 0),
+      colorReview: summary.colorReview + (iconNeedsColorReview(icon) ? 1 : 0),
+    }),
+    { needsPublish: 0, frameIssues: 0, colorReview: 0 },
+  );
+}
+
+function formatHealthCount(count: number, label: string): string {
+  return `${count} ${label}${count === 1 ? "" : "s"}`;
+}
+
+function iconMatchesHealthFilter(
+  icon: ManagedIcon,
+  filter: IconHealthFilter,
+  defaultIconSize: number,
+): boolean {
+  switch (filter) {
+    case "all":
+      return true;
+    case "publish":
+      return iconNeedsPublish(icon);
+    case "frame":
+      return iconHasFrameIssue(icon, defaultIconSize);
+    case "color":
+      return iconNeedsColorReview(icon);
+  }
+}
+
 function svgDataUrl(svg: string): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
@@ -196,6 +346,131 @@ function publishIconsInFigma(
   });
 }
 
+function iconCanvasItem(icon: ManagedIcon): IconCanvasItem {
+  return {
+    id: icon.id,
+    path: icon.path,
+    componentName: icon.componentName,
+    componentId: icon.figma.componentId,
+    componentKey: icon.figma.componentKey,
+  };
+}
+
+function runIconCanvasAction(
+  message: IconCanvasActionRequest,
+): Promise<IconCanvasActionResultMessage> {
+  const correlationId = createCorrelationId();
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      window.removeEventListener("message", handleMessage);
+      reject(new Error("Figma did not finish the icon action."));
+    }, 15_000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      window.removeEventListener("message", handleMessage);
+    }
+
+    function handleMessage(event: MessageEvent) {
+      const pluginMessage =
+        getPluginMessageFromEvent<IconCanvasActionResultMessage>(event);
+      if (
+        pluginMessage?.type !== "icon-canvas-action-result" ||
+        pluginMessage.correlationId !== correlationId
+      ) {
+        return;
+      }
+      cleanup();
+      resolve(pluginMessage);
+    }
+
+    window.addEventListener("message", handleMessage);
+    const sent = postPluginMessage({ ...message, correlationId });
+    if (!sent) {
+      cleanup();
+      reject(new Error("Open the plugin in Figma to use icons on the canvas."));
+    }
+  });
+}
+
+function runIconUsageAudit(
+  message: IconUsageAuditRequest,
+): Promise<IconUsageAuditResultMessage> {
+  const correlationId = createCorrelationId();
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      window.removeEventListener("message", handleMessage);
+      reject(new Error("Figma did not finish auditing icon usage."));
+    }, 30_000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      window.removeEventListener("message", handleMessage);
+    }
+
+    function handleMessage(event: MessageEvent) {
+      const pluginMessage =
+        getPluginMessageFromEvent<IconUsageAuditResultMessage>(event);
+      if (
+        pluginMessage?.type !== "icon-usage-audit-result" ||
+        pluginMessage.correlationId !== correlationId
+      ) {
+        return;
+      }
+      cleanup();
+      resolve(pluginMessage);
+    }
+
+    window.addEventListener("message", handleMessage);
+    const sent = postPluginMessage({ ...message, correlationId });
+    if (!sent) {
+      cleanup();
+      reject(new Error("Open the plugin in Figma to audit icon usage."));
+    }
+  });
+}
+
+function iconUsageAuditInput(icon: ManagedIcon): ScanIconUsageMessage["icons"][number] {
+  return {
+    id: icon.id,
+    name: icon.name,
+    path: icon.path,
+    componentName: icon.componentName,
+    status: icon.status,
+    svgHash: icon.svg.hash,
+    componentId: icon.figma.componentId,
+    componentKey: icon.figma.componentKey,
+    lastSyncedHash: icon.figma.lastSyncedHash,
+  };
+}
+
+function getIconSlotActions(selectedNodes: SelectionNodeInfo[]): IconSlotAction[] {
+  const grouped = new Map<string, IconSlotAction>();
+
+  for (const node of selectedNodes) {
+    if ((node.depth ?? 0) !== 0 || node.type !== "INSTANCE") {
+      continue;
+    }
+
+    for (const property of node.iconSwapProperties ?? []) {
+      const existing = grouped.get(property.propertyName);
+      if (existing) {
+        existing.targetNodeIds.push(node.id);
+      } else {
+        grouped.set(property.propertyName, {
+          propertyName: property.propertyName,
+          label: property.label || "Icon",
+          targetNodeIds: [node.id],
+        });
+      }
+    }
+  }
+
+  return Array.from(grouped.values()).sort((a, b) =>
+    a.label.localeCompare(b.label),
+  );
+}
+
 function IconPreview({
   icon,
   content,
@@ -242,7 +517,7 @@ function IconGrid({
   onSelectIcon,
 }: {
   icons: ManagedIcon[];
-  iconContent: Record<string, string>;
+  iconContent: Record<string, IconContentCacheItem>;
   selectedIconId: string | null;
   onSelectIcon: (iconId: string) => void;
 }) {
@@ -263,7 +538,7 @@ function IconGrid({
             }`}
           >
             <span className="flex h-11 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)]">
-              <IconPreview icon={icon} content={iconContent[icon.id]} />
+              <IconPreview icon={icon} content={iconContent[icon.id]?.content} />
             </span>
             <span className="min-w-0 max-w-full">
               <span className="block truncate text-body font-medium text-[color:var(--color-figma-text)]">
@@ -281,23 +556,219 @@ function IconGrid({
   );
 }
 
+function IconHealthStrip({
+  summary,
+  activeFilter,
+  onFilterChange,
+}: {
+  summary: IconHealthSummary;
+  activeFilter: IconHealthFilter;
+  onFilterChange: (filter: IconHealthFilter) => void;
+}) {
+  const issueCount =
+    summary.needsPublish + summary.frameIssues + summary.colorReview;
+
+  if (issueCount === 0) {
+    return (
+      <div className="flex min-w-0 items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+        <CheckCircle2 size={13} strokeWidth={1.5} aria-hidden />
+        <span className="truncate">Library health is clear.</span>
+      </div>
+    );
+  }
+
+  const healthItems: Array<{
+    filter: IconHealthFilter;
+    count: number;
+    label: string;
+  }> = [
+    { filter: "publish", count: summary.needsPublish, label: "to publish" },
+    { filter: "frame", count: summary.frameIssues, label: "frame issue" },
+    { filter: "color", count: summary.colorReview, label: "color review" },
+  ];
+  const items = healthItems.filter((item) => item.count > 0);
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+      <AlertTriangle size={13} strokeWidth={1.5} aria-hidden />
+      {items.map((item) => {
+        const selected = activeFilter === item.filter;
+        return (
+          <button
+            key={item.filter}
+            type="button"
+            onClick={() => onFilterChange(selected ? "all" : item.filter)}
+            aria-pressed={selected}
+            className={`min-h-5 rounded px-1.5 text-left leading-none transition-colors ${
+              selected
+                ? "bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)]"
+                : "text-[color:var(--color-figma-text-warning)] hover:bg-[var(--color-figma-warning)]/10"
+            }`}
+          >
+            {formatHealthCount(item.count, item.label)}
+          </button>
+        );
+      })}
+      {activeFilter !== "all" ? (
+        <button
+          type="button"
+          onClick={() => onFilterChange("all")}
+          className="min-h-5 rounded px-1.5 leading-none text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)]"
+        >
+          Clear
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function auditActionLabel(action: IconUsageAuditFinding["action"]): string {
+  switch (action) {
+    case "publish":
+      return "Publish";
+    case "sync":
+      return "Sync";
+    case "replace":
+      return "Replace";
+    case "repair":
+      return "Repair";
+    case "deprecate":
+      return "Deprecate";
+    case "review":
+      return "Review";
+  }
+}
+
+function auditSeverityClass(severity: IconUsageAuditFinding["severity"]): string {
+  switch (severity) {
+    case "error":
+      return "text-[color:var(--workspace-danger)]";
+    case "warning":
+      return "text-[color:var(--color-figma-text-warning)]";
+    case "info":
+      return "text-[color:var(--color-figma-text-secondary)]";
+  }
+}
+
+function IconUsageAuditPanel({
+  scope,
+  loading,
+  result,
+  onScopeChange,
+  onRun,
+}: {
+  scope: IconUsageAuditScope;
+  loading: boolean;
+  result: IconUsageAuditResultMessage | null;
+  onScopeChange: (scope: IconUsageAuditScope) => void;
+  onRun: () => void;
+}) {
+  const findings = result?.findings ?? [];
+  const visibleFindings = findings.slice(0, 4);
+
+  return (
+    <div className="flex min-w-0 flex-col gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <SegmentedControl
+          value={scope}
+          options={AUDIT_SCOPE_OPTIONS}
+          onChange={onScopeChange}
+          ariaLabel="Icon audit scope"
+          size="compact"
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onRun}
+          disabled={loading}
+        >
+          <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+          {loading ? "Auditing" : "Audit usage"}
+        </Button>
+        {result ? (
+          <div className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+            {findings.length === 0
+              ? `No issues across ${result.scannedNodes} layers`
+              : `${formatHealthCount(findings.length, "finding")} across ${result.scannedNodes} layers`}
+          </div>
+        ) : null}
+      </div>
+
+      {result?.error ? (
+        <p className="m-0 text-secondary text-[color:var(--workspace-danger)]">
+          {result.error}
+        </p>
+      ) : null}
+
+      {result && !result.error && findings.length > 0 ? (
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            <span>{formatHealthCount(result.summary.managedInstances, "managed use")}</span>
+            <span>{formatHealthCount(result.summary.unmanagedComponents, "unmanaged component")}</span>
+            <span>{formatHealthCount(result.summary.rawIconLayers, "raw layer")}</span>
+            <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
+          </div>
+          {visibleFindings.map((finding) => (
+            <div key={finding.id} className="flex min-w-0 items-start gap-2 text-secondary">
+              <span className={`shrink-0 font-medium ${auditSeverityClass(finding.severity)}`}>
+                {auditActionLabel(finding.action)}
+              </span>
+              <span className="min-w-0 text-[color:var(--color-figma-text-secondary)]">
+                {finding.message}
+              </span>
+            </div>
+          ))}
+          {findings.length > visibleFindings.length ? (
+            <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+              {findings.length - visibleFindings.length} more findings.
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function IconInspector({
   icon,
   content,
+  selectionCount,
+  iconSlotActions,
+  defaultIconSize,
+  canvasActionBusy,
+  onInsert,
+  onReplaceSelection,
+  onSetIconSlot,
 }: {
   icon: ManagedIcon;
   content?: string;
+  selectionCount: number;
+  iconSlotActions: IconSlotAction[];
+  defaultIconSize: number;
+  canvasActionBusy: boolean;
+  onInsert: () => void;
+  onReplaceSelection: () => void;
+  onSetIconSlot: (action: IconSlotAction) => void;
 }) {
   const rows = [
     ["Component", icon.componentName],
     ["Export", icon.code.exportName],
     ["Source", sourceLabel(icon)],
     ["ViewBox", icon.svg.viewBox],
+    ["Frame", iconFrameLabel(icon)],
     ["Color", colorBehaviorLabel(icon)],
     ["Paint", colorDetails(icon)],
     ["Hash", shortHash(icon.svg.hash)],
   ];
   const colorNote = colorBehaviorNote(icon);
+  const frameMismatchNote = iconFrameMismatchNote(icon, defaultIconSize);
+  const canUseOnCanvas = Boolean(icon.figma.componentId || icon.figma.componentKey);
+  const publishNote = iconNeedsPublish(icon)
+    ? icon.figma.componentId
+      ? "The registry source changed since this component was last published."
+      : "Publish this icon before designers use it from Figma assets."
+    : null;
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-3 overflow-auto border-l border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3 min-[560px]:flex">
@@ -317,6 +788,68 @@ function IconInspector({
 
       <IconStatusPill status={icon.status} />
 
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onInsert}
+          disabled={!canUseOnCanvas || canvasActionBusy}
+          title={
+            canUseOnCanvas
+              ? "Insert icon instance"
+              : "Publish this icon before inserting it"
+          }
+        >
+          <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
+          Insert
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onReplaceSelection}
+          disabled={!canUseOnCanvas || selectionCount === 0 || canvasActionBusy}
+          title={
+            selectionCount === 0
+              ? "Select layers in Figma to replace"
+              : canUseOnCanvas
+                ? "Replace selected layers with this icon"
+                : "Publish this icon before replacing layers"
+          }
+        >
+          <Replace size={13} strokeWidth={1.5} aria-hidden />
+          Replace
+        </Button>
+      </div>
+
+      {iconSlotActions.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+            Icon slots
+          </div>
+          {iconSlotActions.map((action) => (
+            <Button
+              key={action.propertyName}
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onSetIconSlot(action)}
+              disabled={!canUseOnCanvas || canvasActionBusy}
+              title={`Set ${action.label} to ${icon.name}`}
+            >
+              <Replace size={13} strokeWidth={1.5} aria-hidden />
+              <span className="min-w-0 truncate">
+                Set {action.label}
+                {action.targetNodeIds.length > 1
+                  ? ` (${action.targetNodeIds.length})`
+                  : ""}
+              </span>
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
       <dl className="flex flex-col gap-2">
         {rows.map(([label, value]) => (
           <div key={label} className="min-w-0">
@@ -333,6 +866,18 @@ function IconInspector({
       {colorNote ? (
         <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
           {colorNote}
+        </p>
+      ) : null}
+
+      {publishNote ? (
+        <p className="m-0 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+          {publishNote}
+        </p>
+      ) : null}
+
+      {frameMismatchNote ? (
+        <p className="m-0 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+          {frameMismatchNote}
         </p>
       ) : null}
 
@@ -354,19 +899,25 @@ function IconInspector({
 
 export function IconPanel() {
   const { connected, serverUrl } = useConnectionContext();
+  const { selectedNodes } = useSelectionContext();
   const [registry, setRegistry] = useState<IconRegistryFile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<IconStatusFilter>("all");
+  const [healthFilter, setHealthFilter] = useState<IconHealthFilter>("all");
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [canvasActionBusy, setCanvasActionBusy] = useState(false);
+  const [auditScope, setAuditScope] = useState<IconUsageAuditScope>("selection");
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditResult, setAuditResult] = useState<IconUsageAuditResultMessage | null>(null);
   const [publishProgress, setPublishProgress] = useState<{
     current: number;
     total: number;
   } | null>(null);
-  const [iconContent, setIconContent] = useState<Record<string, string>>({});
+  const [iconContent, setIconContent] = useState<Record<string, IconContentCacheItem>>({});
 
   const loadIconContents = useCallback(
     async (ids: string[]) => {
@@ -384,10 +935,16 @@ export function IconPanel() {
       );
       const nextContent = Object.fromEntries(
         data.contents
-          .filter((item): item is IconContentBatchItem & { content: string } =>
-            typeof item.content === "string",
+          .filter((item): item is IconContentBatchItem & IconContentCacheItem =>
+            typeof item.content === "string" && typeof item.hash === "string",
           )
-          .map((item) => [item.id, item.content]),
+          .map((item) => [
+            item.id,
+            {
+              content: item.content,
+              hash: item.hash,
+            },
+          ]),
       );
       if (Object.keys(nextContent).length > 0) {
         setIconContent((current) => ({ ...current, ...nextContent }));
@@ -436,10 +993,34 @@ export function IconPanel() {
   }, [loadIcons]);
 
   const icons = useMemo(() => registry?.icons ?? [], [registry]);
+  const defaultIconSize = registry?.settings.defaultSize ?? 24;
+  const healthSummary = useMemo(
+    () => getIconHealthSummary(icons, defaultIconSize),
+    [defaultIconSize, icons],
+  );
+  const existingIconPaths = useMemo(
+    () => new Set(icons.map((icon) => icon.path.toLowerCase())),
+    [icons],
+  );
+  const existingLinkedIconPaths = useMemo(
+    () =>
+      new Set(
+        icons
+          .filter((icon) => icon.figma.componentId || icon.figma.componentKey)
+          .map((icon) => icon.path.toLowerCase()),
+      ),
+    [icons],
+  );
   const missingContentIds = useMemo(
     () =>
       icons
-        .filter((icon) => !icon.svg.content && !iconContent[icon.id])
+        .filter((icon) => {
+          if (icon.svg.content) {
+            return false;
+          }
+          const cached = iconContent[icon.id];
+          return !cached || cached.hash !== icon.svg.hash;
+        })
         .map((icon) => icon.id),
     [iconContent, icons],
   );
@@ -453,9 +1034,10 @@ export function IconPanel() {
       icons.filter(
         (icon) =>
           (statusFilter === "all" || icon.status === statusFilter) &&
-          iconMatchesQuery(icon, query),
+          iconMatchesQuery(icon, query) &&
+          iconMatchesHealthFilter(icon, healthFilter, defaultIconSize),
       ),
-    [icons, query, statusFilter],
+    [defaultIconSize, healthFilter, icons, query, statusFilter],
   );
 
   const selectedIcon = useMemo(
@@ -465,15 +1047,16 @@ export function IconPanel() {
       null,
     [filteredIcons, selectedIconId],
   );
+  const selectedIconCanUseOnCanvas = Boolean(
+    selectedIcon?.figma.componentId || selectedIcon?.figma.componentKey,
+  );
+  const iconSlotActions = useMemo(
+    () => getIconSlotActions(selectedNodes),
+    [selectedNodes],
+  );
 
   const iconsToPublish = useMemo(
-    () =>
-      icons.filter(
-        (icon) =>
-          icon.status !== "deprecated" &&
-          (!icon.figma.componentId ||
-            icon.figma.lastSyncedHash !== icon.svg.hash),
-      ),
+    () => icons.filter(iconNeedsPublish),
     [icons],
   );
 
@@ -587,6 +1170,127 @@ export function IconPanel() {
     }
   }, [iconsToPublish, publishing, registry, serverUrl]);
 
+  const handleInsert = useCallback(async () => {
+    if (!selectedIcon || canvasActionBusy) {
+      return;
+    }
+
+    setCanvasActionBusy(true);
+    try {
+      const result = await runIconCanvasAction({
+        type: "insert-icon",
+        icon: iconCanvasItem(selectedIcon),
+      });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      dispatchToast(`Inserted ${selectedIcon.name}.`, "success");
+    } catch (err) {
+      dispatchToast(getErrorMessage(err, "Failed to insert icon."), "error");
+    } finally {
+      setCanvasActionBusy(false);
+    }
+  }, [canvasActionBusy, selectedIcon]);
+
+  const handleReplaceSelection = useCallback(async () => {
+    if (!selectedIcon || selectedNodes.length === 0 || canvasActionBusy) {
+      return;
+    }
+
+    setCanvasActionBusy(true);
+    try {
+      const result = await runIconCanvasAction({
+        type: "replace-selection-with-icon",
+        icon: iconCanvasItem(selectedIcon),
+      });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      dispatchToast(
+        `Replaced ${formatIconCount(result.count)} with ${selectedIcon.name}.${formatSkippedSuffix(result)}`,
+        result.skipped > 0 ? "warning" : "success",
+      );
+    } catch (err) {
+      dispatchToast(getErrorMessage(err, "Failed to replace selection."), "error");
+    } finally {
+      setCanvasActionBusy(false);
+    }
+  }, [canvasActionBusy, selectedIcon, selectedNodes.length]);
+
+  const handleSetIconSlot = useCallback(async (action: IconSlotAction) => {
+    if (!selectedIcon || action.targetNodeIds.length === 0 || canvasActionBusy) {
+      return;
+    }
+
+    setCanvasActionBusy(true);
+    try {
+      const result = await runIconCanvasAction({
+        type: "set-icon-swap-property",
+        icon: iconCanvasItem(selectedIcon),
+        propertyName: action.propertyName,
+        targetNodeIds: action.targetNodeIds,
+      });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      dispatchToast(
+        `Set ${action.label} to ${selectedIcon.name} on ${formatIconCount(result.count)}.${formatSkippedSuffix(result)}`,
+        result.skipped > 0 ? "warning" : "success",
+      );
+    } catch (err) {
+      dispatchToast(getErrorMessage(err, "Failed to set icon slot."), "error");
+    } finally {
+      setCanvasActionBusy(false);
+    }
+  }, [canvasActionBusy, selectedIcon]);
+
+  const handleAuditUsage = useCallback(async () => {
+    if (auditLoading) {
+      return;
+    }
+
+    setAuditLoading(true);
+    try {
+      const result = await runIconUsageAudit({
+        type: "scan-icon-usage",
+        scope: auditScope,
+        icons: icons.map(iconUsageAuditInput),
+      });
+      setAuditResult(result);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      dispatchToast(
+        result.findings.length === 0
+          ? "Icon usage audit found no issues."
+          : `Icon usage audit found ${formatHealthCount(result.findings.length, "finding")}.`,
+        result.findings.length === 0 ? "success" : "warning",
+      );
+    } catch (err) {
+      const message = getErrorMessage(err, "Failed to audit icon usage.");
+      setAuditResult({
+        type: "icon-usage-audit-result",
+        scope: auditScope,
+        findings: [],
+        summary: {
+          managedInstances: 0,
+          unmanagedComponents: 0,
+          rawIconLayers: 0,
+          deprecatedUsages: 0,
+          staleComponents: 0,
+          missingComponents: 0,
+        },
+        scannedNodes: 0,
+        error: message,
+      });
+      dispatchToast(message, "error");
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [auditLoading, auditScope, icons]);
+
   if (!connected) {
     return (
       <FeedbackPlaceholder
@@ -650,6 +1354,69 @@ export function IconPanel() {
             {loading ? "Refreshing" : "Refresh"}
           </Button>
         </div>
+        <IconHealthStrip
+          summary={healthSummary}
+          activeFilter={healthFilter}
+          onFilterChange={setHealthFilter}
+        />
+        <IconUsageAuditPanel
+          scope={auditScope}
+          loading={auditLoading}
+          result={auditResult}
+          onScopeChange={(scope) => {
+            setAuditScope(scope);
+            setAuditResult(null);
+          }}
+          onRun={() => void handleAuditUsage()}
+        />
+        {selectedIcon ? (
+          <div className="flex min-w-0 items-center gap-2 min-[560px]:hidden">
+            <div className="min-w-0 flex-1 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {selectedIcon.name}
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleInsert()}
+              disabled={canvasActionBusy || !selectedIconCanUseOnCanvas}
+              title="Insert icon instance"
+            >
+              <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
+              Insert
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleReplaceSelection()}
+              disabled={
+                canvasActionBusy ||
+                selectedNodes.length === 0 ||
+                !selectedIconCanUseOnCanvas
+              }
+              title="Replace selected layers with this icon"
+            >
+              <Replace size={13} strokeWidth={1.5} aria-hidden />
+              Replace
+            </Button>
+            {iconSlotActions[0] ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleSetIconSlot(iconSlotActions[0])}
+                disabled={canvasActionBusy || !selectedIconCanUseOnCanvas}
+                title={`Set ${iconSlotActions[0].label} to this icon`}
+              >
+                <Replace size={13} strokeWidth={1.5} aria-hidden />
+                <span className="min-w-0 truncate">
+                  Set {iconSlotActions[0].label}
+                </span>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {error ? (
@@ -698,7 +1465,14 @@ export function IconPanel() {
           {selectedIcon ? (
             <IconInspector
               icon={selectedIcon}
-              content={iconContent[selectedIcon.id]}
+              content={iconContent[selectedIcon.id]?.content}
+              selectionCount={selectedNodes.length}
+              iconSlotActions={iconSlotActions}
+              defaultIconSize={defaultIconSize}
+              canvasActionBusy={canvasActionBusy}
+              onInsert={handleInsert}
+              onReplaceSelection={handleReplaceSelection}
+              onSetIconSlot={handleSetIconSlot}
             />
           ) : null}
         </div>
@@ -706,6 +1480,9 @@ export function IconPanel() {
       {importOpen ? (
         <IconImportDialog
           serverUrl={serverUrl}
+          existingIconPaths={existingIconPaths}
+          existingLinkedIconPaths={existingLinkedIconPaths}
+          defaultIconSize={defaultIconSize}
           onClose={() => setImportOpen(false)}
           onImported={(nextRegistry, importedIcons) => {
             setRegistry(nextRegistry);

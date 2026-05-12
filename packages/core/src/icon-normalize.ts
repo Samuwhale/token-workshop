@@ -22,6 +22,19 @@ import {
   normalizeIconPath,
 } from './icon-naming.js';
 
+const SVG_NUMBER_EPSILON = 1e-6;
+const SVG_ROOT_SIZE_ATTRIBUTES = new Set(['width', 'height']);
+const DANGEROUS_SVG_ELEMENTS = new Set([
+  'script',
+  'foreignobject',
+  'iframe',
+  'object',
+  'embed',
+  'audio',
+  'video',
+  'canvas',
+]);
+
 const ICON_STATUSES = new Set<IconStatus>([
   'draft',
   'published',
@@ -47,6 +60,10 @@ export function createDefaultIconRegistrySettings(): IconRegistrySettings {
 export interface ParsedIconSvg {
   content: string;
   viewBox: string;
+  viewBoxMinX: number;
+  viewBoxMinY: number;
+  viewBoxWidth: number;
+  viewBoxHeight: number;
   hash: string;
   contentHash: string;
   color: IconColorMetadata;
@@ -59,7 +76,11 @@ export function parseIconSvg(input: string): ParsedIconSvg {
   const color = analyzeIconSvgColor(content);
   return {
     content,
-    viewBox,
+    viewBox: viewBox.value,
+    viewBoxMinX: viewBox.minX,
+    viewBoxMinY: viewBox.minY,
+    viewBoxWidth: viewBox.width,
+    viewBoxHeight: viewBox.height,
     hash,
     contentHash: hash,
     color,
@@ -73,33 +94,56 @@ export function normalizeIconSvgText(input: string): string {
   if (input.includes('\0')) {
     throw new Error('SVG content must not contain null bytes.');
   }
-  return input.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim();
+  const content = input.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim();
+  assertSvgSafeForIconImport(content);
+  return normalizeSvgRootAttributes(content);
 }
 
-export function extractIconSvgViewBox(svg: string): string {
+export interface ParsedIconSvgViewBox {
+  value: string;
+  minX: number;
+  minY: number;
+  width: number;
+  height: number;
+}
+
+export function extractIconSvgViewBox(svg: string): ParsedIconSvgViewBox {
   const openTag = readSvgOpeningTag(svg);
   const rawViewBox = readSvgAttribute(openTag, 'viewBox');
   if (!rawViewBox) {
     throw new Error('SVG root element must define a viewBox.');
   }
 
+  return parseIconSvgViewBox(rawViewBox, 'SVG viewBox');
+}
+
+function parseIconSvgViewBox(
+  rawViewBox: string,
+  label: string,
+): ParsedIconSvgViewBox {
   const values = rawViewBox
     .trim()
     .split(/[\s,]+/)
     .filter(Boolean);
   if (values.length !== 4) {
-    throw new Error('SVG viewBox must contain four numeric values.');
+    throw new Error(`${label} must contain four numeric values.`);
   }
 
   const numbers = values.map((value) => Number(value));
   if (numbers.some((value) => !Number.isFinite(value))) {
-    throw new Error('SVG viewBox must contain four finite numeric values.');
+    throw new Error(`${label} must contain four finite numeric values.`);
   }
   if (numbers[2] <= 0 || numbers[3] <= 0) {
-    throw new Error('SVG viewBox width and height must be positive.');
+    throw new Error(`${label} width and height must be positive.`);
   }
 
-  return numbers.map(formatSvgNumber).join(' ');
+  return {
+    value: numbers.map(formatSvgNumber).join(' '),
+    minX: numbers[0],
+    minY: numbers[1],
+    width: numbers[2],
+    height: numbers[3],
+  };
 }
 
 export function hashIconSvgContent(svg: string): string {
@@ -323,9 +367,24 @@ function normalizeIconSource(input: unknown, index: number): IconSource {
     return { kind };
   }
   if (kind === 'figma-selection') {
+    const fileKey = readNullableString(
+      input.fileKey,
+      `icons[${index}].source.fileKey`,
+    );
+    const pageId = readNullableString(
+      input.pageId,
+      `icons[${index}].source.pageId`,
+    );
+    const pageName = readNullableString(
+      input.pageName,
+      `icons[${index}].source.pageName`,
+    );
     return {
       kind,
       nodeId: readRequiredString(input.nodeId, `icons[${index}].source.nodeId`),
+      ...(fileKey ? { fileKey } : {}),
+      ...(pageId ? { pageId } : {}),
+      ...(pageName ? { pageName } : {}),
     };
   }
   if (kind === 'generated') {
@@ -354,8 +413,46 @@ function normalizeIconSvgMetadata(input: unknown, index: number): IconSvgMetadat
     input.color === undefined && content
       ? analyzeIconSvgColor(content)
       : normalizeIconColorMetadata(input.color, index);
+  const viewBox = readRequiredString(
+    input.viewBox,
+    `icons[${index}].svg.viewBox`,
+  );
+  const parsedViewBox = parseIconSvgViewBox(
+    viewBox,
+    `icons[${index}].svg.viewBox`,
+  );
+  const viewBoxMinX = readRequiredNumber(
+    input.viewBoxMinX,
+    `icons[${index}].svg.viewBoxMinX`,
+  );
+  const viewBoxMinY = readRequiredNumber(
+    input.viewBoxMinY,
+    `icons[${index}].svg.viewBoxMinY`,
+  );
+  const viewBoxWidth = readRequiredPositiveNumber(
+    input.viewBoxWidth,
+    `icons[${index}].svg.viewBoxWidth`,
+  );
+  const viewBoxHeight = readRequiredPositiveNumber(
+    input.viewBoxHeight,
+    `icons[${index}].svg.viewBoxHeight`,
+  );
+  if (
+    !numbersAlmostEqual(viewBoxMinX, parsedViewBox.minX) ||
+    !numbersAlmostEqual(viewBoxMinY, parsedViewBox.minY) ||
+    !numbersAlmostEqual(viewBoxWidth, parsedViewBox.width) ||
+    !numbersAlmostEqual(viewBoxHeight, parsedViewBox.height)
+  ) {
+    throw new Error(
+      `icons[${index}].svg viewBox metadata must match the viewBox values.`,
+    );
+  }
   return {
-    viewBox: readRequiredString(input.viewBox, `icons[${index}].svg.viewBox`),
+    viewBox: parsedViewBox.value,
+    viewBoxMinX: parsedViewBox.minX,
+    viewBoxMinY: parsedViewBox.minY,
+    viewBoxWidth: parsedViewBox.width,
+    viewBoxHeight: parsedViewBox.height,
     hash: readRequiredString(input.hash, `icons[${index}].svg.hash`),
     contentHash: readRequiredString(
       input.contentHash,
@@ -536,6 +633,13 @@ function readBoolean(value: unknown, field: string): boolean {
   return value;
 }
 
+function readRequiredNumber(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`${field} must be a finite number.`);
+  }
+  return value;
+}
+
 function readStringArray(value: unknown, field: string): string[] {
   if (!Array.isArray(value)) {
     throw new Error(`${field} must be an array of strings.`);
@@ -560,6 +664,17 @@ function readOptionalPositiveNumber(
     throw new Error(`${field} must be a positive number.`);
   }
   return value;
+}
+
+function readRequiredPositiveNumber(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    throw new Error(`${field} must be a positive number.`);
+  }
+  return value;
+}
+
+function numbersAlmostEqual(left: number, right: number): boolean {
+  return Math.abs(left - right) <= SVG_NUMBER_EPSILON;
 }
 
 function assertUnique(value: string, seen: Set<string>, message: string): void {
@@ -611,6 +726,91 @@ function readSvgOpeningTag(svg: string): string {
   }
 
   throw new Error('SVG root element is missing a closing ">".');
+}
+
+function normalizeSvgRootAttributes(svg: string): string {
+  const openTag = readSvgOpeningTag(svg);
+  const start = svg.indexOf(openTag);
+  if (start < 0) {
+    return svg;
+  }
+
+  const normalizedOpenTag = normalizeSvgOpeningTag(openTag);
+  return `${svg.slice(0, start)}${normalizedOpenTag}${svg.slice(start + openTag.length)}`;
+}
+
+function normalizeSvgOpeningTag(openTag: string): string {
+  const tagNameMatch = /^<\s*([a-zA-Z][a-zA-Z0-9:.-]*)/.exec(openTag);
+  const tagName = tagNameMatch?.[1] ?? 'svg';
+  const selfClosing = /\/\s*>$/.test(openTag);
+  const attributes = readSvgAttributes(openTag)
+    .filter(([name]) => !SVG_ROOT_SIZE_ATTRIBUTES.has(name.toLowerCase()))
+    .map(([name, value]) => {
+      if (name === 'viewBox') {
+        return [name, parseIconSvgViewBox(value, 'SVG viewBox').value] as const;
+      }
+      return [name, value] as const;
+    });
+
+  const serializedAttributes = attributes
+    .map(([name, value]) => ` ${name}="${value.replace(/"/g, '&quot;')}"`)
+    .join('');
+  return `<${tagName}${serializedAttributes}${selfClosing ? ' />' : '>'}`;
+}
+
+function assertSvgSafeForIconImport(svg: string): void {
+  readSvgOpeningTag(svg);
+
+  for (const tag of readSvgTags(svg)) {
+    const tagName = readTagName(tag);
+    if (!tagName) {
+      continue;
+    }
+    if (DANGEROUS_SVG_ELEMENTS.has(tagName)) {
+      throw new Error(`SVG icon content cannot include <${tagName}> elements.`);
+    }
+
+    for (const [rawName, rawValue] of readSvgAttributes(tag)) {
+      const name = rawName.toLowerCase();
+      const value = rawValue.trim();
+      if (/^on[a-z]/.test(name)) {
+        throw new Error('SVG icon content cannot include event handler attributes.');
+      }
+      if (name === 'href' || name === 'xlink:href') {
+        assertSafeSvgReference(value);
+      }
+      if (name === 'style') {
+        assertSafeSvgStyle(value);
+      }
+    }
+  }
+
+  for (const styleContent of readSvgStyleBlocks(svg)) {
+    assertSafeSvgStyle(styleContent);
+  }
+}
+
+function assertSafeSvgReference(value: string): void {
+  const normalized = value.trim().replace(/^["']|["']$/g, '').trim();
+  if (!normalized || normalized.startsWith('#')) {
+    return;
+  }
+  if (/^javascript:/i.test(normalized)) {
+    throw new Error('SVG icon content cannot include javascript: references.');
+  }
+  throw new Error('SVG icon content cannot include external references.');
+}
+
+function assertSafeSvgStyle(style: string): void {
+  if (/@import\b/i.test(style)) {
+    throw new Error('SVG icon styles cannot include @import rules.');
+  }
+  const urlPattern = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
+  let match: RegExpExecArray | null = urlPattern.exec(style);
+  while (match) {
+    assertSafeSvgReference(match[2]);
+    match = urlPattern.exec(style);
+  }
 }
 
 function stripSvgPreamble(svg: string): string {

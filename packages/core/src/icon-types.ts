@@ -17,6 +17,9 @@ export type IconSource =
   | {
       kind: 'figma-selection';
       nodeId: string;
+      fileKey?: string;
+      pageId?: string;
+      pageName?: string;
     }
   | {
       kind: 'generated';
@@ -25,6 +28,10 @@ export type IconSource =
 
 export interface IconSvgMetadata {
   viewBox: string;
+  viewBoxMinX: number;
+  viewBoxMinY: number;
+  viewBoxWidth: number;
+  viewBoxHeight: number;
   hash: string;
   contentHash: string;
   color: IconColorMetadata;

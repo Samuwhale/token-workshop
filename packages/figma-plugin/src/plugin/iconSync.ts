@@ -5,13 +5,7 @@ import type {
 } from '../shared/types.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
-
-const ICON_PLUGIN_DATA_KEYS = {
-  id: 'iconId',
-  path: 'iconPath',
-  hash: 'iconHash',
-  pageId: 'iconPageId',
-} as const;
+import { ICON_PLUGIN_DATA_KEYS, readManagedIconPluginData } from './iconPluginData.js';
 
 const ARTWORK_NODE_NAME = 'Artwork';
 const GRID_COLUMNS = 8;
@@ -146,10 +140,7 @@ async function findLinkedComponent(
     })
     .find(
       (node) =>
-        node.getSharedPluginData(
-          PLUGIN_DATA_NAMESPACE,
-          ICON_PLUGIN_DATA_KEYS.id,
-        ) === item.id,
+        readManagedIconPluginData(node)?.id === item.id,
     );
 
   if (linked?.type === 'COMPONENT') {

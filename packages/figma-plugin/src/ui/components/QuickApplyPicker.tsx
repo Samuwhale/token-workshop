@@ -115,6 +115,15 @@ const RECENT_CANDIDATE_LIMIT = 5;
 const EMPTY_TOKEN_MAP: Record<string, TokenMapEntry> = {};
 const ALL_COLLECTIONS_ID = "__token-workshop-all-collections__";
 
+function scoreCandidateSearchRank(
+  query: string,
+  candidate: Pick<QuickApplyCandidate, "path" | "score">,
+): number {
+  const queryScore = fuzzyScore(query, candidate.path);
+  if (queryScore < 0) return -1;
+  return queryScore * 100 + candidate.score;
+}
+
 function getCandidatePresentation(candidate: QuickApplyCandidate): {
   colorSwatch: string | null;
   valueDisplay: string | null;
@@ -199,7 +208,7 @@ function buildQuickApplyCandidates({
     ? allCandidates
         .map((candidate) => ({
           ...candidate,
-          rankScore: fuzzyScore(query, candidate.path),
+          rankScore: scoreCandidateSearchRank(query, candidate),
         }))
         .filter((candidate) => candidate.rankScore >= 0)
         .sort((a, b) => b.rankScore - a.rankScore || b.score - a.score)

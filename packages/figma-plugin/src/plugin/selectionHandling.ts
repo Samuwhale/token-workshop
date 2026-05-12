@@ -473,6 +473,23 @@ function collectDescendantsWithBindings(node: SceneNode, depth: number): Selecti
   return results;
 }
 
+function readIconSwapProperties(node: SceneNode): SelectionNodeInfo['iconSwapProperties'] {
+  if (node.type !== 'INSTANCE') {
+    return undefined;
+  }
+
+  const properties = Object.entries(node.componentProperties)
+    .filter(([, property]) => property.type === 'INSTANCE_SWAP')
+    .map(([propertyName, property]) => ({
+      propertyName,
+      label: propertyName.replace(/#[^#]*$/, ''),
+      value: String(property.value),
+      preferredValues: property.preferredValues,
+    }));
+
+  return properties.length > 0 ? properties : undefined;
+}
+
 export async function getSelection(deepInspectEnabled = selectionDeepInspectEnabled) {
   const selection = figma.currentPage.selection;
   const info: SelectionNodeInfo[] = selection.map(node => ({
@@ -484,6 +501,7 @@ export async function getSelection(deepInspectEnabled = selectionDeepInspectEnab
     capabilities: getNodeCapabilities(node),
     currentValues: readCurrentValues(node),
     depth: 0,
+    iconSwapProperties: readIconSwapProperties(node),
   }));
 
   if (deepInspectEnabled) {

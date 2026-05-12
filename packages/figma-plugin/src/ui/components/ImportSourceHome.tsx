@@ -80,14 +80,14 @@ export function ImportSourceHome() {
           <SourceButton
             icon={<Table2 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadVariables}
-            label="Variables"
+            label="Figma variables"
             description="Keep collections and modes"
             variant="primary"
           />
           <SourceButton
             icon={<Layers3 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadStyles}
-            label="Styles"
+            label="Figma styles"
             description="Import color, text, effect styles"
           />
         </div>

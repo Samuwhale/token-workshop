@@ -10,6 +10,7 @@ import {
   normalizeIconRegistryFile,
   parseIconSvg,
   stableStringify,
+  type IconFigmaLink,
   type IconRegistryFile,
   type ManagedIcon,
 } from "@token-workshop/core";
@@ -24,6 +25,12 @@ export interface IconSvgImportResult {
 }
 
 export interface IconSvgImportBatchResult {
+  icons: ManagedIcon[];
+  registry: IconRegistryFile;
+  created: boolean[];
+}
+
+export interface IconFigmaSelectionImportBatchResult {
   icons: ManagedIcon[];
   registry: IconRegistryFile;
   created: boolean[];
@@ -51,6 +58,16 @@ export interface IconFigmaLinkBatchUpdateResult {
   registry: IconRegistryFile;
   icons: ManagedIcon[];
 }
+
+type IconImportRequest = {
+  source: ManagedIcon["source"];
+  svg: ManagedIcon["svg"];
+  figma?: IconFigmaLink;
+  status?: ManagedIcon["status"];
+  path: string;
+  name?: string;
+  tags?: string[];
+};
 
 export class IconStore {
   readonly filePath: string;
@@ -98,14 +115,18 @@ export class IconStore {
     });
   }
 
+  async importFigmaSelection(
+    input: unknown,
+  ): Promise<IconFigmaSelectionImportBatchResult> {
+    return this.lock.withLock(async () => {
+      const requests = this.readImportFigmaSelectionRequest(input);
+      await this.reloadFromDiskUnlocked();
+      return this.importSvgRequestsUnlocked(requests);
+    });
+  }
+
   private async importSvgRequestsUnlocked(
-    requests: Array<{
-      source: ManagedIcon["source"];
-      svg: ManagedIcon["svg"];
-      path: string;
-      name?: string;
-      tags?: string[];
-    }>,
+    requests: IconImportRequest[],
   ): Promise<IconSvgImportBatchResult> {
     const registry = structuredClone(this.registry);
     const seenPaths = new Set<string>();
@@ -146,17 +167,12 @@ export class IconStore {
           ),
         source: request.source,
         svg: request.svg,
-        figma:
-          existing?.figma ?? {
-            componentId: null,
-            componentKey: null,
-            lastSyncedHash: null,
-          },
+        figma: figmaLinkForImportRequest(request, existing),
         code:
           existing?.code ?? {
             exportName: iconExportNameFromPath(request.path),
           },
-        status: existing?.status ?? "draft",
+        status: statusForImportRequest(request, existing),
         ...(request.tags
           ? { tags: request.tags }
           : existing?.tags
@@ -435,13 +451,7 @@ export class IconStore {
     }
   }
 
-  private async readImportSvgRequest(input: unknown): Promise<{
-    source: ManagedIcon["source"];
-    svg: ManagedIcon["svg"];
-    path: string;
-    name?: string;
-    tags?: string[];
-  }> {
+  private async readImportSvgRequest(input: unknown): Promise<IconImportRequest> {
     if (!isRecord(input)) {
       throw new BadRequestError("SVG import body must be a JSON object.");
     }
@@ -460,8 +470,7 @@ export class IconStore {
         : new Set(["filePath", "path", "name", "tags"]),
     );
 
-    const name = readOptionalNonEmptyString(input.name, "name");
-    const tags = readOptionalTags(input.tags);
+    const annotations = readIconImportAnnotations(input);
 
     if (hasSvg) {
       const svgText = readRequiredNonEmptyString(input.svg, "svg");
@@ -471,8 +480,7 @@ export class IconStore {
         source: { kind: "pasted-svg" },
         svg,
         path: normalizeImportIconPath(requestedPath),
-        ...(name ? { name } : {}),
-        ...(tags ? { tags } : {}),
+        ...annotations,
       };
     }
 
@@ -490,18 +498,11 @@ export class IconStore {
       source: { kind: "local-svg", path: sourcePath.relativePath },
       svg,
       path: normalizeImportIconPath(requestedPath),
-      ...(name ? { name } : {}),
-      ...(tags ? { tags } : {}),
+      ...annotations,
     };
   }
 
-  private async readImportSvgBatchRequest(input: unknown): Promise<Array<{
-    source: ManagedIcon["source"];
-    svg: ManagedIcon["svg"];
-    path: string;
-    name?: string;
-    tags?: string[];
-  }>> {
+  private async readImportSvgBatchRequest(input: unknown): Promise<IconImportRequest[]> {
     if (!isRecord(input)) {
       throw new BadRequestError("SVG import batch body must be a JSON object.");
     }
@@ -516,16 +517,111 @@ export class IconStore {
     );
   }
 
+  private readImportFigmaSelectionRequest(input: unknown): IconImportRequest[] {
+    if (!isRecord(input)) {
+      throw new BadRequestError("Figma icon import body must be a JSON object.");
+    }
+    rejectUnsupportedFields(input, new Set(["icons"]));
+    if (!Array.isArray(input.icons) || input.icons.length === 0) {
+      throw new BadRequestError("icons must be a non-empty array of Figma icon imports.");
+    }
+
+    const requests = input.icons.map((icon, index) =>
+      this.readImportFigmaSelectionItem(icon, `icons[${index}]`),
+    );
+    const seenNodeIds = new Set<string>();
+    for (const request of requests) {
+      if (request.source.kind !== "figma-selection") {
+        continue;
+      }
+      if (seenNodeIds.has(request.source.nodeId)) {
+        throw new BadRequestError(
+          `Duplicate selected Figma node "${request.source.nodeId}".`,
+        );
+      }
+      seenNodeIds.add(request.source.nodeId);
+    }
+    return requests;
+  }
+
+  private readImportFigmaSelectionItem(
+    input: unknown,
+    label: string,
+  ): IconImportRequest {
+    if (!isRecord(input)) {
+      throw new BadRequestError(`${label} must be a JSON object.`);
+    }
+    rejectUnsupportedFields(
+      input,
+      new Set([
+        "svg",
+        "path",
+        "name",
+        "tags",
+        "nodeId",
+        "fileKey",
+        "pageId",
+        "pageName",
+        "componentId",
+        "componentKey",
+      ]),
+    );
+
+    const svgText = readRequiredNonEmptyString(input.svg, `${label}.svg`);
+    const nodeId = readRequiredNonEmptyString(input.nodeId, `${label}.nodeId`);
+    const fileKey = readOptionalNullableNonEmptyString(
+      input.fileKey,
+      `${label}.fileKey`,
+    );
+    const pageId = readOptionalNullableNonEmptyString(
+      input.pageId,
+      `${label}.pageId`,
+    );
+    const pageName = readOptionalNullableNonEmptyString(
+      input.pageName,
+      `${label}.pageName`,
+    );
+    const path = normalizeImportIconPath(
+      readRequiredNonEmptyString(input.path, `${label}.path`),
+    );
+    const annotations = readIconImportAnnotations(input, label);
+    const svg = parseSvgMetadata(svgText, true);
+    const componentId = readOptionalNullableNonEmptyString(
+      input.componentId,
+      `${label}.componentId`,
+    );
+    const componentKey = readOptionalNullableNonEmptyString(
+      input.componentKey,
+      `${label}.componentKey`,
+    );
+
+    return {
+      source: {
+        kind: "figma-selection",
+        nodeId,
+        ...(fileKey ? { fileKey } : {}),
+        ...(pageId ? { pageId } : {}),
+        ...(pageName ? { pageName } : {}),
+      },
+      svg,
+      ...(componentId
+        ? {
+            figma: {
+              componentId,
+              componentKey: componentKey ?? null,
+              lastSyncedHash: null,
+            },
+          }
+        : {}),
+      path,
+      ...annotations,
+    };
+  }
+
   private async readImportSvgRequestWithLabel(
     input: unknown,
     label: string,
-  ): Promise<{
-    source: ManagedIcon["source"];
-    svg: ManagedIcon["svg"];
-    path: string;
-    name?: string;
-    tags?: string[];
-  }> {
+  ): Promise<IconImportRequest> {
     try {
       return await this.readImportSvgRequest(input);
     } catch (err) {
@@ -581,6 +677,39 @@ function fileSignature(stats: { mtimeMs: number; size: number }): string {
   return `${stats.mtimeMs}:${stats.size}`;
 }
 
+function figmaLinkForImportRequest(
+  request: IconImportRequest,
+  existing: ManagedIcon | undefined,
+): IconFigmaLink {
+  if (existing?.figma) {
+    if (existing.figma.componentId || existing.figma.componentKey) {
+      return existing.figma;
+    }
+    return request.figma ?? existing.figma;
+  }
+  if (request.figma) {
+    return request.figma;
+  }
+  return {
+    componentId: null,
+    componentKey: null,
+    lastSyncedHash: null,
+  };
+}
+
+function statusForImportRequest(
+  request: IconImportRequest,
+  existing: ManagedIcon | undefined,
+): ManagedIcon["status"] {
+  if (request.status) {
+    return request.status;
+  }
+  if (existing) {
+    return existing.status;
+  }
+  return "draft";
+}
+
 function parseSvgMetadata(
   svgText: string,
   keepContent: boolean,
@@ -588,6 +717,10 @@ function parseSvgMetadata(
   const parsed = parseSvgContent(svgText);
   return {
     viewBox: parsed.viewBox,
+    viewBoxMinX: parsed.viewBoxMinX,
+    viewBoxMinY: parsed.viewBoxMinY,
+    viewBoxWidth: parsed.viewBoxWidth,
+    viewBoxHeight: parsed.viewBoxHeight,
     hash: parsed.hash,
     contentHash: parsed.contentHash,
     color: parsed.color,
@@ -598,6 +731,10 @@ function parseSvgMetadata(
 function parseSvgContent(svgText: string): {
   content: string;
   viewBox: string;
+  viewBoxMinX: number;
+  viewBoxMinY: number;
+  viewBoxWidth: number;
+  viewBoxHeight: number;
   hash: string;
   contentHash: string;
   color: ManagedIcon["svg"]["color"];
@@ -650,16 +787,44 @@ function readOptionalNonEmptyString(
   return readRequiredNonEmptyString(value, field);
 }
 
-function readOptionalTags(value: unknown): string[] | undefined {
+function readOptionalNullableNonEmptyString(
+  value: unknown,
+  field: string,
+): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  return readRequiredNonEmptyString(value, field);
+}
+
+function readIconImportAnnotations(
+  input: Record<string, unknown>,
+  label?: string,
+): Pick<IconImportRequest, "name" | "tags"> {
+  const name = readOptionalNonEmptyString(
+    input.name,
+    label ? `${label}.name` : "name",
+  );
+  const tags = readOptionalTags(input.tags, label ? `${label}.tags` : "tags");
+  return {
+    ...(name ? { name } : {}),
+    ...(tags ? { tags } : {}),
+  };
+}
+
+function readOptionalTags(value: unknown, field: string): string[] | undefined {
   if (value === undefined) {
     return undefined;
   }
   if (!Array.isArray(value)) {
-    throw new BadRequestError("tags must be an array of strings.");
+    throw new BadRequestError(`${field} must be an array of strings.`);
   }
   const tags = value.map((tag, index) => {
     if (typeof tag !== "string" || !tag.trim()) {
-      throw new BadRequestError(`tags[${index}] must be a non-empty string.`);
+      throw new BadRequestError(`${field}[${index}] must be a non-empty string.`);
     }
     return tag.trim();
   });

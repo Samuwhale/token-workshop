@@ -34,18 +34,25 @@ Implemented:
 - Exact SVG duplicate detection during import.
 - Initial SVG color behavior analysis at import time, with registry metadata for inheritable, hardcoded monotone, multicolor, and unknown paint behavior.
 - Icons inspector color behavior visibility and monotone publish normalization so inheritable and hardcoded monotone icons publish with a single editable solid paint while multicolor artwork keeps source paints.
+- Initial canvas usage actions from the Icons workspace: insert a published managed icon as a Figma component instance, replace selected icon instances through Figma's instance-swap behavior, replace selected raw layers with positioned managed icon instances, and set exposed icon instance-swap slots on selected component instances without replacing the parent component.
+- Initial import from selected Figma layers, including component and instance adoption that preserves Figma component links, file/page source metadata, and editable path/name review before import.
+- Initial selected-layer import previews with duplicate path blocking, existing-icon update visibility, adopted component-link visibility, SVG viewBox mismatch guidance, unsupported layer rejection, and warnings for hidden or locked layers, flattened non-vector descendants, masks, effects, strokes, or image fills.
+- Initial SVG viewBox origin and dimension metadata with inspector visibility and source-frame warnings when an icon's SVG viewBox differs from the configured library frame size.
+- Core SVG import validation that rejects active content, event handlers, external references, and style imports before icons enter the registry.
+- Initial Icons workspace health summary and filtering for publish drift, non-standard frames, and unknown color behavior, with selected-icon guidance in the inspector.
+- Initial icon usage audit from the Icons workspace for current selection or current page, grouped by repair action and covering managed usage counts, missing linked components, duplicate managed components, stale component hashes, renamed icon components, deprecated icon usage, unmanaged icon-like components, raw icon-layer candidates, and unknown managed component metadata.
 
 Missing:
 
 - Rich publish review and richer component reconciliation for substantial SVG structure changes.
-- Import from selected Figma components or raw canvas vectors.
+- Richer selected-layer quality gates and normalization guidance for raw canvas vectors beyond initial frame, layer-type, visibility, mask, effect, stroke, and image-fill checks.
 - Public source browsing, license review, attribution, and source update checks.
 - Near-duplicate geometry review beyond exact SVG hash matches.
 - Token color guidance, canvas color audits, and guided hardcoded fill repair beyond initial publish normalization.
-- Size, bounding-box, keyline, and stroke behavior checks.
-- Insert, replace, and swap workflows from the Icons workspace.
+- Bounding-box, keyline, and stroke behavior checks beyond initial SVG viewBox frame mismatch detection.
+- Richer replacement previews and multi-slot selection controls from the Icons workspace.
 - Component icon slot setup with boolean visibility, instance swap properties, preferred values, and exposed nested instances.
-- Icon usage audit, guided repair, usage analytics, stale component detection, and deprecation workflows.
+- Richer icon usage audit, guided repair, cross-page/file usage analytics, batch finding navigation, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page audit.
 - Icon exports for SVG, typed code, manifests, license metadata, and token-aligned handoff.
 - Integration with review, publish, health, history, and git workflows.
 
