@@ -6,6 +6,7 @@ import { coerceBooleanValue, getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
 import { resolveFontStyle, fontStyleToWeight } from './fontLoading.js';
+import { findNearestMainComponent, iconSlotLabelFromNodeName, isIconSlotCandidateNode } from './iconSlotUtils.js';
 import { walkNodes } from './walkNodes.js';
 
 let selectionDeepInspectEnabled = false;
@@ -490,6 +491,73 @@ function readIconSwapProperties(node: SceneNode): SelectionNodeInfo['iconSwapPro
   return properties.length > 0 ? properties : undefined;
 }
 
+function readIconSlotCandidates(node: SceneNode): SelectionNodeInfo['iconSlotCandidates'] {
+  const candidates =
+    node.type === 'COMPONENT'
+      ? collectIconSlotCandidates(node)
+      : iconSlotCandidateForNode(node);
+
+  return candidates.length > 0 ? candidates : undefined;
+}
+
+function collectIconSlotCandidates(component: ComponentNode): NonNullable<SelectionNodeInfo['iconSlotCandidates']> {
+  const candidates: NonNullable<SelectionNodeInfo['iconSlotCandidates']> = [];
+
+  for (const child of component.children) {
+    candidates.push(...collectIconSlotCandidatesFromDescendant(child, component));
+  }
+
+  return candidates;
+}
+
+function collectIconSlotCandidatesFromDescendant(
+  node: SceneNode,
+  component: ComponentNode,
+): NonNullable<SelectionNodeInfo['iconSlotCandidates']> {
+  if (node.type === 'COMPONENT' || node.type === 'INSTANCE') {
+    return iconSlotCandidateForNode(node, component);
+  }
+
+  const self = iconSlotCandidateForNode(node, component);
+  if (!('children' in node)) {
+    return self;
+  }
+
+  return [
+    ...self,
+    ...node.children.flatMap((child) =>
+      collectIconSlotCandidatesFromDescendant(child, component),
+    ),
+  ];
+}
+
+function iconSlotCandidateForNode(
+  node: SceneNode,
+  knownComponent?: ComponentNode,
+): NonNullable<SelectionNodeInfo['iconSlotCandidates']> {
+  if (!isIconSlotCandidateNode(node, { requireIconName: Boolean(knownComponent) })) {
+    return [];
+  }
+
+  const component = knownComponent ?? findNearestMainComponent(node);
+  if (!component || component.id === node.id || component.parent?.type === 'COMPONENT_SET') {
+    return [];
+  }
+
+  if (node.componentPropertyReferences?.mainComponent) {
+    return [];
+  }
+
+  return [{
+    nodeId: node.id,
+    nodeName: node.name,
+    nodeType: node.type,
+    componentId: component.id,
+    componentName: component.name,
+    label: iconSlotLabelFromNodeName(node.name),
+  }];
+}
+
 export async function getSelection(deepInspectEnabled = selectionDeepInspectEnabled) {
   const selection = figma.currentPage.selection;
   const info: SelectionNodeInfo[] = selection.map(node => ({
@@ -502,6 +570,7 @@ export async function getSelection(deepInspectEnabled = selectionDeepInspectEnab
     currentValues: readCurrentValues(node),
     depth: 0,
     iconSwapProperties: readIconSwapProperties(node),
+    iconSlotCandidates: readIconSlotCandidates(node),
   }));
 
   if (deepInspectEnabled) {

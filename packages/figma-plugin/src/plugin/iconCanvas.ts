@@ -1,4 +1,5 @@
 import type { IconCanvasItem } from '../shared/types.js';
+import { findNearestMainComponent, iconSlotLabelFromNodeName, isIconSlotCandidateNode } from './iconSlotUtils.js';
 
 type ReplaceIconResult = {
   count: number;
@@ -142,6 +143,58 @@ export async function setSelectionIconSwapProperty(
   return { count, skipped, skippedReason: summarizeSkippedReasons(skippedReasons) };
 }
 
+export async function createSelectionIconSlots(
+  icon: IconCanvasItem,
+  targetNodeIds: string[],
+): Promise<ReplaceIconResult> {
+  const selectedIds = new Set(figma.currentPage.selection.map((node) => node.id));
+  const targetIds = new Set(targetNodeIds);
+  const component = await resolveIconComponent(icon);
+  const replacements: InstanceNode[] = [];
+  let skipped = 0;
+  const skippedReasons: string[] = [];
+
+  for (const nodeId of targetIds) {
+    if (!selectedIds.has(nodeId) && !hasSelectedAncestor(nodeId, selectedIds)) {
+      skipped += 1;
+      skippedReasons.push('Selection changed before the slot could be created.');
+      continue;
+    }
+
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!isSceneNode(node)) {
+      skipped += 1;
+      skippedReasons.push('Only selected icon-like layers can become icon slots.');
+      continue;
+    }
+
+    try {
+      replacements.push(promoteNodeToIconSlot(node, component, icon));
+    } catch (error) {
+      console.debug('[iconCanvas] skipped icon slot creation:', node.id, error);
+      skipped += 1;
+      skippedReasons.push(getErrorMessage(
+        error,
+        'This layer could not become an icon slot.',
+      ));
+    }
+  }
+
+  if (replacements.length === 0) {
+    throw new Error(
+      summarizeSkippedReasons(skippedReasons) ?? 'No selected layers could become icon slots.',
+    );
+  }
+
+  figma.currentPage.selection = replacements;
+  figma.viewport.scrollAndZoomIntoView(replacements);
+  return {
+    count: replacements.length,
+    skipped,
+    skippedReason: summarizeSkippedReasons(skippedReasons),
+  };
+}
+
 async function resolveIconComponent(
   icon: IconCanvasItem,
 ): Promise<ComponentNode> {
@@ -211,6 +264,59 @@ function replaceNodeWithIconInstance(
   return { replacement };
 }
 
+function promoteNodeToIconSlot(
+  node: SceneNode,
+  iconComponent: ComponentNode,
+  icon: IconCanvasItem,
+): InstanceNode {
+  if (node.id === iconComponent.id || isAncestorOf(node, iconComponent)) {
+    throw new Error('The managed icon source component cannot become its own slot.');
+  }
+  if (!isIconSlotCandidateNode(node)) {
+    throw new Error('Select a raw icon layer or unmanaged icon placeholder inside a main component.');
+  }
+
+  const ownerComponent = findNearestMainComponent(node);
+  if (!ownerComponent) {
+    throw new Error('Select a layer inside a main component, not an instance or variant set.');
+  }
+
+  const parent = node.parent;
+  if (!parent || !canMutateChildren(parent)) {
+    throw new Error('The selected layer cannot be replaced in this component.');
+  }
+
+  const index = parent.children.indexOf(node);
+  const replacement = iconComponent.createInstance();
+  let propertyName: string | null = null;
+
+  parent.insertChild(index >= 0 ? index : parent.children.length, replacement);
+  try {
+    replacement.name = node.name || icon.componentName;
+    copyReplaceableLayout(node, replacement);
+    const createdPropertyName = ownerComponent.addComponentProperty(
+      uniqueComponentPropertyLabel(ownerComponent, iconSlotLabelFromNodeName(node.name)),
+      'INSTANCE_SWAP',
+      iconComponent.id,
+    );
+    propertyName = createdPropertyName;
+    replacement.componentPropertyReferences = {
+      ...(replacement.componentPropertyReferences ?? {}),
+      mainComponent: createdPropertyName,
+    };
+    node.remove();
+    return replacement;
+  } catch (error) {
+    if (propertyName) {
+      ownerComponent.deleteComponentProperty(propertyName);
+    }
+    if (!replacement.removed) {
+      replacement.remove();
+    }
+    throw error;
+  }
+}
+
 function getIconInsertionTarget(selectedNode: SceneNode | undefined): {
   parent: BaseNode & ChildrenMixin;
   index: number;
@@ -241,6 +347,10 @@ function canMutateChildren(node: BaseNode): node is BaseNode & ChildrenMixin {
   return canInsertChild(node) && node.type !== 'INSTANCE';
 }
 
+function isSceneNode(node: BaseNode | null): node is SceneNode {
+  return Boolean(node && 'visible' in node && 'x' in node && 'y' in node);
+}
+
 function isAncestorOf(possibleAncestor: BaseNode, node: BaseNode): boolean {
   let parent = node.parent;
   while (parent) {
@@ -256,6 +366,40 @@ function hasInstanceSwapProperties(node: InstanceNode): boolean {
   return Object.values(node.componentProperties).some(
     (property) => property.type === 'INSTANCE_SWAP',
   );
+}
+
+function hasSelectedAncestor(nodeId: string, selectedIds: Set<string>): boolean {
+  const node = figma.getNodeById(nodeId);
+  let parent = node?.parent;
+  while (parent) {
+    if (selectedIds.has(parent.id)) {
+      return true;
+    }
+    parent = parent.parent;
+  }
+  return false;
+}
+
+function uniqueComponentPropertyLabel(
+  component: ComponentNode,
+  preferredLabel: string,
+): string {
+  const existingLabels = new Set(
+    Object.keys(component.componentPropertyDefinitions).map(stripComponentPropertyId),
+  );
+  if (!existingLabels.has(preferredLabel)) {
+    return preferredLabel;
+  }
+
+  let index = 2;
+  while (existingLabels.has(`${preferredLabel} ${index}`)) {
+    index += 1;
+  }
+  return `${preferredLabel} ${index}`;
+}
+
+function stripComponentPropertyId(name: string): string {
+  return name.replace(/#[^#]*$/, '');
 }
 
 function isNonEmptyContainer(node: SceneNode): node is SceneNode & ChildrenMixin {

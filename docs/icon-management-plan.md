@@ -41,6 +41,7 @@ Implemented:
 - Core SVG import validation that rejects active content, event handlers, external references, and style imports before icons enter the registry.
 - Initial Icons workspace health summary and filtering for publish drift, non-standard frames, and unknown color behavior, with selected-icon guidance in the inspector.
 - Initial icon usage audit from the Icons workspace for current selection or current page, grouped by repair action and covering managed usage counts, missing linked components, duplicate managed components, stale component hashes, renamed icon components, deprecated icon usage, unmanaged icon-like components, raw icon-layer candidates, and unknown managed component metadata.
+- Initial component icon slot setup from the Icons workspace: selected raw or unmanaged icon-like layers inside main components can be replaced with a managed icon instance and exposed as an instance-swap component property, with collision-safe property names and audit visibility for unpromoted icon slots.
 
 Missing:
 
@@ -51,8 +52,8 @@ Missing:
 - Token color guidance, canvas color audits, and guided hardcoded fill repair beyond initial publish normalization.
 - Bounding-box, keyline, and stroke behavior checks beyond initial SVG viewBox frame mismatch detection.
 - Richer replacement previews and multi-slot selection controls from the Icons workspace.
-- Component icon slot setup with boolean visibility, instance swap properties, preferred values, and exposed nested instances.
-- Richer icon usage audit, guided repair, cross-page/file usage analytics, batch finding navigation, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page audit.
+- Richer component icon slot setup with boolean visibility, curated preferred values, component set support, exposed nested instances, and multi-slot previews.
+- Richer icon usage audit, guided repair, cross-page/file usage analytics, batch finding navigation, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page audit and unpromoted-slot detection.
 - Icon exports for SVG, typed code, manifests, license metadata, and token-aligned handoff.
 - Integration with review, publish, health, history, and git workflows.
 

@@ -216,6 +216,8 @@ export interface SelectionNodeInfo {
   parentId?: string;
   /** Instance-swap properties exposed by a selected component instance. */
   iconSwapProperties?: IconInstanceSwapProperty[];
+  /** Raw or unmanaged icon-like layers that can become component icon slots. */
+  iconSlotCandidates?: IconSlotCandidate[];
 }
 
 export interface IconInstanceSwapProperty {
@@ -226,6 +228,15 @@ export interface IconInstanceSwapProperty {
     type: 'COMPONENT' | 'COMPONENT_SET';
     key: string;
   }[];
+}
+
+export interface IconSlotCandidate {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  componentId: string;
+  componentName: string;
+  label: string;
 }
 
 export interface SetDeepInspectMessage {
@@ -785,9 +796,16 @@ export interface SetIconSwapPropertyMessage {
   correlationId?: string;
 }
 
+export interface CreateIconSlotMessage {
+  type: 'create-icon-slot';
+  icon: IconCanvasItem;
+  targetNodeIds: string[];
+  correlationId?: string;
+}
+
 export interface IconCanvasActionResultMessage {
   type: 'icon-canvas-action-result';
-  action: 'insert' | 'replace' | 'set-slot';
+  action: 'insert' | 'replace' | 'set-slot' | 'create-slot';
   iconId: string;
   count: number;
   skipped: number;
@@ -834,6 +852,7 @@ export type IconUsageAuditFindingType =
   | 'renamed-component'
   | 'deprecated-usage'
   | 'unmanaged-icon-component'
+  | 'unpromoted-icon-slot'
   | 'raw-icon-layer'
   | 'unknown-managed-component';
 
@@ -855,6 +874,7 @@ export interface IconUsageAuditFinding {
 export interface IconUsageAuditSummary {
   managedInstances: number;
   unmanagedComponents: number;
+  unpromotedIconSlots: number;
   rawIconLayers: number;
   deprecatedUsages: number;
   staleComponents: number;
@@ -1287,6 +1307,7 @@ export type PluginMessage =
   | InsertIconMessage
   | ReplaceSelectionWithIconMessage
   | SetIconSwapPropertyMessage
+  | CreateIconSlotMessage
   | ScanIconUsageMessage
   | RevertVariablesMessage
   | RevertStylesMessage;

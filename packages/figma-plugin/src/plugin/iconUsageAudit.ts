@@ -7,6 +7,11 @@ import type {
 } from '../shared/types.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { readManagedIconPluginData } from './iconPluginData.js';
+import {
+  findNearestMainComponent,
+  isIconSlotCandidateNode,
+  looksLikeIconLayerName,
+} from './iconSlotUtils.js';
 
 type AuditNode = SceneNode | ComponentNode;
 
@@ -16,11 +21,6 @@ interface IconUsageIndex {
   byComponentKey: Map<string, IconUsageAuditInput>;
   componentIds: Map<string, string[]>;
 }
-
-const ICON_NAME_RE = /(^|[/_.\-\s])icon([/_.\-\s]|$)/i;
-const RAW_ICON_SIZE_MIN = 8;
-const RAW_ICON_SIZE_MAX = 64;
-const RAW_ICON_ASPECT_TOLERANCE = 0.35;
 
 export async function scanIconUsage(options: {
   scope: IconUsageAuditScope;
@@ -158,7 +158,7 @@ function collectComponentFindings(
 ): void {
   const data = readManagedIconPluginData(component);
   if (!data) {
-    if (looksLikeIconComponentName(component.name)) {
+    if (looksLikeIconLayerName(component.name)) {
       findings.push({
         id: findingId('unmanaged-icon-component', component.id),
         type: 'unmanaged-icon-component',
@@ -245,7 +245,7 @@ async function collectInstanceFindings(
     (component.key ? index.byComponentKey.get(component.key) : undefined);
 
   if (!icon) {
-    if (looksLikeIconComponentName(component.name) || looksLikeIconComponentName(instance.name)) {
+    if (looksLikeIconLayerName(component.name) || looksLikeIconLayerName(instance.name)) {
       findings.push({
         id: findingId('unmanaged-icon-component', instance.id, component.id),
         type: 'unmanaged-icon-component',
@@ -280,6 +280,8 @@ async function collectInstanceFindings(
     });
   }
 
+  collectUnpromotedIconSlotFinding(instance, findings, icon);
+
   if (data?.hash && data.hash !== icon.svgHash) {
     findings.push({
       id: findingId('stale-component', instance.id, icon.id),
@@ -306,6 +308,26 @@ function collectRawLayerFinding(
     return;
   }
 
+  const ownerComponent = findNearestMainComponent(node);
+  if (
+    ownerComponent &&
+    looksLikeIconLayerName(node.name) &&
+    !node.componentPropertyReferences?.mainComponent
+  ) {
+    findings.push({
+      id: findingId('unpromoted-icon-slot', node.id),
+      type: 'unpromoted-icon-slot',
+      action: 'repair',
+      severity: 'info',
+      nodeId: node.id,
+      nodeName: node.name,
+      nodeType: node.type,
+      pageName: pageNameForNode(node),
+      message: `${node.name} looks like an icon slot in ${ownerComponent.name} but is not exposed as an instance-swap property.`,
+    });
+    return;
+  }
+
   findings.push({
     id: findingId('raw-icon-layer', node.id),
     type: 'raw-icon-layer',
@@ -316,6 +338,32 @@ function collectRawLayerFinding(
     nodeType: node.type,
     pageName: pageNameForNode(node),
     message: `${node.name} looks like raw icon artwork. Replace it with a managed icon if it belongs to the system library.`,
+  });
+}
+
+function collectUnpromotedIconSlotFinding(
+  instance: InstanceNode,
+  findings: IconUsageAuditFinding[],
+  icon: IconUsageAuditInput,
+): void {
+  const ownerComponent = findNearestMainComponent(instance);
+  if (!ownerComponent || instance.componentPropertyReferences?.mainComponent) {
+    return;
+  }
+
+  findings.push({
+    id: findingId('unpromoted-icon-slot', instance.id, icon.id),
+    type: 'unpromoted-icon-slot',
+    action: 'repair',
+    severity: 'info',
+    iconId: icon.id,
+    iconName: icon.name,
+    iconPath: icon.path,
+    nodeId: instance.id,
+    nodeName: instance.name,
+    nodeType: instance.type,
+    pageName: pageNameForNode(instance),
+    message: `${instance.name} uses managed icon ${icon.name} inside ${ownerComponent.name} but is not exposed as an instance-swap property.`,
   });
 }
 
@@ -356,6 +404,7 @@ function summarizeIconUsageFindings(
       0,
     ),
     unmanagedComponents: countFindings(findings, 'unmanaged-icon-component'),
+    unpromotedIconSlots: countFindings(findings, 'unpromoted-icon-slot'),
     rawIconLayers: countFindings(findings, 'raw-icon-layer'),
     deprecatedUsages: countFindings(findings, 'deprecated-usage'),
     staleComponents: countFindings(findings, 'stale-component'),
@@ -367,6 +416,7 @@ function emptyIconUsageSummary(): IconUsageAuditSummary {
   return {
     managedInstances: 0,
     unmanagedComponents: 0,
+    unpromotedIconSlots: 0,
     rawIconLayers: 0,
     deprecatedUsages: 0,
     staleComponents: 0,
@@ -392,36 +442,7 @@ function appendComponentOccurrence(
 }
 
 function isRawIconCandidate(node: SceneNode): boolean {
-  if (!isVectorLikeNode(node)) {
-    return false;
-  }
-  if (node.width < RAW_ICON_SIZE_MIN || node.height < RAW_ICON_SIZE_MIN) {
-    return false;
-  }
-  if (node.width > RAW_ICON_SIZE_MAX || node.height > RAW_ICON_SIZE_MAX) {
-    return false;
-  }
-
-  const larger = Math.max(node.width, node.height);
-  const smaller = Math.min(node.width, node.height);
-  const aspectDelta = larger === 0 ? 1 : 1 - smaller / larger;
-  return aspectDelta <= RAW_ICON_ASPECT_TOLERANCE || looksLikeIconComponentName(node.name);
-}
-
-function isVectorLikeNode(node: SceneNode): boolean {
-  return (
-    node.type === 'VECTOR' ||
-    node.type === 'BOOLEAN_OPERATION' ||
-    node.type === 'LINE' ||
-    node.type === 'ELLIPSE' ||
-    node.type === 'POLYGON' ||
-    node.type === 'RECTANGLE' ||
-    node.type === 'STAR'
-  );
-}
-
-function looksLikeIconComponentName(name: string): boolean {
-  return ICON_NAME_RE.test(name) || name.startsWith('Icon/');
+  return isIconSlotCandidateNode(node);
 }
 
 function pageNameForNode(node: BaseNode): string | undefined {
@@ -438,4 +459,3 @@ function pageNameForNode(node: BaseNode): string | undefined {
 function findingId(...parts: Array<string | null | undefined>): string {
   return parts.filter(Boolean).join(':');
 }
-

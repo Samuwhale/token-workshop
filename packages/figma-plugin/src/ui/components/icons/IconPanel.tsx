@@ -3,6 +3,7 @@ import type { IconRegistryFile, IconStatus, ManagedIcon } from "@token-workshop/
 import type {
   IconCanvasActionResultMessage,
   IconCanvasItem,
+  CreateIconSlotMessage,
   IconPublishProgressMessage,
   IconUsageAuditFinding,
   IconUsageAuditResultMessage,
@@ -43,12 +44,20 @@ type IconHealthFilter = "all" | "publish" | "frame" | "color";
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
   | Omit<ReplaceSelectionWithIconMessage, "correlationId">
-  | Omit<SetIconSwapPropertyMessage, "correlationId">;
+  | Omit<SetIconSwapPropertyMessage, "correlationId">
+  | Omit<CreateIconSlotMessage, "correlationId">;
 type IconUsageAuditRequest = Omit<ScanIconUsageMessage, "correlationId">;
 
 interface IconSlotAction {
   propertyName: string;
   label: string;
+  targetNodeIds: string[];
+}
+
+interface IconSlotSetupAction {
+  label: string;
+  componentId: string;
+  componentName: string;
   targetNodeIds: string[];
 }
 
@@ -471,6 +480,37 @@ function getIconSlotActions(selectedNodes: SelectionNodeInfo[]): IconSlotAction[
   );
 }
 
+function getIconSlotSetupActions(selectedNodes: SelectionNodeInfo[]): IconSlotSetupAction[] {
+  const grouped = new Map<string, IconSlotSetupAction>();
+
+  for (const node of selectedNodes) {
+    if ((node.depth ?? 0) !== 0) {
+      continue;
+    }
+
+    for (const candidate of node.iconSlotCandidates ?? []) {
+      const key = `${candidate.componentId}:${candidate.label}`;
+      const existing = grouped.get(key);
+      if (existing) {
+        if (!existing.targetNodeIds.includes(candidate.nodeId)) {
+          existing.targetNodeIds.push(candidate.nodeId);
+        }
+      } else {
+        grouped.set(key, {
+          label: candidate.label,
+          componentId: candidate.componentId,
+          componentName: candidate.componentName,
+          targetNodeIds: [candidate.nodeId],
+        });
+      }
+    }
+  }
+
+  return Array.from(grouped.values()).sort((a, b) =>
+    `${a.componentName} ${a.label}`.localeCompare(`${b.componentName} ${b.label}`),
+  );
+}
+
 function IconPreview({
   icon,
   content,
@@ -706,6 +746,7 @@ function IconUsageAuditPanel({
           <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             <span>{formatHealthCount(result.summary.managedInstances, "managed use")}</span>
             <span>{formatHealthCount(result.summary.unmanagedComponents, "unmanaged component")}</span>
+            <span>{formatHealthCount(result.summary.unpromotedIconSlots, "slot to set up")}</span>
             <span>{formatHealthCount(result.summary.rawIconLayers, "raw layer")}</span>
             <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
           </div>
@@ -735,21 +776,25 @@ function IconInspector({
   content,
   selectionCount,
   iconSlotActions,
+  iconSlotSetupActions,
   defaultIconSize,
   canvasActionBusy,
   onInsert,
   onReplaceSelection,
   onSetIconSlot,
+  onCreateIconSlot,
 }: {
   icon: ManagedIcon;
   content?: string;
   selectionCount: number;
   iconSlotActions: IconSlotAction[];
+  iconSlotSetupActions: IconSlotSetupAction[];
   defaultIconSize: number;
   canvasActionBusy: boolean;
   onInsert: () => void;
   onReplaceSelection: () => void;
   onSetIconSlot: (action: IconSlotAction) => void;
+  onCreateIconSlot: (action: IconSlotSetupAction) => void;
 }) {
   const rows = [
     ["Component", icon.componentName],
@@ -841,6 +886,37 @@ function IconInspector({
               <Replace size={13} strokeWidth={1.5} aria-hidden />
               <span className="min-w-0 truncate">
                 Set {action.label}
+                {action.targetNodeIds.length > 1
+                  ? ` (${action.targetNodeIds.length})`
+                  : ""}
+              </span>
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      {iconSlotSetupActions.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+            Component setup
+          </div>
+          {iconSlotSetupActions.map((action) => (
+            <Button
+              key={`${action.componentId}:${action.label}`}
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onCreateIconSlot(action)}
+              disabled={!canUseOnCanvas || canvasActionBusy}
+              title={
+                canUseOnCanvas
+                  ? `Create ${action.label} on ${action.componentName}`
+                  : "Publish this icon before creating component slots"
+              }
+            >
+              <Replace size={13} strokeWidth={1.5} aria-hidden />
+              <span className="min-w-0 truncate">
+                Create {action.label}
                 {action.targetNodeIds.length > 1
                   ? ` (${action.targetNodeIds.length})`
                   : ""}
@@ -1054,6 +1130,10 @@ export function IconPanel() {
     () => getIconSlotActions(selectedNodes),
     [selectedNodes],
   );
+  const iconSlotSetupActions = useMemo(
+    () => getIconSlotSetupActions(selectedNodes),
+    [selectedNodes],
+  );
 
   const iconsToPublish = useMemo(
     () => icons.filter(iconNeedsPublish),
@@ -1246,6 +1326,33 @@ export function IconPanel() {
     }
   }, [canvasActionBusy, selectedIcon]);
 
+  const handleCreateIconSlot = useCallback(async (action: IconSlotSetupAction) => {
+    if (!selectedIcon || action.targetNodeIds.length === 0 || canvasActionBusy) {
+      return;
+    }
+
+    setCanvasActionBusy(true);
+    try {
+      const result = await runIconCanvasAction({
+        type: "create-icon-slot",
+        icon: iconCanvasItem(selectedIcon),
+        targetNodeIds: action.targetNodeIds,
+      });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      dispatchToast(
+        `Created ${action.label} with ${selectedIcon.name} on ${formatIconCount(result.count)}.${formatSkippedSuffix(result)}`,
+        result.skipped > 0 ? "warning" : "success",
+      );
+    } catch (err) {
+      dispatchToast(getErrorMessage(err, "Failed to create icon slot."), "error");
+    } finally {
+      setCanvasActionBusy(false);
+    }
+  }, [canvasActionBusy, selectedIcon]);
+
   const handleAuditUsage = useCallback(async () => {
     if (auditLoading) {
       return;
@@ -1277,6 +1384,7 @@ export function IconPanel() {
         summary: {
           managedInstances: 0,
           unmanagedComponents: 0,
+          unpromotedIconSlots: 0,
           rawIconLayers: 0,
           deprecatedUsages: 0,
           staleComponents: 0,
@@ -1468,11 +1576,13 @@ export function IconPanel() {
               content={iconContent[selectedIcon.id]?.content}
               selectionCount={selectedNodes.length}
               iconSlotActions={iconSlotActions}
+              iconSlotSetupActions={iconSlotSetupActions}
               defaultIconSize={defaultIconSize}
               canvasActionBusy={canvasActionBusy}
               onInsert={handleInsert}
               onReplaceSelection={handleReplaceSelection}
               onSetIconSlot={handleSetIconSlot}
+              onCreateIconSlot={handleCreateIconSlot}
             />
           ) : null}
         </div>
