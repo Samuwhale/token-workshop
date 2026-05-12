@@ -23,7 +23,9 @@ import { OperationLog } from "./services/operation-log.js";
 import { generatorRoutes } from "./routes/generators.js";
 import { operationRoutes } from "./routes/operations.js";
 import { resolverRoutes } from "./routes/resolvers.js";
+import { iconRoutes } from "./routes/icons.js";
 import { ResolverStore } from "./services/resolver-store.js";
+import { IconStore } from "./services/icon-store.js";
 import { ManualSnapshotStore } from "./services/manual-snapshot.js";
 import { snapshotRoutes } from "./routes/snapshots.js";
 import { PromiseChainLock } from "./utils/promise-chain-lock.js";
@@ -130,6 +132,9 @@ export async function startServer(config: ServerConfig) {
 
   const resolverStore = new ResolverStore(config.tokenDir);
   await resolverStore.initialize();
+
+  const iconStore = new IconStore(config.tokenDir);
+  await iconStore.initialize();
 
   // Reuse the lock that lives inside TokenStore — watcher callbacks and route handlers
   // all serialize through the same chain, preventing watcher loadCollection() from overwriting
@@ -262,6 +267,7 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate("generatorService", generatorService);
   fastify.decorate("operationLog", operationLog);
   fastify.decorate("resolverStore", resolverStore);
+  fastify.decorate("iconStore", iconStore);
   fastify.decorate("manualSnapshots", manualSnapshots);
   fastify.decorate("lintConfigStore", lintConfigStore);
   fastify.decorate("collectionService", collectionService);
@@ -311,6 +317,7 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(generatorRoutes, { prefix: "/api" });
   await fastify.register(operationRoutes, { prefix: "/api" });
   await fastify.register(resolverRoutes, { prefix: "/api" });
+  await fastify.register(iconRoutes, { prefix: "/api" });
   await fastify.register(snapshotRoutes, { prefix: "/api" });
   await fastify.register(docsRoutes);
   await fastify.register(helpRoutes);
@@ -334,6 +341,7 @@ declare module "fastify" {
     generatorService: TokenGeneratorService;
     operationLog: OperationLog;
     resolverStore: ResolverStore;
+    iconStore: IconStore;
     manualSnapshots: ManualSnapshotStore;
     collectionsStore: CollectionStore;
     lintConfigStore: LintConfigStore;

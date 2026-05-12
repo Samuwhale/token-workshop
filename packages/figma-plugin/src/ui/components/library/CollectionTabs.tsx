@@ -5,11 +5,12 @@ import {
   useMemo,
   useState,
   useRef,
+  type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   Check,
   ChevronDown,
-  MoreHorizontal,
   Plus,
   Settings2,
   Upload,
@@ -54,6 +55,8 @@ interface CollectionTabsProps {
   currentCollectionId?: string | null;
   collectionDisplayNames?: Record<string, string>;
   collectionTokenCounts?: Record<string, number>;
+  collectionMetaById?: Record<string, string>;
+  allCollectionsMeta?: string;
   collectionHealth?: Map<string, CollectionReviewSummary>;
   focusRequestKey?: number;
   allCollectionsScope?: AllCollectionsScope;
@@ -61,6 +64,9 @@ interface CollectionTabsProps {
   onSelectCollection: (collectionId: string) => void;
   onOpenCreateCollection?: () => void;
   onOpenImport?: () => void;
+  createActionLabel?: string;
+  createActionTitle?: string;
+  createActionIcon?: ReactNode;
 }
 
 function collectionHealthTone(summary?: CollectionReviewSummary): string | null {
@@ -91,6 +97,8 @@ export function CollectionTabs({
   currentCollectionId = null,
   collectionDisplayNames,
   collectionTokenCounts = {},
+  collectionMetaById,
+  allCollectionsMeta,
   collectionHealth,
   focusRequestKey = 0,
   allCollectionsScope,
@@ -98,6 +106,9 @@ export function CollectionTabs({
   onSelectCollection,
   onOpenCreateCollection,
   onOpenImport,
+  createActionLabel = "New collection",
+  createActionTitle = "Create a collection",
+  createActionIcon,
 }: CollectionTabsProps) {
   const {
     open: switcherOpen,
@@ -114,10 +125,10 @@ export function CollectionTabs({
     preferredHeight: 380,
     align: "start",
   });
-  const actionsMenu = useDropdownMenu();
-  const actionsMenuStyle = useAnchoredFloatingStyle({
-    triggerRef: actionsMenu.triggerRef,
-    open: actionsMenu.open,
+  const createMenu = useDropdownMenu();
+  const createMenuStyle = useAnchoredFloatingStyle({
+    triggerRef: createMenu.triggerRef,
+    open: createMenu.open,
     preferredWidth: 220,
     preferredHeight: 220,
     align: "end",
@@ -145,16 +156,18 @@ export function CollectionTabs({
     0,
   );
   const currentCollectionMeta = currentCollection
-    ? formatCollectionMeta(
+    ? (collectionMetaById?.[currentCollection.id] ??
+      formatCollectionMeta(
         collectionTokenCounts[currentCollection.id] ?? 0,
         currentCollection.modes.length,
-      )
+      ))
     : "";
   const visibleTitle =
     scopeValue === "all" ? "All collections" : currentDisplayName;
   const visibleMeta =
     scopeValue === "all"
-      ? formatAllCollectionsMeta(collections.length, allCollectionsTokenCount)
+      ? (allCollectionsMeta ??
+        formatAllCollectionsMeta(collections.length, allCollectionsTokenCount))
       : currentCollectionMeta;
 
   const filteredCollections = useMemo(
@@ -171,9 +184,11 @@ export function CollectionTabs({
   const primaryAction =
     showCreateButton
       ? {
-          icon: <Plus size={12} strokeWidth={1.5} aria-hidden />,
-          label: "New collection",
-          title: "Create a collection",
+          icon: createActionIcon ?? (
+            <Plus size={12} strokeWidth={1.5} aria-hidden />
+          ),
+          label: createActionLabel,
+          title: createActionTitle,
           onClick: () => onOpenCreateCollection?.(),
         }
       : showImportButton
@@ -185,36 +200,19 @@ export function CollectionTabs({
           }
         : null;
   const showImportAction = showCreateButton && showImportButton;
-  const overflowActions = [
-    showImportAction
-      ? {
-          key: "import",
-          label: "Import",
-          icon: <Upload size={12} strokeWidth={1.5} aria-hidden />,
-          onClick: () => onOpenImport?.(),
-        }
-      : null,
-  ].filter(
-    (
-      action,
-    ): action is {
-      key: string;
-      label: string;
-      icon: JSX.Element;
-      onClick: () => void;
-    } => action !== null,
-  );
-  const hasSecondaryOverflow = overflowActions.length > 0;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
-  const triggerAriaLabel = currentCollection
-    ? scopeValue === "all"
-      ? "All collections. Choose collection"
-      : `Collection: ${currentDisplayName}. Choose collection`
-    : scopeValue === "all"
-      ? "All collections. Choose collection"
-      : "Choose collection";
   const triggerTitle =
     visibleMeta.length > 0 ? `${visibleTitle} · ${visibleMeta}` : visibleTitle;
+  const triggerAriaLabel =
+    scopeValue === "all"
+      ? visibleMeta
+        ? `All collections, ${visibleMeta}. Choose collection`
+        : "All collections. Choose collection"
+      : currentCollection
+        ? visibleMeta
+          ? `Collection: ${currentDisplayName}, ${visibleMeta}. Choose collection`
+          : `Collection: ${currentDisplayName}. Choose collection`
+        : "Choose collection";
   const triggerStateClass =
     switcherOpen || scopeValue === "all"
       ? "border-[var(--border-accent)] bg-[var(--surface-group)] text-[color:var(--color-figma-text)]"
@@ -274,294 +272,306 @@ export function CollectionTabs({
     initialFocusRef: searchInputRef,
   });
 
-  return (
-    <div className="flex min-w-0 shrink-0 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1">
-      <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
-        <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
-          <div className="tm-responsive-toolbar__leading tm-collection-toolbar__leading">
-            {allCollectionsScope ? (
-              <div className="tm-collection-toolbar__scope">
-                <SegmentedControl
-                  value={scopeValue}
-                  options={[...COLLECTION_SCOPE_OPTIONS]}
-                  onChange={allCollectionsScope.onChange}
-                  ariaLabel="Collection scope"
-                  allowWrap
-                  size="compact"
-                />
-              </div>
-            ) : null}
-            <button
-              ref={switcherTriggerRef}
-              type="button"
-              onClick={toggleSwitcher}
-              aria-haspopup="dialog"
-              aria-controls="collection-switcher-dialog"
-              aria-expanded={switcherOpen}
-              aria-label={triggerAriaLabel}
-              title={currentCollection ? triggerTitle : "Choose collection"}
-              className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${CONTROL_FOCUS_ACCENT} ${triggerStateClass}`}
-            >
-              <span className="tm-collection-toolbar__summary min-w-0 flex-1">
-                <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
-                  {visibleTitle}
+  const switcherMenu = switcherOpen ? (
+    <div
+      id="collection-switcher-dialog"
+      ref={switcherMenuRef}
+      style={switcherStyle ?? { visibility: "hidden" }}
+      className={`${FLOATING_MENU_WIDE_CLASS} flex flex-col p-1`}
+      role="dialog"
+      aria-modal="false"
+      aria-label="Choose collection"
+    >
+      <div className="mb-1">
+        <SearchField
+          ref={searchInputRef}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onClear={() => {
+            setQuery("");
+            requestAnimationFrame(() => searchInputRef.current?.focus());
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && query.length > 0) {
+              event.stopPropagation();
+              setQuery("");
+              return;
+            }
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              setSwitcherOpen(false);
+              requestAnimationFrame(() => {
+                switcherTriggerRef.current?.focus();
+              });
+            }
+          }}
+          placeholder="Search collections"
+          aria-label="Search collections"
+          containerClassName="w-full"
+          className="bg-[var(--surface-group-quiet)] hover:bg-[var(--surface-group-quiet)]"
+        />
+      </div>
+
+      <div
+        ref={switcherOptionsRef}
+        className="min-h-0 overflow-y-auto"
+        role="radiogroup"
+        aria-label="Collections"
+        onKeyDown={(event) => {
+          const activeElement = document.activeElement;
+          if (!(activeElement instanceof HTMLButtonElement)) {
+            return;
+          }
+          const options = Array.from(
+            switcherOptionsRef.current?.querySelectorAll<HTMLButtonElement>(
+              'button[role="radio"]',
+            ) ?? [],
+          );
+          const currentIndex = options.indexOf(activeElement);
+          if (currentIndex < 0) {
+            return;
+          }
+
+          if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+            event.preventDefault();
+            focusCollectionOption(currentIndex + 1);
+            return;
+          }
+          if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+            event.preventDefault();
+            focusCollectionOption(currentIndex - 1);
+            return;
+          }
+          if (event.key === "Home") {
+            event.preventDefault();
+            focusCollectionOption(0);
+            return;
+          }
+          if (event.key === "End") {
+            event.preventDefault();
+            focusCollectionOption(options.length - 1);
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeSwitcher();
+            requestAnimationFrame(() => {
+              switcherTriggerRef.current?.focus();
+            });
+          }
+        }}
+      >
+        {hasNoMatches ? (
+          <div className="px-2 py-3 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+            No collections match "{query.trim()}".
+          </div>
+        ) : (
+          filteredCollections.map((collection) => {
+            const collectionId = collection.id;
+            const isCurrent = collectionId === currentCollectionId;
+            const displayName = getCollectionDisplayName(
+              collectionId,
+              collectionDisplayNames,
+            );
+            const healthTone = collectionHealthTone(
+              collectionHealth?.get(collectionId),
+            );
+            const meta = formatCollectionMeta(
+              collectionTokenCounts[collectionId] ?? 0,
+              collection.modes.length,
+            );
+            const visibleMeta = collectionMetaById?.[collectionId] ?? meta;
+
+            return (
+              <button
+                key={collectionId}
+                type="button"
+                role="radio"
+                aria-checked={isCurrent}
+                onClick={() => handleSelectCollection(collectionId)}
+                className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${CONTROL_FOCUS_ACCENT} ${
+                  isCurrent
+                    ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                    : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                }`}
+              >
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-text-accent)]">
+                  {isCurrent ? (
+                    <Check size={12} strokeWidth={1.7} aria-hidden />
+                  ) : healthTone ? (
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${healthTone}`}
+                      aria-hidden
+                    />
+                  ) : null}
                 </span>
-                {visibleMeta ? (
-                  <span className="tm-collection-toolbar__summary-meta block text-secondary text-[color:var(--color-figma-text-secondary)]">
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-body font-medium ${LONG_TEXT_CLASSES.textPrimary}`}>
+                    {displayName}
+                  </span>
+                  <span className={`block text-secondary ${LONG_TEXT_CLASSES.textTertiary}`}>
                     {visibleMeta}
                   </span>
-                ) : null}
-              </span>
-              <ChevronDown
-                size={12}
-                strokeWidth={1.5}
-                className={`shrink-0 text-[color:var(--color-figma-text-tertiary)] transition-transform ${
-                  switcherOpen ? "rotate-180" : ""
-                }`}
-                aria-hidden
-              />
-            </button>
+                </span>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  ) : null;
 
-            {switcherOpen ? (
-              <div
-                id="collection-switcher-dialog"
-                ref={switcherMenuRef}
-                style={switcherStyle ?? { visibility: "hidden" }}
-                className={`${FLOATING_MENU_WIDE_CLASS} flex flex-col p-1`}
-                role="dialog"
-                aria-modal="false"
-                aria-label="Choose collection"
-              >
-                <div className="mb-1">
-                  <SearchField
-                    ref={searchInputRef}
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    onClear={() => {
-                      setQuery("");
-                      requestAnimationFrame(() => searchInputRef.current?.focus());
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Escape" && query.length > 0) {
-                        event.stopPropagation();
-                        setQuery("");
-                        return;
-                      }
-                      if (event.key === "Escape") {
-                        event.stopPropagation();
-                        setSwitcherOpen(false);
-                        requestAnimationFrame(() => {
-                          switcherTriggerRef.current?.focus();
-                        });
-                      }
-                    }}
-                    placeholder="Search collections"
-                    aria-label="Search collections"
-                    containerClassName="w-full"
-                    className="bg-[var(--surface-group-quiet)] hover:bg-[var(--surface-group-quiet)]"
+  const createMenuPopover =
+    showImportAction && createMenu.open ? (
+      <div
+        ref={createMenu.menuRef}
+        style={createMenuStyle ?? { visibility: "hidden" }}
+        className={FLOATING_MENU_CLASS}
+        role="menu"
+      >
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            onOpenImport?.();
+            createMenu.close({ restoreFocus: false });
+          }}
+          className={FLOATING_MENU_ITEM_CLASS}
+        >
+          <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
+            <Upload size={12} strokeWidth={1.5} aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
+            Import
+          </span>
+        </button>
+      </div>
+    ) : null;
+
+  return (
+    <>
+      <div className="flex min-w-0 shrink-0 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1">
+        <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
+          <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
+            <div className="tm-responsive-toolbar__leading tm-collection-toolbar__leading">
+              {allCollectionsScope ? (
+                <div className="tm-collection-toolbar__scope">
+                  <SegmentedControl
+                    value={scopeValue}
+                    options={[...COLLECTION_SCOPE_OPTIONS]}
+                    onChange={allCollectionsScope.onChange}
+                    ariaLabel="Collection scope"
+                    size="compact"
                   />
                 </div>
-
-                <div
-                  ref={switcherOptionsRef}
-                  className="min-h-0 overflow-y-auto"
-                  role="radiogroup"
-                  aria-label="Collections"
-                  onKeyDown={(event) => {
-                    const activeElement = document.activeElement;
-                    if (!(activeElement instanceof HTMLButtonElement)) {
-                      return;
-                    }
-                    const options = Array.from(
-                      switcherOptionsRef.current?.querySelectorAll<HTMLButtonElement>(
-                        'button[role="radio"]',
-                      ) ?? [],
-                    );
-                    const currentIndex = options.indexOf(activeElement);
-                    if (currentIndex < 0) {
-                      return;
-                    }
-
-                    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-                      event.preventDefault();
-                      focusCollectionOption(currentIndex + 1);
-                      return;
-                    }
-                    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-                      event.preventDefault();
-                      focusCollectionOption(currentIndex - 1);
-                      return;
-                    }
-                    if (event.key === "Home") {
-                      event.preventDefault();
-                      focusCollectionOption(0);
-                      return;
-                    }
-                    if (event.key === "End") {
-                      event.preventDefault();
-                      focusCollectionOption(options.length - 1);
-                      return;
-                    }
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      closeSwitcher();
-                      requestAnimationFrame(() => {
-                        switcherTriggerRef.current?.focus();
-                      });
-                    }
-                  }}
-                >
-                  {hasNoMatches ? (
-                    <div className="px-2 py-3 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      No collections match "{query.trim()}".
-                    </div>
-                  ) : (
-                    filteredCollections.map((collection) => {
-                      const collectionId = collection.id;
-                      const isCurrent = collectionId === currentCollectionId;
-                      const displayName = getCollectionDisplayName(
-                        collectionId,
-                        collectionDisplayNames,
-                      );
-                      const healthTone = collectionHealthTone(
-                        collectionHealth?.get(collectionId),
-                      );
-                      const meta = formatCollectionMeta(
-                        collectionTokenCounts[collectionId] ?? 0,
-                        collection.modes.length,
-                      );
-
-                      return (
-                        <button
-                          key={collectionId}
-                          type="button"
-                          role="radio"
-                          aria-checked={isCurrent}
-                          onClick={() => handleSelectCollection(collectionId)}
-                          className={`mb-0.5 flex w-full min-w-0 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${CONTROL_FOCUS_ACCENT} ${
-                            isCurrent
-                              ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                              : "text-[color:var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
-                          }`}
-                        >
-                          <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[color:var(--color-figma-text-accent)]">
-                            {isCurrent ? (
-                              <Check size={12} strokeWidth={1.7} aria-hidden />
-                            ) : healthTone ? (
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${healthTone}`}
-                                aria-hidden
-                              />
-                            ) : null}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block text-body font-medium ${LONG_TEXT_CLASSES.textPrimary}`}>
-                              {displayName}
-                            </span>
-                            <span className={`block text-secondary ${LONG_TEXT_CLASSES.textTertiary}`}>
-                              {meta}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
-            {primaryAction ? (
-              <Button
-                onClick={primaryAction.onClick}
-                aria-label={primaryAction.title}
-                title={primaryAction.title}
-                variant="secondary"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start`}
+              ) : null}
+              <button
+                ref={switcherTriggerRef}
+                type="button"
+                onClick={toggleSwitcher}
+                aria-haspopup="dialog"
+                aria-controls="collection-switcher-dialog"
+                aria-expanded={switcherOpen}
+                aria-label={triggerAriaLabel}
+                title={triggerTitle}
+                className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${CONTROL_FOCUS_ACCENT} ${triggerStateClass}`}
               >
-                {primaryAction.icon}
-                <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  {primaryAction.label}
+                <span className="tm-collection-toolbar__summary min-w-0 flex-1">
+                  <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
+                    {visibleTitle}
+                  </span>
                 </span>
-              </Button>
-            ) : null}
-            {showManageButton ? (
-              <Button
-                onClick={() =>
-                  activeCollectionSettings?.onToggle(currentCollectionId!)
-                }
-                aria-label={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection details"
-                    : "Show collection details"
-                }
-                aria-pressed={activeCollectionSettings?.open === true}
-                title={
-                  activeCollectionSettings?.open === true
-                    ? "Hide collection details"
-                    : "Show collection details"
-                }
-                variant="secondary"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start`}
-              >
-                <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  Details
-                </span>
-              </Button>
-            ) : null}
-            {hasSecondaryOverflow ? (
-              <Button
-                ref={actionsMenu.triggerRef}
-                onClick={actionsMenu.toggle}
-                aria-expanded={actionsMenu.open}
-                aria-haspopup="menu"
-                aria-label="Collection actions"
-                title="Collection actions"
-                variant="secondary"
-                size="sm"
-                className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary tm-collection-toolbar__overflow-button justify-start`}
-              >
-                <MoreHorizontal size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                  More
-                </span>
-              </Button>
-            ) : null}
-            {hasSecondaryOverflow && actionsMenu.open ? (
-              <div
-                ref={actionsMenu.menuRef}
-                style={actionsMenuStyle ?? { visibility: "hidden" }}
-                className={FLOATING_MENU_CLASS}
-                role="menu"
-              >
-                {overflowActions.map((action) => (
-                  <button
-                    key={action.key}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      action.onClick();
-                      actionsMenu.close({ restoreFocus: false });
-                    }}
-                    className={FLOATING_MENU_ITEM_CLASS}
+                <ChevronDown
+                  size={12}
+                  strokeWidth={1.5}
+                  className={`shrink-0 text-[color:var(--color-figma-text-tertiary)] transition-transform ${
+                    switcherOpen ? "rotate-180" : ""
+                  }`}
+                  aria-hidden
+                />
+              </button>
+            </div>
+
+            <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
+              {showImportAction ? (
+                <div className="tm-collection-toolbar__split-button">
+                  <Button
+                    onClick={() => onOpenCreateCollection?.()}
+                    aria-label={createActionTitle}
+                    title={createActionTitle}
+                    variant="secondary"
+                    size="sm"
+                    wrap
+                    className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary tm-collection-toolbar__split-button-primary justify-start rounded-r-none border-r-0 pr-2`}
                   >
-                    <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
-                      {action.icon}
+                    {primaryAction?.icon}
+                    <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
+                      {primaryAction?.label}
                     </span>
-                    <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
-                      {action.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
+                  </Button>
+                  <Button
+                    ref={createMenu.triggerRef}
+                    onClick={createMenu.toggle}
+                    aria-expanded={createMenu.open}
+                    aria-haspopup="menu"
+                    aria-label="New collection actions"
+                    title="New collection actions"
+                    variant="secondary"
+                    size="sm"
+                    className="tm-collection-toolbar__split-button-toggle rounded-l-none px-0"
+                  >
+                    <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
+                  </Button>
+                </div>
+              ) : primaryAction ? (
+                <Button
+                  onClick={primaryAction.onClick}
+                  aria-label={primaryAction.title}
+                  title={primaryAction.title}
+                  variant="secondary"
+                  size="sm"
+                  wrap
+                  className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start`}
+                >
+                  {primaryAction.icon}
+                  <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
+                    {primaryAction.label}
+                  </span>
+                </Button>
+              ) : null}
+              {showManageButton ? (
+                <Button
+                  onClick={() =>
+                    activeCollectionSettings?.onToggle(currentCollectionId!)
+                  }
+                  aria-label={
+                    activeCollectionSettings?.open === true
+                      ? "Hide collection details"
+                      : "Show collection details"
+                  }
+                  aria-pressed={activeCollectionSettings?.open === true}
+                  title={
+                    activeCollectionSettings?.open === true
+                      ? "Hide collection details"
+                      : "Show collection details"
+                  }
+                  variant="secondary"
+                  size="sm"
+                  wrap
+                  className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--secondary justify-start`}
+                >
+                  <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+                  <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
+                    Details
+                  </span>
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      {switcherMenu ? createPortal(switcherMenu, document.body) : null}
+      {createMenuPopover ? createPortal(createMenuPopover, document.body) : null}
+    </>
   );
 }

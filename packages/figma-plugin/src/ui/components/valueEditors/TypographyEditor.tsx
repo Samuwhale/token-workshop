@@ -182,9 +182,10 @@ export const TypographyEditor = memo(function TypographyEditor({
                   onClick={() => update('fontWeight', '{')}
                   title="Reference a token"
                   aria-label="Reference a token for font weight"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                  className="inline-flex min-h-7 min-w-0 shrink-0 items-center justify-start gap-1 rounded border border-[var(--color-figma-border)] px-2 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:border-[color:var(--color-figma-text-tertiary)] hover:text-[color:var(--color-figma-text)]"
                 >
                   <Link2 size={12} strokeWidth={1.8} aria-hidden />
+                  <span className="min-w-0">Reference</span>
                 </button>
               </div>
               <FieldMessage warning={weightUnavailable ? `Weight ${currentWeight} not available in this font family` : undefined} />

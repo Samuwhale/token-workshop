@@ -59,6 +59,7 @@ import {
   DEFAULT_SPACING_SCALE_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
   DEFAULT_Z_INDEX_SCALE_CONFIG,
+  generatorTemplateLabel,
   readGeneratorProvenance,
   readStructuredGeneratorDraft,
 } from "@token-workshop/core";
@@ -81,6 +82,7 @@ import {
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
 import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 import { GeneratorCreatePanel } from "../GeneratorCreatePanel";
+import { CollectionTabs } from "../library/CollectionTabs";
 import {
   NodeLibraryPanel,
   type GeneratorPaletteItem,
@@ -151,10 +153,10 @@ import "@xyflow/react/dist/style.css";
 interface GeneratorsPanelProps {
   serverUrl: string;
   collections: TokenCollection[];
-  workingCollectionId: string;
+  initialCollectionId: string;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onNavigateToToken: (path: string, collectionId: string) => void;
-  onWorkingCollectionChange?: (collectionId: string) => void;
+  onActiveTargetCollectionChange?: (collectionId: string | null) => void;
   tokenChangeKey?: number;
   initialGeneratorId?: string | null;
   initialView?: GeneratorEditorMode | null;
@@ -222,6 +224,24 @@ type GraphStructureCommitUiState = {
 };
 type GraphPanelState = "none" | "inspector" | "nodeLibrary";
 type GeneratorListScope = "collection" | "all";
+type GeneratorSelectorIssueTone = "error" | "warning" | "neutral";
+
+interface GeneratorSelectorRow {
+  generator: TokenGeneratorDocument;
+  status?: FullGeneratorStatusItem;
+  graphIssues: GraphIssue[];
+  sourceLabel: string;
+  recipeLabel: string;
+  outputLabel: string;
+  outputTitle: string;
+  outputChangeLabel: string;
+  statusLabel: string;
+  issueCount: number;
+  issueTone: GeneratorSelectorIssueTone;
+  collectionLabel: string;
+  searchText: string;
+  sortRank: number;
+}
 
 const COMPACT_GENERATORS_WIDTH = 560;
 const FOCUSABLE_SELECTOR =
@@ -263,14 +283,6 @@ function findGeneratorOwnedPathsToRemove({
     .sort((a, b) => a.localeCompare(b));
 }
 
-const GENERATOR_LIST_SCOPE_OPTIONS: Array<{
-  value: GeneratorListScope;
-  label: string;
-}> = [
-  { value: "collection", label: "This collection" },
-  { value: "all", label: "All" },
-];
-
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(
     container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
@@ -280,6 +292,397 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
 function readCollectionLabel(collection: TokenCollection | undefined): string {
   if (!collection) return "Unknown collection";
   return collection.publishRouting?.collectionName?.trim() || collection.id;
+}
+
+function formatCount(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatGeneratorCollectionMeta(
+  generatorCount: number,
+  outputCount: number | null,
+): string {
+  const generatorLabel = formatCount(generatorCount, "generator");
+  if (outputCount === null) return `${generatorLabel} · refreshing outputs`;
+  return `${generatorLabel} · ${formatCount(outputCount, "output")}`;
+}
+
+function readLiteralNodeValue(node: TokenGeneratorDocumentNode): string {
+  if (
+    node.kind === "literal" &&
+    node.data.type === "dimension" &&
+    typeof node.data.value === "number" &&
+    typeof node.data.unit === "string"
+  ) {
+    return `${node.data.value}${node.data.unit}`;
+  }
+  return formatValue(node.data.value);
+}
+
+function readGeneratorSourceLabel(
+  generator: TokenGeneratorDocument,
+  collectionLabelById: Map<string, string>,
+): string {
+  const structured = readStructuredGeneratorDraft(generator);
+  if (structured) {
+    if (structured.sourceMode === "token") {
+      const collectionLabel = structured.sourceCollectionId
+        ? collectionLabelById.get(structured.sourceCollectionId)
+        : null;
+      const sourceToken = structured.sourceTokenPath || "Choose source token";
+      return collectionLabel ? `${sourceToken} · ${collectionLabel}` : sourceToken;
+    }
+    if (structured.sourceValue) return structured.sourceValue;
+    return "Configured values";
+  }
+
+  const sourceNodes = generator.nodes.filter(isGeneratorInputNode);
+  if (sourceNodes.length === 0) {
+    return generator.nodes.length === 0 ? "No source" : "Generated";
+  }
+  const labels = sourceNodes
+    .map((node) => {
+      if (node.kind === "tokenInput" || node.kind === "alias") {
+        return String(node.data.path ?? "").trim();
+      }
+      return readLiteralNodeValue(node) || node.label;
+    })
+    .filter(Boolean);
+  if (labels.length === 0) return "Generated";
+  if (labels.length === 1) return labels[0]!;
+  return `${labels[0]} + ${labels.length - 1} more`;
+}
+
+function readGeneratorRecipeLabel(generator: TokenGeneratorDocument): string {
+  const structured = readStructuredGeneratorDraft(generator);
+  if (structured) return generatorTemplateLabel(structured.kind);
+  if (generator.nodes.length === 0) return "Blank graph";
+  const stepCount = generator.nodes.filter(
+    (node) => !isGeneratorInputNode(node) && !isGeneratorOutputNode(node),
+  ).length;
+  return stepCount > 0
+    ? `Custom graph · ${formatCount(stepCount, "step")}`
+    : "Custom graph";
+}
+
+function readGeneratorOutputChangeLabel(
+  generator: TokenGeneratorDocument,
+  status: FullGeneratorStatusItem | undefined,
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
+): string {
+  if (!status) return "Refreshing preview";
+  const deletedPaths = findGeneratorOwnedPathsToRemove({
+    generatorId: generator.id,
+    targetCollectionId: generator.targetCollectionId,
+    preview: status.preview,
+    perCollectionFlat,
+  });
+  const outputCount = status.preview.outputs.length;
+  if (outputCount === 0 && deletedPaths.length === 0) return "No output";
+  const counts = withRemovedPreviewChanges(
+    countPreviewChanges(status.preview.outputs),
+    deletedPaths.length,
+  );
+  return `${formatCount(outputCount, "output")} · ${formatOutputChangeSummary(counts)}`;
+}
+
+function readGeneratorSelectorStatusLabel(
+  generator: TokenGeneratorDocument,
+  status: FullGeneratorStatusItem | undefined,
+  graphIssues: GraphIssue[],
+): string {
+  if (graphIssues.some((issue) => issue.severity === "error")) {
+    return "Fix settings";
+  }
+  if (!status) return "Refreshing preview";
+  if (status.preview.blocking || status.preview.outputs.some((output) => output.collision)) {
+    return "Needs attention";
+  }
+  if (status.stale) return "Out of date";
+  if (status.unapplied) return "Ready to apply";
+  if (status.preview.outputs.length === 0) return "No output";
+  return readGeneratorStatusLabel(generator);
+}
+
+function readGeneratorSelectorIssueTone(
+  status: FullGeneratorStatusItem | undefined,
+  graphIssues: GraphIssue[],
+): GeneratorSelectorIssueTone {
+  if (
+    graphIssues.some((issue) => issue.severity === "error") ||
+    status?.preview.blocking ||
+    status?.preview.outputs.some((output) => output.collision)
+  ) {
+    return "error";
+  }
+  if (
+    graphIssues.length > 0 ||
+    status?.stale ||
+    status?.unapplied ||
+    status?.preview.outputs.length === 0 ||
+    (status?.preview.diagnostics.length ?? 0) > 0
+  ) {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function readGeneratorSelectorSortRank(
+  status: FullGeneratorStatusItem | undefined,
+  issueTone: GeneratorSelectorIssueTone,
+): number {
+  if (issueTone === "error") return 0;
+  if (status?.stale || status?.unapplied || issueTone === "warning") return 1;
+  if (!status) return 2;
+  return 3;
+}
+
+function buildGeneratorSelectorRow({
+  generator,
+  status,
+  collectionLabelById,
+  perCollectionFlat,
+}: {
+  generator: TokenGeneratorDocument;
+  status?: FullGeneratorStatusItem;
+  collectionLabelById: Map<string, string>;
+  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+}): GeneratorSelectorRow {
+  const preview = status?.preview ?? null;
+  const graphIssues = collectGraphIssues(
+    generatorWithInferredTokenInputTypes(generator, perCollectionFlat),
+    preview,
+    perCollectionFlat,
+  );
+  const sourceLabel = readGeneratorSourceLabel(generator, collectionLabelById);
+  const recipeLabel = readGeneratorRecipeLabel(generator);
+  const outputLabel = readGeneratorOutputLabel(generator);
+  const outputTitle = readGeneratorDestinationSearchLabel(generator);
+  const outputChangeLabel = readGeneratorOutputChangeLabel(
+    generator,
+    status,
+    perCollectionFlat,
+  );
+  const statusLabel = readGeneratorSelectorStatusLabel(
+    generator,
+    status,
+    graphIssues,
+  );
+  const issueCount =
+    graphIssues.length +
+    (status?.preview.diagnostics.length ?? 0) +
+    (status?.preview.outputs.filter((output) => output.collision).length ?? 0) +
+    (status && status.preview.outputs.length === 0 ? 1 : 0);
+  const issueTone = readGeneratorSelectorIssueTone(status, graphIssues);
+  const collectionLabel =
+    collectionLabelById.get(generator.targetCollectionId) ??
+    "Unknown collection";
+  const searchText = [
+    generator.name,
+    sourceLabel,
+    recipeLabel,
+    outputLabel,
+    outputTitle,
+    outputChangeLabel,
+    statusLabel,
+    collectionLabel,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return {
+    generator,
+    status,
+    graphIssues,
+    sourceLabel,
+    recipeLabel,
+    outputLabel,
+    outputTitle,
+    outputChangeLabel,
+    statusLabel,
+    issueCount,
+    issueTone,
+    collectionLabel,
+    searchText,
+    sortRank: readGeneratorSelectorSortRank(status, issueTone),
+  };
+}
+
+function sortGeneratorSelectorRows(
+  a: GeneratorSelectorRow,
+  b: GeneratorSelectorRow,
+): number {
+  if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank;
+  return a.generator.name.localeCompare(b.generator.name, undefined, {
+    sensitivity: "base",
+  });
+}
+
+function formatGeneratorSelectorScopeSummary(
+  rows: GeneratorSelectorRow[],
+): string {
+  if (rows.length === 0) return "No generators";
+  const outputCountKnown = rows.every((row) => Boolean(row.status));
+  const outputCount = outputCountKnown
+    ? rows.reduce(
+        (sum, row) => sum + (row.status?.preview.outputs.length ?? 0),
+        0,
+      )
+    : null;
+  const issueCount = rows.filter((row) => row.issueTone !== "neutral").length;
+  const parts = [
+    formatCount(rows.length, "generator"),
+    outputCount === null
+      ? "refreshing outputs"
+      : formatCount(outputCount, "output"),
+  ];
+  if (issueCount > 0) {
+    parts.push(
+      `${issueCount} ${issueCount === 1 ? "needs attention" : "need attention"}`,
+    );
+  }
+  return parts.join(" · ");
+}
+
+function GeneratorSelectorRowDetails({ row }: { row: GeneratorSelectorRow }) {
+  const sourceNodes = row.generator.nodes.filter(isGeneratorInputNode);
+  const outputNodes = row.generator.nodes.filter(isGeneratorOutputNode);
+  const preview = row.status?.preview ?? null;
+  const sampledOutputs = preview?.outputs.slice(0, 3) ?? [];
+  const targetModes = preview?.targetModes ?? [];
+  const remainingOutputCount = preview
+    ? Math.max(0, preview.outputs.length - sampledOutputs.length)
+    : 0;
+  const diagnostics = [
+    ...row.graphIssues.map((issue) => ({
+      id: issue.id,
+      severity: issue.severity,
+      message: issue.message,
+    })),
+    ...(preview?.diagnostics ?? []),
+  ];
+
+  return (
+    <div className="tm-generator-selector-row__details">
+      <div className="tm-generator-selector-detail-grid">
+        <section className="tm-generator-selector-detail-block">
+          <h3>Inputs</h3>
+          {sourceNodes.length > 0 ? (
+            <div className="tm-generator-selector-node-list">
+              {sourceNodes.map((node) => (
+                <div key={node.id} className="tm-generator-selector-node-line">
+                  <span className="tm-generator-selector-node-line__name">
+                    {node.label}
+                  </span>
+                  <span className="tm-generator-selector-node-line__meta">
+                    {formatNodeKind(node.kind)} ·{" "}
+                    {node.kind === "literal"
+                      ? readLiteralNodeValue(node)
+                      : String(node.data.path ?? "").trim() || "No token"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>{row.sourceLabel}</p>
+          )}
+        </section>
+
+        <section className="tm-generator-selector-detail-block">
+          <h3>Recipe</h3>
+          <p>{row.recipeLabel}</p>
+        </section>
+
+        <section className="tm-generator-selector-detail-block">
+          <h3>Outputs</h3>
+          {preview ? (
+            <p>{row.outputChangeLabel}</p>
+          ) : outputNodes.length > 0 ? (
+            <div className="tm-generator-selector-node-list">
+              {outputNodes.map((node) => (
+                <div key={node.id} className="tm-generator-selector-node-line">
+                  <span className="tm-generator-selector-node-line__name">
+                    {node.label}
+                  </span>
+                  <span className="tm-generator-selector-node-line__meta">
+                    {String(node.data.pathPrefix ?? node.data.path ?? "").trim() ||
+                      "No output path"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No output nodes</p>
+          )}
+        </section>
+      </div>
+
+      {diagnostics.length > 0 ? (
+        <section className="tm-generator-selector-diagnostics">
+          {diagnostics.slice(0, 4).map((diagnostic) => (
+            <div
+              key={diagnostic.id}
+              className={`tm-generator-selector-diagnostic tm-generator-selector-diagnostic--${diagnostic.severity}`}
+            >
+              <AlertTriangle size={12} aria-hidden />
+              <span>{diagnostic.message}</span>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {sampledOutputs.length > 0 ? (
+        <section className="tm-generator-selector-output-samples">
+          {sampledOutputs.map((output) => (
+            <div key={`${output.nodeId}:${output.outputKey}`} className="tm-generator-selector-output-sample">
+              <div className="tm-generator-selector-output-sample__header">
+                <span title={output.path}>{output.path}</span>
+                <span
+                  className={`tm-generator-selector-output-sample__change tm-generator-selector-output-sample__change--${
+                    output.collision ? "collision" : output.change
+                  }`}
+                >
+                  {output.collision ? "Collision" : output.change}
+                </span>
+              </div>
+              <div className="tm-generator-selector-mode-values">
+                {targetModes.map((modeName) => {
+                  const modeValue = output.modeValues[modeName];
+                  return (
+                    <div
+                      key={modeName}
+                      className="tm-generator-selector-mode-value"
+                    >
+                      <span className="tm-generator-selector-mode-value__mode">
+                        {modeName}
+                      </span>
+                      <span className="tm-generator-selector-mode-value__value">
+                        {previewIsValueBearing(output.type) ? (
+                          <ValuePreview
+                            type={output.type}
+                            value={modeValue}
+                            size={14}
+                          />
+                        ) : null}
+                        <span title={formatValue(modeValue)}>
+                          {formatValue(modeValue) || "Empty"}
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {remainingOutputCount > 0 ? (
+            <div className="tm-generator-selector-output-more">
+              {remainingOutputCount} more output{remainingOutputCount === 1 ? "" : "s"}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+    </div>
+  );
 }
 
 const PALETTE: GeneratorPaletteItem[] = [
@@ -444,10 +847,10 @@ const NODE_TYPES = {
 export function GeneratorsPanel({
   serverUrl,
   collections,
-  workingCollectionId,
+  initialCollectionId,
   perCollectionFlat,
   onNavigateToToken,
-  onWorkingCollectionChange,
+  onActiveTargetCollectionChange,
   tokenChangeKey,
   initialGeneratorId,
   initialView,
@@ -494,6 +897,11 @@ export function GeneratorsPanel({
   const [generatorListQuery, setGeneratorListQuery] = useState("");
   const [generatorListScope, setGeneratorListScope] =
     useState<GeneratorListScope>("collection");
+  const [generatorListCollectionId, setGeneratorListCollectionId] = useState(
+    () => initialCollectionId || collections[0]?.id || "",
+  );
+  const [expandedSelectorGeneratorIds, setExpandedSelectorGeneratorIds] =
+    useState<Set<string>>(() => new Set());
   const [outputDockOpen, setOutputDockOpen] = useState(false);
   const [reviewedPreviewHash, setReviewedPreviewHash] = useState<string | null>(
     null,
@@ -527,6 +935,9 @@ export function GeneratorsPanel({
   const localGraphEditRef = useRef(false);
   const dirtyRef = useRef(false);
   const dirtyGeneratorIdRef = useRef<string | null>(null);
+  const initialCollectionIdRef = useRef(initialCollectionId);
+  const generatorListCollectionIdRef = useRef(generatorListCollectionId);
+  const hasLoadedGeneratorsRef = useRef(false);
   const graphRevisionRef = useRef(0);
   const suppressedViewportCommitCountRef = useRef(0);
   const lastGraphAutoFitKeyRef = useRef<string | null>(null);
@@ -607,13 +1018,6 @@ export function GeneratorsPanel({
     () => generators.find((graph) => graph.id === activeGeneratorId) ?? null,
     [generators, activeGeneratorId],
   );
-  const scopedGenerators = useMemo(
-    () =>
-      generators.filter(
-        (generator) => generator.targetCollectionId === workingCollectionId,
-      ),
-    [generators, workingCollectionId],
-  );
   const collectionLabelById = useMemo(
     () =>
       new Map(
@@ -624,36 +1028,75 @@ export function GeneratorsPanel({
       ),
     [collections],
   );
-  const visibleGenerators = useMemo(
-    () => (generatorListScope === "all" ? generators : scopedGenerators),
-    [generatorListScope, generators, scopedGenerators],
-  );
-  const filteredVisibleGenerators = useMemo(() => {
-    const query = generatorListQuery.trim().toLowerCase();
-    if (!query) return visibleGenerators;
-    return visibleGenerators.filter((generator) => {
-      const outputLabel =
-        readGeneratorDestinationSearchLabel(generator).toLowerCase();
-      const status = readGeneratorStatusLabel(generator).toLowerCase();
-      const collectionLabel = (
-        collectionLabelById.get(generator.targetCollectionId) ??
-        "Unknown collection"
-      ).toLowerCase();
-      return (
-        generator.name.toLowerCase().includes(query) ||
-        outputLabel.includes(query) ||
-        status.includes(query) ||
-        collectionLabel.includes(query)
-      );
-    });
-  }, [collectionLabelById, generatorListQuery, visibleGenerators]);
-  const collectionOptions = useMemo(
+  const generatorSelectorRows = useMemo(
     () =>
-      collections.map((collection) => ({
-        id: collection.id,
-        label: readCollectionLabel(collection),
-      })),
-    [collections],
+      generators
+        .map((generator) =>
+          buildGeneratorSelectorRow({
+            generator,
+            status: generatorStatusesById[generator.id],
+            collectionLabelById,
+            perCollectionFlat,
+          }),
+        )
+        .sort(sortGeneratorSelectorRows),
+    [
+      collectionLabelById,
+      generatorStatusesById,
+      generators,
+      perCollectionFlat,
+    ],
+  );
+  const visibleGeneratorRows = useMemo(
+    () =>
+      generatorListScope === "all"
+        ? generatorSelectorRows
+        : generatorSelectorRows.filter(
+            (row) =>
+              row.generator.targetCollectionId === generatorListCollectionId,
+          ),
+    [generatorListCollectionId, generatorListScope, generatorSelectorRows],
+  );
+  const filteredVisibleGeneratorRows = useMemo(() => {
+    const query = generatorListQuery.trim().toLowerCase();
+    if (!query) return visibleGeneratorRows;
+    return visibleGeneratorRows.filter((row) => row.searchText.includes(query));
+  }, [generatorListQuery, visibleGeneratorRows]);
+  const generatorCollectionMetaById = useMemo(() => {
+    const meta: Record<string, string> = {};
+    for (const collection of collections) {
+      const rows = generatorSelectorRows.filter(
+        (row) => row.generator.targetCollectionId === collection.id,
+      );
+      const allOutputsKnown = rows.every((row) => Boolean(row.status));
+      const outputCount = allOutputsKnown
+        ? rows.reduce(
+            (sum, row) => sum + (row.status?.preview.outputs.length ?? 0),
+            0,
+          )
+        : null;
+      meta[collection.id] = formatGeneratorCollectionMeta(
+        rows.length,
+        outputCount,
+      );
+    }
+    return meta;
+  }, [collections, generatorSelectorRows]);
+  const allGeneratorCollectionsMeta = useMemo(() => {
+    const allOutputsKnown = generatorSelectorRows.every((row) =>
+      Boolean(row.status),
+    );
+    const outputCount = allOutputsKnown
+      ? generatorSelectorRows.reduce(
+          (sum, row) => sum + (row.status?.preview.outputs.length ?? 0),
+          0,
+        )
+      : null;
+    return formatGeneratorCollectionMeta(generatorSelectorRows.length, outputCount);
+  }, [generatorSelectorRows]);
+  const selectorScopeSummary = useMemo(
+    () => formatGeneratorSelectorScopeSummary(visibleGeneratorRows),
+    [visibleGeneratorRows],
   );
   const targetCollection = useMemo(
     () =>
@@ -767,6 +1210,8 @@ export function GeneratorsPanel({
     const data = await apiFetch<GeneratorListResponse>(
       `${serverUrl}/api/generators`,
     );
+    const shouldSeedActiveGenerator = !hasLoadedGeneratorsRef.current;
+    hasLoadedGeneratorsRef.current = true;
     setGenerators((current) => {
       const dirtyGeneratorId = dirtyGeneratorIdRef.current;
       if (!dirtyRef.current || !dirtyGeneratorId) {
@@ -794,14 +1239,21 @@ export function GeneratorsPanel({
         activeGeneratorIdRef.current = current;
         return current;
       }
-      const nextId =
-        data.generators.find(
-          (generator) => generator.targetCollectionId === workingCollectionId,
-        )?.id ?? null;
+      const preferredCollectionId =
+        generatorListCollectionIdRef.current ||
+        initialCollectionIdRef.current ||
+        collections[0]?.id ||
+        "";
+      const nextId = shouldSeedActiveGenerator
+        ? (data.generators.find(
+            (generator) =>
+              generator.targetCollectionId === preferredCollectionId,
+          )?.id ?? null)
+        : null;
       activeGeneratorIdRef.current = nextId;
       return nextId;
     });
-  }, [serverUrl, workingCollectionId]);
+  }, [collections, serverUrl]);
 
   useEffect(() => {
     loadGenerators().catch((loadError) =>
@@ -827,8 +1279,21 @@ export function GeneratorsPanel({
   }, [activeGeneratorId]);
 
   useEffect(() => {
+    onActiveTargetCollectionChange?.(
+      activeGenerator?.targetCollectionId ?? null,
+    );
+  }, [
+    activeGenerator?.targetCollectionId,
+    onActiveTargetCollectionChange,
+  ]);
+
+  useEffect(() => {
     dirtyRef.current = dirty;
   }, [dirty]);
+
+  useEffect(() => {
+    generatorListCollectionIdRef.current = generatorListCollectionId;
+  }, [generatorListCollectionId]);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -856,6 +1321,8 @@ export function GeneratorsPanel({
     const focus = initialFocus ?? null;
     setActiveInitialFocus(focus);
     setActiveGeneratorSelection(initialGeneratorId);
+    setGeneratorListCollectionId(initialGenerator.targetCollectionId);
+    setGeneratorListScope("collection");
     setError(null);
     if (!preservingDirtyGenerator) {
       setPreview(null);
@@ -932,21 +1399,23 @@ export function GeneratorsPanel({
   ]);
 
   useEffect(() => {
-    if (initialGeneratorId) return;
-    if (activeGenerator) return;
-    if (dirty) {
-      setError("Save the current generator before switching collections.");
-      return;
-    }
-    setActiveGeneratorSelection(scopedGenerators[0]?.id ?? null);
-  }, [
-    activeGenerator,
-    dirty,
-    initialGeneratorId,
-    scopedGenerators,
-    setActiveGeneratorSelection,
-    workingCollectionId,
-  ]);
+    setGeneratorListCollectionId((currentCollectionId) => {
+      if (
+        currentCollectionId &&
+        collections.some(
+          (collection) => collection.id === currentCollectionId,
+        )
+      ) {
+        return currentCollectionId;
+      }
+      return (
+        activeGenerator?.targetCollectionId ||
+        initialCollectionIdRef.current ||
+        collections[0]?.id ||
+        ""
+      );
+    });
+  }, [activeGenerator?.targetCollectionId, collections]);
 
   useEffect(() => {
     if (!tokenChangeInitializedRef.current) {
@@ -1541,70 +2010,56 @@ export function GeneratorsPanel({
     setOutputDockOpen(false);
   }, [clearGeneratorDirty]);
 
-  const changeWorkingCollection = useCallback(
+  const changeGeneratorListCollection = useCallback(
     (collectionId: string) => {
-      if (busy) {
-        setError("Wait for the current generator action to finish.");
-        return;
-      }
-      if (dirty) {
-        setError("Save the current generator before switching collections.");
-        return;
-      }
-      if (collectionId === workingCollectionId) return;
-      onWorkingCollectionChange?.(collectionId);
-      const nextGeneratorId =
-        generators.find(
-          (generator) => generator.targetCollectionId === collectionId,
-        )?.id ?? null;
-      setActiveGeneratorSelection(nextGeneratorId);
-      clearGeneratorSelectionState();
+      setGeneratorListCollectionId(collectionId);
       setGeneratorListScope("collection");
+      setGeneratorListOpen(true);
       setGeneratorListQuery("");
     },
-    [
-      busy,
-      clearGeneratorSelectionState,
-      dirty,
-      generators,
-      onWorkingCollectionChange,
-      setActiveGeneratorSelection,
-      workingCollectionId,
-    ],
+    [],
   );
 
-  const selectGenerator = useCallback(
-    (generatorId: string) => {
+  const openGeneratorFromSelector = useCallback(
+    (generatorId: string, mode: GeneratorEditorMode) => {
       if (busy) {
         setError("Wait for the current generator action to finish.");
         return;
       }
-      if (dirty) {
+      if (dirty && generatorId !== activeGeneratorId) {
         setError("Save the current generator before switching to another one.");
         return;
       }
       const nextGenerator = generators.find(
         (generator) => generator.id === generatorId,
       );
-      if (
-        nextGenerator &&
-        nextGenerator.targetCollectionId !== workingCollectionId
-      ) {
-        onWorkingCollectionChange?.(nextGenerator.targetCollectionId);
+      if (!nextGenerator) return;
+      if (nextGenerator) {
+        setGeneratorListCollectionId(nextGenerator.targetCollectionId);
+        setGeneratorListScope("collection");
       }
-      clearGeneratorSelectionState();
-      setActiveGeneratorSelection(generatorId);
+      if (generatorId !== activeGeneratorId) {
+        clearGeneratorSelectionState();
+        setActiveGeneratorSelection(generatorId);
+      } else {
+        setError(null);
+        setActionsMenuOpen(false);
+      }
+      setEditorMode(mode);
+      if (mode !== "graph") {
+        setGraphPanelState("none");
+        setGraphMenu(null);
+      }
       setGeneratorListOpen(false);
       setGeneratorListQuery("");
     },
     [
+      activeGeneratorId,
       busy,
       clearGeneratorSelectionState,
       dirty,
       generators,
-      onWorkingCollectionChange,
       setActiveGeneratorSelection,
-      workingCollectionId,
     ],
   );
 
@@ -2907,18 +3362,52 @@ export function GeneratorsPanel({
     setError(null);
   };
 
+  const renderGeneratorCollectionBar = () => {
+    const currentCollectionId =
+      generatorListCollectionId ||
+      activeGenerator?.targetCollectionId ||
+      initialCollectionIdRef.current ||
+      collections[0]?.id ||
+      null;
+
+    return (
+      <CollectionTabs
+        collections={collections}
+        currentCollectionId={currentCollectionId}
+        collectionMetaById={generatorCollectionMetaById}
+        allCollectionsMeta={allGeneratorCollectionsMeta}
+        allCollectionsScope={{
+          value: generatorListScope === "all" ? "all" : "current",
+          onChange: (value) => {
+            setGeneratorListScope(value === "all" ? "all" : "collection");
+            setGeneratorListOpen(true);
+            setGeneratorListQuery("");
+          },
+        }}
+        onSelectCollection={changeGeneratorListCollection}
+        onOpenCreateCollection={openCreateGenerator}
+        createActionLabel="New generator"
+        createActionTitle="Create generator"
+        createActionIcon={<Sparkles size={12} strokeWidth={1.5} aria-hidden />}
+      />
+    );
+  };
+
   const renderGeneratorIdentity = () => (
     <div className="tm-generator-header__identity">
       <button
         type="button"
         className="tm-generator-switcher-button"
         onClick={() => {
-          setGeneratorListOpen((open) => !open);
+          if (!generatorListOpen && activeGenerator) {
+            setGeneratorListCollectionId(activeGenerator.targetCollectionId);
+            setGeneratorListScope("collection");
+          }
+          setGeneratorListOpen(!generatorListOpen);
           setActionsMenuOpen(false);
           setGraphPanelState("none");
         }}
         aria-expanded={generatorListOpen}
-        aria-haspopup="dialog"
         title="Choose generator"
       >
         <span className="tm-generator-switcher-button__icon" aria-hidden>
@@ -2946,7 +3435,6 @@ export function GeneratorsPanel({
           aria-hidden
         />
       </button>
-      {renderGeneratorList()}
     </div>
   );
 
@@ -2961,157 +3449,224 @@ export function GeneratorsPanel({
     </div>
   );
 
-  const renderGeneratorList = () =>
-    generatorListOpen ? (
-      <>
-        <button
-          type="button"
-          className="fixed inset-0 z-20 cursor-default"
-          aria-label="Close generator list"
-          onClick={() => setGeneratorListOpen(false)}
-        />
-        <div
-          className="tm-generator-list"
-          role="dialog"
-          aria-label="Generators"
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              setGeneratorListOpen(false);
-            }
-          }}
-        >
-          <div className="tm-generator-list__header">
-            <h2 className="m-0 text-body font-semibold text-[color:var(--color-figma-text)]">
-              Generators
-            </h2>
-            <Button
-              type="button"
-              size="sm"
-              variant="primary"
-              onClick={openCreateGenerator}
-            >
-              <Plus size={14} />
-              New generator
-            </Button>
+  const renderGeneratorSelector = () => {
+    const hasScopedGenerators = visibleGeneratorRows.length > 0;
+    const hasFilteredGenerators = filteredVisibleGeneratorRows.length > 0;
+    const selectedCollectionLabel =
+      collectionLabelById.get(generatorListCollectionId) ?? "this collection";
+    return (
+      <div
+        className="tm-generator-selector"
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && activeGenerator) {
+            setGeneratorListOpen(false);
+          }
+        }}
+      >
+        <header className="tm-generator-selector__header">
+          <div className="min-w-0">
+            <h2>Generators</h2>
+            <p title={selectorScopeSummary}>{selectorScopeSummary}</p>
           </div>
-          <div className="tm-generator-list__controls">
-            <div className="tm-generator-list__search">
-              <Search size={14} aria-hidden />
-              <input
-                ref={generatorListSearchRef}
-                value={generatorListQuery}
-                onChange={(event) => setGeneratorListQuery(event.target.value)}
-                placeholder="Find generator"
-                aria-label="Find generator"
-              />
-            </div>
-            <label className="tm-generator-list__collection">
-              <span>Collection</span>
-              <select
-                value={workingCollectionId}
-                onChange={(event) =>
-                  changeWorkingCollection(event.target.value)
-                }
-                disabled={busy !== null || dirty}
-              >
-                {collectionOptions.map((collection) => (
-                  <option key={collection.id} value={collection.id}>
-                    {collection.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <SegmentedControl
-              value={generatorListScope}
-              options={GENERATOR_LIST_SCOPE_OPTIONS}
-              onChange={setGeneratorListScope}
-              ariaLabel="Generator list scope"
+        </header>
+
+        <div className="tm-generator-selector__tools">
+          <div className="tm-generator-selector__search">
+            <Search size={14} aria-hidden />
+            <input
+              ref={generatorListSearchRef}
+              value={generatorListQuery}
+              onChange={(event) => setGeneratorListQuery(event.target.value)}
+              placeholder="Find by name, input, output, or status"
+              aria-label="Find generator"
             />
           </div>
-          <div className="tm-generator-list__body">
-            {filteredVisibleGenerators.length > 0 ? (
-              filteredVisibleGenerators.map((generator) => {
-                const selected = generator.id === activeGeneratorId;
-                const status = generatorStatusesById[generator.id];
-                const currentPreview =
-                  preview?.generatorId === generator.id ? preview : null;
-                const producedTokenCount =
-                  currentPreview?.outputs.length ??
-                  status?.preview.outputs.length;
-                const destinationLabel = readGeneratorOutputLabel(generator);
-                const destinationTitle =
-                  readGeneratorDestinationSearchLabel(generator);
-                const metadataLabel = formatGeneratorListMetadata(
-                  generator,
-                  producedTokenCount,
-                );
-                const collectionLabel =
-                  collectionLabelById.get(generator.targetCollectionId) ??
-                  "Unknown collection";
-                return (
-                  <button
-                    key={generator.id}
-                    type="button"
-                    className={`tm-generator-list__item ${
-                      selected ? "tm-generator-list__item--selected" : ""
-                    }`}
-                    onClick={() => {
-                      if (selected) {
-                        setGeneratorListOpen(false);
-                        setGeneratorListQuery("");
-                        return;
-                      }
-                      if (busy) {
-                        setError(
-                          "Wait for the current generator action to finish.",
-                        );
-                        return;
-                      }
-                      if (dirty && generator.id !== activeGeneratorId) {
-                        setError(
-                          "Save the current generator before switching to another one.",
-                        );
-                        return;
-                      }
-                      selectGenerator(generator.id);
-                      setGeneratorListOpen(false);
-                      setGeneratorListQuery("");
-                    }}
-                  >
-                    <span className="tm-generator-list__item-main">
-                      <span className="tm-generator-list__item-title">
-                        {generator.name}
-                      </span>
-                      <span
-                        className="tm-generator-list__item-detail"
-                        title={destinationTitle}
-                      >
-                        {destinationLabel}
-                      </span>
-                    </span>
-                    <span className="tm-generator-list__item-meta">
-                      <span className="tm-generator-list__item-collection">
-                        {collectionLabel}
-                      </span>
-                      <span>{readGeneratorStatusLabel(generator)}</span>
-                      <span>{metadataLabel}</span>
-                    </span>
-                  </button>
-                );
-              })
-            ) : (
-              <div className="tm-generator-list__empty">
-                {visibleGenerators.length === 0
-                  ? generatorListScope === "collection"
-                    ? "No generators in this collection."
-                    : "No generators yet."
-                  : "No matching generators."}
-              </div>
-            )}
-          </div>
         </div>
-      </>
-    ) : null;
+
+        <div className="tm-generator-selector__body">
+          {hasFilteredGenerators ? (
+            <div className="tm-generator-selector__rows">
+              {filteredVisibleGeneratorRows.map((row) => {
+                const selected = row.generator.id === activeGeneratorId;
+                const expanded = expandedSelectorGeneratorIds.has(
+                  row.generator.id,
+                );
+                return (
+                  <article
+                    key={row.generator.id}
+                    className={`tm-generator-selector-row ${
+                      selected ? "tm-generator-selector-row--selected" : ""
+                    }`}
+                  >
+                    <div className="tm-generator-selector-row__summary">
+                      <button
+                        type="button"
+                        className="tm-generator-selector-row__toggle"
+                        aria-expanded={expanded}
+                        onClick={() => {
+                          setExpandedSelectorGeneratorIds((current) => {
+                            const next = new Set(current);
+                            if (next.has(row.generator.id)) {
+                              next.delete(row.generator.id);
+                            } else {
+                              next.add(row.generator.id);
+                            }
+                            return next;
+                          });
+                        }}
+                      >
+                        <ChevronRight
+                          size={14}
+                          className={expanded ? "rotate-90" : ""}
+                          aria-hidden
+                        />
+                        <span className="sr-only">
+                          {expanded ? "Hide details" : "Show details"}
+                        </span>
+                      </button>
+
+                      <div className="tm-generator-selector-row__main">
+                        <div className="tm-generator-selector-row__title-line">
+                          <h3 title={row.generator.name}>
+                            {row.generator.name}
+                          </h3>
+                          <span
+                            className={`tm-generator-selector-row__status tm-generator-selector-row__status--${row.issueTone}`}
+                            title={row.statusLabel}
+                          >
+                            {row.statusLabel}
+                          </span>
+                          {row.issueCount > 0 ? (
+                            <span
+                              className={`tm-generator-selector-row__issue-count tm-generator-selector-row__issue-count--${row.issueTone}`}
+                              title={`${row.issueCount} generator issue${
+                                row.issueCount === 1 ? "" : "s"
+                              }`}
+                            >
+                              {row.issueCount}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="tm-generator-selector-row__facts">
+                          <span>
+                            <strong>Input</strong>
+                            <span title={row.sourceLabel}>
+                              {row.sourceLabel}
+                            </span>
+                          </span>
+                          <span>
+                            <strong>Recipe</strong>
+                            <span title={row.recipeLabel}>
+                              {row.recipeLabel}
+                            </span>
+                          </span>
+                          <span>
+                            <strong>Output</strong>
+                            <span title={row.outputTitle || row.outputLabel}>
+                              {row.outputLabel}
+                            </span>
+                          </span>
+                          <span>
+                            <strong>Preview</strong>
+                            <span title={row.outputChangeLabel}>
+                              {row.outputChangeLabel}
+                            </span>
+                          </span>
+                          {generatorListScope === "all" ? (
+                            <span>
+                              <strong>Collection</strong>
+                              <span title={row.collectionLabel}>
+                                {row.collectionLabel}
+                              </span>
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="tm-generator-selector-row__actions">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            openGeneratorFromSelector(row.generator.id, "overview")
+                          }
+                        >
+                          Overview
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            openGeneratorFromSelector(row.generator.id, "graph")
+                          }
+                        >
+                          Graph
+                        </Button>
+                      </div>
+                    </div>
+
+                    {expanded ? <GeneratorSelectorRowDetails row={row} /> : null}
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <FeedbackPlaceholder
+              variant="empty"
+              size="full"
+              icon={null}
+              title={
+                hasScopedGenerators
+                  ? "No matching generators"
+                  : generatorListScope === "collection"
+                    ? `No generators in ${selectedCollectionLabel}`
+                    : "No generators yet"
+              }
+              description={
+                hasScopedGenerators
+                  ? "Try a different name, source, output path, or status."
+                  : generatorListScope === "collection"
+                    ? "Create a generator for this collection or browse every generator."
+                    : "Create a generator for repeated scales, ramps, and token groups."
+              }
+              actions={
+                hasScopedGenerators
+                  ? [
+                      {
+                        label: "Clear search",
+                        onClick: () => setGeneratorListQuery(""),
+                      },
+                    ]
+                  : generatorListScope === "collection"
+                    ? [
+                        {
+                          label: "Create generator",
+                          onClick: openCreateGenerator,
+                        },
+                        {
+                          label: "Browse all",
+                          tone: "secondary",
+                          onClick: () => {
+                            setGeneratorListScope("all");
+                            setGeneratorListQuery("");
+                          },
+                        },
+                      ]
+                    : [
+                        {
+                          label: "Create generator",
+                          onClick: openCreateGenerator,
+                        },
+                      ]
+              }
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderStatusIndicator = (compact = false, includeId = true) => {
     if (busy) {
@@ -3250,16 +3805,14 @@ export function GeneratorsPanel({
     Boolean(preview) && reviewedPreviewHash === preview?.hash;
   const canApplyReviewedGenerator =
     canOpenGeneratorOutputReview && previewReviewed && !previewHasOutputIssues;
-  const generatorPrimaryActionLabel = previewHasOutputIssues
-    ? "Resolve conflicts"
-    : canApplyReviewedGenerator
-      ? "Apply to collection"
-      : "Review outputs";
-  const generatorPrimaryActionTitle = previewHasOutputIssues
-    ? "Resolve generated-token conflicts"
-    : canApplyReviewedGenerator
-      ? "Apply to collection"
-      : "Review outputs before applying";
+  const showGeneratorPrimaryAction =
+    canApplyReviewedGenerator || !(previewHasOutputIssues && outputDockOpen);
+  const generatorPrimaryActionLabel = canApplyReviewedGenerator
+    ? "Apply to collection"
+    : "Review outputs";
+  const generatorPrimaryActionTitle = canApplyReviewedGenerator
+    ? "Apply to collection"
+    : "Review outputs before applying";
 
   const renderGeneratorActions = (compact = false) => (
     <div
@@ -3311,22 +3864,24 @@ export function GeneratorsPanel({
           <span>Outputs</span>
         </Button>
       ) : null}
-      <Button
-        title={generatorPrimaryActionTitle}
-        aria-label={generatorPrimaryActionTitle}
-        aria-describedby="generator-status-label"
-        onClick={canApplyReviewedGenerator ? applyGenerator : openOutputReview}
-        disabled={!canOpenGeneratorOutputReview}
-        variant="primary"
-        size="sm"
-      >
-        {canApplyReviewedGenerator ? (
-          <Sparkles size={14} />
-        ) : (
-          <PanelRight size={14} />
-        )}
-        <span>{generatorPrimaryActionLabel}</span>
-      </Button>
+      {showGeneratorPrimaryAction ? (
+        <Button
+          title={generatorPrimaryActionTitle}
+          aria-label={generatorPrimaryActionTitle}
+          aria-describedby="generator-status-label"
+          onClick={canApplyReviewedGenerator ? applyGenerator : openOutputReview}
+          disabled={!canOpenGeneratorOutputReview}
+          variant="primary"
+          size="sm"
+        >
+          {canApplyReviewedGenerator ? (
+            <Sparkles size={14} />
+          ) : (
+            <PanelRight size={14} />
+          )}
+          <span>{generatorPrimaryActionLabel}</span>
+        </Button>
+      ) : null}
       <div className="relative">
         <IconButton
           title="More generator actions"
@@ -3460,81 +4015,31 @@ export function GeneratorsPanel({
     }
   };
 
-  const renderEmptyWorkbench = () => (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="tm-generator-workbench-header tm-generator-workbench-header--empty">
-        {renderGeneratorIdentity()}
-        <div className="tm-generator-header__empty-summary">
-          {generators.length > 0
-            ? "No generator selected in this collection."
-            : "Automate token groups from values, tokens, or graphs."}
-        </div>
-      </div>
-      <FeedbackPlaceholder
-        variant="empty"
-        size="full"
-        icon={null}
-        title={
-          generators.length > 0
-            ? "No generators in this collection"
-            : "No generators yet"
-        }
-        description={
-          generators.length > 0
-            ? "This collection does not have its own generators. View all generators or create one for this collection."
-            : "Create a generator for repeated scales, ramps, and token groups in this collection."
-        }
-        actions={
-          generators.length > 0
-            ? [
-                {
-                  label: "View all generators",
-                  onClick: () => {
-                    setGeneratorListScope("all");
-                    setGeneratorListOpen(true);
-                  },
-                },
-                {
-                  label: "Create generator",
-                  onClick: () => {
-                    if (busy) {
-                      setError(
-                        "Wait for the current generator action to finish.",
-                      );
-                      return;
-                    }
-                    setCreatePanelOpen(true);
-                  },
-                  tone: "secondary",
-                },
-              ]
-            : [
-                {
-                  label: "Create generator",
-                  onClick: () => {
-                    if (busy) {
-                      setError(
-                        "Wait for the current generator action to finish.",
-                      );
-                      return;
-                    }
-                    setCreatePanelOpen(true);
-                  },
-                },
-              ]
-        }
-      />
-    </div>
-  );
-
   return (
     <div
       ref={panelRef}
       className="relative flex h-full min-h-0 bg-[var(--surface-app)] text-[color:var(--color-figma-text)]"
     >
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        {!activeGenerator ? (
-          renderEmptyWorkbench()
+        {renderGeneratorCollectionBar()}
+
+        {error ? (
+          <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
+            <AlertTriangle size={14} />
+            {error}
+          </div>
+        ) : null}
+        {lastApply ? (
+          <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-success)]">
+            <Check size={14} />
+            Applied {lastApply.created.length} created,{" "}
+            {lastApply.updated.length} updated, {lastApply.deleted.length}{" "}
+            deleted.
+          </div>
+        ) : null}
+
+        {generatorListOpen || !activeGenerator ? (
+          renderGeneratorSelector()
         ) : (
           <>
             <div className="tm-generator-workbench-header">
@@ -3554,21 +4059,6 @@ export function GeneratorsPanel({
                 </div>
               </div>
             </div>
-
-            {error ? (
-              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
-                <AlertTriangle size={14} />
-                {error}
-              </div>
-            ) : null}
-            {lastApply ? (
-              <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-success)]">
-                <Check size={14} />
-                Applied {lastApply.created.length} created,{" "}
-                {lastApply.updated.length} updated, {lastApply.deleted.length}{" "}
-                deleted.
-              </div>
-            ) : null}
 
             <div className="min-h-0 flex-1">
               {editorMode === "graph"
@@ -3600,7 +4090,11 @@ export function GeneratorsPanel({
               <GeneratorCreatePanel
                 serverUrl={serverUrl}
                 collections={collections}
-                workingCollectionId={workingCollectionId}
+                defaultTargetCollectionId={
+                  generatorListCollectionId ||
+                  activeGenerator?.targetCollectionId ||
+                  initialCollectionIdRef.current
+                }
                 initialOutputPrefix={createOutputPrefix}
                 perCollectionFlat={perCollectionFlat}
                 onClose={closeCreatePanel}
@@ -3617,9 +4111,8 @@ export function GeneratorsPanel({
                     return;
                   }
                   const nextEditorMode = initialView ?? "overview";
-                  if (collectionId !== workingCollectionId) {
-                    setGeneratorListScope("all");
-                  }
+                  setGeneratorListCollectionId(collectionId);
+                  setGeneratorListScope("collection");
                   setActiveGeneratorSelection(generatorId);
                   setEditorMode(nextEditorMode);
                   void loadGenerators().then(() => {
@@ -3937,21 +4430,6 @@ function readGeneratorDestinationLabels(
     .filter(isGeneratorOutputNode)
     .map((node) => String(node.data.pathPrefix ?? node.data.path ?? "").trim())
     .filter(Boolean);
-}
-
-function formatGeneratorListMetadata(
-  generator: TokenGeneratorDocument,
-  producedTokenCount: number | undefined,
-): string {
-  const inputCount = generator.nodes.filter(isGeneratorInputNode).length;
-  const outputCount = generator.nodes.filter(isGeneratorOutputNode).length;
-  const parts = [`${inputCount} in`, `${outputCount} out`];
-  if (producedTokenCount !== undefined) {
-    parts.push(
-      `${producedTokenCount} ${producedTokenCount === 1 ? "token" : "tokens"}`,
-    );
-  }
-  return parts.join(" · ");
 }
 
 function isGeneratorInputNode(node: TokenGeneratorDocumentNode): boolean {

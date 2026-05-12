@@ -96,7 +96,7 @@ import { apiFetch, createFetchSignal } from "./shared/apiFetch";
 import { getCollectionDisplayName } from "./shared/libraryCollections";
 import { STORAGE_KEYS, lsGetJson } from "./shared/storage";
 import {
-  Layers, Frame, RefreshCw, ChevronRight, Bell, Settings,
+  Layers, Shapes, Frame, RefreshCw, ChevronRight, Bell, Settings,
   Undo2, Redo2, ChevronsLeft, ChevronsRight,
 } from "lucide-react";
 
@@ -422,7 +422,7 @@ export function App() {
     if (inspectingCollection) {
       switchContextualSurface({ surface: null });
     }
-    if (activeTopTab === "library") {
+    if (activeTopTab === "library" && activeSubTab !== "generators") {
       navigateTo("library", activeSubTab);
     } else {
       navigateTo("library", "tokens");
@@ -1056,7 +1056,11 @@ export function App() {
   }, [activeTopTab, activeSubTab, dismissContextualTools]);
 
   useEffect(() => {
-    if (!librarySetupRequired || activeTopTab === "library") {
+    if (
+      !librarySetupRequired ||
+      activeTopTab === "library" ||
+      activeTopTab === "icons"
+    ) {
       return;
     }
     navigateTo("library", "tokens");
@@ -1748,7 +1752,11 @@ export function App() {
   );
 
   const handleSidebarItemClick = useCallback((item: SidebarItem) => {
-    if (librarySetupRequired && item.workspaceId !== "library") {
+    if (
+      librarySetupRequired &&
+      item.workspaceId !== "library" &&
+      item.workspaceId !== "icons"
+    ) {
       guardEditorAction(() => {
         switchContextualSurface({ surface: null });
         navigateTo("library", "tokens");
@@ -1799,7 +1807,8 @@ export function App() {
         (candidate) => candidate.id === item.workspaceId,
       );
       const canOpenSections =
-        !librarySetupRequired && (workspace?.sections?.length ?? 0) > 0;
+        (!librarySetupRequired || item.workspaceId === "icons") &&
+        (workspace?.sections?.length ?? 0) > 0;
       if (responsiveSidebarCollapsed && canOpenSections) {
         openResponsiveSidebarFlyout(item.id, top);
         return;
@@ -1828,6 +1837,7 @@ export function App() {
   const workspaceIcon = (id: string) => {
     switch (id) {
       case "library":  return <Layers size={16} strokeWidth={1.5} aria-hidden />;
+      case "icons":    return <Shapes size={16} strokeWidth={1.5} aria-hidden />;
       case "canvas":   return <Frame size={16} strokeWidth={1.5} aria-hidden />;
       case "publish":  return <RefreshCw size={16} strokeWidth={1.5} aria-hidden />;
       default:         return null;
@@ -1869,7 +1879,9 @@ export function App() {
             >
               {group.items.map((item) => {
                 const requiresSetup =
-                  librarySetupRequired && item.workspaceId !== "library";
+                  librarySetupRequired &&
+                  item.workspaceId !== "library" &&
+                  item.workspaceId !== "icons";
                 const isWorkspaceActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
                 const workspace = WORKSPACE_TABS.find((w) => w.id === item.workspaceId);
                 const allSections = workspace?.sections ?? [];

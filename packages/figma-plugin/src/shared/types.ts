@@ -1,5 +1,5 @@
 // Shared types used by both controller (plugin sandbox) and UI
-import type { TokenLifecycle, TokenReference, TokenValue } from '@token-workshop/core';
+import type { IconColorBehavior, TokenLifecycle, TokenReference, TokenValue } from '@token-workshop/core';
 import type { TokenExtensions } from '@token-workshop/core';
 
 /** Shape returned by API endpoints on error (e.g. 4xx/5xx). */
@@ -667,6 +667,51 @@ export interface CancelScanMessage {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Managed icon publishing
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface IconPublishItem {
+  id: string;
+  path: string;
+  componentName: string;
+  svgContent: string;
+  svgHash: string;
+  colorBehavior: IconColorBehavior;
+  targetSize: number;
+  componentId?: string | null;
+}
+
+export interface PublishIconsMessage {
+  type: 'publish-icons';
+  pageName: string;
+  icons: IconPublishItem[];
+  correlationId?: string;
+}
+
+export interface IconPublishResult {
+  id: string;
+  componentId?: string;
+  componentKey?: string | null;
+  lastSyncedHash?: string;
+  action?: 'created' | 'updated' | 'skipped';
+  warning?: string;
+  error?: string;
+}
+
+export interface IconPublishProgressMessage {
+  type: 'icons-publish-progress';
+  current: number;
+  total: number;
+  correlationId?: string;
+}
+
+export interface IconsPublishedMessage {
+  type: 'icons-published';
+  results: IconPublishResult[];
+  correlationId?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Revert snapshot shapes — shared between plugin sandbox and UI
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -995,7 +1040,9 @@ export type ControllerMessage =
   | TokenUsageMapCancelledMessage
   | TokenUsageResultMessage
   | VariablesRevertedMessage
-  | StylesRevertedMessage;
+  | StylesRevertedMessage
+  | IconPublishProgressMessage
+  | IconsPublishedMessage;
 
 /** Runtime set of all known Controller→UI message type strings.
  *  Keep in sync with the `ControllerMessage` union above. */
@@ -1034,6 +1081,8 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'token-usage-result',
   'variables-reverted',
   'styles-reverted',
+  'icons-publish-progress',
+  'icons-published',
 ]);
 
 /** Discriminated union of all UI→Controller messages */
@@ -1067,5 +1116,6 @@ export type PluginMessage =
   | RemoveBindingFromNodeMessage
   | SearchLayersMessage
   | CancelScanMessage
+  | PublishIconsMessage
   | RevertVariablesMessage
   | RevertStylesMessage;

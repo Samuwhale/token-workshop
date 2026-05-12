@@ -7,6 +7,7 @@ import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
 import { selectNode, selectNextSibling, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
+import { publishIcons } from './iconSync.js';
 
 figma.showUI(__html__, { width: 680, height: 720, themeColors: true });
 
@@ -150,6 +151,7 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'eyedropper':                 [],
   'revert-variables':           [['varSnapshot', 'object']],
   'revert-styles':              [['styleSnapshot', 'object']],
+  'publish-icons':              [['pageName', 'string'], ['icons', 'array']],
   'cancel-scan':                [],
 };
 
@@ -487,6 +489,20 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         await withSyncLock(() => deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {}, msg.targets ?? [], msg.correlationId));
       } catch (e) {
         reportError('delete-orphan-variables', e);
+      }
+      break;
+    case 'publish-icons':
+      try {
+        await withSyncLock(() => publishIcons(msg));
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'icons-published',
+          results: msg.icons.map((icon) => ({
+            id: icon.id,
+            error: getErrorMessage(e, 'Failed to publish icons'),
+          })),
+          correlationId: msg.correlationId,
+        });
       }
       break;
     case 'cancel-scan':

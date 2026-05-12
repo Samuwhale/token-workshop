@@ -39,8 +39,8 @@ export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 export const TOKEN_COLUMN_MIN_PX = 176;
 
 /** Default / min / max widths for individual mode columns (px). */
-export const DEFAULT_MODE_COL_PX = 96;
-export const MIN_MODE_COL_PX = 84;
+export const DEFAULT_MODE_COL_PX = 112;
+export const MIN_MODE_COL_PX = 96;
 export const MAX_MODE_COL_PX = 480;
 
 /** Shared by the table header and every row so columns always align. */

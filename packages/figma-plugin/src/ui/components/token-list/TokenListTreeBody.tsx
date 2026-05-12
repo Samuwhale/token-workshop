@@ -1,6 +1,14 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Layers, MousePointer2, X, ChevronUp, Plus } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronUp,
+  Layers,
+  MousePointer2,
+  Plus,
+  Settings2,
+  X,
+} from "lucide-react";
 import type { TokenNode } from "../../hooks/useTokens";
 import type { LintViolation } from "../../hooks/useLint";
 import type { MultiModeValue } from "../tokenListTypes";
@@ -336,8 +344,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     observer.observe(viewport);
     return () => observer.disconnect();
   }, [tableContentElement]);
-  const { widths: modeColumnWidths, setWidth: setModeColumnWidth } =
-    useModeColumnWidths(widthsCollectionId, modeNames, tableViewportWidth);
+  const {
+    widths: modeColumnWidths,
+    setWidth: setModeColumnWidth,
+    resetWidth: resetModeColumnWidth,
+  } = useModeColumnWidths(widthsCollectionId, modeNames);
   const gridTemplate = getGridTemplate(modeColumnWidths);
   const tableMinWidth = multiModeData
     ? getGridMinWidth(modeColumnWidths)
@@ -349,8 +360,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     tableMinWidth !== null &&
     tableViewportWidth !== null &&
     tableMinWidth > tableViewportWidth + 8;
-  const populatedTreeTableStyle =
-    tableMinWidth && viewMode === "tree" && displayedTokens.length > 0
+  const treeTableStyle =
+    tableMinWidth && viewMode === "tree"
       ? { minWidth: `${tableMinWidth}px` }
       : undefined;
   const visibleSelectedCount = useMemo(
@@ -442,43 +453,41 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     return () => observer.disconnect();
   }, [gridTemplate, multiModeData, modeNames.length, viewMode]);
 
-  // Unified table header — always shown for the tree view. For single-mode
-  // collections this renders one mode column; multi-mode collections render
-  // one column per mode. The add-mode action stays in the sticky token column
-  // so authored values keep the full available width.
+  // Unified table header — always shown for the tree view. Mode columns keep
+  // readable widths and intentionally overflow horizontally when space is tight.
   const tableHeader = multiModeData && viewMode === "tree" ? (
-    <>
+    <div
+      ref={tableHeaderRef}
+      className={`tm-token-table__header sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]${modeTableOverflowing ? " tm-token-table__header--overflowing" : ""}`}
+      style={{ display: "grid", gridTemplateColumns: gridTemplate }}
+    >
       <div
-        ref={tableHeaderRef}
-        className="tm-token-table__header sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]"
-        style={{ display: "grid", gridTemplateColumns: gridTemplate }}
+        ref={addModeMenuContainerRef}
+        className="tm-token-table__token-header sticky left-0 z-[1] min-w-0 bg-[var(--color-figma-bg-secondary)]"
       >
-        <div
-          ref={addModeMenuContainerRef}
-          className="tm-token-table__token-header sticky left-0 z-[1] min-w-0 px-2 py-1 flex items-center gap-2 bg-[var(--color-figma-bg-secondary)]"
-        >
-          {!selectionActive ? (
-            <input
-              type="checkbox"
-              checked={allDisplayedSelected}
-              disabled={displayedLeafPaths.size === 0}
-              ref={(element) => {
-                if (element) {
-                  element.indeterminate = partiallyDisplayedSelected;
-                }
-              }}
-              onChange={onSelectAll}
-              aria-label={
-                allDisplayedSelected
-                  ? "Clear visible token selection"
-                  : "Select all visible tokens"
+        {!selectionActive ? (
+          <input
+            type="checkbox"
+            checked={allDisplayedSelected}
+            disabled={displayedLeafPaths.size === 0}
+            ref={(element) => {
+              if (element) {
+                element.indeterminate = partiallyDisplayedSelected;
               }
-              className="tm-token-selection-checkbox shrink-0"
-            />
-          ) : null}
-          <span className="min-w-0 flex-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-            Token
-          </span>
+            }}
+            onChange={onSelectAll}
+            aria-label={
+              allDisplayedSelected
+                ? "Clear visible token selection"
+                : "Select all visible tokens"
+            }
+            className="tm-token-selection-checkbox shrink-0"
+          />
+        ) : null}
+        <span className="min-w-0 flex-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+          Token
+        </span>
+        <div className="tm-token-table__header-actions">
           <Button
             ref={addModeTriggerRef}
             onClick={() => {
@@ -492,7 +501,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             disabled={!connected}
             variant="ghost"
             size="sm"
-            className="tm-token-table__add-mode shrink-0 px-2 text-[color:var(--color-figma-text-secondary)]"
+            className="tm-token-table__header-action tm-token-table__add-mode text-[color:var(--color-figma-text-secondary)]"
             title={
               connected
                 ? "Add a mode to this collection"
@@ -504,145 +513,169 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             aria-expanded={addModeMenuOpen}
           >
             <Plus size={12} strokeWidth={2} aria-hidden />
-            <span className="tm-token-table__add-mode-label">Add mode</span>
           </Button>
-          {addModeMenuOpen && (
-            <div
-              id="token-table-add-mode-dialog"
-              className="absolute right-2 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
-              onMouseDown={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-label="Add mode"
-              onKeyDown={(event) => {
-                if (event.key !== "Escape") {
-                  return;
-                }
-                event.preventDefault();
-                closeAddModeMenu();
-                requestAnimationFrame(() => addModeTriggerRef.current?.focus());
-              }}
+          {props.navigation.onManageCollectionModes ? (
+            <Button
+              onClick={() =>
+                props.navigation.onManageCollectionModes?.(
+                  multiModeData.collection.id,
+                )
+              }
+              disabled={!connected}
+              variant="ghost"
+              size="sm"
+              className="tm-token-table__header-action text-[color:var(--color-figma-text-secondary)]"
+              title={
+                connected
+                  ? "Manage collection modes"
+                  : "Connect to the token library before managing modes"
+              }
+              aria-label="Manage collection modes"
             >
-              <div className="flex flex-col gap-2 px-2 py-2">
-                <label
-                  htmlFor="token-table-new-mode-name"
-                  className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
+              <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+            </Button>
+          ) : null}
+          {modeTableOverflowing ? (
+            <Button
+              onClick={scrollModeColumns}
+              variant="ghost"
+              size="sm"
+              className="tm-token-table__header-action text-[color:var(--color-figma-text-secondary)]"
+              title="Scroll to more modes"
+              aria-label={`Scroll to more modes in ${modeNames.length}-mode collection`}
+            >
+              <ChevronRight size={12} strokeWidth={1.8} aria-hidden />
+            </Button>
+          ) : null}
+        </div>
+        {addModeMenuOpen && (
+          <div
+            id="token-table-add-mode-dialog"
+            className="absolute right-2 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
+            onMouseDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Add mode"
+            onKeyDown={(event) => {
+              if (event.key !== "Escape") {
+                return;
+              }
+              event.preventDefault();
+              closeAddModeMenu();
+              requestAnimationFrame(() => addModeTriggerRef.current?.focus());
+            }}
+          >
+            <div className="flex flex-col gap-2 px-2 py-2">
+              <label
+                htmlFor="token-table-new-mode-name"
+                className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
+              >
+                Add mode
+              </label>
+              <TextInput
+                id="token-table-new-mode-name"
+                ref={addModeInputRef}
+                size="sm"
+                value={newModeName}
+                onChange={(e) => {
+                  setNewModeName(e.target.value);
+                  setAddModeError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    void handleAddMode();
+                  }
+                  if (e.key === "Escape") closeAddModeMenu();
+                }}
+                onBlur={(event) => {
+                  if (
+                    addModeMenuContainerRef.current?.contains(
+                      event.relatedTarget as Node | null,
+                    )
+                  ) {
+                    return;
+                  }
+                  if (!newModeName.trim()) closeAddModeMenu();
+                }}
+                autoFocus
+                disabled={addingModeSaving}
+                placeholder="Mode name"
+                aria-label="New mode name"
+                invalid={Boolean(addModeError)}
+                className={
+                  addModeError ? "" : "focus-visible:border-[var(--color-figma-accent)]"
+                }
+              />
+              {addModeError ? (
+                <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
+                  {addModeError}
+                </p>
+              ) : (
+                <>
+                  {modeNames.length > 0 ? (
+                    <label className="flex flex-col gap-1 px-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                      {MODE_STARTING_VALUES_LABEL}
+                      <select
+                        value={newModeSourceName}
+                        onChange={(event) =>
+                          setNewModeSourceName(event.target.value)
+                        }
+                        disabled={addingModeSaving}
+                        className={AUTHORING.select}
+                      >
+                        {modeNames.map((modeName) => (
+                          <option key={modeName} value={modeName}>
+                            {formatModeCopyOption(modeName)}
+                          </option>
+                        ))}
+                        <option value={EMPTY_MODE_SOURCE}>Empty values</option>
+                      </select>
+                    </label>
+                  ) : null}
+                  <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                    {tokens.length === 0
+                      ? "New tokens in this collection will include this mode."
+                      : newModeSourceName === EMPTY_MODE_SOURCE
+                        ? "Existing tokens in this collection will show this mode with no value until each one is filled."
+                        : `Existing tokens in this collection will start with editable copies of their ${newModeSourceName} values.`}
+                  </p>
+                </>
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={closeAddModeMenu}
+                  disabled={addingModeSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void handleAddMode()}
+                  disabled={!newModeName.trim() || addingModeSaving}
                 >
                   Add mode
-                </label>
-                <TextInput
-                  id="token-table-new-mode-name"
-                  ref={addModeInputRef}
-                  size="sm"
-                  value={newModeName}
-                  onChange={(e) => {
-                    setNewModeName(e.target.value);
-                    setAddModeError("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      void handleAddMode();
-                    }
-                    if (e.key === "Escape") closeAddModeMenu();
-                  }}
-                  onBlur={(event) => {
-                    if (
-                      addModeMenuContainerRef.current?.contains(
-                        event.relatedTarget as Node | null,
-                      )
-                    ) {
-                      return;
-                    }
-                    if (!newModeName.trim()) closeAddModeMenu();
-                  }}
-                  autoFocus
-                  disabled={addingModeSaving}
-                  placeholder="Mode name"
-                  aria-label="New mode name"
-                  invalid={Boolean(addModeError)}
-                  className={addModeError ? "" : "focus-visible:border-[var(--color-figma-accent)]"}
-                />
-                {addModeError ? (
-                  <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-error)]">
-                    {addModeError}
-                  </p>
-                ) : (
-                  <>
-                    {modeNames.length > 0 ? (
-                      <label className="flex flex-col gap-1 px-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                        {MODE_STARTING_VALUES_LABEL}
-                        <select
-                          value={newModeSourceName}
-                          onChange={(event) => setNewModeSourceName(event.target.value)}
-                          disabled={addingModeSaving}
-                          className={AUTHORING.select}
-                        >
-                          {modeNames.map((modeName) => (
-                            <option key={modeName} value={modeName}>
-                              {formatModeCopyOption(modeName)}
-                            </option>
-                          ))}
-                          <option value={EMPTY_MODE_SOURCE}>Empty values</option>
-                        </select>
-                      </label>
-                    ) : null}
-                    <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      {tokens.length === 0
-                        ? "New tokens in this collection will include this mode."
-                        : newModeSourceName === EMPTY_MODE_SOURCE
-                          ? "Existing tokens in this collection will show this mode with no value until each one is filled."
-                          : `Existing tokens in this collection will start with editable copies of their ${newModeSourceName} values.`}
-                    </p>
-                  </>
-                )}
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={closeAddModeMenu}
-                    disabled={addingModeSaving}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => void handleAddMode()}
-                    disabled={!newModeName.trim() || addingModeSaving}
-                  >
-                    Add mode
-                  </Button>
-                </div>
+                </Button>
               </div>
             </div>
-          )}
-        </div>
-        {multiModeData.results.map((r, idx) => (
-          <ModeColumnHeader
-            key={r.optionName}
-            modeName={r.optionName}
-            collectionId={multiModeData.collection.id}
-            onManageModes={
-              idx === 0 ? props.navigation.onManageCollectionModes : undefined
-            }
-            connected={connected}
-            width={modeColumnWidths[idx] ?? 0}
-            onResize={(w) => setModeColumnWidth(idx, w)}
-          />
-        ))}
+          </div>
+        )}
       </div>
+      {multiModeData.results.map((r, idx) => (
+        <ModeColumnHeader
+          key={r.optionName}
+          modeName={r.optionName}
+          width={modeColumnWidths[idx] ?? 0}
+          hasLeadingResizeHandle={idx === 0}
+          onResize={(w) => setModeColumnWidth(idx, w)}
+          onReset={() => resetModeColumnWidth(idx)}
+        />
+      ))}
       {modeTableOverflowing ? (
-        <div className="tm-token-table__scroll-hint">
-          <span>Scroll to review all {modeNames.length} modes.</span>
-          <button
-            type="button"
-            onClick={scrollModeColumns}
-            className="tm-token-table__scroll-hint-action"
-          >
-            Scroll right
-          </button>
-        </div>
+        <span className="tm-token-table__overflow-fade" aria-hidden="true" />
       ) : null}
-    </>
+    </div>
   ) : null;
 
   // Cross-collection search results
@@ -826,7 +859,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Inspect mode with no selection
   if (inspectMode && selectedNodes.length === 0) {
     return (
-      <div ref={setTableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <FeedbackPlaceholder
           variant="empty"
@@ -841,7 +874,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // JSON editor
   if (viewMode === "json") {
     return (
-      <div ref={setTableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <JsonEditorView
           jsonText={jsonEditorProps.jsonText}
@@ -902,7 +935,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     }
 
     return (
-      <div ref={setTableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
           <FeedbackPlaceholder
@@ -926,7 +959,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Filtered empty state
   if (displayedTokens.length === 0 && filtersActive) {
     return (
-      <div ref={setTableContentRef} className="min-w-0">
+      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <TokenListFilteredEmptyState
           searchQuery={searchQuery}
@@ -949,7 +982,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     <div
       ref={setTableContentRef}
       className="min-w-full"
-      style={populatedTreeTableStyle}
+      style={treeTableStyle}
       role="tree"
       aria-label="Token tree"
       aria-multiselectable="true"

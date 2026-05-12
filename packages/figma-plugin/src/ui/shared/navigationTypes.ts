@@ -9,8 +9,11 @@ import { STORAGE_KEYS } from "./storage";
 // User-facing workspace names live on WORKSPACE_TABS[].label / SIDEBAR_GROUPS[].items[].label — guidance copy should reference those, not re-spell them.
 export type TopTab =
   | "library"
+  | "icons"
   | "canvas"
   | "publish";
+export type IconsSubTab =
+  | "icons";
 export type LibrarySubTab =
   | "tokens"
   | "import"
@@ -22,6 +25,7 @@ export type PublishSubTab =
   | "publish-code"
   | "publish-repository";
 export type SubTab =
+  | IconsSubTab
   | LibrarySubTab
   | "inspect"
   | "repair"
@@ -76,6 +80,13 @@ export const TOP_TABS: {
     ],
   },
   {
+    id: "icons",
+    label: "Icons",
+    subTabs: [
+      { id: "icons", label: "Icons" },
+    ],
+  },
+  {
     id: "canvas",
     label: "Canvas",
     subTabs: [
@@ -96,12 +107,14 @@ export const TOP_TABS: {
 
 export const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = {
   library: "tokens",
+  icons: "icons",
   canvas: "inspect",
   publish: "publish-figma",
 };
 
 export const SUB_TAB_STORAGE: Record<TopTab, string> = {
   library: STORAGE_KEYS.ACTIVE_SUB_TAB_LIBRARY,
+  icons: STORAGE_KEYS.ACTIVE_SUB_TAB_ICONS,
   canvas: STORAGE_KEYS.ACTIVE_SUB_TAB_CANVAS,
   publish: STORAGE_KEYS.ACTIVE_SUB_TAB_PUBLISH,
 };
@@ -112,6 +125,7 @@ export const SUB_TAB_STORAGE: Record<TopTab, string> = {
 
 export type WorkspaceId =
   | "library"
+  | "icons"
   | "canvas"
   | "publish";
 export type UtilityMenuId = "tools";
@@ -279,6 +293,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "",
     items: [
       { id: "library", label: "Library", railCode: "Li", topTab: "library", subTab: "tokens", workspaceId: "library" },
+      { id: "icons", label: "Icons", railCode: "Ic", topTab: "icons", subTab: "icons", workspaceId: "icons" },
       { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "canvas", subTab: "inspect", workspaceId: "canvas" },
       { id: "publish", label: "Publish", railCode: "Pu", topTab: "publish", subTab: "publish-figma", workspaceId: "publish" },
     ],
@@ -305,6 +320,16 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
       route("library", "health"),
       route("library", "history"),
       route("library", "generators"),
+    ],
+  },
+  {
+    id: "icons",
+    label: "Icons",
+    summaryTitle: "Icons",
+    topTab: "icons",
+    subTab: "icons",
+    matchRoutes: [
+      route("icons", "icons"),
     ],
   },
   {

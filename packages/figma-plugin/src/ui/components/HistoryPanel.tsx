@@ -52,7 +52,6 @@ export function HistoryPanel({
         ? scope.collectionId
         : validWorkingCollectionId
       : null;
-  const activePanelLabelId = `history-tab-${scope.view}`;
   const scopeLabel =
     scope.view === "saved"
       ? activeCollectionFilter || scope.tokenPath
@@ -313,10 +312,11 @@ export function HistoryPanel({
 
       <div
         role="tabpanel"
-        id={`history-tabpanel-${scope.view}`}
-        aria-labelledby={activePanelLabelId}
-        tabIndex={0}
-        className="min-h-0 flex-1 overflow-hidden"
+        id="history-tabpanel-recent"
+        aria-labelledby="history-tab-recent"
+        hidden={scope.view !== "recent"}
+        tabIndex={scope.view === "recent" ? 0 : -1}
+        className={`${scope.view === "recent" ? "flex" : "hidden"} min-h-0 flex-1 overflow-hidden`}
       >
         {scope.view === "recent" ? (
           <HistoryRecentView
@@ -334,7 +334,18 @@ export function HistoryPanel({
             onServerRedo={onServerRedo}
             executeUndo={executeUndo}
           />
-        ) : (
+        ) : null}
+      </div>
+
+      <div
+        role="tabpanel"
+        id="history-tabpanel-saved"
+        aria-labelledby="history-tab-saved"
+        hidden={scope.view !== "saved"}
+        tabIndex={scope.view === "saved" ? 0 : -1}
+        className={`${scope.view === "saved" ? "flex" : "hidden"} min-h-0 flex-1 overflow-hidden`}
+      >
+        {scope.view === "saved" ? (
           <HistorySavedView
             serverUrl={serverUrl}
             connected={connected}
@@ -345,7 +356,7 @@ export function HistoryPanel({
             collectionDisplayNames={collectionDisplayNames}
             refreshKey={savedViewRefreshKey}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -67,10 +67,13 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
               aria-label={visibleHandoff.returnLabel}
               variant="ghost"
               size="sm"
+              wrap
               className="min-w-0 justify-start px-1.5 text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-text-accent)]"
             >
               <span aria-hidden="true">&larr;</span>
-              <span className="truncate">{visibleHandoff.returnLabel}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {visibleHandoff.returnLabel}
+              </span>
             </Button>
           )}
         </div>
@@ -82,9 +85,12 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
             disabled={primaryAction.disabled}
             variant="primary"
             size="md"
+            wrap
             className="max-w-full"
           >
-            <span className="block truncate">{primaryAction.label}</span>
+            <span className="block min-w-0 [overflow-wrap:anywhere]">
+              {primaryAction.label}
+            </span>
           </Button>
         )}
         </div>

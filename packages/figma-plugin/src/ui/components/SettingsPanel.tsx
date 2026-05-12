@@ -1,4 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useId } from "react";
+import type { ReactNode } from "react";
+import {
+  BookOpen,
+  CheckCircle2,
+  Download,
+  PlugZap,
+  RotateCcw,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import {
   STORAGE_KEYS,
   STORAGE_PREFIXES,
@@ -14,7 +25,11 @@ import { PLATFORMS } from "../shared/platforms";
 import { formatHexAs } from "../shared/colorUtils";
 import { dispatchToast } from "../shared/toastBus";
 import { buildPluginDocumentationUrl, downloadBlob } from "../shared/utils";
+import { Button } from "../primitives/Button";
+import { Field } from "../primitives/Field";
 import { SegmentedControl } from "../primitives/SegmentedControl";
+import { StatusBanner } from "../primitives/Status";
+import { TextInput } from "../primitives/TextInput";
 import { SecondaryTakeoverHeader } from "./SecondaryTakeoverHeader";
 
 // ---------------------------------------------------------------------------
@@ -54,84 +69,118 @@ export function useSettingsListener(key: string): number {
   return rev;
 }
 
-// ---------------------------------------------------------------------------
-// Section component (collapsible, for infrequent settings)
-// ---------------------------------------------------------------------------
+const DEFAULT_SERVER_URL = "http://localhost:9400";
 
-function Section({
+const COLOR_FORMAT_OPTIONS = [
+  { value: "hex", label: "HEX" },
+  { value: "rgb", label: "RGB" },
+  { value: "hsl", label: "HSL" },
+  { value: "oklch", label: "OKLCH" },
+  { value: "p3", label: "P3" },
+] satisfies Array<{ value: ColorFormat; label: string }>;
+
+const COPY_FORMAT_OPTIONS = [
+  { value: "css-var", label: "CSS" },
+  { value: "dtcg-ref", label: "{ref}" },
+  { value: "scss", label: "$scss" },
+  { value: "raw", label: "Value" },
+  { value: "json", label: "DTCG" },
+] satisfies Array<{ value: PreferredCopyFormat; label: string }>;
+
+function SettingsSection({
   title,
+  description,
   children,
-  defaultOpen = true,
-  suffix,
 }: {
   title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  suffix?: React.ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="pt-1.5 first:pt-0">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 py-1.5 text-left outline-none transition-colors hover:text-[color:var(--color-figma-text)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[-1px]"
-      >
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="text-body font-medium text-[color:var(--color-figma-text)]">
-            {title}
+    <section className="flex min-w-0 flex-col gap-2.5 pt-4 first:pt-0">
+      <header className="flex min-w-0 flex-col gap-0.5">
+        <h3 className="m-0 text-[var(--font-size-md)] font-semibold leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]">
+          {title}
+        </h3>
+        {description ? (
+          <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+            {description}
+          </p>
+        ) : null}
+      </header>
+      <div className="flex min-w-0 flex-col gap-2">{children}</div>
+    </section>
+  );
+}
+
+function SettingsItem({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-md)] py-1">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]">
+          {title}
+        </span>
+        {description ? (
+          <span className="text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+            {description}
           </span>
-          {suffix}
-        </div>
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          fill="currentColor"
-          className={`text-[color:var(--color-figma-text-secondary)] transition-transform ${open ? "rotate-90" : ""}`}
-          aria-hidden="true"
-        >
-          <path d="M2 1l4 3-4 3V1z" />
-        </svg>
-      </button>
-      {open && <div className="flex flex-col gap-2 pb-2">{children}</div>}
+        ) : null}
+      </div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Toggle component
-// ---------------------------------------------------------------------------
-
-function Toggle({
+function SwitchRow({
   checked,
   onChange,
-  label,
+  title,
+  description,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
-  label: string;
+  title: string;
+  description?: string;
 }) {
   const labelId = useId();
+  const descriptionId = useId();
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       aria-labelledby={labelId}
+      aria-describedby={description ? descriptionId : undefined}
       onClick={() => onChange(!checked)}
-      className="flex w-full min-w-0 items-center justify-between gap-3 rounded-[var(--radius-md)] px-1 py-1 text-left outline-none transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)]"
+      className="group flex w-full min-w-0 items-start justify-between gap-3 rounded-[var(--radius-md)] px-2 py-1.5 text-left outline-none transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[-1px]"
     >
-      <span
-        id={labelId}
-        className="min-w-0 flex-1 text-body text-[color:var(--color-figma-text)]"
-      >
-        {label}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span
+          id={labelId}
+          className="text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]"
+        >
+          {title}
+        </span>
+        {description ? (
+          <span
+            id={descriptionId}
+            className="text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
+          >
+            {description}
+          </span>
+        ) : null}
       </span>
       <span
         aria-hidden="true"
-        className={`relative shrink-0 h-5 w-9 rounded-full transition-colors ${
+        className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors ${
           checked ? "bg-[var(--color-figma-accent)]" : "bg-[var(--color-figma-border)]"
         }`}
       >
@@ -142,33 +191,6 @@ function Toggle({
         />
       </span>
     </button>
-  );
-}
-
-function SettingRow({
-  label,
-  children,
-  align = "center",
-}: {
-  label: string;
-  children: React.ReactNode;
-  align?: "center" | "start";
-}) {
-  return (
-    <div
-      className={`grid min-w-0 gap-x-3 gap-y-2 py-1 max-[380px]:grid-cols-1 ${
-        align === "start"
-          ? "grid-cols-[minmax(0,1fr)_minmax(9rem,max-content)] items-start"
-          : "grid-cols-[minmax(0,1fr)_minmax(8rem,max-content)] items-center"
-      }`}
-    >
-      <span className="min-w-0 text-body text-[color:var(--color-figma-text)]">
-        {label}
-      </span>
-      <div className="min-w-0 justify-self-end max-[380px]:justify-self-stretch">
-        {children}
-      </div>
-    </div>
   );
 }
 
@@ -573,102 +595,133 @@ export function SettingsPanel({
     );
   }, [serverUrl]);
 
-  // ---- Connection status suffix for section header ----
-  const serverStatusSuffix = (
-    <span
-      className={`flex items-center gap-1 text-secondary font-medium normal-case tracking-normal ${connected ? "text-[color:var(--color-figma-text-success)]" : checking ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-text-error)]"}`}
-    >
-      <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? "bg-[var(--color-figma-success)]" : checking ? "bg-[var(--color-figma-text-secondary)] animate-pulse" : "bg-[var(--color-figma-error)]"}`}
-      />
-      {connected ? "Connected" : checking ? "Checking" : "Disconnected"}
-    </span>
+  const connectToServer = useCallback(
+    async (targetUrl: string) => {
+      const url = targetUrl.trim() || DEFAULT_SERVER_URL;
+      setServerUrlInput(url);
+      setConnectResult(null);
+      const ok = await updateServerUrlAndConnect(url);
+      setConnectResult(ok ? "ok" : "fail");
+    },
+    [updateServerUrlAndConnect],
   );
+
+  const handleConnectCurrent = useCallback(async () => {
+    await connectToServer(serverUrlInput);
+  }, [connectToServer, serverUrlInput]);
+
+  const handleResetServerUrl = useCallback(async () => {
+    await connectToServer(DEFAULT_SERVER_URL);
+  }, [connectToServer]);
+
+  const activeServerUrl = serverUrl || serverUrlInput || DEFAULT_SERVER_URL;
+  const connectionTone = connected ? "success" : checking ? "neutral" : "danger";
+  const connectionTitle = connected
+    ? "Connected"
+    : checking
+      ? "Checking connection"
+      : "Disconnected";
+  const connectionDescription = connected
+    ? `Using ${activeServerUrl}`
+    : checking
+      ? `Checking ${activeServerUrl}`
+      : "Start the local server, then reconnect from here.";
 
   return (
     <>
       <SecondaryTakeoverHeader title="Settings" onClose={onClose} />
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-2.5 px-3 py-2">
-
-          {/* ── Everyday preferences (always visible) ── */}
-          <div className="flex flex-col gap-2">
-            <Toggle
+      <div className="flex-1 overflow-y-auto bg-[var(--surface-app)]">
+        <div className="flex min-w-0 flex-col gap-5 px-3 py-3">
+          <SettingsSection
+            title="Preferences"
+            description="Defaults used while editing, inspecting, and copying tokens."
+          >
+            <SwitchRow
               checked={hideDeprecated}
               onChange={handleHideDeprecatedChange}
-              label="Hide deprecated tokens"
+              title="Hide deprecated tokens"
+              description="Keeps retired tokens out of lists and pickers."
             />
 
-            <SettingRow label="Color format">
-              <SegmentedControl
-                options={[
-                  { value: "hex" as ColorFormat, label: "HEX" },
-                  { value: "rgb" as ColorFormat, label: "RGB" },
-                  { value: "hsl" as ColorFormat, label: "HSL" },
-                  { value: "oklch" as ColorFormat, label: "OKLCH" },
-                  { value: "p3" as ColorFormat, label: "P3" },
-                ]}
-                value={colorFormat}
-                onChange={handleColorFormatChange}
-                ariaLabel="Color format"
-              />
-            </SettingRow>
-            <div className="flex items-center gap-2 py-0.5">
-              <div
-                className="h-3 w-3 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
-                style={{ backgroundColor: "#3B82F6" }}
-              />
-              <span className="truncate select-all font-mono text-secondary text-[color:var(--color-figma-text)]">
-                {formatHexAs("#3B82F6", colorFormat)}
-              </span>
-            </div>
+            <SettingsItem
+              title="Color values"
+              description="Default notation for color fields and previews."
+            >
+              <div className="flex min-w-0 flex-col gap-1.5 [&_.tm-segmented-control]:w-full">
+                <SegmentedControl
+                  options={COLOR_FORMAT_OPTIONS}
+                  value={colorFormat}
+                  onChange={handleColorFormatChange}
+                  ariaLabel="Color format"
+                  size="compact"
+                />
+                <div className="flex min-w-0 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--surface-group-quiet)] px-2 py-1">
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
+                    style={{ backgroundColor: "#3B82F6" }}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 truncate font-mono text-secondary text-[color:var(--color-figma-text)]">
+                    {formatHexAs("#3B82F6", colorFormat)}
+                  </span>
+                </div>
+              </div>
+            </SettingsItem>
 
-            <SettingRow label="Copy format">
-              <SegmentedControl
-                options={[
-                  { value: "css-var" as PreferredCopyFormat, label: "CSS" },
-                  { value: "dtcg-ref" as PreferredCopyFormat, label: "{ref}" },
-                  { value: "scss" as PreferredCopyFormat, label: "$scss" },
-                  { value: "raw" as PreferredCopyFormat, label: "Value" },
-                  { value: "json" as PreferredCopyFormat, label: "DTCG" },
-                ]}
-                value={preferredCopyFormat}
-                onChange={handlePreferredCopyFormatChange}
-                ariaLabel="Copy format"
-              />
-            </SettingRow>
+            <SettingsItem
+              title="Copy format"
+              description="Format used by token copy shortcuts and contextual actions."
+            >
+              <div className="min-w-0 [&_.tm-segmented-control]:w-full">
+                <SegmentedControl
+                  options={COPY_FORMAT_OPTIONS}
+                  value={preferredCopyFormat}
+                  onChange={handlePreferredCopyFormatChange}
+                  ariaLabel="Copy format"
+                  size="compact"
+                />
+              </div>
+            </SettingsItem>
 
-            <SettingRow label="Contrast background">
-              <div className="flex items-center gap-1.5">
-                {contrastBg && (
-                  <button
-                    onClick={() => handleContrastBgChange("")}
-                    className="text-secondary text-[color:var(--color-figma-text-accent)] hover:text-[color:var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
+            <SettingsItem
+              title="Contrast background"
+              description="Preview background used by color contrast tools."
+            >
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <input
                   type="color"
                   value={contrastBg || "#ffffff"}
                   onChange={(e) => handleContrastBgChange(e.target.value)}
                   aria-label="Contrast background color picker"
-                  className="h-6 w-6 cursor-pointer rounded border border-[var(--color-figma-border)] p-0"
+                  className="h-7 w-7 shrink-0 cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-0"
                 />
-                <input
-                  type="text"
+                <TextInput
+                  size="sm"
                   value={contrastBg}
                   onChange={(e) => handleContrastBgChange(e.target.value)}
                   placeholder="#ffffff"
                   aria-label="Contrast background hex value"
-                  className="w-20 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                  className="min-w-[7rem] flex-1 font-mono"
                 />
+                {contrastBg && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleContrastBgChange("")}
+                  >
+                    Clear
+                  </Button>
+                )}
               </div>
-            </SettingRow>
+            </SettingsItem>
 
-            <SettingRow label="Max undo steps">
-              <input
+            <SettingsItem
+              title="Undo history"
+              description="Maximum local undo steps to keep available."
+            >
+              <TextInput
+                size="sm"
                 type="number"
                 min={1}
                 max={200}
@@ -681,122 +734,88 @@ export function SettingsPanel({
                   );
                   setUndoMaxHistory(v);
                 }}
-                className="w-16 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-right text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                className="w-24 text-right tabular-nums"
               />
-            </SettingRow>
-          </div>
+            </SettingsItem>
+          </SettingsSection>
 
-          {/* ── Collapsible sections (infrequent config) ── */}
-          <Section title="Server connection" defaultOpen={false} suffix={serverStatusSuffix}>
-            <input
-              type="text"
-              value={serverUrlInput}
-              onChange={(e) => {
-                setServerUrlInput(e.target.value);
-                setConnectResult(null);
-              }}
-              onFocus={(e) => e.target.select()}
-              onKeyDown={async (e) => {
-                if (e.key === "Enter") {
-                  const url = serverUrlInput.trim() || "http://localhost:9400";
-                  const ok = await updateServerUrlAndConnect(url);
-                  setConnectResult(ok ? "ok" : "fail");
-                }
-              }}
-              placeholder="http://localhost:9400"
-              aria-label="Server URL"
-              className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
-            />
+          <SettingsSection
+            title="Connection"
+            description="Local Token Workshop server used for storage, history, and export."
+          >
+            <StatusBanner tone={connectionTone} title={connectionTitle}>
+              <span className="break-all">{connectionDescription}</span>
+            </StatusBanner>
+
+            <Field label="Server URL">
+              <TextInput
+                value={serverUrlInput}
+                onChange={(e) => {
+                  setServerUrlInput(e.target.value);
+                  setConnectResult(null);
+                }}
+                onFocus={(e) => e.target.select()}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
+                    await connectToServer(serverUrlInput);
+                  }
+                }}
+                placeholder={DEFAULT_SERVER_URL}
+                aria-label="Server URL"
+                className="font-mono"
+              />
+            </Field>
+
             {connectResult === "ok" && (
-              <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-success)]">
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-                Connected successfully
-              </div>
+              <StatusBanner tone="success" title="Connected successfully" />
             )}
             {connectResult === "fail" && (
-              <div className="text-secondary text-[color:var(--color-figma-text-error)]">
-                <div className="mb-0.5 flex items-center gap-1.5 font-medium">
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                  Cannot reach server
-                </div>
-                <ul className="list-inside list-disc space-y-0.5 leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-                  <li>
-                    Run <span className="font-mono">pnpm server</span> or{" "}
-                    <span className="font-mono">pnpm preview</span> in the
-                    Token Workshop directory
-                  </li>
-                  <li>Check the URL and port</li>
-                  <li>Make sure localhost traffic is not blocked</li>
-                </ul>
-              </div>
+              <StatusBanner tone="danger" title="Cannot reach server">
+                Run <span className="font-mono">pnpm server</span> or{" "}
+                <span className="font-mono">pnpm preview</span>, then check the
+                URL and port.
+              </StatusBanner>
             )}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={async () => {
-                  const defaultUrl = "http://localhost:9400";
-                  setServerUrlInput(defaultUrl);
-                  setConnectResult(null);
-                  const ok = await updateServerUrlAndConnect(defaultUrl);
-                  setConnectResult(ok ? "ok" : "fail");
-                }}
-                disabled={checking}
-                title="Reset server URL to http://localhost:9400"
-                className="min-w-0 flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:border-[var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
-              >
-                Reset to default
-              </button>
-              <button
-                onClick={async () => {
-                  const url = serverUrlInput.trim() || "http://localhost:9400";
-                  const ok = await updateServerUrlAndConnect(url);
-                  setConnectResult(ok ? "ok" : "fail");
-                }}
-                disabled={checking}
-                className="min-w-0 flex-[1.4_1_180px] rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-opacity hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-50"
-              >
-                {checking ? "Connecting..." : "Connect"}
-              </button>
-            </div>
-          </Section>
 
-          <Section title="Export defaults" defaultOpen={false}>
-            <div>
-              <span className="text-body text-[color:var(--color-figma-text)] mb-1 block">
-                Default platforms
-              </span>
-              <div className="flex flex-wrap gap-1">
+            <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2">
+              <Button
+                onClick={handleResetServerUrl}
+                disabled={checking}
+                title={`Reset server URL to ${DEFAULT_SERVER_URL}`}
+              >
+                <RotateCcw size={13} strokeWidth={1.75} aria-hidden />
+                Default
+              </Button>
+              <Button
+                onClick={handleConnectCurrent}
+                disabled={checking}
+                variant="primary"
+              >
+                <PlugZap size={13} strokeWidth={1.75} aria-hidden />
+                {checking ? "Connecting..." : "Connect"}
+              </Button>
+            </div>
+          </SettingsSection>
+
+          <SettingsSection
+            title="Export defaults"
+            description="Starting point for code handoff exports."
+          >
+            <SettingsItem
+              title="Default platforms"
+              description="Preselected formats when opening export."
+            >
+              <div className="flex min-w-0 flex-wrap gap-1.5">
                 {PLATFORMS.map((platform) => (
                   <button
+                    type="button"
                     key={platform.id}
+                    aria-pressed={exportPlatforms.has(platform.id)}
                     onClick={() => handleExportPlatformToggle(platform.id)}
-                    className={`rounded border px-2 py-1 text-secondary font-medium transition-colors ${
+                    className={`min-h-7 rounded-[var(--radius-md)] border px-2 py-1 text-secondary font-medium transition-colors ${
                       exportPlatforms.has(platform.id)
-                        ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-action-bg)] text-[color:var(--color-figma-text-onbrand)]"
-                        : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+                        ? "border-[var(--color-figma-accent)] bg-[var(--surface-selected)] text-[color:var(--color-figma-text)]"
+                        : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
                     }`}
                     title={platform.description}
                   >
@@ -804,56 +823,49 @@ export function SettingsPanel({
                   </button>
                 ))}
               </div>
-            </div>
-            <div>
-              <span className="text-body text-[color:var(--color-figma-text)] mb-1 block">
-                CSS selector
-              </span>
-              <input
+            </SettingsItem>
+            <Field label="CSS selector" help="Used as the root selector for CSS variable exports.">
+              <TextInput
                 type="text"
                 value={cssSelector}
                 onChange={(e) => handleCssSelectorChange(e.target.value)}
                 placeholder=":root"
                 aria-label="CSS selector"
-                className="w-full rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 font-mono text-body text-[color:var(--color-figma-text)] focus-visible:border-[var(--color-figma-accent)]"
+                className="font-mono"
               />
+            </Field>
+          </SettingsSection>
+
+          <SettingsSection
+            title="Setup and backups"
+            description="Documentation, onboarding, and local preference backups."
+          >
+            <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2">
+              <Button onClick={handleOpenDocumentation} wrap>
+                <BookOpen size={13} strokeWidth={1.75} aria-hidden />
+                Documentation
+              </Button>
+              <Button onClick={onRestartGuidedSetup} wrap>
+                <RotateCcw size={13} strokeWidth={1.75} aria-hidden />
+                Re-run setup
+              </Button>
+              <Button onClick={handleExportSettings} wrap>
+                <Download size={13} strokeWidth={1.75} aria-hidden />
+                Export backup
+              </Button>
+              <Button
+                onClick={() => {
+                  setImportError(null);
+                  setImportSuccess(false);
+                  importFileRef.current?.click();
+                }}
+                disabled={importLoading}
+                wrap
+              >
+                <Upload size={13} strokeWidth={1.75} aria-hidden />
+                {importLoading ? "Parsing" : "Import backup"}
+              </Button>
             </div>
-          </Section>
-
-          <Section title="Help" defaultOpen={false}>
-            <button
-              onClick={handleOpenDocumentation}
-              className="self-start rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)]"
-            >
-              Open documentation
-            </button>
-          </Section>
-
-          {/* ── Utilities ── */}
-          <div className="flex flex-wrap gap-1 border-t border-[var(--border-muted)] pt-1.5">
-            <button
-              onClick={onRestartGuidedSetup}
-              className="rounded px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-            >
-              Re-run setup
-            </button>
-            <button
-              onClick={handleExportSettings}
-              className="rounded px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-            >
-              Export backup
-            </button>
-            <button
-              onClick={() => {
-                setImportError(null);
-                setImportSuccess(false);
-                importFileRef.current?.click();
-              }}
-              disabled={importLoading}
-              className="rounded px-2 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-60"
-            >
-              {importLoading ? "Parsing" : "Import backup"}
-            </button>
             <input
               ref={importFileRef}
               type="file"
@@ -866,68 +878,70 @@ export function SettingsPanel({
                 e.target.value = "";
               }}
             />
-          </div>
-          {importSuccess && (
-            <div className="flex items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-success)]">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
+
+            {importSuccess && (
+              <StatusBanner
+                tone="success"
+                title="Preferences restored"
+                icon={<CheckCircle2 size={14} strokeWidth={1.75} aria-hidden />}
               >
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              Preferences restored, reloading...
-            </div>
-          )}
-          {importError && (
-            <p className="text-secondary text-[color:var(--color-figma-text-error)]">
-              {importError}
-            </p>
-          )}
-          {pendingImport && (
-            <div className="border-t border-[var(--color-figma-border)] pt-2">
-              <div className="flex items-center justify-between py-1">
-                <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">
-                  Preview changes ({pendingImport.diff.length}{" "}
-                  setting{pendingImport.diff.length !== 1 ? "s" : ""})
-                </span>
-                <button
-                  onClick={() => setPendingImport(null)}
-                  className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
-                  aria-label="Dismiss preview"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {pendingImport.diff.map((entry) => (
-                  <div
-                    key={entry.key}
-                    className="flex flex-col gap-0.5 py-1.5"
+                Reloading...
+              </StatusBanner>
+            )}
+            {importError && (
+              <StatusBanner tone="danger" title="Import failed">
+                {importError}
+              </StatusBanner>
+            )}
+            {pendingImport && (
+              <div className="flex min-w-0 flex-col gap-2 rounded-[var(--radius-md)] bg-[var(--surface-group-quiet)] p-2">
+                <div className="flex min-w-0 items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-body font-medium text-[color:var(--color-figma-text)]">
+                      Preview changes
+                    </span>
+                    <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                      {pendingImport.diff.length} setting
+                      {pendingImport.diff.length !== 1 ? "s" : ""} will change.
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setPendingImport(null)}
+                    aria-label="Dismiss preview"
+                    title="Dismiss preview"
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`text-secondary font-medium ${entry.status === "added" ? "text-[color:var(--color-figma-text-success)]" : "text-[color:var(--color-figma-text-accent)]"}`}
-                      >
-                        {entry.status === "added" ? "New" : "Changed"}
-                      </span>
-                      <span
-                        className="min-w-0 break-words text-secondary font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
-                        title={entry.label}
-                      >
-                        {entry.label}
-                      </span>
-                    </div>
-                    {entry.status === "changed" &&
-                      entry.oldValue !== null && (
+                    <X size={13} strokeWidth={1.75} aria-hidden />
+                    Dismiss
+                  </Button>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {pendingImport.diff.map((entry) => (
+                    <div
+                      key={entry.key}
+                      className="flex min-w-0 flex-col gap-0.5 py-1.5"
+                    >
+                      <div className="flex min-w-0 items-center gap-1.5">
                         <span
-                          className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
+                          className={`shrink-0 text-secondary font-medium ${
+                            entry.status === "added"
+                              ? "text-[color:var(--color-figma-text-success)]"
+                              : "text-[color:var(--color-figma-text-accent)]"
+                          }`}
+                        >
+                          {entry.status === "added" ? "New" : "Changed"}
+                        </span>
+                        <span
+                          className="min-w-0 break-words text-secondary font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
+                          title={entry.label}
+                        >
+                          {entry.label}
+                        </span>
+                      </div>
+                      {entry.status === "changed" && entry.oldValue !== null ? (
+                        <span
+                          className="break-all font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
                           title={entry.oldValue}
                         >
                           <span className="text-[color:var(--color-figma-text-error)]">
@@ -935,109 +949,90 @@ export function SettingsPanel({
                           </span>{" "}
                           {entry.oldValue}
                         </span>
-                      )}
-                    <span
-                      className="break-all pl-0.5 font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
-                      title={entry.newValue}
-                    >
-                      <span className="text-[color:var(--color-figma-text-success)]">
-                        +
-                      </span>{" "}
-                      {entry.newValue}
-                    </span>
-                  </div>
-                ))}
+                      ) : null}
+                      <span
+                        className="break-all font-mono text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
+                        title={entry.newValue}
+                      >
+                        <span className="text-[color:var(--color-figma-text-success)]">
+                          +
+                        </span>{" "}
+                        {entry.newValue}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <StatusBanner tone="warning" title="Restore reloads the plugin">
+                  Unsaved edits will be lost.
+                </StatusBanner>
+                <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2">
+                  <Button
+                    onClick={() => setPendingImport(null)}
+                    variant="secondary"
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleApplyImport} variant="primary">
+                    Restore backup
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-start gap-1.5 border-t border-[var(--color-figma-border)] py-2">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mt-px shrink-0 text-[color:var(--color-figma-text-warning)]"
-                  aria-hidden="true"
-                >
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-                <p className="text-secondary leading-snug text-[color:var(--color-figma-text-secondary)]">
-                  This will reload the plugin. Unsaved edits will be lost.
-                </p>
-              </div>
-              <div className="flex gap-2 border-t border-[var(--color-figma-border)] pt-2">
-                <button
-                  onClick={() => setPendingImport(null)}
-                  className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleApplyImport}
-                  className="flex-1 rounded bg-[var(--color-figma-warning)] px-3 py-1.5 text-body font-medium text-white transition-colors hover:bg-[var(--color-figma-warning)]"
-                >
-                  Restore & reload
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </SettingsSection>
 
-          {/* ── Danger zone ── */}
-          <div className="border-t border-[var(--border-muted)] pt-2">
+          <SettingsSection
+            title="Workspace data"
+            description="Destructive recovery action for the current workspace."
+          >
             {!showClearConfirm ? (
-              <button
+              <Button
                 onClick={() => {
                   setShowClearConfirm(true);
                   setClearConfirmText("");
                 }}
-                className="rounded px-0 py-1 text-secondary font-medium text-[color:var(--color-figma-text-error)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
+                variant="danger"
+                className="self-start"
               >
+                <Trash2 size={13} strokeWidth={1.75} aria-hidden />
                 Delete workspace data
-              </button>
+              </Button>
             ) : (
-              <div className="flex flex-col gap-2">
-                <p className="text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-                  Type{" "}
-                  <span className="font-mono font-bold text-[color:var(--color-figma-text-error)]">
-                    DELETE
-                  </span>{" "}
-                  to permanently remove all workspace data.
-                </p>
-                <input
+              <div className="flex min-w-0 flex-col gap-2 rounded-[var(--radius-md)] bg-[var(--surface-error)] p-2">
+                <StatusBanner tone="danger" title="Delete all workspace data">
+                  Type <span className="font-mono font-bold">DELETE</span> to
+                  permanently remove all workspace data.
+                </StatusBanner>
+                <TextInput
                   type="text"
                   value={clearConfirmText}
                   onChange={(e) => setClearConfirmText(e.target.value)}
                   placeholder="DELETE"
                   autoFocus
                   aria-label="Type DELETE to confirm"
-                  className="w-full rounded border border-[var(--color-figma-error)] bg-[var(--color-figma-bg)] px-2 py-1.5 font-mono text-body text-[color:var(--color-figma-text)] outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+                  className="font-mono"
                 />
-                <div className="flex gap-2">
-                  <button
+                <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2">
+                  <Button
                     onClick={() => {
                       setShowClearConfirm(false);
                       setClearConfirmText("");
                     }}
-                    className="flex-1 rounded border border-[var(--color-figma-border)] px-3 py-1.5 text-body font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
+                    variant="secondary"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleClearAll}
                     disabled={clearConfirmText !== "DELETE" || clearing}
-                    className="flex-1 rounded bg-[var(--color-figma-error)] px-3 py-1.5 text-body font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                    variant="danger"
                   >
-                    {clearing ? "Clearing" : "Delete workspace data"}
-                  </button>
+                    <Trash2 size={13} strokeWidth={1.75} aria-hidden />
+                    {clearing ? "Deleting" : "Delete workspace data"}
+                  </Button>
                 </div>
               </div>
             )}
-          </div>
-
+          </SettingsSection>
         </div>
       </div>
     </>

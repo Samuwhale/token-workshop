@@ -48,7 +48,7 @@ type CreateTemplateSelection = "blank" | GeneratorConfiguredTemplateKind;
 interface GeneratorCreatePanelProps {
   serverUrl: string;
   collections: TokenCollection[];
-  workingCollectionId: string;
+  defaultTargetCollectionId: string;
   initialOutputPrefix?: string | null;
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
   onClose: () => void;
@@ -141,14 +141,15 @@ function getTemplateTaskSummary(
 export function GeneratorCreatePanel({
   serverUrl,
   collections,
-  workingCollectionId,
+  defaultTargetCollectionId,
   initialOutputPrefix,
   perCollectionFlat,
   onClose,
   onOpenGenerator,
 }: GeneratorCreatePanelProps) {
   const initialKind: GeneratorConfiguredTemplateKind = "colorRamp";
-  const initialCollectionId = workingCollectionId || collections[0]?.id || "";
+  const initialCollectionId =
+    defaultTargetCollectionId || collections[0]?.id || "";
   const initialOutputPrefixValue = initialOutputPrefix?.trim() || "";
   const [step, setStep] = useState<CreateStep>("type");
   const [kind, setKind] = useState<GeneratorConfiguredTemplateKind>(initialKind);

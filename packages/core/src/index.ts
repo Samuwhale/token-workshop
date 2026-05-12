@@ -33,6 +33,42 @@ export type {
   SearchHasQualifierValue,
 } from './token-search.js';
 
+// Icons
+export type {
+  IconColorBehavior,
+  IconColorMetadata,
+  IconCodeMetadata,
+  IconFigmaLink,
+  IconRegistryFile,
+  IconRegistrySettings,
+  IconSource,
+  IconStatus,
+  IconSvgMetadata,
+  ManagedIcon,
+} from './icon-types.js';
+export {
+  DEFAULT_ICON_COMPONENT_PREFIX,
+  DEFAULT_ICON_PAGE_NAME,
+  DEFAULT_ICON_SIZE,
+  ICON_REGISTRY_SCHEMA,
+  iconComponentNameFromPath,
+  iconExportNameFromPath,
+  iconIdFromPath,
+  iconNameFromPath,
+  normalizeIconPath,
+} from './icon-naming.js';
+export {
+  analyzeIconSvgColor,
+  createDefaultIconRegistry,
+  createDefaultIconRegistrySettings,
+  extractIconSvgViewBox,
+  hashIconSvgContent,
+  normalizeIconSvgText,
+  normalizeIconRegistryFile,
+  parseIconSvg,
+} from './icon-normalize.js';
+export type { ParsedIconSvg } from './icon-normalize.js';
+
 // Types
 export type {
   TokenWorkshopExtensions,

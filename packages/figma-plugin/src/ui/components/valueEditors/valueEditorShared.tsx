@@ -10,7 +10,7 @@ import { AliasAutocomplete } from '../AliasAutocomplete';
 import { isAlias, extractAliasPath } from '../../../shared/resolveAlias';
 import { FontFamilyPicker } from '../FontFamilyPicker';
 import { AUTHORING } from '../../shared/editorClasses';
-import { IconButton } from '../../primitives';
+import { Button } from '../../primitives';
 
 const REFERENCE_FIELD_ROW_CLASS =
   'tm-value-editor-row tm-value-editor-row--reference relative grid min-w-0 items-stretch gap-1.5 [grid-template-columns:minmax(0,1fr)_auto]';
@@ -29,21 +29,24 @@ function ReferenceToggleButton({
   ariaLabel: string;
 }) {
   return (
-    <IconButton
+    <Button
       type="button"
-      size="md"
+      size="sm"
       onClick={onClick}
       title={title}
       aria-label={ariaLabel}
+      variant={active ? 'ghost' : 'secondary'}
+      wrap
       className={[
-        'tm-value-editor-row__toggle shrink-0 self-stretch',
+        'tm-value-editor-row__toggle shrink-0 self-stretch justify-start',
         active
           ? 'bg-[var(--surface-selected)] text-[color:var(--color-figma-text-accent)] hover:bg-[var(--surface-selected)] hover:text-[color:var(--color-figma-text)]'
           : 'border-[var(--color-figma-border)] text-[color:var(--color-figma-text-tertiary)] hover:border-[color:var(--color-figma-text-tertiary)]',
       ].join(' ')}
     >
       <Link2 size={12} strokeWidth={1.8} aria-hidden />
-    </IconButton>
+      <span className="min-w-0">Reference</span>
+    </Button>
   );
 }
 

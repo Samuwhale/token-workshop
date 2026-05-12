@@ -1,34 +1,26 @@
+import type React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Settings2 } from "lucide-react";
 import { MAX_MODE_COL_PX, MIN_MODE_COL_PX } from "../tokenListTypes";
 
 interface ModeColumnHeaderProps {
   modeName: string;
-  collectionId: string;
-  onManageModes?: (collectionId: string) => void;
-  connected: boolean;
   width: number;
   onResize: (width: number) => void;
+  onReset: () => void;
+  hasLeadingResizeHandle?: boolean;
 }
+
+type ResizeEdge = "start" | "end";
 
 export function ModeColumnHeader({
   modeName,
-  collectionId,
-  onManageModes,
-  connected,
   width,
   onResize,
+  onReset,
+  hasLeadingResizeHandle = false,
 }: ModeColumnHeaderProps) {
-  const [isResizing, setIsResizing] = useState(false);
+  const [resizingEdge, setResizingEdge] = useState<ResizeEdge | null>(null);
   const cellRef = useRef<HTMLDivElement>(null);
-  const handleManageModes = useCallback(
-    (e: React.MouseEvent) => {
-      if (!connected || !onManageModes) return;
-      e.preventDefault();
-      onManageModes(collectionId);
-    },
-    [collectionId, connected, onManageModes],
-  );
 
   const widthRef = useRef(width);
   useEffect(() => {
@@ -36,18 +28,19 @@ export function ModeColumnHeader({
   }, [width]);
 
   const handleResizeMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+    (edge: ResizeEdge, e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       const startX = e.clientX;
       const startWidth = widthRef.current;
-      setIsResizing(true);
+      const multiplier = edge === "start" ? -1 : 1;
+      setResizingEdge(edge);
       const onMove = (me: MouseEvent) => {
         const delta = me.clientX - startX;
-        onResize(startWidth + delta);
+        onResize(startWidth + delta * multiplier);
       };
       const onUp = () => {
-        setIsResizing(false);
+        setResizingEdge(null);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
       };
@@ -57,12 +50,25 @@ export function ModeColumnHeader({
     [onResize],
   );
 
+  const handleResizeDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onReset();
+    },
+    [onReset],
+  );
+
   const handleResizeKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (edge: ResizeEdge, e: React.KeyboardEvent) => {
       const step = 16;
+      const multiplier = edge === "start" ? -1 : 1;
       let next = widthRef.current;
-      if (e.key === "ArrowRight") next = widthRef.current + step;
-      else if (e.key === "ArrowLeft") next = widthRef.current - step;
+      if (e.key === "ArrowRight") {
+        next = widthRef.current + step * multiplier;
+      } else if (e.key === "ArrowLeft") {
+        next = widthRef.current - step * multiplier;
+      }
       else if (e.key === "Home") next = MIN_MODE_COL_PX;
       else if (e.key === "End") next = MAX_MODE_COL_PX;
       else return;
@@ -76,48 +82,46 @@ export function ModeColumnHeader({
     ((width - MIN_MODE_COL_PX) / (MAX_MODE_COL_PX - MIN_MODE_COL_PX)) * 100,
   );
 
+  const renderResizeHandle = (edge: ResizeEdge) => (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`Resize ${modeName} column ${
+        edge === "start" ? "from left edge" : "from right edge"
+      }`}
+      aria-valuenow={widthAriaPct}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      tabIndex={0}
+      onMouseDown={(event) => handleResizeMouseDown(edge, event)}
+      onDoubleClick={handleResizeDoubleClick}
+      onKeyDown={(event) => handleResizeKeyDown(edge, event)}
+      className={`tm-mode-column-header__resize-handle tm-mode-column-header__resize-handle--${edge}${
+        resizingEdge === edge
+          ? " tm-mode-column-header__resize-handle--active"
+          : ""
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className="tm-mode-column-header__resize-grip"
+      />
+    </div>
+  );
+
   return (
     <div
       ref={cellRef}
-      className={`tm-mode-column-header group/mode-column relative min-w-0${isResizing ? " tm-mode-column-header--resizing" : ""}`}
+      className={`tm-mode-column-header group/mode-column relative min-w-0${
+        resizingEdge ? " tm-mode-column-header--resizing" : ""
+      }`}
     >
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label={`Resize ${modeName} column`}
-        aria-valuenow={widthAriaPct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        tabIndex={0}
-        onMouseDown={handleResizeMouseDown}
-        onKeyDown={handleResizeKeyDown}
-        className="tm-mode-column-header__resize-handle"
-      >
-        <span
-          aria-hidden="true"
-          className="tm-mode-column-header__resize-grip"
-        />
-      </div>
-      <div className="tm-mode-column-header__button">
+      {hasLeadingResizeHandle ? renderResizeHandle("start") : null}
+      {renderResizeHandle("end")}
+      <div className="tm-mode-column-header__content">
         <span className="tm-mode-column-header__label min-w-0" title={modeName}>
           {modeName}
         </span>
-        {onManageModes ? (
-          <button
-            type="button"
-            onClick={handleManageModes}
-            disabled={!connected}
-            aria-label="Manage collection modes"
-            className="tm-mode-column-header__button-icon tm-mode-column-header__manage-button"
-            title={
-              connected
-                ? "Manage collection modes"
-                : "Connect to the token library before managing modes"
-            }
-          >
-            <Settings2 size={12} strokeWidth={1.5} aria-hidden="true" />
-          </button>
-        ) : null}
       </div>
     </div>
   );

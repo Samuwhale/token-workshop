@@ -23,6 +23,7 @@ import { resolveCollectionIdForPath } from "@token-workshop/core";
 import { CanvasRouter } from "./CanvasRouter";
 import { ExportRouter } from "./ExportRouter";
 import { GitRouter } from "./GitRouter";
+import { IconsRouter } from "./IconsRouter";
 import { SyncRouter } from "./SyncRouter";
 import { TokenList } from "../components/TokenList";
 import { UnifiedComparePanel } from "../components/UnifiedComparePanel";
@@ -461,6 +462,14 @@ export function PanelRouter({
     useState<string | null | undefined>(undefined);
   const [pendingGeneratorOutputGroup, setPendingGeneratorOutputGroup] =
     useState<string | null>(null);
+  const [
+    activeGeneratorTargetCollectionId,
+    setActiveGeneratorTargetCollectionId,
+  ] = useState<string | null>(null);
+  const previousRouteRef = useRef({
+    topTab: activeTopTab,
+    subTab: activeSubTab,
+  });
   const createLibraryHealthScope = useCallback(
     (overrides?: Partial<HealthScope>): HealthScope => ({
       mode: "current",
@@ -489,6 +498,37 @@ export function PanelRouter({
   const [historyScope, setHistoryScope] = useState<HistoryScope>(() =>
     createLibraryHistoryScope(),
   );
+
+  useEffect(() => {
+    const previousRoute = previousRouteRef.current;
+    previousRouteRef.current = {
+      topTab: activeTopTab,
+      subTab: activeSubTab,
+    };
+
+    if (
+      previousRoute.topTab !== "library" ||
+      previousRoute.subTab !== "generators" ||
+      activeTopTab !== "library" ||
+      activeSubTab !== "tokens" ||
+      !activeGeneratorTargetCollectionId ||
+      !collections.some(
+        (collection) => collection.id === activeGeneratorTargetCollectionId,
+      ) ||
+      activeGeneratorTargetCollectionId === currentCollectionId
+    ) {
+      return;
+    }
+
+    setCurrentCollectionId(activeGeneratorTargetCollectionId);
+  }, [
+    activeGeneratorTargetCollectionId,
+    activeSubTab,
+    activeTopTab,
+    collections,
+    currentCollectionId,
+    setCurrentCollectionId,
+  ]);
 
   const openCollectionIssues = useCallback(
     (collectionId: string, tokenPath?: string) => {
@@ -1361,6 +1401,9 @@ export function PanelRouter({
       health: renderLibraryHealth,
       history: renderLibraryHistory,
     },
+    icons: {
+      icons: () => <IconsRouter />,
+    },
     canvas: {
       inspect: () => renderCanvasSubTab("inspect"),
       repair: () => renderCanvasSubTab("repair"),
@@ -1467,14 +1510,14 @@ export function PanelRouter({
   }
 
   function renderCollectionTabs(
-    section: "tokens" | "generators" | "health" | "history",
+    section: "tokens" | "health" | "history",
   ): ReactNode {
     type CollectionScopeValue = "current" | "all";
     const allCollectionsScope: {
       value: CollectionScopeValue;
       onChange: (value: CollectionScopeValue) => void;
     } | undefined =
-      section === "tokens" || section === "generators"
+      section === "tokens"
         ? undefined
         : {
             value:
@@ -1522,11 +1565,9 @@ export function PanelRouter({
     const tabsCurrentId =
       section === "tokens"
         ? currentCollectionId
-        : section === "generators"
-          ? currentCollectionId
-          : section === "health"
-            ? (healthScope.collectionId ?? currentCollectionId)
-            : (historyScope.collectionId ?? currentCollectionId);
+        : section === "health"
+          ? (healthScope.collectionId ?? currentCollectionId)
+          : (historyScope.collectionId ?? currentCollectionId);
 
     return (
       <CollectionTabs
@@ -1846,9 +1887,9 @@ export function PanelRouter({
             <LazyGeneratorsPanel
               serverUrl={serverUrl}
               collections={collections}
-              workingCollectionId={currentCollectionId}
+              initialCollectionId={currentCollectionId}
               perCollectionFlat={perCollectionFlat}
-              onWorkingCollectionChange={handleLibraryCollectionSelect}
+              onActiveTargetCollectionChange={setActiveGeneratorTargetCollectionId}
               tokenChangeKey={controller.tokenChangeKey}
               initialGeneratorId={pendingGeneratorDocumentId}
               initialView={pendingGeneratorInitialView}
@@ -1879,7 +1920,6 @@ export function PanelRouter({
     );
     return renderLibraryScaffold({
       body,
-      tabs: renderCollectionTabs("generators"),
       contextualPanel: renderTokensContextualPanel(),
     });
   }
