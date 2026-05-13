@@ -1405,7 +1405,10 @@ export function TokenList({
     connected,
     serverUrl,
     collectionId,
+    collections,
     perCollectionFlat: perCollectionFlat ?? {},
+    pathToCollectionId,
+    collectionIdsByPath: collectionIdsByPath ?? {},
     onRefresh,
   });
 

@@ -15,6 +15,7 @@ import {
   getGroupPathPreview,
   getGroupPathValidationError,
 } from '../shared/groupPath';
+import { ensureUniqueSharedAliasPath } from '../hooks/useExtractToAlias';
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
@@ -354,7 +355,17 @@ function ExtractToAliasModal() {
                 <label className="text-secondary text-[color:var(--color-figma-text-secondary)]">Create in collection</label>
                 <select
                   value={newPrimitiveCollectionId}
-                  onChange={e => onSetNewPrimitiveCollectionId(e.target.value)}
+                  onChange={(event) => {
+                    const nextCollectionId = event.target.value;
+                    onSetNewPrimitiveCollectionId(nextCollectionId);
+                    onSetNewPrimitivePath(
+                      ensureUniqueSharedAliasPath(
+                        newPrimitivePath,
+                        Object.keys(perCollectionFlat[nextCollectionId] ?? {}),
+                      ),
+                    );
+                    onSetExtractError('');
+                  }}
                   className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[color:var(--color-figma-text)] text-body focus-visible:border-[var(--color-figma-accent)]"
                 >
                   {collectionIds.map((targetCollectionId) => (

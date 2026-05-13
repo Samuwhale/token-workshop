@@ -360,8 +360,6 @@ export function HealthPanel({
         primitivePath: group.suggestedPrimitivePath,
         primitiveCollectionId: group.suggestedPrimitiveCollectionId,
         sourceTokens: group.tokens,
-        tokenType: sampleEntry.$type,
-        tokenValue: sampleEntry.$value,
       });
       await onRefreshReview();
     } catch (err) {

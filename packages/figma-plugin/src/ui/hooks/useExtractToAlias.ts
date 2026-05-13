@@ -1,20 +1,21 @@
 import { useState, useCallback } from 'react';
 import { apiFetch, ApiError } from '../shared/apiFetch';
-import {
-  createTokenBody,
-  updateToken,
-} from '../shared/tokenMutations';
 import type {
   ExtractAliasMode,
   ExtractAliasTokenDraft,
 } from '../shared/tokenListModalTypes';
 import type { TokenMapEntry } from '../../shared/types';
+import type { TokenCollection } from '@token-workshop/core';
+import { rewireAliasModes } from '../shared/aliasMutations';
 
 export interface UseExtractToAliasParams {
   connected: boolean;
   serverUrl: string;
   collectionId: string;
+  collections: TokenCollection[];
   perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
   onRefresh: () => void;
 }
 
@@ -28,8 +29,6 @@ export interface PromoteToSharedAliasParams {
   primitivePath: string;
   primitiveCollectionId: string;
   sourceTokens: SharedAliasSourceToken[];
-  tokenType?: string;
-  tokenValue: unknown;
 }
 
 function normalizePathSegment(segment: string): string {
@@ -103,8 +102,6 @@ export async function promoteTokensToSharedAlias({
   primitivePath,
   primitiveCollectionId,
   sourceTokens,
-  tokenType,
-  tokenValue,
 }: PromoteToSharedAliasParams): Promise<void> {
   await apiFetch(`${serverUrl}/api/tokens/promote-alias`, {
     method: 'POST',
@@ -113,8 +110,6 @@ export async function promoteTokensToSharedAlias({
       primitivePath,
       primitiveCollectionId,
       sourceTokens,
-      tokenType,
-      tokenValue,
     }),
   });
 }
@@ -123,7 +118,10 @@ export function useExtractToAlias({
   connected,
   serverUrl,
   collectionId,
+  collections,
   perCollectionFlat,
+  pathToCollectionId,
+  collectionIdsByPath,
   onRefresh,
 }: UseExtractToAliasParams) {
   const [extractToken, setExtractToken] = useState<ExtractAliasTokenDraft | null>(null);
@@ -135,7 +133,10 @@ export function useExtractToAlias({
   const [extractError, setExtractError] = useState('');
 
   const handleOpenExtractToAlias = useCallback((path: string, $type?: string, $value?: unknown) => {
-    const suggested = suggestSharedAliasPath([path], $type);
+    const suggested = ensureUniqueSharedAliasPath(
+      suggestSharedAliasPath([path], $type),
+      Object.keys(perCollectionFlat[collectionId] ?? {}),
+    );
     setNewPrimitivePath(suggested);
     setNewPrimitiveCollectionId(collectionId);
     setExistingAlias('');
@@ -143,7 +144,7 @@ export function useExtractToAlias({
     setExtractMode('new');
     setExtractError('');
     setExtractToken({ path, $type, $value });
-  }, [collectionId]);
+  }, [collectionId, perCollectionFlat]);
 
   const handleConfirmExtractToAlias = useCallback(async () => {
     if (!extractToken || !connected) return;
@@ -157,8 +158,6 @@ export function useExtractToAlias({
           primitivePath: newPrimitivePath.trim(),
           primitiveCollectionId: newPrimitiveCollectionId,
           sourceTokens: [{ path: extractToken.path, collectionId: collectionId }],
-          tokenType: extractToken.$type,
-          tokenValue: extractToken.$value,
         });
       } catch (err) {
         setExtractError(err instanceof ApiError ? err.message : 'Failed to create primitive token.');
@@ -173,14 +172,45 @@ export function useExtractToAlias({
         setExtractError('Choose a token path that exists in one collection only.');
         return;
       }
-      await updateToken(serverUrl, collectionId, extractToken.path, createTokenBody({
-        $value: `{${existingAlias}}`,
-      }));
+      const currentCollection = collections.find((collection) => collection.id === collectionId);
+      if (!currentCollection) {
+        setExtractError('Current collection is no longer available.');
+        return;
+      }
+      try {
+        await rewireAliasModes({
+          serverUrl,
+          collection: currentCollection,
+          tokenPath: extractToken.path,
+          targetPath: existingAlias,
+          targetCollectionId: matchingCollections[0],
+          pathToCollectionId,
+          collectionIdsByPath,
+          modeNames: currentCollection.modes.map((mode) => mode.name),
+        });
+      } catch (err) {
+        setExtractError(err instanceof Error ? err.message : 'Failed to update alias modes.');
+        return;
+      }
     }
 
     setExtractToken(null);
     onRefresh();
-  }, [extractToken, extractMode, newPrimitivePath, newPrimitiveCollectionId, existingAlias, connected, serverUrl, collectionId, perCollectionFlat, onRefresh]);
+  }, [
+    collectionId,
+    collectionIdsByPath,
+    collections,
+    connected,
+    existingAlias,
+    extractMode,
+    extractToken,
+    newPrimitiveCollectionId,
+    newPrimitivePath,
+    onRefresh,
+    pathToCollectionId,
+    perCollectionFlat,
+    serverUrl,
+  ]);
 
   return {
     extractToken, setExtractToken,

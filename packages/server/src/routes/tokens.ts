@@ -62,6 +62,11 @@ interface TokenMutationRouteBody {
   $scopes?: string[] | null;
 }
 
+interface TokenPathIndex {
+  pathToCollectionId: Record<string, string>;
+  collectionIdsByPath: Record<string, string[]>;
+}
+
 function getGeneratorManagedPaths(
   flatTokens: Record<string, Token>,
   paths: string[],
@@ -470,10 +475,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return fastify.tokenStore.getTokenDefinitions(tokenPath)[0];
   }
 
-  function buildTokenPathIndex(): {
-    pathToCollectionId: Record<string, string>;
-    collectionIdsByPath: Record<string, string[]>;
-  } {
+  function buildTokenPathIndex(): TokenPathIndex {
     const pathToCollectionId: Record<string, string> = {};
     const collectionIdsByPath: Record<string, string[]> = {};
 
@@ -487,6 +489,65 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     return { pathToCollectionId, collectionIdsByPath };
+  }
+
+  function withTokenPathIndexEntry(
+    pathIndex: TokenPathIndex,
+    tokenPath: string,
+    collectionId: string,
+  ): TokenPathIndex {
+    const collectionIds = pathIndex.collectionIdsByPath[tokenPath] ?? [];
+    return {
+      pathToCollectionId: {
+        ...pathIndex.pathToCollectionId,
+        [tokenPath]: pathIndex.pathToCollectionId[tokenPath] ?? collectionId,
+      },
+      collectionIdsByPath: {
+        ...pathIndex.collectionIdsByPath,
+        [tokenPath]: collectionIds.includes(collectionId)
+          ? collectionIds
+          : [...collectionIds, collectionId],
+      },
+    };
+  }
+
+  function assertAliasPathResolvesToCollectionFromSources({
+    aliasPath,
+    targetCollectionId,
+    sourceTokens,
+    pathIndex,
+  }: {
+    aliasPath: string;
+    targetCollectionId: string;
+    sourceTokens: Array<{ collectionId: string; path: string }>;
+    pathIndex: TokenPathIndex;
+  }): void {
+    const unresolvedSources = sourceTokens.filter((sourceToken) => {
+      const resolution = resolveCollectionIdForPath({
+        path: aliasPath,
+        preferredCollectionId: sourceToken.collectionId,
+        pathToCollectionId: pathIndex.pathToCollectionId,
+        collectionIdsByPath: pathIndex.collectionIdsByPath,
+      });
+      return resolution.collectionId !== targetCollectionId;
+    });
+
+    if (unresolvedSources.length === 0) {
+      return;
+    }
+
+    const preview = unresolvedSources
+      .slice(0, 5)
+      .map((sourceToken) => `"${sourceToken.path}" in "${sourceToken.collectionId}"`)
+      .join(', ');
+    const more =
+      unresolvedSources.length > 5
+        ? ` and ${unresolvedSources.length - 5} more`
+        : '';
+
+    throw new ConflictError(
+      `Alias path "${aliasPath}" from "${targetCollectionId}" cannot be used because that path resolves to a different collection from ${preview}${more}. Choose a primitive path that resolves from every source collection.`,
+    );
   }
 
   function listActiveDependents(
@@ -1212,6 +1273,17 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         if (await fastify.tokenStore.getToken(primitiveCollectionId, primitivePath)) {
           return reply.status(409).send({ error: `Token "${primitivePath}" already exists in collection "${primitiveCollectionId}"` });
         }
+
+        assertAliasPathResolvesToCollectionFromSources({
+          aliasPath: primitivePath,
+          targetCollectionId: primitiveCollectionId,
+          sourceTokens,
+          pathIndex: withTokenPathIndexEntry(
+            buildTokenPathIndex(),
+            primitivePath,
+            primitiveCollectionId,
+          ),
+        });
 
         const collectionDefinitions = new Map<string, TokenCollection>();
         const primitiveCollection =
