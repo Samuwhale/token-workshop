@@ -3,6 +3,8 @@ import type {
   IconColorMetadata,
   IconCodeMetadata,
   IconFigmaLink,
+  IconGeometryBounds,
+  IconGeometryMetadata,
   IconLicenseMetadata,
   IconQualityIssue,
   IconQualityMetadata,
@@ -28,6 +30,9 @@ import {
 
 const SVG_NUMBER_EPSILON = 1e-6;
 const SVG_ROOT_SIZE_ATTRIBUTES = new Set(['width', 'height']);
+const PATH_COMMAND_RE = /[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
+const GEOMETRY_TAGS = new Set(['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']);
+const UNSUPPORTED_GEOMETRY_TAGS = new Set(['use', 'text']);
 const DANGEROUS_SVG_ELEMENTS = new Set([
   'script',
   'foreignobject',
@@ -58,6 +63,7 @@ export function createDefaultIconRegistrySettings(): IconRegistrySettings {
   return {
     componentPrefix: DEFAULT_ICON_COMPONENT_PREFIX,
     defaultSize: DEFAULT_ICON_SIZE,
+    keylinePadding: DEFAULT_ICON_SIZE / 12,
     pageName: DEFAULT_ICON_PAGE_NAME,
   };
 }
@@ -73,6 +79,7 @@ export interface ParsedIconSvg {
   contentHash: string;
   color: IconColorMetadata;
   features: IconSvgFeatureMetadata;
+  geometry: IconGeometryMetadata;
 }
 
 export function parseIconSvg(input: string): ParsedIconSvg {
@@ -81,6 +88,7 @@ export function parseIconSvg(input: string): ParsedIconSvg {
   const hash = hashIconSvgContent(content);
   const color = analyzeIconSvgColor(content);
   const features = analyzeIconSvgFeatures(content);
+  const geometry = analyzeIconSvgGeometry(content);
   return {
     content,
     viewBox: viewBox.value,
@@ -92,6 +100,7 @@ export function parseIconSvg(input: string): ParsedIconSvg {
     contentHash: hash,
     color,
     features,
+    geometry,
   };
 }
 
@@ -356,12 +365,63 @@ export function analyzeIconSvgFeatures(svg: string): IconSvgFeatureMetadata {
   };
 }
 
+export function analyzeIconSvgGeometry(svg: string): IconGeometryMetadata {
+  const content = normalizeIconSvgText(svg);
+  const accumulator = createGeometryAccumulator();
+  const unsupported = new Set<string>();
+  let estimated = false;
+
+  for (const tag of readSvgTags(content)) {
+    const tagName = readTagName(tag);
+    if (!tagName || isIgnoredSvgTag(tagName) || tagName === 'svg') {
+      continue;
+    }
+    if (hasSvgTransform(tag)) {
+      unsupported.add('transform');
+      continue;
+    }
+    if (UNSUPPORTED_GEOMETRY_TAGS.has(tagName)) {
+      unsupported.add(tagName);
+      continue;
+    }
+    if (!GEOMETRY_TAGS.has(tagName)) {
+      continue;
+    }
+
+    const attributes = new Map(
+      readSvgAttributes(tag).map(([name, value]) => [name.toLowerCase(), value] as const),
+    );
+    const result = boundsForSvgGeometryTag(tagName, attributes);
+    if (!result) {
+      unsupported.add(tagName);
+      continue;
+    }
+
+    includeBounds(accumulator, result.bounds);
+    if (result.estimated) {
+      estimated = true;
+    }
+  }
+
+  const bounds = finishGeometryBounds(accumulator);
+  return {
+    precision: bounds
+      ? estimated || unsupported.size > 0
+        ? 'estimated'
+        : 'exact'
+      : 'unknown',
+    bounds,
+    unsupported: Array.from(unsupported).sort(),
+  };
+}
+
 export function analyzeIconQuality(
   svg: IconSvgMetadata,
   settings: IconRegistrySettings,
 ): IconQualityMetadata {
   const issues: IconQualityIssue[] = [];
   const defaultSize = settings.defaultSize;
+  const keylinePadding = settings.keylinePadding;
 
   if (
     !numbersAlmostEqual(svg.viewBoxMinX, 0) ||
@@ -470,6 +530,49 @@ export function analyzeIconQuality(
     });
   }
 
+  const geometry = svg.geometry;
+  if (!geometry.bounds || geometry.unsupported.length > 0) {
+    issues.push({
+      kind: 'geometry-bounds',
+      severity: 'warning',
+      message: geometry.unsupported.length > 0
+        ? `Artwork bounds need review because the SVG uses ${geometry.unsupported.join(', ')}.`
+        : 'Artwork bounds could not be derived from the SVG geometry.',
+    });
+  }
+
+  if (geometry.bounds && geometry.unsupported.length === 0) {
+    const keylineMinX = svg.viewBoxMinX + keylinePadding;
+    const keylineMinY = svg.viewBoxMinY + keylinePadding;
+    const keylineMaxX = svg.viewBoxMinX + svg.viewBoxWidth - keylinePadding;
+    const keylineMaxY = svg.viewBoxMinY + svg.viewBoxHeight - keylinePadding;
+    if (
+      geometry.bounds.minX < keylineMinX - SVG_NUMBER_EPSILON ||
+      geometry.bounds.minY < keylineMinY - SVG_NUMBER_EPSILON ||
+      geometry.bounds.maxX > keylineMaxX + SVG_NUMBER_EPSILON ||
+      geometry.bounds.maxY > keylineMaxY + SVG_NUMBER_EPSILON
+    ) {
+      issues.push({
+        kind: 'keyline-overflow',
+        severity: 'warning',
+        message: `Artwork bounds ${formatIconBounds(geometry.bounds)} extend outside the ${formatSvgNumber(keylinePadding)}px icon keyline.`,
+      });
+    }
+
+    const frameCenterX = svg.viewBoxMinX + svg.viewBoxWidth / 2;
+    const frameCenterY = svg.viewBoxMinY + svg.viewBoxHeight / 2;
+    if (
+      Math.abs(geometry.bounds.centerX - frameCenterX) > keylinePadding / 2 ||
+      Math.abs(geometry.bounds.centerY - frameCenterY) > keylinePadding / 2
+    ) {
+      issues.push({
+        kind: 'off-center',
+        severity: 'warning',
+        message: `Artwork bounds are centered at ${formatSvgNumber(geometry.bounds.centerX)}, ${formatSvgNumber(geometry.bounds.centerY)} instead of the icon frame center.`,
+      });
+    }
+  }
+
   return {
     state: issues.some((issue) => issue.severity === 'error')
       ? 'blocked'
@@ -478,6 +581,398 @@ export function analyzeIconQuality(
         : 'ready',
     issues,
   };
+}
+
+interface GeometryAccumulator {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  hasBounds: boolean;
+}
+
+interface GeometryBoundsResult {
+  bounds: IconGeometryBounds;
+  estimated: boolean;
+}
+
+function createGeometryAccumulator(): GeometryAccumulator {
+  return {
+    minX: Number.POSITIVE_INFINITY,
+    minY: Number.POSITIVE_INFINITY,
+    maxX: Number.NEGATIVE_INFINITY,
+    maxY: Number.NEGATIVE_INFINITY,
+    hasBounds: false,
+  };
+}
+
+function includePoint(
+  accumulator: GeometryAccumulator,
+  x: number,
+  y: number,
+): void {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return;
+  }
+  accumulator.minX = Math.min(accumulator.minX, x);
+  accumulator.minY = Math.min(accumulator.minY, y);
+  accumulator.maxX = Math.max(accumulator.maxX, x);
+  accumulator.maxY = Math.max(accumulator.maxY, y);
+  accumulator.hasBounds = true;
+}
+
+function includeBounds(
+  accumulator: GeometryAccumulator,
+  bounds: IconGeometryBounds,
+): void {
+  includePoint(accumulator, bounds.minX, bounds.minY);
+  includePoint(accumulator, bounds.maxX, bounds.maxY);
+}
+
+function finishGeometryBounds(
+  accumulator: GeometryAccumulator,
+): IconGeometryBounds | null {
+  if (!accumulator.hasBounds) {
+    return null;
+  }
+  return createGeometryBounds(
+    accumulator.minX,
+    accumulator.minY,
+    accumulator.maxX,
+    accumulator.maxY,
+  );
+}
+
+function createGeometryBounds(
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
+): IconGeometryBounds {
+  const width = Math.max(0, maxX - minX);
+  const height = Math.max(0, maxY - minY);
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width,
+    height,
+    centerX: minX + width / 2,
+    centerY: minY + height / 2,
+  };
+}
+
+function boundsForSvgGeometryTag(
+  tagName: string,
+  attributes: Map<string, string>,
+): GeometryBoundsResult | null {
+  switch (tagName) {
+    case 'path':
+      return boundsForPathData(attributes.get('d'));
+    case 'rect':
+      return boundsForRect(attributes);
+    case 'circle':
+      return boundsForCircle(attributes);
+    case 'ellipse':
+      return boundsForEllipse(attributes);
+    case 'line':
+      return boundsForLine(attributes);
+    case 'polyline':
+    case 'polygon':
+      return boundsForPointList(attributes.get('points'));
+    default:
+      return null;
+  }
+}
+
+function boundsForRect(attributes: Map<string, string>): GeometryBoundsResult | null {
+  const x = readSvgNumberAttribute(attributes, 'x') ?? 0;
+  const y = readSvgNumberAttribute(attributes, 'y') ?? 0;
+  const width = readSvgNumberAttribute(attributes, 'width');
+  const height = readSvgNumberAttribute(attributes, 'height');
+  if (width === null || height === null || width < 0 || height < 0) {
+    return null;
+  }
+  return {
+    bounds: createGeometryBounds(x, y, x + width, y + height),
+    estimated: false,
+  };
+}
+
+function boundsForCircle(attributes: Map<string, string>): GeometryBoundsResult | null {
+  const cx = readSvgNumberAttribute(attributes, 'cx') ?? 0;
+  const cy = readSvgNumberAttribute(attributes, 'cy') ?? 0;
+  const radius = readSvgNumberAttribute(attributes, 'r');
+  if (radius === null || radius < 0) {
+    return null;
+  }
+  return {
+    bounds: createGeometryBounds(cx - radius, cy - radius, cx + radius, cy + radius),
+    estimated: false,
+  };
+}
+
+function boundsForEllipse(attributes: Map<string, string>): GeometryBoundsResult | null {
+  const cx = readSvgNumberAttribute(attributes, 'cx') ?? 0;
+  const cy = readSvgNumberAttribute(attributes, 'cy') ?? 0;
+  const rx = readSvgNumberAttribute(attributes, 'rx');
+  const ry = readSvgNumberAttribute(attributes, 'ry');
+  if (rx === null || ry === null || rx < 0 || ry < 0) {
+    return null;
+  }
+  return {
+    bounds: createGeometryBounds(cx - rx, cy - ry, cx + rx, cy + ry),
+    estimated: false,
+  };
+}
+
+function boundsForLine(attributes: Map<string, string>): GeometryBoundsResult | null {
+  const x1 = readSvgNumberAttribute(attributes, 'x1') ?? 0;
+  const y1 = readSvgNumberAttribute(attributes, 'y1') ?? 0;
+  const x2 = readSvgNumberAttribute(attributes, 'x2') ?? 0;
+  const y2 = readSvgNumberAttribute(attributes, 'y2') ?? 0;
+  return {
+    bounds: createGeometryBounds(
+      Math.min(x1, x2),
+      Math.min(y1, y2),
+      Math.max(x1, x2),
+      Math.max(y1, y2),
+    ),
+    estimated: false,
+  };
+}
+
+function boundsForPointList(points: string | undefined): GeometryBoundsResult | null {
+  if (!points?.trim()) {
+    return null;
+  }
+  const values = points
+    .trim()
+    .split(/[\s,]+/)
+    .map((value) => Number(value));
+  if (values.length < 2 || values.length % 2 !== 0 || values.some((value) => !Number.isFinite(value))) {
+    return null;
+  }
+
+  const accumulator = createGeometryAccumulator();
+  for (let index = 0; index < values.length; index += 2) {
+    includePoint(accumulator, values[index], values[index + 1]);
+  }
+  const bounds = finishGeometryBounds(accumulator);
+  return bounds ? { bounds, estimated: false } : null;
+}
+
+function boundsForPathData(pathData: string | undefined): GeometryBoundsResult | null {
+  if (!pathData?.trim()) {
+    return null;
+  }
+
+  const tokens = pathData.match(PATH_COMMAND_RE) ?? [];
+  const accumulator = createGeometryAccumulator();
+  let index = 0;
+  let command = '';
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  let estimated = false;
+
+  while (index < tokens.length) {
+    const token = tokens[index];
+    if (isPathCommandToken(token)) {
+      command = token;
+      index += 1;
+    }
+    if (!command) {
+      return null;
+    }
+
+    const lowerCommand = command.toLowerCase();
+    const relative = command === lowerCommand;
+    if (lowerCommand === 'z') {
+      x = startX;
+      y = startY;
+      includePoint(accumulator, x, y);
+      command = '';
+      continue;
+    }
+
+    const arity = pathCommandArity(lowerCommand);
+    if (arity === 0) {
+      return null;
+    }
+
+    let firstMove = lowerCommand === 'm';
+    while (hasPathNumber(tokens[index]) && index + arity <= tokens.length) {
+      const raw = readPathNumbers(tokens, index, arity);
+      if (!raw) {
+        return null;
+      }
+      index += arity;
+
+      switch (lowerCommand) {
+        case 'm':
+        case 'l': {
+          const next = pathPoint(raw[0], raw[1], x, y, relative);
+          x = next.x;
+          y = next.y;
+          includePoint(accumulator, x, y);
+          if (firstMove) {
+            startX = x;
+            startY = y;
+            firstMove = false;
+            command = relative ? 'l' : 'L';
+          }
+          break;
+        }
+        case 'h':
+          x = relative ? x + raw[0] : raw[0];
+          includePoint(accumulator, x, y);
+          break;
+        case 'v':
+          y = relative ? y + raw[0] : raw[0];
+          includePoint(accumulator, x, y);
+          break;
+        case 'c':
+          estimated = true;
+          includeCurveControlPoints(accumulator, raw, x, y, relative, 6);
+          x = relative ? x + raw[4] : raw[4];
+          y = relative ? y + raw[5] : raw[5];
+          includePoint(accumulator, x, y);
+          break;
+        case 's':
+        case 'q':
+          estimated = true;
+          includeCurveControlPoints(accumulator, raw, x, y, relative, 4);
+          x = relative ? x + raw[2] : raw[2];
+          y = relative ? y + raw[3] : raw[3];
+          includePoint(accumulator, x, y);
+          break;
+        case 't': {
+          estimated = true;
+          const next = pathPoint(raw[0], raw[1], x, y, relative);
+          x = next.x;
+          y = next.y;
+          includePoint(accumulator, x, y);
+          break;
+        }
+        case 'a': {
+          estimated = true;
+          const next = pathPoint(raw[5], raw[6], x, y, relative);
+          includePoint(accumulator, x - Math.abs(raw[0]), y - Math.abs(raw[1]));
+          includePoint(accumulator, x + Math.abs(raw[0]), y + Math.abs(raw[1]));
+          x = next.x;
+          y = next.y;
+          includePoint(accumulator, x, y);
+          break;
+        }
+      }
+    }
+  }
+
+  const bounds = finishGeometryBounds(accumulator);
+  return bounds ? { bounds, estimated } : null;
+}
+
+function includeCurveControlPoints(
+  accumulator: GeometryAccumulator,
+  raw: number[],
+  currentX: number,
+  currentY: number,
+  relative: boolean,
+  usedValues: number,
+): void {
+  for (let index = 0; index < usedValues; index += 2) {
+    const point = pathPoint(raw[index], raw[index + 1], currentX, currentY, relative);
+    includePoint(accumulator, point.x, point.y);
+  }
+}
+
+function pathPoint(
+  x: number,
+  y: number,
+  currentX: number,
+  currentY: number,
+  relative: boolean,
+): { x: number; y: number } {
+  return relative ? { x: currentX + x, y: currentY + y } : { x, y };
+}
+
+function pathCommandArity(command: string): number {
+  switch (command) {
+    case 'm':
+    case 'l':
+    case 't':
+      return 2;
+    case 'h':
+    case 'v':
+      return 1;
+    case 's':
+    case 'q':
+      return 4;
+    case 'c':
+      return 6;
+    case 'a':
+      return 7;
+    default:
+      return 0;
+  }
+}
+
+function readPathNumbers(
+  tokens: string[],
+  start: number,
+  count: number,
+): number[] | null {
+  const values: number[] = [];
+  for (let offset = 0; offset < count; offset += 1) {
+    const token = tokens[start + offset];
+    if (!hasPathNumber(token)) {
+      return null;
+    }
+    const value = Number(token);
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    values.push(value);
+  }
+  return values;
+}
+
+function hasPathNumber(token: string | undefined): boolean {
+  return token !== undefined && !isPathCommandToken(token);
+}
+
+function isPathCommandToken(token: string | undefined): boolean {
+  return Boolean(token && /^[AaCcHhLlMmQqSsTtVvZz]$/.test(token));
+}
+
+function readSvgNumberAttribute(
+  attributes: Map<string, string>,
+  name: string,
+): number | null {
+  const raw = attributes.get(name);
+  if (raw === undefined) {
+    return null;
+  }
+  const value = Number(raw.trim());
+  return Number.isFinite(value) ? value : null;
+}
+
+function hasSvgTransform(tag: string): boolean {
+  return readSvgAttributes(tag).some(([name, value]) =>
+    name.toLowerCase() === 'transform' && value.trim().length > 0,
+  );
+}
+
+function formatIconBounds(bounds: IconGeometryBounds): string {
+  return [
+    formatSvgNumber(bounds.minX),
+    formatSvgNumber(bounds.minY),
+    formatSvgNumber(bounds.maxX),
+    formatSvgNumber(bounds.maxY),
+  ].join(', ');
 }
 
 export function normalizeIconRegistryFile(input: unknown): IconRegistryFile {
@@ -536,6 +1031,11 @@ function normalizeIconRegistrySettings(input: unknown): IconRegistrySettings {
     defaults.defaultSize,
     'settings.defaultSize',
   );
+  const keylinePadding = readOptionalNonNegativeNumber(
+    input.keylinePadding,
+    defaults.keylinePadding,
+    'settings.keylinePadding',
+  );
   const pageName = readOptionalString(
     input.pageName,
     defaults.pageName,
@@ -545,6 +1045,7 @@ function normalizeIconRegistrySettings(input: unknown): IconRegistrySettings {
   return {
     componentPrefix,
     defaultSize,
+    keylinePadding,
     pageName,
   };
 }
@@ -713,6 +1214,10 @@ function normalizeIconSvgMetadata(input: unknown, index: number): IconSvgMetadat
     input.features === undefined && content
       ? analyzeIconSvgFeatures(content)
       : normalizeIconSvgFeatures(input.features, index);
+  const geometry =
+    input.geometry === undefined && content
+      ? analyzeIconSvgGeometry(content)
+      : normalizeIconGeometryMetadata(input.geometry, index);
   const viewBox = readRequiredString(
     input.viewBox,
     `icons[${index}].svg.viewBox`,
@@ -760,8 +1265,63 @@ function normalizeIconSvgMetadata(input: unknown, index: number): IconSvgMetadat
     ),
     color,
     features,
+    geometry,
     ...(content ? { content } : {}),
   };
+}
+
+function normalizeIconGeometryMetadata(
+  input: unknown,
+  index: number,
+): IconGeometryMetadata {
+  if (input === undefined) {
+    return createUnknownIconGeometryMetadata();
+  }
+  if (!isRecord(input)) {
+    throw new Error(`icons[${index}].svg.geometry must be an object.`);
+  }
+  const precision = readRequiredString(
+    input.precision,
+    `icons[${index}].svg.geometry.precision`,
+  );
+  if (
+    precision !== 'exact' &&
+    precision !== 'estimated' &&
+    precision !== 'unknown'
+  ) {
+    throw new Error(
+      `icons[${index}].svg.geometry.precision must be exact, estimated, or unknown.`,
+    );
+  }
+  const bounds = input.bounds === null || input.bounds === undefined
+    ? null
+    : normalizeIconGeometryBounds(input.bounds, index);
+
+  return {
+    precision,
+    bounds,
+    unsupported: readStringArray(
+      input.unsupported ?? [],
+      `icons[${index}].svg.geometry.unsupported`,
+    ),
+  };
+}
+
+function normalizeIconGeometryBounds(
+  input: unknown,
+  index: number,
+): IconGeometryBounds {
+  if (!isRecord(input)) {
+    throw new Error(`icons[${index}].svg.geometry.bounds must be an object.`);
+  }
+  const minX = readRequiredNumber(input.minX, `icons[${index}].svg.geometry.bounds.minX`);
+  const minY = readRequiredNumber(input.minY, `icons[${index}].svg.geometry.bounds.minY`);
+  const maxX = readRequiredNumber(input.maxX, `icons[${index}].svg.geometry.bounds.maxX`);
+  const maxY = readRequiredNumber(input.maxY, `icons[${index}].svg.geometry.bounds.maxY`);
+  if (maxX < minX || maxY < minY) {
+    throw new Error(`icons[${index}].svg.geometry.bounds must have ordered min and max values.`);
+  }
+  return createGeometryBounds(minX, minY, maxX, maxY);
 }
 
 function normalizeIconSvgFeatures(
@@ -948,6 +1508,14 @@ function createEmptyIconSvgFeatureMetadata(): IconSvgFeatureMetadata {
   };
 }
 
+function createUnknownIconGeometryMetadata(): IconGeometryMetadata {
+  return {
+    precision: 'unknown',
+    bounds: null,
+    unsupported: [],
+  };
+}
+
 function isIconColorBehavior(value: string): value is IconColorBehavior {
   return (
     value === 'inheritable' ||
@@ -1018,6 +1586,20 @@ function readOptionalPositiveNumber(
   }
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     throw new Error(`${field} must be a positive number.`);
+  }
+  return value;
+}
+
+function readOptionalNonNegativeNumber(
+  value: unknown,
+  fallback: number,
+  field: string,
+): number {
+  if (value === undefined) {
+    return fallback;
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${field} must be a non-negative number.`);
   }
   return value;
 }

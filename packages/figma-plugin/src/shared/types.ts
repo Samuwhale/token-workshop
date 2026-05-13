@@ -824,6 +824,8 @@ export interface IconUsageAuditInput {
   status: 'draft' | 'published' | 'deprecated' | 'blocked';
   qualityState: 'ready' | 'review' | 'blocked';
   svgHash: string;
+  colorBehavior: IconColorBehavior;
+  targetSize: number;
   componentId?: string | null;
   componentKey?: string | null;
   lastSyncedHash?: string | null;
@@ -856,6 +858,8 @@ export type IconUsageAuditFindingType =
   | 'unmanaged-icon-component'
   | 'unpromoted-icon-slot'
   | 'raw-icon-layer'
+  | 'icon-frame-mismatch'
+  | 'hardcoded-icon-color'
   | 'unknown-managed-component';
 
 export interface IconUsageAuditFinding {
@@ -878,6 +882,8 @@ export interface IconUsageAuditSummary {
   unmanagedComponents: number;
   unpromotedIconSlots: number;
   rawIconLayers: number;
+  frameIssues: number;
+  colorIssues: number;
   deprecatedUsages: number;
   blockedUsages: number;
   staleComponents: number;

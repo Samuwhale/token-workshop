@@ -39,6 +39,9 @@ export type {
   IconColorMetadata,
   IconCodeMetadata,
   IconFigmaLink,
+  IconGeometryBounds,
+  IconGeometryMetadata,
+  IconGeometryPrecision,
   IconLicenseMetadata,
   IconQualityIssue,
   IconQualityIssueKind,
@@ -67,6 +70,7 @@ export {
 export {
   analyzeIconSvgColor,
   analyzeIconSvgFeatures,
+  analyzeIconSvgGeometry,
   analyzeIconQuality,
   createDefaultIconRegistry,
   createDefaultIconRegistrySettings,

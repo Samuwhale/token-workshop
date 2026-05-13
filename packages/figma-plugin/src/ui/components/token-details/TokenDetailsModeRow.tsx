@@ -327,6 +327,7 @@ export function TokenDetailsModeRow({
 
   const showHeader = showModeLabel;
   const showInlineModified = modified && !showHeader;
+  const emptyModeCopyAction = isEmpty ? copyActions[0] : undefined;
   const controls = editable ? (
     <div
       className={joinClasses(
@@ -553,6 +554,18 @@ export function TokenDetailsModeRow({
                   </span>
                 </div>
               ) : null}
+              {emptyModeCopyAction ? (
+                <button
+                  type="button"
+                  onClick={emptyModeCopyAction.onClick}
+                  aria-label={`${emptyModeCopyAction.label} into ${modeName}`}
+                  title={`${emptyModeCopyAction.label} into ${modeName}`}
+                  className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
+                >
+                  <Copy size={12} strokeWidth={1.5} aria-hidden />
+                  <span>{emptyModeCopyAction.label}</span>
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() =>
@@ -568,7 +581,10 @@ export function TokenDetailsModeRow({
                     ? `Use source value for ${modeName}`
                     : `Add ${defaultModeValueLabel} for ${modeName}`
                 }
-                className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
+                className={joinClasses(
+                  "tm-token-mode-row__empty-action",
+                  !emptyModeCopyAction && "tm-token-mode-row__empty-action--primary",
+                )}
               >
                 {hasInheritedValue ? "Use source value" : "Add value"}
               </button>

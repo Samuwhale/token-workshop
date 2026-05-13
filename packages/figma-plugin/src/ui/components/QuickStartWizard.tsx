@@ -139,7 +139,7 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
           Create your first collection
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Add modes like Light and Dark now. Tokens in this collection get one value for each mode.
+          Add Light, Dark, or any context your designs need. Each mode stores its own token values.
         </p>
       </div>
 
@@ -389,13 +389,13 @@ export function QuickStartWizard({
                 : "Choose what to add next."}
           </p>
           <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Create a token, import a library, or extract values from the canvas.
+            Create a token, import an existing system, or extract values from the canvas.
           </p>
         </div>
         <div className="px-2 pb-2">
           <NextStepButton
             title="Create token"
-            description="Add the first token to this collection."
+            description="Add one token and set its values for each mode."
             onClick={() => {
               if (effectiveCollectionId) {
                 onAuthorFirstToken?.(effectiveCollectionId);

@@ -27,7 +27,7 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   },
   "start-new": {
     title: "Create your first collection",
-    description: "Name the collection, then add modes like Light and Dark. Every token gets one value in each mode.",
+    description: "Name the collection, then add Light, Dark, or any context your designs need.",
   },
 };
 
@@ -38,7 +38,7 @@ function getStartHereBranchCopy(
   if (branch === "start-new" && !connected) {
     return {
       title: "Connect to your token library",
-      description: "Start the shared token library, then continue creating collections and modes.",
+      description: "Start the shared token library, then continue with collections and modes.",
     };
   }
   return START_HERE_BRANCH_COPY[branch];
@@ -182,7 +182,7 @@ export function WelcomePrompt({
     <div>
       <ActionRow
         title="Create your first collection"
-        description="Create a collection for related tokens and modes."
+        description="Group related tokens and define their modes."
         onClick={() => setBranch("start-new")}
         emphasized
         icon={<Plus size={14} strokeWidth={1.75} aria-hidden />}

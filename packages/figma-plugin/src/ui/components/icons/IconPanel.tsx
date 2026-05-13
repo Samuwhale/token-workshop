@@ -262,6 +262,20 @@ function iconFrameLabel(icon: ManagedIcon): string {
   return `${width}x${height}`;
 }
 
+function iconGeometryLabel(icon: ManagedIcon): string {
+  const bounds = icon.svg.geometry.bounds;
+  if (!bounds) {
+    return icon.svg.geometry.precision === "unknown"
+      ? "Unknown"
+      : `Unknown (${icon.svg.geometry.precision})`;
+  }
+  return [
+    `${formatIconDimension(bounds.minX)}, ${formatIconDimension(bounds.minY)}`,
+    `${formatIconDimension(bounds.maxX)}, ${formatIconDimension(bounds.maxY)}`,
+    icon.svg.geometry.precision,
+  ].join(" / ");
+}
+
 function formatIconDimension(value: number): string {
   return Number.isInteger(value)
     ? String(value)
@@ -291,7 +305,12 @@ function iconHasFrameIssue(icon: ManagedIcon, defaultIconSize: number): boolean 
     !iconFrameDimensionMatches(icon.svg.viewBoxMinX, 0) ||
     !iconFrameDimensionMatches(icon.svg.viewBoxMinY, 0) ||
     !iconFrameDimensionMatches(icon.svg.viewBoxWidth, defaultIconSize) ||
-    !iconFrameDimensionMatches(icon.svg.viewBoxHeight, defaultIconSize)
+    !iconFrameDimensionMatches(icon.svg.viewBoxHeight, defaultIconSize) ||
+    icon.quality.issues.some((issue) =>
+      issue.kind === "geometry-bounds" ||
+      issue.kind === "keyline-overflow" ||
+      issue.kind === "off-center",
+    )
   );
 }
 
@@ -519,7 +538,10 @@ function runIconUsageAudit(
   });
 }
 
-function iconUsageAuditInput(icon: ManagedIcon): ScanIconUsageMessage["icons"][number] {
+function iconUsageAuditInput(
+  icon: ManagedIcon,
+  targetSize: number,
+): ScanIconUsageMessage["icons"][number] {
   return {
     id: icon.id,
     name: icon.name,
@@ -528,6 +550,8 @@ function iconUsageAuditInput(icon: ManagedIcon): ScanIconUsageMessage["icons"][n
     status: icon.status,
     qualityState: icon.quality.state,
     svgHash: icon.svg.hash,
+    colorBehavior: icon.svg.color.behavior,
+    targetSize,
     componentId: icon.figma.componentId,
     componentKey: icon.figma.componentKey,
     lastSyncedHash: icon.figma.lastSyncedHash,
@@ -857,6 +881,8 @@ function IconUsageAuditPanel({
             <span>{formatHealthCount(result.summary.unmanagedComponents, "unmanaged component")}</span>
             <span>{formatHealthCount(result.summary.unpromotedIconSlots, "slot to set up")}</span>
             <span>{formatHealthCount(result.summary.rawIconLayers, "raw layer")}</span>
+            <span>{formatHealthCount(result.summary.frameIssues, "size issue")}</span>
+            <span>{formatHealthCount(result.summary.colorIssues, "color issue")}</span>
             <span>{formatHealthCount(result.summary.blockedUsages, "blocked use")}</span>
             <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
           </div>
@@ -924,6 +950,7 @@ function IconInspector({
       : []),
     ["ViewBox", icon.svg.viewBox],
     ["Frame", iconFrameLabel(icon)],
+    ["Bounds", iconGeometryLabel(icon)],
     ["Color", colorBehaviorLabel(icon)],
     ["Paint", colorDetails(icon)],
     ["Readiness", qualityStateLabel(icon)],
@@ -1589,7 +1616,7 @@ export function IconPanel() {
       const result = await runIconUsageAudit({
         type: "scan-icon-usage",
         scope: auditScope,
-        icons: icons.map(iconUsageAuditInput),
+        icons: icons.map((icon) => iconUsageAuditInput(icon, defaultIconSize)),
       });
       setAuditResult(result);
       if (result.error) {
@@ -1612,6 +1639,8 @@ export function IconPanel() {
           unmanagedComponents: 0,
           unpromotedIconSlots: 0,
           rawIconLayers: 0,
+          frameIssues: 0,
+          colorIssues: 0,
           deprecatedUsages: 0,
           blockedUsages: 0,
           staleComponents: 0,
@@ -1624,7 +1653,7 @@ export function IconPanel() {
     } finally {
       setAuditLoading(false);
     }
-  }, [auditLoading, auditScope, icons]);
+  }, [auditLoading, auditScope, defaultIconSize, icons]);
 
   if (!connected) {
     return (

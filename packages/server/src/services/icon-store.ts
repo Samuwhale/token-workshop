@@ -906,6 +906,7 @@ function parseSvgMetadata(
     contentHash: parsed.contentHash,
     color: parsed.color,
     features: parsed.features,
+    geometry: parsed.geometry,
     ...(keepContent ? { content: parsed.content } : {}),
   };
 }
@@ -921,6 +922,7 @@ function parseSvgContent(svgText: string): {
   contentHash: string;
   color: ManagedIcon["svg"]["color"];
   features: ManagedIcon["svg"]["features"];
+  geometry: ManagedIcon["svg"]["geometry"];
 } {
   try {
     return parseIconSvg(svgText);

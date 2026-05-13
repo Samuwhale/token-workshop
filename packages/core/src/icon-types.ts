@@ -53,6 +53,7 @@ export interface IconSvgMetadata {
   contentHash: string;
   color: IconColorMetadata;
   features: IconSvgFeatureMetadata;
+  geometry: IconGeometryMetadata;
   content?: string;
 }
 
@@ -75,6 +76,25 @@ export interface IconSvgFeatureMetadata {
   hasRasterImages: boolean;
 }
 
+export type IconGeometryPrecision = 'exact' | 'estimated' | 'unknown';
+
+export interface IconGeometryBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
+export interface IconGeometryMetadata {
+  precision: IconGeometryPrecision;
+  bounds: IconGeometryBounds | null;
+  unsupported: string[];
+}
+
 export type IconQualityState = 'ready' | 'review' | 'blocked';
 
 export type IconQualityIssueSeverity = 'warning' | 'error';
@@ -93,7 +113,10 @@ export type IconQualityIssueKind =
   | 'mask'
   | 'clip-path'
   | 'filter'
-  | 'raster-image';
+  | 'raster-image'
+  | 'geometry-bounds'
+  | 'keyline-overflow'
+  | 'off-center';
 
 export interface IconQualityIssue {
   kind: IconQualityIssueKind;
@@ -133,6 +156,7 @@ export interface ManagedIcon {
 export interface IconRegistrySettings {
   componentPrefix: string;
   defaultSize: number;
+  keylinePadding: number;
   pageName: string;
 }
 

@@ -12,6 +12,7 @@ import {
   isIconSlotCandidateNode,
   looksLikeIconLayerName,
 } from './iconSlotUtils.js';
+import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 
 type AuditNode = SceneNode | ComponentNode;
 
@@ -296,6 +297,8 @@ async function collectInstanceFindings(
     });
   }
 
+  collectManagedIconFrameFinding(instance, findings, icon);
+  collectManagedIconColorFinding(instance, findings, icon);
   collectUnpromotedIconSlotFinding(instance, findings, icon);
 
   if (data?.hash && data.hash !== icon.svgHash) {
@@ -354,6 +357,73 @@ function collectRawLayerFinding(
     nodeType: node.type,
     pageName: pageNameForNode(node),
     message: `${node.name} looks like raw icon artwork. Replace it with a managed icon if it belongs to the system library.`,
+  });
+}
+
+function collectManagedIconFrameFinding(
+  instance: InstanceNode,
+  findings: IconUsageAuditFinding[],
+  icon: IconUsageAuditInput,
+): void {
+  const targetSize = icon.targetSize;
+  if (!Number.isFinite(targetSize) || targetSize <= 0) {
+    return;
+  }
+  if (
+    numbersAlmostEqual(instance.width, targetSize) &&
+    numbersAlmostEqual(instance.height, targetSize)
+  ) {
+    return;
+  }
+
+  findings.push({
+    id: findingId('icon-frame-mismatch', instance.id, icon.id),
+    type: 'icon-frame-mismatch',
+    action: 'repair',
+    severity: 'warning',
+    iconId: icon.id,
+    iconName: icon.name,
+    iconPath: icon.path,
+    nodeId: instance.id,
+    nodeName: instance.name,
+    nodeType: instance.type,
+    pageName: pageNameForNode(instance),
+    message: `${instance.name} uses ${icon.name} at ${formatDimension(instance.width)}x${formatDimension(instance.height)} instead of the ${formatDimension(targetSize)}x${formatDimension(targetSize)} icon frame.`,
+  });
+}
+
+function collectManagedIconColorFinding(
+  instance: InstanceNode,
+  findings: IconUsageAuditFinding[],
+  icon: IconUsageAuditInput,
+): void {
+  if (
+    icon.colorBehavior !== 'inheritable' &&
+    icon.colorBehavior !== 'hardcoded-monotone'
+  ) {
+    return;
+  }
+  if (hasTokenAlignedIconPaint(instance)) {
+    return;
+  }
+  const ownerComponent = findNearestMainComponent(instance);
+  if (!ownerComponent) {
+    return;
+  }
+
+  findings.push({
+    id: findingId('hardcoded-icon-color', instance.id, icon.id),
+    type: 'hardcoded-icon-color',
+    action: 'repair',
+    severity: 'info',
+    iconId: icon.id,
+    iconName: icon.name,
+    iconPath: icon.path,
+    nodeId: instance.id,
+    nodeName: instance.name,
+    nodeType: instance.type,
+    pageName: pageNameForNode(instance),
+    message: `${instance.name} uses monotone icon ${icon.name} inside ${ownerComponent.name} without a token or variable color binding.`,
   });
 }
 
@@ -422,6 +492,8 @@ function summarizeIconUsageFindings(
     unmanagedComponents: countFindings(findings, 'unmanaged-icon-component'),
     unpromotedIconSlots: countFindings(findings, 'unpromoted-icon-slot'),
     rawIconLayers: countFindings(findings, 'raw-icon-layer'),
+    frameIssues: countFindings(findings, 'icon-frame-mismatch'),
+    colorIssues: countFindings(findings, 'hardcoded-icon-color'),
     deprecatedUsages: countFindings(findings, 'deprecated-usage'),
     blockedUsages: countFindings(findings, 'blocked-icon-usage'),
     staleComponents: countFindings(findings, 'stale-component'),
@@ -435,6 +507,8 @@ function emptyIconUsageSummary(): IconUsageAuditSummary {
     unmanagedComponents: 0,
     unpromotedIconSlots: 0,
     rawIconLayers: 0,
+    frameIssues: 0,
+    colorIssues: 0,
     deprecatedUsages: 0,
     blockedUsages: 0,
     staleComponents: 0,
@@ -463,6 +537,51 @@ function isRawIconCandidate(node: SceneNode): boolean {
   return isIconSlotCandidateNode(node);
 }
 
+function hasTokenAlignedIconPaint(node: SceneNode): boolean {
+  if (hasStoredTokenColorBinding(node) || hasBoundVariableColorPaint(node)) {
+    return true;
+  }
+  if (!('children' in node)) {
+    return false;
+  }
+  return node.children.some((child) => hasTokenAlignedIconPaint(child));
+}
+
+function hasStoredTokenColorBinding(node: SceneNode): boolean {
+  return Boolean(
+    node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, 'fill') ||
+      node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, 'stroke'),
+  );
+}
+
+function hasBoundVariableColorPaint(node: SceneNode): boolean {
+  return (
+    hasBoundVariableColorInPaints(readPaints(node, 'fills')) ||
+    hasBoundVariableColorInPaints(readPaints(node, 'strokes'))
+  );
+}
+
+function readPaints(
+  node: SceneNode,
+  property: 'fills' | 'strokes',
+): readonly Paint[] {
+  if (!(property in node)) {
+    return [];
+  }
+  const paints = (node as Partial<GeometryMixin>)[property];
+  return Array.isArray(paints) ? paints : [];
+}
+
+function hasBoundVariableColorInPaints(paints: readonly Paint[]): boolean {
+  return paints.some((paint) => {
+    if (paint.visible === false) {
+      return false;
+    }
+    const boundVariables = (paint as { boundVariables?: { color?: { id?: string } } }).boundVariables;
+    return Boolean(boundVariables?.color?.id);
+  });
+}
+
 function pageNameForNode(node: BaseNode): string | undefined {
   let current: BaseNode | null = node;
   while (current) {
@@ -476,4 +595,14 @@ function pageNameForNode(node: BaseNode): string | undefined {
 
 function findingId(...parts: Array<string | null | undefined>): string {
   return parts.filter(Boolean).join(':');
+}
+
+function numbersAlmostEqual(left: number, right: number): boolean {
+  return Math.abs(left - right) <= 0.01;
+}
+
+function formatDimension(value: number): string {
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }

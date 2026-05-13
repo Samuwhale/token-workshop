@@ -197,7 +197,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Each token gets one value per mode.
+          Each mode stores its own value.
         </span>
       </div>
 
