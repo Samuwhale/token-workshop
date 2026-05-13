@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
-import { createTimeoutSignal } from '../shared/apiFetch';
+import { createTimeoutSignal, isNetworkError } from '../shared/apiFetch';
+import { isAbortError } from '../shared/utils';
 
 const DEFAULT_URL = 'http://localhost:9400';
 
@@ -13,6 +14,19 @@ function getQueryServerUrl(): string | null {
   } catch {
     return null;
   }
+}
+
+function isExpectedHealthFailure(err: unknown): boolean {
+  return (
+    isAbortError(err) ||
+    isNetworkError(err) ||
+    (err instanceof Error && err.name === 'TimeoutError')
+  );
+}
+
+function logUnexpectedHealthFailure(label: string, err: unknown): void {
+  if (isExpectedHealthFailure(err)) return;
+  console.warn(label, err);
 }
 
 export function useServerConnection() {
@@ -57,7 +71,7 @@ export function useServerConnection() {
       const res = await fetch(`${url}/api/health`, { signal: createTimeoutSignal(2000) });
       return res.ok;
     } catch (err) {
-      console.warn('[useServerConnection] health check failed:', err);
+      logUnexpectedHealthFailure('[useServerConnection] health check failed:', err);
       return false;
     }
   }, []);
@@ -118,7 +132,7 @@ export function useServerConnection() {
           prevConnected = ok;
         }
       } catch (err) {
-        console.warn('[useServerConnection] health poll failed:', err);
+        logUnexpectedHealthFailure('[useServerConnection] health poll failed:', err);
         if (!cancelled) {
           if (prevConnected === true) {
             fireDisconnect();

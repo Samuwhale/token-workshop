@@ -71,6 +71,12 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
   // without being recreated on every sync start/end (which caused stale closure races).
   const syncingRef = useRef(false);
 
+  const clearResultTimer = useCallback(() => {
+    if (!clearTimer.current) return;
+    clearTimeout(clearTimer.current);
+    clearTimer.current = undefined;
+  }, []);
+
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const msg = getPluginMessageFromEvent<
@@ -84,22 +90,27 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
         syncingRef.current = false;
         setSyncing(false);
         setProgress(null);
+        clearResultTimer();
         setResult(msg as SyncCompleteMessage);
-        clearTimer.current = setTimeout(() => setResult(null), 3000);
+        clearTimer.current = setTimeout(() => {
+          clearTimer.current = undefined;
+          setResult(null);
+        }, 3000);
       }
     };
     window.addEventListener('message', handler);
     return () => {
       window.removeEventListener('message', handler);
-      if (clearTimer.current) clearTimeout(clearTimer.current);
+      clearResultTimer();
     };
-  }, []);
+  }, [clearResultTimer]);
 
   const sync = useCallback(async (scope: 'page' | 'selection') => {
     if (!connected || syncingRef.current) return;
     syncingRef.current = true;
     setSyncing(true);
     setSyncError(null);
+    clearResultTimer();
     setResult(null);
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
@@ -120,7 +131,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
       syncingRef.current = false;
       setSyncing(false);
     }
-  }, [serverUrl, connected, onNetworkError]);
+  }, [serverUrl, connected, onNetworkError, clearResultTimer]);
 
   return { syncing, syncProgress: progress, syncResult: result, syncError, sync };
 }
@@ -162,6 +173,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
         );
         if (!cancelled) setGitHasChanges(data.status != null && !data.status.isClean);
       } catch (err) {
+        if (cancelled) return;
         if (isAbortError(err)) return;
         if (isNetworkError(err)) {
           markDisconnected();
