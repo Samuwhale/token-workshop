@@ -382,7 +382,7 @@ export function ValueCell({
                 : true,
               secondaryClassName: isDerivation
                 ? undefined
-                : "text-[color:var(--color-figma-text-secondary)]",
+                : "tm-value-cell__line--wrap text-[color:var(--color-figma-text-secondary)]",
               primaryStyle: presentation?.primaryStyle,
               secondaryStyle: presentation?.secondaryStyle,
             },

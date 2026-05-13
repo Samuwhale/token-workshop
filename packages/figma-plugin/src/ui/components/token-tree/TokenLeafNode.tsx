@@ -129,7 +129,7 @@ function AliasResolutionChain({
 
   return (
     <div
-      className="flex flex-col bg-[var(--color-figma-bg-secondary)]"
+      className="flex flex-col"
       style={{
         paddingLeft: `${computePaddingLeft(depth, 12)}px`,
       }}
@@ -141,9 +141,9 @@ function AliasResolutionChain({
         return (
           <div
             key={step.path + index}
-            className="flex items-center gap-1 py-0.5 px-2 min-h-[18px]"
+            className="flex min-w-0 items-start gap-1 py-0.5 px-2 min-h-[18px]"
           >
-            <div className="flex items-center gap-0.5 shrink-0 w-3 justify-center">
+            <div className="mt-[3px] flex items-center gap-0.5 shrink-0 w-3 justify-center">
               {isFirst ? (
                 <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" />
               ) : (
@@ -166,7 +166,7 @@ function AliasResolutionChain({
             {!isFirst ? (
               <button
                 type="button"
-                className={`text-secondary font-mono shrink-0 transition-colors ${step.isError ? "text-[color:var(--color-figma-text-error)]" : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:underline"}`}
+                className={`min-w-0 rounded-[var(--radius-sm)] text-left text-secondary font-mono transition-colors whitespace-normal break-words [overflow-wrap:anywhere] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-1 ${step.isError ? "text-[color:var(--color-figma-text-error)]" : "text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text-accent)] hover:underline"}`}
                 onClick={() =>
                   !step.isError && onNavigateToAlias?.(step.path, sourceTokenPath)
                 }
@@ -175,21 +175,21 @@ function AliasResolutionChain({
                 {step.path}
               </button>
             ) : (
-              <span className="text-secondary font-mono text-[color:var(--color-figma-text-accent)] shrink-0">
+              <span className="min-w-0 text-secondary font-mono text-[color:var(--color-figma-text-accent)] whitespace-normal break-words [overflow-wrap:anywhere]">
                 {step.path}
               </span>
             )}
 
             {step.collectionId ? (
               <span
-                className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-tertiary)] shrink-0`}
+                className={`mt-px ${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-tertiary)] shrink-0`}
               >
                 {step.collectionId}
               </span>
             ) : null}
 
             {isConcrete && step.value != null && !isAlias(step.value) ? (
-              <span className="flex items-center gap-1 ml-auto shrink-0">
+              <span className="mt-px flex items-center gap-1 ml-auto shrink-0">
                 <ValuePreview type={step.$type} value={step.value} size={12} />
                 <span className="text-secondary font-mono text-[color:var(--color-figma-text)] font-medium">
                   {formatValue(step.$type, step.value)}
@@ -199,7 +199,7 @@ function AliasResolutionChain({
 
             {step.isError ? (
               <span
-                className={`${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-error)] italic`}
+                className={`mt-px ${BADGE_TEXT_CLASS} text-[color:var(--color-figma-text-error)] italic`}
               >
                 {step.errorMsg}
               </span>
@@ -431,12 +431,19 @@ export const TokenLeafNode = memo(
     const isFavorite = starredPaths?.has(node.path) ?? false;
     const isRowActive =
       isSelected || rovingFocusPath === node.path || isPreviewed;
-    const selectionControlVisibilityClass = "opacity-100";
+    const selectionControlVisibilityClass =
+      isSelected || selectionActive || isRowActive
+        ? "opacity-100 pointer-events-auto"
+        : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
     const overflowActionVisibilityClass = selectionActive
       ? "hidden"
       : contextMenuPos || isRowActive
         ? "opacity-100"
         : "opacity-95 group-hover:opacity-100 group-focus-within:opacity-100";
+    const quickApplyVisibilityClass =
+      contextMenuPos || isRowActive
+        ? "opacity-100 pointer-events-auto"
+        : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
     const rowStateClass = isHighlighted
       ? "bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40"
       : isSelected
@@ -895,6 +902,17 @@ export const TokenLeafNode = memo(
       const entry = allTokensFlat[node.path];
       return getQuickBindTargets(node.$type, entry?.$scopes, selectedNodes);
     }, [node.$type, node.path, allTokensFlat, selectedNodes]);
+    const canApplyToSelection =
+      !selectionActive &&
+      selectedNodes.length > 0 &&
+      !!node.$type &&
+      (node.$type === "composition" ||
+        (TOKEN_PROPERTY_MAP[node.$type]?.length ?? 0) > 0);
+    const quickBindLabel =
+      quickBindTargets?.length === 1
+        ? `Apply as ${PROPERTY_LABELS[quickBindTargets[0]]}`
+        : "Apply to selection";
+    const quickBindTitle = `${quickBindLabel}: ${formatDisplayPath(node.path, node.name)}`;
     const reorderPos =
       dragOverReorder?.path === node.path ? dragOverReorder.position : null;
 
@@ -1156,6 +1174,24 @@ export const TokenLeafNode = memo(
                   )}
                 </span>
               ))}
+              {canApplyToSelection ? (
+                <div
+                  className={`tm-token-tree-row__quick-apply shrink-0 transition-opacity ${quickApplyVisibilityClass}`}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleContextMenuApply();
+                    }}
+                    title={quickBindTitle}
+                    aria-label={`${quickBindLabel} for ${formatDisplayPath(node.path, node.name)}`}
+                    className="tm-token-tree-row__icon-button"
+                  >
+                    <ArrowRight size={12} strokeWidth={1.5} aria-hidden="true" />
+                  </button>
+                </div>
+              ) : null}
               <div
                 className={`tm-token-tree-row__overflow-control shrink-0 transition-opacity ${overflowActionVisibilityClass}`}
               >
@@ -1271,7 +1307,7 @@ export const TokenLeafNode = memo(
                         className={MENU_ITEM_CLASS}
                       >
                         <ArrowRight {...MENU_ICON_PROPS} />
-                        <span className="flex-1">Bind to selection</span>
+                        <span className="flex-1">Apply to selection</span>
                         {quickBindTargets?.length === 1 && (
                           <span className={MENU_SHORTCUT_CLASS}>{PROPERTY_LABELS[quickBindTargets[0]]}</span>
                         )}

@@ -2782,6 +2782,15 @@ button.tm-status-row:not(:disabled):hover {
   white-space: nowrap;
 }
 
+.tm-value-cell__line--wrap {
+  display: -webkit-box;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 @container (max-width: 260px) {
   .tm-value-cell__wrapper {
     align-items: flex-start;
@@ -2936,6 +2945,7 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-token-tree-row__selection-control,
+.tm-token-tree-row__quick-apply,
 .tm-token-tree-row__overflow-control {
   transition:
     opacity var(--motion-fast) var(--ease-standard),
@@ -3159,6 +3169,11 @@ button.tm-status-row:not(:disabled):hover {
     pointer-events: auto !important;
   }
 
+  .tm-token-tree-row__quick-apply {
+    opacity: 0.72 !important;
+    pointer-events: auto !important;
+  }
+
   .tm-token-tree-row__overflow-control {
     opacity: 0.68 !important;
   }
@@ -3166,6 +3181,11 @@ button.tm-status-row:not(:disabled):hover {
 
 @container (max-width: 480px) {
   .tm-token-tree-row__selection-control {
+    opacity: 0.72 !important;
+    pointer-events: auto !important;
+  }
+
+  .tm-token-tree-row__quick-apply {
     opacity: 0.72 !important;
     pointer-events: auto !important;
   }
